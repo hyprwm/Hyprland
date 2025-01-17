@@ -15,20 +15,20 @@ bool CHyprlandSurface::good() const {
 void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
     m_pResource = std::move(resource);
 
-    if (!m_pResource->resource())
+    if UNLIKELY (!m_pResource->resource())
         return;
 
     m_pResource->setDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
     m_pResource->setOnDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
 
     m_pResource->setSetOpacity([this](CHyprlandSurfaceV1* resource, uint32_t opacity) {
-        if (!m_pSurface) {
+        if UNLIKELY (!m_pSurface) {
             m_pResource->error(HYPRLAND_SURFACE_V1_ERROR_NO_SURFACE, "set_opacity called for destroyed wl_surface");
             return;
         }
 
         auto fOpacity = wl_fixed_to_double(opacity);
-        if (fOpacity < 0.0 || fOpacity > 1.0) {
+        if UNLIKELY (fOpacity < 0.0 || fOpacity > 1.0) {
             m_pResource->error(HYPRLAND_SURFACE_V1_ERROR_OUT_OF_RANGE, "set_opacity called with an opacity value larger than 1.0 or smaller than 0.0.");
             return;
         }
@@ -104,7 +104,7 @@ void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, ui
                               .first->second.get();
     }
 
-    if (!hyprlandSurface->good()) {
+    if UNLIKELY (!hyprlandSurface->good()) {
         manager->noMemory();
         m_mSurfaces.erase(surface);
     }

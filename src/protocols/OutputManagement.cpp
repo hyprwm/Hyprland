@@ -8,7 +8,7 @@
 using namespace Aquamarine;
 
 COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     LOGM(LOG, "New OutputManager registered");
@@ -23,7 +23,7 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(re
         const auto RESOURCE = PROTO::outputManagement->m_vConfigurations.emplace_back(
             makeShared<COutputConfiguration>(makeShared<CZwlrOutputConfigurationV1>(resource->client(), resource->version(), id), self.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             PROTO::outputManagement->m_vConfigurations.pop_back();
             return;
@@ -48,13 +48,13 @@ bool COutputManager::good() {
 }
 
 void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
-    if (stopped)
+    if UNLIKELY (stopped)
         return;
 
     const auto RESOURCE =
         PROTO::outputManagement->m_vHeads.emplace_back(makeShared<COutputHead>(makeShared<CZwlrOutputHeadV1>(resource->client(), resource->version(), 0), pMonitor));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::outputManagement->m_vHeads.pop_back();
         return;
@@ -90,7 +90,7 @@ void COutputManager::sendDone() {
 }
 
 COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setRelease([this](CZwlrOutputHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
@@ -213,7 +213,7 @@ void COutputHead::updateMode() {
 void COutputHead::makeAndSendNewMode(SP<Aquamarine::SOutputMode> mode) {
     const auto RESOURCE = PROTO::outputManagement->m_vModes.emplace_back(makeShared<COutputMode>(makeShared<CZwlrOutputModeV1>(resource->client(), resource->version(), 0), mode));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::outputManagement->m_vModes.pop_back();
         return;
@@ -229,7 +229,7 @@ PHLMONITOR COutputHead::monitor() {
 }
 
 COutputMode::COutputMode(SP<CZwlrOutputModeV1> resource_, SP<Aquamarine::SOutputMode> mode_) : resource(resource_), mode(mode_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setRelease([this](CZwlrOutputModeV1* r) { PROTO::outputManagement->destroyResource(this); });
@@ -258,7 +258,7 @@ SP<Aquamarine::SOutputMode> COutputMode::getMode() {
 }
 
 COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resource_, SP<COutputManager> owner_) : resource(resource_), owner(owner_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwlrOutputConfigurationV1* r) { PROTO::outputManagement->destroyResource(this); });
@@ -282,7 +282,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         const auto RESOURCE = PROTO::outputManagement->m_vConfigurationHeads.emplace_back(
             makeShared<COutputConfigurationHead>(makeShared<CZwlrOutputConfigurationHeadV1>(resource->client(), resource->version(), id), PMONITOR));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             PROTO::outputManagement->m_vConfigurationHeads.pop_back();
             return;
@@ -428,7 +428,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
 }
 
 COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CZwlrOutputConfigurationHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
@@ -581,7 +581,7 @@ COutputManagementProtocol::COutputManagementProtocol(const wl_interface* iface, 
 void COutputManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<COutputManager>(makeShared<CZwlrOutputManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

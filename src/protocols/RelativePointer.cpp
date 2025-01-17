@@ -4,7 +4,7 @@
 #include <algorithm>
 
 CRelativePointer::CRelativePointer(SP<CZwpRelativePointerV1> resource_) : resource(resource_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     pClient = resource->client();
@@ -50,7 +50,7 @@ void CRelativePointerProtocol::onGetRelativePointer(CZwpRelativePointerManagerV1
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vRelativePointers.emplace_back(std::make_unique<CRelativePointer>(makeShared<CZwpRelativePointerV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vRelativePointers.pop_back();
         return;

@@ -10,7 +10,7 @@ void CTextInputV3::SState::reset() {
 }
 
 CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     LOGM(LOG, "New tiv3 at {:016x}", (uintptr_t)this);
@@ -129,7 +129,7 @@ void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vTextInputs.emplace_back(makeShared<CTextInputV3>(makeShared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vTextInputs.pop_back();
         LOGM(ERR, "Failed to create a tiv3 resource");

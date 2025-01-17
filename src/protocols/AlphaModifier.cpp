@@ -15,7 +15,7 @@ bool CAlphaModifier::good() {
 void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
     m_pResource = std::move(resource);
 
-    if (!m_pResource->resource())
+    if UNLIKELY (!m_pResource->resource())
         return;
 
     m_pResource->setDestroy([this](CWpAlphaModifierSurfaceV1* resource) { destroy(); });
@@ -98,7 +98,7 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
                 .first->second.get();
     }
 
-    if (!alphaModifier->good()) {
+    if UNLIKELY (!alphaModifier->good()) {
         manager->noMemory();
         m_mAlphaModifiers.erase(surface);
     }

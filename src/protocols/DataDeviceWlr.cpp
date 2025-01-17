@@ -4,7 +4,7 @@
 #include "core/Seat.hpp"
 
 CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
@@ -34,7 +34,7 @@ bool CWLRDataOffer::good() {
 }
 
 void CWLRDataOffer::sendData() {
-    if (!source)
+    if UNLIKELY (!source)
         return;
 
     for (auto const& m : source->mimes()) {
@@ -43,7 +43,7 @@ void CWLRDataOffer::sendData() {
 }
 
 CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDataDevice> device_) : device(device_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -104,7 +104,7 @@ void CWLRDataSource::error(uint32_t code, const std::string& msg) {
 }
 
 CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
@@ -173,7 +173,7 @@ void CWLRDataDevice::sendPrimarySelection(SP<CWLRDataOffer> selection) {
 }
 
 CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataControlManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwlrDataControlManagerV1* r) { PROTO::dataWlr->destroyResource(this); });
@@ -182,7 +182,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
     resource->setGetDataDevice([this](CZwlrDataControlManagerV1* r, uint32_t id, wl_resource* seat) {
         const auto RESOURCE = PROTO::dataWlr->m_vDevices.emplace_back(makeShared<CWLRDataDevice>(makeShared<CZwlrDataControlDeviceV1>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::dataWlr->m_vDevices.pop_back();
             return;
@@ -208,7 +208,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
         const auto RESOURCE =
             PROTO::dataWlr->m_vSources.emplace_back(makeShared<CWLRDataSource>(makeShared<CZwlrDataControlSourceV1>(r->client(), r->version(), id), device.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::dataWlr->m_vSources.pop_back();
             return;
@@ -236,7 +236,7 @@ CDataDeviceWLRProtocol::CDataDeviceWLRProtocol(const wl_interface* iface, const 
 void CDataDeviceWLRProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLRDataControlManagerResource>(makeShared<CZwlrDataControlManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

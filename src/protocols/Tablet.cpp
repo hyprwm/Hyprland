@@ -9,7 +9,7 @@
 #include <cstring>
 
 CTabletPadStripV2Resource::CTabletPadStripV2Resource(SP<CZwpTabletPadStripV2> resource_, uint32_t id_) : id(id_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletPadStripV2* r) { PROTO::tablet->destroyResource(this); });
@@ -21,7 +21,7 @@ bool CTabletPadStripV2Resource::good() {
 }
 
 CTabletPadRingV2Resource::CTabletPadRingV2Resource(SP<CZwpTabletPadRingV2> resource_, uint32_t id_) : id(id_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletPadRingV2* r) { PROTO::tablet->destroyResource(this); });
@@ -33,7 +33,7 @@ bool CTabletPadRingV2Resource::good() {
 }
 
 CTabletPadGroupV2Resource::CTabletPadGroupV2Resource(SP<CZwpTabletPadGroupV2> resource_, size_t idx_) : idx(idx_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletPadGroupV2* r) { PROTO::tablet->destroyResource(this); });
@@ -58,7 +58,7 @@ void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, SP<Aquamarine::ITab
         const auto RESOURCE =
             PROTO::tablet->m_vStrips.emplace_back(makeShared<CTabletPadStripV2Resource>(makeShared<CZwpTabletPadStripV2>(resource->client(), resource->version(), 0), i));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             PROTO::tablet->m_vStrips.pop_back();
             return;
@@ -71,7 +71,7 @@ void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, SP<Aquamarine::ITab
         const auto RESOURCE =
             PROTO::tablet->m_vRings.emplace_back(makeShared<CTabletPadRingV2Resource>(makeShared<CZwpTabletPadRingV2>(resource->client(), resource->version(), 0), i));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             PROTO::tablet->m_vRings.pop_back();
             return;
@@ -84,7 +84,7 @@ void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, SP<Aquamarine::ITab
 }
 
 CTabletPadV2Resource::CTabletPadV2Resource(SP<CZwpTabletPadV2> resource_, SP<CTabletPad> pad_, SP<CTabletSeat> seat_) : pad(pad_), seat(seat_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletPadV2* r) { PROTO::tablet->destroyResource(this); });
@@ -114,7 +114,7 @@ void CTabletPadV2Resource::createGroup(SP<Aquamarine::ITabletPad::STabletPadGrou
     const auto RESOURCE =
         PROTO::tablet->m_vGroups.emplace_back(makeShared<CTabletPadGroupV2Resource>(makeShared<CZwpTabletPadGroupV2>(resource->client(), resource->version(), 0), idx));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::tablet->m_vGroups.pop_back();
         return;
@@ -126,7 +126,7 @@ void CTabletPadV2Resource::createGroup(SP<Aquamarine::ITabletPad::STabletPadGrou
 }
 
 CTabletV2Resource::CTabletV2Resource(SP<CZwpTabletV2> resource_, SP<CTablet> tablet_, SP<CTabletSeat> seat_) : tablet(tablet_), seat(seat_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletV2* r) { PROTO::tablet->destroyResource(this); });
@@ -149,7 +149,7 @@ void CTabletV2Resource::sendData() {
 }
 
 CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<CTabletTool> tool_, SP<CTabletSeat> seat_) : tool(tool_), seat(seat_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletToolV2* r) { PROTO::tablet->destroyResource(this); });
@@ -228,7 +228,7 @@ void CTabletToolV2Resource::sendFrame(bool removeSource) {
 }
 
 CTabletSeat::CTabletSeat(SP<CZwpTabletSeatV2> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpTabletSeatV2* r) { PROTO::tablet->destroyResource(this); });
@@ -243,7 +243,7 @@ void CTabletSeat::sendTool(SP<CTabletTool> tool) {
     const auto RESOURCE =
         PROTO::tablet->m_vTools.emplace_back(makeShared<CTabletToolV2Resource>(makeShared<CZwpTabletToolV2>(resource->client(), resource->version(), 0), tool, self.lock()));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::tablet->m_vTools.pop_back();
         return;
@@ -259,7 +259,7 @@ void CTabletSeat::sendPad(SP<CTabletPad> pad) {
     const auto RESOURCE =
         PROTO::tablet->m_vPads.emplace_back(makeShared<CTabletPadV2Resource>(makeShared<CZwpTabletPadV2>(resource->client(), resource->version(), 0), pad, self.lock()));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::tablet->m_vPads.pop_back();
         return;
@@ -275,7 +275,7 @@ void CTabletSeat::sendTablet(SP<CTablet> tablet) {
     const auto RESOURCE =
         PROTO::tablet->m_vTablets.emplace_back(makeShared<CTabletV2Resource>(makeShared<CZwpTabletV2>(resource->client(), resource->version(), 0), tablet, self.lock()));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         resource->noMemory();
         PROTO::tablet->m_vTablets.pop_back();
         return;
@@ -357,7 +357,7 @@ void CTabletV2Protocol::destroyResource(CTabletPadStripV2Resource* resource) {
 void CTabletV2Protocol::onGetSeat(CZwpTabletManagerV2* pMgr, uint32_t id, wl_resource* seat) {
     const auto RESOURCE = m_vSeats.emplace_back(makeShared<CTabletSeat>(makeShared<CZwpTabletSeatV2>(pMgr->client(), pMgr->version(), id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vSeats.pop_back();
         return;

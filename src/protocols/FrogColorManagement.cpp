@@ -3,7 +3,7 @@
 #include "protocols/core/Subcompositor.hpp"
 
 CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([](CFrogColorManagementFactoryV1* r) { LOGM(TRACE, "Destroy frog_color_management at {:x} (generated default)", (uintptr_t)r); });
@@ -24,7 +24,7 @@ CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_
 
         const auto RESOURCE = PROTO::frogColorManagement->m_vSurfaces.emplace_back(
             makeShared<CFrogColorManagementSurface>(makeShared<CFrogColorManagedSurface>(r->client(), r->version(), id), SURF));
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::frogColorManagement->m_vSurfaces.pop_back();
             return;
@@ -39,14 +39,14 @@ bool CFrogColorManager::good() {
 }
 
 CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSurface> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
 
     if (!surface->colorManagement.valid()) {
         const auto RESOURCE = PROTO::colorManagement->m_vSurfaces.emplace_back(makeShared<CColorManagementSurface>(surface_));
-        if (!RESOURCE) {
+        if UNLIKELY (!RESOURCE) {
             resource->noMemory();
             PROTO::colorManagement->m_vSurfaces.pop_back();
             return;
@@ -141,7 +141,7 @@ CFrogColorManagementProtocol::CFrogColorManagementProtocol(const wl_interface* i
 void CFrogColorManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CFrogColorManager>(makeShared<CFrogColorManagementFactoryV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

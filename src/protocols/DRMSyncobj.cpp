@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -104,7 +104,7 @@ bool CDRMSyncobjSurfaceResource::good() {
 }
 
 CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, int fd_) : fd(fd_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -135,31 +135,31 @@ bool CDRMSyncobjTimelineResource::good() {
 }
 
 CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpLinuxDrmSyncobjManagerV1* r) { PROTO::sync->destroyResource(this); });
     resource->setDestroy([this](CWpLinuxDrmSyncobjManagerV1* r) { PROTO::sync->destroyResource(this); });
 
     resource->setGetSurface([this](CWpLinuxDrmSyncobjManagerV1* r, uint32_t id, wl_resource* surf) {
-        if (!surf) {
+        if UNLIKELY (!surf) {
             resource->error(-1, "Invalid surface");
             return;
         }
 
         auto SURF = CWLSurfaceResource::fromResource(surf);
-        if (!SURF) {
+        if UNLIKELY (!SURF) {
             resource->error(-1, "Invalid surface (2)");
             return;
         }
 
-        if (SURF->syncobj) {
+        if UNLIKELY (SURF->syncobj) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_SURFACE_EXISTS, "Surface already has a syncobj attached");
             return;
         }
 
         auto RESOURCE = makeShared<CDRMSyncobjSurfaceResource>(makeShared<CWpLinuxDrmSyncobjSurfaceV1>(resource->client(), resource->version(), id), SURF);
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             return;
         }
@@ -172,7 +172,7 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjMana
 
     resource->setImportTimeline([this](CWpLinuxDrmSyncobjManagerV1* r, uint32_t id, int32_t fd) {
         auto RESOURCE = makeShared<CDRMSyncobjTimelineResource>(makeShared<CWpLinuxDrmSyncobjTimelineV1>(resource->client(), resource->version(), id), fd);
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             return;
         }
@@ -195,7 +195,7 @@ CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& v
 void CDRMSyncobjProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CDRMSyncobjManagerResource>(makeShared<CWpLinuxDrmSyncobjManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

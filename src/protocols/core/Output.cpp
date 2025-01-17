@@ -4,7 +4,7 @@
 #include "../../helpers/Monitor.hpp"
 
 CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonitor) : monitor(pMonitor), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -94,12 +94,12 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
 }
 
 void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    if (defunct)
+    if UNLIKELY (defunct)
         Debug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
 
     const auto RESOURCE = m_vOutputs.emplace_back(makeShared<CWLOutputResource>(makeShared<CWlOutput>(client, ver, id), monitor.lock()));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vOutputs.pop_back();
         return;
@@ -128,7 +128,7 @@ SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
 }
 
 void CWLOutputProtocol::remove() {
-    if (defunct)
+    if UNLIKELY (defunct)
         return;
 
     defunct = true;
@@ -140,7 +140,7 @@ bool CWLOutputProtocol::isDefunct() {
 }
 
 void CWLOutputProtocol::sendDone() {
-    if (defunct)
+    if UNLIKELY (defunct)
         return;
 
     for (auto const& r : m_vOutputs) {

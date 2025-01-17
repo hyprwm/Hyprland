@@ -4,7 +4,7 @@
 
 CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_) :
     surface(surface_), parent(parent_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlSubsurface* r) { destroy(); });
@@ -142,7 +142,7 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
 }
 
 CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlSubcompositor* r) { PROTO::subcompositor->destroyResource(this); });
@@ -152,12 +152,12 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         auto SURF   = CWLSurfaceResource::fromResource(surface);
         auto PARENT = CWLSurfaceResource::fromResource(parent);
 
-        if (!SURF || !PARENT || SURF == PARENT) {
+        if UNLIKELY (!SURF || !PARENT || SURF == PARENT) {
             r->error(WL_SUBCOMPOSITOR_ERROR_BAD_SURFACE, "Invalid surface/parent");
             return;
         }
 
-        if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+        if UNLIKELY (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
             r->error(-1, "Surface already has a different role");
             return;
         }
@@ -170,7 +170,7 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         } else
             t1Parent = PARENT;
 
-        if (t1Parent == SURF) {
+        if UNLIKELY (t1Parent == SURF) {
             r->error(WL_SUBCOMPOSITOR_ERROR_BAD_PARENT, "Bad parent, t1 parent == surf");
             return;
         }
@@ -178,7 +178,7 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         const auto RESOURCE =
             PROTO::subcompositor->m_vSurfaces.emplace_back(makeShared<CWLSubsurfaceResource>(makeShared<CWlSubsurface>(r->client(), r->version(), id), SURF, PARENT));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::subcompositor->m_vSurfaces.pop_back();
             return;
@@ -205,7 +205,7 @@ CWLSubcompositorProtocol::CWLSubcompositorProtocol(const wl_interface* iface, co
 void CWLSubcompositorProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLSubcompositorResource>(makeShared<CWlSubcompositor>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpDrmLeaseV1* r) { PROTO::lease->destroyResource(this); });
@@ -79,7 +79,7 @@ CDRMLeaseResource::~CDRMLeaseResource() {
 }
 
 CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpDrmLeaseRequestV1* r) { PROTO::lease->destroyResource(this); });
@@ -109,7 +109,7 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> reso
         }
 
         auto RESOURCE = makeShared<CDRMLeaseResource>(makeShared<CWpDrmLeaseV1>(resource->client(), resource->version(), id), self.lock());
-        if (!RESOURCE) {
+        if UNLIKELY (!RESOURCE) {
             resource->noMemory();
             return;
         }
@@ -131,7 +131,7 @@ SP<CDRMLeaseConnectorResource> CDRMLeaseConnectorResource::fromResource(wl_resou
 }
 
 CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpDrmLeaseConnectorV1* r) { PROTO::lease->destroyResource(this); });
@@ -160,7 +160,7 @@ void CDRMLeaseConnectorResource::sendData() {
 }
 
 CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpDrmLeaseDeviceV1* r) { PROTO::lease->destroyResource(this); });
@@ -168,7 +168,7 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
 
     resource->setCreateLeaseRequest([this](CWpDrmLeaseDeviceV1* r, uint32_t id) {
         auto RESOURCE = makeShared<CDRMLeaseRequestResource>(makeShared<CWpDrmLeaseRequestV1>(resource->client(), resource->version(), id));
-        if (!RESOURCE) {
+        if UNLIKELY (!RESOURCE) {
             resource->noMemory();
             return;
         }
@@ -209,7 +209,7 @@ void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
         return;
 
     auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(makeShared<CWpDrmLeaseConnectorV1>(resource->client(), resource->version(), 0), monitor);
-    if (!RESOURCE) {
+    if UNLIKELY (!RESOURCE) {
         resource->noMemory();
         return;
     }
@@ -262,7 +262,7 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
 void CDRMLeaseProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CDRMLeaseDeviceResource>(makeShared<CWpDrmLeaseDeviceV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

@@ -7,7 +7,7 @@
 #include "../helpers/Monitor.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CHyprlandCtmControlManagerV1* pMgr) { PROTO::ctm->destroyResource(this); });
@@ -17,12 +17,12 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
                                         wl_fixed_t mat5, wl_fixed_t mat6, wl_fixed_t mat7, wl_fixed_t mat8) {
         const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
 
-        if (!OUTPUTRESOURCE)
+        if UNLIKELY (!OUTPUTRESOURCE)
             return; // ?!
 
         const auto PMONITOR = OUTPUTRESOURCE->monitor.lock();
 
-        if (!PMONITOR)
+        if UNLIKELY (!PMONITOR)
             return; // ?!?!
 
         const std::array<float, 9> MAT = {wl_fixed_to_double(mat0), wl_fixed_to_double(mat1), wl_fixed_to_double(mat2), wl_fixed_to_double(mat3), wl_fixed_to_double(mat4),
@@ -72,7 +72,7 @@ void CHyprlandCTMControlProtocol::bindManager(wl_client* client, void* data, uin
 
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CHyprlandCTMControlResource>(makeShared<CHyprlandCtmControlManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

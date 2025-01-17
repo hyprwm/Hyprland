@@ -6,12 +6,12 @@
 #include "../render/Renderer.hpp"
 
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     auto OUTPUTRES = CWLOutputResource::fromResource(output);
 
-    if (!OUTPUTRES) {
+    if UNLIKELY (!OUTPUTRES) {
         LOGM(ERR, "No output in CGammaControl");
         resource->sendFailed();
         return;
@@ -19,14 +19,14 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     pMonitor = OUTPUTRES->monitor;
 
-    if (!pMonitor || !pMonitor->output) {
+    if UNLIKELY (!pMonitor || !pMonitor->output) {
         LOGM(ERR, "No CMonitor");
         resource->sendFailed();
         return;
     }
 
     for (auto const& g : PROTO::gamma->m_vGammaControllers) {
-        if (g->pMonitor == pMonitor) {
+        if UNLIKELY (g->pMonitor == pMonitor) {
             resource->sendFailed();
             return;
         }
@@ -34,7 +34,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     gammaSize = pMonitor->output->getGammaSize();
 
-    if (gammaSize <= 0) {
+    if UNLIKELY (gammaSize <= 0) {
         LOGM(ERR, "Output {} doesn't support gamma", pMonitor->szName);
         resource->sendFailed();
         return;
@@ -46,7 +46,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->setOnDestroy([this](CZwlrGammaControlV1* gamma) { PROTO::gamma->destroyGammaControl(this); });
 
     resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
-        if (!pMonitor) {
+        if UNLIKELY (!pMonitor) {
             LOGM(ERR, "setGamma for a dead monitor");
             resource->sendFailed();
             close(fd);
@@ -56,14 +56,14 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         LOGM(LOG, "setGamma for {}", pMonitor->szName);
 
         int fdFlags = fcntl(fd, F_GETFL, 0);
-        if (fdFlags < 0) {
+        if UNLIKELY (fdFlags < 0) {
             LOGM(ERR, "Failed to get fd flags");
             resource->sendFailed();
             close(fd);
             return;
         }
 
-        if (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
+        if UNLIKELY (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
             LOGM(ERR, "Failed to set fd flags");
             resource->sendFailed();
             close(fd);
@@ -126,7 +126,7 @@ bool CGammaControl::good() {
 }
 
 void CGammaControl::applyToMonitor() {
-    if (!pMonitor || !pMonitor->output)
+    if UNLIKELY (!pMonitor || !pMonitor->output)
         return; // ??
 
     LOGM(LOG, "setting to monitor {}", pMonitor->szName);
@@ -179,7 +179,7 @@ void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, 
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(makeShared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vGammaControllers.pop_back();
         return;

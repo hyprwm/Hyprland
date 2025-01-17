@@ -5,7 +5,7 @@
 #include <algorithm>
 
 CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : resource(resource_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource->setDestroy([this](CXdgActivationTokenV1* r) { PROTO::activation->destroyToken(this); });
@@ -18,7 +18,7 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
     resource->setCommit([this](CXdgActivationTokenV1* r) {
         // TODO: should we send a protocol error of already_used here
         // if it was used? the protocol spec doesn't say _when_ it should be sent...
-        if (committed) {
+        if UNLIKELY (committed) {
             LOGM(WARN, "possible protocol error, two commits from one token. Ignoring.");
             return;
         }
@@ -36,7 +36,7 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
         auto count = std::count_if(PROTO::activation->m_vSentTokens.begin(), PROTO::activation->m_vSentTokens.end(),
                                    [this](const auto& other) { return other.client == resource->client(); });
 
-        if (count > 10) {
+        if UNLIKELY (count > 10) {
             // remove first token. Too many, dear app.
             for (auto i = PROTO::activation->m_vSentTokens.begin(); i != PROTO::activation->m_vSentTokens.end(); ++i) {
                 if (i->client == resource->client()) {
@@ -70,7 +70,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setActivate([this](CXdgActivationV1* pMgr, const char* token, wl_resource* surface) {
         auto TOKEN = std::find_if(m_vSentTokens.begin(), m_vSentTokens.end(), [token](const auto& t) { return t.token == token; });
 
-        if (TOKEN == m_vSentTokens.end()) {
+        if UNLIKELY (TOKEN == m_vSentTokens.end()) {
             LOGM(WARN, "activate event for non-existent token {}??", token);
             return;
         }
@@ -81,7 +81,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
         SP<CWLSurfaceResource> surf    = CWLSurfaceResource::fromResource(surface);
         const auto             PWINDOW = g_pCompositor->getWindowFromSurface(surf);
 
-        if (!PWINDOW) {
+        if UNLIKELY (!PWINDOW) {
             LOGM(WARN, "activate event for non-window or gone surface with token {}, ignoring", token);
             return;
         }
@@ -102,7 +102,7 @@ void CXDGActivationProtocol::onGetToken(CXdgActivationV1* pMgr, uint32_t id) {
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vTokens.emplace_back(std::make_unique<CXDGActivationToken>(makeShared<CXdgActivationTokenV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vTokens.pop_back();
         return;

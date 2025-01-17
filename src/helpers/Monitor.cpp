@@ -1,6 +1,6 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
-#include "macros.hpp"
+#include "../macros.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"

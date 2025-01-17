@@ -39,7 +39,17 @@ using namespace Hyprutils::String;
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "../version.h"
+
+#include "../Compositor.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../render/Renderer.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')

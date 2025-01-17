@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <sys/stat.h>
 #include <filesystem>
+#include "../helpers/MiscFunctions.hpp"
 
 #include "../plugins/PluginSystem.hpp"
 #include "../signal-safe.hpp"

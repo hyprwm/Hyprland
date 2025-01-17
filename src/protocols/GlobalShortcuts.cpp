@@ -1,5 +1,4 @@
 #include "GlobalShortcuts.hpp"
-#include "../Compositor.hpp"
 
 CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_) : resource(resource_) {
     if (!good())

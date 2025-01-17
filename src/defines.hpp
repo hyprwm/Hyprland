@@ -1,3 +1,5 @@
+#pragma once
+
 #include "includes.hpp"
 #include "debug/Log.hpp"
 #include "helpers/Color.hpp"

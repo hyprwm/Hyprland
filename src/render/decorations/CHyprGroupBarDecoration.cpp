@@ -6,6 +6,8 @@
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
 #include "../pass/RectPassElement.hpp"
+#include "../Renderer.hpp"
+#include "../../managers/input/InputManager.hpp"
 
 // shared things to conserve VRAM
 static SP<CTexture> m_tGradientActive         = makeShared<CTexture>();

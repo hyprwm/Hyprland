@@ -4,6 +4,7 @@
 #include <functional>
 #include <any>
 #include <string>
+#include <algorithm>
 #include <hyprutils/math/Box.hpp>
 
 enum eIcons : uint8_t {

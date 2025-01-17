@@ -6,6 +6,7 @@
 #include "../../desktop/WLSurface.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../render/Renderer.hpp"
 #include "../../Compositor.hpp"
 
 bool CRenderPass::empty() const {

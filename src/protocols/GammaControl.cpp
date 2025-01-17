@@ -2,8 +2,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "../helpers/Monitor.hpp"
-#include "../Compositor.hpp"
 #include "../protocols/core/Output.hpp"
+#include "../render/Renderer.hpp"
 
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if (!resource_->resource())

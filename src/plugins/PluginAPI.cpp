@@ -1,6 +1,11 @@
 #include "PluginAPI.hpp"
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 

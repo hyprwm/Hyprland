@@ -1,7 +1,7 @@
 #include "XDGOutput.hpp"
-#include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XWayland.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "core/Output.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3

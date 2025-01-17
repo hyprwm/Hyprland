@@ -2,6 +2,7 @@
 #include "../devices/Tablet.hpp"
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>

@@ -5,8 +5,8 @@
 #include <drm_fourcc.h>
 #include "../../render/Texture.hpp"
 #include "../types/WLBuffer.hpp"
-#include "../../Compositor.hpp"
 #include "../../helpers/Format.hpp"
+#include "../../render/Renderer.hpp"
 
 CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
     if (!pool_->pool->data)

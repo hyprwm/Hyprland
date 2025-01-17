@@ -2,7 +2,9 @@
 
 #include <dlfcn.h>
 #include <ranges>
-#include "../Compositor.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = std::make_unique<CHookSystem>();

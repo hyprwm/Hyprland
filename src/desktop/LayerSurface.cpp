@@ -5,6 +5,12 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/AnimationManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/EventManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));

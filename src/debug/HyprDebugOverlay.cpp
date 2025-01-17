@@ -4,6 +4,7 @@
 #include "../Compositor.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../render/Renderer.hpp"
+#include "../managers/AnimationManager.hpp"
 
 CHyprDebugOverlay::CHyprDebugOverlay() {
     m_pTexture = makeShared<CTexture>();

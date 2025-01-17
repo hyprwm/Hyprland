@@ -114,3 +114,6 @@
     namespace Aquamarine {                                                                                                                                                         \
         class name;                                                                                                                                                                \
     }
+
+#define UNLIKELY(expr) (expr) [[unlikely]]
+#define LIKELY(expr)   (expr) [[likely]]

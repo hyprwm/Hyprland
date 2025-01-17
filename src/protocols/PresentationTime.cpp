@@ -27,7 +27,7 @@ void CQueuedPresentationData::discarded() {
 }
 
 CPresentationFeedback::CPresentationFeedback(SP<CWpPresentationFeedback> resource_, SP<CWLSurfaceResource> surf) : resource(resource_), surface(surf) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWpPresentationFeedback* pMgr) {
@@ -43,8 +43,8 @@ bool CPresentationFeedback::good() {
 void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = resource->client();
 
-    if (PROTO::outputs.contains(data->pMonitor->szName)) {
-        if (auto outputResource = PROTO::outputs.at(data->pMonitor->szName)->outputResourceFrom(client); outputResource)
+    if LIKELY (PROTO::outputs.contains(data->pMonitor->szName)) {
+        if LIKELY (auto outputResource = PROTO::outputs.at(data->pMonitor->szName)->outputResourceFrom(client); outputResource)
             resource->sendSyncOutput(outputResource->getResource()->resource());
     }
 
@@ -100,7 +100,7 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
         m_vFeedbacks.emplace_back(makeShared<CPresentationFeedback>(makeShared<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)))
             .get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vFeedbacks.pop_back();
         return;

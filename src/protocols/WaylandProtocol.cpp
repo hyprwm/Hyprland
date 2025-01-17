@@ -20,7 +20,7 @@ void IWaylandProtocol::onDisplayDestroy() {
 IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
     m_szName(name), m_pGlobal(wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal)) {
 
-    if (!m_pGlobal) {
+    if UNLIKELY (!m_pGlobal) {
         LOGM(ERR, "could not create a global [{}]", m_szName);
         return;
     }

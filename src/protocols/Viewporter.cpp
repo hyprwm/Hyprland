@@ -3,14 +3,14 @@
 #include <algorithm>
 
 CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CWpViewport* r) { PROTO::viewport->destroyResource(this); });
     resource->setOnDestroy([this](CWpViewport* r) { PROTO::viewport->destroyResource(this); });
 
     resource->setSetDestination([this](CWpViewport* r, int32_t x, int32_t y) {
-        if (!surface) {
+        if UNLIKELY (!surface) {
             r->error(WP_VIEWPORT_ERROR_NO_SURFACE, "Surface is gone");
             return;
         }
@@ -20,7 +20,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        if (x <= 0 || y <= 0) {
+        if UNLIKELY (x <= 0 || y <= 0) {
             r->error(WP_VIEWPORT_ERROR_BAD_SIZE, "Size was <= 0");
             return;
         }
@@ -30,7 +30,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
     });
 
     resource->setSetSource([this](CWpViewport* r, wl_fixed_t fx, wl_fixed_t fy, wl_fixed_t fw, wl_fixed_t fh) {
-        if (!surface) {
+        if UNLIKELY (!surface) {
             r->error(WP_VIEWPORT_ERROR_NO_SURFACE, "Surface is gone");
             return;
         }
@@ -42,7 +42,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        if (x < 0 || y < 0) {
+        if UNLIKELY (x < 0 || y < 0) {
             r->error(WP_VIEWPORT_ERROR_BAD_SIZE, "Pos was < 0");
             return;
         }
@@ -80,7 +80,7 @@ bool CViewportResource::good() {
 }
 
 CViewporterResource::CViewporterResource(SP<CWpViewporter> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CWpViewporter* r) { PROTO::viewport->destroyResource(this); });
@@ -90,7 +90,7 @@ CViewporterResource::CViewporterResource(SP<CWpViewporter> resource_) : resource
         const auto RESOURCE = PROTO::viewport->m_vViewports.emplace_back(
             makeShared<CViewportResource>(makeShared<CWpViewport>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surf)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::viewport->m_vViewports.pop_back();
             return;
@@ -109,7 +109,7 @@ CViewporterProtocol::CViewporterProtocol(const wl_interface* iface, const int& v
 void CViewporterProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CViewporterResource>(makeShared<CWpViewporter>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

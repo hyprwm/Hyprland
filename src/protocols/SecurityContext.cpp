@@ -49,7 +49,7 @@ void CSecurityContextSandboxedClient::onDestroy() {
 }
 
 CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int listenFD_, int closeFD_) : listenFD(listenFD_), closeFD(closeFD_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CWpSecurityContextV1* r) {
@@ -64,12 +64,12 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
     LOGM(LOG, "New security_context at 0x{:x}", (uintptr_t)this);
 
     resource->setSetSandboxEngine([this](CWpSecurityContextV1* r, const char* engine) {
-        if (!sandboxEngine.empty()) {
+        if UNLIKELY (!sandboxEngine.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox engine already set");
             return;
         }
 
-        if (committed) {
+        if UNLIKELY (committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
@@ -79,12 +79,12 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
     });
 
     resource->setSetAppId([this](CWpSecurityContextV1* r, const char* appid) {
-        if (!appID.empty()) {
+        if UNLIKELY (!appID.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox appid already set");
             return;
         }
 
-        if (committed) {
+        if UNLIKELY (committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
@@ -94,12 +94,12 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
     });
 
     resource->setSetInstanceId([this](CWpSecurityContextV1* r, const char* instance) {
-        if (!instanceID.empty()) {
+        if UNLIKELY (!instanceID.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox instance already set");
             return;
         }
 
-        if (committed) {
+        if UNLIKELY (committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
@@ -135,7 +135,7 @@ bool CSecurityContext::good() {
 }
 
 void CSecurityContext::onListen(uint32_t mask) {
-    if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
+    if UNLIKELY (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
         LOGM(ERR, "security_context at 0x{:x} got an error in listen", (uintptr_t)this);
         PROTO::securityContext->destroyContext(this);
         return;
@@ -145,13 +145,13 @@ void CSecurityContext::onListen(uint32_t mask) {
         return;
 
     int clientFD = accept(listenFD, nullptr, nullptr);
-    if (clientFD < 0) {
+    if UNLIKELY (clientFD < 0) {
         LOGM(ERR, "security_context at 0x{:x} couldn't accept", (uintptr_t)this);
         return;
     }
 
     auto newClient = CSecurityContextSandboxedClient::create(clientFD);
-    if (!newClient) {
+    if UNLIKELY (!newClient) {
         LOGM(ERR, "security_context at 0x{:x} couldn't create a client", (uintptr_t)this);
         close(clientFD);
         return;
@@ -170,7 +170,7 @@ void CSecurityContext::onClose(uint32_t mask) {
 }
 
 CSecurityContextManagerResource::CSecurityContextManagerResource(SP<CWpSecurityContextManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CWpSecurityContextManagerV1* r) { PROTO::securityContext->destroyResource(this); });
@@ -180,7 +180,7 @@ CSecurityContextManagerResource::CSecurityContextManagerResource(SP<CWpSecurityC
         const auto RESOURCE =
             PROTO::securityContext->m_vContexts.emplace_back(makeShared<CSecurityContext>(makeShared<CWpSecurityContextV1>(r->client(), r->version(), id), lfd, cfd));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::securityContext->m_vContexts.pop_back();
             return;
@@ -199,7 +199,7 @@ CSecurityContextProtocol::CSecurityContextProtocol(const wl_interface* iface, co
 void CSecurityContextProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CSecurityContextManagerResource>(makeShared<CWpSecurityContextManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

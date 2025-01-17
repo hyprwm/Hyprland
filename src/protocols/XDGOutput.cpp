@@ -23,7 +23,7 @@ void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
-    if (!RESOURCE->resource()) {
+    if UNLIKELY (!RESOURCE->resource()) {
         LOGM(LOG, "Couldn't bind XDGOutputMgr");
         wl_client_post_no_memory(client);
         return;
@@ -53,13 +53,13 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     pXDGOutput->outputProto = OUTPUT->owner;
 
-    if (!pXDGOutput->resource->resource()) {
+    if UNLIKELY (!pXDGOutput->resource->resource()) {
         m_vXDGOutputs.pop_back();
         mgr->noMemory();
         return;
     }
 
-    if (!PMONITOR) {
+    if UNLIKELY (!PMONITOR) {
         LOGM(ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
         return;
     }
@@ -96,7 +96,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
 //
 
 CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
@@ -106,7 +106,7 @@ CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : monit
 void CXDGOutput::sendDetails() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    if (!monitor || !outputProto || outputProto->isDefunct())
+    if UNLIKELY (!monitor || !outputProto || outputProto->isDefunct())
         return;
 
     const auto POS = isXWayland ? monitor->vecXWaylandPosition : monitor->vecPosition;

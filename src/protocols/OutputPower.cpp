@@ -3,7 +3,7 @@
 #include "../helpers/Monitor.hpp"
 
 COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([this](CZwlrOutputPowerV1* r) { PROTO::outputPower->destroyOutputPower(this); });
@@ -62,7 +62,7 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
 
     const auto OUTPUT = CWLOutputResource::fromResource(output);
 
-    if (!OUTPUT) {
+    if UNLIKELY (!OUTPUT) {
         pMgr->error(0, "Invalid output resource");
         return;
     }
@@ -70,7 +70,7 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.lock())).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vOutputPowers.pop_back();
         return;

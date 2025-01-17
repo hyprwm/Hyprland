@@ -10,7 +10,7 @@
 
 CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     resourceL(resource_), locked(true), lifetime(lifetime_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource_->setOnDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
@@ -49,7 +49,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
 
 CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     resourceC(resource_), lifetime(lifetime_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource_->setOnDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
@@ -185,7 +185,7 @@ bool CPointerConstraint::isLocked() {
 }
 
 Vector2D CPointerConstraint::logicPositionHint() {
-    if (!pHLSurface)
+    if UNLIKELY (!pHLSurface)
         return {};
 
     const auto SURFBOX       = pHLSurface->getSurfaceBoxGlobal();
@@ -218,14 +218,14 @@ void CPointerConstraintsProtocol::destroyPointerConstraint(CPointerConstraint* h
 }
 
 void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr) {
-    if (!constraint->good()) {
+    if UNLIKELY (!constraint->good()) {
         LOGM(ERR, "Couldn't create constraint??");
         pMgr->noMemory();
         m_vConstraints.pop_back();
         return;
     }
 
-    if (!constraint->owner()) {
+    if UNLIKELY (!constraint->owner()) {
         LOGM(ERR, "New constraint has no CWLSurface owner??");
         return;
     }
@@ -234,7 +234,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     const auto DUPES = std::count_if(m_vConstraints.begin(), m_vConstraints.end(), [OWNER](const auto& c) { return c->owner() == OWNER; });
 
-    if (DUPES > 1) {
+    if UNLIKELY (DUPES > 1) {
         LOGM(ERR, "Constraint for surface duped");
         pMgr->error(ZWP_POINTER_CONSTRAINTS_V1_ERROR_ALREADY_CONSTRAINED, "Surface already confined");
         m_vConstraints.pop_back();

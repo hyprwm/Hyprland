@@ -35,7 +35,7 @@ bool CMesaDRMBufferResource::good() {
 }
 
 CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlDrm* r) { PROTO::mesaDRM->destroyResource(this); });
@@ -87,7 +87,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
 
             const auto RESOURCE = PROTO::mesaDRM->m_vBuffers.emplace_back(makeShared<CMesaDRMBufferResource>(id, resource->client(), attrs));
 
-            if (!RESOURCE->good()) {
+            if UNLIKELY (!RESOURCE->good()) {
                 r->noMemory();
                 PROTO::mesaDRM->m_vBuffers.pop_back();
                 return;
@@ -140,7 +140,7 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
 void CMesaDRMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CMesaDRMResource>(makeShared<CWlDrm>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

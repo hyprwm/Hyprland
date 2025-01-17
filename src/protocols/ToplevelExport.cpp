@@ -13,7 +13,7 @@
 #include <algorithm>
 
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
@@ -35,7 +35,7 @@ void CToplevelExportClient::captureToplevel(CHyprlandToplevelExportManagerV1* pM
     const auto FRAME = PROTO::toplevelExport->m_vFrames.emplace_back(
         makeShared<CToplevelExportFrame>(makeShared<CHyprlandToplevelExportFrameV1>(resource->client(), resource->version(), frame), overlayCursor_, handle));
 
-    if (!FRAME->good()) {
+    if UNLIKELY (!FRAME->good()) {
         LOGM(ERR, "Couldn't alloc frame for sharing! (no memory)");
         resource->noMemory();
         PROTO::toplevelExport->destroyResource(FRAME.get());
@@ -78,19 +78,19 @@ CToplevelExportFrame::~CToplevelExportFrame() {
 }
 
 CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     cursorOverlayRequested = !!overlayCursor_;
 
-    if (!pWindow) {
+    if UNLIKELY (!pWindow) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which does not exist!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (!pWindow->m_bIsMapped) {
+    if UNLIKELY (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -106,7 +106,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     g_pHyprRenderer->makeEGLCurrent();
 
     shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
-    if (shmFormat == DRM_FORMAT_INVALID) {
+    if UNLIKELY (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture toplevel");
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -114,7 +114,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     }
 
     const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(shmFormat);
-    if (!PSHMINFO) {
+    if UNLIKELY (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture toplevel");
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -131,27 +131,26 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     resource->sendBuffer(NFormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
 
-    if (dmabufFormat != DRM_FORMAT_INVALID) {
+    if LIKELY (dmabufFormat != DRM_FORMAT_INVALID)
         resource->sendLinuxDmabuf(dmabufFormat, box.width, box.height);
-    }
 
     resource->sendBufferDone();
 }
 
 void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer_, int32_t ignoreDamage) {
-    if (!good()) {
+    if UNLIKELY (!good()) {
         LOGM(ERR, "No frame in copyFrame??");
         return;
     }
 
-    if (!validMapped(pWindow)) {
+    if UNLIKELY (!validMapped(pWindow)) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is gone!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (!pWindow->m_bIsMapped) {
+    if UNLIKELY (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -159,7 +158,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
     }
 
     const auto PBUFFER = CWLBufferResource::fromResource(buffer_);
-    if (!PBUFFER) {
+    if UNLIKELY (!PBUFFER) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         PROTO::toplevelExport->destroyResource(this);
         return;
@@ -167,13 +166,13 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
 
     PBUFFER->buffer->lock();
 
-    if (PBUFFER->buffer->size != box.size()) {
+    if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (buffer) {
+    if UNLIKELY (buffer) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
         PROTO::toplevelExport->destroyResource(this);
         return;

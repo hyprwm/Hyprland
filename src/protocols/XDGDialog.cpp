@@ -5,7 +5,7 @@
 #include <algorithm>
 
 CXDGDialogV1Resource::CXDGDialogV1Resource(SP<CXdgDialogV1> resource_, SP<CXDGToplevelResource> toplevel_) : resource(resource_), toplevel(toplevel_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CXdgDialogV1* r) { PROTO::xdgDialog->destroyResource(this); });
@@ -23,11 +23,11 @@ CXDGDialogV1Resource::CXDGDialogV1Resource(SP<CXdgDialogV1> resource_, SP<CXDGTo
 }
 
 void CXDGDialogV1Resource::updateWindow() {
-    if (!toplevel || !toplevel->parent || !toplevel->parent->owner)
+    if UNLIKELY (!toplevel || !toplevel->parent || !toplevel->parent->owner)
         return;
 
     auto HLSurface = CWLSurface::fromResource(toplevel->parent->owner->surface.lock());
-    if (!HLSurface || !HLSurface->getWindow())
+    if UNLIKELY (!HLSurface || !HLSurface->getWindow())
         return;
 
     g_pCompositor->updateWindowAnimatedDecorationValues(HLSurface->getWindow());
@@ -38,7 +38,7 @@ bool CXDGDialogV1Resource::good() {
 }
 
 CXDGWmDialogManagerResource::CXDGWmDialogManagerResource(SP<CXdgWmDialogV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CXdgWmDialogV1* r) { PROTO::xdgDialog->destroyResource(this); });
@@ -46,14 +46,14 @@ CXDGWmDialogManagerResource::CXDGWmDialogManagerResource(SP<CXdgWmDialogV1> reso
 
     resource->setGetXdgDialog([](CXdgWmDialogV1* r, uint32_t id, wl_resource* toplevel) {
         auto tl = CXDGToplevelResource::fromResource(toplevel);
-        if (!tl) {
+        if UNLIKELY (!tl) {
             r->error(-1, "Toplevel inert");
             return;
         }
 
         const auto RESOURCE = PROTO::xdgDialog->m_vDialogs.emplace_back(makeShared<CXDGDialogV1Resource>(makeShared<CXdgDialogV1>(r->client(), r->version(), id), tl));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             return;
         }
@@ -73,7 +73,7 @@ CXDGDialogProtocol::CXDGDialogProtocol(const wl_interface* iface, const int& ver
 void CXDGDialogProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CXDGWmDialogManagerResource>(makeShared<CXdgWmDialogV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         return;
     }

@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 
 CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
@@ -35,7 +35,7 @@ bool CPrimarySelectionOffer::good() {
 }
 
 void CPrimarySelectionOffer::sendData() {
-    if (!source)
+    if UNLIKELY (!source)
         return;
 
     for (auto const& m : source->mimes()) {
@@ -44,7 +44,7 @@ void CPrimarySelectionOffer::sendData() {
 }
 
 CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1> resource_, SP<CPrimarySelectionDevice> device_) : device(device_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -105,7 +105,7 @@ void CPrimarySelectionSource::error(uint32_t code, const std::string& msg) {
 }
 
 CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
@@ -159,7 +159,7 @@ void CPrimarySelectionDevice::sendSelection(SP<CPrimarySelectionOffer> selection
 }
 
 CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDeviceManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CZwpPrimarySelectionDeviceManagerV1* r) { PROTO::primarySelection->destroyResource(this); });
@@ -168,7 +168,7 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
         const auto RESOURCE =
             PROTO::primarySelection->m_vDevices.emplace_back(makeShared<CPrimarySelectionDevice>(makeShared<CZwpPrimarySelectionDeviceV1>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::primarySelection->m_vDevices.pop_back();
             return;
@@ -192,7 +192,7 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
         const auto RESOURCE = PROTO::primarySelection->m_vSources.emplace_back(
             makeShared<CPrimarySelectionSource>(makeShared<CZwpPrimarySelectionSourceV1>(r->client(), r->version(), id), device.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::primarySelection->m_vSources.pop_back();
             return;
@@ -220,7 +220,7 @@ CPrimarySelectionProtocol::CPrimarySelectionProtocol(const wl_interface* iface, 
 void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CPrimarySelectionManager>(makeShared<CZwpPrimarySelectionDeviceManagerV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

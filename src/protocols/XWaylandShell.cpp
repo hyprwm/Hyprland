@@ -3,7 +3,7 @@
 #include <algorithm>
 
 CXWaylandSurfaceResource::CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CXwaylandSurfaceV1* r) {
@@ -36,7 +36,7 @@ wl_client* CXWaylandSurfaceResource::client() {
 }
 
 CXWaylandShellResource::CXWaylandShellResource(SP<CXwaylandShellV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CXwaylandShellV1* r) { PROTO::xwaylandShell->destroyResource(this); });
@@ -46,7 +46,7 @@ CXWaylandShellResource::CXWaylandShellResource(SP<CXwaylandShellV1> resource_) :
         const auto RESOURCE = PROTO::xwaylandShell->m_vSurfaces.emplace_back(
             makeShared<CXWaylandSurfaceResource>(makeShared<CXwaylandSurfaceV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surface)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::xwaylandShell->m_vSurfaces.pop_back();
             return;
@@ -67,7 +67,7 @@ CXWaylandShellProtocol::CXWaylandShellProtocol(const wl_interface* iface, const 
 void CXWaylandShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CXWaylandShellResource>(makeShared<CXwaylandShellV1>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

@@ -9,7 +9,7 @@
 #include "../../render/Renderer.hpp"
 
 CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
-    if (!pool_->pool->data)
+    if UNLIKELY (!pool_->pool->data)
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -32,7 +32,7 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
 
     success = texture->m_iTexID;
 
-    if (!success)
+    if UNLIKELY (!success)
         Debug::log(ERR, "Failed creating a shm texture: null texture id");
 }
 
@@ -96,13 +96,13 @@ void CSHMPool::resize(size_t size_) {
     size = size_;
     data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if (data == MAP_FAILED)
+    if UNLIKELY (data == MAP_FAILED)
         LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd);
 }
 
 static int shmIsSizeValid(int fd, size_t size) {
     struct stat st;
-    if (fstat(fd, &st) == -1) {
+    if UNLIKELY (fstat(fd, &st) == -1) {
         LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd);
         return 0;
     }
@@ -111,10 +111,10 @@ static int shmIsSizeValid(int fd, size_t size) {
 }
 
 CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t size_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
-    if (!shmIsSizeValid(fd_, size_)) {
+    if UNLIKELY (!shmIsSizeValid(fd_, size_)) {
         resource_->error(-1, "The size of the file is not big enough for the shm pool");
         return;
     }
@@ -125,11 +125,11 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
     resource->setOnDestroy([this](CWlShmPool* r) { PROTO::shm->destroyResource(this); });
 
     resource->setResize([this](CWlShmPool* r, int32_t size_) {
-        if (size_ < (int32_t)pool->size) {
+        if UNLIKELY (size_ < (int32_t)pool->size) {
             r->error(-1, "Shrinking a shm pool is illegal");
             return;
         }
-        if (!shmIsSizeValid(pool->fd, size_)) {
+        if UNLIKELY (!shmIsSizeValid(pool->fd, size_)) {
             r->error(-1, "The size of the file is not big enough for the shm pool");
             return;
         }
@@ -138,24 +138,24 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
     });
 
     resource->setCreateBuffer([this](CWlShmPool* r, uint32_t id, int32_t offset, int32_t w, int32_t h, int32_t stride, uint32_t fmt) {
-        if (!pool || !pool->data) {
+        if UNLIKELY (!pool || !pool->data) {
             r->error(-1, "The provided shm pool failed to allocate properly");
             return;
         }
 
-        if (std::find(PROTO::shm->shmFormats.begin(), PROTO::shm->shmFormats.end(), fmt) == PROTO::shm->shmFormats.end()) {
+        if UNLIKELY (std::find(PROTO::shm->shmFormats.begin(), PROTO::shm->shmFormats.end(), fmt) == PROTO::shm->shmFormats.end()) {
             r->error(WL_SHM_ERROR_INVALID_FORMAT, "Format invalid");
             return;
         }
 
-        if (offset < 0 || w <= 0 || h <= 0 || stride <= 0) {
+        if UNLIKELY (offset < 0 || w <= 0 || h <= 0 || stride <= 0) {
             r->error(WL_SHM_ERROR_INVALID_STRIDE, "Invalid stride, w, h, or offset");
             return;
         }
 
         const auto RESOURCE = PROTO::shm->m_vBuffers.emplace_back(makeShared<CWLSHMBuffer>(self.lock(), id, offset, Vector2D{w, h}, stride, fmt));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::shm->m_vBuffers.pop_back();
             return;
@@ -165,7 +165,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
         RESOURCE->resource->buffer = RESOURCE;
     });
 
-    if (pool->data == MAP_FAILED)
+    if UNLIKELY (pool->data == MAP_FAILED)
         resource->error(WL_SHM_ERROR_INVALID_FD, "Couldn't mmap from fd");
 }
 
@@ -174,7 +174,7 @@ bool CWLSHMPoolResource::good() {
 }
 
 CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
@@ -182,7 +182,7 @@ CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : resource(resource_) {
     resource->setCreatePool([](CWlShm* r, uint32_t id, int32_t fd, int32_t size) {
         const auto RESOURCE = PROTO::shm->m_vPools.emplace_back(makeShared<CWLSHMPoolResource>(makeShared<CWlShmPool>(r->client(), r->version(), id), fd, size));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::shm->m_vPools.pop_back();
             return;
@@ -221,7 +221,7 @@ void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, ui
 
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLSHMResource>(makeShared<CWlShm>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

@@ -19,7 +19,7 @@ CScreencopyFrame::~CScreencopyFrame() {
 }
 
 CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t overlay_cursor, wl_resource* output, CBox box_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     overlayCursor = !!overlay_cursor;
@@ -77,21 +77,20 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     resource->sendBuffer(NFormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
 
     if (resource->version() >= 3) {
-        if (dmabufFormat != DRM_FORMAT_INVALID) {
+        if LIKELY (dmabufFormat != DRM_FORMAT_INVALID)
             resource->sendLinuxDmabuf(dmabufFormat, box.width, box.height);
-        }
 
         resource->sendBufferDone();
     }
 }
 
 void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_) {
-    if (!good()) {
+    if UNLIKELY (!good()) {
         LOGM(ERR, "No frame in copyFrame??");
         return;
     }
 
-    if (!g_pCompositor->monitorExists(pMonitor.lock())) {
+    if UNLIKELY (!g_pCompositor->monitorExists(pMonitor.lock())) {
         LOGM(ERR, "Client requested sharing of a monitor that is gone");
         resource->sendFailed();
         PROTO::screencopy->destroyResource(this);
@@ -99,7 +98,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     }
 
     const auto PBUFFER = CWLBufferResource::fromResource(buffer_);
-    if (!PBUFFER) {
+    if UNLIKELY (!PBUFFER) {
         LOGM(ERR, "Invalid buffer in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         PROTO::screencopy->destroyResource(this);
@@ -108,14 +107,14 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
 
     PBUFFER->buffer->lock();
 
-    if (PBUFFER->buffer->size != box.size()) {
+    if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         LOGM(ERR, "Invalid dimensions in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::screencopy->destroyResource(this);
         return;
     }
 
-    if (buffer) {
+    if UNLIKELY (buffer) {
         LOGM(ERR, "Buffer used in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
         PROTO::screencopy->destroyResource(this);
@@ -308,7 +307,7 @@ CScreencopyClient::~CScreencopyClient() {
 }
 
 CScreencopyClient::CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwlrScreencopyManagerV1* pMgr) { PROTO::screencopy->destroyResource(this); });

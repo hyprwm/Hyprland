@@ -191,6 +191,7 @@ class CMonitor {
 
     bool        m_bEnabled             = false;
     bool        m_bRenderingInitPassed = false;
+    WP<CWindow> m_previousFSWindow;
 
     // For the list lookup
 

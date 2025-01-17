@@ -130,7 +130,6 @@ class CHyprRenderer {
 
     bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    WP<CWindow>       m_previousFSWindow;
     bool              m_bCursorHidden        = false;
     bool              m_bCursorHasSurface    = false;
     SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;

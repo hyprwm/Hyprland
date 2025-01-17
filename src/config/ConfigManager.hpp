@@ -4,23 +4,24 @@
 #define CONFIG_MANAGER_H
 
 #include <map>
-#include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
 #include <variant>
 #include <vector>
-#include <algorithm>
 #include <optional>
 #include <functional>
 #include <xf86drmMode.h>
-#include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
-#include "../helpers/varlist/VarList.hpp"
 #include "../desktop/Window.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/LayerRule.hpp"
 
-#include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
+#include "SharedDefs.hpp"
+#include "helpers/Color.hpp"
+#include "desktop/DesktopTypes.hpp"
+#include "helpers/memory/Memory.hpp"
+#include "desktop/WindowRule.hpp"
+#include "managers/XWaylandManager.hpp"
 
 #include <hyprlang.hpp>
 

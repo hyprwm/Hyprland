@@ -1,5 +1,4 @@
 #include "PointerGestures.hpp"
-#include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"

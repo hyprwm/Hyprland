@@ -13,6 +13,12 @@
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../hyprerror/HyprError.hpp"
 
 #include <optional>
 #include <iterator>

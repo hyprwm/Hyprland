@@ -1,6 +1,7 @@
 #include "SurfacePassElement.hpp"
 #include "../OpenGL.hpp"
 #include "../../desktop/WLSurface.hpp"
+#include "../../desktop/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"

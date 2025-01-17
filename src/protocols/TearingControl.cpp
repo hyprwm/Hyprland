@@ -3,6 +3,7 @@
 #include "../desktop/Window.hpp"
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CTearingControlProtocol::CTearingControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P =

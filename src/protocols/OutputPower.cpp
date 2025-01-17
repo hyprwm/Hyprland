@@ -1,6 +1,6 @@
 #include "OutputPower.hpp"
-#include "../Compositor.hpp"
 #include "core/Output.hpp"
+#include "../helpers/Monitor.hpp"
 
 COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     if (!resource->resource())

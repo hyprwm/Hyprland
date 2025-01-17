@@ -3,6 +3,8 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/TokenManager.hpp"
+#include "Monitor.hpp"
+#include "../config/ConfigManager.hpp"
 #include <optional>
 #include <cstring>
 #include <cmath>

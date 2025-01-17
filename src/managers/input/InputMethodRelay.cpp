@@ -5,6 +5,7 @@
 #include "../../protocols/TextInputV1.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../managers/HookSystemManager.hpp"
 
 CInputMethodRelay::CInputMethodRelay() {
     static auto P =

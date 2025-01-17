@@ -1,9 +1,11 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
 #include "managers/AnimationManager.hpp"
+#include "../HookSystemManager.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     m_bLastInputTouch = true;

@@ -1,5 +1,7 @@
 #include "DecorationPositioner.hpp"
-#include "../../Compositor.hpp"
+#include "../../desktop/Window.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../managers/LayoutManager.hpp"
 
 CDecorationPositioner::CDecorationPositioner() {
     static auto P = g_pHookSystem->hookDynamic("closeWindow", [this](void* call, SCallbackInfo& info, std::any data) {

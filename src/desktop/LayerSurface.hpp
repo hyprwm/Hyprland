@@ -4,7 +4,6 @@
 #include "../defines.hpp"
 #include "WLSurface.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-#include "LayerRule.hpp"
 
 class CLayerShellResource;
 

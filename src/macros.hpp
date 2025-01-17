@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "helpers/memory/Memory.hpp"
+#include "debug/Log.hpp"
 
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG

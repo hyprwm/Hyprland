@@ -5,30 +5,12 @@
 #include <sys/resource.h>
 
 #include "defines.hpp"
-#include "debug/Log.hpp"
-#include "events/Events.hpp"
-#include "config/ConfigManager.hpp"
 #include "managers/ThreadManager.hpp"
 #include "managers/XWaylandManager.hpp"
-#include "managers/input/InputManager.hpp"
-#include "managers/LayoutManager.hpp"
 #include "managers/KeybindManager.hpp"
-#include "managers/AnimationManager.hpp"
-#include "managers/EventManager.hpp"
-#include "managers/ProtocolManager.hpp"
 #include "managers/SessionLockManager.hpp"
-#include "managers/HookSystemManager.hpp"
-#include "debug/HyprDebugOverlay.hpp"
-#include "debug/HyprNotificationOverlay.hpp"
-#include "helpers/Monitor.hpp"
-#include "desktop/Workspace.hpp"
 #include "desktop/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
-#include "render/Renderer.hpp"
-#include "render/OpenGL.hpp"
-#include "hyprerror/HyprError.hpp"
-#include "plugins/PluginSystem.hpp"
-#include "helpers/Watchdog.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>

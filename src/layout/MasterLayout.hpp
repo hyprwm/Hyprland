@@ -2,7 +2,7 @@
 
 #include "IHyprLayout.hpp"
 #include "../desktop/DesktopTypes.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../helpers/varlist/VarList.hpp"
 #include <vector>
 #include <list>
 #include <vector>

@@ -4,6 +4,7 @@
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
 #include "managers/AnimationManager.hpp"
+#include "../helpers/Monitor.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if (!good())

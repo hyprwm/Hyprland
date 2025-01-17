@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if (!resource_->resource())

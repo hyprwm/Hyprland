@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../macros.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/signal/Signal.hpp"
+#include "../../helpers/memory/Memory.hpp"
 #include <memory>
 
 struct wl_client;

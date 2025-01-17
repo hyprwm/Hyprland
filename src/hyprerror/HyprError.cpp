@@ -4,6 +4,8 @@
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/AnimationManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Animation;

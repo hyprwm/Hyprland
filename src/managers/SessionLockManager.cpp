@@ -4,6 +4,8 @@
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/input/InputManager.hpp"
 #include <algorithm>
 #include <ranges>
 

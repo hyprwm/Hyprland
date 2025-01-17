@@ -17,6 +17,13 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
+#include "../events/Events.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/input/InputManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 

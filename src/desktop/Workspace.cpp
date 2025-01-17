@@ -3,6 +3,8 @@
 #include "../config/ConfigValue.hpp"
 #include "config/ConfigManager.hpp"
 #include "managers/AnimationManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>

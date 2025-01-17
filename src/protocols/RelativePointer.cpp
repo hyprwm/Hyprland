@@ -1,5 +1,4 @@
 #include "RelativePointer.hpp"
-#include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include <algorithm>

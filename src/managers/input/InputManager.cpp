@@ -5,6 +5,7 @@
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/RelativePointer.hpp"
@@ -29,6 +30,10 @@
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/KeybindManager.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../managers/EventManager.hpp"
+#include "../../managers/LayoutManager.hpp"
 
 #include <aquamarine/input/Input.hpp>
 

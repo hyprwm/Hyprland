@@ -9,6 +9,10 @@
 #include "../protocols/core/Seat.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../render/OpenGL.hpp"
 #include "SeatManager.hpp"
 #include <cstring>
 #include <gbm.h>

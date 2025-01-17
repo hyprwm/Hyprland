@@ -2,7 +2,7 @@
 #include "../debug/Log.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "../managers/TokenManager.hpp"
-#include "../Compositor.hpp"
+#include "../helpers/MiscFunctions.hpp"
 
 #define register
 #include <udis86.h>

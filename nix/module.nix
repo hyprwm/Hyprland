@@ -7,12 +7,7 @@ inputs: {
   inherit (pkgs.stdenv.hostPlatform) system;
   cfg = config.programs.hyprland;
 
-  package = inputs.self.packages.${system}.hyprland;
-  portalPackage = inputs.self.packages.${system}.xdg-desktop-portal-hyprland.override {
-    hyprland = cfg.finalPackage;
-  };
-
-# basically 1:1 taken from https://github.com/nix-community/home-manager/blob/master/modules/services/window-managers/hyprland.nix
+  # basically 1:1 taken from https://github.com/nix-community/home-manager/blob/master/modules/services/window-managers/hyprland.nix
   toHyprconf = {
     attrs,
     indentLevel ? 0,
@@ -166,9 +161,7 @@ in {
 
       importantPrefixes = lib.mkOption {
         type = with lib.types; listOf str;
-        default =
-          ["$" "bezier" "name"]
-          ++ lib.optionals cfg.sourceFirst ["source"];
+        default = ["$" "bezier" "name"] ++ lib.optionals cfg.sourceFirst ["source"];
         example = ["$" "bezier"];
         description = ''
           List of prefix of attributes to source at the top of the config.
@@ -176,17 +169,16 @@ in {
       };
     };
   };
-  config =
+  config = lib.mkMerge [
     {
       programs.hyprland = {
-        package = lib.mkDefault package;
-        portalPackage = lib.mkDefault portalPackage;
+        package = lib.mkDefault inputs.self.packages.${system}.hyprland;
+        portalPackage = lib.mkDefault (inputs.self.packages.${system}.xdg-desktop-portal-hyprland.override {
+          hyprland = cfg.finalPackage;
+        });
       };
     }
-    // lib.mkIf cfg.enable {
-      environment.systemPackages = lib.concatLists [
-        (lib.optional (cfg.xwayland.enable) pkgs.xwayland)
-      ];
+    (lib.mkIf cfg.enable {
       environment.etc."xdg/hypr/hyprland.conf" = let
         shouldGenerate = cfg.extraConfig != "" || cfg.settings != {} || cfg.plugins != [];
 
@@ -215,5 +207,6 @@ in {
             })
             + lib.optionalString (cfg.extraConfig != "") cfg.extraConfig;
         };
-    };
+    })
+  ];
 }

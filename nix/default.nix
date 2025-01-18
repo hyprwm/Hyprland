@@ -163,6 +163,7 @@ in
           "xwayland" = enableXWayland;
           "legacy_renderer" = legacyRenderer;
           "uwsm" = false;
+          "hyprpm" = false;
         })
         (mapAttrsToList mesonBool {
           "b_pch" = false;

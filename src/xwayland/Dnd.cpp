@@ -75,6 +75,8 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
     data.data32[1] |= 1;
 
     std::vector<xcb_atom_t> targets;
+    // reserve to avoid reallocations
+    targets.reserve(SOURCE->mimes().size());
 
     for (auto& mime : SOURCE->mimes()) {
         targets.emplace_back(g_pXWayland->pWM->mimeToAtom(mime));

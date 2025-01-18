@@ -83,8 +83,19 @@ void CGlobalShortcutsProtocol::sendGlobalShortcutEvent(std::string appid, std::s
 
 std::vector<SShortcut> CGlobalShortcutsProtocol::getAllShortcuts() {
     std::vector<SShortcut> copy;
-    for (auto const& c : m_vClients) {
-        for (auto const& sh : c->shortcuts) {
+    // calculate the total number of shortcuts, precomputing size is linear
+    // and potential reallocation is more costly then the added precompute overhead of looping
+    // and finding the total size.
+    size_t totalShortcuts = 0;
+    for (const auto& c : m_vClients) {
+        totalShortcuts += c->shortcuts.size();
+    }
+
+    // reserve number of elements to avoid reallocations
+    copy.reserve(totalShortcuts);
+
+    for (const auto& c : m_vClients) {
+        for (const auto& sh : c->shortcuts) {
             copy.push_back(*sh);
         }
     }

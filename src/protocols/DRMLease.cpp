@@ -34,6 +34,9 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     }());
 
     std::vector<SP<Aquamarine::IOutput>> outputs;
+    // reserve to avoid reallocations
+    outputs.reserve(requested.size());
+
     for (auto const& m : requested) {
         outputs.emplace_back(m->monitor->output);
     }

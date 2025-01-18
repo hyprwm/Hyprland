@@ -1891,9 +1891,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         // apply
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
-        std::vector<PHLWINDOW> ptrs;
-        for (auto const& w : g_pCompositor->m_vWindows)
-            ptrs.push_back(w);
+        std::vector<PHLWINDOW> ptrs(g_pCompositor->m_vWindows.begin(), g_pCompositor->m_vWindows.end());
 
         for (auto const& w : ptrs) {
             if (!w->m_bIsMapped || w->m_pWorkspace != PWORKSPACE || w->isHidden())

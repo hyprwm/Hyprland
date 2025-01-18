@@ -2785,11 +2785,9 @@ PHLWINDOW CCompositor::getForceFocus() {
 void CCompositor::arrangeMonitors() {
     static auto* const      PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
 
-    std::vector<PHLMONITOR> toArrange;
+    std::vector<PHLMONITOR> toArrange(m_vMonitors.begin(), m_vMonitors.end());
     std::vector<PHLMONITOR> arranged;
-
-    for (auto const& m : m_vMonitors)
-        toArrange.push_back(m);
+    arranged.reserve(toArrange.size());
 
     Debug::log(LOG, "arrangeMonitors: {} to arrange", toArrange.size());
 

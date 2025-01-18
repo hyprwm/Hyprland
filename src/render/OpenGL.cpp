@@ -400,7 +400,10 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     m_sProc.eglQueryDmaBufModifiersEXT(m_pEglDisplay, format, len, mods.data(), external.data(), &len);
 
     std::vector<uint64_t> result;
-    bool                  linearIsExternal = false;
+    // reserve number of elements to avoid reallocations
+    result.reserve(mods.size());
+
+    bool linearIsExternal = false;
     for (size_t i = 0; i < mods.size(); ++i) {
         if (external.at(i)) {
             if (mods.at(i) == DRM_FORMAT_MOD_LINEAR)
@@ -449,6 +452,8 @@ void CHyprOpenGLImpl::initDRMFormats() {
     Debug::log(LOG, "Supported DMA-BUF formats:");
 
     std::vector<SDRMFormat> dmaFormats;
+    // reserve number of elements to avoid reallocations
+    dmaFormats.reserve(formats.size());
 
     for (auto const& fmt : formats) {
         std::vector<uint64_t> mods;
@@ -472,8 +477,10 @@ void CHyprOpenGLImpl::initDRMFormats() {
         });
 
         std::vector<std::pair<uint64_t, std::string>> modifierData;
+        // reserve number of elements to avoid reallocations
+        modifierData.reserve(mods.size());
 
-        auto                                          fmtName = drmGetFormatName(fmt);
+        auto fmtName = drmGetFormatName(fmt);
         Debug::log(LOG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
@@ -2942,7 +2949,8 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
         }
-
+        // reserve number of elements to avoid reallocations
+        attribs.reserve(3);
         attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
         attribs.push_back(dupFd);
         attribs.push_back(EGL_NONE);

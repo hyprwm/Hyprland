@@ -366,7 +366,13 @@ protocolwayland()
 
 # tools
 add_subdirectory(hyprctl)
-add_subdirectory(hyprpm)
+
+if(NO_HYPRPM)
+  message(STATUS "hyprpm is disabled")
+else()
+  add_subdirectory(hyprpm)
+  message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
+endif()
 
 # binary and symlink
 install(TARGETS Hyprland)

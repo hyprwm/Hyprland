@@ -1,7 +1,7 @@
 #include "LockNotify.hpp"
 
 CHyprlandLockNotification::CHyprlandLockNotification(SP<CHyprlandLockNotificationV1> resource_) : m_resource(resource_) {
-    if (!m_resource->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
     m_resource->setDestroy([this](CHyprlandLockNotificationV1* r) { PROTO::lockNotify->destroyNotification(this); });
@@ -13,14 +13,14 @@ bool CHyprlandLockNotification::good() {
 }
 
 void CHyprlandLockNotification::onLocked() {
-    if (!m_locked)
+    if LIKELY (!m_locked)
         m_resource->sendLocked();
 
     m_locked = true;
 }
 
 void CHyprlandLockNotification::onUnlocked() {
-    if (m_locked)
+    if LIKELY (m_locked)
         m_resource->sendUnlocked();
 
     m_locked = false;
@@ -50,19 +50,19 @@ void CLockNotifyProtocol::onGetNotification(CHyprlandLockNotifierV1* pMgr, uint3
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_notifications.emplace_back(makeShared<CHyprlandLockNotification>(makeShared<CHyprlandLockNotificationV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_notifications.pop_back();
         return;
     }
 
     // Already locked?? Send locked right away
-    if (m_isLocked)
+    if UNLIKELY (m_isLocked)
         m_notifications.back()->onLocked();
 }
 
 void CLockNotifyProtocol::onLocked() {
-    if (m_isLocked) {
+    if UNLIKELY (m_isLocked) {
         LOGM(ERR, "Not sending lock notification. Already locked!");
         return;
     }
@@ -75,7 +75,7 @@ void CLockNotifyProtocol::onLocked() {
 }
 
 void CLockNotifyProtocol::onUnlocked() {
-    if (!m_isLocked) {
+    if UNLIKELY (!m_isLocked) {
         LOGM(ERR, "Not sending unlock notification. Not locked!");
         return;
     }

@@ -101,10 +101,13 @@ endif
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
-subdir('hyprpm/src')
 subdir('assets')
 subdir('example')
 subdir('docs')
+
+if get_option('hyprpm').enabled()
+  subdir('hyprpm/src')
+endif
 
 # Generate hyprland.pc
 pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')

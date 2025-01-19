@@ -5,6 +5,7 @@
 #include "../managers/TokenManager.hpp"
 #include "Monitor.hpp"
 #include "../config/ConfigManager.hpp"
+#include "fs/FsUtils.hpp"
 #include <optional>
 #include <cstring>
 #include <cmath>
@@ -621,7 +622,7 @@ void logSystemInfo() {
     // log etc
     Debug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "{}", execAndGet("cat /etc/os-release"));
+    Debug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
 int64_t getPPIDof(int64_t pid) {

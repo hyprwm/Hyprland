@@ -282,6 +282,8 @@ void CWindow::updateWindowDecos() {
 
     // make a copy because updateWindow can remove decos.
     std::vector<IHyprWindowDecoration*> decos;
+    // reserve to avoid reallocations
+    decos.reserve(m_dWindowDecorations.size());
 
     for (auto const& wd : m_dWindowDecorations) {
         decos.push_back(wd.get());

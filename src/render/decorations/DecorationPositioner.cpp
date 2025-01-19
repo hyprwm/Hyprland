@@ -122,6 +122,9 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     //
     std::vector<CDecorationPositioner::SWindowPositioningData*> datas;
+    // reserve to avoid reallocations
+    datas.reserve(pWindow->m_dWindowDecorations.size());
+
     for (auto const& wd : pWindow->m_dWindowDecorations) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }

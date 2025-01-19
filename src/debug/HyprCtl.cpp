@@ -1121,13 +1121,10 @@ static std::string reloadRequest(eHyprCtlOutputFormat format, std::string reques
 
     const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
 
-    g_pConfigManager->m_bForceReload = true;
-
-    if (REQMODE == "config-only") {
+    if (REQMODE == "config-only")
         g_pConfigManager->m_bNoMonitorReload = true;
-    }
 
-    g_pConfigManager->tick();
+    g_pConfigManager->reload();
 
     return "ok";
 }

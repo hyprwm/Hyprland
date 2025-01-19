@@ -142,8 +142,8 @@ class CConfigManager {
   public:
     CConfigManager();
 
-    void                                                            tick();
     void                                                            init();
+    void                                                            reload();
 
     int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
@@ -258,15 +258,13 @@ class CConfigManager {
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
 
     bool m_bWantsMonitorReload = false;
-    bool m_bForceReload        = false;
     bool m_bNoMonitorReload    = false;
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
     std::unique_ptr<Hyprlang::CConfig>               m_pConfig;
 
-    std::vector<std::string>                         configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>          configModifyTimes; // stores modify times
+    std::vector<std::string>                         m_configPaths;
 
     Hyprutils::Animation::CAnimationConfigTree       m_AnimationTree;
 
@@ -302,7 +300,6 @@ class CConfigManager {
     std::optional<std::string> generateConfig(std::string configPath);
     std::optional<std::string> verifyConfigExists();
     void                       postConfigReload(const Hyprlang::CParseResult& result);
-    void                       reload();
     SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 };
 

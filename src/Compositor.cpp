@@ -4,6 +4,7 @@
 #include "debug/Log.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
+#include "config/ConfigWatcher.hpp"
 #include "managers/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
 #include "managers/PointerManager.hpp"
@@ -44,7 +45,6 @@
 
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
-#include "managers/ThreadManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
 #include "config/ConfigManager.hpp"
@@ -551,7 +551,6 @@ void CCompositor::cleanup() {
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
-    g_pThreadManager.reset();
     g_pConfigManager.reset();
     g_pLayoutManager.reset();
     g_pHyprError.reset();
@@ -567,6 +566,7 @@ void CCompositor::cleanup() {
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
+    g_pConfigWatcher.reset();
 
     if (m_pAqBackend)
         m_pAqBackend.reset();
@@ -631,9 +631,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pSeatManager = std::make_unique<CSeatManager>();
         } break;
         case STAGE_LATE: {
-            Debug::log(LOG, "Creating the ThreadManager!");
-            g_pThreadManager = std::make_unique<CThreadManager>();
-
             Debug::log(LOG, "Creating CHyprCtl");
             g_pHyprCtl = std::make_unique<CHyprCtl>();
 

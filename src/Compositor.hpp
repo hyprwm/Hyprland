@@ -5,7 +5,6 @@
 #include <sys/resource.h>
 
 #include "defines.hpp"
-#include "managers/ThreadManager.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"

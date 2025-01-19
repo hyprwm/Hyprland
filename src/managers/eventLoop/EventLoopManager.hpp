@@ -51,6 +51,8 @@ class CEventLoopManager {
     SIdleData                            m_sIdle;
     std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
 
+    wl_event_source*                     m_configWatcherInotifySource = nullptr;
+
     friend class CSyncTimeline;
 };
 

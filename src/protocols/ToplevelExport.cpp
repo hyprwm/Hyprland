@@ -393,6 +393,8 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
         return; // nothing to share
 
     std::vector<WP<CToplevelExportFrame>> framesToRemove;
+    // reserve number of elements to avoid reallocations
+    framesToRemove.reserve(m_vFramesAwaitingWrite.size());
 
     // share frame if correct output
     for (auto const& f : m_vFramesAwaitingWrite) {

@@ -412,6 +412,8 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     }
 
     std::vector<WP<CScreencopyFrame>> framesToRemove;
+    // reserve number of elements to avoid reallocations
+    framesToRemove.reserve(m_vFramesAwaitingWrite.size());
 
     // share frame if correct output
     for (auto const& f : m_vFramesAwaitingWrite) {

@@ -643,6 +643,8 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
             Debug::log(WARN, "[xwm] WARNING: No mimes in TARGETS?");
 
         std::vector<xcb_atom_t> atoms;
+        // reserve to avoid reallocations
+        atoms.reserve(mimes.size() + 2);
         atoms.push_back(HYPRATOMS["TIMESTAMP"]);
         atoms.push_back(HYPRATOMS["TARGETS"]);
 
@@ -989,6 +991,8 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     }
 
     std::vector<uint32_t> props;
+    // reserve to avoid reallocations
+    props.reserve(6); // props below
     if (surf->modal)
         props.push_back(HYPRATOMS["_NET_WM_STATE_MODAL"]);
     if (surf->fullscreen)

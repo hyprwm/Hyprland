@@ -28,7 +28,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     if (!pMonitor) {
         LOGM(ERR, "Client requested sharing of a monitor that doesnt exist");
         resource->sendFailed();
-        PROTO::screencopy->destroyResource(this);
         return;
     }
 
@@ -46,7 +45,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");
         resource->sendFailed();
-        PROTO::screencopy->destroyResource(this);
         return;
     }
 
@@ -58,7 +56,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     if (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture output");
         resource->sendFailed();
-        PROTO::screencopy->destroyResource(this);
         return;
     }
 
@@ -93,7 +90,6 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     if UNLIKELY (!g_pCompositor->monitorExists(pMonitor.lock())) {
         LOGM(ERR, "Client requested sharing of a monitor that is gone");
         resource->sendFailed();
-        PROTO::screencopy->destroyResource(this);
         return;
     }
 

@@ -20,6 +20,7 @@
 #include "../protocols/OutputPower.hpp"
 #include "../protocols/XDGActivation.hpp"
 #include "../protocols/IdleNotify.hpp"
+#include "../protocols/LockNotify.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/InputMethodV2.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
@@ -145,6 +146,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::outputPower         = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
     PROTO::activation          = std::make_unique<CXDGActivationProtocol>(&xdg_activation_v1_interface, 1, "XDGActivation");
     PROTO::idle                = std::make_unique<CIdleNotifyProtocol>(&ext_idle_notifier_v1_interface, 1, "IdleNotify");
+    PROTO::lockNotify          = std::make_unique<CLockNotifyProtocol>(&hyprland_lock_notifier_v1_interface, 1, "IdleNotify");
     PROTO::sessionLock         = std::make_unique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "SessionLock");
     PROTO::ime                 = std::make_unique<CInputMethodV2Protocol>(&zwp_input_method_manager_v2_interface, 1, "IMEv2");
     PROTO::virtualKeyboard     = std::make_unique<CVirtualKeyboardProtocol>(&zwp_virtual_keyboard_manager_v1_interface, 1, "VirtualKeyboard");
@@ -224,6 +226,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::outputPower.reset();
     PROTO::activation.reset();
     PROTO::idle.reset();
+    PROTO::lockNotify.reset();
     PROTO::sessionLock.reset();
     PROTO::ime.reset();
     PROTO::virtualKeyboard.reset();
@@ -296,7 +299,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::xdgDialog->getGlobal(),
         PROTO::singlePixel->getGlobal(),
         PROTO::primarySelection->getGlobal(),
-				PROTO::hyprlandSurface->getGlobal(),
+			  PROTO::hyprlandSurface->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

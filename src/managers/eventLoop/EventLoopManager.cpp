@@ -1,6 +1,7 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/Log.hpp"
 #include "../../Compositor.hpp"
+#include "../../config/ConfigWatcher.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -27,6 +28,8 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(m_sWayland.eventSource);
     if (m_sIdle.eventSource)
         wl_event_source_remove(m_sIdle.eventSource);
+    if (m_configWatcherInotifySource)
+        wl_event_source_remove(m_configWatcherInotifySource);
     if (m_sTimers.timerfd >= 0)
         close(m_sTimers.timerfd);
 }
@@ -42,8 +45,16 @@ static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
     return 1;
 }
 
+static int configWatcherWrite(int fd, uint32_t mask, void* data) {
+    g_pConfigWatcher->onInotifyEvent();
+    return 0;
+}
+
 void CEventLoopManager::enterLoop() {
     m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
+
+    if (const auto FD = g_pConfigWatcher->getInotifyFD(); FD >= 0)
+        m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD, WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
     for (auto const& fd : aqPollFDs) {

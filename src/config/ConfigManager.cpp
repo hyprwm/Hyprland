@@ -1,6 +1,7 @@
 #include <re2/re2.h>
 
 #include "ConfigManager.hpp"
+#include "ConfigWatcher.hpp"
 #include "../managers/KeybindManager.hpp"
 #include "../Compositor.hpp"
 
@@ -372,8 +373,8 @@ static Hyprlang::CParseResult handlePlugin(const char* c, const char* v) {
 CConfigManager::CConfigManager() {
     const auto ERR = verifyConfigExists();
 
-    configPaths.emplace_back(getMainConfigPath());
-    m_pConfig = std::make_unique<Hyprlang::CConfig>(configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
+    m_configPaths.emplace_back(getMainConfigPath());
+    m_pConfig = std::make_unique<Hyprlang::CConfig>(m_configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
     m_pConfig->addConfigValue("general:border_size", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:no_border_on_floating", Hyprlang::INT{0});
@@ -795,7 +796,7 @@ std::string CConfigManager::getConfigString() {
     std::string configString;
     std::string currFileContent;
 
-    for (const auto& path : configPaths) {
+    for (const auto& path : m_configPaths) {
         std::ifstream configFile(path);
         configString += ("\n\nConfig File: " + path + ": ");
         if (!configFile.is_open()) {
@@ -883,10 +884,10 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     finalExecRequests.clear();
 
     // paths
-    configPaths.clear();
+    m_configPaths.clear();
     std::string mainConfigPath = getMainConfigPath();
     Debug::log(LOG, "Using config: {}", mainConfigPath);
-    configPaths.push_back(mainConfigPath);
+    m_configPaths.emplace_back(mainConfigPath);
 
     const auto RET = verifyConfigExists();
 
@@ -896,6 +897,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
+
+    g_pConfigWatcher->setWatchList(m_configPaths);
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
@@ -1029,16 +1032,13 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
 void CConfigManager::init() {
 
+    g_pConfigWatcher->setOnChange([this](const CConfigWatcher::SConfigWatchEvent& e) {
+        Debug::log(LOG, "CConfigManager: file {} modified, reloading", e.file);
+        reload();
+    });
+
     const std::string CONFIGPATH = getMainConfigPath();
     reload();
-
-    struct stat fileStat;
-    int         err = stat(CONFIGPATH.c_str(), &fileStat);
-    if (err != 0) {
-        Debug::log(WARN, "Error at statting config, error {}", errno);
-    }
-
-    configModifyTimes[CONFIGPATH] = fileStat.st_mtime;
 
     isFirstLaunch = false;
 }
@@ -1078,37 +1078,6 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
 
     return RET.error ? RET.getError() : "";
-}
-
-void CConfigManager::tick() {
-    std::string CONFIGPATH = getMainConfigPath();
-    if (!std::filesystem::exists(CONFIGPATH)) {
-        Debug::log(ERR, "Config doesn't exist??");
-        return;
-    }
-
-    bool parse = false;
-
-    for (auto const& cf : configPaths) {
-        struct stat fileStat;
-        int         err = stat(cf.c_str(), &fileStat);
-        if (err != 0) {
-            Debug::log(WARN, "Error at ticking config at {}, error {}: {}", cf, err, strerror(err));
-            continue;
-        }
-
-        // check if we need to reload cfg
-        if (fileStat.st_mtime != configModifyTimes[cf] || m_bForceReload) {
-            parse                 = true;
-            configModifyTimes[cf] = fileStat.st_mtime;
-        }
-    }
-
-    if (parse) {
-        m_bForceReload = false;
-
-        reload();
-    }
 }
 
 Hyprlang::CConfigValue* CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback) {
@@ -1719,8 +1688,7 @@ void CConfigManager::handlePluginLoads() {
 
     if (pluginsChanged) {
         g_pHyprError->destroy();
-        m_bForceReload = true;
-        tick();
+        reload();
     }
 }
 
@@ -2732,16 +2700,8 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
             Debug::log(ERR, "source= file doesn't exist: {}", value);
             return "source= file " + value + " doesn't exist!";
         }
-        configPaths.push_back(value);
+        m_configPaths.emplace_back(value);
 
-        struct stat fileStat;
-        int         err = stat(value.c_str(), &fileStat);
-        if (err != 0) {
-            Debug::log(WARN, "Error at ticking config at {}, error {}: {}", value, err, strerror(err));
-            return {};
-        }
-
-        configModifyTimes[value]     = fileStat.st_mtime;
         auto configCurrentPathBackup = configCurrentPath;
         configCurrentPath            = value;
 

@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "FractionalScale.hpp"
+#include "LockNotify.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 #include "../helpers/Monitor.hpp"
@@ -115,6 +116,8 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_
 
         PROTO::sessionLock->locked = false;
 
+        PROTO::lockNotify->onUnlocked();
+
         events.unlockAndDestroy.emit();
 
         inert = true;
@@ -128,6 +131,7 @@ CSessionLock::~CSessionLock() {
 
 void CSessionLock::sendLocked() {
     resource->sendLocked();
+    PROTO::lockNotify->onLocked();
 }
 
 bool CSessionLock::good() {

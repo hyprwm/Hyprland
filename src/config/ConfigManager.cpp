@@ -602,6 +602,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("gestures:workspace_swipe_create_new", Hyprlang::INT{1});
     m_pConfig->addConfigValue("gestures:workspace_swipe_direction_lock", Hyprlang::INT{1});
     m_pConfig->addConfigValue("gestures:workspace_swipe_direction_lock_threshold", Hyprlang::INT{10});
+    m_pConfig->addConfigValue("gestures:workspace_swipe_speed_multiplier", Hyprlang::FLOAT{1.0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_forever", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_use_r", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch", Hyprlang::INT{0});

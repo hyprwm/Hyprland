@@ -39,7 +39,17 @@ using namespace Hyprutils::String;
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "../version.h"
+
+#include "../Compositor.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../render/Renderer.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -1122,13 +1132,10 @@ static std::string reloadRequest(eHyprCtlOutputFormat format, std::string reques
 
     const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
 
-    g_pConfigManager->m_bForceReload = true;
-
-    if (REQMODE == "config-only") {
+    if (REQMODE == "config-only")
         g_pConfigManager->m_bNoMonitorReload = true;
-    }
 
-    g_pConfigManager->tick();
+    g_pConfigManager->reload();
 
     return "ok";
 }

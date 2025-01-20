@@ -1,9 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <string>
 #include <wayland-server.h>
-#include "math/Math.hpp"
 #include <vector>
 #include <format>
 #include <expected>

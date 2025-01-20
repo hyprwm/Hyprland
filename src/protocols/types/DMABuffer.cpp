@@ -1,5 +1,6 @@
 #include "DMABuffer.hpp"
 #include "WLBuffer.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 
@@ -16,11 +17,11 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
 
     auto eglImage = g_pHyprOpenGL->createEGLImage(attrs);
 
-    if (!eglImage) {
+    if UNLIKELY (!eglImage) {
         Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
         attrs.modifier = DRM_FORMAT_MOD_INVALID;
         eglImage       = g_pHyprOpenGL->createEGLImage(attrs);
-        if (!eglImage) {
+        if UNLIKELY (!eglImage) {
             Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
@@ -30,7 +31,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     opaque  = NFormatUtils::isFormatOpaque(attrs.format);
     success = texture->m_iTexID;
 
-    if (!success)
+    if UNLIKELY (!success)
         Debug::log(ERR, "Failed to create a dmabuf: texture is null");
 }
 

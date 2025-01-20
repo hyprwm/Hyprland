@@ -1,15 +1,16 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
 #include "HookSystemManager.hpp"
-#include "config/ConfigManager.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "helpers/AnimatedVariable.hpp"
-#include "macros.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../macros.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../helpers/varlist/VarList.hpp"
+#include "../render/Renderer.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>

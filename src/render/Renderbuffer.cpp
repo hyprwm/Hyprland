@@ -1,4 +1,5 @@
 #include "Renderbuffer.hpp"
+#include "Renderer.hpp"
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/types/Buffer.hpp"

@@ -2,7 +2,7 @@
 #include "Compositor.hpp"
 
 CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->sendSupportedFeature(XX_COLOR_MANAGER_V4_FEATURE_PARAMETRIC);
@@ -38,7 +38,7 @@ CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resourc
         const auto RESOURCE =
             PROTO::colorManagement->m_vOutputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CXxColorManagementOutputV4>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vOutputs.pop_back();
             return;
@@ -63,7 +63,7 @@ CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resourc
 
         const auto RESOURCE =
             PROTO::colorManagement->m_vSurfaces.emplace_back(makeShared<CColorManagementSurface>(makeShared<CXxColorManagementSurfaceV4>(r->client(), r->version(), id), SURF));
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vSurfaces.pop_back();
             return;
@@ -86,7 +86,7 @@ CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resourc
         const auto RESOURCE = PROTO::colorManagement->m_vFeedbackSurfaces.emplace_back(
             makeShared<CColorManagementFeedbackSurface>(makeShared<CXxColorManagementFeedbackSurfaceV4>(r->client(), r->version(), id), SURF));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vFeedbackSurfaces.pop_back();
             return;
@@ -104,7 +104,7 @@ CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resourc
         const auto RESOURCE = PROTO::colorManagement->m_vParametricCreators.emplace_back(
             makeShared<CColorManagementParametricCreator>(makeShared<CXxImageDescriptionCreatorParamsV4>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vParametricCreators.pop_back();
             return;
@@ -121,7 +121,7 @@ bool CColorManager::good() {
 }
 
 CColorManagementOutput::CColorManagementOutput(SP<CXxColorManagementOutputV4> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
@@ -137,7 +137,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CXxColorManagementOutputV4> re
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vImageDescriptions.pop_back();
             return;
@@ -160,7 +160,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWLSurfaceResource> surface_
 }
 
 CColorManagementSurface::CColorManagementSurface(SP<CXxColorManagementSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
@@ -242,7 +242,7 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CXxColorManagementFeedbackSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) :
     surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = resource->client();
@@ -269,7 +269,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CXxColorMana
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id), true));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vImageDescriptions.pop_back();
             return;
@@ -293,7 +293,7 @@ wl_client* CColorManagementFeedbackSurface::client() {
 }
 
 CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImageDescriptionCreatorParamsV4> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
     //
     pClient = resource->client();
@@ -318,7 +318,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::colorManagement->m_vImageDescriptions.pop_back();
             return;
@@ -465,7 +465,7 @@ wl_client* CColorManagementParametricCreator::client() {
 
 CColorManagementImageDescription::CColorManagementImageDescription(SP<CXxImageDescriptionV4> resource_, bool allowGetInformation) :
     m_resource(resource_), m_allowGetInformation(allowGetInformation) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = m_resource->client();
@@ -482,7 +482,7 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CXxImageDe
 
         auto RESOURCE = makeShared<CColorManagementImageDescriptionInfo>(makeShared<CXxImageDescriptionInfoV4>(r->client(), r->version(), id), settings);
 
-        if (!RESOURCE->good())
+        if UNLIKELY (!RESOURCE->good())
             r->noMemory();
 
         // CColorManagementImageDescriptionInfo should send everything in the constructor and be ready for destroying at this point
@@ -504,7 +504,7 @@ SP<CXxImageDescriptionV4> CColorManagementImageDescription::resource() {
 
 CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CXxImageDescriptionInfoV4> resource_, const SImageDescription& settings_) :
     m_resource(resource_), settings(settings_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     pClient = m_resource->client();
@@ -549,7 +549,7 @@ CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, co
 void CColorManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CColorManager>(makeShared<CXxColorManagerV4>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;

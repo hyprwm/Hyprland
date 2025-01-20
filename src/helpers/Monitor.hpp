@@ -4,6 +4,7 @@
 #include <stack>
 #include <vector>
 #include "../SharedDefs.hpp"
+#include "MiscFunctions.hpp"
 #include "WLClasses.hpp"
 #include <vector>
 #include <array>
@@ -191,6 +192,7 @@ class CMonitor {
 
     bool        m_bEnabled             = false;
     bool        m_bRenderingInitPassed = false;
+    WP<CWindow> m_previousFSWindow;
 
     // For the list lookup
 

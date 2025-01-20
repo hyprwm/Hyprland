@@ -1,6 +1,5 @@
 #include "TextInputV1.hpp"
 
-#include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
 CTextInputV1::~CTextInputV1() {
@@ -8,13 +7,13 @@ CTextInputV1::~CTextInputV1() {
 }
 
 CTextInputV1::CTextInputV1(SP<CZwpTextInputV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CZwpTextInputV1* pMgr) { PROTO::textInputV1->destroyResource(this); });
 
     resource->setActivate([this](CZwpTextInputV1* pMgr, wl_resource* seat, wl_resource* surface) {
-        if (!surface) {
+        if UNLIKELY (!surface) {
             LOGM(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)this);
             return;
         }
@@ -106,7 +105,7 @@ void CTextInputV1Protocol::bindManager(wl_client* client, void* data, uint32_t v
         const auto PTI = m_vClients.emplace_back(makeShared<CTextInputV1>(makeShared<CZwpTextInputV1>(pMgr->client(), pMgr->version(), id)));
         LOGM(LOG, "New TI V1 at {:x}", (uintptr_t)PTI.get());
 
-        if (!PTI->good()) {
+        if UNLIKELY (!PTI->good()) {
             LOGM(ERR, "Could not alloc wl_resource for TIV1");
             pMgr->noMemory();
             PROTO::textInputV1->destroyResource(PTI.get());

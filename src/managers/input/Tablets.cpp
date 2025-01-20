@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include "../../Compositor.hpp"
+#include "../../desktop/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../managers/PointerManager.hpp"

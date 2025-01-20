@@ -4,23 +4,24 @@
 #define CONFIG_MANAGER_H
 
 #include <map>
-#include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
 #include <variant>
 #include <vector>
-#include <algorithm>
 #include <optional>
 #include <functional>
 #include <xf86drmMode.h>
-#include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
-#include "../helpers/varlist/VarList.hpp"
 #include "../desktop/Window.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/LayerRule.hpp"
 
-#include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
+#include "../SharedDefs.hpp"
+#include "../helpers/Color.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../desktop/WindowRule.hpp"
+#include "../managers/XWaylandManager.hpp"
 
 #include <hyprlang.hpp>
 
@@ -141,8 +142,8 @@ class CConfigManager {
   public:
     CConfigManager();
 
-    void                                                            tick();
     void                                                            init();
+    void                                                            reload();
 
     int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
@@ -257,15 +258,13 @@ class CConfigManager {
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
 
     bool m_bWantsMonitorReload = false;
-    bool m_bForceReload        = false;
     bool m_bNoMonitorReload    = false;
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
     std::unique_ptr<Hyprlang::CConfig>               m_pConfig;
 
-    std::vector<std::string>                         configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>          configModifyTimes; // stores modify times
+    std::vector<std::string>                         m_configPaths;
 
     Hyprutils::Animation::CAnimationConfigTree       m_AnimationTree;
 
@@ -301,7 +300,6 @@ class CConfigManager {
     std::optional<std::string> generateConfig(std::string configPath);
     std::optional<std::string> verifyConfigExists();
     void                       postConfigReload(const Hyprlang::CParseResult& result);
-    void                       reload();
     SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 };
 

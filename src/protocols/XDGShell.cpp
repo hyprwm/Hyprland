@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "protocols/core/Output.hpp"
@@ -25,7 +26,7 @@ void SXDGPositionerState::setGravity(xdgPositionerGravity edges) {
 
 CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceResource> owner_, SP<CXDGSurfaceResource> surface_, SP<CXDGPositionerResource> positioner) :
     surface(surface_), parent(owner_), resource(resource_), positionerRules(positioner) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -78,7 +79,7 @@ void CXDGPopupResource::applyPositioning(const CBox& box, const Vector2D& t1coor
 
     configure(geometry);
 
-    if (lastRepositionToken)
+    if UNLIKELY (lastRepositionToken)
         repositioned();
 }
 
@@ -117,7 +118,7 @@ void CXDGPopupResource::done() {
 }
 
 void CXDGPopupResource::repositioned() {
-    if (!lastRepositionToken)
+    if LIKELY (!lastRepositionToken)
         return;
 
     LOGM(LOG, "repositioned: sending reposition token {}", lastRepositionToken);
@@ -127,7 +128,7 @@ void CXDGPopupResource::repositioned() {
 }
 
 CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSurfaceResource> owner_) : owner(owner_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -349,7 +350,7 @@ Vector2D CXDGToplevelResource::layoutMaxSize() {
 
 CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_) :
     owner(owner_), surface(surface_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -385,7 +386,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         if (toplevel)
             toplevel->current = toplevel->pending;
 
-        if (initialCommit && surface->pending.texture) {
+        if UNLIKELY (initialCommit && surface->pending.texture) {
             resource->error(-1, "Buffer attached before initial commit");
             return;
         }
@@ -415,7 +416,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
     resource->setGetToplevel([this](CXdgSurface* r, uint32_t id) {
         const auto RESOURCE = PROTO::xdgShell->m_vToplevels.emplace_back(makeShared<CXDGToplevelResource>(makeShared<CXdgToplevel>(r->client(), r->version(), id), self.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::xdgShell->m_vToplevels.pop_back();
             return;
@@ -441,7 +442,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         const auto RESOURCE =
             PROTO::xdgShell->m_vPopups.emplace_back(makeShared<CXDGPopupResource>(makeShared<CXdgPopup>(r->client(), r->version(), id), parent, self.lock(), positioner));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::xdgShell->m_vPopups.pop_back();
             return;
@@ -510,7 +511,7 @@ void CXDGSurfaceResource::configure() {
 }
 
 CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<CXDGWMBase> owner_) : owner(owner_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -519,7 +520,7 @@ CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<
     resource->setOnDestroy([this](CXdgPositioner* r) { PROTO::xdgShell->destroyResource(this); });
 
     resource->setSetSize([this](CXdgPositioner* r, int32_t x, int32_t y) {
-        if (x <= 0 || y <= 0) {
+        if UNLIKELY (x <= 0 || y <= 0) {
             r->error(XDG_POSITIONER_ERROR_INVALID_INPUT, "Invalid size");
             return;
         }
@@ -528,7 +529,7 @@ CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<
     });
 
     resource->setSetAnchorRect([this](CXdgPositioner* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        if (w <= 0 || h <= 0) {
+        if UNLIKELY (w <= 0 || h <= 0) {
             r->error(XDG_POSITIONER_ERROR_INVALID_INPUT, "Invalid box");
             return;
         }
@@ -685,7 +686,7 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
 }
 
 CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CXdgWmBase* r) { PROTO::xdgShell->destroyResource(this); });
@@ -697,7 +698,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
         const auto RESOURCE =
             PROTO::xdgShell->m_vPositioners.emplace_back(makeShared<CXDGPositionerResource>(makeShared<CXdgPositioner>(r->client(), r->version(), id), self.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::xdgShell->m_vPositioners.pop_back();
             return;
@@ -713,19 +714,19 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
     resource->setGetXdgSurface([this](CXdgWmBase* r, uint32_t id, wl_resource* surf) {
         auto SURF = CWLSurfaceResource::fromResource(surf);
 
-        if (!SURF) {
+        if UNLIKELY (!SURF) {
             r->error(-1, "Invalid surface passed");
             return;
         }
 
-        if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+        if UNLIKELY (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
             r->error(-1, "Surface already has a different role");
             return;
         }
 
         const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), SURF));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::xdgShell->m_vSurfaces.pop_back();
             return;
@@ -764,7 +765,7 @@ CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, 
 void CXDGShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vWMBases.emplace_back(makeShared<CXDGWMBase>(makeShared<CXdgWmBase>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vWMBases.pop_back();
         return;

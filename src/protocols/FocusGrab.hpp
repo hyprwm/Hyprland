@@ -2,7 +2,7 @@
 
 #include "WaylandProtocol.hpp"
 #include "hyprland-focus-grab-v1.hpp"
-#include "macros.hpp"
+#include "../macros.hpp"
 #include <cstdint>
 #include <unordered_map>
 #include <vector>

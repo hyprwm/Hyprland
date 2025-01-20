@@ -9,9 +9,13 @@
 #include "Compositor.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../xwayland/Server.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../render/Renderer.hpp"
 
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CWlDataOffer* r) { PROTO::data->destroyResource(this); });
@@ -123,7 +127,7 @@ SP<IDataSource> CWLDataOfferResource::getSource() {
 }
 
 CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWLDataDeviceResource> device_) : device(device_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setData(this);
@@ -233,7 +237,7 @@ eDataSourceType CWLDataSourceResource::type() {
 }
 
 CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setRelease([this](CWlDataDevice* r) { PROTO::data->destroyResource(this); });
@@ -329,7 +333,7 @@ SP<CX11DataDevice> CWLDataDeviceResource::getX11() {
 }
 
 CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManager> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlDataDeviceManager* r) { PROTO::data->destroyResource(this); });
@@ -339,7 +343,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
 
         const auto RESOURCE = PROTO::data->m_vSources.emplace_back(makeShared<CWLDataSourceResource>(makeShared<CWlDataSource>(r->client(), r->version(), id), device.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::data->m_vSources.pop_back();
             return;
@@ -358,7 +362,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
     resource->setGetDataDevice([this](CWlDataDeviceManager* r, uint32_t id, wl_resource* seat) {
         const auto RESOURCE = PROTO::data->m_vDevices.emplace_back(makeShared<CWLDataDeviceResource>(makeShared<CWlDataDevice>(r->client(), r->version(), id)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::data->m_vDevices.pop_back();
             return;
@@ -390,7 +394,7 @@ CWLDataDeviceProtocol::CWLDataDeviceProtocol(const wl_interface* iface, const in
 void CWLDataDeviceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLDataDeviceManagerResource>(makeShared<CWlDataDeviceManager>(client, ver, id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();
         return;
@@ -437,7 +441,7 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
 
     if (const auto WL = dev->getWayland(); WL) {
         const auto OFFER = m_vOffers.emplace_back(makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(WL->resource->client(), WL->resource->version(), 0), sel));
-        if (!OFFER->good()) {
+        if UNLIKELY (!OFFER->good()) {
             WL->resource->noMemory();
             m_vOffers.pop_back();
             return;
@@ -451,7 +455,7 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
         offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), sel);
 #endif
 
-    if (!offer) {
+    if UNLIKELY (!offer) {
         LOGM(ERR, "No offer could be created in sendSelectionToDevice");
         return;
     }

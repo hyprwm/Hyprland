@@ -49,3 +49,9 @@ executable(
   ],
   install: true,
 )
+
+install_symlink(
+  'hyprland',
+  install_dir: get_option('bindir'),
+  pointing_to: 'Hyprland',
+)

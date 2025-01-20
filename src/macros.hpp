@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "helpers/memory/Memory.hpp"
+#include "debug/Log.hpp"
 
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
@@ -113,3 +114,6 @@
     namespace Aquamarine {                                                                                                                                                         \
         class name;                                                                                                                                                                \
     }
+
+#define UNLIKELY(expr) (expr) [[unlikely]]
+#define LIKELY(expr)   (expr) [[likely]]

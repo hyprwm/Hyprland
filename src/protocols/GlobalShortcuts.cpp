@@ -1,8 +1,7 @@
 #include "GlobalShortcuts.hpp"
-#include "../Compositor.hpp"
 
 CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CHyprlandGlobalShortcutsManagerV1* pMgr) { PROTO::globalShortcuts->destroyResource(this); });
@@ -10,7 +9,7 @@ CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_
 
     resource->setRegisterShortcut([this](CHyprlandGlobalShortcutsManagerV1* pMgr, uint32_t shortcut, const char* id, const char* app_id, const char* description,
                                          const char* trigger_description) {
-        if (PROTO::globalShortcuts->isTaken(id, app_id)) {
+        if UNLIKELY (PROTO::globalShortcuts->isTaken(id, app_id)) {
             resource->error(HYPRLAND_GLOBAL_SHORTCUTS_MANAGER_V1_ERROR_ALREADY_TAKEN, "Combination is taken");
             return;
         }
@@ -21,7 +20,7 @@ CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_
         PSHORTCUT->appid       = app_id;
         PSHORTCUT->shortcut    = shortcut;
 
-        if (!PSHORTCUT->resource->resource()) {
+        if UNLIKELY (!PSHORTCUT->resource->resource()) {
             PSHORTCUT->resource->noMemory();
             shortcuts.pop_back();
             return;
@@ -42,7 +41,7 @@ CGlobalShortcutsProtocol::CGlobalShortcutsProtocol(const wl_interface* iface, co
 void CGlobalShortcutsProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESROUCE = m_vClients.emplace_back(makeShared<CShortcutClient>(makeShared<CHyprlandGlobalShortcutsManagerV1>(client, ver, id)));
 
-    if (!RESROUCE->good()) {
+    if UNLIKELY (!RESROUCE->good()) {
         wl_client_post_no_memory(client);
         m_vClients.pop_back();
         return;
@@ -84,8 +83,19 @@ void CGlobalShortcutsProtocol::sendGlobalShortcutEvent(std::string appid, std::s
 
 std::vector<SShortcut> CGlobalShortcutsProtocol::getAllShortcuts() {
     std::vector<SShortcut> copy;
-    for (auto const& c : m_vClients) {
-        for (auto const& sh : c->shortcuts) {
+    // calculate the total number of shortcuts, precomputing size is linear
+    // and potential reallocation is more costly then the added precompute overhead of looping
+    // and finding the total size.
+    size_t totalShortcuts = 0;
+    for (const auto& c : m_vClients) {
+        totalShortcuts += c->shortcuts.size();
+    }
+
+    // reserve number of elements to avoid reallocations
+    copy.reserve(totalShortcuts);
+
+    for (const auto& c : m_vClients) {
+        for (const auto& sh : c->shortcuts) {
             copy.push_back(*sh);
         }
     }

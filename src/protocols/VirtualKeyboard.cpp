@@ -3,7 +3,7 @@
 #include "../devices/IKeyboard.hpp"
 
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
@@ -18,7 +18,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
     });
 
     resource->setKey([this](CZwpVirtualKeyboardV1* r, uint32_t timeMs, uint32_t key, uint32_t state) {
-        if (!hasKeymap) {
+        if UNLIKELY (!hasKeymap) {
             r->error(ZWP_VIRTUAL_KEYBOARD_V1_ERROR_NO_KEYMAP, "Key event received before a keymap was set");
             return;
         }
@@ -37,7 +37,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
     });
 
     resource->setModifiers([this](CZwpVirtualKeyboardV1* r, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-        if (!hasKeymap) {
+        if UNLIKELY (!hasKeymap) {
             r->error(ZWP_VIRTUAL_KEYBOARD_V1_ERROR_NO_KEYMAP, "Mods event received before a keymap was set");
             return;
         }
@@ -52,7 +52,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
 
     resource->setKeymap([this](CZwpVirtualKeyboardV1* r, uint32_t fmt, int32_t fd, uint32_t len) {
         auto xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-        if (!xkbContext) {
+        if UNLIKELY (!xkbContext) {
             LOGM(ERR, "xkbContext creation failed");
             r->noMemory();
             close(fd);
@@ -60,7 +60,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         }
 
         auto keymapData = mmap(nullptr, len, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (keymapData == MAP_FAILED) {
+        if UNLIKELY (keymapData == MAP_FAILED) {
             LOGM(ERR, "keymapData alloc failed");
             xkb_context_unref(xkbContext);
             r->noMemory();
@@ -71,7 +71,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         auto xkbKeymap = xkb_keymap_new_from_string(xkbContext, (const char*)keymapData, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
         munmap(keymapData, len);
 
-        if (!xkbKeymap) {
+        if UNLIKELY (!xkbKeymap) {
             LOGM(ERR, "xkbKeymap creation failed");
             xkb_context_unref(xkbContext);
             r->noMemory();
@@ -142,7 +142,7 @@ void CVirtualKeyboardProtocol::onCreateKeeb(CZwpVirtualKeyboardManagerV1* pMgr, 
 
     const auto RESOURCE = m_vKeyboards.emplace_back(makeShared<CVirtualKeyboardV1Resource>(makeShared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vKeyboards.pop_back();
         return;

@@ -1,11 +1,10 @@
 #include "PointerGestures.hpp"
-#include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 
 CPointerGestureSwipe::CPointerGestureSwipe(SP<CZwpPointerGestureSwipeV1> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setOnDestroy([this](CZwpPointerGestureSwipeV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
@@ -17,7 +16,7 @@ bool CPointerGestureSwipe::good() {
 }
 
 CPointerGestureHold::CPointerGestureHold(SP<CZwpPointerGestureHoldV1> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setOnDestroy([this](CZwpPointerGestureHoldV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
@@ -29,7 +28,7 @@ bool CPointerGestureHold::good() {
 }
 
 CPointerGesturePinch::CPointerGesturePinch(SP<CZwpPointerGesturePinchV1> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setOnDestroy([this](CZwpPointerGesturePinchV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
@@ -74,7 +73,7 @@ void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, ui
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vPinches.emplace_back(std::make_unique<CPointerGesturePinch>(makeShared<CZwpPointerGesturePinchV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         LOGM(ERR, "Couldn't create gesture");
         return;
@@ -85,7 +84,7 @@ void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, ui
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vSwipes.emplace_back(std::make_unique<CPointerGestureSwipe>(makeShared<CZwpPointerGestureSwipeV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         LOGM(ERR, "Couldn't create gesture");
         return;
@@ -96,7 +95,7 @@ void CPointerGesturesProtocol::onGetHoldGesture(CZwpPointerGesturesV1* pMgr, uin
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vHolds.emplace_back(std::make_unique<CPointerGestureHold>(makeShared<CZwpPointerGestureHoldV1>(CLIENT, pMgr->version(), id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         LOGM(ERR, "Couldn't create gesture");
         return;

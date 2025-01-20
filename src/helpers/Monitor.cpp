@@ -1,6 +1,6 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
-#include "macros.hpp"
+#include "../macros.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
@@ -17,9 +17,15 @@
 #include "../managers/PointerManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
+#include "debug/HyprNotificationOverlay.hpp"
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>

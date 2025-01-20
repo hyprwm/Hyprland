@@ -17,6 +17,13 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
+#include "../events/Events.hpp"
+#include "../managers/XWaylandManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/input/InputManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -275,6 +282,8 @@ void CWindow::updateWindowDecos() {
 
     // make a copy because updateWindow can remove decos.
     std::vector<IHyprWindowDecoration*> decos;
+    // reserve to avoid reallocations
+    decos.reserve(m_dWindowDecorations.size());
 
     for (auto const& wd : m_dWindowDecorations) {
         decos.push_back(wd.get());

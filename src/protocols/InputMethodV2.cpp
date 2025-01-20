@@ -7,7 +7,7 @@
 #include <cstring>
 
 CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboardGrabV2> resource_, SP<CInputMethodV2> owner_) : resource(resource_), owner(owner_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setRelease([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
@@ -34,13 +34,13 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
     pLastKeyboard = keyboard;
 
     int keymapFD = allocateSHMFile(keyboard->xkbKeymapString.length() + 1);
-    if (keymapFD < 0) {
+    if UNLIKELY (keymapFD < 0) {
         LOGM(ERR, "Failed to create a keymap file for keyboard grab");
         return;
     }
 
     void* data = mmap(nullptr, keyboard->xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD, 0);
-    if (data == MAP_FAILED) {
+    if UNLIKELY (data == MAP_FAILED) {
         LOGM(ERR, "Failed to mmap a keymap file for keyboard grab");
         close(keymapFD);
         return;
@@ -83,7 +83,7 @@ wl_client* CInputMethodKeyboardGrabV2::client() {
 }
 
 CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, SP<CWLSurfaceResource> surface) : resource(resource_), owner(owner_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([this](CZwpInputPopupSurfaceV2* r) { PROTO::ime->destroyResource(this); });
@@ -149,7 +149,7 @@ void CInputMethodV2::SState::reset() {
 }
 
 CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([this](CZwpInputMethodV2* r) {
@@ -189,7 +189,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
         const auto RESOURCE = PROTO::ime->m_vPopups.emplace_back(
             makeShared<CInputMethodPopupV2>(makeShared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), CWLSurfaceResource::fromResource(surface)));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::ime->m_vPopups.pop_back();
             return;
@@ -206,7 +206,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
         const auto RESOURCE =
             PROTO::ime->m_vGrabs.emplace_back(makeShared<CInputMethodKeyboardGrabV2>(makeShared<CZwpInputMethodKeyboardGrabV2>(r->client(), r->version(), id), self.lock()));
 
-        if (!RESOURCE->good()) {
+        if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
             PROTO::ime->m_vGrabs.pop_back();
             return;
@@ -360,7 +360,7 @@ void CInputMethodV2Protocol::destroyResource(CInputMethodV2* ime) {
 void CInputMethodV2Protocol::onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id) {
     const auto RESOURCE = m_vIMEs.emplace_back(makeShared<CInputMethodV2>(makeShared<CZwpInputMethodV2>(mgr->client(), mgr->version(), id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         mgr->noMemory();
         m_vIMEs.pop_back();
         return;

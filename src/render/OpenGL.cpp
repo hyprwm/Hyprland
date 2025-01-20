@@ -2,12 +2,15 @@
 #include <pango/pangocairo.h>
 #include "Shaders.hpp"
 #include "OpenGL.hpp"
+#include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
 #include "pass/PreBlurElement.hpp"
@@ -397,7 +400,10 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     m_sProc.eglQueryDmaBufModifiersEXT(m_pEglDisplay, format, len, mods.data(), external.data(), &len);
 
     std::vector<uint64_t> result;
-    bool                  linearIsExternal = false;
+    // reserve number of elements to avoid reallocations
+    result.reserve(mods.size());
+
+    bool linearIsExternal = false;
     for (size_t i = 0; i < mods.size(); ++i) {
         if (external.at(i)) {
             if (mods.at(i) == DRM_FORMAT_MOD_LINEAR)
@@ -446,6 +452,8 @@ void CHyprOpenGLImpl::initDRMFormats() {
     Debug::log(LOG, "Supported DMA-BUF formats:");
 
     std::vector<SDRMFormat> dmaFormats;
+    // reserve number of elements to avoid reallocations
+    dmaFormats.reserve(formats.size());
 
     for (auto const& fmt : formats) {
         std::vector<uint64_t> mods;
@@ -469,8 +477,10 @@ void CHyprOpenGLImpl::initDRMFormats() {
         });
 
         std::vector<std::pair<uint64_t, std::string>> modifierData;
+        // reserve number of elements to avoid reallocations
+        modifierData.reserve(mods.size());
 
-        auto                                          fmtName = drmGetFormatName(fmt);
+        auto fmtName = drmGetFormatName(fmt);
         Debug::log(LOG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
@@ -2699,10 +2709,6 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
 void CHyprOpenGLImpl::initAssets() {
     initMissingAssetTexture();
 
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
-
     m_pLockDeadTexture  = loadAsset("lockdead.png");
     m_pLockDead2Texture = loadAsset("lockdead2.png");
 
@@ -2712,9 +2718,20 @@ void CHyprOpenGLImpl::initAssets() {
                                                        "unknown"),
                                        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 
-    // create the default background texture
-    {
-        std::string texPath = std::format("{}", "wall");
+    ensureBackgroundTexturePresence();
+}
+
+void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
+    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+
+    if (*PNOWALLPAPER)
+        m_pBackgroundTexture.reset();
+    else if (!m_pBackgroundTexture) {
+        // create the default background texture
+        std::string texPath = "wall";
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {
@@ -2932,7 +2949,8 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
         }
-
+        // reserve number of elements to avoid reallocations
+        attribs.reserve(3);
         attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
         attribs.push_back(dupFd);
         attribs.push_back(EGL_NONE);

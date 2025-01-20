@@ -3,11 +3,10 @@
 #include "../core/Compositor.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../helpers/sync/SyncTimeline.hpp"
-#include "../../Compositor.hpp"
 #include <xf86drm.h>
 
 CWLBufferResource::CWLBufferResource(SP<CWlBuffer> resource_) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CWlBuffer* r) {

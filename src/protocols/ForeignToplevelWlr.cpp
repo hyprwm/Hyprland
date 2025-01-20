@@ -3,9 +3,10 @@
 #include "../Compositor.hpp"
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource->setOnDestroy([this](CZwlrForeignToplevelHandleV1* h) { PROTO::foreignToplevelWlr->destroyHandle(this); });
@@ -14,7 +15,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setActivate([this](CZwlrForeignToplevelHandleV1* p, wl_resource* seat) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
         // these requests bypass the config'd stuff cuz it's usually like
@@ -25,13 +26,13 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setSetFullscreen([this](CZwlrForeignToplevelHandleV1* p, wl_resource* output) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
-        if (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN)
+        if UNLIKELY (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN)
             return;
 
-        if (!PWINDOW->m_bIsMapped) {
+        if UNLIKELY (!PWINDOW->m_bIsMapped) {
             PWINDOW->m_bWantsInitialFullscreen = true;
             return;
         }
@@ -56,10 +57,10 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setUnsetFullscreen([this](CZwlrForeignToplevelHandleV1* p) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
-        if (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN)
+        if UNLIKELY (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN)
             return;
 
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, false);
@@ -68,13 +69,13 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
-        if (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
+        if UNLIKELY (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
             return;
 
-        if (!PWINDOW->m_bIsMapped) {
+        if UNLIKELY (!PWINDOW->m_bIsMapped) {
             PWINDOW->m_bWantsInitialFullscreen = true;
             return;
         }
@@ -85,10 +86,10 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
-        if (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
+        if UNLIKELY (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
             return;
 
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);
@@ -97,7 +98,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
     resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
         const auto PWINDOW = pWindow.lock();
 
-        if (!PWINDOW)
+        if UNLIKELY (!PWINDOW)
             return;
 
         g_pCompositor->closeWindow(PWINDOW);
@@ -125,14 +126,14 @@ void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
     if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->szName)) {
         const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->szName)->outputResourceFrom(CLIENT);
 
-        if (OLDRESOURCE)
+        if LIKELY (OLDRESOURCE)
             resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
     }
 
     if (PROTO::outputs.contains(pMonitor->szName)) {
         const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->szName)->outputResourceFrom(CLIENT);
 
-        if (NEWRESOURCE)
+        if LIKELY (NEWRESOURCE)
             resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
     }
 
@@ -142,7 +143,7 @@ void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
 void CForeignToplevelHandleWlr::sendState() {
     const auto PWINDOW = pWindow.lock();
 
-    if (!PWINDOW || !PWINDOW->m_pWorkspace || !PWINDOW->m_bIsMapped)
+    if UNLIKELY (!PWINDOW || !PWINDOW->m_pWorkspace || !PWINDOW->m_bIsMapped)
         return;
 
     wl_array state;
@@ -167,7 +168,7 @@ void CForeignToplevelHandleWlr::sendState() {
 }
 
 CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelManagerV1> resource_) : resource(resource_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource->setOnDestroy([this](CZwlrForeignToplevelManagerV1* h) { PROTO::foreignToplevelWlr->onManagerResourceDestroy(this); });
@@ -190,13 +191,13 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
 }
 
 void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_vHandles.emplace_back(
         makeShared<CForeignToplevelHandleWlr>(makeShared<CZwlrForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
 
-    if (!NEWHANDLE->good()) {
+    if UNLIKELY (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
         resource->noMemory();
         PROTO::foreignToplevelWlr->m_vHandles.pop_back();
@@ -207,7 +208,7 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
     resource->sendToplevel(NEWHANDLE->resource.get());
     NEWHANDLE->resource->sendAppId(pWindow->m_szClass.c_str());
     NEWHANDLE->resource->sendTitle(pWindow->m_szTitle.c_str());
-    if (const auto PMONITOR = pWindow->m_pMonitor.lock(); PMONITOR)
+    if LIKELY (const auto PMONITOR = pWindow->m_pMonitor.lock(); PMONITOR)
         NEWHANDLE->sendMonitor(PMONITOR);
     NEWHANDLE->sendState();
     NEWHANDLE->resource->sendDone();
@@ -222,11 +223,11 @@ SP<CForeignToplevelHandleWlr> CForeignToplevelWlrManager::handleForWindow(PHLWIN
 }
 
 void CForeignToplevelWlrManager::onTitle(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->resource->sendTitle(pWindow->m_szTitle.c_str());
@@ -234,11 +235,11 @@ void CForeignToplevelWlrManager::onTitle(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelWlrManager::onClass(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->resource->sendAppId(pWindow->m_szClass.c_str());
@@ -246,11 +247,11 @@ void CForeignToplevelWlrManager::onClass(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelWlrManager::onUnmap(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H)
+    if UNLIKELY (!H)
         return;
 
     H->resource->sendClosed();
@@ -259,16 +260,16 @@ void CForeignToplevelWlrManager::onUnmap(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     const auto PMONITOR = pWindow->m_pMonitor.lock();
 
-    if (!PMONITOR)
+    if UNLIKELY (!PMONITOR)
         return;
 
     H->sendMonitor(PMONITOR);
@@ -276,11 +277,11 @@ void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelWlrManager::onFullscreen(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->sendState();
@@ -288,10 +289,10 @@ void CForeignToplevelWlrManager::onFullscreen(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelWlrManager::onNewFocus(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
-    if (const auto HOLD = handleForWindow(lastFocus.lock()); HOLD) {
+    if LIKELY (const auto HOLD = handleForWindow(lastFocus.lock()); HOLD) {
         HOLD->sendState();
         HOLD->resource->sendDone();
     }
@@ -299,7 +300,7 @@ void CForeignToplevelWlrManager::onNewFocus(PHLWINDOW pWindow) {
     lastFocus = pWindow;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->sendState();
@@ -377,7 +378,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
 void CForeignToplevelWlrProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();

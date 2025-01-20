@@ -4,6 +4,8 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Subcompositor.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/input/InputManager.hpp"
 
 CSubsurface::CSubsurface(PHLWINDOW pOwner) : m_pWindowParent(pOwner) {
     initSignals();

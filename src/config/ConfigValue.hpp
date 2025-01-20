@@ -3,7 +3,6 @@
 #include <string>
 #include <typeindex>
 #include <hyprlang.hpp>
-#include "../debug/Log.hpp"
 #include "../macros.hpp"
 #include "ConfigManager.hpp"
 

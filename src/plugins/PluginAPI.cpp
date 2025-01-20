@@ -1,6 +1,12 @@
 #include "PluginAPI.hpp"
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
+#include "../plugins/PluginSystem.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -67,7 +73,7 @@ APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {
-    g_pConfigManager->m_bForceReload = true;
+    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
     return true;
 }
 

@@ -1,8 +1,9 @@
 #include "ForeignToplevel.hpp"
 #include "../Compositor.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource->setOnDestroy([this](CExtForeignToplevelHandleV1* h) { PROTO::foreignToplevel->destroyHandle(this); });
@@ -18,7 +19,7 @@ PHLWINDOW CForeignToplevelHandle::window() {
 }
 
 CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resource_) : resource(resource_) {
-    if (!resource_->resource())
+    if UNLIKELY (!resource_->resource())
         return;
 
     resource->setOnDestroy([this](CExtForeignToplevelListV1* h) { PROTO::foreignToplevel->onManagerResourceDestroy(this); });
@@ -39,7 +40,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
 }
 
 void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto NEWHANDLE = PROTO::foreignToplevel->m_vHandles.emplace_back(
@@ -71,11 +72,11 @@ SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(PHLWINDOW pWind
 }
 
 void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->resource->sendTitle(pWindow->m_szTitle.c_str());
@@ -83,11 +84,11 @@ void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H || H->closed)
+    if UNLIKELY (!H || H->closed)
         return;
 
     H->resource->sendAppId(pWindow->m_szClass.c_str());
@@ -95,11 +96,11 @@ void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
 }
 
 void CForeignToplevelList::onUnmap(PHLWINDOW pWindow) {
-    if (finished)
+    if UNLIKELY (finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if (!H)
+    if UNLIKELY (!H)
         return;
 
     H->resource->sendClosed();
@@ -148,7 +149,7 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
 void CForeignToplevelProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelList>(makeShared<CExtForeignToplevelListV1>(client, ver, id))).get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");
         wl_client_post_no_memory(client);
         m_vManagers.pop_back();

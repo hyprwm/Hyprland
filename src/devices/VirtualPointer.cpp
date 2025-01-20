@@ -11,7 +11,7 @@ SP<CVirtualPointer> CVirtualPointer::create(SP<CVirtualPointerV1Resource> resour
 }
 
 CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : pointer(resource) {
-    if (!resource->good())
+    if UNLIKELY (!resource->good())
         return;
 
     listeners.destroy = pointer->events.destroy.registerListener([this](std::any d) {

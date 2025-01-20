@@ -4,6 +4,8 @@
 #include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../render/Renderer.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : popup(popup_) {
     listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });

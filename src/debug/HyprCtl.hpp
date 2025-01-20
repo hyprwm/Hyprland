@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Compositor.hpp"
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
+#include "../desktop/Window.hpp"
 #include <functional>
 
 // exposed for main.cpp

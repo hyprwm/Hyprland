@@ -2,7 +2,7 @@
 #include "core/Compositor.hpp"
 
 CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf) : resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
@@ -44,7 +44,7 @@ void CServerDecorationKDEProtocol::createDecoration(COrgKdeKwinServerDecorationM
         m_vDecos.emplace_back(std::make_unique<CServerDecorationKDE>(makeShared<COrgKdeKwinServerDecoration>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)))
             .get();
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vDecos.pop_back();
         return;

@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/Monitor.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/Timer.hpp"
@@ -129,7 +130,6 @@ class CHyprRenderer {
 
     bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    WP<CWindow>       m_previousFSWindow;
     bool              m_bCursorHidden        = false;
     bool              m_bCursorHasSurface    = false;
     SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;

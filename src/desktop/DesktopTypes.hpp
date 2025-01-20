@@ -1,5 +1,5 @@
 #pragma once
-#include "../macros.hpp"
+#include "../helpers/memory/Memory.hpp"
 class CWorkspace;
 class CWindow;
 class CLayerSurface;

@@ -1,6 +1,5 @@
 #include "Keyboard.hpp"
 #include "../defines.hpp"
-#include "../Compositor.hpp"
 
 #include <aquamarine/input/Input.hpp>
 

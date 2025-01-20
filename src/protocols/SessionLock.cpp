@@ -2,12 +2,14 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "FractionalScale.hpp"
+#include "LockNotify.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
+#include "../helpers/Monitor.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     resource(resource_), sessionLock(owner_), pSurface(surface_), pMonitor(pMonitor_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([this](CExtSessionLockSurfaceV1* r) {
@@ -91,7 +93,7 @@ SP<CWLSurfaceResource> CSessionLockSurface::surface() {
 }
 
 CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_) {
-    if (!resource->resource())
+    if UNLIKELY (!resource->resource())
         return;
 
     resource->setDestroy([this](CExtSessionLockV1* r) { PROTO::sessionLock->destroyResource(this); });
@@ -114,6 +116,8 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_
 
         PROTO::sessionLock->locked = false;
 
+        PROTO::lockNotify->onUnlocked();
+
         events.unlockAndDestroy.emit();
 
         inert = true;
@@ -127,6 +131,7 @@ CSessionLock::~CSessionLock() {
 
 void CSessionLock::sendLocked() {
     resource->sendLocked();
+    PROTO::lockNotify->onLocked();
 }
 
 bool CSessionLock::good() {
@@ -169,7 +174,7 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vLocks.emplace_back(makeShared<CSessionLock>(makeShared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vLocks.pop_back();
         return;
@@ -197,7 +202,7 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
     const auto RESOURCE =
         m_vLockSurfaces.emplace_back(makeShared<CSessionLockSurface>(makeShared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         lock->noMemory();
         m_vLockSurfaces.pop_back();
         return;

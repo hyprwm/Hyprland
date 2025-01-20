@@ -248,7 +248,15 @@ target_precompile_headers(Hyprland PRIVATE
 
 message(STATUS "Setting link libraries")
 
-target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::hyprlang_dep PkgConfig::hyprutils_dep PkgConfig::hyprcursor_dep PkgConfig::hyprgraphics_dep PkgConfig::deps)
+target_link_libraries(
+  Hyprland
+  rt
+  PkgConfig::aquamarine_dep
+  PkgConfig::hyprlang_dep
+  PkgConfig::hyprutils_dep
+  PkgConfig::hyprcursor_dep
+  PkgConfig::hyprgraphics_dep
+  PkgConfig::deps)
 if(udis_dep_FOUND)
   target_link_libraries(Hyprland PkgConfig::udis_dep)
 else()
@@ -290,7 +298,7 @@ endfunction()
 
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.4.0)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.0)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
@@ -321,6 +329,7 @@ protocolnew("protocols" "frog-color-management-v1" true)
 protocolnew("protocols" "wayland-drm" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-ctm-control-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-surface-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-lock-notify-v1" true)
 
 protocolnew("staging/tearing-control" "tearing-control-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
@@ -358,7 +367,13 @@ protocolwayland()
 
 # tools
 add_subdirectory(hyprctl)
-add_subdirectory(hyprpm)
+
+if(NO_HYPRPM)
+  message(STATUS "hyprpm is disabled")
+else()
+  add_subdirectory(hyprpm)
+  message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
+endif()
 
 # binary and symlink
 install(TARGETS Hyprland)
@@ -369,7 +384,6 @@ install(
         ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
         \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
         )")
-
 # session file
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)

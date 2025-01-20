@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../events/Events.hpp"
 #include "../defines.hpp"
-#include "../desktop/Window.hpp"
 #include "../desktop/Subsurface.hpp"
 #include "../desktop/Popup.hpp"
 #include "../desktop/WLSurface.hpp"
+#include "../macros.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "memory/Memory.hpp"
 #include "signal/Signal.hpp"
-#include "math/Math.hpp"
 
 class CMonitor;
 class IPointer;

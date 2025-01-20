@@ -1,8 +1,10 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "XDGShell.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
+#include "../helpers/Monitor.hpp"
 
 void CLayerShellResource::SState::reset() {
     anchor        = 0;
@@ -16,7 +18,7 @@ void CLayerShellResource::SState::reset() {
 
 CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, PHLMONITOR pMonitor,
                                          zwlrLayerShellV1Layer layer) : layerNamespace(namespace_), surface(surf_), resource(resource_) {
-    if (!good())
+    if UNLIKELY (!good())
         return;
 
     current.layer = layer;
@@ -221,19 +223,19 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.lock() : nullptr;
     auto       SURF     = CWLSurfaceResource::fromResource(surface);
 
-    if (!SURF) {
+    if UNLIKELY (!SURF) {
         pMgr->error(-1, "Invalid surface");
         return;
     }
 
-    if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+    if UNLIKELY (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
         pMgr->error(-1, "Surface already has a different role");
         return;
     }
 
     const auto RESOURCE = m_vLayers.emplace_back(makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), SURF, namespace_, PMONITOR, layer));
 
-    if (!RESOURCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_vLayers.pop_back();
         return;

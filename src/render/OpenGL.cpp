@@ -302,11 +302,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_iDRMFD(g_pCompositor->m_iDRMFD) {
         Debug::log(WARN, "EGL: EXT_platform_device or EGL_EXT_device_query not supported, using gbm");
         if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
             success  = true;
-            m_iGBMFD = openRenderNode(m_iDRMFD);
-            if (m_iGBMFD < 0)
+            m_iGBMFD = CFileDescriptor{openRenderNode(m_iDRMFD)};
+            if (!m_iGBMFD.isValid())
                 RASSERT(false, "Couldn't open a gbm fd");
 
-            m_pGbmDevice = gbm_create_device(m_iGBMFD);
+            m_pGbmDevice = gbm_create_device(m_iGBMFD.get());
             if (!m_pGbmDevice)
                 RASSERT(false, "Couldn't open a gbm device");
 
@@ -372,9 +372,6 @@ CHyprOpenGLImpl::~CHyprOpenGLImpl() {
 
     if (m_pGbmDevice)
         gbm_device_destroy(m_pGbmDevice);
-
-    if (m_iGBMFD >= 0)
-        close(m_iGBMFD);
 }
 
 std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {

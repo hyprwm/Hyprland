@@ -4,6 +4,7 @@
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>
+using namespace Hyprutils::OS;
 
 CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request) : resource(resource_) {
     if UNLIKELY (!good())
@@ -185,15 +186,14 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
         RESOURCE->parent = self;
     });
 
-    int fd = ((Aquamarine::CDRMBackend*)PROTO::lease->primaryDevice->backend.get())->getNonMasterFD();
-    if (fd < 0) {
+    CFileDescriptor fd{((Aquamarine::CDRMBackend*)PROTO::lease->primaryDevice->backend.get())->getNonMasterFD()};
+    if (!fd.isValid()) {
         LOGM(ERR, "Failed to dup fd in lease");
         return;
     }
 
-    LOGM(LOG, "Sending DRMFD {} to new lease device", fd);
-    resource->sendDrmFd(fd);
-    close(fd);
+    LOGM(LOG, "Sending DRMFD {} to new lease device", fd.get());
+    resource->sendDrmFd(fd.get());
 
     for (auto const& m : PROTO::lease->primaryDevice->offeredOutputs) {
         if (m)
@@ -231,16 +231,15 @@ void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
 }
 
 CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : backend(drmBackend) {
-    auto drm = (Aquamarine::CDRMBackend*)drmBackend.get();
+    auto            drm = (Aquamarine::CDRMBackend*)drmBackend.get();
 
-    auto fd = drm->getNonMasterFD();
+    CFileDescriptor fd{drm->getNonMasterFD()};
 
-    if (fd < 0) {
+    if (!fd.isValid()) {
         LOGM(ERR, "Failed to dup fd for drm node {}", drm->gpuName);
         return;
     }
 
-    close(fd);
     success = true;
     name    = drm->gpuName;
 }

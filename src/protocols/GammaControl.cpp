@@ -4,6 +4,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../render/Renderer.hpp"
+using namespace Hyprutils::OS;
 
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if UNLIKELY (!resource_->resource())
@@ -46,34 +47,33 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->setOnDestroy([this](CZwlrGammaControlV1* gamma) { PROTO::gamma->destroyGammaControl(this); });
 
     resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
+        CFileDescriptor gammaFd{fd};
         if UNLIKELY (!pMonitor) {
             LOGM(ERR, "setGamma for a dead monitor");
             resource->sendFailed();
-            close(fd);
             return;
         }
 
         LOGM(LOG, "setGamma for {}", pMonitor->szName);
 
-        int fdFlags = fcntl(fd, F_GETFL, 0);
+        // TODO: make CFileDescriptor getflags use F_GETFL
+        int fdFlags = fcntl(gammaFd.get(), F_GETFL, 0);
         if UNLIKELY (fdFlags < 0) {
             LOGM(ERR, "Failed to get fd flags");
             resource->sendFailed();
-            close(fd);
             return;
         }
 
-        if UNLIKELY (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
+        // TODO: make CFileDescriptor setflags use F_SETFL
+        if UNLIKELY (fcntl(gammaFd.get(), F_SETFL, fdFlags | O_NONBLOCK) < 0) {
             LOGM(ERR, "Failed to set fd flags");
             resource->sendFailed();
-            close(fd);
             return;
         }
 
-        ssize_t readBytes = pread(fd, gammaTable.data(), gammaTable.size() * sizeof(uint16_t), 0);
+        ssize_t readBytes = pread(gammaFd.get(), gammaTable.data(), gammaTable.size() * sizeof(uint16_t), 0);
         if (readBytes < 0 || (size_t)readBytes != gammaTable.size() * sizeof(uint16_t)) {
             LOGM(ERR, "Failed to read bytes");
-            close(fd);
 
             if ((size_t)readBytes != gammaTable.size() * sizeof(uint16_t)) {
                 gamma->error(ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
@@ -85,7 +85,6 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         }
 
         gammaTableSet = true;
-        close(fd);
 
         // translate the table to AQ format
         std::vector<uint16_t> red, green, blue;

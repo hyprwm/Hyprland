@@ -108,7 +108,7 @@ class CLinuxDMABUFResource {
 class CLinuxDMABufV1Protocol : public IWaylandProtocol {
   public:
     CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name);
-    ~CLinuxDMABufV1Protocol();
+    ~CLinuxDMABufV1Protocol() = default;
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
     void         updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor);
@@ -129,7 +129,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
 
     UP<CDMABUFFormatTable>                        formatTable;
     dev_t                                         mainDevice;
-    int                                           mainDeviceFD = -1;
+    Hyprutils::OS::CFileDescriptor                mainDeviceFD;
 
     friend class CLinuxDMABUFResource;
     friend class CLinuxDMABUFFeedbackResource;

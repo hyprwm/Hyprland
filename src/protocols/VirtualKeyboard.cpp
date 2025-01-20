@@ -1,6 +1,7 @@
 #include "VirtualKeyboard.hpp"
 #include <sys/mman.h>
 #include "../devices/IKeyboard.hpp"
+using namespace Hyprutils::OS;
 
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -51,20 +52,19 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
     });
 
     resource->setKeymap([this](CZwpVirtualKeyboardV1* r, uint32_t fmt, int32_t fd, uint32_t len) {
-        auto xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        auto            xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        CFileDescriptor keymapFd{fd};
         if UNLIKELY (!xkbContext) {
             LOGM(ERR, "xkbContext creation failed");
             r->noMemory();
-            close(fd);
             return;
         }
 
-        auto keymapData = mmap(nullptr, len, PROT_READ, MAP_PRIVATE, fd, 0);
+        auto keymapData = mmap(nullptr, len, PROT_READ, MAP_PRIVATE, keymapFd.get(), 0);
         if UNLIKELY (keymapData == MAP_FAILED) {
             LOGM(ERR, "keymapData alloc failed");
             xkb_context_unref(xkbContext);
             r->noMemory();
-            close(fd);
             return;
         }
 
@@ -75,7 +75,6 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             LOGM(ERR, "xkbKeymap creation failed");
             xkb_context_unref(xkbContext);
             r->noMemory();
-            close(fd);
             return;
         }
 
@@ -86,7 +85,6 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
 
         xkb_keymap_unref(xkbKeymap);
         xkb_context_unref(xkbContext);
-        close(fd);
     });
 
     name = "hl-virtual-keyboard";

@@ -153,19 +153,19 @@ void IKeyboard::updateKeymapFD() {
     xkbKeymapString = cKeymapStr;
     free(cKeymapStr);
 
-    int rw, ro;
-    if (!allocateSHMFilePair(xkbKeymapString.length() + 1, &rw, &ro))
+    CFileDescriptor rw, ro;
+    if (!allocateSHMFilePair(xkbKeymapString.length() + 1, rw, ro))
         Debug::log(ERR, "IKeyboard: failed to allocate shm pair for the keymap");
     else {
-        auto keymapFDDest = mmap(nullptr, xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw, 0);
-        close(rw);
+        auto keymapFDDest = mmap(nullptr, xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw.get(), 0);
+        rw.reset();
         if (keymapFDDest == MAP_FAILED) {
             Debug::log(ERR, "IKeyboard: failed to mmap a shm pair for the keymap");
-            close(ro);
+            ro.reset();
         } else {
             memcpy(keymapFDDest, xkbKeymapString.c_str(), xkbKeymapString.length());
             munmap(keymapFDDest, xkbKeymapString.length() + 1);
-            xkbKeymapFD = CFileDescriptor{ro};
+            xkbKeymapFD = std::move(ro);
         }
     }
 

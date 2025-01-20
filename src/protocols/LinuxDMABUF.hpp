@@ -9,6 +9,7 @@
 #include "../helpers/Format.hpp"
 #include "../helpers/Monitor.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CDMABuffer;
 class CWLSurfaceResource;
@@ -48,9 +49,9 @@ struct SDMABUFTranche {
 class CDMABUFFormatTable {
   public:
     CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
-    ~CDMABUFFormatTable();
+    ~CDMABUFFormatTable() = default;
 
-    int                                                   tableFD   = -1;
+    Hyprutils::OS::CFileDescriptor                        tableFD;
     size_t                                                tableSize = 0;
     SDMABUFTranche                                        rendererTranche;
     std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;

@@ -3,6 +3,7 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "../config/ConfigValue.hpp"
+using namespace Hyprutils::OS;
 
 CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if UNLIKELY (!good())
@@ -12,21 +13,20 @@ CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> r
     resource->setOnDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
 
     resource->setReceive([this](CZwpPrimarySelectionOfferV1* r, const char* mime, int32_t fd) {
+        CFileDescriptor sendFd{fd};
         if (!source) {
             LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
-            close(fd);
             return;
         }
 
         if (dead) {
             LOGM(WARN, "Possible bug: Receive on an offer that's dead");
-            close(fd);
             return;
         }
 
         LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
 
-        source->send(mime, fd);
+        source->send(mime, std::move(sendFd));
     });
 }
 
@@ -78,15 +78,13 @@ std::vector<std::string> CPrimarySelectionSource::mimes() {
     return mimeTypes;
 }
 
-void CPrimarySelectionSource::send(const std::string& mime, uint32_t fd) {
+void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
-        close(fd);
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd);
-    close(fd);
+    resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CPrimarySelectionSource::accepted(const std::string& mime) {

@@ -5,6 +5,7 @@
 #include "XDataSource.hpp"
 
 #include <fcntl.h>
+using namespace Hyprutils::OS;
 
 CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
     xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection,
@@ -47,7 +48,7 @@ std::vector<std::string> CXDataSource::mimes() {
     return mimeTypes;
 }
 
-void CXDataSource::send(const std::string& mime, uint32_t fd) {
+void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     xcb_atom_t mimeAtom = 0;
 
     if (mime == "text/plain")
@@ -65,11 +66,10 @@ void CXDataSource::send(const std::string& mime, uint32_t fd) {
 
     if (!mimeAtom) {
         Debug::log(ERR, "[XDataSource] mime atom not found");
-        close(fd);
         return;
     }
 
-    Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd);
+    Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
 
     selection.transfer                 = makeUnique<SXTransfer>(selection);
     selection.transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
@@ -81,8 +81,9 @@ void CXDataSource::send(const std::string& mime, uint32_t fd) {
 
     xcb_flush(g_pXWayland->pWM->connection);
 
-    fcntl(fd, F_SETFL, O_WRONLY | O_NONBLOCK);
-    selection.transfer->wlFD = fd;
+    //TODO: make CFileDescriptor setflags take SETFL aswell
+    fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);
+    selection.transfer->wlFD = std::move(fd);
 }
 
 void CXDataSource::accepted(const std::string& mime) {

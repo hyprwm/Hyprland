@@ -11,11 +11,12 @@
 #include <ctime>
 
 #include <aquamarine/backend/Backend.hpp>
+using namespace Hyprutils::OS;
 
 #define TIMESPEC_NSEC_PER_SEC 1000000000L
 
 CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop) {
-    m_sTimers.timerfd  = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+    m_sTimers.timerfd  = CFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC)};
     m_sWayland.loop    = wlEventLoop;
     m_sWayland.display = display;
 }
@@ -31,8 +32,6 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(m_sIdle.eventSource);
     if (m_configWatcherInotifySource)
         wl_event_source_remove(m_configWatcherInotifySource);
-    if (m_sTimers.timerfd >= 0)
-        close(m_sTimers.timerfd);
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
@@ -52,7 +51,7 @@ static int configWatcherWrite(int fd, uint32_t mask, void* data) {
 }
 
 void CEventLoopManager::enterLoop() {
-    m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
+    m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd.get(), WL_EVENT_READABLE, timerWrite, nullptr);
 
     if (const auto& FD = g_pConfigWatcher->getInotifyFD(); FD.isValid())
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
@@ -120,7 +119,7 @@ void CEventLoopManager::nudgeTimers() {
 
     itimerspec ts = {.it_value = now};
 
-    timerfd_settime(m_sTimers.timerfd, TFD_TIMER_ABSTIME, &ts, nullptr);
+    timerfd_settime(m_sTimers.timerfd.get(), TFD_TIMER_ABSTIME, &ts, nullptr);
 }
 
 void CEventLoopManager::doLater(const std::function<void()>& fn) {

@@ -669,7 +669,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pDonationNagManager = std::make_unique<CDonationNagManager>();
 
             Debug::log(LOG, "Starting XWayland");
-            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
+            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bWantsXwayland);
         } break;
         default: UNREACHABLE();
     }

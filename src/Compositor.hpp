@@ -74,7 +74,7 @@ class CCompositor {
     bool                                       m_bIsShuttingDown = false;
     bool                                       m_bFinalRequests  = false;
     bool                                       m_bDesktopEnvSet  = false;
-    bool                                       m_bEnableXwayland = true;
+    bool                                       m_bWantsXwayland  = true;
 
     // ------------------------------------------------- //
 

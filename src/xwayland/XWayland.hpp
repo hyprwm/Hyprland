@@ -17,18 +17,22 @@ class CXWM;
 
 class CXWayland {
   public:
-    CXWayland(const bool enabled);
+    CXWayland(const bool wantsEnabled);
 
 #ifndef NO_XWAYLAND
     std::unique_ptr<CXWaylandServer> pServer;
     std::unique_ptr<CXWM>            pWM;
 #endif
+    bool enabled();
 
     void setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
 
     struct {
         CSignal newSurface;
     } events;
+
+  private:
+    bool m_enabled = false;
 };
 
 inline std::unique_ptr<CXWayland>                g_pXWayland;

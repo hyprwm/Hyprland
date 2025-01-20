@@ -2083,7 +2083,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         return {};
     }
 
-    int64_t speed = -1;
+    float speed = -1;
 
     // speed
     if (isNumber(ARGS[2], true)) {

@@ -54,8 +54,8 @@ static int configWatcherWrite(int fd, uint32_t mask, void* data) {
 void CEventLoopManager::enterLoop() {
     m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
 
-    if (const auto FD = g_pConfigWatcher->getInotifyFD(); FD >= 0)
-        m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD, WL_EVENT_READABLE, configWatcherWrite, nullptr);
+    if (const auto& FD = g_pConfigWatcher->getInotifyFD(); FD.isValid())
+        m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();
     m_sListeners.pollFDsChanged = g_pCompositor->m_pAqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });

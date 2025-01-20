@@ -24,6 +24,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 #include "../debug/TracyDefines.hpp"
 
@@ -146,15 +147,15 @@ class CEGLSync {
   public:
     ~CEGLSync();
 
-    EGLSyncKHR sync = nullptr;
+    EGLSyncKHR                      sync = nullptr;
 
-    int        fd();
-    bool       wait();
+    Hyprutils::OS::CFileDescriptor& fd();
+    bool                            wait();
 
   private:
     CEGLSync() = default;
 
-    int m_iFd = -1;
+    Hyprutils::OS::CFileDescriptor m_iFd;
 
     friend class CHyprOpenGLImpl;
 };
@@ -228,7 +229,7 @@ class CHyprOpenGLImpl {
     uint32_t                             getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>              getDRMFormats();
     EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                         createEGLSync(int fenceFD);
+    SP<CEGLSync>                         createEGLSync(Hyprutils::OS::CFileDescriptor fenceFD);
     bool                                 waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
     SCurrentRenderData                   m_RenderData;

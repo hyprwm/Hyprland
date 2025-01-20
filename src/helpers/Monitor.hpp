@@ -16,6 +16,7 @@
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <aquamarine/allocator/Swapchain.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {

@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <gbm.h>
 #include <filesystem>
+using namespace Hyprutils::OS;
 
 const std::vector<const char*> ASSET_PATHS = {
 #ifdef DATAROOTDIR
@@ -2954,11 +2955,11 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return drmFormats;
 }
 
-SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
+SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(CFileDescriptor fenceFD) {
     std::vector<EGLint> attribs;
     int                 dupFd = -1;
-    if (fenceFD > 0) {
-        dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+    if (fenceFD.isValid()) {
+        dupFd = fcntl(fenceFD.get(), F_DUPFD_CLOEXEC, 0);
         if (dupFd < 0) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
@@ -2989,19 +2990,18 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
 
     auto eglsync   = SP<CEGLSync>(new CEGLSync);
     eglsync->sync  = sync;
-    eglsync->m_iFd = fd;
+    eglsync->m_iFd = CFileDescriptor{fd};
     return eglsync;
 }
 
 bool CHyprOpenGLImpl::waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point) {
-    int fd = timeline->exportAsSyncFileFD(point);
-    if (fd < 0) {
+    auto fd = timeline->exportAsSyncFileFD(point);
+    if (!fd.isValid()) {
         Debug::log(ERR, "waitForTimelinePoint: failed to get a fd from explicit timeline");
         return false;
     }
 
-    auto sync = g_pHyprOpenGL->createEGLSync(fd);
-    close(fd);
+    auto sync = g_pHyprOpenGL->createEGLSync(std::move(fd));
     if (!sync) {
         Debug::log(ERR, "waitForTimelinePoint: failed to get an eglsync from explicit timeline");
         return false;
@@ -3082,12 +3082,9 @@ CEGLSync::~CEGLSync() {
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
-
-    if (m_iFd >= 0)
-        close(m_iFd);
 }
 
-int CEGLSync::fd() {
+CFileDescriptor& CEGLSync::fd() {
     return m_iFd;
 }
 

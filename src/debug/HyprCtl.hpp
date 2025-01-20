@@ -4,6 +4,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../desktop/Window.hpp"
 #include <functional>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 // exposed for main.cpp
 std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request);
@@ -14,12 +15,12 @@ class CHyprCtl {
     CHyprCtl();
     ~CHyprCtl();
 
-    std::string         makeDynamicCall(const std::string& input);
-    SP<SHyprCtlCommand> registerCommand(SHyprCtlCommand cmd);
-    void                unregisterCommand(const SP<SHyprCtlCommand>& cmd);
-    std::string         getReply(std::string);
+    std::string                    makeDynamicCall(const std::string& input);
+    SP<SHyprCtlCommand>            registerCommand(SHyprCtlCommand cmd);
+    void                           unregisterCommand(const SP<SHyprCtlCommand>& cmd);
+    std::string                    getReply(std::string);
 
-    int                 m_iSocketFD = -1;
+    Hyprutils::OS::CFileDescriptor m_iSocketFD;
 
     struct {
         bool all           = false;

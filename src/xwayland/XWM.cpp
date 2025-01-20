@@ -1140,7 +1140,8 @@ void CXWM::initSelection() {
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
     xcb_xfixes_select_selection_input(connection, clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
-    clipboard.listeners.setSelection = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
+    clipboard.listeners.setSelection        = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
+    clipboard.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
 
     dndSelection.window = xcb_generate_id(connection);
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, dndSelection.window, screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, screen->root_visual, XCB_CW_EVENT_MASK,
@@ -1283,6 +1284,16 @@ void SXSelection::onSelection() {
     if (g_pSeatManager->selection.currentSelection) {
         xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
+        g_pXWayland->pWM->clipboard.notifyOnFocus = true;
+    }
+}
+
+void SXSelection::onKeyboardFocus() {
+    if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient)
+        return;
+    if (g_pXWayland->pWM->clipboard.notifyOnFocus) {
+        onSelection();
+        g_pXWayland->pWM->clipboard.notifyOnFocus = false;
     }
 }
 

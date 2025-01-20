@@ -8,6 +8,8 @@
 #include <aquamarine/input/Input.hpp>
 #include <cstring>
 
+using namespace Hyprutils::OS;
+
 #define LED_COUNT 3
 
 constexpr static std::array<const char*, 8> MODNAMES = {
@@ -41,9 +43,6 @@ void IKeyboard::clearManuallyAllocd() {
     if (xkbKeymap)
         xkb_keymap_unref(xkbKeymap);
 
-    if (xkbKeymapFD >= 0)
-        close(xkbKeymapFD);
-
     if (xkbSymState)
         xkb_state_unref(xkbSymState);
 
@@ -51,7 +50,7 @@ void IKeyboard::clearManuallyAllocd() {
     xkbKeymap      = nullptr;
     xkbState       = nullptr;
     xkbStaticState = nullptr;
-    xkbKeymapFD    = -1;
+    xkbKeymapFD.reset();
 }
 
 void IKeyboard::setKeymap(const SStringRuleNames& rules) {
@@ -147,9 +146,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 void IKeyboard::updateKeymapFD() {
     Debug::log(LOG, "Updating keymap fd for keyboard {}", deviceName);
 
-    if (xkbKeymapFD >= 0)
-        close(xkbKeymapFD);
-    xkbKeymapFD = -1;
+    if (xkbKeymapFD.isValid())
+        xkbKeymapFD.reset();
 
     auto cKeymapStr = xkb_keymap_get_as_string(xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
     xkbKeymapString = cKeymapStr;
@@ -167,11 +165,11 @@ void IKeyboard::updateKeymapFD() {
         } else {
             memcpy(keymapFDDest, xkbKeymapString.c_str(), xkbKeymapString.length());
             munmap(keymapFDDest, xkbKeymapString.length() + 1);
-            xkbKeymapFD = ro;
+            xkbKeymapFD = CFileDescriptor{ro};
         }
     }
 
-    Debug::log(LOG, "Updated keymap fd to {}", xkbKeymapFD);
+    Debug::log(LOG, "Updated keymap fd to {}", xkbKeymapFD.get());
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {

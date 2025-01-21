@@ -149,14 +149,17 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
 void CEventLoopManager::syncPollFDs() {
     auto aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
 
-    for (auto it = aqEventSources.begin(); it != aqEventSources.end();) {
-        if (std::ranges::all_of(aqPollFDs, [&](SP<Aquamarine::SPollFD> fd) { return fd->fd != it->first; })) {
-            wl_event_source_remove(it->second.eventSource);
-            it = aqEventSources.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    std::erase_if(aqEventSources, [&](const auto& item) {
+        auto const& [fd, eventSourceData] = item;
+
+        // If no pollFD has the same fd, remove this event source
+        const bool shouldRemove = std::ranges::none_of(aqPollFDs, [&](const auto& pollFD) { return pollFD->fd == fd; });
+
+        if (shouldRemove) 
+            wl_event_source_remove(eventSourceData.eventSource);
+
+        return shouldRemove;
+    });
 
     for (auto& fd : aqPollFDs | std::views::filter([&](SP<Aquamarine::SPollFD> fd) { return !aqEventSources.contains(fd->fd); })) {
         auto eventSource       = wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get());

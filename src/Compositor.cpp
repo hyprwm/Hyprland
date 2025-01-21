@@ -2,6 +2,7 @@
 
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
@@ -12,6 +13,7 @@
 #include "managers/VersionKeeperManager.hpp"
 #include "managers/DonationNagManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
 #include <ctime>
@@ -19,13 +21,13 @@
 #include <print>
 #include <cstring>
 #include <filesystem>
+#include <ranges>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
-#include <ranges>
 #include "helpers/varlist/VarList.hpp"
 #include "helpers/fs/FsUtils.hpp"
 #include "protocols/FractionalScale.hpp"
@@ -1638,62 +1640,37 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
     return nullptr;
 }
 
-PHLWINDOW CCompositor::getNextWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
-    bool gotToWindow = false;
-    for (auto const& w : m_vWindows) {
-        if (w != pWindow && !gotToWindow)
-            continue;
-
-        if (w == pWindow) {
-            gotToWindow = true;
-            continue;
-        }
-
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sWindowData.noFocus.valueOrDefault()))
-            return w;
-    }
-
-    for (auto const& w : m_vWindows) {
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w != pWindow && w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sWindowData.noFocus.valueOrDefault()))
-            return w;
-    }
-
-    return nullptr;
+PHLWINDOW CCompositor::getNextWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating, bool visible) {
+    auto       it       = std::ranges::find(m_vWindows, pWindow);
+    const auto FINDER   = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(pWindow, w, focusableOnly, floating, visible); };
+    const auto IN_RIGHT = std::find_if(it, m_vWindows.end(), FINDER);
+    if (IN_RIGHT != m_vWindows.end())
+        return *IN_RIGHT;
+    const auto IN_LEFT = std::find_if(m_vWindows.begin(), it, FINDER);
+    return *IN_LEFT;
 }
 
-PHLWINDOW CCompositor::getPrevWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
-    bool gotToWindow = false;
-    for (auto const& w : m_vWindows | std::views::reverse) {
-        if (w != pWindow && !gotToWindow)
-            continue;
+PHLWINDOW CCompositor::getPrevWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating, bool visible) {
+    auto       it      = std::ranges::find(std::ranges::reverse_view(m_vWindows), pWindow);
+    const auto FINDER  = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(pWindow, w, focusableOnly, floating, visible); };
+    const auto IN_LEFT = std::find_if(it, m_vWindows.rend(), FINDER);
+    if (IN_LEFT != m_vWindows.rend())
+        return *IN_LEFT;
+    const auto IN_RIGHT = std::find_if(m_vWindows.rbegin(), it, FINDER);
+    return *IN_RIGHT;
+}
 
-        if (w == pWindow) {
-            gotToWindow = true;
-            continue;
-        }
+inline static bool isWorkspaceMatches(PHLWINDOW pWindow, const PHLWINDOW w, bool anyWorkspace) {
+    return anyWorkspace ? w->m_pWorkspace && w->m_pWorkspace->isVisible() : w->m_pWorkspace == pWindow->m_pWorkspace;
+}
 
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
+inline static bool isFloatingMatches(PHLWINDOW w, std::optional<bool> floating) {
+    return !floating.has_value() || w->m_bIsFloating == floating.value();
+};
 
-        if (w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sWindowData.noFocus.valueOrDefault()))
-            return w;
-    }
-
-    for (auto const& w : m_vWindows | std::views::reverse) {
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w != pWindow && w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sWindowData.noFocus.valueOrDefault()))
-            return w;
-    }
-
-    return nullptr;
+bool CCompositor::isWindowAvailableForCycle(PHLWINDOW pWindow, const PHLWINDOW w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace) {
+    return isFloatingMatches(w, floating) && w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_bIsMapped && !w->isHidden() &&
+        (!focusableOnly || !w->m_sWindowData.noFocus.valueOrDefault());
 }
 
 WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
@@ -1728,12 +1705,8 @@ PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
 }
 
 bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
-    for (auto const& m : m_vMonitors) {
-        if (VECINRECT(point, m->vecPosition.x, m->vecPosition.y, m->vecSize.x + m->vecPosition.x, m->vecSize.y + m->vecPosition.y))
-            return true;
-    }
-
-    return false;
+    return std::ranges::any_of(
+        m_vMonitors, [&](const PHLMONITOR& m) { return VECINRECT(point, m->vecPosition.x, m->vecPosition.y, m->vecSize.x + m->vecPosition.x, m->vecSize.y + m->vecPosition.y); });
 }
 
 bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {

@@ -221,6 +221,7 @@ class CKeybindManager {
     static SDispatchResult global(std::string);
     static SDispatchResult event(std::string);
     static SDispatchResult setProp(std::string);
+    static SDispatchResult hdr(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

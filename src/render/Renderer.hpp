@@ -64,6 +64,7 @@ class CHyprRenderer {
     bool shouldRenderCursor();
     void setCursorHidden(bool hide);
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
+
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
     void                            renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry);
@@ -89,6 +90,7 @@ class CHyprRenderer {
     void endRender();
 
     bool m_bBlockSurfaceFeedback = false;
+    bool m_bHDR                  = false;
     bool m_bRenderingSnapshot    = false;
     PHLMONITORREF                       m_pMostHzMonitor;
     bool                                m_bDirectScanoutBlocked = false;

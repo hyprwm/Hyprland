@@ -137,6 +137,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
     m_mDispatchers["setprop"]                        = setProp;
+    m_mDispatchers["hdr"]                            = hdr;
 
     m_tScrollTimer.reset();
 
@@ -3164,6 +3165,15 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
     for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::hdr(std::string arg) {
+    if (arg.starts_with("toggle"))
+        g_pHyprRenderer->m_bHDR = !g_pHyprRenderer->m_bHDR;
+    else
+        g_pHyprRenderer->m_bHDR = arg.starts_with("on");
 
     return {};
 }

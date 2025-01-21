@@ -750,7 +750,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.keyName, key.keysym);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             m_iPassPressed = (int)pressed;
 
@@ -2201,7 +2201,6 @@ SDispatchResult CKeybindManager::resizeWindow(std::string args) {
 }
 
 SDispatchResult CKeybindManager::circleNext(std::string arg) {
-
     if (g_pCompositor->m_pLastWindow.expired()) {
         // if we have a clear focus, find the first window and get the next focusable.
         const auto PWS = g_pCompositor->m_pLastMonitor->activeWorkspace;
@@ -2221,10 +2220,12 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
     else if (args.contains("float") || args.contains("floating"))
         floatStatus = true;
 
-    if (args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l"))
-        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus));
-    else
-        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus));
+    const auto  VISIBLE = args.contains("visible") || args.contains("v");
+    const auto& w       = (args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l")) ?
+              g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus, VISIBLE) :
+              g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus, VISIBLE);
+
+    switchToWindow(w);
 
     return {};
 }

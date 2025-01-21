@@ -106,8 +106,8 @@ class CCompositor {
     void                   cleanupFadingOut(const MONITORID& monid);
     PHLWINDOW              getWindowInDirection(PHLWINDOW, char);
     PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, char dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
-    PHLWINDOW              getNextWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
-    PHLWINDOW              getPrevWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
+    PHLWINDOW              getNextWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {}, bool visible = false);
+    PHLWINDOW              getPrevWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {}, bool visible = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
@@ -163,6 +163,7 @@ class CCompositor {
     void             setRandomSplash();
     void             initManagers(eManagersInitStage stage);
     void             prepareFallbackOutput();
+    bool             isWindowAvailableForCycle(PHLWINDOW pWindow, PHLWINDOW w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false);
 
     uint64_t         m_iHyprlandPID    = 0;
     wl_event_source* m_critSigSource   = nullptr;

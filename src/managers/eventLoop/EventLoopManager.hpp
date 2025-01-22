@@ -1,6 +1,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <map>
 #include <mutex>
 #include <thread>
 #include <wayland-server.h>

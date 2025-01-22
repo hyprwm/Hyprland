@@ -153,7 +153,7 @@ void CEventLoopManager::syncPollFDs() {
         // If no pollFD has the same fd, remove this event source
         const bool shouldRemove = std::ranges::none_of(aqPollFDs, [&](const auto& pollFD) { return pollFD->fd == fd; });
 
-        if (shouldRemove) 
+        if (shouldRemove)
             wl_event_source_remove(eventSourceData.eventSource);
 
         return shouldRemove;

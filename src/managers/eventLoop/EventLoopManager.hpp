@@ -64,7 +64,7 @@ class CEventLoopManager {
         CHyprSignalListener pollFDsChanged;
     } m_sListeners;
 
-    wl_event_source*                     m_configWatcherInotifySource = nullptr;
+    wl_event_source* m_configWatcherInotifySource = nullptr;
 
     friend class CSyncTimeline;
 };

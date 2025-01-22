@@ -1168,6 +1168,11 @@ void CXWM::setClipboardToWayland(SXSelection& sel) {
     g_pSeatManager->setCurrentSelection(sel.dataSource);
 }
 
+static int writeDataSource(int fd, uint32_t mask, void* data) {
+    auto selection = (SXSelection*)data;
+    return selection->onWrite();
+}
+
 void CXWM::getTransferData(SXSelection& sel) {
     Debug::log(LOG, "[xwm] getTransferData");
 
@@ -1179,26 +1184,9 @@ void CXWM::getTransferData(SXSelection& sel) {
         sel.transfer.reset();
         return;
     } else {
-        char*   property  = (char*)xcb_get_property_value(sel.transfer->propertyReply);
-        int     remainder = xcb_get_property_value_length(sel.transfer->propertyReply) - sel.transfer->propertyStart;
-
-        ssize_t len = write(sel.transfer->wlFD, property + sel.transfer->propertyStart, remainder);
-        if (len == -1) {
-            Debug::log(ERR, "[xwm] write died in transfer get");
-            close(sel.transfer->wlFD);
-            sel.transfer.reset();
-            return;
-        }
-
-        if (len < remainder) {
-            sel.transfer->propertyStart += len;
-            Debug::log(ERR, "[xwm] wl client read partially: len {}", len);
-            return;
-        } else {
-            Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
-            close(sel.transfer->wlFD);
-            sel.transfer.reset();
-        }
+        sel.onWrite();
+        if (sel.transfer)
+            sel.transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, sel.transfer->wlFD, WL_EVENT_WRITABLE, ::writeDataSource, &sel);
     }
 }
 
@@ -1370,7 +1358,8 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     fcntl(p[0], F_SETFD, FD_CLOEXEC);
     fcntl(p[0], F_SETFL, O_NONBLOCK);
     fcntl(p[1], F_SETFD, FD_CLOEXEC);
-    fcntl(p[1], F_SETFL, O_NONBLOCK);
+    // the wayland client might not expect a non-blocking fd
+    // fcntl(p[1], F_SETFL, O_NONBLOCK);
 
     transfer->wlFD = p[0];
 
@@ -1381,6 +1370,30 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD, WL_EVENT_READABLE, ::readDataSource, this);
 
     return true;
+}
+
+int SXSelection::onWrite() {
+    char*   property  = (char*)xcb_get_property_value(transfer->propertyReply);
+    int     remainder = xcb_get_property_value_length(transfer->propertyReply) - transfer->propertyStart;
+
+    ssize_t len = write(transfer->wlFD, property + transfer->propertyStart, remainder);
+    if (len == -1) {
+        Debug::log(ERR, "[xwm] write died in transfer get");
+        close(transfer->wlFD);
+        transfer.reset();
+        return 0;
+    }
+
+    if (len < remainder) {
+        transfer->propertyStart += len;
+        Debug::log(LOG, "[xwm] wl client read partially: len {}", len);
+    } else {
+        Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
+        close(transfer->wlFD);
+        transfer.reset();
+    }
+
+    return 1;
 }
 
 SXTransfer::~SXTransfer() {

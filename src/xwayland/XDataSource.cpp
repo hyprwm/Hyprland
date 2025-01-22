@@ -34,7 +34,8 @@ CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
                 continue;
 
             mimeTypes.push_back(type);
-        }
+        } else
+            continue;
 
         mimeAtoms.push_back(value[i]);
     }

@@ -19,7 +19,6 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
     m_sTimers.timerfd  = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
     m_sWayland.loop    = wlEventLoop;
     m_sWayland.display = display;
-    aqEventSources     = std::map<int, SEventSourceData>{};
 }
 
 CEventLoopManager::~CEventLoopManager() {

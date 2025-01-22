@@ -48,6 +48,7 @@ struct SXSelection {
     void             onSelection();
     bool             sendData(xcb_selection_request_event_t* e, std::string mime);
     int              onRead(int fd, uint32_t mask);
+    int              onWrite();
 
     struct {
         CHyprSignalListener setSelection;

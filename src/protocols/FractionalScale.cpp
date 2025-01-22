@@ -41,13 +41,14 @@ void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1*
         return;
     }
 
-    PADDON->resource->setOnDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
-    PADDON->resource->setDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
+    PADDON->m_resource->setOnDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
+    PADDON->m_resource->setDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
 
-    if (std::find_if(m_mSurfaceScales.begin(), m_mSurfaceScales.end(), [surface](const auto& e) { return e.first == surface; }) == m_mSurfaceScales.end())
+    if (std::ranges::find_if(m_mSurfaceScales, [surface](const auto& e) { return e.first == surface; }) == m_mSurfaceScales.end())
         m_mSurfaceScales.emplace(surface, 1.F);
 
-    PADDON->setScale(m_mSurfaceScales.at(surface));
+    if (surface->mapped)
+        PADDON->setScale(m_mSurfaceScales.at(surface));
 
     // clean old
     std::erase_if(m_mSurfaceScales, [](const auto& e) { return e.first.expired(); });
@@ -59,23 +60,23 @@ void CFractionalScaleProtocol::sendScale(SP<CWLSurfaceResource> surf, const floa
         m_mAddons[surf]->setScale(scale);
 }
 
-CFractionalScaleAddon::CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, SP<CWLSurfaceResource> surf_) : resource(resource_), surface(surf_) {
-    resource->setDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
-    resource->setOnDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
-}
-
-void CFractionalScaleAddon::onSurfaceDestroy() {
-    surfaceGone = true;
+CFractionalScaleAddon::CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, SP<CWLSurfaceResource> surf_) : m_resource(resource_), m_surface(surf_) {
+    m_resource->setDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
+    m_resource->setOnDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
 }
 
 void CFractionalScaleAddon::setScale(const float& scale) {
-    resource->sendPreferredScale(std::round(scale * 120.0));
+    if (m_scale == scale)
+        return;
+
+    m_scale = scale;
+    m_resource->sendPreferredScale(std::round(scale * 120.0));
 }
 
 bool CFractionalScaleAddon::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 SP<CWLSurfaceResource> CFractionalScaleAddon::surf() {
-    return surface.lock();
+    return m_surface.lock();
 }

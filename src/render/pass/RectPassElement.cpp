@@ -24,7 +24,7 @@ bool CRectPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CRectPassElement::boundingBox() {
-    return data.box.expand(-data.round);
+    return data.box.copy().expand(-data.round);
 }
 
 CRegion CRectPassElement::opaqueRegion() {

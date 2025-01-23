@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hyprutils/math/Region.hpp>
 #include <vector>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
@@ -19,7 +20,9 @@ class CHyprlandSurface {
   private:
     SP<CHyprlandSurfaceV1> m_pResource;
     WP<CWLSurfaceResource> m_pSurface;
-    float                  m_fOpacity = 1.0;
+    float                  m_fOpacity              = 1.0;
+    bool                   m_bVisibleRegionChanged = false;
+    CRegion                m_visibleRegion;
 
     void                   destroy();
 

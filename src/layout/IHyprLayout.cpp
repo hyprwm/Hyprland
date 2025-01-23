@@ -717,6 +717,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     pWindow->m_bPinned = false;
 
+    g_pHyprRenderer->damageWindow(pWindow);
+
     const auto TILED = isWindowTiled(pWindow);
 
     // event
@@ -788,6 +790,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
     pWindow->updateToplevel();
+
+    g_pHyprRenderer->damageWindow(pWindow);
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {

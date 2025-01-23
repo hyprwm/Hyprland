@@ -1,9 +1,11 @@
 #pragma once
 
 #include <condition_variable>
+#include <map>
 #include <mutex>
 #include <thread>
 #include <wayland-server.h>
+#include "helpers/signal/Signal.hpp"
 
 #include "EventLoopTimer.hpp"
 
@@ -36,11 +38,18 @@ class CEventLoopManager {
     };
 
   private:
+    // Manages the event sources after AQ pollFDs change.
+    void syncPollFDs();
+
+    struct SEventSourceData {
+        SP<Aquamarine::SPollFD> pollFD;
+        wl_event_source*        eventSource = nullptr;
+    };
+
     struct {
-        wl_event_loop*                loop        = nullptr;
-        wl_display*                   display     = nullptr;
-        wl_event_source*              eventSource = nullptr;
-        std::vector<wl_event_source*> aqEventSources;
+        wl_event_loop*   loop        = nullptr;
+        wl_display*      display     = nullptr;
+        wl_event_source* eventSource = nullptr;
     } m_sWayland;
 
     struct {
@@ -48,10 +57,14 @@ class CEventLoopManager {
         int                              timerfd = -1;
     } m_sTimers;
 
-    SIdleData                            m_sIdle;
-    std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
+    SIdleData                       m_sIdle;
+    std::map<int, SEventSourceData> aqEventSources;
 
-    wl_event_source*                     m_configWatcherInotifySource = nullptr;
+    struct {
+        CHyprSignalListener pollFDsChanged;
+    } m_sListeners;
+
+    wl_event_source* m_configWatcherInotifySource = nullptr;
 
     friend class CSyncTimeline;
 };

@@ -454,6 +454,7 @@ class CWindow {
     void                   switchWithWindowInGroup(PHLWINDOW pWindow);
     void                   setAnimationsToMove();
     void                   onWorkspaceAnimUpdate();
+    void                   onFocusAnimUpdate();
     void                   onUpdateState();
     void                   onUpdateMeta();
     void                   onX11Configure(CBox box);

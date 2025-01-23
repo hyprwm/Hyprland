@@ -1155,6 +1155,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
     pWindow->updateDynamicRules();
+    pWindow->onFocusAnimUpdate();
 
     updateWindowAnimatedDecorationValues(pWindow);
 
@@ -1850,10 +1851,6 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
             setBorderColor(pWindow->m_sWindowData.inactiveBorderColor.valueOr(*INACTIVECOLOR));
         }
     }
-
-    // tick angle if it's not running (aka dead)
-    if (!pWindow->m_fBorderAngleAnimationProgress->isBeingAnimated())
-        pWindow->m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
 
     // opacity
     const auto PWORKSPACE = pWindow->m_pWorkspace;

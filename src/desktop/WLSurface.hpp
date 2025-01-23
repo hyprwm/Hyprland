@@ -87,7 +87,8 @@ class CWLSurface {
     float m_fAlphaModifier = 1.F;
 
     // used by the hyprland-surface protocol
-    float m_fOverallOpacity = 1.F;
+    float   m_fOverallOpacity = 1.F;
+    CRegion m_visibleRegion;
 
     struct {
         CSignal destroy;

@@ -954,7 +954,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     const auto PENABLEXWAYLAND      = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
     g_pCompositor->m_bWantsXwayland = PENABLEXWAYLAND;
     // enable/disable xwayland usage
-    if (!isFirstLaunch) {
+    if (!isFirstLaunch &&
+        g_pXWayland /* XWayland has to be initialized by CCompositor::initManagers for this to make sense, and it doesn't have to be (e.g. very early plugin load) */) {
         bool prevEnabledXwayland = g_pXWayland->enabled();
         if (g_pCompositor->m_bWantsXwayland != prevEnabledXwayland)
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_bWantsXwayland);

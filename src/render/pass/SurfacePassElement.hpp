@@ -57,6 +57,7 @@ class CSurfacePassElement : public IPassElement {
     virtual std::optional<CBox> boundingBox();
     virtual CRegion             opaqueRegion();
     virtual void                discard();
+    CRegion                     visibleRegion(bool& cancel);
 
     virtual const char*         passName() {
         return "CSurfacePassElement";

@@ -1556,9 +1556,15 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
-    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
-        CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
-        damageClip.intersect(damage);
+    if (!m_RenderData.clipBox.empty() || !m_RenderData.clipRegion.empty()) {
+        CRegion damageClip = m_RenderData.clipBox;
+
+        if (!m_RenderData.clipRegion.empty()) {
+            if (m_RenderData.clipBox.empty())
+                damageClip = m_RenderData.clipRegion;
+            else
+                damageClip.intersect(m_RenderData.clipRegion);
+        }
 
         if (!damageClip.empty()) {
             for (auto const& RECT : damageClip.getRects()) {
@@ -2078,6 +2084,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     // make a damage region for this window
     CRegion texDamage{m_RenderData.damage};
     texDamage.intersect(pBox->x, pBox->y, pBox->width, pBox->height);
+
+    // While renderTextureInternalWithDamage will clip the blur as well,
+    // clipping texDamage here allows blur generation to be optimized.
+    if (!m_RenderData.clipRegion.empty())
+        texDamage.intersect(m_RenderData.clipRegion);
 
     if (texDamage.empty())
         return;

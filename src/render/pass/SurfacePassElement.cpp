@@ -7,6 +7,8 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../Renderer.hpp"
 
+#include <hyprutils/math/Box.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 
@@ -28,6 +30,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = false;
         g_pHyprOpenGL->m_RenderData.clipBox                     = {};
+        g_pHyprOpenGL->m_RenderData.clipRegion                  = {};
         g_pHyprOpenGL->m_RenderData.discardMode                 = 0;
         g_pHyprOpenGL->m_RenderData.discardOpacity              = 0;
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = false;
@@ -83,6 +86,11 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (data.surface->colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+
+    auto cancelRender                      = false;
+    g_pHyprOpenGL->m_RenderData.clipRegion = visibleRegion(cancelRender);
+    if (cancelRender)
+        return;
 
     // check for fractional scale surfaces misaligning the buffer size
     // in those cases it's better to just force nearest neighbor
@@ -227,6 +235,48 @@ CRegion CSurfacePassElement::opaqueRegion() {
     }
 
     return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};
+}
+
+CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
+    auto PSURFACE = CWLSurface::fromResource(data.surface);
+    if (!PSURFACE)
+        return {};
+
+    const auto& bufferSize = data.surface->current.bufferSize;
+
+    auto        visibleRegion = PSURFACE->m_visibleRegion.copy();
+    if (visibleRegion.empty())
+        return {};
+
+    visibleRegion.intersect(CBox(Vector2D(), bufferSize));
+
+    if (visibleRegion.empty()) {
+        cancel = true;
+        return visibleRegion;
+    }
+
+    // deal with any rounding errors that might come from scaling
+    visibleRegion.expand(1);
+
+    auto uvTL = g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft;
+    auto uvBR = g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight;
+
+    if (uvTL == Vector2D(-1, -1))
+        uvTL = Vector2D(0, 0);
+
+    if (uvBR == Vector2D(-1, -1))
+        uvBR = Vector2D(1, 1);
+
+    visibleRegion.translate(-uvTL * bufferSize);
+
+    auto texBox = getTexBox();
+    texBox.scale(data.pMonitor->scale);
+    texBox.round();
+
+    visibleRegion.scale((Vector2D(1, 1) / (uvBR - uvTL)) * (texBox.size() / bufferSize));
+    visibleRegion.translate((data.pos + data.localPos) * data.pMonitor->scale - data.pMonitor->vecPosition);
+
+    return visibleRegion;
 }
 
 void CSurfacePassElement::discard() {

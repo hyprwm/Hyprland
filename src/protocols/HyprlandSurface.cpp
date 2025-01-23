@@ -3,6 +3,8 @@
 #include "../render/Renderer.hpp"
 #include "core/Compositor.hpp"
 #include "hyprland-surface-v1.hpp"
+#include <hyprutils/math/Region.hpp>
+#include <wayland-server.h>
 
 CHyprlandSurface::CHyprlandSurface(SP<CHyprlandSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_pSurface(surface) {
     setResource(std::move(resource));
@@ -36,11 +38,25 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
         m_fOpacity = fOpacity;
     });
 
+    m_pResource->setSetVisibleRegion([this](CHyprlandSurfaceV1* resource, wl_resource* region) {
+        if (!region) {
+            if (!m_visibleRegion.empty())
+                m_bVisibleRegionChanged = true;
+
+            m_visibleRegion.clear();
+            return;
+        }
+
+        m_bVisibleRegionChanged = true;
+        m_visibleRegion         = CWLRegionResource::fromResource(region)->region;
+    });
+
     listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
         auto surface = CWLSurface::fromResource(m_pSurface.lock());
 
-        if (surface && surface->m_fOverallOpacity != m_fOpacity) {
+        if (surface && (surface->m_fOverallOpacity != m_fOpacity || m_bVisibleRegionChanged)) {
             surface->m_fOverallOpacity = m_fOpacity;
+            surface->m_visibleRegion   = m_visibleRegion;
             auto box                   = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
@@ -60,6 +76,11 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
 void CHyprlandSurface::destroy() {
     m_pResource.reset();
     m_fOpacity = 1.F;
+
+    if (!m_visibleRegion.empty())
+        m_bVisibleRegionChanged = true;
+
+    m_visibleRegion.clear();
 
     if (!m_pSurface)
         PROTO::hyprlandSurface->destroySurface(this);

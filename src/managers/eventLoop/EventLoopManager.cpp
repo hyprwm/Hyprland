@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <ranges>
 
 #include <sys/timerfd.h>
 #include <ctime>
@@ -20,8 +21,8 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
 }
 
 CEventLoopManager::~CEventLoopManager() {
-    for (auto const& eventSource : m_sWayland.aqEventSources) {
-        wl_event_source_remove(eventSource);
+    for (auto const& [_, eventSourceData] : aqEventSources) {
+        wl_event_source_remove(eventSourceData.eventSource);
     }
 
     if (m_sWayland.eventSource)
@@ -56,10 +57,8 @@ void CEventLoopManager::enterLoop() {
     if (const auto FD = g_pConfigWatcher->getInotifyFD(); FD >= 0)
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD, WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
-    aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
-    for (auto const& fd : aqPollFDs) {
-        m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get()));
-    }
+    syncPollFDs();
+    m_sListeners.pollFDsChanged = g_pCompositor->m_pAqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });
 
     // if we have a session, dispatch it to get the pending input devices
     if (g_pCompositor->m_pAqBackend->hasSession())
@@ -143,4 +142,25 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
             }
         },
         &m_sIdle);
+}
+
+void CEventLoopManager::syncPollFDs() {
+    auto aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
+
+    std::erase_if(aqEventSources, [&](const auto& item) {
+        auto const& [fd, eventSourceData] = item;
+
+        // If no pollFD has the same fd, remove this event source
+        const bool shouldRemove = std::ranges::none_of(aqPollFDs, [&](const auto& pollFD) { return pollFD->fd == fd; });
+
+        if (shouldRemove)
+            wl_event_source_remove(eventSourceData.eventSource);
+
+        return shouldRemove;
+    });
+
+    for (auto& fd : aqPollFDs | std::views::filter([&](SP<Aquamarine::SPollFD> fd) { return !aqEventSources.contains(fd->fd); })) {
+        auto eventSource       = wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get());
+        aqEventSources[fd->fd] = {.pollFD = fd, .eventSource = eventSource};
+    }
 }

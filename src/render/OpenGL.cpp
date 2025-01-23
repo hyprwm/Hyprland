@@ -1547,11 +1547,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    if (allowCustomUV && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+    if (allowCustomUV && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1))
         glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
-    } else {
+    else
         glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    }
 
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
@@ -2156,14 +2155,24 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     // stencil done. Render everything.
     CBox MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     // render our great blurred FB
+    // calculate the uv for it
+    const auto LASTTL = m_RenderData.primarySurfaceUVTopLeft;
+    const auto LASTBR = m_RenderData.primarySurfaceUVBottomRight;
+
+    m_RenderData.primarySurfaceUVTopLeft     = pBox->pos() / MONITORBOX.size();
+    m_RenderData.primarySurfaceUVBottomRight = (pBox->pos() + pBox->size()) / MONITORBOX.size();
+
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
     setMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
-    renderTextureInternalWithDamage(POUTFB->getTexture(), &MONITORBOX, (*PBLURIGNOREOPACITY ? blurA : a * blurA) * overallA, texDamage, 0, 2.0f, false, false, false);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), pBox, (*PBLURIGNOREOPACITY ? blurA : a * blurA) * overallA, texDamage, round, roundingPower, false, false, true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     setMonitorTransformEnabled(false);
+
+    m_RenderData.primarySurfaceUVTopLeft     = LASTTL;
+    m_RenderData.primarySurfaceUVBottomRight = LASTBR;
 
     // render the window, but clear stencil
     glClearStencil(0);

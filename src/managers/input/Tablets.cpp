@@ -159,12 +159,13 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
+    const auto POS   = e.tip;
+    g_pPointerManager->warpAbsolute(POS, PTAB);
+    refocusTablet(PTAB, PTOOL, true);
 
-    if (e.in) {
-        simulateMouseMovement();
-        refocusTablet(PTAB, PTOOL);
+    if (e.in)
         PROTO::tablet->down(PTOOL);
-    } else
+    else
         PROTO::tablet->up(PTOOL);
 
     PTOOL->isDown = e.in;

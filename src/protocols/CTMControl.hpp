@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
@@ -45,7 +44,7 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
         Mat3x3            ctmFrom = Mat3x3::identity(), ctmTo = Mat3x3::identity();
         PHLANIMVAR<float> progress;
     };
-    std::map<PHLMONITORREF, std::unique_ptr<SCTMData>> m_mCTMDatas;
+    std::map<PHLMONITORREF, UP<SCTMData>> m_mCTMDatas;
 
     friend class CHyprlandCTMControlResource;
 };

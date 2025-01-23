@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "fractional-scale-v1.hpp"

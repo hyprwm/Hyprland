@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <hyprutils/memory/UniquePtr.hpp>
 
 //NOLINTNEXTLINE
 namespace re2 {
@@ -16,6 +16,6 @@ class CRuleRegexContainer {
     bool passes(const std::string& str) const;
 
   private:
-    std::unique_ptr<re2::RE2> regex;
-    bool                      negative = false;
+    Hyprutils::Memory::CUniquePointer<re2::RE2> regex;
+    bool                                        negative = false;
 };

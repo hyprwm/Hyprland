@@ -89,7 +89,7 @@ void CPopup::onMap() {
 
     g_pInputManager->simulateMouseMovement();
 
-    m_pSubsurfaceHead = std::make_unique<CSubsurface>(this);
+    m_pSubsurfaceHead = makeUnique<CSubsurface>(this);
 
     //unconstrain();
     sendScale();

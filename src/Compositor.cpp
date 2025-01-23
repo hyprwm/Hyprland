@@ -586,92 +586,92 @@ void CCompositor::initManagers(eManagersInitStage stage) {
     switch (stage) {
         case STAGE_PRIORITY: {
             Debug::log(LOG, "Creating the EventLoopManager!");
-            g_pEventLoopManager = std::make_unique<CEventLoopManager>(m_sWLDisplay, m_sWLEventLoop);
+            g_pEventLoopManager = makeUnique<CEventLoopManager>(m_sWLDisplay, m_sWLEventLoop);
 
             Debug::log(LOG, "Creating the HookSystem!");
-            g_pHookSystem = std::make_unique<CHookSystemManager>();
+            g_pHookSystem = makeUnique<CHookSystemManager>();
 
             Debug::log(LOG, "Creating the KeybindManager!");
-            g_pKeybindManager = std::make_unique<CKeybindManager>();
+            g_pKeybindManager = makeUnique<CKeybindManager>();
 
             Debug::log(LOG, "Creating the AnimationManager!");
-            g_pAnimationManager = std::make_unique<CHyprAnimationManager>();
+            g_pAnimationManager = makeUnique<CHyprAnimationManager>();
 
             Debug::log(LOG, "Creating the ConfigManager!");
-            g_pConfigManager = std::make_unique<CConfigManager>();
+            g_pConfigManager = makeUnique<CConfigManager>();
 
             Debug::log(LOG, "Creating the CHyprError!");
-            g_pHyprError = std::make_unique<CHyprError>();
+            g_pHyprError = makeUnique<CHyprError>();
 
             Debug::log(LOG, "Creating the LayoutManager!");
-            g_pLayoutManager = std::make_unique<CLayoutManager>();
+            g_pLayoutManager = makeUnique<CLayoutManager>();
 
             Debug::log(LOG, "Creating the TokenManager!");
-            g_pTokenManager = std::make_unique<CTokenManager>();
+            g_pTokenManager = makeUnique<CTokenManager>();
 
             g_pConfigManager->init();
-            g_pWatchdog = std::make_unique<CWatchdog>(); // requires config
+            g_pWatchdog = makeUnique<CWatchdog>(); // requires config
             // wait for watchdog to initialize to not hit data races in reading config values.
             while (!g_pWatchdog->m_bWatchdogInitialized) {
                 std::this_thread::yield();
             }
 
             Debug::log(LOG, "Creating the PointerManager!");
-            g_pPointerManager = std::make_unique<CPointerManager>();
+            g_pPointerManager = makeUnique<CPointerManager>();
 
             Debug::log(LOG, "Creating the EventManager!");
-            g_pEventManager = std::make_unique<CEventManager>();
+            g_pEventManager = makeUnique<CEventManager>();
         } break;
         case STAGE_BASICINIT: {
             Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
-            g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
+            g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
 
             Debug::log(LOG, "Creating the ProtocolManager!");
-            g_pProtocolManager = std::make_unique<CProtocolManager>();
+            g_pProtocolManager = makeUnique<CProtocolManager>();
 
             Debug::log(LOG, "Creating the SeatManager!");
-            g_pSeatManager = std::make_unique<CSeatManager>();
+            g_pSeatManager = makeUnique<CSeatManager>();
         } break;
         case STAGE_LATE: {
             Debug::log(LOG, "Creating CHyprCtl");
-            g_pHyprCtl = std::make_unique<CHyprCtl>();
+            g_pHyprCtl = makeUnique<CHyprCtl>();
 
             Debug::log(LOG, "Creating the InputManager!");
-            g_pInputManager = std::make_unique<CInputManager>();
+            g_pInputManager = makeUnique<CInputManager>();
 
             Debug::log(LOG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = std::make_unique<CHyprRenderer>();
+            g_pHyprRenderer = makeUnique<CHyprRenderer>();
 
             Debug::log(LOG, "Creating the XWaylandManager!");
-            g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
+            g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();
 
             Debug::log(LOG, "Creating the SessionLockManager!");
-            g_pSessionLockManager = std::make_unique<CSessionLockManager>();
+            g_pSessionLockManager = makeUnique<CSessionLockManager>();
 
             Debug::log(LOG, "Creating the HyprDebugOverlay!");
-            g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();
+            g_pDebugOverlay = makeUnique<CHyprDebugOverlay>();
 
             Debug::log(LOG, "Creating the HyprNotificationOverlay!");
-            g_pHyprNotificationOverlay = std::make_unique<CHyprNotificationOverlay>();
+            g_pHyprNotificationOverlay = makeUnique<CHyprNotificationOverlay>();
 
             Debug::log(LOG, "Creating the PluginSystem!");
-            g_pPluginSystem = std::make_unique<CPluginSystem>();
+            g_pPluginSystem = makeUnique<CPluginSystem>();
             g_pConfigManager->handlePluginLoads();
 
             Debug::log(LOG, "Creating the DecorationPositioner!");
-            g_pDecorationPositioner = std::make_unique<CDecorationPositioner>();
+            g_pDecorationPositioner = makeUnique<CDecorationPositioner>();
 
             Debug::log(LOG, "Creating the CursorManager!");
-            g_pCursorManager = std::make_unique<CCursorManager>();
+            g_pCursorManager = makeUnique<CCursorManager>();
 
             Debug::log(LOG, "Creating the VersionKeeper!");
-            g_pVersionKeeperMgr = std::make_unique<CVersionKeeperManager>();
+            g_pVersionKeeperMgr = makeUnique<CVersionKeeperManager>();
 
             Debug::log(LOG, "Creating the DonationNag!");
-            g_pDonationNagManager = std::make_unique<CDonationNagManager>();
+            g_pDonationNagManager = makeUnique<CDonationNagManager>();
 
             Debug::log(LOG, "Starting XWayland");
-            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bWantsXwayland);
+            g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_bWantsXwayland);
         } break;
         default: UNREACHABLE();
     }
@@ -2701,7 +2701,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 
         if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
     } else {
         if (!pWindow->m_bIsFloating)

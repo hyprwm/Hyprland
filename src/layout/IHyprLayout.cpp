@@ -215,7 +215,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         recalculateWindow(pWindow);
 
         if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
         return true;
     }
@@ -374,7 +374,7 @@ void IHyprLayout::onEndDragWindow() {
                 DRAGGINGWINDOW->updateWindowDecos();
 
                 if (!DRAGGINGWINDOW->getDecorationByType(DECORATION_GROUPBAR))
-                    DRAGGINGWINDOW->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
+                    DRAGGINGWINDOW->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
             }
         }
     }

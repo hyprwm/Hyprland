@@ -328,4 +328,4 @@ class CHyprOpenGLImpl {
     friend class CSurfacePassElement;
 };
 
-inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;
+inline UP<CHyprOpenGLImpl> g_pHyprOpenGL;

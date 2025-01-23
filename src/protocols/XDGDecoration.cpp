@@ -41,7 +41,7 @@ CXDGDecorationProtocol::CXDGDecorationProtocol(const wl_interface* iface, const 
 }
 
 void CXDGDecorationProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZxdgDecorationManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZxdgDecorationManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZxdgDecorationManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZxdgDecorationManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -64,7 +64,7 @@ void CXDGDecorationProtocol::onGetDecoration(CZxdgDecorationManagerV1* pMgr, uin
 
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_mDecorations.emplace(xdgToplevel, std::make_unique<CXDGDecoration>(makeShared<CZxdgToplevelDecorationV1>(CLIENT, pMgr->version(), id), xdgToplevel)).first->second.get();
+        m_mDecorations.emplace(xdgToplevel, makeUnique<CXDGDecoration>(makeShared<CZxdgToplevelDecorationV1>(CLIENT, pMgr->version(), id), xdgToplevel)).first->second.get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

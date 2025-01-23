@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 #include <functional>
 

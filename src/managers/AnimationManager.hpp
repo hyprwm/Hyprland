@@ -61,4 +61,4 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
 };
 
-inline std::unique_ptr<CHyprAnimationManager> g_pAnimationManager;
+inline UP<CHyprAnimationManager> g_pAnimationManager;

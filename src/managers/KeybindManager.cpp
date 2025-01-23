@@ -2840,7 +2840,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
     pWindow->warpCursor();
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveintogroup", std::format("{:x}", (uintptr_t)pWindow.get())});
 }

@@ -64,7 +64,7 @@ CAlphaModifierProtocol::CAlphaModifierProtocol(const wl_interface* iface, const 
 }
 
 void CAlphaModifierProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWpAlphaModifierV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CWpAlphaModifierV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CWpAlphaModifierV1* manager) { destroyManager(manager); });
 
     RESOURCE->setDestroy([this](CWpAlphaModifierV1* manager) { destroyManager(manager); });
@@ -93,9 +93,8 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
             alphaModifier = iter->second.get();
         }
     } else {
-        alphaModifier =
-            m_mAlphaModifiers.emplace(surface, std::make_unique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
-                .first->second.get();
+        alphaModifier = m_mAlphaModifiers.emplace(surface, makeUnique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
+                            .first->second.get();
     }
 
     if UNLIKELY (!alphaModifier->good()) {

@@ -1,7 +1,7 @@
 #include "SdDaemon.hpp"
+#include "memory/Memory.hpp"
 
 #include <memory>
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>

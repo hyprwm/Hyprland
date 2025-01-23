@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "../helpers/memory/Memory.hpp"
 
 class CVersionKeeperManager {
   public:
@@ -15,4 +15,4 @@ class CVersionKeeperManager {
     bool m_bFired = false;
 };
 
-inline std::unique_ptr<CVersionKeeperManager> g_pVersionKeeperMgr;
+inline UP<CVersionKeeperManager> g_pVersionKeeperMgr;

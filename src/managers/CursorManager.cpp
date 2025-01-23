@@ -64,8 +64,8 @@ void CCursorBuffer::endDataPtr() {
 }
 
 CCursorManager::CCursorManager() {
-    m_pHyprcursor              = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), hcLogger);
-    m_pXcursor                 = std::make_unique<CXCursorManager>();
+    m_pHyprcursor              = makeUnique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), hcLogger);
+    m_pXcursor                 = makeUnique<CXCursorManager>();
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
 
     if (m_pHyprcursor->valid() && *PUSEHYPRCURSOR) {
@@ -323,7 +323,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
         m_szTheme                    = name.empty() ? "" : name;
         m_iSize                      = size;
 
-        m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
+        m_pHyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
         if (!m_pHyprcursor->valid()) {
             Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
             m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);

@@ -7,7 +7,6 @@
      - wl_buffer with shm
 */
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"

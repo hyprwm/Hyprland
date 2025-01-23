@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <list>
 #include <sys/resource.h>
 
@@ -10,6 +9,7 @@
 #include "managers/SessionLockManager.hpp"
 #include "desktop/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
+#include "helpers/memory/Memory.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
@@ -170,4 +170,4 @@ class CCompositor {
     rlimit           m_sOriginalNofile = {0};
 };
 
-inline std::unique_ptr<CCompositor> g_pCompositor;
+inline UP<CCompositor> g_pCompositor;

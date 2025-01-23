@@ -296,8 +296,8 @@ class CWindow {
     uint64_t m_eSuppressedEvents = SUPPRESS_NONE;
 
     // desktop components
-    std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
-    std::unique_ptr<CPopup>      m_pPopupHead;
+    UP<CSubsurface> m_pSubsurfaceHead;
+    UP<CPopup>      m_pPopupHead;
 
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};
@@ -328,14 +328,14 @@ class CWindow {
 
     // Window decorations
     // TODO: make this a SP.
-    std::vector<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
-    std::vector<IHyprWindowDecoration*>                 m_vDecosToRemove;
+    std::vector<UP<IHyprWindowDecoration>> m_dWindowDecorations;
+    std::vector<IHyprWindowDecoration*>    m_vDecosToRemove;
 
     // Special render data, rules, etc
     SWindowData m_sWindowData;
 
     // Transformers
-    std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
+    std::vector<UP<IWindowTransformer>> m_vTransformers;
 
     // for alpha
     PHLANIMVAR<float> m_fActiveInactiveAlpha;
@@ -396,7 +396,7 @@ class CWindow {
     SBoxExtents            getFullWindowExtents();
     CBox                   getWindowBoxUnified(uint64_t props);
     CBox                   getWindowIdealBoundingBoxIgnoreReserved();
-    void                   addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
+    void                   addWindowDeco(UP<IHyprWindowDecoration> deco);
     void                   updateWindowDecos();
     void                   removeWindowDeco(IHyprWindowDecoration* deco);
     void                   uncacheWindowDecos();

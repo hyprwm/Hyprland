@@ -262,7 +262,7 @@ class CConfigManager {
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
-    std::unique_ptr<Hyprlang::CConfig>               m_pConfig;
+    UP<Hyprlang::CConfig>                            m_pConfig;
 
     std::vector<std::string>                         m_configPaths;
 
@@ -303,4 +303,4 @@ class CConfigManager {
     SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 };
 
-inline std::unique_ptr<CConfigManager> g_pConfigManager;
+inline UP<CConfigManager> g_pConfigManager;

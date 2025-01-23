@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "memory/Memory.hpp"
 #include <chrono>
 #include <thread>
 #include <condition_variable>
@@ -24,11 +24,11 @@ class CWatchdog {
     std::atomic<bool>                              m_bWatching  = false;
     std::atomic<bool>                              m_bWillWatch = false;
 
-    std::unique_ptr<std::thread>                   m_pWatchdog;
+    UP<std::thread>                                m_pWatchdog;
     std::mutex                                     m_mWatchdogMutex;
     std::atomic<bool>                              m_bNotified   = false;
     std::atomic<bool>                              m_bExitThread = false;
     std::condition_variable                        m_cvWatchdogCondition;
 };
 
-inline std::unique_ptr<CWatchdog> g_pWatchdog;
+inline UP<CWatchdog> g_pWatchdog;

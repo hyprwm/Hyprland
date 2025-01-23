@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 #include "WaylandProtocol.hpp"
 #include "pointer-gestures-unstable-v1.hpp"

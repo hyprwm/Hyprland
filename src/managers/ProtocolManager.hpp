@@ -18,4 +18,4 @@ class CProtocolManager {
     void                                                 onMonitorModeChange(PHLMONITOR pMonitor);
 };
 
-inline std::unique_ptr<CProtocolManager> g_pProtocolManager;
+inline UP<CProtocolManager> g_pProtocolManager;

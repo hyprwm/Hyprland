@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "../helpers/memory/Memory.hpp"
 
 class CDonationNagManager {
   public:
@@ -13,4 +13,4 @@ class CDonationNagManager {
     bool m_bFired = false;
 };
 
-inline std::unique_ptr<CDonationNagManager> g_pDonationNagManager;
+inline UP<CDonationNagManager> g_pDonationNagManager;

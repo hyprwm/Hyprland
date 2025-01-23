@@ -376,7 +376,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
 }
 
 void CForeignToplevelWlrProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");

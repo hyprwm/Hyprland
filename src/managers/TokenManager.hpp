@@ -35,4 +35,4 @@ class CTokenManager {
     std::unordered_map<std::string, SP<CUUIDToken>> m_mTokens;
 };
 
-inline std::unique_ptr<CTokenManager> g_pTokenManager;
+inline UP<CTokenManager> g_pTokenManager;

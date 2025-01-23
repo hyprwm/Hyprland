@@ -21,7 +21,7 @@ CServerDecorationKDEProtocol::CServerDecorationKDEProtocol(const wl_interface* i
 }
 
 void CServerDecorationKDEProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<COrgKdeKwinServerDecorationManager>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<COrgKdeKwinServerDecorationManager>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](COrgKdeKwinServerDecorationManager* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setCreate([this](COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* pointer) { this->createDecoration(pMgr, id, pointer); });
@@ -41,8 +41,7 @@ void CServerDecorationKDEProtocol::destroyResource(CServerDecorationKDE* hayperl
 void CServerDecorationKDEProtocol::createDecoration(COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* surf) {
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_vDecos.emplace_back(std::make_unique<CServerDecorationKDE>(makeShared<COrgKdeKwinServerDecoration>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)))
-            .get();
+        m_vDecos.emplace_back(makeUnique<CServerDecorationKDE>(makeShared<COrgKdeKwinServerDecoration>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

@@ -40,7 +40,7 @@ CHyprNotificationOverlay::~CHyprNotificationOverlay() {
 }
 
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
-    const auto PNOTIF = m_vNotifications.emplace_back(std::make_unique<SNotification>()).get();
+    const auto PNOTIF = m_vNotifications.emplace_back(makeUnique<SNotification>()).get();
 
     PNOTIF->text  = icon != eIcons::ICON_NONE ? " " + text /* tiny bit of padding otherwise icon touches text */ : text;
     PNOTIF->color = color == CHyprColor(0) ? ICONS_COLORS[icon] : color;

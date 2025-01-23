@@ -253,7 +253,7 @@ bool CFunctionHook::unhook() {
 }
 
 CFunctionHook* CHookSystem::initHook(HANDLE owner, void* source, void* destination) {
-    return m_vHooks.emplace_back(std::make_unique<CFunctionHook>(owner, source, destination)).get();
+    return m_vHooks.emplace_back(makeUnique<CFunctionHook>(owner, source, destination)).get();
 }
 
 bool CHookSystem::removeHook(CFunctionHook* hook) {

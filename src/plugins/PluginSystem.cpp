@@ -8,7 +8,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 CPluginSystem::CPluginSystem() {
-    g_pFunctionHookSystem = std::make_unique<CHookSystem>();
+    g_pFunctionHookSystem = makeUnique<CHookSystem>();
 }
 
 CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
@@ -21,7 +21,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
         return nullptr;
     }
 
-    auto* const PLUGIN = m_vLoadedPlugins.emplace_back(std::make_unique<CPlugin>()).get();
+    auto* const PLUGIN = m_vLoadedPlugins.emplace_back(makeUnique<CPlugin>()).get();
 
     PLUGIN->path = path;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include "WaylandProtocol.hpp"
 #include "tearing-control-v1.hpp"
 

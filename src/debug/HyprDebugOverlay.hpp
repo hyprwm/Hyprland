@@ -48,4 +48,4 @@ class CHyprDebugOverlay {
     friend class CHyprRenderer;
 };
 
-inline std::unique_ptr<CHyprDebugOverlay> g_pDebugOverlay;
+inline UP<CHyprDebugOverlay> g_pDebugOverlay;

@@ -268,7 +268,7 @@ class CInputManager {
         bool                nonDesktop = false;
         CHyprSignalListener surfaceDestroyListener;
     };
-    std::vector<std::unique_ptr<SIdleInhibitor>> m_vIdleInhibitors;
+    std::vector<UP<SIdleInhibitor>> m_vIdleInhibitors;
 
     // swipe
     void beginWorkspaceSwipe();
@@ -304,4 +304,4 @@ class CInputManager {
     friend class CWLSurface;
 };
 
-inline std::unique_ptr<CInputManager> g_pInputManager;
+inline UP<CInputManager> g_pInputManager;

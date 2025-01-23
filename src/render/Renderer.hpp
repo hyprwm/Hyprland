@@ -155,4 +155,4 @@ class CHyprRenderer {
     friend class CMonitor;
 };
 
-inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;
+inline UP<CHyprRenderer> g_pHyprRenderer;

@@ -442,7 +442,7 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
 
     // start the wm
     if (!g_pXWayland->pWM)
-        g_pXWayland->pWM = std::make_unique<CXWM>();
+        g_pXWayland->pWM = makeUnique<CXWM>();
 
     g_pCursorManager->setXWaylandCursor();
 

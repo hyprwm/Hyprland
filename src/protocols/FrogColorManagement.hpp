@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "protocols/core/Compositor.hpp"

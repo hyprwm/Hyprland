@@ -14,7 +14,7 @@ CWatchdog::~CWatchdog() {
 
 CWatchdog::CWatchdog() : m_iMainThreadPID(pthread_self()) {
 
-    m_pWatchdog = std::make_unique<std::thread>([this] {
+    m_pWatchdog = makeUnique<std::thread>([this] {
         static auto PTIMEOUT = CConfigValue<Hyprlang::INT>("debug:watchdog_timeout");
 
         m_bWatchdogInitialized = true;

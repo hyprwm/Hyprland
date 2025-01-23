@@ -2,7 +2,6 @@
 
 #include <string>
 #include <hyprcursor/hyprcursor.hpp>
-#include <memory>
 #include "../includes.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
@@ -58,22 +57,22 @@ class CCursorManager {
     void                    tickAnimatedCursor();
 
   private:
-    bool                                            m_bOurBufferConnected = false;
-    std::vector<SP<CCursorBuffer>>                  m_vCursorBuffers;
+    bool                               m_bOurBufferConnected = false;
+    std::vector<SP<CCursorBuffer>>     m_vCursorBuffers;
 
-    std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
-    std::unique_ptr<CXCursorManager>                m_pXcursor;
-    SP<SXCursors>                                   m_currentXcursor;
+    UP<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
+    UP<CXCursorManager>                m_pXcursor;
+    SP<SXCursors>                      m_currentXcursor;
 
-    std::string                                     m_szTheme      = "";
-    int                                             m_iSize        = 0;
-    float                                           m_fCursorScale = 1.0;
+    std::string                        m_szTheme      = "";
+    int                                m_iSize        = 0;
+    float                              m_fCursorScale = 1.0;
 
-    Hyprcursor::SCursorStyleInfo                    m_sCurrentStyleInfo;
+    Hyprcursor::SCursorStyleInfo       m_sCurrentStyleInfo;
 
-    SP<CEventLoopTimer>                             m_pAnimationTimer;
-    int                                             m_iCurrentAnimationFrame = 0;
-    Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
+    SP<CEventLoopTimer>                m_pAnimationTimer;
+    int                                m_iCurrentAnimationFrame = 0;
+    Hyprcursor::SCursorShapeData       m_sCurrentCursorShapeData;
 };
 
-inline std::unique_ptr<CCursorManager> g_pCursorManager;
+inline UP<CCursorManager> g_pCursorManager;

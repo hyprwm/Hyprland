@@ -225,7 +225,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         }
     } else if (atom == HYPRATOMS["WM_HINTS"]) {
         if (reply->value_len != 0) {
-            XSURF->hints = std::make_unique<xcb_icccm_wm_hints_t>();
+            XSURF->hints = makeUnique<xcb_icccm_wm_hints_t>();
             xcb_icccm_get_wm_hints_from_reply(XSURF->hints.get(), reply);
 
             if (!(XSURF->hints->flags & XCB_ICCCM_WM_HINT_INPUT))
@@ -254,7 +254,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         }
     } else if (atom == HYPRATOMS["WM_NORMAL_HINTS"]) {
         if (reply->type == HYPRATOMS["WM_SIZE_HINTS"] && reply->value_len > 0) {
-            XSURF->sizeHints = std::make_unique<xcb_size_hints_t>();
+            XSURF->sizeHints = makeUnique<xcb_size_hints_t>();
             std::memset(XSURF->sizeHints.get(), 0, sizeof(xcb_size_hints_t));
 
             xcb_icccm_get_wm_size_hints_from_reply(XSURF->sizeHints.get(), reply);
@@ -735,7 +735,7 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         g_pXWayland->pWM.reset();
         g_pXWayland->pServer.reset();
         // Attempt to create fresh instance
-        g_pEventLoopManager->doLater([]() { g_pXWayland = std::make_unique<CXWayland>(true); });
+        g_pEventLoopManager->doLater([]() { g_pXWayland = makeUnique<CXWayland>(true); });
         return 0;
     }
 
@@ -1346,7 +1346,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
         mime = *MIMES.begin();
     }
 
-    transfer          = std::make_unique<SXTransfer>(*this);
+    transfer          = makeUnique<SXTransfer>(*this);
     transfer->request = *e;
 
     int p[2];

@@ -32,7 +32,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->szNamespace = resource->layerNamespace;
 
     pLS->layer     = resource->current.layer;
-    pLS->popupHead = std::make_unique<CPopup>(pLS);
+    pLS->popupHead = makeUnique<CPopup>(pLS);
     pLS->monitor   = pMonitor;
     pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 

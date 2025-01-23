@@ -26,7 +26,7 @@ CXWayland::CXWayland(const bool wantsEnabled) {
 
     Debug::log(LOG, "Starting up the XWayland server");
 
-    pServer = std::make_unique<CXWaylandServer>();
+    pServer = makeUnique<CXWaylandServer>();
 
     if (!pServer->create()) {
         Debug::log(ERR, "XWayland failed to start: it will not work.");

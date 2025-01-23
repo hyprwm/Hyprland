@@ -70,7 +70,7 @@ CHyprlandSurfaceProtocol::CHyprlandSurfaceProtocol(const wl_interface* iface, co
 }
 
 void CHyprlandSurfaceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    auto manager = m_vManagers.emplace_back(std::make_unique<CHyprlandSurfaceManagerV1>(client, ver, id)).get();
+    auto manager = m_vManagers.emplace_back(makeUnique<CHyprlandSurfaceManagerV1>(client, ver, id)).get();
     manager->setOnDestroy([this](CHyprlandSurfaceManagerV1* manager) { destroyManager(manager); });
 
     manager->setDestroy([this](CHyprlandSurfaceManagerV1* manager) { destroyManager(manager); });
@@ -100,8 +100,8 @@ void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, ui
             hyprlandSurface = iter->second.get();
         }
     } else {
-        hyprlandSurface = m_mSurfaces.emplace(surface, std::make_unique<CHyprlandSurface>(makeShared<CHyprlandSurfaceV1>(manager->client(), manager->version(), id), surface))
-                              .first->second.get();
+        hyprlandSurface =
+            m_mSurfaces.emplace(surface, makeUnique<CHyprlandSurface>(makeShared<CHyprlandSurfaceV1>(manager->client(), manager->version(), id), surface)).first->second.get();
     }
 
     if UNLIKELY (!hyprlandSurface->good()) {

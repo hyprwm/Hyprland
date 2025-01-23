@@ -201,7 +201,7 @@ CLayerShellProtocol::CLayerShellProtocol(const wl_interface* iface, const int& v
 }
 
 void CLayerShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwlrLayerShellV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwlrLayerShellV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwlrLayerShellV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwlrLayerShellV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

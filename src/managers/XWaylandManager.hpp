@@ -25,4 +25,4 @@ class CHyprXWaylandManager {
     Vector2D               waylandToXWaylandCoords(const Vector2D&);
 };
 
-inline std::unique_ptr<CHyprXWaylandManager> g_pXWaylandManager;
+inline UP<CHyprXWaylandManager> g_pXWaylandManager;

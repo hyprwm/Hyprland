@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     try {
-        g_pCompositor                     = std::make_unique<CCompositor>();
+        g_pCompositor                     = makeUnique<CCompositor>();
         g_pCompositor->explicitConfigPath = configPath;
     } catch (const std::exception& e) {
         std::println(stderr, "Hyprland threw in ctor: {}\nCannot continue.", e.what());

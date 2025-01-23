@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vector>
-#include <memory>
 #include "Subsurface.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 class CXDGPopupResource;
 
@@ -61,8 +61,8 @@ class CPopup {
     bool                  m_bInert = false;
 
     //
-    std::vector<SP<CPopup>>      m_vChildren;
-    std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
+    std::vector<SP<CPopup>> m_vChildren;
+    UP<CSubsurface>         m_pSubsurfaceHead;
 
     struct {
         CHyprSignalListener newPopup;

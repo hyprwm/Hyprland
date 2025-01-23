@@ -176,11 +176,11 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_szTitle);
 
             if (!pTitleTex)
-                pTitleTex = m_sTitleTexs.titleTexs
-                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
-                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale},
-                                                                          pMonitor->scale))
-                                .get();
+                pTitleTex =
+                    m_sTitleTexs.titleTexs
+                        .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
+                                                            Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
+                        .get();
             rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
             rect.height = pTitleTex->texSize.y;
             rect.width  = pTitleTex->texSize.x;
@@ -421,7 +421,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
     if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pDraggedWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pDraggedWindow));
+        pDraggedWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pDraggedWindow));
 
     return true;
 }

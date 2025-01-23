@@ -62,7 +62,7 @@ CXDGActivationProtocol::CXDGActivationProtocol(const wl_interface* iface, const 
 }
 
 void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CXdgActivationV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CXdgActivationV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CXdgActivationV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CXdgActivationV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -100,7 +100,7 @@ void CXDGActivationProtocol::destroyToken(CXDGActivationToken* token) {
 
 void CXDGActivationProtocol::onGetToken(CXdgActivationV1* pMgr, uint32_t id) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vTokens.emplace_back(std::make_unique<CXDGActivationToken>(makeShared<CXdgActivationTokenV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vTokens.emplace_back(makeUnique<CXDGActivationToken>(makeShared<CXdgActivationTokenV1>(CLIENT, pMgr->version(), id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

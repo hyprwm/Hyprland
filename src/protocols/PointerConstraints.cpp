@@ -199,7 +199,7 @@ CPointerConstraintsProtocol::CPointerConstraintsProtocol(const wl_interface* ifa
 }
 
 void CPointerConstraintsProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpPointerConstraintsV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpPointerConstraintsV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpPointerConstraintsV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpPointerConstraintsV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

@@ -57,4 +57,4 @@ class CHookSystemManager {
     std::unordered_map<std::string, std::vector<SCallbackFNPtr>> m_mRegisteredHooks;
 };
 
-inline std::unique_ptr<CHookSystemManager> g_pHookSystem;
+inline UP<CHookSystemManager> g_pHookSystem;

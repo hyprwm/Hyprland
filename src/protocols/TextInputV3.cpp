@@ -110,7 +110,7 @@ CTextInputV3Protocol::CTextInputV3Protocol(const wl_interface* iface, const int&
 }
 
 void CTextInputV3Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpTextInputManagerV3>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpTextInputManagerV3>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpTextInputManagerV3* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpTextInputManagerV3* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

@@ -48,16 +48,16 @@ class CSubsurface {
     Vector2D                  m_vLastSize = {};
 
     // if nullptr, means it's a dummy node
-    CSubsurface*                              m_pParent = nullptr;
+    CSubsurface*                 m_pParent = nullptr;
 
-    PHLWINDOWREF                              m_pWindowParent;
-    CPopup*                                   m_pPopupParent = nullptr;
+    PHLWINDOWREF                 m_pWindowParent;
+    CPopup*                      m_pPopupParent = nullptr;
 
-    std::vector<std::unique_ptr<CSubsurface>> m_vChildren;
+    std::vector<UP<CSubsurface>> m_vChildren;
 
-    bool                                      m_bInert = false;
+    bool                         m_bInert = false;
 
-    void                                      initSignals();
-    void                                      initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
-    void                                      checkSiblingDamage();
+    void                         initSignals();
+    void                         initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
+    void                         checkSiblingDamage();
 };

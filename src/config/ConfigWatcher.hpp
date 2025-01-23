@@ -1,5 +1,5 @@
 #pragma once
-#include <memory>
+#include "../helpers/memory/Memory.hpp"
 #include <vector>
 #include <string>
 #include <functional>
@@ -29,4 +29,4 @@ class CConfigWatcher {
     int                                           m_inotifyFd = -1;
 };
 
-inline std::unique_ptr<CConfigWatcher> g_pConfigWatcher = std::make_unique<CConfigWatcher>();
+inline UP<CConfigWatcher> g_pConfigWatcher = makeUnique<CConfigWatcher>();

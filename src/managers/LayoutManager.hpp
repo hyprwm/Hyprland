@@ -28,4 +28,4 @@ class CLayoutManager {
     std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
 };
 
-inline std::unique_ptr<CLayoutManager> g_pLayoutManager;
+inline UP<CLayoutManager> g_pLayoutManager;

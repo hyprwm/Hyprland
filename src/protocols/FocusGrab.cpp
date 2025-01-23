@@ -5,7 +5,6 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
 #include <cstdint>
-#include <memory>
 #include <wayland-server.h>
 
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
@@ -77,7 +76,7 @@ void CFocusGrab::finish(bool sendCleared) {
 void CFocusGrab::addSurface(SP<CWLSurfaceResource> surface) {
     auto iter = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [surface](const auto& e) { return e.first == surface; });
     if (iter == m_mSurfaces.end())
-        m_mSurfaces.emplace(surface, std::make_unique<CFocusGrabSurfaceState>(this, surface));
+        m_mSurfaces.emplace(surface, makeUnique<CFocusGrabSurfaceState>(this, surface));
 }
 
 void CFocusGrab::removeSurface(SP<CWLSurfaceResource> surface) {
@@ -151,7 +150,7 @@ CFocusGrabProtocol::CFocusGrabProtocol(const wl_interface* iface, const int& ver
 }
 
 void CFocusGrabProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
@@ -167,7 +166,7 @@ void CFocusGrabProtocol::destroyGrab(CFocusGrab* grab) {
 }
 
 void CFocusGrabProtocol::onCreateGrab(CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) {
-    m_vGrabs.push_back(std::make_unique<CFocusGrab>(makeShared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
+    m_vGrabs.push_back(makeUnique<CFocusGrab>(makeShared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
     const auto RESOURCE = m_vGrabs.back().get();
 
     if UNLIKELY (!RESOURCE->good()) {

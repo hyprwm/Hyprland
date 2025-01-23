@@ -32,4 +32,4 @@ class CHyprError {
     bool              m_bMonitorChanged = false;
 };
 
-inline std::unique_ptr<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.
+inline UP<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.

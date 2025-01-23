@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "../helpers/signal/Signal.hpp"

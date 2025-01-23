@@ -8,7 +8,6 @@
      - wl_callback
 */
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"

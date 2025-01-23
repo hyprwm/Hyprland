@@ -21,7 +21,7 @@ void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CZxdgOutputManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagerResources.emplace_back(makeUnique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
     if UNLIKELY (!RESOURCE->resource()) {
         LOGM(LOG, "Couldn't bind XDGOutputMgr");
@@ -44,7 +44,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
     const auto  PMONITOR = OUTPUT->monitor.lock();
     const auto  CLIENT   = mgr->client();
 
-    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
+    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(makeUnique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
     if (g_pXWayland && g_pXWayland->pServer && g_pXWayland->pServer->xwaylandClient == CLIENT)
         pXDGOutput->isXWayland = true;

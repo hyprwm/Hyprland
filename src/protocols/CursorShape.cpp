@@ -15,7 +15,7 @@ void CCursorShapeProtocol::onDeviceResourceDestroy(wl_resource* res) {
 }
 
 void CCursorShapeProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWpCursorShapeManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CWpCursorShapeManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CWpCursorShapeManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

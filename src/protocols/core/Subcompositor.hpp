@@ -7,7 +7,6 @@
      - wl_subcompositor
 */
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"

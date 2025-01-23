@@ -71,7 +71,7 @@ void CXDataSource::send(const std::string& mime, uint32_t fd) {
 
     Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd);
 
-    selection.transfer                 = std::make_unique<SXTransfer>(selection);
+    selection.transfer                 = makeUnique<SXTransfer>(selection);
     selection.transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
     const uint32_t MASK                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
     xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, selection.transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0,

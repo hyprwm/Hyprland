@@ -69,4 +69,4 @@ class CEventLoopManager {
     friend class CSyncTimeline;
 };
 
-inline std::unique_ptr<CEventLoopManager> g_pEventLoopManager;
+inline UP<CEventLoopManager> g_pEventLoopManager;

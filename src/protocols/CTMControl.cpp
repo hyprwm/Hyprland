@@ -106,7 +106,7 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
     std::erase_if(m_mCTMDatas, [](const auto& el) { return !el.first; });
 
     if (!m_mCTMDatas.contains(monitor))
-        m_mCTMDatas[monitor] = std::make_unique<SCTMData>();
+        m_mCTMDatas[monitor] = makeUnique<SCTMData>();
 
     auto& data = m_mCTMDatas.at(monitor);
 

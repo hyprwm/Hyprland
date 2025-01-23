@@ -38,4 +38,4 @@ class CHyprCtl {
     std::string                      m_socketPath;
 };
 
-inline std::unique_ptr<CHyprCtl> g_pHyprCtl;
+inline UP<CHyprCtl> g_pHyprCtl;

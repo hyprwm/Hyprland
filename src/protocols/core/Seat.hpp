@@ -8,7 +8,6 @@
      - wl_touch
 */
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"

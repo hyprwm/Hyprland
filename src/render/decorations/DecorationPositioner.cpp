@@ -79,7 +79,7 @@ CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor
     if (it != m_vWindowPositioningDatas.end())
         return it->get();
 
-    const auto DATA = m_vWindowPositioningDatas.emplace_back(std::make_unique<CDecorationPositioner::SWindowPositioningData>(pWindow, pDecoration)).get();
+    const auto DATA = m_vWindowPositioningDatas.emplace_back(makeUnique<CDecorationPositioner::SWindowPositioningData>(pWindow, pDecoration)).get();
 
     DATA->positioningInfo = pDecoration->getPositioningInfo();
 

@@ -43,7 +43,7 @@ COutputPowerProtocol::COutputPowerProtocol(const wl_interface* iface, const int&
 }
 
 void COutputPowerProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwlrOutputPowerManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwlrOutputPowerManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwlrOutputPowerManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwlrOutputPowerManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -68,7 +68,7 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
     }
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.lock())).get();
+    const auto RESOURCE = m_vOutputPowers.emplace_back(makeUnique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.lock())).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

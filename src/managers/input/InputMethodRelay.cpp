@@ -50,7 +50,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     });
 
     listeners.newPopup = pIME->events.newPopup.registerListener([this](std::any d) {
-        m_vIMEPopups.emplace_back(std::make_unique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
+        m_vIMEPopups.emplace_back(makeUnique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
 
         Debug::log(LOG, "New input popup");
     });
@@ -86,11 +86,11 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
 }
 
 void CInputMethodRelay::onNewTextInput(WP<CTextInputV3> tiv3) {
-    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(tiv3));
+    m_vTextInputs.emplace_back(makeUnique<CTextInput>(tiv3));
 }
 
 void CInputMethodRelay::onNewTextInput(WP<CTextInputV1> pTIV1) {
-    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(pTIV1));
+    m_vTextInputs.emplace_back(makeUnique<CTextInput>(pTIV1));
 }
 
 void CInputMethodRelay::removeTextInput(CTextInput* pInput) {

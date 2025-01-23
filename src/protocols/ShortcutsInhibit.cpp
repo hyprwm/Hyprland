@@ -28,7 +28,7 @@ CKeyboardShortcutsInhibitProtocol::CKeyboardShortcutsInhibitProtocol(const wl_in
 }
 
 void CKeyboardShortcutsInhibitProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpKeyboardShortcutsInhibitManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpKeyboardShortcutsInhibitManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpKeyboardShortcutsInhibitManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpKeyboardShortcutsInhibitManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -57,7 +57,7 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
     }
 
     const auto RESOURCE =
-        m_vInhibitors.emplace_back(std::make_unique<CKeyboardShortcutsInhibitor>(makeShared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, pMgr->version(), id), surf)).get();
+        m_vInhibitors.emplace_back(makeUnique<CKeyboardShortcutsInhibitor>(makeShared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, pMgr->version(), id), surf)).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

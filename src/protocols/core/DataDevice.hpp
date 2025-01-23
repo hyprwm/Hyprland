@@ -8,7 +8,6 @@
      - wl_data_device_manager
 */
 
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"

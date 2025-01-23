@@ -47,8 +47,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
 
-    pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
-    pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
     return pWindow;
 }
@@ -70,8 +70,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
 
-    pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
-    pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
     pWindow->m_pWLSurface->assign(pWindow->m_pXDGSurface->surface.lock(), pWindow);
 
@@ -296,7 +296,7 @@ void CWindow::updateWindowDecos() {
     }
 }
 
-void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
+void CWindow::addWindowDeco(UP<IHyprWindowDecoration> deco) {
     m_dWindowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
     updateWindowDecos();
@@ -567,8 +567,8 @@ void CWindow::onMap() {
     if (m_bIsX11)
         return;
 
-    m_pSubsurfaceHead = std::make_unique<CSubsurface>(m_pSelf.lock());
-    m_pPopupHead      = std::make_unique<CPopup>(m_pSelf.lock());
+    m_pSubsurfaceHead = makeUnique<CSubsurface>(m_pSelf.lock());
+    m_pPopupHead      = makeUnique<CPopup>(m_pSelf.lock());
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
@@ -870,7 +870,7 @@ void CWindow::createGroup() {
         m_sGroupData.locked      = false;
         m_sGroupData.deny        = false;
 
-        addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(m_pSelf.lock()));
+        addWindowDeco(makeUnique<CHyprGroupBarDecoration>(m_pSelf.lock()));
 
         if (m_pWorkspace) {
             m_pWorkspace->updateWindows();
@@ -1052,7 +1052,7 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
     const auto ENDAT   = m_sGroupData.pNextWindow.lock();
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
     if (!pWindow->m_sGroupData.pNextWindow.lock()) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;

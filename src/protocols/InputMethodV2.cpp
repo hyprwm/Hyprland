@@ -334,7 +334,7 @@ CInputMethodV2Protocol::CInputMethodV2Protocol(const wl_interface* iface, const 
 }
 
 void CInputMethodV2Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpInputMethodManagerV2>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpInputMethodManagerV2>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpInputMethodManagerV2* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpInputMethodManagerV2* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

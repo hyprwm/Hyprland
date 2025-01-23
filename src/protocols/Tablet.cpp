@@ -315,7 +315,7 @@ CTabletV2Protocol::CTabletV2Protocol(const wl_interface* iface, const int& ver, 
 }
 
 void CTabletV2Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpTabletManagerV2>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpTabletManagerV2>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpTabletManagerV2* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpTabletManagerV2* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

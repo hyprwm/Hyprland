@@ -9,6 +9,7 @@
 #include "../managers/CursorManager.hpp"
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
+#include <memory>
 
 // clang-format off
 static std::vector<uint32_t> HYPR_XCURSOR_PIXELS = {

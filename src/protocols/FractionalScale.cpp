@@ -7,7 +7,7 @@ CFractionalScaleProtocol::CFractionalScaleProtocol(const wl_interface* iface, co
 }
 
 void CFractionalScaleProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWpFractionalScaleManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CWpFractionalScaleManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CWpFractionalScaleManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpFractionalScaleManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -33,7 +33,7 @@ void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1*
     }
 
     const auto PADDON =
-        m_mAddons.emplace(surface, std::make_unique<CFractionalScaleAddon>(makeShared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface)).first->second.get();
+        m_mAddons.emplace(surface, makeUnique<CFractionalScaleAddon>(makeShared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface)).first->second.get();
 
     if UNLIKELY (!PADDON->good()) {
         m_mAddons.erase(surface);

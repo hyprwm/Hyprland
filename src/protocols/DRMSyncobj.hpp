@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 #include "WaylandProtocol.hpp"
 #include "linux-drm-syncobj-v1.hpp"

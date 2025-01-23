@@ -31,7 +31,7 @@ CLockNotifyProtocol::CLockNotifyProtocol(const wl_interface* iface, const int& v
 }
 
 void CLockNotifyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_managers.emplace_back(std::make_unique<CHyprlandLockNotifierV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CHyprlandLockNotifierV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CHyprlandLockNotifierV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CHyprlandLockNotifierV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

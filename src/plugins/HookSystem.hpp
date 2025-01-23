@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <memory>
+#include "../helpers/memory/Memory.hpp"
 
 #define HANDLE                   void*
 #define HOOK_TRAMPOLINE_MAX_SIZE 64
@@ -60,9 +60,9 @@ class CHookSystem {
     void           removeAllHooksFrom(HANDLE handle);
 
   private:
-    std::vector<std::unique_ptr<CFunctionHook>> m_vHooks;
+    std::vector<UP<CFunctionHook>> m_vHooks;
 
-    uint64_t                                    getAddressForTrampo();
+    uint64_t                       getAddressForTrampo();
 
     struct SAllocatedPage {
         uint64_t addr = 0;
@@ -75,4 +75,4 @@ class CHookSystem {
     friend class CFunctionHook;
 };
 
-inline std::unique_ptr<CHookSystem> g_pFunctionHookSystem;
+inline UP<CHookSystem> g_pFunctionHookSystem;

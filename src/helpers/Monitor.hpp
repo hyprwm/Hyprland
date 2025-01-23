@@ -8,7 +8,7 @@
 #include "WLClasses.hpp"
 #include <vector>
 #include <array>
-#include <memory>
+
 #include <xf86drmMode.h>
 #include "Timer.hpp"
 #include "math/Math.hpp"

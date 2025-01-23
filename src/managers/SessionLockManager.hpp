@@ -28,11 +28,11 @@ struct SSessionLockSurface {
 };
 
 struct SSessionLock {
-    WP<CSessionLock>                                  lock;
-    CTimer                                            mLockTimer;
+    WP<CSessionLock>                     lock;
+    CTimer                               mLockTimer;
 
-    std::vector<std::unique_ptr<SSessionLockSurface>> vSessionLockSurfaces;
-    std::unordered_map<uint64_t, CTimer>              mMonitorsWithoutMappedSurfaceTimers;
+    std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
+    std::unordered_map<uint64_t, CTimer> mMonitorsWithoutMappedSurfaceTimers;
 
     struct {
         CHyprSignalListener newSurface;
@@ -74,4 +74,4 @@ class CSessionLockManager {
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
 };
 
-inline std::unique_ptr<CSessionLockManager> g_pSessionLockManager;
+inline UP<CSessionLockManager> g_pSessionLockManager;

@@ -469,7 +469,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             });
         }
 
-        formatTable = std::make_unique<CDMABUFFormatTable>(eglTranche, tches);
+        formatTable = makeUnique<CDMABUFFormatTable>(eglTranche, tches);
 
         drmDevice* device = nullptr;
         if (drmGetDeviceFromDevId(mainDevice, 0, &device) != 0) {
@@ -501,7 +501,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     LOGM(LOG, "Resetting format table");
 
     // this might be a big copy
-    auto newFormatTable = std::make_unique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
+    auto newFormatTable = makeUnique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
 
     for (auto const& feedback : m_vFeedbacks) {
         feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);

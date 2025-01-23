@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "idle-inhibit-unstable-v1.hpp"

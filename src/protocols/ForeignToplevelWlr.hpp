@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 #include "WaylandProtocol.hpp"
 #include "wlr-foreign-toplevel-management-unstable-v1.hpp"

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <drm_mode.h>
-#include <memory>
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"

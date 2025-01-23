@@ -5,7 +5,7 @@
 #include "../../protocols/core/Compositor.hpp"
 
 void CInputManager::newIdleInhibitor(std::any inhibitor) {
-    const auto PINHIBIT = m_vIdleInhibitors.emplace_back(std::make_unique<SIdleInhibitor>()).get();
+    const auto PINHIBIT = m_vIdleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
     PINHIBIT->inhibitor = std::any_cast<SP<CIdleInhibitor>>(inhibitor);
 
     Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface.get());

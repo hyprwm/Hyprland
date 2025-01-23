@@ -44,9 +44,9 @@ class CPluginSystem {
     std::string              m_szLastError      = "";
 
   private:
-    std::vector<std::unique_ptr<CPlugin>> m_vLoadedPlugins;
+    std::vector<UP<CPlugin>> m_vLoadedPlugins;
 
-    jmp_buf                               m_jbPluginFaultJumpBuf;
+    jmp_buf                  m_jbPluginFaultJumpBuf;
 };
 
-inline std::unique_ptr<CPluginSystem> g_pPluginSystem;
+inline UP<CPluginSystem> g_pPluginSystem;

@@ -44,6 +44,7 @@
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
 #include <filesystem>
+#include <memory>
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
 
@@ -374,7 +375,7 @@ CConfigManager::CConfigManager() {
     const auto ERR = verifyConfigExists();
 
     m_configPaths.emplace_back(getMainConfigPath());
-    m_pConfig = std::make_unique<Hyprlang::CConfig>(m_configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
+    m_pConfig = makeUnique<Hyprlang::CConfig>(m_configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
     m_pConfig->addConfigValue("general:border_size", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:no_border_on_floating", Hyprlang::INT{0});
@@ -955,9 +956,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // enable/disable xwayland usage
     if (!isFirstLaunch) {
         bool prevEnabledXwayland = g_pXWayland->enabled();
-        if (g_pCompositor->m_bWantsXwayland != prevEnabledXwayland) {
-            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bWantsXwayland);
-        }
+        if (g_pCompositor->m_bWantsXwayland != prevEnabledXwayland)
+            g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_bWantsXwayland);
     } else
         g_pCompositor->m_bWantsXwayland = PENABLEXWAYLAND;
 #endif
@@ -1659,7 +1659,7 @@ void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
 }
 
 void CConfigManager::handlePluginLoads() {
-    if (g_pPluginSystem == nullptr)
+    if (!g_pPluginSystem)
         return;
 
     bool pluginsChanged = false;

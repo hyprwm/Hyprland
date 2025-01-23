@@ -148,7 +148,7 @@ CSessionLockProtocol::CSessionLockProtocol(const wl_interface* iface, const int&
 }
 
 void CSessionLockProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CExtSessionLockManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CExtSessionLockManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CExtSessionLockManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CExtSessionLockManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

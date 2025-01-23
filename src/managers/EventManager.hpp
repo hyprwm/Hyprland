@@ -42,4 +42,4 @@ class CEventManager {
     std::vector<SClient> m_vClients;
 };
 
-inline std::unique_ptr<CEventManager> g_pEventManager;
+inline UP<CEventManager> g_pEventManager;

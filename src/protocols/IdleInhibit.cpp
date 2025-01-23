@@ -31,7 +31,7 @@ void CIdleInhibitProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CIdleInhibitProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwpIdleInhibitManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpIdleInhibitManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpIdleInhibitManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpIdleInhibitManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });

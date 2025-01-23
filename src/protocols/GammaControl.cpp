@@ -160,7 +160,7 @@ CGammaControlProtocol::CGammaControlProtocol(const wl_interface* iface, const in
 }
 
 void CGammaControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CZwlrGammaControlManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwlrGammaControlManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwlrGammaControlManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwlrGammaControlManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -177,7 +177,7 @@ void CGammaControlProtocol::destroyGammaControl(CGammaControl* gamma) {
 
 void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(makeShared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
+    const auto RESOURCE = m_vGammaControllers.emplace_back(makeUnique<CGammaControl>(makeShared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();

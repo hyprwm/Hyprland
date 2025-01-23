@@ -107,6 +107,7 @@ jobs:
         run: make release
 
   clang-format:
+    permissions: read-all
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     name: "Code Style (Arch)"
     runs-on: ubuntu-latest

@@ -1867,7 +1867,6 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     }
 
     // opacity
-    const auto PWORKSPACE = pWindow->m_pWorkspace;
     if (pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) {
         *pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
     } else {

@@ -144,6 +144,9 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     // TODO: move handling to seatmgr
     bool dndActive();
 
+    // called on an escape key pressed, for moments where it gets stuck
+    void abortDndIfPresent();
+
   private:
     void destroyResource(CWLDataDeviceManagerResource* resource);
     void destroyResource(CWLDataDeviceResource* resource);

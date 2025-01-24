@@ -420,12 +420,13 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
-    const auto  OLDWORKSPACE = m_pWorkspace;
+    const auto  OLDWORKSPACE     = m_pWorkspace;
+    const bool  TOANOTHERMONITOR = OLDWORKSPACE && OLDWORKSPACE->monitorID() != pWorkspace->monitorID();
 
     m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
     *m_fMovingToWorkspaceAlpha = 0.F;
     m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
-    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
+    m_iMonitorMovedFrom = TOANOTHERMONITOR ? OLDWORKSPACE->monitorID() : -1;
 
     m_pWorkspace = pWorkspace;
 

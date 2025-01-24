@@ -22,6 +22,7 @@
 #include <cstring>
 #include <filesystem>
 #include <ranges>
+#include <print>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
@@ -162,7 +163,10 @@ void CCompositor::restoreNofile() {
         Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
-CCompositor::CCompositor() : m_iHyprlandPID(getpid()) {
+CCompositor::CCompositor(bool onlyConfig) : m_bOnlyConfigVerification(onlyConfig), m_iHyprlandPID(getpid()) {
+    if (onlyConfig)
+        return;
+
     m_szHyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
 
     if (m_szHyprTempDataRoot.starts_with("/hypr")) {
@@ -226,7 +230,7 @@ CCompositor::CCompositor() : m_iHyprlandPID(getpid()) {
 }
 
 CCompositor::~CCompositor() {
-    if (!m_bIsShuttingDown)
+    if (!m_bIsShuttingDown && !m_bOnlyConfigVerification)
         cleanup();
 }
 
@@ -261,6 +265,16 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
+
+    if (m_bOnlyConfigVerification) {
+        g_pHookSystem       = makeUnique<CHookSystemManager>();
+        g_pKeybindManager   = makeUnique<CKeybindManager>();
+        g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+        g_pConfigManager    = makeUnique<CConfigManager>();
+
+        std::println("\n\n======== Config parsing result:\n\n{}", g_pConfigManager->verify());
+        return;
+    }
 
     m_sWLDisplay = wl_display_create();
 

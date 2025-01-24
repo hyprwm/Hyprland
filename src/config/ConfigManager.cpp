@@ -19,6 +19,7 @@
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -730,15 +731,18 @@ CConfigManager::CConfigManager() {
 
     resetHLConfig();
 
-    Debug::log(INFO,
-               "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
-               "https://wiki.hyprland.org/Configuring/Variables/#debug");
+    if (!g_pCompositor->m_bOnlyConfigVerification) {
+        Debug::log(
+            INFO,
+            "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
+            "https://wiki.hyprland.org/Configuring/Variables/#debug");
+    }
 
     Debug::disableLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
     Debug::disableTime = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
 
-    if (ERR.has_value())
-        g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0});
+    if (g_pEventLoopManager && ERR.has_value())
+        g_pEventLoopManager->doLater([ERR] { g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0}); });
 }
 
 std::optional<std::string> CConfigManager::generateConfig(std::string configPath) {
@@ -820,9 +824,21 @@ void CConfigManager::reload() {
     EMIT_HOOK_EVENT("preConfigReload", nullptr);
     setDefaultAnimationVars();
     resetHLConfig();
-    configCurrentPath = getMainConfigPath();
-    const auto ERR    = m_pConfig->parse();
+    configCurrentPath                      = getMainConfigPath();
+    const auto ERR                         = m_pConfig->parse();
+    m_bLastConfigVerificationWasSuccessful = !ERR.error;
     postConfigReload(ERR);
+}
+
+std::string CConfigManager::verify() {
+    setDefaultAnimationVars();
+    resetHLConfig();
+    configCurrentPath                      = getMainConfigPath();
+    const auto ERR                         = m_pConfig->parse();
+    m_bLastConfigVerificationWasSuccessful = !ERR.error;
+    if (ERR.error)
+        return ERR.getError();
+    return "config ok";
 }
 
 void CConfigManager::setDefaultAnimationVars() {

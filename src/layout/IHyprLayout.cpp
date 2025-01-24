@@ -717,7 +717,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     pWindow->m_bPinned = false;
 
-    g_pHyprRenderer->damageWindow(pWindow);
+    g_pHyprRenderer->damageWindow(pWindow, true);
 
     const auto TILED = isWindowTiled(pWindow);
 

@@ -233,6 +233,11 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
+    if UNLIKELY (layer > ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY) {
+        pMgr->error(ZWLR_LAYER_SHELL_V1_ERROR_INVALID_LAYER, "Invalid layer");
+        return;
+    }
+
     const auto RESOURCE = m_vLayers.emplace_back(makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), SURF, namespace_, PMONITOR, layer));
 
     if UNLIKELY (!RESOURCE->good()) {

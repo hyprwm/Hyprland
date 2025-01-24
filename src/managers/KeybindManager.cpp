@@ -28,7 +28,9 @@
 #include <cstring>
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::OS;
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -853,19 +855,18 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
-        unsigned int ttynum = 0;
-        int          fd;
-        if ((fd = open("/dev/tty", O_RDONLY | O_NOCTTY)) >= 0) {
+        unsigned int                   ttynum = 0;
+        Hyprutils::OS::CFileDescriptor fd{open("/dev/tty", O_RDONLY | O_NOCTTY)};
+        if (fd.isValid()) {
 #if defined(VT_GETSTATE)
             struct vt_stat st;
-            if (!ioctl(fd, VT_GETSTATE, &st))
+            if (!ioctl(fd.get(), VT_GETSTATE, &st))
                 ttynum = st.v_active;
 #elif defined(VT_GETACTIVE)
             int vt;
-            if (!ioctl(fd, VT_GETACTIVE, &vt))
+            if (!ioctl(fd.get(), VT_GETACTIVE, &vt))
                 ttynum = vt;
 #endif
-            close(fd);
         }
 
         if (ttynum == TTY)
@@ -944,11 +945,11 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
         Debug::log(LOG, "Unable to create pipe for fork");
     }
 
-    pid_t child, grandchild;
+    CFileDescriptor pipeSock[2] = {CFileDescriptor{socket[0]}, CFileDescriptor{socket[1]}};
+
+    pid_t           child, grandchild;
     child = fork();
     if (child < 0) {
-        close(socket[0]);
-        close(socket[1]);
         Debug::log(LOG, "Fail to create the first fork");
         return 0;
     }
@@ -967,22 +968,16 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
                 setenv(e.first.c_str(), e.second.c_str(), 1);
             }
             setenv("WAYLAND_DISPLAY", g_pCompositor->m_szWLDisplaySocket.c_str(), 1);
-            close(socket[0]);
-            close(socket[1]);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
             // exit grandchild
             _exit(0);
         }
-        close(socket[0]);
-        write(socket[1], &grandchild, sizeof(grandchild));
-        close(socket[1]);
+        write(pipeSock[1].get(), &grandchild, sizeof(grandchild));
         // exit child
         _exit(0);
     }
     // run in parent
-    close(socket[1]);
-    read(socket[0], &grandchild, sizeof(grandchild));
-    close(socket[0]);
+    read(pipeSock[0].get(), &grandchild, sizeof(grandchild));
     // clear child and leave grandchild to init
     waitpid(child, nullptr, 0);
     if (grandchild < 0) {

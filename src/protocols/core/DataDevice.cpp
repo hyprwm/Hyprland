@@ -557,6 +557,13 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     g_pInputManager->setCursorImageUntilUnset("grabbing");
     dnd.overriddenCursor = true;
 
+    // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
+    // BTW, the spec does NOT require this explicitly...
+    // Fuck you gtk.
+    const auto LASTDNDFOCUS = g_pSeatManager->state.dndPointerFocus;
+    g_pSeatManager->setPointerFocus(nullptr, {});
+    g_pSeatManager->state.dndPointerFocus = LASTDNDFOCUS;
+
     LOGM(LOG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}", (uintptr_t)currentSource.get(), (uintptr_t)dragSurface, (uintptr_t)origin);
 
     currentSource->used = true;
@@ -630,13 +637,6 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             LOGM(LOG, "Drag motion {}", E.pos);
         }
     });
-
-    // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
-    // BTW, the spec does NOT require this explicitly...
-    // Fuck you gtk.
-    const auto LASTDNDFOCUS = g_pSeatManager->state.dndPointerFocus;
-    g_pSeatManager->setPointerFocus(nullptr, {});
-    g_pSeatManager->state.dndPointerFocus = LASTDNDFOCUS;
 
     // make a new offer, etc
     updateDrag();

@@ -814,3 +814,9 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
 bool CWLDataDeviceProtocol::dndActive() {
     return dnd.currentSource;
 }
+
+void CWLDataDeviceProtocol::abortDndIfPresent() {
+    if (!dndActive())
+        return;
+    abortDrag();
+}

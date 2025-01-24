@@ -2505,13 +2505,13 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
             continue;
 
         ls->layerSurface->surface->breadthfirst(
-            [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-                if (surf == ((std::pair<SP<CWLSurfaceResource>, bool>*)data)->first) {
-                    *(bool*)data = true;
+            [&result](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+                if (surf == result.first) {
+                    result.second = true;
                     return;
                 }
             },
-            &result);
+            nullptr);
 
         if (result.second)
             return ls;

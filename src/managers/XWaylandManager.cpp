@@ -55,7 +55,7 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
 
         if (activate) {
-            setWindowSize(pWindow, pWindow->m_vRealSize->value()); // update xwayland output pos
+            setWindowSize(pWindow, pWindow->m_vRealSize->goal()); // update xwayland output pos
             pWindow->m_pXWaylandSurface->setMinimized(false);
 
             if (!pWindow->isX11OverrideRedirect())

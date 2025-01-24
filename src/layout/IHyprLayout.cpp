@@ -788,9 +788,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
-
     pWindow->updateToplevel();
-
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize->goal());
     g_pHyprRenderer->damageWindow(pWindow);
 }
 

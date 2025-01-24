@@ -2954,27 +2954,26 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
 
 SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(CFileDescriptor fenceFD) {
     std::vector<EGLint> attribs;
-    int                 dupFd = -1;
+    CFileDescriptor     dupFd;
     if (fenceFD.isValid()) {
-        dupFd = fcntl(fenceFD.get(), F_DUPFD_CLOEXEC, 0);
-        if (dupFd < 0) {
+        dupFd = fenceFD.duplicate();
+        if (!dupFd.isValid()) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
         }
         // reserve number of elements to avoid reallocations
         attribs.reserve(3);
         attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
-        attribs.push_back(dupFd);
+        attribs.push_back(dupFd.get());
         attribs.push_back(EGL_NONE);
     }
 
     EGLSyncKHR sync = m_sProc.eglCreateSyncKHR(m_pEglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs.data());
     if (sync == EGL_NO_SYNC_KHR) {
         Debug::log(ERR, "eglCreateSyncKHR failed");
-        if (dupFd >= 0)
-            close(dupFd);
         return nullptr;
-    }
+    } else
+        dupFd.take(); // eglCreateSyncKHR only takes ownership on success
 
     // we need to flush otherwise we might not get a valid fd
     glFlush();

@@ -1274,6 +1274,14 @@ void CWindow::onWorkspaceAnimUpdate() {
     m_vFloatingOffset = offset;
 }
 
+void CWindow::onFocusAnimUpdate() {
+    // borderangle once
+    if (m_fBorderAngleAnimationProgress->enabled() && !m_fBorderAngleAnimationProgress->isBeingAnimated()) {
+        m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
+        *m_fBorderAngleAnimationProgress = 1.f;
+    }
+}
+
 int CWindow::popupsCount() {
     if (m_bIsX11)
         return 0;

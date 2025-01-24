@@ -897,9 +897,10 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static const auto PDISABLEAUTORELOAD  = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
 
-    g_pConfigWatcher->setWatchList(m_configPaths);
+    g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : m_configPaths);
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();

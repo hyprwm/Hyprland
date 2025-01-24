@@ -172,8 +172,11 @@ CKeybindManager::CKeybindManager() {
         },
         nullptr);
 
-    g_pEventLoopManager->addTimer(m_pLongPressTimer);
-    g_pEventLoopManager->addTimer(m_pRepeatKeyTimer);
+    // null in --verify-config mode
+    if (g_pEventLoopManager) {
+        g_pEventLoopManager->addTimer(m_pLongPressTimer);
+        g_pEventLoopManager->addTimer(m_pRepeatKeyTimer);
+    }
 
     static auto P = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd

@@ -27,6 +27,7 @@ static void help() {
     --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)
     --systeminfo                 - Prints system infos
     --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
+    --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version)");
 }
 
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
     std::string              configPath;
     std::string              socketName;
     int                      socketFd   = -1;
-    bool                     ignoreSudo = false;
+    bool                     ignoreSudo = false, verifyConfig = false;
 
     std::vector<std::string> args{argv + 1, argv + argc};
 
@@ -124,6 +125,9 @@ int main(int argc, char** argv) {
         } else if (*it == "--systeminfo") {
             std::println("{}", systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));
             return 0;
+        } else if (*it == "--verify-config") {
+            verifyConfig = true;
+            continue;
         } else {
             std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
             help();
@@ -138,9 +142,8 @@ int main(int argc, char** argv) {
                      "          Hint: Use the --i-am-really-stupid flag to omit that check.");
 
         return 1;
-    } else if (ignoreSudo && NInit::isSudo()) {
+    } else if (ignoreSudo && NInit::isSudo())
         std::println("Superuser privileges check is omitted. I hope you know what you're doing.");
-    }
 
     if (socketName.empty() ^ (socketFd == -1)) {
         std::println(stderr,
@@ -150,12 +153,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::println("Welcome to Hyprland!");
+    if (!verifyConfig)
+        std::println("Welcome to Hyprland!");
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     try {
-        g_pCompositor                     = makeUnique<CCompositor>();
+        g_pCompositor                     = makeUnique<CCompositor>(verifyConfig);
         g_pCompositor->explicitConfigPath = configPath;
     } catch (const std::exception& e) {
         std::println(stderr, "Hyprland threw in ctor: {}\nCannot continue.", e.what());
@@ -163,6 +167,9 @@ int main(int argc, char** argv) {
     }
 
     g_pCompositor->initServer(socketName, socketFd);
+
+    if (verifyConfig)
+        return !g_pConfigManager->m_bLastConfigVerificationWasSuccessful;
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();

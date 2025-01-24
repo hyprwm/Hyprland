@@ -24,7 +24,7 @@ enum eManagersInitStage : uint8_t {
 
 class CCompositor {
   public:
-    CCompositor();
+    CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
     wl_display*                                m_sWLDisplay;
@@ -71,10 +71,11 @@ class CCompositor {
     bool                                       m_bUnsafeState    = false; // unsafe state is when there is no monitors.
     bool                                       m_bNextIsUnsafe   = false;
     PHLMONITORREF                              m_pUnsafeOutput; // fallback output for the unsafe state
-    bool                                       m_bIsShuttingDown = false;
-    bool                                       m_bFinalRequests  = false;
-    bool                                       m_bDesktopEnvSet  = false;
-    bool                                       m_bWantsXwayland  = true;
+    bool                                       m_bIsShuttingDown         = false;
+    bool                                       m_bFinalRequests          = false;
+    bool                                       m_bDesktopEnvSet          = false;
+    bool                                       m_bWantsXwayland          = true;
+    bool                                       m_bOnlyConfigVerification = false;
 
     // ------------------------------------------------- //
 

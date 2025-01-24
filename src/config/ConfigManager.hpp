@@ -144,6 +144,7 @@ class CConfigManager {
 
     void                                                            init();
     void                                                            reload();
+    std::string                                                     verify();
 
     int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
@@ -257,9 +258,10 @@ class CConfigManager {
         {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
 
-    bool m_bWantsMonitorReload = false;
-    bool m_bNoMonitorReload    = false;
-    bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
+    bool m_bWantsMonitorReload                  = false;
+    bool m_bNoMonitorReload                     = false;
+    bool isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
+    bool m_bLastConfigVerificationWasSuccessful = true;
 
   private:
     UP<Hyprlang::CConfig>                            m_pConfig;

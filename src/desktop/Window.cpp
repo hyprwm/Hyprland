@@ -552,9 +552,11 @@ void CWindow::onMap() {
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
-    m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
-    *m_fBorderAngleAnimationProgress = 1.f;
+    if (m_fBorderAngleAnimationProgress->enabled()) {
+        m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
+        m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
+        *m_fBorderAngleAnimationProgress = 1.f;
+    }
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 

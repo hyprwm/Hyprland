@@ -1914,7 +1914,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
                 if (PWORKSPACE->m_bDefaultFloating) {
                     w->m_vRealPosition->setValueAndWarp(SAVEDPOS);
                     w->m_vRealSize->setValueAndWarp(SAVEDSIZE);
-                    g_pXWaylandManager->setWindowSize(w, SAVEDSIZE);
+                    w->sendWindowSize(SAVEDSIZE);
                     *w->m_vRealSize     = w->m_vRealSize->value() + Vector2D(4, 4);
                     *w->m_vRealPosition = w->m_vRealPosition->value() - Vector2D(2, 2);
                 }

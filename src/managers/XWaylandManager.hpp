@@ -17,7 +17,6 @@ class CHyprXWaylandManager {
     void                   activateWindow(PHLWINDOW, bool);
     void                   getGeometryForWindow(PHLWINDOW, CBox*);
     void                   sendCloseWindow(PHLWINDOW);
-    void                   setWindowSize(PHLWINDOW, Vector2D, bool force = false);
     void                   setWindowFullscreen(PHLWINDOW, bool);
     bool                   shouldBeFloated(PHLWINDOW, bool pending = false);
     void                   checkBorders(PHLWINDOW);

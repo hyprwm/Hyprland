@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <optional>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../helpers/AnimatedVariable.hpp"
@@ -468,6 +469,7 @@ class CWindow {
     bool                   isModal();
     Vector2D               requestedMinSize();
     Vector2D               requestedMaxSize();
+    void                   sendWindowSize(Vector2D size, bool force = false, std::optional<Vector2D> overridePos = std::nullopt);
 
     CBox                   getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

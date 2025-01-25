@@ -55,7 +55,7 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
 
         if (activate) {
-            setWindowSize(pWindow, pWindow->m_vRealSize->value(), true); // update xwayland output pos
+            pWindow->sendWindowSize(pWindow->m_vRealSize->value(), true); // update xwayland output pos
             pWindow->m_pXWaylandSurface->setMinimized(false);
 
             if (!pWindow->isX11OverrideRedirect())
@@ -111,44 +111,6 @@ void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {
         pWindow->m_pXWaylandSurface->close();
     else if (pWindow->m_pXDGSurface && pWindow->m_pXDGSurface->toplevel)
         pWindow->m_pXDGSurface->toplevel->close();
-}
-
-void CHyprXWaylandManager::setWindowSize(PHLWINDOW pWindow, Vector2D size, bool force) {
-
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-    const auto  PMONITOR = pWindow->m_pMonitor.lock();
-
-    size = size.clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
-
-    // calculate pos
-    // TODO: this should be decoupled from setWindowSize IMO
-    Vector2D windowPos = pWindow->m_vRealPosition->goal();
-
-    if (pWindow->m_bIsX11 && PMONITOR) {
-        windowPos -= PMONITOR->vecPosition; // normalize to monitor
-        if (*PXWLFORCESCALEZERO)
-            windowPos *= PMONITOR->scale;           // scale if applicable
-        windowPos += PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
-    }
-
-    if (!force && pWindow->m_vPendingReportedSize == size && (windowPos == pWindow->m_vReportedPosition || !pWindow->m_bIsX11))
-        return;
-
-    pWindow->m_vReportedPosition    = windowPos;
-    pWindow->m_vPendingReportedSize = size;
-
-    pWindow->m_fX11SurfaceScaledBy = 1.0f;
-
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11 && PMONITOR) {
-        size *= PMONITOR->scale;
-        pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
-    }
-
-    if (pWindow->m_bIsX11)
-        pWindow->m_pXWaylandSurface->configure({windowPos, size});
-    else if (pWindow->m_pXDGSurface->toplevel)
-        pWindow->m_vPendingSizeAcks.emplace_back(pWindow->m_pXDGSurface->toplevel->setSize(size), size.floor());
 }
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {

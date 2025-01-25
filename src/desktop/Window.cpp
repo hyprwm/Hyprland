@@ -1556,10 +1556,10 @@ void CWindow::onX11Configure(CBox box) {
         }
     }
 
-    m_vPosition = m_vRealPosition->value();
-    m_vSize     = m_vRealSize->value();
+    m_vPosition = m_vRealPosition->goal();
+    m_vSize     = m_vRealSize->goal();
 
-    m_pXWaylandSurface->configure(box);
+    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), box.size(), true);
 
     m_vPendingReportedSize = box.size();
     m_vReportedSize        = box.size();
@@ -1569,7 +1569,7 @@ void CWindow::onX11Configure(CBox box) {
     if (!m_pWorkspace || !m_pWorkspace->isVisible())
         return; // further things are only for visible windows
 
-    m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition->value() + m_vRealSize->value() / 2.f)->activeWorkspace;
+    m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition->goal() + m_vRealSize->goal() / 2.f)->activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
 

@@ -453,7 +453,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 
     // update xwayland coords
-    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->goal());
+    sendWindowSize(m_vRealSize->goal());
 
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
@@ -1309,7 +1309,7 @@ void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
     *m_vRealPosition = m_vRealPosition->goal() + DELTA / 2.0;
     *m_vRealSize     = NEWSIZE;
-    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), NEWSIZE);
+    sendWindowSize(NEWSIZE);
 }
 
 bool CWindow::isFullscreen() {
@@ -1533,7 +1533,7 @@ void CWindow::onX11Configure(CBox box) {
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
 
     if (!m_bIsFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_pSelf) {
-        g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->goal(), true);
+        sendWindowSize(m_vRealSize->goal(), true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_pSelf.lock());
         return;
@@ -1560,7 +1560,7 @@ void CWindow::onX11Configure(CBox box) {
     m_vPosition = m_vRealPosition->goal();
     m_vSize     = m_vRealSize->goal();
 
-    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), box.size(), true);
+    sendWindowSize(box.size(), true);
 
     m_vPendingReportedSize = box.size();
     m_vReportedSize        = box.size();
@@ -1689,4 +1689,41 @@ Vector2D CWindow::requestedMaxSize() {
         maxSize.y = NO_MAX_SIZE_LIMIT;
 
     return maxSize;
+}
+
+void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> overridePos) {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    const auto  PMONITOR = m_pMonitor.lock();
+
+    size = size.clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+
+    // calculate pos
+    // TODO: this should be decoupled from setWindowSize IMO
+    Vector2D windowPos = overridePos.value_or(m_vRealPosition->goal());
+
+    if (m_bIsX11 && PMONITOR) {
+        windowPos -= PMONITOR->vecPosition; // normalize to monitor
+        if (*PXWLFORCESCALEZERO)
+            windowPos *= PMONITOR->scale;           // scale if applicable
+        windowPos += PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
+    }
+
+    if (!force && m_vPendingReportedSize == size && (windowPos == m_vReportedPosition || !m_bIsX11))
+        return;
+
+    m_vReportedPosition    = windowPos;
+    m_vPendingReportedSize = size;
+
+    m_fX11SurfaceScaledBy = 1.0f;
+
+    if (*PXWLFORCESCALEZERO && m_bIsX11 && PMONITOR) {
+        size *= PMONITOR->scale;
+        m_fX11SurfaceScaledBy = PMONITOR->scale;
+    }
+
+    if (m_bIsX11 && m_pXWaylandSurface)
+        m_pXWaylandSurface->configure({windowPos, size});
+    else if (m_pXDGSurface && m_pXDGSurface->toplevel)
+        m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(size), size.floor());
 }

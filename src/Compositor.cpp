@@ -2325,7 +2325,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
 
     updateFullscreenFadeOnWorkspace(PWORKSPACE);
 
-    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize->goal(), true);
+    PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true);
 
     PWORKSPACE->forceReportSizesToWindows();
 

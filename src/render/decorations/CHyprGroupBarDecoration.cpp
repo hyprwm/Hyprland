@@ -408,7 +408,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     pDraggedWindow->m_bIsFloating = pWindowInsertAfter->m_bIsFloating; // match the floating state of the window
 
     if (pWindowInsertAfter->m_bIsFloating)
-        g_pXWaylandManager->setWindowSize(pDraggedWindow, pWindowInsertAfter->m_vRealSize->goal()); // match the size of the window
+        pDraggedWindow->sendWindowSize(pWindowInsertAfter->m_vRealSize->goal()); // match the size of the window
 
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 

@@ -199,7 +199,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         *PWINDOW->m_vRealPosition = wb.pos();
         *PWINDOW->m_vRealSize     = wb.size();
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
+        PWINDOW->sendWindowSize(wb.size());
     } else {
         CBox wb = {calcPos, calcSize};
         wb.round(); // avoid rounding mess
@@ -207,7 +207,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         *PWINDOW->m_vRealSize     = wb.size();
         *PWINDOW->m_vRealPosition = wb.pos();
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
+        PWINDOW->sendWindowSize(wb.size());
     }
 
     if (force) {

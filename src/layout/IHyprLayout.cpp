@@ -179,7 +179,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 
     if (!pWindow->isX11OverrideRedirect()) {
-        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize->goal());
+        pWindow->sendWindowSize(pWindow->m_vRealSize->goal());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
     } else {
@@ -365,7 +365,7 @@ void IHyprLayout::onEndDragWindow() {
                 DRAGGINGWINDOW->m_bDraggingTiled    = false;
 
                 if (pWindow->m_bIsFloating)
-                    g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize->goal()); // match the size of the window
+                    DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal()); // match the size of the window
 
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
@@ -611,7 +611,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         else
             DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
 
-        g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize->goal());
+        DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
@@ -683,7 +683,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
             }
 
-            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize->goal());
+            DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal());
         } else {
             resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
@@ -789,7 +789,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
     pWindow->updateToplevel();
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize->goal());
+    pWindow->sendWindowSize(pWindow->m_vRealSize->goal());
     g_pHyprRenderer->damageWindow(pWindow);
 }
 

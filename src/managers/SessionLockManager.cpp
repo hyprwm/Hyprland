@@ -95,20 +95,20 @@ bool CSessionLockManager::isSessionLocked() {
     return PROTO::sessionLock->isLocked();
 }
 
-SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64_t id) {
+WP<SSessionLockSurface> CSessionLockManager::getSessionLockSurfaceForMonitor(uint64_t id) {
     if (!m_pSessionLock)
-        return nullptr;
+        return {};
 
     for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)
-                return sls.get();
+                return sls;
             else
-                return nullptr;
+                return {};
         }
     }
 
-    return nullptr;
+    return {};
 }
 
 // We don't want the red screen to flash.

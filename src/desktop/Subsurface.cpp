@@ -101,10 +101,19 @@ void CSubsurface::onCommit() {
     checkSiblingDamage();
 
     if (m_vLastSize != m_pWLSurface->resource()->current.size) {
-        CBox box{COORDS, m_vLastSize};
-        g_pHyprRenderer->damageBox(&box);
-        m_vLastSize = m_pWLSurface->resource()->current.size;
-        box         = {COORDS, m_vLastSize};
+        // TODO: fix this
+        // CBox box{COORDS, m_vLastSize};
+        // g_pHyprRenderer->damageBox(&box);
+        // m_vLastSize = m_pWLSurface->resource()->current.size;
+        // box         = {COORDS, m_vLastSize};
+        // g_pHyprRenderer->damageBox(&box);
+
+        CBox box;
+        if (m_pPopupParent)
+            box = m_pPopupParent->m_pWLSurface->getSurfaceBoxGlobal().value_or(CBox{});
+        else if (m_pWindowParent)
+            box = m_pWindowParent->getWindowMainSurfaceBox();
+
         g_pHyprRenderer->damageBox(&box);
     }
 }

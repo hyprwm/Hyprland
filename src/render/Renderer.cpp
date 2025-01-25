@@ -768,7 +768,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
         &renderdata);
 }
 
-void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLMONITOR pMonitor, timespec* time) {
+void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, timespec* time) {
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition, pMonitor->vecPosition};
 
     renderdata.blur     = false;

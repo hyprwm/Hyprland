@@ -49,20 +49,20 @@ class CSessionLockManager {
     CSessionLockManager();
     ~CSessionLockManager() = default;
 
-    SSessionLockSurface* getSessionLockSurfaceForMonitor(uint64_t);
+    WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
 
-    float                getRedScreenAlphaForMonitor(uint64_t);
+    float                   getRedScreenAlphaForMonitor(uint64_t);
 
-    bool                 isSessionLocked();
-    bool                 isSessionLockPresent();
-    bool                 isSurfaceSessionLock(SP<CWLSurfaceResource>);
-    bool                 anySessionLockSurfacesPresent();
+    bool                    isSessionLocked();
+    bool                    isSessionLockPresent();
+    bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
+    bool                    anySessionLockSurfacesPresent();
 
-    void                 removeSessionLockSurface(SSessionLockSurface*);
+    void                    removeSessionLockSurface(SSessionLockSurface*);
 
-    void                 onLockscreenRenderedOnMonitor(uint64_t id);
+    void                    onLockscreenRenderedOnMonitor(uint64_t id);
 
-    bool                 shallConsiderLockMissing();
+    bool                    shallConsiderLockMissing();
 
   private:
     UP<SSessionLock> m_pSessionLock;

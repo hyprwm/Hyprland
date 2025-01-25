@@ -55,7 +55,7 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
 
         if (activate) {
-            setWindowSize(pWindow, pWindow->m_vRealSize->goal()); // update xwayland output pos
+            setWindowSize(pWindow, pWindow->m_vRealSize->value(), true); // update xwayland output pos
             pWindow->m_pXWaylandSurface->setMinimized(false);
 
             if (!pWindow->isX11OverrideRedirect())
@@ -162,7 +162,9 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
                 if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"])
                     pWindow->m_bX11ShouldntFocus = true;
 
-                pWindow->m_bNoInitialFocus = true;
+                if (a != HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"])
+                    pWindow->m_bNoInitialFocus = true;
+
                 return true;
             }
 

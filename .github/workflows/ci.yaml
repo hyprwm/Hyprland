@@ -127,26 +127,3 @@ jobs:
 
       - name: clang-format check
         run: ninja -C build clang-format-check
-
-      - name: clang-format apply
-        if: failure()
-        run: ninja -C build clang-format
-
-      - name: Create patch
-        if: failure()
-        run: |
-          echo 'Please fix the formatting issues by running [`clang-format`](https://wiki.hyprland.org/Contributing-and-Debugging/PR-Guidelines/#code-style), or directly apply this patch:' > clang-format.patch
-          echo '<details>' >> clang-format.patch
-          echo '<summary>clang-format.patch</summary>' >> clang-format.patch
-          echo >> clang-format.patch
-          echo '```diff' >> clang-format.patch
-          git diff >> clang-format.patch
-          echo '```' >> clang-format.patch
-          echo >> clang-format.patch
-          echo '</details>' >> clang-format.patch
-
-      - name: Comment patch
-        if: failure()
-        uses: peter-evans/commit-comment@v3
-        with:
-          message-path: clang-format.patch

@@ -3,6 +3,7 @@
 #include "../debug/Log.hpp"
 #include <ranges>
 #include <fcntl.h>
+#include <unistd.h>
 
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
     if (m_inotifyFd < 0) {

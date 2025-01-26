@@ -1702,11 +1702,9 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = overridePos.value_or(m_vRealPosition->goal());
 
-    if (m_bIsX11 && PMONITOR) {
-        windowPos -= PMONITOR->vecPosition; // normalize to monitor
-        if (*PXWLFORCESCALEZERO)
-            windowPos *= PMONITOR->scale;           // scale if applicable
-        windowPos += PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
+    if (m_bIsX11) {
+        if (const auto XWAYLANDPOS = g_pXWaylandManager->waylandToXWaylandCoords(windowPos); XWAYLANDPOS != Vector2D{})
+            windowPos = XWAYLANDPOS;
     }
 
     if (!force && m_vPendingReportedSize == size && (windowPos == m_vReportedPosition || !m_bIsX11))

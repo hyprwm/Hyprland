@@ -31,9 +31,10 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->szNamespace = resource->layerNamespace;
 
-    pLS->layer     = resource->current.layer;
-    pLS->popupHead = makeUnique<CPopup>(pLS);
-    pLS->monitor   = pMonitor;
+    pLS->layer              = resource->current.layer;
+    pLS->popupHead          = makeUnique<CPopup>(pLS);
+    pLS->popupHead->m_pSelf = pLS->popupHead;
+    pLS->monitor            = pMonitor;
     pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);
@@ -331,7 +332,7 @@ void CLayerSurface::onCommit() {
             nullptr);
         if (!WASLASTFOCUS && popupHead) {
             popupHead->breadthfirst(
-                [&WASLASTFOCUS](CPopup* popup, void* data) {
+                [&WASLASTFOCUS](WP<CPopup> popup, void* data) {
                     WASLASTFOCUS = WASLASTFOCUS || (popup->m_pWLSurface && g_pSeatManager->state.keyboardFocus == popup->m_pWLSurface->resource());
                 },
                 nullptr);
@@ -576,7 +577,7 @@ int CLayerSurface::popupsCount() {
         return 0;
 
     int no = -1; // we have one dummy
-    popupHead->breadthfirst([](CPopup* p, void* data) { *(int*)data += 1; }, &no);
+    popupHead->breadthfirst([](WP<CPopup> p, void* data) { *(int*)data += 1; }, &no);
     return no;
 }
 

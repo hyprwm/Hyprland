@@ -978,15 +978,15 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
     if (ANY_PRESENT) {
         // render image2, without instructions. Lock still "alive", unless texture dead
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDead2Texture, &monbox, ALPHA);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDead2Texture, monbox, ALPHA);
     } else {
         // render image, with instructions. Lock is gone.
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, &monbox, ALPHA);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, monbox, ALPHA);
 
         // also render text for the tty number
         if (g_pHyprOpenGL->m_pLockTtyTextTexture) {
             CBox texbox = {{}, g_pHyprOpenGL->m_pLockTtyTextTexture->m_vSize};
-            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockTtyTextTexture, &texbox, 1.F);
+            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockTtyTextTexture, texbox, 1.F);
         }
     }
 
@@ -1836,7 +1836,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         damageBoxForEach.set(damageBox);
         damageBoxForEach.translate({-m->vecPosition.x, -m->vecPosition.y}).scale(m->scale);
 
-        m->addDamage(&damageBoxForEach);
+        m->addDamage(damageBoxForEach);
     }
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -1860,7 +1860,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
-            m->addDamage(&fixedDamageBox);
+            m->addDamage(fixedDamageBox);
         }
     }
 
@@ -1878,7 +1878,7 @@ void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
         return;
 
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
-    pMonitor->addDamage(&damageBox);
+    pMonitor->addDamage(damageBox);
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
@@ -1886,7 +1886,7 @@ void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
         Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
-void CHyprRenderer::damageBox(CBox* pBox, bool skipFrameSchedule) {
+void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1895,21 +1895,20 @@ void CHyprRenderer::damageBox(CBox* pBox, bool skipFrameSchedule) {
             continue; // don't damage mirrors traditionally
 
         if (!skipFrameSchedule) {
-            CBox damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
-            damageBox.scale(m->scale);
-            m->addDamage(&damageBox);
+            CBox damageBox = box.copy().translate(-m->vecPosition).scale(m->scale);
+            m->addDamage(damageBox);
         }
     }
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", pBox->x, pBox->y, pBox->width, pBox->height);
+        Debug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
 }
 
 void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
     CBox box = {x, y, w, h};
-    damageBox(&box);
+    damageBox(box);
 }
 
 void CHyprRenderer::damageRegion(const CRegion& rg) {
@@ -1936,7 +1935,7 @@ void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
         transformed.transform(wlTransformToHyprutils(pMonitor->transform), pMonitor->vecPixelSize.x * scale, pMonitor->vecPixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
-        mirror->addDamage(&transformed);
+        mirror->addDamage(transformed);
 
         g_pCompositor->scheduleFrameForMonitor(mirror.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }

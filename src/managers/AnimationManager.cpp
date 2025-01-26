@@ -41,7 +41,7 @@ CHyprAnimationManager::CHyprAnimationManager() {
 }
 
 template <Animable VarType>
-void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool warp = false) {
+static void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool warp = false) {
     if (warp || av.value() == av.goal()) {
         av.warp();
         return;
@@ -51,7 +51,7 @@ void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool war
     av.value()       = av.begun() + DELTA * POINTY;
 }
 
-void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp) {
+static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp) {
     if (warp || av.value() == av.goal()) {
         av.warp();
         return;
@@ -137,7 +137,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         // "some fucking layers miss 1 pixel???" -- vaxry
         CBox expandBox = CBox{PLAYER->realPosition->value(), PLAYER->realSize->value()};
         expandBox.expand(5);
-        g_pHyprRenderer->damageBox(&expandBox);
+        g_pHyprRenderer->damageBox(expandBox);
 
         PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition->goal() + PLAYER->realSize->goal() / 2.F);
         if (!PMONITOR)
@@ -180,7 +180,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                 // some fucking layers miss 1 pixel???
                 CBox expandBox = CBox{PLAYER->realPosition->value(), PLAYER->realSize->value()};
                 expandBox.expand(5);
-                g_pHyprRenderer->damageBox(&expandBox);
+                g_pHyprRenderer->damageBox(expandBox);
             }
             break;
         }

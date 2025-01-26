@@ -94,7 +94,7 @@ void CHyprGroupBarDecoration::updateWindow(PHLWINDOW pWindow) {
 void CHyprGroupBarDecoration::damageEntire() {
     auto box = assignedBoxGlobal();
     box.translate(m_pWindow->m_vFloatingOffset);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 }
 
 void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {

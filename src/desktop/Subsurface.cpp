@@ -103,10 +103,10 @@ void CSubsurface::onCommit() {
     if (m_vLastSize != m_pWLSurface->resource()->current.size) {
         // TODO: fix this
         // CBox box{COORDS, m_vLastSize};
-        // g_pHyprRenderer->damageBox(&box);
+        // g_pHyprRenderer->damageBox(box);
         // m_vLastSize = m_pWLSurface->resource()->current.size;
         // box         = {COORDS, m_vLastSize};
-        // g_pHyprRenderer->damageBox(&box);
+        // g_pHyprRenderer->damageBox(box);
 
         CBox box;
         if (m_pPopupParent)
@@ -114,7 +114,7 @@ void CSubsurface::onCommit() {
         else if (m_pWindowParent)
             box = m_pWindowParent->getWindowMainSurfaceBox();
 
-        g_pHyprRenderer->damageBox(&box);
+        g_pHyprRenderer->damageBox(box);
     }
 }
 
@@ -152,7 +152,7 @@ void CSubsurface::onMap() {
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
     box.expand(4);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 
     if (!m_pWindowParent.expired())
         m_pWindowParent->updateSurfaceScaleTransformDetails();
@@ -162,7 +162,7 @@ void CSubsurface::onUnmap() {
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
     box.expand(4);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 
     if (m_pWLSurface->resource() == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();

@@ -122,14 +122,14 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
     if (data.surfaceCounter == 0 && !data.popup) {
         if (BLUR)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, roundingPower, data.blockBlurOptimization, data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, data.surface, rounding, roundingPower, data.blockBlurOptimization, data.fadeAlpha, OVERALL_ALPHA);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     } else {
         if (BLUR && data.popup)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, roundingPower, true, data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, data.surface, rounding, roundingPower, true, data.fadeAlpha, OVERALL_ALPHA);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)

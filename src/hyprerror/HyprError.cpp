@@ -26,7 +26,7 @@ CHyprError::CHyprError() {
             return;
 
         if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
-            g_pHyprRenderer->damageBox(&m_bDamageBox);
+            g_pHyprRenderer->damageBox(m_bDamageBox);
     });
 
     m_pTexture = makeShared<CTexture>();
@@ -203,7 +203,7 @@ void CHyprError::draw() {
     m_bDamageBox.y = (int)PMONITOR->vecPosition.y;
 
     if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
-        g_pHyprRenderer->damageBox(&m_bDamageBox);
+        g_pHyprRenderer->damageBox(m_bDamageBox);
 
     m_bMonitorChanged = false;
 

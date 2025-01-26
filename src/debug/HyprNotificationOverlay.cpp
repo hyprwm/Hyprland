@@ -26,7 +26,7 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
         if (m_vNotifications.size() == 0)
             return;
 
-        g_pHyprRenderer->damageBox(&m_bLastDamage);
+        g_pHyprRenderer->damageBox(m_bLastDamage);
     });
 
     m_pTexture = makeShared<CTexture>();
@@ -225,8 +225,8 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
     CBox damage = drawNotifications(pMonitor);
 
-    g_pHyprRenderer->damageBox(&damage);
-    g_pHyprRenderer->damageBox(&m_bLastDamage);
+    g_pHyprRenderer->damageBox(damage);
+    g_pHyprRenderer->damageBox(m_bLastDamage);
 
     g_pCompositor->scheduleFrameForMonitor(pMonitor);
 

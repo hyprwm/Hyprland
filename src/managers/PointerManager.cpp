@@ -566,7 +566,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     Debug::log(TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->szName, currentCursorImage.size, cursorSize,
                currentCursorImage.scale, state->monitor->scale, xbox.size());
 
-    g_pHyprOpenGL->renderTexture(texture, &xbox, 1.F);
+    g_pHyprOpenGL->renderTexture(texture, xbox, 1.F);
 
     g_pHyprOpenGL->end();
     glFlush();
@@ -730,7 +730,7 @@ void CPointerManager::damageIfSoftware() {
             continue;
 
         if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors()) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
-            g_pHyprRenderer->damageBox(&b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
+            g_pHyprRenderer->damageBox(b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
             break;
         }
     }
@@ -1143,7 +1143,7 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
         if (b.empty())
             return;
 
-        g_pHyprRenderer->damageBox(&b);
+        g_pHyprRenderer->damageBox(b);
 
         return;
     }

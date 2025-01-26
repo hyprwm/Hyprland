@@ -766,18 +766,18 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
         g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
-void CMonitor::addDamage(const CRegion* rg) {
-    addDamage(const_cast<CRegion*>(rg)->pixman());
+void CMonitor::addDamage(const CRegion& rg) {
+    addDamage(const_cast<CRegion*>(&rg)->pixman());
 }
 
-void CMonitor::addDamage(const CBox* box) {
+void CMonitor::addDamage(const CBox& box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == self) {
         damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 
-    if (damage.damage(*box))
+    if (damage.damage(box))
         g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 

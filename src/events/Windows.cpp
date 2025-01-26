@@ -376,9 +376,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWORKSPACE->m_bDefaultPseudo) {
         PWINDOW->m_bIsPseudotiled = true;
-        CBox desiredGeometry      = {0};
-        g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
-        PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        CBox desiredGeometry      = g_pXWaylandManager->getGeometryForWindow(PWINDOW);
+        PWINDOW->m_vPseudoSize    = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
 
     PWINDOW->updateWindowData();

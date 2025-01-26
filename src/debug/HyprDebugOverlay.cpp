@@ -198,10 +198,10 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     double posX = 0, posY = 0;
     cairo_get_current_point(cr, &posX, &posY);
 
-    g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
+    g_pHyprRenderer->damageBox(m_wbLastDrawnBox);
     m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
                         (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
-    g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
+    g_pHyprRenderer->damageBox(m_wbLastDrawnBox);
 
     return posY - offset;
 }

@@ -14,8 +14,7 @@
 #include "../managers/HookSystemManager.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
-    CBox desiredGeometry = {};
-    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
+    CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PMONITOR          = pWindow->m_pMonitor.lock();
@@ -91,9 +90,8 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
-    CBox desiredGeometry = {0};
-    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-    const auto PMONITOR = pWindow->m_pMonitor.lock();
+    CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
+    const auto PMONITOR        = pWindow->m_pMonitor.lock();
 
     if (pWindow->m_bIsX11) {
         Vector2D xy       = {desiredGeometry.x, desiredGeometry.y};

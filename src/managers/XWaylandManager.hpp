@@ -15,7 +15,7 @@ class CHyprXWaylandManager {
     SP<CWLSurfaceResource> getWindowSurface(PHLWINDOW);
     void                   activateSurface(SP<CWLSurfaceResource>, bool);
     void                   activateWindow(PHLWINDOW, bool);
-    void                   getGeometryForWindow(PHLWINDOW, CBox*);
+    CBox                   getGeometryForWindow(PHLWINDOW);
     void                   sendCloseWindow(PHLWINDOW);
     void                   setWindowFullscreen(PHLWINDOW, bool);
     bool                   shouldBeFloated(PHLWINDOW, bool pending = false);

@@ -806,7 +806,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
     box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F).expand(5);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 
     dnd.dndSurface->frame(when);
 }

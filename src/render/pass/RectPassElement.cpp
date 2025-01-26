@@ -10,9 +10,9 @@ void CRectPassElement::draw(const CRegion& damage) {
         return;
 
     if (data.color.a == 1.F || !data.blur)
-        g_pHyprOpenGL->renderRectWithDamage(&data.box, data.color, damage, data.round, data.roundingPower);
+        g_pHyprOpenGL->renderRectWithDamage(data.box, data.color, damage, data.round, data.roundingPower);
     else
-        g_pHyprOpenGL->renderRectWithBlur(&data.box, data.color, data.round, data.roundingPower, data.blurA, data.xray);
+        g_pHyprOpenGL->renderRectWithBlur(data.box, data.color, data.round, data.roundingPower, data.blurA, data.xray);
 }
 
 bool CRectPassElement::needsLiveBlur() {

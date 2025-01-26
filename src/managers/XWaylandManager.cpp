@@ -76,9 +76,11 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
         pWindow->m_pWorkspace->m_pLastFocusedWindow = pWindow;
 }
 
-void CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow, CBox* pbox) {
+CBox CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow) {
     if (!pWindow)
-        return;
+        return {};
+
+    CBox box;
 
     if (pWindow->m_bIsX11) {
         const auto SIZEHINTS = pWindow->m_pXWaylandSurface->sizeHints.get();
@@ -86,24 +88,26 @@ void CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow, CBox* pbox) {
         if (SIZEHINTS && !pWindow->isX11OverrideRedirect()) {
             // WM_SIZE_HINTS' x,y,w,h is deprecated it seems.
             // Source: https://x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#wm_normal_hints_property
-            pbox->x = pWindow->m_pXWaylandSurface->geometry.x;
-            pbox->y = pWindow->m_pXWaylandSurface->geometry.y;
+            box.x = pWindow->m_pXWaylandSurface->geometry.x;
+            box.y = pWindow->m_pXWaylandSurface->geometry.y;
 
             constexpr int ICCCM_USSize = 0x2;
             constexpr int ICCCM_PSize  = 0x8;
 
             if ((SIZEHINTS->flags & ICCCM_USSize) || (SIZEHINTS->flags & ICCCM_PSize)) {
-                pbox->w = SIZEHINTS->base_width;
-                pbox->h = SIZEHINTS->base_height;
+                box.w = SIZEHINTS->base_width;
+                box.h = SIZEHINTS->base_height;
             } else {
-                pbox->w = pWindow->m_pXWaylandSurface->geometry.w;
-                pbox->h = pWindow->m_pXWaylandSurface->geometry.h;
+                box.w = pWindow->m_pXWaylandSurface->geometry.w;
+                box.h = pWindow->m_pXWaylandSurface->geometry.h;
             }
         } else
-            *pbox = pWindow->m_pXWaylandSurface->geometry;
+            box = pWindow->m_pXWaylandSurface->geometry;
 
     } else if (pWindow->m_pXDGSurface)
-        *pbox = pWindow->m_pXDGSurface->current.geometry;
+        box = pWindow->m_pXDGSurface->current.geometry;
+
+    return box;
 }
 
 void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {

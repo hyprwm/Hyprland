@@ -85,7 +85,7 @@ void CPopup::onMap() {
 
     CBox       box = m_pWLSurface->resource()->extends();
     box.translate(COORDS).expand(4);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 
     m_vLastPos = coordsRelativeToParent();
 
@@ -120,7 +120,7 @@ void CPopup::onUnmap() {
 
     CBox       box = m_pWLSurface->resource()->extends();
     box.translate(COORDS).expand(4);
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 
     m_pSubsurfaceHead.reset();
 
@@ -134,7 +134,7 @@ void CPopup::onUnmap() {
                 return;
 
             auto box = CBox{p->coordsGlobal(), p->size()};
-            g_pHyprRenderer->damageBox(&box);
+            g_pHyprRenderer->damageBox(box);
         },
         nullptr);
 
@@ -173,10 +173,10 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     if (m_vLastSize != m_pResource->surface->surface->current.size || m_bRequestedReposition || m_vLastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_vLastPos), m_vLastSize};
-        g_pHyprRenderer->damageBox(&box);
+        g_pHyprRenderer->damageBox(box);
         m_vLastSize = m_pResource->surface->surface->current.size;
         box         = {COORDS, m_vLastSize};
-        g_pHyprRenderer->damageBox(&box);
+        g_pHyprRenderer->damageBox(box);
 
         m_vLastPos = COORDSLOCAL;
     }

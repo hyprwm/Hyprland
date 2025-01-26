@@ -60,7 +60,7 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
             auto box                   = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
-                g_pHyprRenderer->damageBox(&*box);
+                g_pHyprRenderer->damageBox(*box);
 
             if (!m_pResource)
                 PROTO::hyprlandSurface->destroySurface(this);

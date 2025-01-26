@@ -61,7 +61,7 @@ void CInputPopup::damageEntire() {
         return;
     }
     CBox box = globalBox();
-    g_pHyprRenderer->damageBox(&box);
+    g_pHyprRenderer->damageBox(box);
 }
 
 void CInputPopup::damageSurface() {

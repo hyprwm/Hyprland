@@ -214,7 +214,7 @@ bool CScreencopyFrame::copyDmabuf() {
                       .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, &monbox, 1);
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
@@ -247,7 +247,7 @@ bool CScreencopyFrame::copyShm() {
     CBox monbox = CBox{0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y}.translate({-box.x, -box.y});
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, &monbox, 1);
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 

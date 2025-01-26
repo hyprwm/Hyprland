@@ -115,7 +115,7 @@ void CLayerSurface::onDestroy() {
 
         // and damage
         CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
-        g_pHyprRenderer->damageBox(&geomFixed);
+        g_pHyprRenderer->damageBox(geomFixed);
     }
 
     readyToDelete = true;
@@ -179,7 +179,7 @@ void CLayerSurface::onMap() {
     position = Vector2D(geometry.x, geometry.y);
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
-    g_pHyprRenderer->damageBox(&geomFixed);
+    g_pHyprRenderer->damageBox(geomFixed);
     const bool FULLSCREEN = PMONITOR->activeWorkspace && PMONITOR->activeWorkspace->m_bHasFullscreenWindow && PMONITOR->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
 
     startAnimation(!(layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
@@ -240,11 +240,11 @@ void CLayerSurface::onUnmap() {
         g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
-    g_pHyprRenderer->damageBox(&geomFixed);
+    g_pHyprRenderer->damageBox(geomFixed);
 
     geomFixed = {geometry.x + (int)PMONITOR->vecPosition.x, geometry.y + (int)PMONITOR->vecPosition.y, (int)layerSurface->surface->current.size.x,
                  (int)layerSurface->surface->current.size.y};
-    g_pHyprRenderer->damageBox(&geomFixed);
+    g_pHyprRenderer->damageBox(geomFixed);
 
     g_pInputManager->simulateMouseMovement();
 
@@ -275,7 +275,7 @@ void CLayerSurface::onCommit() {
         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
 
     CBox geomFixed = {geometry.x, geometry.y, geometry.width, geometry.height};
-    g_pHyprRenderer->damageBox(&geomFixed);
+    g_pHyprRenderer->damageBox(geomFixed);
 
     if (layerSurface->current.committed != 0) {
         if (layerSurface->current.committed & CLayerShellResource::eCommittedState::STATE_LAYER) {

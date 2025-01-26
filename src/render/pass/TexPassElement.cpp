@@ -18,7 +18,7 @@ void CTexPassElement::draw(const CRegion& damage) {
 
     if (data.replaceProjection)
         g_pHyprOpenGL->m_RenderData.monitorProjection = *data.replaceProjection;
-    g_pHyprOpenGL->renderTextureInternalWithDamage(data.tex, &data.box, data.a, data.damage.empty() ? damage : data.damage, data.round, data.roundingPower, data.syncTimeline,
+    g_pHyprOpenGL->renderTextureInternalWithDamage(data.tex, data.box, data.a, data.damage.empty() ? damage : data.damage, data.round, data.roundingPower, data.syncTimeline,
                                                    data.syncPoint);
     if (data.replaceProjection)
         g_pHyprOpenGL->m_RenderData.monitorProjection = g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix;

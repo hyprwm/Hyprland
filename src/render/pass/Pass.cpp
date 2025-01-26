@@ -202,9 +202,9 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 void CRenderPass::renderDebugData() {
     CBox box = {{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize};
     for (const auto& rg : occludedRegions) {
-        g_pHyprOpenGL->renderRectWithDamage(&box, Colors::RED.modifyA(0.1F), rg);
+        g_pHyprOpenGL->renderRectWithDamage(box, Colors::RED.modifyA(0.1F), rg);
     }
-    g_pHyprOpenGL->renderRectWithDamage(&box, Colors::GREEN.modifyA(0.1F), totalLiveBlurRegion);
+    g_pHyprOpenGL->renderRectWithDamage(box, Colors::GREEN.modifyA(0.1F), totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
@@ -227,7 +227,7 @@ void CRenderPass::renderDebugData() {
         if (box.intersection(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize}).empty())
             return;
 
-        g_pHyprOpenGL->renderRectWithDamage(&box, color, CRegion{0, 0, INT32_MAX, INT32_MAX});
+        g_pHyprOpenGL->renderRectWithDamage(box, color, CRegion{0, 0, INT32_MAX, INT32_MAX});
 
         if (offsets.contains(surface.get()))
             box.translate(Vector2D{0.F, offsets[surface.get()]});
@@ -235,8 +235,8 @@ void CRenderPass::renderDebugData() {
             offsets[surface.get()] = 0;
 
         box = {box.pos(), texture->m_vSize};
-        g_pHyprOpenGL->renderRectWithDamage(&box, CHyprColor{0.F, 0.F, 0.F, 0.2F}, CRegion{0, 0, INT32_MAX, INT32_MAX}, std::min(5.0, box.size().y));
-        g_pHyprOpenGL->renderTexture(texture, &box, 1.F);
+        g_pHyprOpenGL->renderRectWithDamage(box, CHyprColor{0.F, 0.F, 0.F, 0.2F}, CRegion{0, 0, INT32_MAX, INT32_MAX}, std::min(5.0, box.size().y));
+        g_pHyprOpenGL->renderTexture(texture, box, 1.F);
 
         offsets[surface.get()] += texture->m_vSize.y;
     };
@@ -253,7 +253,7 @@ void CRenderPass::renderDebugData() {
 
     if (tex) {
         box = CBox{{0.F, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y - tex->m_vSize.y}, tex->m_vSize}.scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);
-        g_pHyprOpenGL->renderTexture(tex, &box, 1.F);
+        g_pHyprOpenGL->renderTexture(tex, box, 1.F);
     }
 
     std::string passStructure;
@@ -271,7 +271,7 @@ void CRenderPass::renderDebugData() {
     if (tex) {
         box = CBox{{g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x - tex->m_vSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y - tex->m_vSize.y}, tex->m_vSize}.scale(
             g_pHyprOpenGL->m_RenderData.pMonitor->scale);
-        g_pHyprOpenGL->renderTexture(tex, &box, 1.F);
+        g_pHyprOpenGL->renderTexture(tex, box, 1.F);
     }
 }
 

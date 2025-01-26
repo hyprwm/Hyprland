@@ -507,6 +507,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         const auto TR = state->monitor->transform;
 
+        // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
+        const auto SCALE = texture->m_vSize / (currentCursorImage.size / currentCursorImage.scale * state->monitor->scale);
+        cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
+
         if (TR) {
             cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
 

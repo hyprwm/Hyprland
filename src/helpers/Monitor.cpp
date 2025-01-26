@@ -51,6 +51,8 @@ void CMonitor::onConnect(bool noRule) {
     EMIT_HOOK_EVENT("preMonitorAdded", self.lock());
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
+    g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
+
     if (output->supportsExplicit) {
         inTimeline  = CSyncTimeline::create(output->getBackend()->drmFD());
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());

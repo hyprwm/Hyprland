@@ -1034,6 +1034,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // update plugins
     handlePluginLoads();
 
+    // update persistent workspaces
+    if (!isFirstLaunch)
+        ensurePersistentWorkspacesPresent();
+
     EMIT_HOOK_EVENT("configReloaded", nullptr);
     if (g_pEventManager)
         g_pEventManager->postEvent(SHyprIPCEvent{"configreloaded", ""});
@@ -2829,4 +2833,8 @@ std::string SConfigOptionDescription::jsonify() const {
                                    value, description, (uint16_t)type, (uint32_t)flags, parseData());
 
     return json;
+}
+
+void CConfigManager::ensurePersistentWorkspacesPresent() {
+    g_pCompositor->ensurePersistentWorkspacesPresent(m_vWorkspaceRules);
 }

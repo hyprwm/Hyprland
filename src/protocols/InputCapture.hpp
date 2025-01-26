@@ -1,5 +1,6 @@
 #pragma once
 
+#include "helpers/memory/Memory.hpp"
 #include "hyprland-input-capture-v1.hpp"
 #include "../protocols/WaylandProtocol.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -27,7 +28,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     void sendFrame();
 
   private:
-    void sendKeymap(SP<IKeyboard> keyboard, const std::unique_ptr<CHyprlandInputCaptureManagerV1>& manager);
+    void sendKeymap(SP<IKeyboard> keyboard, const UP<CHyprlandInputCaptureManagerV1>& manager);
 
     bool active = false;
     //

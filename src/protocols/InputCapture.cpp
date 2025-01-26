@@ -9,7 +9,7 @@ CInputCaptureProtocol::CInputCaptureProtocol(const wl_interface* iface, const in
 }
 
 void CInputCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto& RESOURCE = m_vManagers.emplace_back(std::make_unique<CHyprlandInputCaptureManagerV1>(client, ver, id));
+    const auto& RESOURCE = m_vManagers.emplace_back(makeUnique<CHyprlandInputCaptureManagerV1>(client, ver, id));
 
     RESOURCE->setOnDestroy([this](CHyprlandInputCaptureManagerV1* p) { std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == p->resource(); }); });
 
@@ -42,7 +42,7 @@ void CInputCaptureProtocol::sendMotion(const Vector2D& absolutePosition, const V
     }
 }
 
-void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const std::unique_ptr<CHyprlandInputCaptureManagerV1>& manager) {
+void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const UP<CHyprlandInputCaptureManagerV1>& manager) {
     if (!keyboard)
         return;
 
@@ -86,7 +86,6 @@ void CInputCaptureProtocol::sendModifiers(uint32_t mods_depressed, uint32_t mods
     for (const auto& manager : m_vManagers)
         manager->sendModifiers(mods_depressed, mods_locked, mods_locked, group);
 }
-
 
 void CInputCaptureProtocol::sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state) {
     for (const auto& manager : m_vManagers)

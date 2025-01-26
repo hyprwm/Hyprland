@@ -847,6 +847,15 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
         pWindow->m_pMonitor = PMONITORFOCAL;
     }
 
+    pWindow->updateGroupOutputs();
+    if (!pWindow->m_sGroupData.pNextWindow.expired()) {
+        PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
+        while (next != pWindow) {
+            next->updateToplevel();
+            next = next->m_sGroupData.pNextWindow.lock();
+        }
+    }
+
     onWindowCreatedTiling(pWindow);
 
     m_vOverrideFocalPoint.reset();

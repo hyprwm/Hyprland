@@ -14,7 +14,7 @@ class CPopup {
     CPopup(PHLLS pOwner);
 
     // real nodes
-    CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner);
+    CPopup(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
 
     ~CPopup();
 
@@ -36,11 +36,12 @@ class CPopup {
     bool           visible();
 
     // will also loop over this node
-    void    breadthfirst(std::function<void(CPopup*, void*)> fn, void* data);
-    CPopup* at(const Vector2D& globalCoords, bool allowsInput = false);
+    void       breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data);
+    WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
     //
     SP<CWLSurface> m_pWLSurface;
+    WP<CPopup>     m_pSelf;
     bool           m_bMapped = false;
 
   private:
@@ -49,7 +50,7 @@ class CPopup {
     PHLLSREF     m_pLayerOwner;
 
     // T2 owners
-    CPopup*               m_pParent = nullptr;
+    WP<CPopup>            m_pParent;
 
     WP<CXDGPopupResource> m_pResource;
 
@@ -81,5 +82,5 @@ class CPopup {
 
     Vector2D    localToGlobal(const Vector2D& rel);
     Vector2D    t1ParentCoords();
-    static void bfHelper(std::vector<CPopup*> const& nodes, std::function<void(CPopup*, void*)> fn, void* data);
+    static void bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data);
 };

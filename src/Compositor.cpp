@@ -571,7 +571,6 @@ void CCompositor::cleanup() {
     g_pLayoutManager.reset();
     g_pHyprError.reset();
     g_pConfigManager.reset();
-    g_pAnimationManager.reset();
     g_pKeybindManager.reset();
     g_pHookSystem.reset();
     g_pWatchdog.reset();

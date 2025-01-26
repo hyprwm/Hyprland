@@ -154,7 +154,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
         CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         m_pPopupHead->breadthfirst(
-            [](CPopup* popup, void* data) {
+            [](WP<CPopup> popup, void* data) {
                 if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
                     return;
 
@@ -569,8 +569,10 @@ void CWindow::onMap() {
     if (m_bIsX11)
         return;
 
-    m_pSubsurfaceHead = makeUnique<CSubsurface>(m_pSelf.lock());
-    m_pPopupHead      = makeUnique<CPopup>(m_pSelf.lock());
+    m_pSubsurfaceHead          = makeUnique<CSubsurface>(m_pSelf.lock());
+    m_pSubsurfaceHead->m_pSelf = m_pSubsurfaceHead;
+    m_pPopupHead               = makeUnique<CPopup>(m_pSelf.lock());
+    m_pPopupHead->m_pSelf      = m_pPopupHead;
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
@@ -847,7 +849,7 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     if (m_bIsX11)
         return false;
 
-    CPopup* popup = m_pPopupHead->at(pos);
+    auto popup = m_pPopupHead->at(pos);
 
     return popup && popup->m_pWLSurface->resource();
 }
@@ -1289,7 +1291,7 @@ int CWindow::popupsCount() {
         return 0;
 
     int no = -1;
-    m_pPopupHead->breadthfirst([](CPopup* p, void* d) { *((int*)d) += 1; }, &no);
+    m_pPopupHead->breadthfirst([](WP<CPopup> p, void* d) { *((int*)d) += 1; }, &no);
     return no;
 }
 

@@ -615,7 +615,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
             renderdata.surfaceCounter = 0;
 
             pWindow->m_pPopupHead->breadthfirst(
-                [this, &renderdata](CPopup* popup, void* data) {
+                [this, &renderdata](WP<CPopup> popup, void* data) {
                     if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
@@ -718,7 +718,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
     renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->popupHead->breadthfirst(
-            [this, &renderdata](CPopup* popup, void* data) {
+            [this, &renderdata](WP<CPopup> popup, void* data) {
                 if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                     return;
 

@@ -2229,7 +2229,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2Length, 0);
 
-    CBox transformedBox = box;
+    CBox transformedBox = newBox;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
                              m_RenderData.pMonitor->vecTransformedSize.y);
 
@@ -2238,7 +2238,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)box.width, (float)box.height);
+    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.roundingPower, roundingPower);
@@ -2326,7 +2326,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLerp, lerp);
 
-    CBox transformedBox = box;
+    CBox transformedBox = newBox;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
                              m_RenderData.pMonitor->vecTransformedSize.y);
 
@@ -2335,7 +2335,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
     glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)box.width, (float)box.height);
+    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.roundingPower, roundingPower);

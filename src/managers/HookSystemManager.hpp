@@ -9,7 +9,7 @@
 
 #include <csetjmp>
 
-#include "../plugins/PluginAPI.hpp"
+#define HANDLE void*
 
 // global typedef for hooked functions. Passes itself as a ptr when called, and `data` additionally.
 

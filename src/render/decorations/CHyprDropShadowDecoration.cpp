@@ -231,6 +231,9 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
 void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
     static auto PSHADOWSHARP = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
 
+    if (box.w < 1 || box.h < 1)
+        return;
+
     g_pHyprOpenGL->blend(true);
 
     color.a *= a;

@@ -15,6 +15,7 @@
 #include <aquamarine/output/Output.hpp>
 
 class CWLSurfaceResource;
+struct SWorkspaceRule;
 
 enum eManagersInitStage : uint8_t {
     STAGE_PRIORITY = 0,
@@ -151,6 +152,7 @@ class CCompositor {
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
+    void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules);
 
     SImageDescription      getPreferredImageDescription();
     bool                   shouldChangePreferredImageDescription();

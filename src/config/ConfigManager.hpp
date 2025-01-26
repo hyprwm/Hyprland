@@ -169,6 +169,7 @@ class CConfigManager {
 
     std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
     std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
+    void                                                            ensurePersistentWorkspacesPresent();
 
     const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
 

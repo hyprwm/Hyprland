@@ -422,10 +422,12 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_pWorkspace;
 
-    m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
-    *m_fMovingToWorkspaceAlpha = 0.F;
-    m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
-    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
+    if (OLDWORKSPACE->isVisible()) {
+        m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
+        *m_fMovingToWorkspaceAlpha = 0.F;
+        m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
+        m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
+    }
 
     m_pWorkspace = pWorkspace;
 

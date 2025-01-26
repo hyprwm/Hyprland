@@ -945,6 +945,15 @@ void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
         if (silent)
             g_pCompositor->focusWindow(PWINDOW2);
     }
+
+    pWindow->updateGroupOutputs();
+    if (!pWindow->m_sGroupData.pNextWindow.expired()) {
+        PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
+        while (next != pWindow) {
+            next->updateToplevel();
+            next = next->m_sGroupData.pNextWindow.lock();
+        }
+    }
 }
 
 void CHyprMasterLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {

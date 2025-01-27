@@ -35,6 +35,7 @@ runs:
           libinput \
           libjxl \
           libliftoff \
+          libspng \
           libwebp \
           libxcursor \
           libxcvt \

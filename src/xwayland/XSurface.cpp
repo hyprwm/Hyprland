@@ -169,6 +169,22 @@ void CXWaylandSurface::configure(const CBox& box) {
     uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
     xcb_configure_window(g_pXWayland->pWM->connection, xID, mask, values);
 
+    if (geometry.width == box.width && geometry.height == box.height) {
+        // ICCCM requires a synthetic event when window size is not changed
+        xcb_configure_notify_event_t e;
+        e.response_type     = XCB_CONFIGURE_NOTIFY;
+        e.event             = xID;
+        e.window            = xID;
+        e.x                 = box.x;
+        e.y                 = box.y;
+        e.width             = box.width;
+        e.height            = box.height;
+        e.border_width      = 0;
+        e.above_sibling     = XCB_NONE;
+        e.override_redirect = overrideRedirect;
+        xcb_send_event(g_pXWayland->pWM->connection, false, xID, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char*)&e);
+    }
+
     g_pXWayland->pWM->updateClientList();
 
     xcb_flush(g_pXWayland->pWM->connection);

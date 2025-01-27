@@ -102,8 +102,8 @@ void CXWM::handleMapRequest(xcb_map_request_event_t* e) {
     const bool HAS_HINTS   = XSURF->sizeHints && Vector2D{XSURF->sizeHints->base_width, XSURF->sizeHints->base_height} > Vector2D{5, 5};
     const auto DESIREDSIZE = HAS_HINTS ? Vector2D{XSURF->sizeHints->base_width, XSURF->sizeHints->base_height} : Vector2D{800, 800};
 
-    // if it's too small, or its base size is set, configure it.
-    if ((SMALL || HAS_HINTS) && !XSURF->overrideRedirect) // default to 800 x 800
+    // if it's too small, configure it.
+    if (SMALL && !XSURF->overrideRedirect) // default to 800 x 800
         XSURF->configure({XSURF->geometry.pos(), DESIREDSIZE});
 
     Debug::log(LOG, "[xwm] Mapping window {} in X (geometry {}x{} at {}x{}))", e->window, XSURF->geometry.width, XSURF->geometry.height, XSURF->geometry.x, XSURF->geometry.y);

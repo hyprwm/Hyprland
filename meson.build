@@ -58,6 +58,7 @@ endif
 
 backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
+inotify_dep = dependency('libinotify', required: false) # inotify on BSDs
 
 re2 = dependency('re2', required: true)
 

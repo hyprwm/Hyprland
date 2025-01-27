@@ -197,6 +197,12 @@ if(NOT HAS_TIMERFD AND epoll_FOUND)
   target_link_libraries(Hyprland PkgConfig::epoll)
 endif()
 
+check_include_file("sys/inotify.h" HAS_INOTIFY)
+pkg_check_modules(inotify IMPORTED_TARGET libinotify)
+if(NOT HAS_INOTIFY AND inotify_FOUND)
+  target_link_libraries(Hyprland PkgConfig::inotify)
+endif()
+
 if(LEGACY_RENDERER)
   message(STATUS "Using the legacy GLES2 renderer!")
   add_compile_definitions(LEGACY_RENDERER)

@@ -32,6 +32,7 @@ executable(
     xcb_xfixes_dep,
     backtrace_dep,
     epoll_dep,
+    inotify_dep,
     gio_dep,
     tracy,
 

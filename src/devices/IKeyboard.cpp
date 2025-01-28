@@ -44,6 +44,10 @@ void IKeyboard::clearManuallyAllocd() {
     if (xkbKeymapFD >= 0)
         close(xkbKeymapFD);
 
+    if (xkbSymState)
+        xkb_state_unref(xkbSymState);
+
+    xkbSymState    = nullptr;
     xkbKeymap      = nullptr;
     xkbState       = nullptr;
     xkbStaticState = nullptr;

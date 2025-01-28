@@ -2690,8 +2690,14 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         Debug::log(ERR, "source= path garbage");
         return "source= path " + rawpath + " bogus!";
     }
-    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{new glob_t, [](glob_t* g) { globfree(g); }};
-    memset(glob_buf.get(), 0, sizeof(glob_t));
+
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{static_cast<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
+                                                        [](glob_t* g) {
+                                                            if (g) {
+                                                                globfree(g); // free internal resources allocated by glob()
+                                                                free(g);     // free the memory for the glob_t structure
+                                                            }
+                                                        }};
 
     if (auto r = glob(absolutePath(rawpath, configCurrentPath).c_str(), GLOB_TILDE, nullptr, glob_buf.get()); r != 0) {
         std::string err = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : GLOB_ABORTED ? "read error" : "out of memory");

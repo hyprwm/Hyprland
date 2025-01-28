@@ -130,6 +130,11 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, timespec* when, uin
         }
     }
 
+    if (m_vFeedbacks.size() > 10000 /* arbitrary number I chose as fitting */) {
+        LOGM(ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_vFeedbacks.size());
+        m_vFeedbacks = {m_vFeedbacks.begin() + 9000, m_vFeedbacks.end()};
+    }
+
     std::erase_if(m_vFeedbacks, [](const auto& other) { return !other->surface || other->done; });
     std::erase_if(m_vQueue, [pMonitor](const auto& other) { return !other->surface || other->pMonitor == pMonitor || !other->pMonitor || other->done; });
 }

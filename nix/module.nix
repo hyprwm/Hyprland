@@ -205,9 +205,7 @@ in {
     {
       programs.hyprland = {
         package = lib.mkDefault inputs.self.packages.${system}.hyprland;
-        portalPackage = lib.mkDefault (inputs.self.packages.${system}.xdg-desktop-portal-hyprland.override {
-          hyprland = cfg.finalPackage;
-        });
+        portalPackage = lib.mkDefault inputs.self.packages.${system}.xdg-desktop-portal-hyprland;
       };
     }
     (lib.mkIf cfg.enable {

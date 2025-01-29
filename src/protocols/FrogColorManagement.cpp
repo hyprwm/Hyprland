@@ -1,6 +1,21 @@
 #include "FrogColorManagement.hpp"
+#include "color-management-v1.hpp"
 #include "protocols/ColorManagement.hpp"
 #include "protocols/core/Subcompositor.hpp"
+
+static wpColorManagerV1TransferFunction getWPTransferFunction(frogColorManagedSurfaceTransferFunction tf) {
+    switch (tf) {
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+    }
+}
+
+static wpColorManagerV1Primaries getWPPrimaries(frogColorManagedSurfacePrimaries primaries) {
+    return (wpColorManagerV1Primaries)(primaries + 1);
+}
 
 CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -77,20 +92,20 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         LOGM(TRACE, "Set frog cm transfer function {} for {}", (uint32_t)tf, surface->id());
         switch (tf) {
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ:
-                surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
+                surface->colorManagement->m_imageDescription.transferFunction = getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ);
                 break;
                 ;
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22:
                 if (pqIntentSent) {
                     LOGM(TRACE,
                          "FIXME: assuming broken enum value 2 (FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22) referring to eotf value 2 (TRANSFER_FUNCTION_ST2084_PQ)");
-                    surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
+                    surface->colorManagement->m_imageDescription.transferFunction = getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ);
                     break;
                 }; // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
-                surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
+                surface->colorManagement->m_imageDescription.transferFunction = getWPTransferFunction(tf);
 
                 surface->colorManagement->setHasImageDescription(true);
         }
@@ -102,6 +117,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: surface->colorManagement->m_imageDescription.primaries = NColorPrimaries::BT709; break;
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: surface->colorManagement->m_imageDescription.primaries = NColorPrimaries::BT2020; break;
         }
+        surface->colorManagement->m_imageDescription.primariesNamed = getWPPrimaries(primariesName);
 
         surface->colorManagement->setHasImageDescription(true);
     });

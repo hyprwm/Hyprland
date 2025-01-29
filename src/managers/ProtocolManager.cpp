@@ -57,6 +57,7 @@
 #include "../protocols/core/Output.hpp"
 #include "../protocols/core/Shm.hpp"
 #include "../protocols/ColorManagement.hpp"
+#include "../protocols/XXColorManagement.hpp"
 #include "../protocols/FrogColorManagement.hpp"
 #include "../protocols/ContentType.hpp"
 
@@ -172,9 +173,10 @@ CProtocolManager::CProtocolManager() {
     PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 2, "CTMControl");
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
+    PROTO::colorManagement     = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement");
 
     if (*PENABLEXXCM) {
-        PROTO::colorManagement     = makeUnique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
+        PROTO::xxColorManagement   = makeUnique<CXXColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "XXColorManagement");
         PROTO::frogColorManagement = makeUnique<CFrogColorManagementProtocol>(&frog_color_management_factory_v1_interface, 1, "FrogColorManagement");
     }
 

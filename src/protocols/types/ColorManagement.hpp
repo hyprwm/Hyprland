@@ -1,16 +1,16 @@
 #pragma once
 
-#include "xx-color-management-v4.hpp"
+#include "color-management-v1.hpp"
 
 struct SImageDescription {
     int                              iccFd   = -1;
     uint32_t                         iccSize = 0;
 
-    xxColorManagerV4TransferFunction transferFunction      = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
+    wpColorManagerV1TransferFunction transferFunction      = WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB;
     float                            transferFunctionPower = 1.0f;
 
     bool                             primariesNameSet = false;
-    xxColorManagerV4Primaries        primariesNamed   = XX_COLOR_MANAGER_V4_PRIMARIES_SRGB;
+    wpColorManagerV1Primaries        primariesNamed   = WP_COLOR_MANAGER_V1_PRIMARIES_SRGB;
     // primaries are stored as FP values with the same scale as standard defines (0.0 - 1.0)
     // wayland protocol expects int32_t values multiplied by 10000
     // drm expects uint16_t values multiplied by 50000

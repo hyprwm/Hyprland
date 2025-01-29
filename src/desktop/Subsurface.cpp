@@ -143,7 +143,7 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
 
     ASSERT(PSUBSURFACE);
 
-    PSUBSURFACE->m_pParent = PSUBSURFACE;
+    PSUBSURFACE->m_pParent = m_pSelf;
 }
 
 void CSubsurface::onMap() {

@@ -13,7 +13,7 @@ class IPassElement {
     virtual const char*         passName()                  = 0;
     virtual void                discard();
     virtual bool                undiscardable();
-    virtual std::optional<CBox> boundingBox();
-    virtual CRegion             opaqueRegion();
+    virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates
+    virtual CRegion             opaqueRegion(); // in monitor-local logical coordinates
     virtual bool                disableSimplification();
 };

@@ -313,8 +313,8 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
             fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
             fakeNode.workspaceID            = pWorkspace->m_iID;
-            PFULLWINDOW->m_vPosition        = fakeNode.position;
-            PFULLWINDOW->m_vSize            = fakeNode.size;
+            *PFULLWINDOW->m_vRealPosition   = fakeNode.position;
+            *PFULLWINDOW->m_vRealSize       = fakeNode.size;
             fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);

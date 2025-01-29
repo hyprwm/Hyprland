@@ -516,11 +516,11 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
             *PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
         } else if (pWorkspace->m_efFullscreenMode == FSMODE_MAXIMIZED) {
             SDwindleNodeData fakeNode;
-            fakeNode.pWindow         = PFULLWINDOW;
-            fakeNode.box             = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
-            fakeNode.workspaceID     = pWorkspace->m_iID;
-            PFULLWINDOW->m_vPosition = fakeNode.box.pos();
-            PFULLWINDOW->m_vSize     = fakeNode.box.size();
+            fakeNode.pWindow     = PFULLWINDOW;
+            fakeNode.box         = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
+            fakeNode.workspaceID = pWorkspace->m_iID;
+            *PFULLWINDOW->m_vRealPosition   = fakeNode.box.pos();
+            *PFULLWINDOW->m_vRealSize       = fakeNode.box.size();
             fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);

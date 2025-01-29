@@ -652,112 +652,6 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
     return shader;
 }
 
-bool CHyprOpenGLImpl::passRequiresIntrospection(PHLMONITOR pMonitor) {
-    // passes requiring introspection are the ones that need to render blur,
-    // or when we are rendering to a multigpu target
-
-    static auto PBLUR        = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto PXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
-    static auto POPTIM       = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLURSPECIAL = CConfigValue<Hyprlang::INT>("decoration:blur:special");
-    static auto PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
-
-    if (m_RenderData.mouseZoomFactor != 1.0 || g_pHyprRenderer->m_bCrashingInProgress)
-        return true;
-
-    // mirrors should not be offloaded (as we then would basically copy the same data twice)
-    // yes, this breaks mirrors of mirrors
-    if (pMonitor->isMirror())
-        return false;
-
-    // monitors that are mirrored however must be offloaded because we cannot copy from output FBs
-    if (!pMonitor->mirrors.empty())
-        return true;
-
-    if (*PBLUR == 0)
-        return false;
-
-    if (preBlurQueued())
-        return true;
-
-    if (!pMonitor->solitaryClient.expired())
-        return false;
-
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
-        if (ls->forceBlur && !XRAYMODE)
-            return true;
-
-        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
-            return true;
-    }
-
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
-        if (ls->forceBlur && !XRAYMODE)
-            return true;
-
-        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
-            return true;
-    }
-
-    // these two block optimization
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        if (ls->forceBlur)
-            return true;
-
-        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
-            return true;
-    }
-
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        if (ls->forceBlur)
-            return true;
-
-        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
-            return true;
-    }
-
-    if (*PBLURSPECIAL) {
-        for (auto const& ws : g_pCompositor->m_vWorkspaces) {
-            if (!ws->m_bIsSpecialWorkspace || ws->m_pMonitor != pMonitor)
-                continue;
-
-            if (ws->m_fAlpha->value() == 0)
-                continue;
-
-            return true;
-        }
-    }
-
-    if (*PXRAY)
-        return false;
-
-    for (auto const& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden())
-            continue;
-
-        if (!g_pHyprRenderer->shouldRenderWindow(w))
-            continue;
-
-        if (w->popupsCount() > 0 && *PBLURPOPUPS)
-            return true;
-
-        if (!w->m_bIsFloating && *POPTIM && !w->onSpecialWorkspace())
-            continue;
-
-        if (w->m_sWindowData.noBlur.valueOrDefault() || w->m_sWindowData.xray.valueOrDefault())
-            continue;
-
-        if (w->opaque())
-            continue;
-
-        return true;
-    }
-
-    return false;
-}
-
 void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<CRenderbuffer> rb, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
@@ -812,8 +706,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_RenderData.pMonitor = pMonitor;
-
-    static auto PFORCEINTROSPECTION = CConfigValue<Hyprlang::INT>("opengl:force_introspection");
 
 #ifndef GLES2
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
@@ -873,30 +765,12 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         applyScreenShader(*PSHADER);
     }
 
-    const auto PRBO                    = g_pHyprRenderer->getCurrentRBO();
-    const bool FBPROPERSIZE            = !fb || fb->m_vSize == pMonitor->vecPixelSize;
-    const bool USERFORCEDINTROSPECTION = *PFORCEINTROSPECTION == 1 ? true : (*PFORCEINTROSPECTION == 2 ? g_pHyprRenderer->isNvidia() : false); // 0 - no, 1 - yes, 2 - nvidia only
-
-    if (USERFORCEDINTROSPECTION || m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 ||
-        (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) || passRequiresIntrospection(pMonitor)) {
-        // we have to offload
-        // bind the offload Hypr Framebuffer
-        m_RenderData.pCurrentMonData->offloadFB.bind();
-        m_RenderData.currentFB  = &m_RenderData.pCurrentMonData->offloadFB;
-        m_bOffloadedFramebuffer = true;
-    } else {
-        // we can render to the rbo / fbo (fake) directly
-        const auto PFBO        = fb ? fb : PRBO->getFB();
-        m_RenderData.currentFB = PFBO;
-        if (PFBO->getStencilTex() != m_RenderData.pCurrentMonData->stencilTex)
-            PFBO->addStencil(m_RenderData.pCurrentMonData->stencilTex);
-
-        PFBO->bind();
-        m_bOffloadedFramebuffer = false;
-    }
+    m_RenderData.pCurrentMonData->offloadFB.bind();
+    m_RenderData.currentFB  = &m_RenderData.pCurrentMonData->offloadFB;
+    m_bOffloadedFramebuffer = true;
 
     m_RenderData.mainFB = m_RenderData.currentFB;
-    m_RenderData.outFB  = fb ? fb : PRBO->getFB();
+    m_RenderData.outFB  = fb ? fb : g_pHyprRenderer->getCurrentRBO()->getFB();
 }
 
 void CHyprOpenGLImpl::end() {
@@ -954,13 +828,12 @@ void CHyprOpenGLImpl::end() {
 
     // reset our data
     m_RenderData.pMonitor.reset();
-    m_RenderData.mouseZoomFactor    = 1.f;
-    m_RenderData.mouseZoomUseMouse  = true;
-    m_RenderData.forceIntrospection = false;
-    m_RenderData.blockScreenShader  = false;
-    m_RenderData.currentFB          = nullptr;
-    m_RenderData.mainFB             = nullptr;
-    m_RenderData.outFB              = nullptr;
+    m_RenderData.mouseZoomFactor   = 1.f;
+    m_RenderData.mouseZoomUseMouse = true;
+    m_RenderData.blockScreenShader = false;
+    m_RenderData.currentFB         = nullptr;
+    m_RenderData.mainFB            = nullptr;
+    m_RenderData.outFB             = nullptr;
 
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,

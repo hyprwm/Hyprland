@@ -125,7 +125,6 @@ struct SCurrentRenderData {
     float               mouseZoomFactor    = 1.f;
     bool                mouseZoomUseMouse  = true; // true by default
     bool                useNearestNeighbor = false;
-    bool                forceIntrospection = false; // cleaned in ::end()
     bool                blockScreenShader  = false;
     bool                simplePass         = false;
 
@@ -320,8 +319,6 @@ class CHyprOpenGLImpl {
     void renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 
     void preBlurForCurrentMonitor();
-
-    bool passRequiresIntrospection(PHLMONITOR pMonitor);
 
     friend class CHyprRenderer;
     friend class CTexPassElement;

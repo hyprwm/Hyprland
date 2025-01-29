@@ -1264,13 +1264,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
-    SConfigOptionDescription{
-        .value       = "opengl:force_introspection",
-        .description = "forces introspection at all times. Introspection is aimed at reducing GPU usage in certain cases, but might cause graphical glitches on nvidia. 0 - "
-                       "nothing, 1 - force always on, 2 - force always on if nvidia",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
-    },
 
     /*
      * render:

@@ -621,7 +621,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:inactive_timeout", {0.f});

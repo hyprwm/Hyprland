@@ -26,6 +26,7 @@ class CViewportResource;
 class CDRMSyncobjSurfaceResource;
 class CColorManagementSurface;
 class CFrogColorManagementSurface;
+class CContentType;
 
 class CWLCallbackResource {
   public:
@@ -123,6 +124,7 @@ class CWLSurfaceResource {
     WP<CViewportResource>                  viewportResource;
     WP<CDRMSyncobjSurfaceResource>         syncobj; // may not be present
     WP<CColorManagementSurface>            colorManagement;
+    WP<CContentType>                       contentType;
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     CRegion                                accumulateCurrentBufferDamage();

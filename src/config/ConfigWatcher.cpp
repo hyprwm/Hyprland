@@ -4,6 +4,7 @@
 #include <ranges>
 #include <fcntl.h>
 #include <unistd.h>
+#include <filesystem>
 
 using namespace Hyprutils::OS;
 
@@ -43,9 +44,19 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
     // add new paths
     for (const auto& path : paths) {
         m_watches.emplace_back(SInotifyWatch{
-            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_MODIFY),
+            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_MODIFY | IN_DONT_FOLLOW),
             .file = path,
         });
+
+        std::error_code ec, ec2;
+        const auto      CANONICAL  = std::filesystem::canonical(path, ec);
+        const auto      IS_SYMLINK = std::filesystem::is_symlink(path, ec2);
+        if (!ec && !ec2 && IS_SYMLINK) {
+            m_watches.emplace_back(SInotifyWatch{
+                .wd   = inotify_add_watch(m_inotifyFd.get(), CANONICAL.c_str(), IN_MODIFY),
+                .file = path,
+            });
+        }
     }
 }
 

@@ -2147,14 +2147,20 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
-    CBox MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    // render our great blurred FB
-    // calculate the uv for it
     const auto LASTTL = m_RenderData.primarySurfaceUVTopLeft;
     const auto LASTBR = m_RenderData.primarySurfaceUVBottomRight;
 
-    m_RenderData.primarySurfaceUVTopLeft     = box.pos() / MONITORBOX.size();
-    m_RenderData.primarySurfaceUVBottomRight = (box.pos() + box.size()) / MONITORBOX.size();
+    CBox       transformedBox = box;
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+                             m_RenderData.pMonitor->vecTransformedSize.y);
+
+    CBox monitorSpaceBox = {transformedBox.pos().x / m_RenderData.pMonitor->vecPixelSize.x * m_RenderData.pMonitor->vecTransformedSize.x,
+                            transformedBox.pos().y / m_RenderData.pMonitor->vecPixelSize.y * m_RenderData.pMonitor->vecTransformedSize.y,
+                            transformedBox.width / m_RenderData.pMonitor->vecPixelSize.x * m_RenderData.pMonitor->vecTransformedSize.x,
+                            transformedBox.height / m_RenderData.pMonitor->vecPixelSize.y * m_RenderData.pMonitor->vecTransformedSize.y};
+
+    m_RenderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_RenderData.pMonitor->vecTransformedSize;
+    m_RenderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_RenderData.pMonitor->vecTransformedSize;
 
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
     setMonitorTransformEnabled(true);

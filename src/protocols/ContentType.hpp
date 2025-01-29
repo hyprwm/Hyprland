@@ -17,6 +17,7 @@ class CContentTypeManager {
 class CContentType {
   public:
     CContentType(SP<CWpContentTypeV1> resource);
+    CContentType(WP<CWLSurfaceResource> surface);
 
     bool                good();
     wl_client*          client();
@@ -25,7 +26,6 @@ class CContentType {
     WP<CContentType>    self;
 
   private:
-    CContentType(WP<CWLSurfaceResource> surface);
     SP<CWpContentTypeV1> m_resource;
     wl_client*           m_pClient = nullptr;
 

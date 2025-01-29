@@ -19,6 +19,7 @@
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
+#include "../protocols/content-type-v1.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -470,6 +471,7 @@ class CWindow {
     Vector2D               requestedMinSize();
     Vector2D               requestedMaxSize();
     void                   sendWindowSize(Vector2D size, bool force = false, std::optional<Vector2D> overridePos = std::nullopt);
+    wpContentTypeV1Type    getContentType();
 
     CBox                   getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

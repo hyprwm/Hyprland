@@ -617,7 +617,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{1}); // TODO: remove this. I don't think it does us any good to disable intro.
 
     m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:inactive_timeout", {0.f});

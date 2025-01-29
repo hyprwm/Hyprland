@@ -7,70 +7,98 @@ inputs: {
   inherit (pkgs.stdenv.hostPlatform) system;
   cfg = config.programs.hyprland;
 
-  # basically 1:1 taken from https://github.com/nix-community/home-manager/blob/master/modules/services/window-managers/hyprland.nix
-  toHyprconf = {
-    attrs,
-    indentLevel ? 0,
-    importantPrefixes ? ["$"],
-  }: let
+  toHyprlang = {
+    topCommandsPrefixes ? ["$"],
+    bottomCommandsPrefixes ? [],
+  }: attrs: let
+    inherit (pkgs) lib;
     inherit
-      (lib)
-      all
-      concatMapStringsSep
-      concatStrings
-      concatStringsSep
+      (lib.generators)
+      mkKeyValueDefault
+      toKeyValue
+      ;
+    inherit
+      (lib.attrsets)
       filterAttrs
-      foldl
-      generators
-      hasPrefix
       isAttrs
-      isList
       mapAttrsToList
-      replicate
+      ;
+    inherit
+      (lib.lists)
+      foldl
+      isList
+      ;
+    inherit
+      (lib.strings)
+      concatMapStringsSep
+      concatStringsSep
+      hasPrefix
+      ;
+    inherit
+      (lib.trivial)
+      boolToString
+      isBool
+      ;
+    inherit
+      (builtins)
+      all
+      attrNames
+      partition
       ;
 
-    initialIndent = concatStrings (replicate indentLevel "  ");
+    toHyprlang' = attrs: let
+      toStr = x:
+        if isBool x
+        then boolToString x
+        else toString x;
 
-    toHyprconf' = indent: attrs: let
-      sections =
-        filterAttrs (n: v: isAttrs v || (isList v && all isAttrs v)) attrs;
-
-      mkSection = n: attrs:
+      categories = filterAttrs (n: v: isAttrs v || (isList v && all isAttrs v)) attrs;
+      mkCategory = parent: attrs:
         if lib.isList attrs
-        then (concatMapStringsSep "\n" (a: mkSection n a) attrs)
-        else ''
-          ${indent}${n} {
-          ${toHyprconf' "  ${indent}" attrs}${indent}}
-        '';
+        then concatMapStringsSep "\n" (a: mkCategory parent a) attrs
+        else
+          concatStringsSep "\n" (
+            mapAttrsToList (
+              k: v:
+                if isAttrs v
+                then mkCategory "${parent}:${k}" v
+                else if isList v
+                then concatMapStringsSep "\n" (item: "${parent}:${k} = ${toStr item}") v
+                else "${parent}:${k} = ${toStr v}"
+            )
+            attrs
+          );
 
-      mkFields = generators.toKeyValue {
+      mkCommands = toKeyValue {
+        mkKeyValue = mkKeyValueDefault {} " = ";
         listsAsDuplicateKeys = true;
-        inherit indent;
+        indent = "";
       };
 
-      allFields =
-        filterAttrs (n: v: !(isAttrs v || (isList v && all isAttrs v)))
-        attrs;
+      allCommands = filterAttrs (n: v: !(isAttrs v || (isList v && all isAttrs v))) attrs;
 
-      isImportantField = n: _:
-        foldl (acc: prev:
-          if hasPrefix prev n
-          then true
-          else acc)
-        false
-        importantPrefixes;
+      filterCommands = list: n: foldl (acc: prefix: acc || hasPrefix prefix n) false list;
 
-      importantFields = filterAttrs isImportantField allFields;
+      # Get topCommands attr names
+      result = partition (filterCommands topCommandsPrefixes) (attrNames allCommands);
+      # Filter top commands from all commands
+      topCommands = filterAttrs (n: _: (builtins.elem n result.right)) allCommands;
+      # Remaining commands = allcallCommands - topCommands
+      remainingCommands = removeAttrs allCommands result.right;
 
-      fields =
-        builtins.removeAttrs allFields
-        (mapAttrsToList (n: _: n) importantFields);
+      # Get bottomCommands attr names
+      result2 = partition (filterCommands bottomCommandsPrefixes) result.wrong;
+      # Filter bottom commands from remainingCommands
+      bottomCommands = filterAttrs (n: _: (builtins.elem n result2.right)) remainingCommands;
+      # Regular commands = allCommands - topCommands - bottomCommands
+      regularCommands = removeAttrs remainingCommands result2.right;
     in
-      mkFields importantFields
-      + concatStringsSep "\n" (mapAttrsToList mkSection sections)
-      + mkFields fields;
+      mkCommands topCommands
+      + concatStringsSep "\n" (mapAttrsToList mkCategory categories)
+      + mkCommands regularCommands
+      + mkCommands bottomCommands;
   in
-    toHyprconf' initialIndent attrs;
+    toHyprlang' attrs;
 in {
   options = {
     programs.hyprland = {
@@ -105,6 +133,9 @@ in {
           Hyprland configuration written in Nix. Entries with the same key
           should be written as lists. Variables' and colors' names should be
           quoted. See <https://wiki.hyprland.org> for more examples.
+
+          Special categories (e.g `devices`) should be written as
+          `"devices[device-name]"`.
 
           ::: {.note}
           Use the [](#programs.hyprland.plugins) option to
@@ -151,20 +182,21 @@ in {
         '';
       };
 
-      sourceFirst =
-        lib.mkEnableOption ''
-          putting source entries at the top of the configuration
-        ''
-        // {
-          default = true;
-        };
-
-      importantPrefixes = lib.mkOption {
+      topPrefixes = lib.mkOption {
         type = with lib.types; listOf str;
-        default = ["$" "bezier" "name"] ++ lib.optionals cfg.sourceFirst ["source"];
-        example = ["$" "bezier"];
+        default = ["$" "bezier"];
+        example = ["$" "bezier" "source"];
         description = ''
-          List of prefix of attributes to source at the top of the config.
+          List of prefix of attributes to put at the top of the config.
+        '';
+      };
+
+      bottomPrefixes = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = [];
+        example = ["source"];
+        description = ''
+          List of prefix of attributes to put at the bottom of the config.
         '';
       };
     };
@@ -182,29 +214,31 @@ in {
       environment.etc."xdg/hypr/hyprland.conf" = let
         shouldGenerate = cfg.extraConfig != "" || cfg.settings != {} || cfg.plugins != [];
 
-        pluginsToHyprconf = plugins:
-          toHyprconf {
-            attrs = {
-              plugin = let
-                mkEntry = entry:
-                  if lib.types.package.check entry
-                  then "${entry}/lib/lib${entry.pname}.so"
-                  else entry;
-              in
-                map mkEntry cfg.plugins;
-            };
-            inherit (cfg) importantPrefixes;
+        pluginsToHyprlang = plugins:
+          toHyprlang {
+            topCommandsPrefixes = cfg.topPrefixes;
+            bottomCommandsPrefixes = cfg.bottomPrefixes;
+          }
+          {
+            plugin = let
+              mkEntry = entry:
+                if lib.types.package.check entry
+                then "${entry}/lib/lib${entry.pname}.so"
+                else entry;
+            in
+              map mkEntry cfg.plugins;
           };
       in
         lib.mkIf shouldGenerate {
           text =
             lib.optionalString (cfg.plugins != [])
-            (pluginsToHyprconf cfg.plugins)
+            (pluginsToHyprlang cfg.plugins)
             + lib.optionalString (cfg.settings != {})
-            (toHyprconf {
-              attrs = cfg.settings;
-              inherit (cfg) importantPrefixes;
-            })
+            (toHyprlang {
+                topCommandsPrefixes = cfg.topPrefixes;
+                bottomCommandsPrefixes = cfg.bottomPrefixes;
+              }
+              cfg.settings)
             + lib.optionalString (cfg.extraConfig != "") cfg.extraConfig;
         };
     })

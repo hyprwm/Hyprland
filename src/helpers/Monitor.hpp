@@ -33,7 +33,7 @@ struct SMonitorRule {
     Vector2D            resolution  = Vector2D(1280, 720);
     Vector2D            offset      = Vector2D(0, 0);
     float               scale       = 1;
-    float               refreshRate = 60;
+    float               refreshRate = 60; // Hz
     bool                disabled    = false;
     wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string         mirrorOf    = "";
@@ -92,7 +92,7 @@ class CMonitor {
     CDamageRing                 damage;
 
     SP<Aquamarine::IOutput>     output;
-    float                       refreshRate     = 60;
+    float                       refreshRate     = 60; // Hz
     int                         forceFullFrames = 0;
     bool                        scheduledRecalc = false;
     wl_output_transform         transform       = WL_OUTPUT_TRANSFORM_NORMAL;

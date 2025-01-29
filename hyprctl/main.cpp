@@ -228,7 +228,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     return 0;
 }
 
-int requestHyprpaper(std::string arg) {
+int requestIPC(std::string filename, std::string arg) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
@@ -246,7 +246,7 @@ int requestHyprpaper(std::string arg) {
 
     const std::string USERID = std::to_string(getUID());
 
-    std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/.hyprpaper.sock";
+    std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + filename;
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -279,6 +279,10 @@ int requestHyprpaper(std::string arg) {
     log(std::string(buffer));
 
     return 0;
+}
+
+int requestHyprpaper(std::string arg) {
+    return requestIPC(".hyprpaper.sock", arg);
 }
 
 void batchRequest(std::string arg, bool json) {

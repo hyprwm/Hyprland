@@ -1192,7 +1192,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if (*PDIRECTSCANOUT && !shouldTear) {
+    if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == WP_CONTENT_TYPE_V1_TYPE_GAME)) && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {

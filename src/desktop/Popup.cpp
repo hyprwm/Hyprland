@@ -138,10 +138,11 @@ void CPopup::onUnmap() {
         },
         nullptr);
 
-    const bool WASLASTFOCUS = g_pSeatManager->state.keyboardFocus == m_pWLSurface->resource() || g_pSeatManager->state.pointerFocus == m_pWLSurface->resource();
+    // TODO: probably refocus, but without a motion event?
+    // const bool WASLASTFOCUS = g_pSeatManager->state.keyboardFocus == m_pWLSurface->resource() || g_pSeatManager->state.pointerFocus == m_pWLSurface->resource();
 
-    if (WASLASTFOCUS)
-        g_pInputManager->simulateMouseMovement();
+    // if (WASLASTFOCUS)
+    //     g_pInputManager->simulateMouseMovement();
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {

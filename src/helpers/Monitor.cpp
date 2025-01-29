@@ -456,9 +456,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
         // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
         addBest3Modes([](auto const& a, auto const& b) {
-            if (a->refreshRate > b->refreshRate)
+            if (std::round(a->refreshRate) > std::round(b->refreshRate))
                 return true;
-            else if (DELTALESSTHAN((float)a->refreshRate, (float)b->refreshRate, 1000) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
+            else if (DELTALESSTHAN((float)a->refreshRate, (float)b->refreshRate, 1.F) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
             return false;
         });
@@ -469,7 +469,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         addBest3Modes([](auto const& a, auto const& b) {
             if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
-            else if (DELTALESSTHAN(a->pixelSize.x, b->pixelSize.x, 1) && DELTALESSTHAN(a->pixelSize.y, b->pixelSize.y, 1) && a->refreshRate > b->refreshRate)
+            else if (DELTALESSTHAN(a->pixelSize.x, b->pixelSize.x, 1) && DELTALESSTHAN(a->pixelSize.y, b->pixelSize.y, 1) &&
+                     std::round(a->refreshRate) > std::round(b->refreshRate))
                 return true;
             return false;
         });

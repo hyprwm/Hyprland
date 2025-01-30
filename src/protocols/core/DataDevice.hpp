@@ -16,6 +16,7 @@
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../types/DataDevice.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CWLDataDeviceResource;
 class CWLDataDeviceManagerResource;
@@ -63,7 +64,7 @@ class CWLDataSourceResource : public IDataSource {
     bool                             good();
 
     virtual std::vector<std::string> mimes();
-    virtual void                     send(const std::string& mime, uint32_t fd);
+    virtual void                     send(const std::string& mime, Hyprutils::OS::CFileDescriptor fd);
     virtual void                     accepted(const std::string& mime);
     virtual void                     cancelled();
     virtual bool                     hasDnd();

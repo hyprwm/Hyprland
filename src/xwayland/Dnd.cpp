@@ -7,6 +7,8 @@
 #include "../managers/XWaylandManager.hpp"
 #include "../desktop/WLSurface.hpp"
 
+using namespace Hyprutils::OS;
+
 #ifndef NO_XWAYLAND
 static xcb_atom_t dndActionToAtom(uint32_t actions) {
     if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
@@ -172,7 +174,7 @@ std::vector<std::string> CX11DataSource::mimes() {
     return mimeTypes;
 }
 
-void CX11DataSource::send(const std::string& mime, uint32_t fd) {
+void CX11DataSource::send(const std::string& mime, CFileDescriptor fd) {
     ;
 }
 

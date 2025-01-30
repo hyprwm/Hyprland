@@ -6,6 +6,7 @@
 #include "../Compositor.hpp"
 
 #include <fcntl.h>
+using namespace Hyprutils::OS;
 
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if UNLIKELY (!good())
@@ -103,7 +104,7 @@ bool CDRMSyncobjSurfaceResource::good() {
     return resource->resource();
 }
 
-CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, int fd_) : fd(fd_), resource(resource_) {
+CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, CFileDescriptor fd_) : fd(std::move(fd_)), resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -112,17 +113,12 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTi
     resource->setOnDestroy([this](CWpLinuxDrmSyncobjTimelineV1* r) { PROTO::sync->destroyResource(this); });
     resource->setDestroy([this](CWpLinuxDrmSyncobjTimelineV1* r) { PROTO::sync->destroyResource(this); });
 
-    timeline = CSyncTimeline::create(PROTO::sync->drmFD, fd);
+    timeline = CSyncTimeline::create(PROTO::sync->drmFD, fd.get());
 
     if (!timeline) {
         resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE, "Timeline failed importing");
         return;
     }
-}
-
-CDRMSyncobjTimelineResource::~CDRMSyncobjTimelineResource() {
-    if (fd >= 0)
-        close(fd);
 }
 
 SP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
@@ -171,7 +167,7 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjMana
     });
 
     resource->setImportTimeline([this](CWpLinuxDrmSyncobjManagerV1* r, uint32_t id, int32_t fd) {
-        auto RESOURCE = makeShared<CDRMSyncobjTimelineResource>(makeShared<CWpLinuxDrmSyncobjTimelineV1>(resource->client(), resource->version(), id), fd);
+        auto RESOURCE = makeShared<CDRMSyncobjTimelineResource>(makeShared<CWpLinuxDrmSyncobjTimelineV1>(resource->client(), resource->version(), id), CFileDescriptor{fd});
         if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
             return;

@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "../defines.hpp"
 #include "../helpers/memory/Memory.hpp"
 
@@ -26,19 +26,19 @@ class CEventManager {
     int         onClientEvent(int fd, uint32_t mask);
 
     struct SClient {
-        int                          fd = -1;
-        std::vector<SP<std::string>> events;
-        wl_event_source*             eventSource = nullptr;
+        Hyprutils::OS::CFileDescriptor fd;
+        std::vector<SP<std::string>>   events;
+        wl_event_source*               eventSource = nullptr;
     };
 
     std::vector<SClient>::iterator findClientByFD(int fd);
     std::vector<SClient>::iterator removeClientByFD(int fd);
 
   private:
-    int                  m_iSocketFD    = -1;
-    wl_event_source*     m_pEventSource = nullptr;
+    Hyprutils::OS::CFileDescriptor m_iSocketFD;
+    wl_event_source*               m_pEventSource = nullptr;
 
-    std::vector<SClient> m_vClients;
+    std::vector<SClient>           m_vClients;
 };
 
 inline UP<CEventManager> g_pEventManager;

@@ -4,6 +4,7 @@
 
 #include <xf86drm.h>
 #include <sys/eventfd.h>
+using namespace Hyprutils::OS;
 
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
     auto timeline   = SP<CSyncTimeline>(new CSyncTimeline);
@@ -85,10 +86,9 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
     auto w      = makeShared<SWaiter>();
     w->fn       = waiter;
     w->timeline = self;
+    w->eventFd  = CFileDescriptor{eventfd(0, EFD_CLOEXEC)};
 
-    int eventFD = eventfd(0, EFD_CLOEXEC);
-
-    if (eventFD < 0) {
+    if (!w->eventFd.isValid()) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
         return false;
     }
@@ -97,19 +97,17 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
         .handle = handle,
         .flags  = flags,
         .point  = point,
-        .fd     = eventFD,
+        .fd     = w->eventFd.get(),
     };
 
     if (drmIoctl(drmFD, DRM_IOCTL_SYNCOBJ_EVENTFD, &syncobjEventFD) != 0) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: drmIoctl failed");
-        close(eventFD);
         return false;
     }
 
-    w->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, eventFD, WL_EVENT_READABLE, ::handleWaiterFD, w.get());
+    w->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, w->eventFd.get(), WL_EVENT_READABLE, ::handleWaiterFD, w.get());
     if (!w->source) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: wl_event_loop_add_fd failed");
-        close(eventFD);
         return false;
     }
 
@@ -126,32 +124,32 @@ void CSyncTimeline::removeWaiter(SWaiter* w) {
     std::erase_if(waiters, [w](const auto& e) { return e.get() == w; });
 }
 
-int CSyncTimeline::exportAsSyncFileFD(uint64_t src) {
+CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {
     int      sync = -1;
 
     uint32_t syncHandle = 0;
     if (drmSyncobjCreate(drmFD, 0, &syncHandle)) {
         Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjCreate failed");
-        return -1;
+        return {};
     }
 
     if (drmSyncobjTransfer(drmFD, syncHandle, 0, handle, src, 0)) {
         Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjTransfer failed");
         drmSyncobjDestroy(drmFD, syncHandle);
-        return -1;
+        return {};
     }
 
     if (drmSyncobjExportSyncFile(drmFD, syncHandle, &sync)) {
         Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjExportSyncFile failed");
         drmSyncobjDestroy(drmFD, syncHandle);
-        return -1;
+        return {};
     }
 
     drmSyncobjDestroy(drmFD, syncHandle);
-    return sync;
+    return CFileDescriptor{sync};
 }
 
-bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, int fd) {
+bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, CFileDescriptor& fd) {
     uint32_t syncHandle = 0;
 
     if (drmSyncobjCreate(drmFD, 0, &syncHandle)) {
@@ -159,7 +157,7 @@ bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, int fd) {
         return false;
     }
 
-    if (drmSyncobjImportSyncFile(drmFD, syncHandle, fd)) {
+    if (drmSyncobjImportSyncFile(drmFD, syncHandle, fd.get())) {
         Debug::log(ERR, "importFromSyncFileFD: drmSyncobjImportSyncFile failed");
         drmSyncobjDestroy(drmFD, syncHandle);
         return false;

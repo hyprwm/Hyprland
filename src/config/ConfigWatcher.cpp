@@ -5,27 +5,24 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+using namespace Hyprutils::OS;
+
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
-    if (m_inotifyFd < 0) {
+    if (!m_inotifyFd.isValid()) {
         Debug::log(ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
         return;
     }
 
-    const int FLAGS = fcntl(m_inotifyFd, F_GETFL, 0);
-    if (fcntl(m_inotifyFd, F_SETFL, FLAGS | O_NONBLOCK) < 0) {
+    // TODO: make CFileDescriptor take F_GETFL, F_SETFL
+    const int FLAGS = fcntl(m_inotifyFd.get(), F_GETFL, 0);
+    if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK) < 0) {
         Debug::log(ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
-        close(m_inotifyFd);
-        m_inotifyFd = -1;
+        m_inotifyFd.reset();
         return;
     }
 }
 
-CConfigWatcher::~CConfigWatcher() {
-    if (m_inotifyFd >= 0)
-        close(m_inotifyFd);
-}
-
-int CConfigWatcher::getInotifyFD() {
+CFileDescriptor& CConfigWatcher::getInotifyFD() {
     return m_inotifyFd;
 }
 
@@ -38,7 +35,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
 
     // cleanup old paths
     for (auto& watch : m_watches) {
-        inotify_rm_watch(m_inotifyFd, watch.wd);
+        inotify_rm_watch(m_inotifyFd.get(), watch.wd);
     }
 
     m_watches.clear();
@@ -46,7 +43,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
     // add new paths
     for (const auto& path : paths) {
         m_watches.emplace_back(SInotifyWatch{
-            .wd   = inotify_add_watch(m_inotifyFd, path.c_str(), IN_MODIFY),
+            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_MODIFY),
             .file = path,
         });
     }
@@ -58,7 +55,7 @@ void CConfigWatcher::setOnChange(const std::function<void(const SConfigWatchEven
 
 void CConfigWatcher::onInotifyEvent() {
     inotify_event ev;
-    while (read(m_inotifyFd, &ev, sizeof(ev)) > 0) {
+    while (read(m_inotifyFd.get(), &ev, sizeof(ev)) > 0) {
         const auto WD = std::ranges::find_if(m_watches.begin(), m_watches.end(), [wd = ev.wd](const auto& e) { return e.wd == wd; });
 
         if (WD == m_watches.end()) {

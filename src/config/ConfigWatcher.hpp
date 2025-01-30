@@ -3,20 +3,21 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CConfigWatcher {
   public:
     CConfigWatcher();
-    ~CConfigWatcher();
+    ~CConfigWatcher() = default;
 
     struct SConfigWatchEvent {
         std::string file;
     };
 
-    int  getInotifyFD();
-    void setWatchList(const std::vector<std::string>& paths);
-    void setOnChange(const std::function<void(const SConfigWatchEvent&)>& fn);
-    void onInotifyEvent();
+    Hyprutils::OS::CFileDescriptor& getInotifyFD();
+    void                            setWatchList(const std::vector<std::string>& paths);
+    void                            setOnChange(const std::function<void(const SConfigWatchEvent&)>& fn);
+    void                            onInotifyEvent();
 
   private:
     struct SInotifyWatch {
@@ -26,7 +27,7 @@ class CConfigWatcher {
 
     std::function<void(const SConfigWatchEvent&)> m_watchCallback;
     std::vector<SInotifyWatch>                    m_watches;
-    int                                           m_inotifyFd = -1;
+    Hyprutils::OS::CFileDescriptor                m_inotifyFd;
 };
 
 inline UP<CConfigWatcher> g_pConfigWatcher = makeUnique<CConfigWatcher>();

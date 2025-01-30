@@ -204,6 +204,11 @@ class IHyprLayout {
     virtual Vector2D predictSizeForNewWindow(PHLWINDOW pWindow);
     virtual Vector2D predictSizeForNewWindowFloating(PHLWINDOW pWindow);
 
+    /*
+        Like 'dispatch layoutmsg' but with possible return values for use with hyprctl.
+    */
+    virtual std::string layoutDataRequest(eHyprCtlOutputFormat format, std::string request);
+
   private:
     int          m_iMouseMoveEventCount;
     Vector2D     m_vBeginDragXY;

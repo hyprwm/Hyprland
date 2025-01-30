@@ -248,8 +248,13 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     const auto        MOUSECOORDS   = m_vOverrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID &&
-        (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->activeSpecialWorkspace)) && !*PUSEACTIVE) {
+    if (m_pOpenNextOn && m_pOpenNextOn->valid && m_pOpenNextOn->workspaceID == pWindow->workspaceID()) {
+        OPENINGON     = m_pOpenNextOn;
+        m_pOpenNextOn = nullptr;
+
+    } else if (PMONITOR->ID == MONFROMCURSOR->ID &&
+               (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->activeSpecialWorkspace)) &&
+               !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
@@ -459,6 +464,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     if (!PPARENT) {
         Debug::log(LOG, "Removing last node (dwindle)");
         m_lDwindleNodesData.remove(*PNODE);
+        m_pOpenNextOn = nullptr;
         return;
     }
 
@@ -482,6 +488,9 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         PSIBLING->pParent->recalcSizePosRecursive();
     else
         PSIBLING->recalcSizePosRecursive();
+
+    if (PPARENT == m_pOpenNextOn || PNODE == m_pOpenNextOn)
+        m_pOpenNextOn = nullptr;
 
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
@@ -981,9 +990,162 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
                 break;
             }
         }
+    } else if (ARGS[0] == "opennexton") {
+        const auto RELATION = ARGS[1];
+        const auto WINDOW   = ARGS[2].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[2]);
+        auto       pNode    = getNodeFromWindow(WINDOW);
+        for (const auto c : RELATION) {
+            if (!pNode || !pNode->valid)
+                break;
+
+            switch (c) {
+                case '^': {
+                    // Step to the parent of the current node
+                    pNode = pNode->pParent;
+                    break;
+                }
+
+                case 'c': {
+                    // Clear anything previously set
+                    m_pOpenNextOn = nullptr;
+                    return "";
+                }
+
+                case '.': {
+                    // Steps nowhere (if you simply want to use the second argument)
+                    break;
+                }
+
+                case '0': {
+                    // Step to the first child
+                    pNode = pNode->children[0];
+                    break;
+                }
+
+                case '1': {
+                    // Step to the second child
+                    pNode = pNode->children[1];
+                    break;
+                }
+
+                case '/': {
+                    // Step to the root of the current node's workspace
+                    pNode = getMasterNodeOnWorkspace(pNode->workspaceID);
+                    break;
+                }
+
+                default: {
+                    Debug::log(ERR, "Unknown relation operator");
+                    return "";
+                }
+            }
+        }
+
+        if (pNode && pNode->valid)
+            m_pOpenNextOn = pNode;
+        else
+            Debug::log(ERR, "Invalid dwindle node");
     }
 
     return "";
+}
+
+static bool printNodeTree(const SDwindleNodeData* const node, eHyprCtlOutputFormat format, std::string& indent, std::string& out) {
+    if (!node || !node->valid) {
+        Debug::log(ERR, "Invalid dwindle Node");
+        return false;
+    }
+
+    const auto INDENTLVL = indent.length();
+    indent += format == eHyprCtlOutputFormat::FORMAT_JSON ? "    " : "\t";
+
+    if (node->children[0] && node->children[0]->valid) {
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}\"{}\": {{", indent, (node->splitTop ? "top" : "left"));
+        else
+            out += std::format("\n{}{}:", indent, (node->splitTop ? "top" : "left"));
+
+        if (!printNodeTree(node->children[0], format, indent, out)) {
+            indent.erase(INDENTLVL);
+            return false;
+        }
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}}},", indent);
+
+        if (node->children[1] && node->children[1]->valid) {
+            if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+                out += std::format("\n{}\"{}\": {{", indent, (node->splitTop ? "bottom" : "right"));
+            else
+                out += std::format("\n{}{}:", indent, (node->splitTop ? "bottom" : "right"));
+
+            if (!printNodeTree(node->children[1], format, indent, out)) {
+                indent.erase(INDENTLVL);
+                return false;
+            }
+
+            if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+                out += std::format("\n{}}},", indent);
+        }
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}\"splitRatio\": {}", indent, node->splitRatio);
+        else
+            out += std::format("\n{}splitRatio: {}", indent, node->splitRatio);
+
+    } else if (node->pWindow) {
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}\"address\": \"0x{:x}\","
+                               "\n{}\"class\": \"{}\","
+                               "\n{}\"title\": \"{}\","
+                               "\n{}\"initialClass\": \"{}\","
+                               "\n{}\"initialTitle\": \"{}\","
+                               "\n{}\"pid\": \"{}\"",
+                               indent, (uintptr_t)node->pWindow.get(), indent, escapeJSONStrings(node->pWindow->m_szClass), indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                               indent, escapeJSONStrings(node->pWindow->m_szInitialClass), indent, escapeJSONStrings(node->pWindow->m_szInitialTitle), indent,
+                               node->pWindow->getPID());
+        else
+            out += std::format("\n{}address: 0x{:x}"
+                               "\n{}class: {}"
+                               "\n{}title: {}"
+                               "\n{}initialClass: {}"
+                               "\n{}initialTitle: {}"
+                               "\n{}pid: {}",
+                               indent, (uintptr_t)node->pWindow.get(), indent, escapeJSONStrings(node->pWindow->m_szClass), indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                               indent, escapeJSONStrings(node->pWindow->m_szInitialClass), indent, escapeJSONStrings(node->pWindow->m_szInitialTitle), indent,
+                               node->pWindow->getPID());
+    }
+
+    indent.erase(INDENTLVL);
+    return true;
+}
+
+std::string CHyprDwindleLayout::layoutDataRequest(eHyprCtlOutputFormat format, std::string request) {
+    const auto  ARGS   = CVarList(request, 0, ' ');
+    std::string result = "";
+
+    if (ARGS[1] == "workspaceinfo") {
+        const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(ARGS[2]);
+        if (WORKSPACEID == WORKSPACE_INVALID) {
+            Debug::log(ERR, "Invalid workspace in layoutdata workspaceinfo");
+        }
+
+        auto        PHEAD_NODE = getMasterNodeOnWorkspace(WORKSPACEID);
+        std::string indent     = "";
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            result += "{";
+        else
+            result += "root:";
+        printNodeTree(PHEAD_NODE, format, indent, result);
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            result += "\n}";
+
+    } else {
+        Debug::log(LOG, "Unknown layoutdata request");
+    }
+
+    return result;
 }
 
 void CHyprDwindleLayout::toggleSplit(PHLWINDOW pWindow) {
@@ -1078,6 +1240,7 @@ void CHyprDwindleLayout::onEnable() {
 
 void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
+    m_pOpenNextOn = nullptr;
 }
 
 Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {

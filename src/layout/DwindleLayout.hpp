@@ -53,6 +53,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, PHLWINDOW pWindow = nullptr);
     virtual void                     fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
+    virtual std::string              layoutDataRequest(eHyprCtlOutputFormat format, std::string request);
     virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);
     virtual void                     switchWindows(PHLWINDOW, PHLWINDOW);
     virtual void                     moveWindowTo(PHLWINDOW, const std::string& dir, bool silent);
@@ -89,6 +90,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     void                    moveToRoot(PHLWINDOW, bool stable = true);
 
     eDirection              overrideDirection = DIRECTION_DEFAULT;
+    SDwindleNodeData*       m_pOpenNextOn = nullptr;
 
     friend struct SDwindleNodeData;
 };

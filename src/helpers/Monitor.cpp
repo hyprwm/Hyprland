@@ -32,6 +32,7 @@
 #include <ranges>
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
+using namespace Hyprutils::OS;
 
 static int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor(((CMonitor*)data)->self.lock());
@@ -1301,19 +1302,15 @@ bool CMonitor::attemptDirectScanout() {
 
     // wait for the explicit fence if present, and if kms explicit is allowed
     bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
-    int  explicitWaitFD = -1;
+    CFileDescriptor explicitWaitFD;
     if (DOEXPLICIT) {
         explicitWaitFD = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
-        if (explicitWaitFD < 0)
+        if (!explicitWaitFD.isValid())
             Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
     }
-    DOEXPLICIT = DOEXPLICIT && explicitWaitFD >= 0;
+    DOEXPLICIT = DOEXPLICIT && explicitWaitFD.isValid();
 
-    auto     cleanup = CScopeGuard([explicitWaitFD, this]() {
-        output->state->resetExplicitFences();
-        if (explicitWaitFD >= 0)
-            close(explicitWaitFD);
-    });
+    auto     cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1323,8 +1320,8 @@ bool CMonitor::attemptDirectScanout() {
     output->state->resetExplicitFences();
 
     if (DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD);
-        output->state->setExplicitInFence(explicitWaitFD);
+        Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
+        output->state->setExplicitInFence(explicitWaitFD.get());
     }
 
     bool ok = output->commit();

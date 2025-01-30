@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
+using namespace Hyprutils::OS;
 
 CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if UNLIKELY (!good())
@@ -11,21 +12,20 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
     resource->setOnDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
 
     resource->setReceive([this](CZwlrDataControlOfferV1* r, const char* mime, int32_t fd) {
+        CFileDescriptor sendFd{fd};
         if (!source) {
             LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
-            close(fd);
             return;
         }
 
         if (dead) {
             LOGM(WARN, "Possible bug: Receive on an offer that's dead");
-            close(fd);
             return;
         }
 
         LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
 
-        source->send(mime, fd);
+        source->send(mime, std::move(sendFd));
     });
 }
 
@@ -77,15 +77,13 @@ std::vector<std::string> CWLRDataSource::mimes() {
     return mimeTypes;
 }
 
-void CWLRDataSource::send(const std::string& mime, uint32_t fd) {
+void CWLRDataSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAskSend with non-existent mime");
-        close(fd);
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd);
-    close(fd);
+    resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CWLRDataSource::accepted(const std::string& mime) {

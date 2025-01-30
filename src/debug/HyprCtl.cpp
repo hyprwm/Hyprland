@@ -25,6 +25,7 @@
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
 
 #include "../config/ConfigDataValues.hpp"
@@ -1680,8 +1681,6 @@ CHyprCtl::CHyprCtl() {
 CHyprCtl::~CHyprCtl() {
     if (m_eventSource)
         wl_event_source_remove(m_eventSource);
-    if (m_iSocketFD >= 0)
-        close(m_iSocketFD);
     if (!m_socketPath.empty())
         unlink(m_socketPath.c_str());
 }
@@ -1840,10 +1839,13 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
+    if (!g_pHyprCtl->m_iSocketFD.isValid())
+        return 0;
+
     sockaddr_in            clientAddress;
     socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_iSocketFD.get(), (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
     std::array<char, 1024> readBuffer;
 
@@ -1900,9 +1902,9 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-    m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    m_iSocketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
 
-    if (m_iSocketFD < 0) {
+    if (!m_iSocketFD.isValid()) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
         return;
     }
@@ -1913,15 +1915,15 @@ void CHyprCtl::startHyprCtlSocket() {
 
     strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
-    if (bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
+    if (bind(m_iSocketFD.get(), (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
         return;
     }
 
     // 10 max queued.
-    listen(m_iSocketFD, 10);
+    listen(m_iSocketFD.get(), 10);
 
     Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

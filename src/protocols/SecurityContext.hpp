@@ -4,19 +4,20 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "security-context-v1.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CSecurityContext {
   public:
     CSecurityContext(SP<CWpSecurityContextV1> resource_, int listenFD_, int closeFD_);
     ~CSecurityContext();
 
-    bool        good();
+    bool                           good();
 
-    std::string sandboxEngine, appID, instanceID;
-    int         listenFD = -1, closeFD = -1;
+    std::string                    sandboxEngine, appID, instanceID;
+    Hyprutils::OS::CFileDescriptor listenFD, closeFD;
 
-    void        onListen(uint32_t mask);
-    void        onClose(uint32_t mask);
+    void                           onListen(uint32_t mask);
+    void                           onClose(uint32_t mask);
 
   private:
     SP<CWpSecurityContextV1> resource;
@@ -44,7 +45,7 @@ struct SCSecurityContextSandboxedClientDestroyWrapper {
 
 class CSecurityContextSandboxedClient {
   public:
-    static SP<CSecurityContextSandboxedClient> create(int clientFD);
+    static SP<CSecurityContextSandboxedClient> create(Hyprutils::OS::CFileDescriptor clientFD);
     ~CSecurityContextSandboxedClient();
 
     void                                           onDestroy();
@@ -52,10 +53,10 @@ class CSecurityContextSandboxedClient {
     SCSecurityContextSandboxedClientDestroyWrapper destroyListener;
 
   private:
-    CSecurityContextSandboxedClient(int clientFD_);
+    CSecurityContextSandboxedClient(Hyprutils::OS::CFileDescriptor clientFD_);
 
-    wl_client* client   = nullptr;
-    int        clientFD = -1;
+    wl_client*                     client = nullptr;
+    Hyprutils::OS::CFileDescriptor clientFD;
 
     friend class CSecurityContextProtocol;
     friend class CSecurityContext;

@@ -7,6 +7,8 @@
      - wl_buffer with shm
 */
 
+#include <hyprutils/os/FileDescriptor.hpp>
+#include <memory>
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
@@ -18,14 +20,14 @@ class CWLSHMPoolResource;
 
 class CSHMPool {
   public:
-    CSHMPool(int fd, size_t size);
+    CSHMPool(Hyprutils::OS::CFileDescriptor fd, size_t size);
     ~CSHMPool();
 
-    int    fd   = 0;
-    size_t size = 0;
-    void*  data = nullptr;
+    Hyprutils::OS::CFileDescriptor fd;
+    size_t                         size = 0;
+    void*                          data = nullptr;
 
-    void   resize(size_t size);
+    void                           resize(size_t size);
 };
 
 class CWLSHMBuffer : public IHLBuffer {
@@ -57,7 +59,7 @@ class CWLSHMBuffer : public IHLBuffer {
 
 class CWLSHMPoolResource {
   public:
-    CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd, size_t size);
+    CWLSHMPoolResource(SP<CWlShmPool> resource_, Hyprutils::OS::CFileDescriptor fd, size_t size);
 
     bool                   good();
 

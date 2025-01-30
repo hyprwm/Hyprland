@@ -2,6 +2,7 @@
 
 #include "../protocols/types/DataDevice.hpp"
 #include <wayland-server-protocol.h>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 #define XDND_VERSION 5
 
@@ -35,7 +36,7 @@ class CX11DataSource : public IDataSource {
     ~CX11DataSource() = default;
 
     virtual std::vector<std::string> mimes();
-    virtual void                     send(const std::string& mime, uint32_t fd);
+    virtual void                     send(const std::string& mime, Hyprutils::OS::CFileDescriptor fd);
     virtual void                     accepted(const std::string& mime);
     virtual void                     cancelled();
     virtual bool                     hasDnd();

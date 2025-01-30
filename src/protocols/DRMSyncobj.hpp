@@ -4,6 +4,7 @@
 #include "WaylandProtocol.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
@@ -32,14 +33,14 @@ class CDRMSyncobjSurfaceResource {
 
 class CDRMSyncobjTimelineResource {
   public:
-    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, int fd_);
-    ~CDRMSyncobjTimelineResource();
+    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor fd_);
+    ~CDRMSyncobjTimelineResource() = default;
     static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();
 
     WP<CDRMSyncobjTimelineResource>        self;
-    int                                    fd = -1;
+    Hyprutils::OS::CFileDescriptor         fd;
     SP<CSyncTimeline>                      timeline;
 
   private:

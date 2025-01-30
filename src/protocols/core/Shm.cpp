@@ -7,6 +7,7 @@
 #include "../types/WLBuffer.hpp"
 #include "../../helpers/Format.hpp"
 #include "../../render/Renderer.hpp"
+using namespace Hyprutils::OS;
 
 CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
     if UNLIKELY (!pool_->pool->data)
@@ -51,7 +52,7 @@ bool CWLSHMBuffer::isSynchronous() {
 Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
     Aquamarine::SSHMAttrs attrs;
     attrs.success = true;
-    attrs.fd      = pool->fd;
+    attrs.fd      = pool->fd.get();
     attrs.format  = NFormatUtils::shmToDRM(fmt);
     attrs.size    = size;
     attrs.stride  = stride;
@@ -75,13 +76,12 @@ void CWLSHMBuffer::update(const CRegion& damage) {
     texture->update(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, damage);
 }
 
-CSHMPool::CSHMPool(int fd_, size_t size_) : fd(fd_), size(size_), data(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) {
+CSHMPool::CSHMPool(CFileDescriptor fd_, size_t size_) : fd(std::move(fd_)), size(size_), data(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd.get(), 0)) {
     ;
 }
 
 CSHMPool::~CSHMPool() {
     munmap(data, size);
-    close(fd);
 }
 
 void CSHMPool::resize(size_t size_) {
@@ -90,23 +90,23 @@ void CSHMPool::resize(size_t size_) {
     if (data)
         munmap(data, size);
     size = size_;
-    data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd.get(), 0);
 
     if UNLIKELY (data == MAP_FAILED)
-        LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd);
+        LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd.get());
 }
 
-static int shmIsSizeValid(int fd, size_t size) {
+static int shmIsSizeValid(CFileDescriptor& fd, size_t size) {
     struct stat st;
-    if UNLIKELY (fstat(fd, &st) == -1) {
-        LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd);
+    if UNLIKELY (fstat(fd.get(), &st) == -1) {
+        LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd.get());
         return 0;
     }
 
     return (size_t)st.st_size >= size;
 }
 
-CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t size_) : resource(resource_) {
+CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor fd_, size_t size_) : resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -115,7 +115,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
         return;
     }
 
-    pool = makeShared<CSHMPool>(fd_, size_);
+    pool = makeShared<CSHMPool>(std::move(fd_), size_);
 
     resource->setDestroy([this](CWlShmPool* r) { PROTO::shm->destroyResource(this); });
     resource->setOnDestroy([this](CWlShmPool* r) { PROTO::shm->destroyResource(this); });
@@ -176,7 +176,8 @@ CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : resource(resource_) {
     resource->setOnDestroy([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
 
     resource->setCreatePool([](CWlShm* r, uint32_t id, int32_t fd, int32_t size) {
-        const auto RESOURCE = PROTO::shm->m_vPools.emplace_back(makeShared<CWLSHMPoolResource>(makeShared<CWlShmPool>(r->client(), r->version(), id), fd, size));
+        CFileDescriptor poolFd{fd};
+        const auto RESOURCE = PROTO::shm->m_vPools.emplace_back(makeShared<CWLSHMPoolResource>(makeShared<CWlShmPool>(r->client(), r->version(), id), std::move(poolFd), size));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();

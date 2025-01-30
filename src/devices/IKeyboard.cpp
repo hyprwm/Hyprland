@@ -8,6 +8,8 @@
 #include <aquamarine/input/Input.hpp>
 #include <cstring>
 
+using namespace Hyprutils::OS;
+
 #define LED_COUNT 3
 
 constexpr static std::array<const char*, 8> MODNAMES = {
@@ -41,9 +43,6 @@ void IKeyboard::clearManuallyAllocd() {
     if (xkbKeymap)
         xkb_keymap_unref(xkbKeymap);
 
-    if (xkbKeymapFD >= 0)
-        close(xkbKeymapFD);
-
     if (xkbSymState)
         xkb_state_unref(xkbSymState);
 
@@ -51,7 +50,7 @@ void IKeyboard::clearManuallyAllocd() {
     xkbKeymap      = nullptr;
     xkbState       = nullptr;
     xkbStaticState = nullptr;
-    xkbKeymapFD    = -1;
+    xkbKeymapFD.reset();
 }
 
 void IKeyboard::setKeymap(const SStringRuleNames& rules) {
@@ -147,31 +146,30 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 void IKeyboard::updateKeymapFD() {
     Debug::log(LOG, "Updating keymap fd for keyboard {}", deviceName);
 
-    if (xkbKeymapFD >= 0)
-        close(xkbKeymapFD);
-    xkbKeymapFD = -1;
+    if (xkbKeymapFD.isValid())
+        xkbKeymapFD.reset();
 
     auto cKeymapStr = xkb_keymap_get_as_string(xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
     xkbKeymapString = cKeymapStr;
     free(cKeymapStr);
 
-    int rw, ro;
-    if (!allocateSHMFilePair(xkbKeymapString.length() + 1, &rw, &ro))
+    CFileDescriptor rw, ro;
+    if (!allocateSHMFilePair(xkbKeymapString.length() + 1, rw, ro))
         Debug::log(ERR, "IKeyboard: failed to allocate shm pair for the keymap");
     else {
-        auto keymapFDDest = mmap(nullptr, xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw, 0);
-        close(rw);
+        auto keymapFDDest = mmap(nullptr, xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw.get(), 0);
+        rw.reset();
         if (keymapFDDest == MAP_FAILED) {
             Debug::log(ERR, "IKeyboard: failed to mmap a shm pair for the keymap");
-            close(ro);
+            ro.reset();
         } else {
             memcpy(keymapFDDest, xkbKeymapString.c_str(), xkbKeymapString.length());
             munmap(keymapFDDest, xkbKeymapString.length() + 1);
-            xkbKeymapFD = ro;
+            xkbKeymapFD = std::move(ro);
         }
     }
 
-    Debug::log(LOG, "Updated keymap fd to {}", xkbKeymapFD);
+    Debug::log(LOG, "Updated keymap fd to {}", xkbKeymapFD.get());
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {

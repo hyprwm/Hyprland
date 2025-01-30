@@ -36,6 +36,7 @@
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
+using namespace Hyprutils::OS;
 
 extern "C" {
 #include <xf86drm.h>
@@ -1462,10 +1463,10 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamar
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
-    auto inFD = pMonitor->output->state->state().explicitInFence;
+    CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
     pMonitor->output->state->resetExplicitFences();
-    if (inFD >= 0)
-        pMonitor->output->state->setExplicitInFence(inFD);
+    if (inFD.isValid())
+        pMonitor->output->state->setExplicitInFence(inFD.get());
 
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
@@ -1515,7 +1516,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        if (inFD >= 0) {
+        if (inFD.isValid()) {
             Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->output->state->resetExplicitFences();
             ok = pMonitor->state.commit();
@@ -1534,11 +1535,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (!explicitOptions.explicitEnabled)
         return ok;
 
-    if (inFD >= 0)
-        close(inFD);
-
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-    auto sync = g_pHyprOpenGL->createEGLSync(-1);
+    auto sync = g_pHyprOpenGL->createEGLSync({});
 
     if (!sync)
         Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
@@ -2272,7 +2270,7 @@ void CHyprRenderer::endRender() {
         auto explicitOptions = getExplicitSyncSettings();
 
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
-            auto sync = g_pHyprOpenGL->createEGLSync(-1);
+            auto sync = g_pHyprOpenGL->createEGLSync({});
             if (!sync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
@@ -2285,12 +2283,12 @@ void CHyprRenderer::endRender() {
             }
 
             auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
-            if (fd <= 0) {
+            if (!fd.isValid()) {
                 Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
                 return;
             }
 
-            PMONITOR->output->state->setExplicitInFence(fd);
+            PMONITOR->output->state->setExplicitInFence(fd.take());
         } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();

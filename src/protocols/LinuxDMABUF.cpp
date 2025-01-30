@@ -14,6 +14,8 @@
 #include "../render/OpenGL.hpp"
 #include "../Compositor.hpp"
 
+using namespace Hyprutils::OS;
+
 static std::optional<dev_t> devIDFromFD(int fd) {
     struct stat stat;
     if (fstat(fd, &stat) != 0)
@@ -77,29 +79,21 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
 
     tableSize = formatsVec.size() * sizeof(SDMABUFFormatTableEntry);
 
-    int fds[2] = {0};
-    allocateSHMFilePair(tableSize, &fds[0], &fds[1]);
+    CFileDescriptor fds[2];
+    allocateSHMFilePair(tableSize, fds[0], fds[1]);
 
-    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0], 0);
+    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0].get(), 0);
 
     if (arr == MAP_FAILED) {
         LOGM(ERR, "mmap failed");
-        close(fds[0]);
-        close(fds[1]);
         return;
     }
-
-    close(fds[0]);
 
     std::copy(formatsVec.begin(), formatsVec.end(), arr);
 
     munmap(arr, tableSize);
 
-    tableFD = fds[1];
-}
-
-CDMABUFFormatTable::~CDMABUFFormatTable() {
-    close(tableFD);
+    tableFD = std::move(fds[1]);
 }
 
 CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
@@ -234,18 +228,18 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
 }
 
 bool CLinuxDMABUFParamsResource::commence() {
-    if (PROTO::linuxDma->mainDeviceFD < 0)
+    if (!PROTO::linuxDma->mainDeviceFD.isValid())
         return true;
 
     for (int i = 0; i < attrs->planes; i++) {
         uint32_t handle = 0;
 
-        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD, attrs->fds.at(i), &handle)) {
+        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD.get(), attrs->fds.at(i), &handle)) {
             LOGM(ERR, "Failed to import dmabuf fd");
             return false;
         }
 
-        if (drmCloseBufferHandle(PROTO::linuxDma->mainDeviceFD, handle)) {
+        if (drmCloseBufferHandle(PROTO::linuxDma->mainDeviceFD.get(), handle)) {
             LOGM(ERR, "Failed to close dmabuf handle");
             return false;
         }
@@ -303,7 +297,7 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     resource->setDestroy([this](CZwpLinuxDmabufFeedbackV1* r) { PROTO::linuxDma->destroyResource(this); });
 
     auto& formatTable = PROTO::linuxDma->formatTable;
-    resource->sendFormatTable(formatTable->tableFD, formatTable->tableSize);
+    resource->sendFormatTable(formatTable->tableFD.get(), formatTable->tableSize);
     sendDefaultFeedback();
 }
 
@@ -472,9 +466,9 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         if (device->available_nodes & (1 << DRM_NODE_RENDER)) {
             const char* name = device->nodes[DRM_NODE_RENDER];
-            mainDeviceFD     = open(name, O_RDWR | O_CLOEXEC);
+            mainDeviceFD     = CFileDescriptor{open(name, O_RDWR | O_CLOEXEC)};
             drmFreeDevice(&device);
-            if (mainDeviceFD < 0) {
+            if (!mainDeviceFD.isValid()) {
                 LOGM(ERR, "failed to open drm dev, disabling linux dmabuf");
                 removeGlobal();
                 return;
@@ -496,7 +490,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     auto newFormatTable = makeUnique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
 
     for (auto const& feedback : m_vFeedbacks) {
-        feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
+        feedback->resource->sendFormatTable(newFormatTable->tableFD.get(), newFormatTable->tableSize);
         if (feedback->lastFeedbackWasScanout) {
             PHLMONITOR mon;
             auto       HLSurface = CWLSurface::fromResource(feedback->surface);
@@ -517,11 +511,6 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
 
     // delete old table after we sent new one
     formatTable = std::move(newFormatTable);
-}
-
-CLinuxDMABufV1Protocol::~CLinuxDMABufV1Protocol() {
-    if (mainDeviceFD >= 0)
-        close(mainDeviceFD);
 }
 
 void CLinuxDMABufV1Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

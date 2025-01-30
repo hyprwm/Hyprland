@@ -1,6 +1,7 @@
 #include "SecurityContext.hpp"
 #include "../Compositor.hpp"
 #include <sys/socket.h>
+using namespace Hyprutils::OS;
 
 static int onListenFdEvent(int fd, uint32_t mask, void* data) {
     auto sc = (CSecurityContext*)data;
@@ -14,8 +15,8 @@ static int onCloseFdEvent(int fd, uint32_t mask, void* data) {
     return 0;
 }
 
-SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(int clientFD_) {
-    auto p = SP<CSecurityContextSandboxedClient>(new CSecurityContextSandboxedClient(clientFD_));
+SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(CFileDescriptor clientFD_) {
+    auto p = SP<CSecurityContextSandboxedClient>(new CSecurityContextSandboxedClient(std::move(clientFD_)));
     if (!p->client)
         return nullptr;
     return p;
@@ -27,8 +28,8 @@ static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
     client->onDestroy();
 }
 
-CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD_) : clientFD(clientFD_) {
-    client = wl_client_create(g_pCompositor->m_sWLDisplay, clientFD);
+CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(CFileDescriptor clientFD_) : clientFD(std::move(clientFD_)) {
+    client = wl_client_create(g_pCompositor->m_sWLDisplay, clientFD.get());
     if (!client)
         return;
 
@@ -41,7 +42,6 @@ CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD_) 
 CSecurityContextSandboxedClient::~CSecurityContextSandboxedClient() {
     wl_list_remove(&destroyListener.listener.link);
     wl_list_init(&destroyListener.listener.link);
-    close(clientFD);
 }
 
 void CSecurityContextSandboxedClient::onDestroy() {
@@ -113,8 +113,8 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
 
         LOGM(LOG, "security_context at 0x{:x} commits", (uintptr_t)this);
 
-        listenSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, listenFD, WL_EVENT_READABLE, ::onListenFdEvent, this);
-        closeSource  = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, closeFD, 0, ::onCloseFdEvent, this);
+        listenSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
+        closeSource  = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, closeFD.get(), 0, ::onCloseFdEvent, this);
 
         if (!listenSource || !closeSource) {
             r->noMemory();
@@ -144,16 +144,15 @@ void CSecurityContext::onListen(uint32_t mask) {
     if (!(mask & WL_EVENT_READABLE))
         return;
 
-    int clientFD = accept(listenFD, nullptr, nullptr);
-    if UNLIKELY (clientFD < 0) {
+    CFileDescriptor clientFD{accept(listenFD.get(), nullptr, nullptr)};
+    if UNLIKELY (!clientFD.isValid()) {
         LOGM(ERR, "security_context at 0x{:x} couldn't accept", (uintptr_t)this);
         return;
     }
 
-    auto newClient = CSecurityContextSandboxedClient::create(clientFD);
+    auto newClient = CSecurityContextSandboxedClient::create(std::move(clientFD));
     if UNLIKELY (!newClient) {
         LOGM(ERR, "security_context at 0x{:x} couldn't create a client", (uintptr_t)this);
-        close(clientFD);
         return;
     }
 

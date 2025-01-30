@@ -10,6 +10,7 @@
 #include <xcb/xfixes.h>
 #include <xcb/composite.h>
 #include <xcb/xcb_errors.h>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 struct wl_event_source;
 class CXWaylandSurfaceResource;
@@ -18,25 +19,25 @@ struct SXSelection;
 struct SXTransfer {
     ~SXTransfer();
 
-    SXSelection&                  selection;
-    bool                          out = true;
+    SXSelection&                   selection;
+    bool                           out = true;
 
-    bool                          incremental   = false;
-    bool                          flushOnDelete = false;
-    bool                          propertySet   = false;
+    bool                           incremental   = false;
+    bool                           flushOnDelete = false;
+    bool                           propertySet   = false;
 
-    int                           wlFD        = -1;
-    wl_event_source*              eventSource = nullptr;
+    Hyprutils::OS::CFileDescriptor wlFD;
+    wl_event_source*               eventSource = nullptr;
 
-    std::vector<uint8_t>          data;
+    std::vector<uint8_t>           data;
 
-    xcb_selection_request_event_t request;
+    xcb_selection_request_event_t  request;
 
-    int                           propertyStart;
-    xcb_get_property_reply_t*     propertyReply;
-    xcb_window_t                  incomingWindow;
+    int                            propertyStart;
+    xcb_get_property_reply_t*      propertyReply;
+    xcb_window_t                   incomingWindow;
 
-    bool                          getIncomingSelectionProp(bool erase);
+    bool                           getIncomingSelectionProp(bool erase);
 };
 
 struct SXSelection {

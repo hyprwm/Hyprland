@@ -17,6 +17,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
 #define INCR_CHUNK_SIZE              (64 * 1024)
@@ -883,7 +884,7 @@ void CXWM::getRenderFormat() {
     free(reply);
 }
 
-CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
+CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
 
     if (connection.hasError()) {
         Debug::log(ERR, "[xwm] Couldn't start, error {}", connection.hasError());
@@ -901,7 +902,7 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
     xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen                                = screen_iterator.data;
 
-    eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, g_pXWayland->pServer->xwmFDs[0], WL_EVENT_READABLE, ::onX11Event, nullptr);
+    eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, g_pXWayland->pServer->xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
     wl_event_source_check(eventSource);
 
     gatherResources();
@@ -1180,13 +1181,12 @@ void CXWM::getTransferData(SXSelection& sel) {
 
     if (sel.transfer->propertyReply->type == HYPRATOMS["INCR"]) {
         Debug::log(ERR, "[xwm] Transfer is INCR, which we don't support :(");
-        close(sel.transfer->wlFD);
         sel.transfer.reset();
         return;
     } else {
         sel.onWrite();
         if (sel.transfer)
-            sel.transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, sel.transfer->wlFD, WL_EVENT_WRITABLE, ::writeDataSource, &sel);
+            sel.transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, sel.transfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
     }
 }
 
@@ -1361,13 +1361,13 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     // the wayland client might not expect a non-blocking fd
     // fcntl(p[1], F_SETFL, O_NONBLOCK);
 
-    transfer->wlFD = p[0];
+    transfer->wlFD = CFileDescriptor{p[0]};
 
     Debug::log(LOG, "[xwm] sending wayland selection to xwayland with mime {}, target {}, fds {} {}", mime, e->target, p[0], p[1]);
 
-    selection->send(mime, p[1]);
+    selection->send(mime, CFileDescriptor{p[1]});
 
-    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD, WL_EVENT_READABLE, ::readDataSource, this);
+    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
 
     return true;
 }
@@ -1376,10 +1376,9 @@ int SXSelection::onWrite() {
     char*   property  = (char*)xcb_get_property_value(transfer->propertyReply);
     int     remainder = xcb_get_property_value_length(transfer->propertyReply) - transfer->propertyStart;
 
-    ssize_t len = write(transfer->wlFD, property + transfer->propertyStart, remainder);
+    ssize_t len = write(transfer->wlFD.get(), property + transfer->propertyStart, remainder);
     if (len == -1) {
         Debug::log(ERR, "[xwm] write died in transfer get");
-        close(transfer->wlFD);
         transfer.reset();
         return 0;
     }
@@ -1389,7 +1388,6 @@ int SXSelection::onWrite() {
         Debug::log(LOG, "[xwm] wl client read partially: len {}", len);
     } else {
         Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
-        close(transfer->wlFD);
         transfer.reset();
     }
 
@@ -1397,8 +1395,6 @@ int SXSelection::onWrite() {
 }
 
 SXTransfer::~SXTransfer() {
-    if (wlFD)
-        close(wlFD);
     if (eventSource)
         wl_event_source_remove(eventSource);
     if (incomingWindow)

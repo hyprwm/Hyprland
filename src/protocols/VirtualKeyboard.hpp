@@ -5,6 +5,7 @@
 #include "WaylandProtocol.hpp"
 #include "virtual-keyboard-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CVirtualKeyboardV1Resource {
   public:

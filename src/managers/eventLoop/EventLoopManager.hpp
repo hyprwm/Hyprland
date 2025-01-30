@@ -6,6 +6,7 @@
 #include <thread>
 #include <wayland-server.h>
 #include "helpers/signal/Signal.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 #include "EventLoopTimer.hpp"
 
@@ -54,7 +55,7 @@ class CEventLoopManager {
 
     struct {
         std::vector<SP<CEventLoopTimer>> timers;
-        int                              timerfd = -1;
+        Hyprutils::OS::CFileDescriptor   timerfd;
     } m_sTimers;
 
     SIdleData                       m_sIdle;

@@ -321,35 +321,18 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    std::string_view keymap;
-    int              fd;
-    uint32_t         size;
-    if (keyboard) {
-        keymap = keyboard->xkbKeymapString;
-        fd     = keyboard->xkbKeymapFD;
-        size   = keyboard->xkbKeymapString.length() + 1;
-    } else {
-        fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
-        if (fd < 0) {
-            LOGM(ERR, "Failed to open /dev/null");
-            return;
-        }
-        size = 0;
-    }
+    std::string_view                keymap = keyboard->xkbKeymapString;
+    Hyprutils::OS::CFileDescriptor& fd     = keyboard->xkbKeymapFD;
+    uint32_t                        size   = keyboard->xkbKeymapString.length() + 1;
 
-    if (keymap == lastKeymap) {
-        if (!keyboard)
-            close(fd);
+    if (keymap == lastKeymap)
         return;
-    }
+
     lastKeymap = keymap;
 
     const wl_keyboard_keymap_format format = keyboard ? WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 : WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP;
 
-    resource->sendKeymap(format, fd, size);
-
-    if (!keyboard)
-        close(fd);
+    resource->sendKeymap(format, fd.get(), size);
 }
 
 void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {

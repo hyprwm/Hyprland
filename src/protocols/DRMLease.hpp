@@ -5,6 +5,7 @@
 #include "WaylandProtocol.hpp"
 #include "drm-lease-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 /*
     TODO: this protocol is not made for systems with multiple DRM nodes (e.g. multigpu)

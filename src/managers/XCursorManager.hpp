@@ -13,10 +13,10 @@ extern "C" {
 
 // gangsta bootleg XCursor impl. adidas balkanized
 struct SXCursorImage {
-    Vector2D              size;
-    Vector2D              hotspot;
-    std::vector<uint32_t> pixels; // XPixel is a u32
-    uint32_t              delay;  // animation delay to next frame (ms)
+    Hyprutils::Math::Vector2D size;
+    Hyprutils::Math::Vector2D hotspot;
+    std::vector<uint32_t>     pixels; // XPixel is a u32
+    uint32_t                  delay;  // animation delay to next frame (ms)
 };
 
 struct SXCursors {

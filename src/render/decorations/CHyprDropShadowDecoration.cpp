@@ -9,8 +9,6 @@ CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprW
     ;
 }
 
-CHyprDropShadowDecoration::~CHyprDropShadowDecoration() = default;
-
 eDecorationType CHyprDropShadowDecoration::getDecorationType() {
     return DECORATION_SHADOW;
 }

@@ -10,7 +10,7 @@
 class CTitleTex {
   public:
     CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale);
-    ~CTitleTex();
+    ~CTitleTex() = default;
 
     SP<CTexture> tex;
     std::string  szContent;
@@ -24,7 +24,7 @@ void refreshGroupBarGradients();
 class CHyprGroupBarDecoration : public IHyprWindowDecoration {
   public:
     CHyprGroupBarDecoration(PHLWINDOW);
-    virtual ~CHyprGroupBarDecoration();
+    virtual ~CHyprGroupBarDecoration() = default;
 
     virtual SDecorationPositioningInfo getPositioningInfo();
 

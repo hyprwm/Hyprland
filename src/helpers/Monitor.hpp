@@ -6,7 +6,6 @@
 #include "../SharedDefs.hpp"
 #include "MiscFunctions.hpp"
 #include "WLClasses.hpp"
-#include <vector>
 #include <array>
 
 #include <xf86drmMode.h>
@@ -48,7 +47,7 @@ class CSyncTimeline;
 class CMonitorState {
   public:
     CMonitorState(CMonitor* owner);
-    ~CMonitorState();
+    ~CMonitorState() = default;
 
     bool commit();
     bool test();

@@ -43,7 +43,7 @@ enum eDirection : int8_t {
 
 class IHyprLayout {
   public:
-    virtual ~IHyprLayout()   = 0;
+    virtual ~IHyprLayout()   = default;
     virtual void onEnable()  = 0;
     virtual void onDisable() = 0;
 

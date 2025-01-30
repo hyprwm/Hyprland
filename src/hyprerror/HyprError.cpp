@@ -32,8 +32,6 @@ CHyprError::CHyprError() {
     m_pTexture = makeShared<CTexture>();
 }
 
-CHyprError::~CHyprError() = default;
-
 void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
     m_szQueued = message;
     m_cQueued  = color;

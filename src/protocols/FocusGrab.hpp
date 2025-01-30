@@ -15,7 +15,7 @@ class CWLSurfaceResource;
 class CFocusGrabSurfaceState {
   public:
     CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface);
-    ~CFocusGrabSurfaceState();
+    ~CFocusGrabSurfaceState() = default;
 
     enum State {
         PendingAddition,

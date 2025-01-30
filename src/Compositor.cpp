@@ -22,7 +22,6 @@
 #include <cstring>
 #include <filesystem>
 #include <ranges>
-#include <print>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"

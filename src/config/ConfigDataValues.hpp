@@ -11,7 +11,7 @@ enum eConfigValueDataTypes : int8_t {
 
 class ICustomConfigValueData {
   public:
-    virtual ~ICustomConfigValueData() = 0;
+    virtual ~ICustomConfigValueData() = default;
 
     virtual eConfigValueDataTypes getDataType() = 0;
 

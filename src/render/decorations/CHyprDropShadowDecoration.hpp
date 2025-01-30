@@ -5,7 +5,7 @@
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {
   public:
     CHyprDropShadowDecoration(PHLWINDOW);
-    virtual ~CHyprDropShadowDecoration();
+    virtual ~CHyprDropShadowDecoration() = default;
 
     virtual SDecorationPositioningInfo getPositioningInfo();
 

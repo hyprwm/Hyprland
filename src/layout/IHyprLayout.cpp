@@ -950,5 +950,3 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
     return sizePredicted;
 }
-
-IHyprLayout::~IHyprLayout() = default;

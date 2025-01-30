@@ -33,7 +33,7 @@ class CDecorationPositioner;
 class IHyprWindowDecoration {
   public:
     IHyprWindowDecoration(PHLWINDOW);
-    virtual ~IHyprWindowDecoration() = 0;
+    virtual ~IHyprWindowDecoration() = default;
 
     virtual SDecorationPositioningInfo getPositioningInfo() = 0;
 

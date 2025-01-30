@@ -125,7 +125,7 @@ bool CLinuxDMABuffer::good() {
     return buffer && buffer->good();
 }
 
-CLinuxDMABBUFParamsResource::CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_) : resource(resource_) {
+CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -197,15 +197,11 @@ CLinuxDMABBUFParamsResource::CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParam
     });
 }
 
-CLinuxDMABBUFParamsResource::~CLinuxDMABBUFParamsResource() {
-    ;
-}
-
-bool CLinuxDMABBUFParamsResource::good() {
+bool CLinuxDMABUFParamsResource::good() {
     return resource->resource();
 }
 
-void CLinuxDMABBUFParamsResource::create(uint32_t id) {
+void CLinuxDMABUFParamsResource::create(uint32_t id) {
     used = true;
 
     if UNLIKELY (!verify()) {
@@ -237,7 +233,7 @@ void CLinuxDMABBUFParamsResource::create(uint32_t id) {
     createdBuffer = buf;
 }
 
-bool CLinuxDMABBUFParamsResource::commence() {
+bool CLinuxDMABUFParamsResource::commence() {
     if (PROTO::linuxDma->mainDeviceFD < 0)
         return true;
 
@@ -258,7 +254,7 @@ bool CLinuxDMABBUFParamsResource::commence() {
     return true;
 }
 
-bool CLinuxDMABBUFParamsResource::verify() {
+bool CLinuxDMABUFParamsResource::verify() {
     if UNLIKELY (attrs->planes <= 0) {
         resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No planes added");
         return false;
@@ -309,10 +305,6 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     auto& formatTable = PROTO::linuxDma->formatTable;
     resource->sendFormatTable(formatTable->tableFD, formatTable->tableSize);
     sendDefaultFeedback();
-}
-
-CLinuxDMABUFFeedbackResource::~CLinuxDMABUFFeedbackResource() {
-    ;
 }
 
 bool CLinuxDMABUFFeedbackResource::good() {
@@ -384,7 +376,7 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : re
     });
 
     resource->setCreateParams([](CZwpLinuxDmabufV1* r, uint32_t id) {
-        const auto RESOURCE = PROTO::linuxDma->m_vParams.emplace_back(makeShared<CLinuxDMABBUFParamsResource>(makeShared<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
+        const auto RESOURCE = PROTO::linuxDma->m_vParams.emplace_back(makeShared<CLinuxDMABUFParamsResource>(makeShared<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -550,7 +542,7 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABUFFeedbackResource* resou
     std::erase_if(m_vFeedbacks, [&](const auto& other) { return other.get() == resource; });
 }
 
-void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABBUFParamsResource* resource) {
+void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABUFParamsResource* resource) {
     std::erase_if(m_vParams, [&](const auto& other) { return other.get() == resource; });
 }
 

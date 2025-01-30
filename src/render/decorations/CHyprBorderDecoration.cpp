@@ -10,10 +10,6 @@ CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDec
     ;
 }
 
-CHyprBorderDecoration::~CHyprBorderDecoration() {
-    ;
-}
-
 SDecorationPositioningInfo CHyprBorderDecoration::getPositioningInfo() {
     const auto BORDERSIZE = m_pWindow->getRealBorderSize();
     m_seExtents           = {{BORDERSIZE, BORDERSIZE}, {BORDERSIZE, BORDERSIZE}};

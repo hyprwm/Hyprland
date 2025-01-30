@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <vector>
 
 #include "../defines.hpp"
 #include "../helpers/memory/Memory.hpp"

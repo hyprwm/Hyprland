@@ -6,8 +6,6 @@ IHyprWindowDecoration::IHyprWindowDecoration(PHLWINDOW pWindow) : m_pWindow(pWin
     ;
 }
 
-IHyprWindowDecoration::~IHyprWindowDecoration() = default;
-
 bool IHyprWindowDecoration::onInputOnDeco(const eInputType, const Vector2D&, std::any) {
     return false;
 }

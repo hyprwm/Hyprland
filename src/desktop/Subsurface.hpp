@@ -17,7 +17,7 @@ class CSubsurface {
     CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
     CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner);
 
-    ~CSubsurface();
+    ~CSubsurface() = default;
 
     Vector2D        coordsRelativeToParent();
     Vector2D        coordsGlobal();

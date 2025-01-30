@@ -1706,9 +1706,15 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = overridePos.value_or(m_vRealPosition->goal());
 
-    if (m_bIsX11) {
-        if (const auto XWAYLANDPOS = g_pXWaylandManager->waylandToXWaylandCoords(windowPos); XWAYLANDPOS != Vector2D{})
-            windowPos = XWAYLANDPOS;
+    if (m_bIsX11 && PMONITOR) {
+        windowPos -= PMONITOR->vecPosition;
+
+        if (*PXWLFORCESCALEZERO) {
+            windowPos *= PMONITOR->scale;
+            size *= PMONITOR->scale;
+        }
+
+        windowPos += PMONITOR->vecXWaylandPosition;
     }
 
     if (!force && m_vPendingReportedSize == size && (windowPos == m_vReportedPosition || !m_bIsX11))
@@ -1716,13 +1722,10 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
 
     m_vReportedPosition    = windowPos;
     m_vPendingReportedSize = size;
+    m_fX11SurfaceScaledBy  = 1.0f;
 
-    m_fX11SurfaceScaledBy = 1.0f;
-
-    if (*PXWLFORCESCALEZERO && m_bIsX11 && PMONITOR) {
-        size *= PMONITOR->scale;
+    if (*PXWLFORCESCALEZERO && m_bIsX11 && PMONITOR)
         m_fX11SurfaceScaledBy = PMONITOR->scale;
-    }
 
     if (m_bIsX11 && m_pXWaylandSurface)
         m_pXWaylandSurface->configure({windowPos, size});

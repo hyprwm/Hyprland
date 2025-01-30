@@ -11,10 +11,6 @@ CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceRe
     listeners.destroy = surface->events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
 }
 
-CFocusGrabSurfaceState::~CFocusGrabSurfaceState() {
-    ;
-}
-
 CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_) {
     if UNLIKELY (!resource->resource())
         return;

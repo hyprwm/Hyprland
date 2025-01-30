@@ -29,8 +29,6 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindo
         refreshGroupBarGradients();
 }
 
-CHyprGroupBarDecoration::~CHyprGroupBarDecoration() = default;
-
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT       = CConfigValue<Hyprlang::INT>("group:groupbar:height");
     static auto                PENABLED      = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
@@ -230,8 +228,6 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     if (tex)
         texSize = tex->m_vSize;
 }
-
-CTitleTex::~CTitleTex() = default;
 
 void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
 

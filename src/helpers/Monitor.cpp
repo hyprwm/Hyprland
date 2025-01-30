@@ -1434,10 +1434,6 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
     ;
 }
 
-CMonitorState::~CMonitorState() {
-    ;
-}
-
 void CMonitorState::ensureBufferPresent() {
     const auto STATE = m_pOwner->output->state->state();
     if (!STATE.enabled) {

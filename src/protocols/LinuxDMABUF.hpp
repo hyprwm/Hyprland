@@ -27,7 +27,7 @@ class CLinuxDMABuffer {
         CHyprSignalListener bufferResourceDestroy;
     } listeners;
 
-    friend class CLinuxDMABBUFParamsResource;
+    friend class CLinuxDMABUFParamsResource;
 };
 
 #pragma pack(push, 1)
@@ -56,10 +56,10 @@ class CDMABUFFormatTable {
     std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;
 };
 
-class CLinuxDMABBUFParamsResource {
+class CLinuxDMABUFParamsResource {
   public:
-    CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
-    ~CLinuxDMABBUFParamsResource();
+    CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
+    ~CLinuxDMABUFParamsResource() = default;
 
     bool                         good();
     void                         create(uint32_t id); // 0 means not immed
@@ -78,7 +78,7 @@ class CLinuxDMABBUFParamsResource {
 class CLinuxDMABUFFeedbackResource {
   public:
     CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_);
-    ~CLinuxDMABUFFeedbackResource();
+    ~CLinuxDMABUFFeedbackResource() = default;
 
     bool                   good();
     void                   sendDefaultFeedback();
@@ -115,7 +115,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
   private:
     void destroyResource(CLinuxDMABUFResource* resource);
     void destroyResource(CLinuxDMABUFFeedbackResource* resource);
-    void destroyResource(CLinuxDMABBUFParamsResource* resource);
+    void destroyResource(CLinuxDMABUFParamsResource* resource);
     void destroyResource(CLinuxDMABuffer* resource);
 
     void resetFormatTable();
@@ -123,7 +123,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     //
     std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
     std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
-    std::vector<SP<CLinuxDMABBUFParamsResource>>  m_vParams;
+    std::vector<SP<CLinuxDMABUFParamsResource>>  m_vParams;
     std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
 
     UP<CDMABUFFormatTable>                        formatTable;
@@ -132,7 +132,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
 
     friend class CLinuxDMABUFResource;
     friend class CLinuxDMABUFFeedbackResource;
-    friend class CLinuxDMABBUFParamsResource;
+    friend class CLinuxDMABUFParamsResource;
     friend class CLinuxDMABuffer;
 };
 

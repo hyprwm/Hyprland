@@ -1709,10 +1709,6 @@ void CConfigManager::handlePluginLoads() {
     }
 }
 
-ICustomConfigValueData::~ICustomConfigValueData() {
-    ; // empty
-}
-
 const std::unordered_map<std::string, SP<SAnimationPropertyConfig>>& CConfigManager::getAnimationConfig() {
     return m_AnimationTree.getFullConfig();
 }

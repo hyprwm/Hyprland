@@ -48,7 +48,7 @@ class CSyncTimeline;
 class CMonitorState {
   public:
     CMonitorState(CMonitor* owner);
-    ~CMonitorState();
+    ~CMonitorState() = default;
 
     bool commit();
     bool test();

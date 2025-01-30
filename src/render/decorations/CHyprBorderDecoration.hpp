@@ -5,7 +5,7 @@
 class CHyprBorderDecoration : public IHyprWindowDecoration {
   public:
     CHyprBorderDecoration(PHLWINDOW);
-    virtual ~CHyprBorderDecoration();
+    virtual ~CHyprBorderDecoration() = default;
 
     virtual SDecorationPositioningInfo getPositioningInfo();
 

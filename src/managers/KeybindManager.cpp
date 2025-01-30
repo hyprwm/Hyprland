@@ -12,8 +12,6 @@
 #include "TokenManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
-#include "helpers/varlist/VarList.hpp"
-#include "../helpers/signal/Signal.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"

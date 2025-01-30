@@ -123,7 +123,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     //
     std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
     std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
-    std::vector<SP<CLinuxDMABUFParamsResource>>  m_vParams;
+    std::vector<SP<CLinuxDMABUFParamsResource>>   m_vParams;
     std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
 
     UP<CDMABUFFormatTable>                        formatTable;

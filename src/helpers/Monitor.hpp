@@ -6,7 +6,6 @@
 #include "../SharedDefs.hpp"
 #include "MiscFunctions.hpp"
 #include "WLClasses.hpp"
-#include <vector>
 #include <array>
 
 #include <xf86drmMode.h>

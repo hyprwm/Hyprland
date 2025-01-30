@@ -21,13 +21,10 @@
 #include <string>
 #include <print>
 #include <fstream>
-#include <string>
 #include <vector>
 #include <filesystem>
 #include <cstdarg>
-#include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
-#include <cstring>
 using namespace Hyprutils::String;
 
 #include "Strings.hpp"

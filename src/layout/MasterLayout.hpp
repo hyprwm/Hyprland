@@ -5,7 +5,6 @@
 #include "../helpers/varlist/VarList.hpp"
 #include <vector>
 #include <list>
-#include <vector>
 #include <any>
 
 enum eFullscreenMode : int8_t;

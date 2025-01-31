@@ -1729,3 +1729,12 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
 wpContentTypeV1Type CWindow::getContentType() {
     return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : WP_CONTENT_TYPE_V1_TYPE_NONE;
 }
+
+void CWindow::setContentType(wpContentTypeV1Type contentType) {
+    if (!m_pWLSurface->resource()->contentType.valid())
+        m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
+    // else disallow content type change if proto is used?
+
+    Debug::log(INFO, "ContentType for window {}", (int)contentType);
+    m_pWLSurface->resource()->contentType->value = contentType;
+}

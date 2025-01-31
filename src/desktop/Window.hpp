@@ -472,6 +472,7 @@ class CWindow {
     Vector2D               requestedMaxSize();
     void                   sendWindowSize(Vector2D size, bool force = false, std::optional<Vector2D> overridePos = std::nullopt);
     wpContentTypeV1Type    getContentType();
+    void                   setContentType(wpContentTypeV1Type contentType);
 
     CBox                   getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

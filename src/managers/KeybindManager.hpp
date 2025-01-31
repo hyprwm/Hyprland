@@ -148,7 +148,7 @@ class CKeybindManager {
     static bool                      tryMoveFocusToMonitor(PHLMONITOR monitor);
     static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
     static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
-    static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO);
+    static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory = false);
     static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
     static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 

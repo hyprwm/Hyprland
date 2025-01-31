@@ -19,6 +19,7 @@ class CTexPassElement : public IPassElement {
         SP<CSyncTimeline>     syncTimeline;
         int64_t               syncPoint = 0;
         std::optional<Mat3x3> replaceProjection;
+        CBox                  clipBox;
     };
 
     CTexPassElement(const SRenderData& data);

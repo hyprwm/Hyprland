@@ -883,13 +883,19 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "group:groupbar:gradients",
         .description = "enables gradients",
         .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:height",
         .description = "height of the groupbar",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{14, 1, 64},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:indicator_height",
+        .description = "height of the groupbar indicator",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{3, 1, 64},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:stacked",
@@ -912,6 +918,30 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "group:groupbar:scrolling",
         .description = "whether scrolling in the groupbar changes group active window",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:rounding",
+        .description = "how much to round the groupbar",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:gradient_rounding",
+        .description = "how much to round the groupbar gradient",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:round_only_edges",
+        .description = "if yes, will only round at the groupbar edges",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:groupbar_round_only_edges",
+        .description = "if yes, will only round at the groupbar gradient edges",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },

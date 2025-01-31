@@ -26,6 +26,7 @@
 #include "../plugins/PluginSystem.hpp"
 
 #include "managers/HookSystemManager.hpp"
+#include "protocols/types/ContentType.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
@@ -1347,6 +1348,14 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                         continue;
                 }
 
+                if (!rule->szContentType.empty()) {
+                    try {
+                        const auto contentType = NContentType::fromString(rule->szContentType);
+                        if (pWindow->getContentType() != contentType)
+                            continue;
+                    } catch (std::exception& e) { Debug::log(ERR, "Rule \"content:{}\" failed with: {}", rule->szContentType, e.what()); }
+                }
+
                 if (!rule->szWorkspace.empty()) {
                     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
@@ -2361,6 +2370,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     const auto FOCUSPOS           = VALUE.find("focus:");
     const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
+    const auto CONTENTTYPEPOS     = VALUE.find("content:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2373,8 +2383,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,        FLOATPOS,
-                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS};
+    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,
+                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS, CONTENTTYPEPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2411,6 +2421,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = WORKSPACEPOS;
         if (FOCUSPOS > pos && FOCUSPOS < min)
             min = FOCUSPOS;
+        if (CONTENTTYPEPOS > pos && CONTENTTYPEPOS < min)
+            min = CONTENTTYPEPOS;
 
         result = result.substr(0, min - pos);
 
@@ -2469,6 +2481,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (ONWORKSPACEPOS != std::string::npos)
         rule->szOnWorkspace = extract(ONWORKSPACEPOS + 12);
 
+    if (CONTENTTYPEPOS != std::string::npos)
+        rule->szContentType = extract(CONTENTTYPEPOS + 8);
+
     if (RULE == "unset") {
         std::erase_if(m_vWindowRules, [&](const auto& other) {
             if (!other->v2)
@@ -2511,6 +2526,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                     return false;
 
                 if (!rule->szOnWorkspace.empty() && rule->szOnWorkspace != other->szOnWorkspace)
+                    return false;
+
+                if (!rule->szContentType.empty() && rule->szContentType != other->szContentType)
                     return false;
 
                 return true;

@@ -1316,7 +1316,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Enables direct scanout. Direct scanout attempts to reduce lag when there is only one fullscreen application on a screen (e.g. game). It is also "
                        "recommended to set this to false if the fullscreen application shows graphical glitches. 0 - off, 1 - on, 2 - auto (on with content type 'game')",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
         .value       = "render:expand_undersized_textures",

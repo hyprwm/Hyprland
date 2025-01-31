@@ -11,11 +11,11 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
+#include "protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
 #include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
-#include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/AnimationManager.hpp"
@@ -305,6 +305,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     }
                     vPrev = v;
                 }
+                break;
+            }
+            case CWindowRule::RULE_CONTENT: {
+                const CVarList VARS(r->szRule, 0, ' ');
+                try {
+                    PWINDOW->setContentType(NContentType::fromString(VARS[1]));
+                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
                 break;
             }
             default: break;

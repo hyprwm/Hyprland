@@ -36,6 +36,7 @@ class CWindowRule {
         RULE_TAG,
         RULE_WORKSPACE,
         RULE_PROP,
+        RULE_CONTENT,
     };
 
     eRuleType         ruleType = RULE_INVALID;

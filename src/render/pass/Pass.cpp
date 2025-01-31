@@ -17,10 +17,6 @@ bool CRenderPass::single() const {
     return m_vPassElements.size() == 1;
 }
 
-bool CRenderPass::needsIntrospection() const {
-    return true;
-}
-
 void CRenderPass::add(SP<IPassElement> el) {
     m_vPassElements.emplace_back(makeShared<SPassElementData>(CRegion{}, el));
 }

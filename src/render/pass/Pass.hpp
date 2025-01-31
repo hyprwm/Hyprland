@@ -10,7 +10,6 @@ class CRenderPass {
   public:
     bool    empty() const;
     bool    single() const;
-    bool    needsIntrospection() const;
 
     void    add(SP<IPassElement> elem);
     void    clear();

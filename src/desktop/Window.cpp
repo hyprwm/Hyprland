@@ -15,6 +15,7 @@
 #include "../managers/AnimationManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/ContentType.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
 #include "../events/Events.hpp"
@@ -1725,4 +1726,17 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
         m_pXWaylandSurface->configure({windowPos, size});
     else if (m_pXDGSurface && m_pXDGSurface->toplevel)
         m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(size), size.floor());
+}
+
+wpContentTypeV1Type CWindow::getContentType() {
+    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : WP_CONTENT_TYPE_V1_TYPE_NONE;
+}
+
+void CWindow::setContentType(wpContentTypeV1Type contentType) {
+    if (!m_pWLSurface->resource()->contentType.valid())
+        m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
+    // else disallow content type change if proto is used?
+
+    Debug::log(INFO, "ContentType for window {}", (int)contentType);
+    m_pWLSurface->resource()->contentType->value = contentType;
 }

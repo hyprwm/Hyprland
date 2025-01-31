@@ -58,10 +58,12 @@
 #include "../protocols/core/Shm.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/FrogColorManagement.hpp"
+#include "../protocols/ContentType.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
+#include "content-type-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
@@ -169,6 +171,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::securityContext     = makeUnique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
+    PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
 
     if (*PENABLEXXCM) {
         PROTO::colorManagement     = makeUnique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");

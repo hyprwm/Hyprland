@@ -2335,7 +2335,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
 
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
-    if (*PDIRECTSCANOUT)
+    if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == WP_CONTENT_TYPE_V1_TYPE_GAME))
         g_pHyprRenderer->setSurfaceScanoutMode(PWINDOW->m_pWLSurface->resource(), EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->self.lock() : nullptr);
 
     g_pConfigManager->ensureVRR(PMONITOR);

@@ -296,6 +296,12 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
 
+    outFB.unbind();
+
+#ifndef GLES2
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+#endif
+
     return true;
 }
 

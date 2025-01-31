@@ -434,7 +434,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
-    std::string                              requestedStr = "preferred";
+    std::string                              requestedStr = "unknown";
 
     // use sortFunc, add best 3 to requestedModes in reverse, since we test in reverse
     auto addBest3Modes = [&](auto const& sortFunc) {
@@ -445,13 +445,24 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         requestedModes.insert(requestedModes.end(), sortedModes.rbegin(), sortedModes.rend());
     };
 
-    // last fallback is preferred mode, btw this covers resolution == Vector2D()
+    // last fallback is always preferred mode
     if (!output->preferredMode())
         Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
     else
         requestedModes.push_back(output->preferredMode());
 
-    if (RULE->resolution == Vector2D(-1, -1)) {
+    if (RULE->resolution == Vector2D()) {
+        requestedStr = "preferred";
+
+        // fallback to first 3 modes if preferred fails/doesn't exist
+        requestedModes = output->modes;
+        if (requestedModes.size() > 3)
+            requestedModes.erase(requestedModes.begin() + 3, requestedModes.end());
+        std::ranges::reverse(requestedModes.begin(), requestedModes.end());
+
+        if (output->preferredMode())
+            requestedModes.push_back(output->preferredMode());
+    } else if (RULE->resolution == Vector2D(-1, -1)) {
         requestedStr = "highrr";
 
         // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3

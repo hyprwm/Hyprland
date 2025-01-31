@@ -1,4 +1,6 @@
 #include "ContentType.hpp"
+#include <stdexcept>
+#include <format>
 
 namespace NContentType {
     static std::unordered_map<std::string, wpContentTypeV1Type> const table = {

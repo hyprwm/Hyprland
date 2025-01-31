@@ -51,7 +51,7 @@ void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const UP<CHyprlan
     uint32_t                                  size;
     if (keyboard) {
         format = HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_XKB_V1;
-        fd     = keyboard->xkbKeymapFD;
+        fd     = keyboard->xkbKeymapFD.get();
         size   = keyboard->xkbKeymapString.length() + 1;
     } else {
         format = HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_NO_KEYMAP;

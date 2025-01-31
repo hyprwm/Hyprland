@@ -441,13 +441,18 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});
-    m_pConfig->addConfigValue("group:groupbar:gradients", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:groupbar:gradients", Hyprlang::INT{0});
     m_pConfig->addConfigValue("group:groupbar:height", Hyprlang::INT{14});
+    m_pConfig->addConfigValue("group:groupbar:indicator_height", Hyprlang::INT{3});
     m_pConfig->addConfigValue("group:groupbar:priority", Hyprlang::INT{3});
     m_pConfig->addConfigValue("group:groupbar:render_titles", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:scrolling", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
     m_pConfig->addConfigValue("group:groupbar:stacked", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("group:groupbar:rounding", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:groupbar:gradient_rounding", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("group:groupbar:round_only_edges", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:groupbar:gradient_round_only_edges", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("debug:int", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});

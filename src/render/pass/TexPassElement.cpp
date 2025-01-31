@@ -13,8 +13,12 @@ void CTexPassElement::draw(const CRegion& damage) {
 
     CScopeGuard x = {[]() {
         //
-        g_pHyprOpenGL->m_bEndFrame = false;
+        g_pHyprOpenGL->m_bEndFrame          = false;
+        g_pHyprOpenGL->m_RenderData.clipBox = {};
     }};
+
+    if (!data.clipBox.empty())
+        g_pHyprOpenGL->m_RenderData.clipBox = data.clipBox;
 
     if (data.replaceProjection)
         g_pHyprOpenGL->m_RenderData.monitorProjection = *data.replaceProjection;

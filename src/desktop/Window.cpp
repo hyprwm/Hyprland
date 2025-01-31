@@ -1697,8 +1697,7 @@ Vector2D CWindow::requestedMaxSize() {
 
 void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> overridePos) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-    const auto  PMONITOR = m_pMonitor.lock();
+    const auto  PMONITOR           = m_pMonitor.lock();
 
     size = size.clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
 
@@ -1707,14 +1706,9 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
     Vector2D windowPos = overridePos.value_or(m_vRealPosition->goal());
 
     if (m_bIsX11 && PMONITOR) {
-        windowPos -= PMONITOR->vecPosition;
-
-        if (*PXWLFORCESCALEZERO) {
-            windowPos *= PMONITOR->scale;
+        windowPos = g_pXWaylandManager->waylandToXWaylandCoords(windowPos);
+        if (*PXWLFORCESCALEZERO)
             size *= PMONITOR->scale;
-        }
-
-        windowPos += PMONITOR->vecXWaylandPosition;
     }
 
     if (!force && m_vPendingReportedSize == size && (windowPos == m_vReportedPosition || !m_bIsX11))

@@ -98,7 +98,8 @@ void CLayerSurface::onDestroy() {
             onUnmap();
         } else {
             Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
-            alpha->setValueAndWarp(0.f);
+            if (alpha)
+                alpha->setValueAndWarp(0.f);
             fadingOut = true;
             g_pCompositor->addToFadingOutSafe(self.lock());
         }

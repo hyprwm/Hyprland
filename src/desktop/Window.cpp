@@ -1700,7 +1700,7 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
 
     const auto  PMONITOR = m_pMonitor.lock();
 
-    size = size.clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    size = size.clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
 
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO

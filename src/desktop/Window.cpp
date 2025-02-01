@@ -571,10 +571,8 @@ void CWindow::onMap() {
     if (m_bIsX11)
         return;
 
-    m_pSubsurfaceHead          = makeUnique<CSubsurface>(m_pSelf.lock());
-    m_pSubsurfaceHead->m_pSelf = m_pSubsurfaceHead;
-    m_pPopupHead               = makeUnique<CPopup>(m_pSelf.lock());
-    m_pPopupHead->m_pSelf      = m_pPopupHead;
+    m_pSubsurfaceHead = CSubsurface::create(m_pSelf.lock());
+    m_pPopupHead      = CPopup::create(m_pSelf.lock());
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {

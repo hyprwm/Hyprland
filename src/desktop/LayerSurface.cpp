@@ -31,10 +31,9 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->szNamespace = resource->layerNamespace;
 
-    pLS->layer              = resource->current.layer;
-    pLS->popupHead          = makeUnique<CPopup>(pLS);
-    pLS->popupHead->m_pSelf = pLS->popupHead;
-    pLS->monitor            = pMonitor;
+    pLS->layer     = resource->current.layer;
+    pLS->popupHead = CPopup::create(pLS);
+    pLS->monitor   = pMonitor;
     pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);

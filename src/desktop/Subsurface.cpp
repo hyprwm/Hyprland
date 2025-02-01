@@ -117,14 +117,15 @@ void CSubsurface::onCommit() {
 void CSubsurface::onDestroy() {
     // destroy children
     m_vChildren.clear();
-
     m_bInert = true;
 
     if (!m_pSubsurface)
         return; // dummy node, nothing to do, it's the parent dying
 
-    // kill ourselves
-    std::erase_if(m_pParent->m_vChildren, [this](const auto& other) { return other.get() == this; });
+    // maybe kill ourselves
+    if (auto parent = m_pParent.lock()) {
+        std::erase_if(parent->m_vChildren, [this](const auto& other) { return other.get() == this; });
+    }
 }
 
 void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {

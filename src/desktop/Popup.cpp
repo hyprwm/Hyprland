@@ -339,22 +339,24 @@ void CPopup::breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data)
 
 WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
     std::vector<WP<CPopup>> popups;
-    breadthfirst([](WP<CPopup> popup, void* data) { ((std::vector<WP<CPopup>>*)data)->push_back(popup); }, &popups);
+    breadthfirst([&popups](WP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
 
     for (auto const& p : popups | std::views::reverse) {
         if (!p->m_pResource || !p->m_bMapped)
             continue;
 
         if (!allowsInput) {
-            const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
-            const Vector2D size   = p->m_pResource ? p->m_pResource->geometry.size() : p->size();
+            const Vector2D offset =
+                p->m_pResource && p->m_pResource->surface ? (p->size() - p->m_pResource->geometry.size()) / 2.F - p->m_pResource->surface->current.geometry.pos() : Vector2D{};
+            const Vector2D size = p->m_pResource ? p->m_pResource->geometry.size() : p->size();
 
             const auto     BOX = CBox{p->coordsGlobal() + offset, size};
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
-            const auto     REGION =
+            const Vector2D offset =
+                p->m_pResource && p->m_pResource->surface ? (p->size() - p->m_pResource->geometry.size()) / 2.F - p->m_pResource->surface->current.geometry.pos() : Vector2D{};
+            const auto REGION =
                 CRegion{p->m_pWLSurface->resource()->current.input}.intersect(CBox{{}, p->m_pWLSurface->resource()->current.size}).translate(p->coordsGlobal() + offset);
             if (REGION.containsPoint(globalCoords))
                 return p;

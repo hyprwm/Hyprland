@@ -1509,6 +1509,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
+#if AQUAMARINE_VERSION_NUMBER > 702 // >0.7.2
+    if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+        const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
+        pMonitor->output->state->setContentType(WINDOW->getContentType());
+    }
+#endif
+
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
         pMonitor->output->state->setCTM(pMonitor->ctm);

@@ -12,24 +12,24 @@
 #include "../render/OpenGL.hpp"
 #include <ranges>
 
-SP<CPopup> CPopup::create(PHLWINDOW pOwner) {
-    auto popup            = SP<CPopup>(new CPopup());
+UP<CPopup> CPopup::create(PHLWINDOW pOwner) {
+    auto popup            = UP<CPopup>(new CPopup());
     popup->m_pWindowOwner = pOwner;
     popup->m_pSelf        = popup;
     popup->initAllSignals();
     return popup;
 }
 
-SP<CPopup> CPopup::create(PHLLS pOwner) {
-    auto popup           = SP<CPopup>(new CPopup());
+UP<CPopup> CPopup::create(PHLLS pOwner) {
+    auto popup           = UP<CPopup>(new CPopup());
     popup->m_pLayerOwner = pOwner;
     popup->m_pSelf       = popup;
     popup->initAllSignals();
     return popup;
 }
 
-SP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
-    auto popup            = SP<CPopup>(new CPopup());
+UP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
+    auto popup            = UP<CPopup>(new CPopup());
     popup->m_pResource    = resource;
     popup->m_pWindowOwner = pOwner->m_pWindowOwner;
     popup->m_pLayerOwner  = pOwner->m_pLayerOwner;
@@ -282,7 +282,8 @@ void CPopup::recheckTree() {
 }
 
 void CPopup::recheckChildrenRecursive() {
-    auto cpy = m_vChildren;
+    std::vector<WP<CPopup>> cpy;
+    std::ranges::for_each(m_vChildren, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
         c->onCommit(true);
         c->recheckChildrenRecursive();

@@ -298,7 +298,7 @@ class CWindow {
 
     // desktop components
     UP<CSubsurface> m_pSubsurfaceHead;
-    SP<CPopup>      m_pPopupHead;
+    UP<CPopup>      m_pPopupHead;
 
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};

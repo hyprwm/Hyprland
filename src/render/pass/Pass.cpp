@@ -8,6 +8,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../Compositor.hpp"
+#include "../../protocols/core/Compositor.hpp"
 
 bool CRenderPass::empty() const {
     return false;
@@ -241,6 +242,22 @@ void CRenderPass::renderDebugData() {
     renderHLSurface(debugData.pointerFocusText, g_pSeatManager->state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
     if (g_pCompositor->m_pLastWindow)
         renderHLSurface(debugData.lastWindowText, g_pCompositor->m_pLastWindow->m_pWLSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
+
+    if (g_pSeatManager->state.pointerFocus) {
+        if (g_pSeatManager->state.pointerFocus->current.input.intersect(CBox{{}, g_pSeatManager->state.pointerFocus->current.size}).getExtents().size() !=
+            g_pSeatManager->state.pointerFocus->current.size) {
+            auto hlSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+            if (hlSurface) {
+                auto BOX = hlSurface->getSurfaceBoxGlobal();
+                if (BOX) {
+                    auto region = g_pSeatManager->state.pointerFocus->current.input.copy()
+                                      .scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale)
+                                      .translate(BOX->pos() - g_pHyprOpenGL->m_RenderData.pMonitor->vecPosition);
+                    g_pHyprOpenGL->renderRectWithDamage(box, CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}, region);
+                }
+            }
+        }
+    }
 
     const auto DISCARDED_ELEMENTS = std::count_if(m_vPassElements.begin(), m_vPassElements.end(), [](const auto& e) { return e->discard; });
     auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", occludedRegions.size(), m_vPassElements.size(),

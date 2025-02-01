@@ -7,28 +7,45 @@
 #include "../render/Renderer.hpp"
 #include "../managers/input/InputManager.hpp"
 
-CSubsurface::CSubsurface(PHLWINDOW pOwner) : m_pWindowParent(pOwner) {
-    initSignals();
-    initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
+UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
+    auto subsurface             = UP<CSubsurface>(new CSubsurface());
+    subsurface->m_pWindowParent = pOwner;
+    subsurface->m_pSelf         = subsurface;
+
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
+    return subsurface;
 }
 
-CSubsurface::CSubsurface(WP<CPopup> pOwner) : m_pPopupParent(pOwner) {
-    initSignals();
-    initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
+UP<CSubsurface> CSubsurface::create(WP<CPopup> pOwner) {
+    auto subsurface            = UP<CSubsurface>(new CSubsurface());
+    subsurface->m_pPopupParent = pOwner;
+    subsurface->m_pSelf        = subsurface;
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
+    return subsurface;
 }
 
-CSubsurface::CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) : m_pSubsurface(pSubsurface), m_pWindowParent(pOwner) {
-    m_pWLSurface = CWLSurface::create();
-    m_pWLSurface->assign(pSubsurface->surface.lock(), this);
-    initSignals();
-    initExistingSubsurfaces(pSubsurface->surface.lock());
+UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) {
+    auto subsurface             = UP<CSubsurface>(new CSubsurface());
+    subsurface->m_pWindowParent = pOwner;
+    subsurface->m_pSelf         = subsurface;
+    subsurface->m_pWLSurface    = CWLSurface::create();
+    subsurface->m_pWLSurface->assign(pSubsurface->surface.lock(), subsurface.get());
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pSubsurface->surface.lock());
+    return subsurface;
 }
 
-CSubsurface::CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner) : m_pSubsurface(pSubsurface), m_pPopupParent(pOwner) {
-    m_pWLSurface = CWLSurface::create();
-    m_pWLSurface->assign(pSubsurface->surface.lock(), this);
-    initSignals();
-    initExistingSubsurfaces(pSubsurface->surface.lock());
+UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner) {
+    auto subsurface            = UP<CSubsurface>(new CSubsurface());
+    subsurface->m_pPopupParent = pOwner;
+    subsurface->m_pSelf        = subsurface;
+    subsurface->m_pWLSurface   = CWLSurface::create();
+    subsurface->m_pWLSurface->assign(pSubsurface->surface.lock(), subsurface.get());
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pSubsurface->surface.lock());
+    return subsurface;
 }
 
 CSubsurface::~CSubsurface() {
@@ -135,9 +152,9 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
     WP<CSubsurface> PSUBSURFACE;
 
     if (!m_pWindowParent.expired())
-        PSUBSURFACE = m_vChildren.emplace_back(makeUnique<CSubsurface>(pSubsurface, m_pWindowParent.lock()));
+        PSUBSURFACE = m_vChildren.emplace_back(CSubsurface::create(pSubsurface, m_pWindowParent.lock()));
     else if (m_pPopupParent)
-        PSUBSURFACE = m_vChildren.emplace_back(makeUnique<CSubsurface>(pSubsurface, m_pPopupParent));
+        PSUBSURFACE = m_vChildren.emplace_back(CSubsurface::create(pSubsurface, m_pPopupParent));
 
     PSUBSURFACE->m_pSelf = PSUBSURFACE;
 

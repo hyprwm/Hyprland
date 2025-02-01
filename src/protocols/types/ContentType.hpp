@@ -4,6 +4,15 @@
 #include <cstdint>
 
 namespace NContentType {
-    wpContentTypeV1Type fromString(const std::string name);
-    uint16_t            toDRM(wpContentTypeV1Type contentType);
+
+    enum eContentType : uint8_t {
+        NONE  = 0,
+        PHOTO = 1,
+        VIDEO = 2,
+        GAME  = 3,
+    };
+
+    eContentType fromString(const std::string name);
+    eContentType fromWP(wpContentTypeV1Type contentType);
+    uint16_t     toDRM(eContentType contentType);
 }

@@ -3,6 +3,7 @@
 #include "WaylandProtocol.hpp"
 #include "core/Compositor.hpp"
 #include "content-type-v1.hpp"
+#include "protocols/types/ContentType.hpp"
 
 class CContentTypeManager {
   public:
@@ -19,11 +20,11 @@ class CContentType {
     CContentType(SP<CWpContentTypeV1> resource);
     CContentType(WP<CWLSurfaceResource> surface);
 
-    bool                good();
-    wl_client*          client();
-    wpContentTypeV1Type value = WP_CONTENT_TYPE_V1_TYPE_NONE;
+    bool                       good();
+    wl_client*                 client();
+    NContentType::eContentType value = NContentType::NONE;
 
-    WP<CContentType>    self;
+    WP<CContentType>           self;
 
   private:
     SP<CWpContentTypeV1> m_resource;

@@ -1,5 +1,6 @@
 #include "ContentType.hpp"
 #include "content-type-v1.hpp"
+#include "protocols/types/ContentType.hpp"
 
 CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
@@ -53,7 +54,7 @@ CContentType::CContentType(SP<CWpContentTypeV1> resource) : m_resource(resource)
     resource->setDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
     resource->setOnDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
 
-    resource->setSetContentType([this](CWpContentTypeV1* r, wpContentTypeV1Type type) { value = type; });
+    resource->setSetContentType([this](CWpContentTypeV1* r, wpContentTypeV1Type type) { value = NContentType::fromWP(type); });
 }
 
 bool CContentType::good() {

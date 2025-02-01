@@ -1195,7 +1195,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == WP_CONTENT_TYPE_V1_TYPE_GAME)) && !shouldTear) {
+    if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == NContentType::GAME)) && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {
@@ -1517,7 +1517,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
         pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
     } else
-        pMonitor->output->state->setContentType(NContentType::toDRM(WP_CONTENT_TYPE_V1_TYPE_NONE));
+        pMonitor->output->state->setContentType(NContentType::toDRM(NContentType::NONE));
 #endif
 
     if (pMonitor->ctmUpdated) {

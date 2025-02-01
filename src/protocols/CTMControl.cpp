@@ -15,6 +15,9 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
 
     resource->setSetCtmForOutput([this](CHyprlandCtmControlManagerV1* r, wl_resource* output, wl_fixed_t mat0, wl_fixed_t mat1, wl_fixed_t mat2, wl_fixed_t mat3, wl_fixed_t mat4,
                                         wl_fixed_t mat5, wl_fixed_t mat6, wl_fixed_t mat7, wl_fixed_t mat8) {
+        if (blocked)
+            return;
+
         const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
 
         if UNLIKELY (!OUTPUTRESOURCE)
@@ -41,6 +44,9 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
     });
 
     resource->setCommit([this](CHyprlandCtmControlManagerV1* r) {
+        if (blocked)
+            return;
+
         LOGM(LOG, "Committing ctms to outputs");
 
         for (auto& m : g_pCompositor->m_vMonitors) {
@@ -54,7 +60,17 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
     });
 }
 
+void CHyprlandCTMControlResource::block() {
+    blocked = true;
+
+    if (resource->version() >= 2)
+        resource->sendBlocked();
+}
+
 CHyprlandCTMControlResource::~CHyprlandCTMControlResource() {
+    if (blocked)
+        return;
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         PROTO::ctm->setCTM(m, Mat3x3::identity());
     }
@@ -69,7 +85,6 @@ CHyprlandCTMControlProtocol::CHyprlandCTMControlProtocol(const wl_interface* ifa
 }
 
 void CHyprlandCTMControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CHyprlandCTMControlResource>(makeShared<CHyprlandCtmControlManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
@@ -77,6 +92,11 @@ void CHyprlandCTMControlProtocol::bindManager(wl_client* client, void* data, uin
         m_vManagers.pop_back();
         return;
     }
+
+    if (m_pManager)
+        RESOURCE->block();
+    else
+        m_pManager = RESOURCE;
 
     LOGM(LOG, "New CTM Manager at 0x{:x}", (uintptr_t)RESOURCE.get());
 }

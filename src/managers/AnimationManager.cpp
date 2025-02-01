@@ -43,7 +43,7 @@ CHyprAnimationManager::CHyprAnimationManager() {
 template <Animable VarType>
 static void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool warp = false) {
     if (warp || av.value() == av.goal()) {
-        av.warp();
+        av.warp(true, false);
         return;
     }
 
@@ -53,7 +53,7 @@ static void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, b
 
 static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp) {
     if (warp || av.value() == av.goal()) {
-        av.warp();
+        av.warp(true, false);
         return;
     }
 

@@ -10,11 +10,11 @@ class CXDGPopupResource;
 class CPopup {
   public:
     // dummy head nodes
-    CPopup(PHLWINDOW pOwner);
-    CPopup(PHLLS pOwner);
+    static SP<CPopup> create(PHLWINDOW pOwner);
+    static SP<CPopup> create(PHLLS pOwner);
 
     // real nodes
-    CPopup(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
+    static SP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
 
     ~CPopup();
 
@@ -45,6 +45,8 @@ class CPopup {
     bool           m_bMapped = false;
 
   private:
+    CPopup() = default;
+
     // T1 owners, each popup has to have one of these
     PHLWINDOWREF m_pWindowOwner;
     PHLLSREF     m_pLayerOwner;

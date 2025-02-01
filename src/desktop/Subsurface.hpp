@@ -10,12 +10,12 @@ class CWLSubsurfaceResource;
 class CSubsurface {
   public:
     // root dummy nodes
-    CSubsurface(PHLWINDOW pOwner);
-    CSubsurface(WP<CPopup> pOwner);
+    static UP<CSubsurface> create(PHLWINDOW pOwner);
+    static UP<CSubsurface> create(WP<CPopup> pOwner);
 
     // real nodes
-    CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
-    CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner);
+    static UP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
+    static UP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner);
 
     ~CSubsurface() = default;
 
@@ -37,6 +37,8 @@ class CSubsurface {
     WP<CSubsurface> m_pSelf;
 
   private:
+    CSubsurface() = default;
+
     struct {
         CHyprSignalListener destroySubsurface;
         CHyprSignalListener commitSubsurface;

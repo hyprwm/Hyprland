@@ -12,23 +12,37 @@
 #include "../render/OpenGL.hpp"
 #include <ranges>
 
-CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
-    initAllSignals();
+SP<CPopup> CPopup::create(PHLWINDOW pOwner) {
+    auto popup            = SP<CPopup>(new CPopup());
+    popup->m_pWindowOwner = pOwner;
+    popup->m_pSelf        = popup;
+    popup->initAllSignals();
+    return popup;
 }
 
-CPopup::CPopup(PHLLS pOwner) : m_pLayerOwner(pOwner) {
-    initAllSignals();
+SP<CPopup> CPopup::create(PHLLS pOwner) {
+    auto popup           = SP<CPopup>(new CPopup());
+    popup->m_pLayerOwner = pOwner;
+    popup->m_pSelf       = popup;
+    popup->initAllSignals();
+    return popup;
 }
 
-CPopup::CPopup(SP<CXDGPopupResource> popup, WP<CPopup> pOwner) :
-    m_pWindowOwner(pOwner->m_pWindowOwner), m_pLayerOwner(pOwner->m_pLayerOwner), m_pParent(pOwner), m_pResource(popup) {
-    m_pWLSurface = CWLSurface::create();
-    m_pWLSurface->assign(popup->surface->surface.lock(), this);
+SP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
+    auto popup            = SP<CPopup>(new CPopup());
+    popup->m_pResource    = resource;
+    popup->m_pWindowOwner = pOwner->m_pWindowOwner;
+    popup->m_pLayerOwner  = pOwner->m_pLayerOwner;
+    popup->m_pParent      = pOwner;
+    popup->m_pSelf        = popup;
+    popup->m_pWLSurface   = CWLSurface::create();
+    popup->m_pWLSurface->assign(resource->surface->surface.lock(), popup.get());
 
-    m_vLastSize = popup->surface->current.geometry.size();
-    reposition();
+    popup->m_vLastSize = resource->surface->current.geometry.size();
+    popup->reposition();
 
-    initAllSignals();
+    popup->initAllSignals();
+    return popup;
 }
 
 CPopup::~CPopup() {
@@ -59,7 +73,7 @@ void CPopup::initAllSignals() {
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
-    const auto& POPUP = m_vChildren.emplace_back(makeShared<CPopup>(popup, m_pSelf));
+    const auto& POPUP = m_vChildren.emplace_back(CPopup::create(popup, m_pSelf));
     POPUP->m_pSelf    = POPUP;
     Debug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
 }
@@ -91,8 +105,7 @@ void CPopup::onMap() {
 
     g_pInputManager->simulateMouseMovement();
 
-    m_pSubsurfaceHead          = makeUnique<CSubsurface>(m_pSelf);
-    m_pSubsurfaceHead->m_pSelf = m_pSubsurfaceHead;
+    m_pSubsurfaceHead = CSubsurface::create(m_pSelf);
 
     //unconstrain();
     sendScale();

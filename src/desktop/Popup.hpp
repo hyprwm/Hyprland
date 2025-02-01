@@ -10,11 +10,11 @@ class CXDGPopupResource;
 class CPopup {
   public:
     // dummy head nodes
-    static SP<CPopup> create(PHLWINDOW pOwner);
-    static SP<CPopup> create(PHLLS pOwner);
+    static UP<CPopup> create(PHLWINDOW pOwner);
+    static UP<CPopup> create(PHLLS pOwner);
 
     // real nodes
-    static SP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
+    static UP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
 
     ~CPopup();
 
@@ -64,7 +64,7 @@ class CPopup {
     bool                  m_bInert = false;
 
     //
-    std::vector<SP<CPopup>> m_vChildren;
+    std::vector<UP<CPopup>> m_vChildren;
     UP<CSubsurface>         m_pSubsurfaceHead;
 
     struct {

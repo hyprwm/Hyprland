@@ -59,7 +59,7 @@ class CLayerSurface {
     CBox                       geometry = {0, 0, 0, 0};
     Vector2D                   position;
     std::string                szNamespace = "";
-    SP<CPopup>                 popupHead;
+    UP<CPopup>                 popupHead;
 
     void                       onDestroy();
     void                       onMap();

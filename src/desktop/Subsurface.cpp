@@ -29,6 +29,7 @@ UP<CSubsurface> CSubsurface::create(WP<CPopup> pOwner) {
 UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) {
     auto subsurface             = UP<CSubsurface>(new CSubsurface());
     subsurface->m_pWindowParent = pOwner;
+    subsurface->m_pSubsurface   = pSubsurface;
     subsurface->m_pSelf         = subsurface;
     subsurface->m_pWLSurface    = CWLSurface::create();
     subsurface->m_pWLSurface->assign(pSubsurface->surface.lock(), subsurface.get());
@@ -40,6 +41,7 @@ UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWI
 UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner) {
     auto subsurface            = UP<CSubsurface>(new CSubsurface());
     subsurface->m_pPopupParent = pOwner;
+    subsurface->m_pSubsurface  = pSubsurface;
     subsurface->m_pSelf        = subsurface;
     subsurface->m_pWLSurface   = CWLSurface::create();
     subsurface->m_pWLSurface->assign(pSubsurface->surface.lock(), subsurface.get());

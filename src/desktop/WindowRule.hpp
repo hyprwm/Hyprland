@@ -36,6 +36,7 @@ class CWindowRule {
         RULE_TAG,
         RULE_WORKSPACE,
         RULE_PROP,
+        RULE_CONTENT,
     };
 
     eRuleType         ruleType = RULE_INVALID;
@@ -58,6 +59,7 @@ class CWindowRule {
     std::string       szFullscreenState = ""; // empty means any
     std::string       szOnWorkspace     = ""; // empty means any
     std::string       szWorkspace       = ""; // empty means any
+    std::string       szContentType     = ""; // empty means any
 
     // precompiled regexes
     CRuleRegexContainer rTitle;

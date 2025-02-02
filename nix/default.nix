@@ -155,7 +155,7 @@ in
 
       mesonBuildType =
         if debug
-        then "debugoptimized"
+        then "debug"
         else "release";
 
       mesonFlags = flatten [

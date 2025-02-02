@@ -11,7 +11,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
-#include "protocols/types/ContentType.hpp"
+#include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
 #include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"

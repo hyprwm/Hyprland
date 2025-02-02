@@ -1,15 +1,12 @@
 #pragma once
 
-#include <list>
 #include <sys/resource.h>
 
-#include "defines.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "desktop/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
-#include "helpers/memory/Memory.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
@@ -170,7 +167,7 @@ class CCompositor {
 
     uint64_t         m_iHyprlandPID    = 0;
     wl_event_source* m_critSigSource   = nullptr;
-    rlimit           m_sOriginalNofile = {0};
+    rlimit           m_sOriginalNofile = {};
 };
 
 inline UP<CCompositor> g_pCompositor;

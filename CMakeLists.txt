@@ -390,6 +390,13 @@ else()
   message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
 endif()
 
+if(NO_TESTS)
+  message(STATUS "building tests is disabled")
+else()
+  add_subdirectory(hyprtester)
+  message(STATUS "building tests is enabled (NO_TESTS not defined)")
+endif()
+
 # binary and symlink
 install(TARGETS Hyprland)
 

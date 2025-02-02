@@ -22,7 +22,7 @@ class CContentType {
 
     bool                       good();
     wl_client*                 client();
-    NContentType::eContentType value = NContentType::NONE;
+    NContentType::eContentType value = NContentType::CONTENT_TYPE_NONE;
 
     WP<CContentType>           self;
 

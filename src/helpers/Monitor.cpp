@@ -33,6 +33,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum NContentType::eContentType;
 
 static int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor(((CMonitor*)data)->self.lock());
@@ -800,7 +801,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
 
     // skip scheduling extra frames for fullsreen apps with vrr
     const bool shouldSkip = activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN &&
-        (*PNOBREAK == 1 || (*PNOBREAK == 2 && activeWorkspace->getFullscreenWindow()->getContentType() == NContentType::GAME)) && output->state->state().adaptiveSync;
+        (*PNOBREAK == 1 || (*PNOBREAK == 2 && activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) && output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {

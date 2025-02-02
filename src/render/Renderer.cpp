@@ -40,6 +40,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum NContentType::eContentType;
 
 extern "C" {
 #include <xf86drm.h>
@@ -1195,7 +1196,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == NContentType::GAME)) && !shouldTear) {
+    if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {
@@ -1517,7 +1518,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
         pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
     } else
-        pMonitor->output->state->setContentType(NContentType::toDRM(NContentType::NONE));
+        pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
 #endif
 
     if (pMonitor->ctmUpdated) {

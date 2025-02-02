@@ -30,6 +30,7 @@
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
+using enum NContentType::eContentType;
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
@@ -1727,7 +1728,7 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
 }
 
 NContentType::eContentType CWindow::getContentType() {
-    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : NContentType::NONE;
+    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : CONTENT_TYPE_NONE;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {

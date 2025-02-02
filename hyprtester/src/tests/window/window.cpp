@@ -87,8 +87,36 @@ bool testWindows() {
     }
 
     EXPECT(windowCount(), 2);
-    
-    // kill both kitties
+
+    // open xeyes
+    getFromSocket("/dispatch exec xeyes");
+    counter = 0;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    while (windowCount() != 3) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 20) {
+            EXPECT(windowCount(), 3);
+            return !ret;
+        }
+    }
+
+    EXPECT(windowCount(), 3);
+
+    // check some window props of xeyes, try to tile them
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("floating: 1"), true);
+        getFromSocket("/dispatch settiled class:XEyes");
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        str = getFromSocket("/clients");
+        EXPECT(str.contains("floating: 1"), false);
+    }
+
+    // kill all
     {
         auto str = getFromSocket("/clients");
         auto pos = str.find("Window ");

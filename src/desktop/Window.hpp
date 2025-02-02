@@ -19,7 +19,7 @@
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
-#include "protocols/types/ContentType.hpp"
+#include "../protocols/types/ContentType.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;

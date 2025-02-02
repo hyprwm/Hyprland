@@ -25,8 +25,8 @@
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
 
-#include "managers/HookSystemManager.hpp"
-#include "protocols/types/ContentType.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../protocols/types/ContentType.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>

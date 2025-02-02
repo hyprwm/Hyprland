@@ -3,7 +3,7 @@
 #include "WaylandProtocol.hpp"
 #include "core/Compositor.hpp"
 #include "content-type-v1.hpp"
-#include "protocols/types/ContentType.hpp"
+#include "types/ContentType.hpp"
 
 class CContentTypeManager {
   public:

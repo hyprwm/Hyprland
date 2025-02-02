@@ -29,7 +29,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
 
     m_bOpaque = buffer->opaque;
 
-    auto attrs = buffer->dmabuf();
+    const auto& attrs = buffer->dmabuf();
 
     if (!attrs.success) {
         // attempt shm

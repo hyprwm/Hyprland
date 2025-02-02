@@ -40,8 +40,8 @@ void CSinglePixelBuffer::update(const CRegion& damage) {
     ;
 }
 
-Aquamarine::SDMABUFAttrs CSinglePixelBuffer::dmabuf() {
-    return {.success = false};
+const Aquamarine::SDMABUFAttrs& CSinglePixelBuffer::dmabuf() const {
+    return m_attrs;
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CSinglePixelBuffer::beginDataPtr(uint32_t flags) {

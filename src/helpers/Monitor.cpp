@@ -1286,7 +1286,7 @@ bool CMonitor::attemptDirectScanout() {
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
 
-    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    const auto& params = PSURFACE->current.buffer->buffer->dmabuf();
     // scanout buffer isn't dmabuf, so no scanout
     if (!params.success)
         return false;
@@ -1450,7 +1450,7 @@ void CMonitorState::ensureBufferPresent() {
     }
 
     if (STATE.buffer) {
-        if (const auto params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
+        if (const auto& params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
             return;
     }
 

@@ -96,8 +96,8 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     tableFD = std::move(fds[1]);
 }
 
-CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
-    buffer = makeShared<CDMABuffer>(id, client, attrs);
+CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs&& attrs) {
+    buffer = makeShared<CDMABuffer>(id, client, std::move(attrs));
 
     buffer->resource->buffer = buffer;
 
@@ -139,12 +139,12 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
             return;
         }
 
-        if (m_attrs.fds.at(plane) != -1) {
+        if (m_attrs.fds.at(plane).isValid()) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_PLANE_IDX, "plane used");
             return;
         }
 
-        m_attrs.fds[plane]     = fd;
+        m_attrs.fds[plane]     = CFileDescriptor{fd};
         m_attrs.strides[plane] = stride;
         m_attrs.offsets[plane] = offset;
         m_attrs.modifier       = ((uint64_t)modHi << 32) | modLo;
@@ -189,7 +189,7 @@ void CLinuxDMABUFParamsResource::create(uint32_t id, Vector2D size, uint32_t for
     used           = true;
     m_attrs.size   = size;
     m_attrs.format = format;
-    m_attrs.planes = 4 - std::count(m_attrs.fds.begin(), m_attrs.fds.end(), -1);
+    m_attrs.planes = 4 - std::count_if(m_attrs.fds.begin(), m_attrs.fds.end(), [](const auto& fd) { return !fd.isValid(); });
 
     if UNLIKELY (!verify()) {
         LOGM(ERR, "Failed creating a dmabuf: verify() said no");
@@ -204,10 +204,11 @@ void CLinuxDMABUFParamsResource::create(uint32_t id, Vector2D size, uint32_t for
 
     LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, m_attrs.size, NFormatUtils::drmFormatName(m_attrs.format), m_attrs.planes);
     for (int i = 0; i < m_attrs.planes; ++i) {
-        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs.modifier, m_attrs.fds[i], m_attrs.strides[i], m_attrs.offsets[i]);
+        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs.modifier, m_attrs.fds[i].get(), m_attrs.strides[i], m_attrs.offsets[i]);
     }
 
-    auto& buf = PROTO::linuxDma->m_vBuffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, resource->client(), m_attrs));
+    auto& buf = PROTO::linuxDma->m_vBuffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, resource->client(), std::move(m_attrs)));
+    m_attrs   = {};
 
     if UNLIKELY (!buf->good() || !buf->buffer->success) {
         resource->sendFailed();
@@ -227,7 +228,7 @@ bool CLinuxDMABUFParamsResource::commence() {
     for (int i = 0; i < m_attrs.planes; i++) {
         uint32_t handle = 0;
 
-        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD.get(), m_attrs.fds.at(i), &handle)) {
+        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD.get(), m_attrs.fds.at(i).get(), &handle)) {
             LOGM(ERR, "Failed to import dmabuf fd");
             return false;
         }
@@ -247,19 +248,19 @@ bool CLinuxDMABUFParamsResource::verify() {
         return false;
     }
 
-    if UNLIKELY (m_attrs.fds.at(0) < 0) {
+    if UNLIKELY (!m_attrs.fds.at(0).isValid()) {
         resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No plane 0");
         return false;
     }
 
     bool empty = false;
     for (auto const& plane : m_attrs.fds) {
-        if (empty && plane != -1) {
+        if (empty && plane.isValid()) {
             resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "Gap in planes");
             return false;
         }
 
-        if (plane == -1) {
+        if (!plane.isValid()) {
             empty = true;
             continue;
         }

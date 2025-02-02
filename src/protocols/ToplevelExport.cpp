@@ -172,7 +172,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
+    if (const auto& attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
         bufferDMA = true;
 
         if (attrs.format != dmabufFormat) {
@@ -180,7 +180,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
             PROTO::toplevelExport->destroyResource(this);
             return;
         }
-    } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
+    } else if (const auto& attrs = PBUFFER->buffer->shm(); attrs.success) {
         if (attrs.format != shmFormat) {
             resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::toplevelExport->destroyResource(this);

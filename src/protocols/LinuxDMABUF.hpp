@@ -16,7 +16,7 @@ class CWLSurfaceResource;
 
 class CLinuxDMABuffer {
   public:
-    CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
+    CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs&& attrs);
     ~CLinuxDMABuffer();
 
     bool good();

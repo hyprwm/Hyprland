@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "WaylandProtocol.hpp"
 #include "wayland-drm.hpp"
 #include "types/Buffer.hpp"
@@ -9,7 +10,7 @@
 
 class CMesaDRMBufferResource {
   public:
-    CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
+    CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs&& attrs);
     ~CMesaDRMBufferResource();
 
     bool good();

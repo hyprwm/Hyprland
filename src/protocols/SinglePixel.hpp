@@ -15,7 +15,7 @@ class CSinglePixelBuffer : public IHLBuffer {
     virtual Aquamarine::eBufferType                type();
     virtual bool                                   isSynchronous();
     virtual void                                   update(const CRegion& damage);
-    virtual Aquamarine::SDMABUFAttrs               dmabuf();
+    virtual const Aquamarine::SDMABUFAttrs&        dmabuf() const;
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
     virtual void                                   endDataPtr();
     //
@@ -23,7 +23,8 @@ class CSinglePixelBuffer : public IHLBuffer {
     bool success = false;
 
   private:
-    uint32_t color = 0x00000000;
+    uint32_t                       color   = 0x00000000;
+    const Aquamarine::SDMABUFAttrs m_attrs = {.success = false};
 
     struct {
         CHyprSignalListener resourceDestroy;

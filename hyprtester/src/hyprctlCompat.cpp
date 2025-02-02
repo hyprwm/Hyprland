@@ -77,7 +77,6 @@ std::vector<SInstanceData> instances() {
     return result;
 }
 
-
 std::string getFromSocket(const std::string& cmd) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -89,8 +88,8 @@ std::string getFromSocket(const std::string& cmd) {
         return "";
     }
 
-    sockaddr_un       serverAddress = {0};
-    serverAddress.sun_family        = AF_UNIX;
+    sockaddr_un serverAddress = {0};
+    serverAddress.sun_family  = AF_UNIX;
 
     std::string socketPath = getRuntimeDir() + "/" + HIS + "/.socket.sock";
 

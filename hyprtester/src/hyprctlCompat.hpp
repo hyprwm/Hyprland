@@ -13,4 +13,4 @@ struct SInstanceData {
 };
 
 std::vector<SInstanceData> instances();
-std::string getFromSocket(const std::string& cmd);
+std::string                getFromSocket(const std::string& cmd);

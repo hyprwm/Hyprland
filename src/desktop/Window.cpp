@@ -561,6 +561,11 @@ void CWindow::onMap() {
         *m_fBorderAngleAnimationProgress = 1.f;
     }
 
+    m_vRealSize->setUpdateCallback([this](auto) {
+        if (m_bIsFloating)
+            sendWindowSize(m_vRealSize->goal());
+    });
+
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
     g_pCompositor->m_vWindowFocusHistory.push_back(m_pSelf);

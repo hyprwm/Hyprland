@@ -12,6 +12,7 @@
 
 // Required runtime deps for checks:
 // - kitty
+// - xeyes
 
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"

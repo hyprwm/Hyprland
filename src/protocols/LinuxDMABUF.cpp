@@ -119,16 +119,14 @@ bool CLinuxDMABuffer::good() {
     return buffer && buffer->good();
 }
 
-CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_) : resource(resource_) {
+CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV1>&& resource_) : resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
     resource->setOnDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
     resource->setDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
 
-    attrs = makeShared<Aquamarine::SDMABUFAttrs>();
-
-    attrs->success = true;
+    m_attrs.success = true;
 
     resource->setAdd([this](CZwpLinuxBufferParamsV1* r, int32_t fd, uint32_t plane, uint32_t offset, uint32_t stride, uint32_t modHi, uint32_t modLo) {
         if (used) {
@@ -141,15 +139,15 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
             return;
         }
 
-        if (attrs->fds.at(plane) != -1) {
+        if (m_attrs.fds.at(plane) != -1) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_PLANE_IDX, "plane used");
             return;
         }
 
-        attrs->fds[plane]     = fd;
-        attrs->strides[plane] = stride;
-        attrs->offsets[plane] = offset;
-        attrs->modifier       = ((uint64_t)modHi << 32) | modLo;
+        m_attrs.fds[plane]     = fd;
+        m_attrs.strides[plane] = stride;
+        m_attrs.offsets[plane] = offset;
+        m_attrs.modifier       = ((uint64_t)modHi << 32) | modLo;
     });
 
     resource->setCreate([this](CZwpLinuxBufferParamsV1* r, int32_t w, int32_t h, uint32_t fmt, zwpLinuxBufferParamsV1Flags flags) {
@@ -164,11 +162,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
             return;
         }
 
-        attrs->size   = {w, h};
-        attrs->format = fmt;
-        attrs->planes = 4 - std::count(attrs->fds.begin(), attrs->fds.end(), -1);
-
-        create(0);
+        create(0, {w, h}, fmt);
     });
 
     resource->setCreateImmed([this](CZwpLinuxBufferParamsV1* r, uint32_t id, int32_t w, int32_t h, uint32_t fmt, zwpLinuxBufferParamsV1Flags flags) {
@@ -183,11 +177,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
             return;
         }
 
-        attrs->size   = {w, h};
-        attrs->format = fmt;
-        attrs->planes = 4 - std::count(attrs->fds.begin(), attrs->fds.end(), -1);
-
-        create(id);
+        create(id, {w, h}, fmt);
     });
 }
 
@@ -195,8 +185,11 @@ bool CLinuxDMABUFParamsResource::good() {
     return resource->resource();
 }
 
-void CLinuxDMABUFParamsResource::create(uint32_t id) {
-    used = true;
+void CLinuxDMABUFParamsResource::create(uint32_t id, Vector2D size, uint32_t format) {
+    used           = true;
+    m_attrs.size   = size;
+    m_attrs.format = format;
+    m_attrs.planes = 4 - std::count(m_attrs.fds.begin(), m_attrs.fds.end(), -1);
 
     if UNLIKELY (!verify()) {
         LOGM(ERR, "Failed creating a dmabuf: verify() said no");
@@ -209,12 +202,12 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
         return;
     }
 
-    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, NFormatUtils::drmFormatName(attrs->format), attrs->planes);
-    for (int i = 0; i < attrs->planes; ++i) {
-        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs->modifier, attrs->fds[i], attrs->strides[i], attrs->offsets[i]);
+    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, m_attrs.size, NFormatUtils::drmFormatName(m_attrs.format), m_attrs.planes);
+    for (int i = 0; i < m_attrs.planes; ++i) {
+        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs.modifier, m_attrs.fds[i], m_attrs.strides[i], m_attrs.offsets[i]);
     }
 
-    auto buf = PROTO::linuxDma->m_vBuffers.emplace_back(makeShared<CLinuxDMABuffer>(id, resource->client(), *attrs));
+    auto& buf = PROTO::linuxDma->m_vBuffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, resource->client(), m_attrs));
 
     if UNLIKELY (!buf->good() || !buf->buffer->success) {
         resource->sendFailed();
@@ -231,10 +224,10 @@ bool CLinuxDMABUFParamsResource::commence() {
     if (!PROTO::linuxDma->mainDeviceFD.isValid())
         return true;
 
-    for (int i = 0; i < attrs->planes; i++) {
+    for (int i = 0; i < m_attrs.planes; i++) {
         uint32_t handle = 0;
 
-        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD.get(), attrs->fds.at(i), &handle)) {
+        if (drmPrimeFDToHandle(PROTO::linuxDma->mainDeviceFD.get(), m_attrs.fds.at(i), &handle)) {
             LOGM(ERR, "Failed to import dmabuf fd");
             return false;
         }
@@ -249,18 +242,18 @@ bool CLinuxDMABUFParamsResource::commence() {
 }
 
 bool CLinuxDMABUFParamsResource::verify() {
-    if UNLIKELY (attrs->planes <= 0) {
+    if UNLIKELY (m_attrs.planes <= 0) {
         resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No planes added");
         return false;
     }
 
-    if UNLIKELY (attrs->fds.at(0) < 0) {
+    if UNLIKELY (m_attrs.fds.at(0) < 0) {
         resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No plane 0");
         return false;
     }
 
     bool empty = false;
-    for (auto const& plane : attrs->fds) {
+    for (auto const& plane : m_attrs.fds) {
         if (empty && plane != -1) {
             resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "Gap in planes");
             return false;
@@ -272,16 +265,16 @@ bool CLinuxDMABUFParamsResource::verify() {
         }
     }
 
-    if UNLIKELY (attrs->size.x < 1 || attrs->size.y < 1) {
+    if UNLIKELY (m_attrs.size.x < 1 || m_attrs.size.y < 1) {
         resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_DIMENSIONS, "x/y < 1");
         return false;
     }
 
-    for (size_t i = 0; i < (size_t)attrs->planes; ++i) {
-        if ((uint64_t)attrs->offsets.at(i) + (uint64_t)attrs->strides.at(i) * attrs->size.y > UINT32_MAX) {
+    for (size_t i = 0; i < (size_t)m_attrs.planes; ++i) {
+        if ((uint64_t)m_attrs.offsets.at(i) + (uint64_t)m_attrs.strides.at(i) * m_attrs.size.y > UINT32_MAX) {
             resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_OUT_OF_BOUNDS,
-                            std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, (uint64_t)attrs->offsets.at(i),
-                                        (uint64_t)attrs->strides.at(i), attrs->size.y, (uint64_t)attrs->offsets.at(i) + (uint64_t)attrs->strides.at(i)));
+                            std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, (uint64_t)m_attrs.offsets.at(i),
+                                        (uint64_t)m_attrs.strides.at(i), m_attrs.size.y, (uint64_t)m_attrs.offsets.at(i) + (uint64_t)m_attrs.strides.at(i)));
             return false;
         }
     }
@@ -289,7 +282,8 @@ bool CLinuxDMABUFParamsResource::verify() {
     return true;
 }
 
-CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
+CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(UP<CZwpLinuxDmabufFeedbackV1>&& resource_, SP<CWLSurfaceResource> surface_) :
+    surface(surface_), resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -340,7 +334,7 @@ void CLinuxDMABUFFeedbackResource::sendDefaultFeedback() {
     lastFeedbackWasScanout = false;
 }
 
-CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : resource(resource_) {
+CLinuxDMABUFResource::CLinuxDMABUFResource(UP<CZwpLinuxDmabufV1>&& resource_) : resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -348,8 +342,8 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : re
     resource->setDestroy([this](CZwpLinuxDmabufV1* r) { PROTO::linuxDma->destroyResource(this); });
 
     resource->setGetDefaultFeedback([](CZwpLinuxDmabufV1* r, uint32_t id) {
-        const auto RESOURCE =
-            PROTO::linuxDma->m_vFeedbacks.emplace_back(makeShared<CLinuxDMABUFFeedbackResource>(makeShared<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), nullptr));
+        const auto& RESOURCE =
+            PROTO::linuxDma->m_vFeedbacks.emplace_back(makeUnique<CLinuxDMABUFFeedbackResource>(makeUnique<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), nullptr));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -359,8 +353,8 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : re
     });
 
     resource->setGetSurfaceFeedback([](CZwpLinuxDmabufV1* r, uint32_t id, wl_resource* surf) {
-        const auto RESOURCE = PROTO::linuxDma->m_vFeedbacks.emplace_back(
-            makeShared<CLinuxDMABUFFeedbackResource>(makeShared<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surf)));
+        const auto& RESOURCE = PROTO::linuxDma->m_vFeedbacks.emplace_back(
+            makeUnique<CLinuxDMABUFFeedbackResource>(makeUnique<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surf)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -370,7 +364,7 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : re
     });
 
     resource->setCreateParams([](CZwpLinuxDmabufV1* r, uint32_t id) {
-        const auto RESOURCE = PROTO::linuxDma->m_vParams.emplace_back(makeShared<CLinuxDMABUFParamsResource>(makeShared<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
+        const auto& RESOURCE = PROTO::linuxDma->m_vParams.emplace_back(makeUnique<CLinuxDMABUFParamsResource>(makeUnique<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -514,7 +508,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
 }
 
 void CLinuxDMABufV1Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CLinuxDMABUFResource>(makeShared<CZwpLinuxDmabufV1>(client, ver, id)));
+    const auto& RESOURCE = m_vManagers.emplace_back(makeUnique<CLinuxDMABUFResource>(makeUnique<CZwpLinuxDmabufV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -540,7 +534,7 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
 }
 
 void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor) {
-    SP<CLinuxDMABUFFeedbackResource> feedbackResource;
+    WP<CLinuxDMABUFFeedbackResource> feedbackResource;
     for (auto const& f : m_vFeedbacks) {
         if (f->surface != surface)
             continue;

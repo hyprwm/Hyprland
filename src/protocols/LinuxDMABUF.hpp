@@ -59,26 +59,25 @@ class CDMABUFFormatTable {
 
 class CLinuxDMABUFParamsResource {
   public:
-    CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
+    CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV1>&& resource_);
     ~CLinuxDMABUFParamsResource() = default;
 
-    bool                         good();
-    void                         create(uint32_t id); // 0 means not immed
+    bool                good();
+    void                create(uint32_t id, Vector2D size, uint32_t format); // 0 means not immed
 
-    SP<Aquamarine::SDMABUFAttrs> attrs;
-    WP<CLinuxDMABuffer>          createdBuffer;
-    bool                         used = false;
+    WP<CLinuxDMABuffer> createdBuffer;
+    bool                used = false;
 
   private:
-    SP<CZwpLinuxBufferParamsV1> resource;
-
+    UP<CZwpLinuxBufferParamsV1> resource;
+    Aquamarine::SDMABUFAttrs    m_attrs;
     bool                        verify();
     bool                        commence();
 };
 
 class CLinuxDMABUFFeedbackResource {
   public:
-    CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_);
+    CLinuxDMABUFFeedbackResource(UP<CZwpLinuxDmabufFeedbackV1>&& resource_, SP<CWLSurfaceResource> surface_);
     ~CLinuxDMABUFFeedbackResource() = default;
 
     bool                   good();
@@ -88,7 +87,7 @@ class CLinuxDMABUFFeedbackResource {
     SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
 
   private:
-    SP<CZwpLinuxDmabufFeedbackV1> resource;
+    UP<CZwpLinuxDmabufFeedbackV1> resource;
     bool                          lastFeedbackWasScanout = false;
 
     friend class CLinuxDMABufV1Protocol;
@@ -96,13 +95,13 @@ class CLinuxDMABUFFeedbackResource {
 
 class CLinuxDMABUFResource {
   public:
-    CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_);
+    CLinuxDMABUFResource(UP<CZwpLinuxDmabufV1>&& resource_);
 
     bool good();
     void sendMods();
 
   private:
-    SP<CZwpLinuxDmabufV1> resource;
+    UP<CZwpLinuxDmabufV1> resource;
 };
 
 class CLinuxDMABufV1Protocol : public IWaylandProtocol {
@@ -122,10 +121,10 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     void resetFormatTable();
 
     //
-    std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
-    std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
-    std::vector<SP<CLinuxDMABUFParamsResource>>   m_vParams;
-    std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
+    std::vector<UP<CLinuxDMABUFResource>>         m_vManagers;
+    std::vector<UP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
+    std::vector<UP<CLinuxDMABUFParamsResource>>   m_vParams;
+    std::vector<UP<CLinuxDMABuffer>>              m_vBuffers;
 
     UP<CDMABUFFormatTable>                        formatTable;
     dev_t                                         mainDevice;

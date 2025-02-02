@@ -16,11 +16,13 @@ class CHyprlandCTMControlResource {
     ~CHyprlandCTMControlResource();
 
     bool good();
+    void block();
 
   private:
     SP<CHyprlandCtmControlManagerV1>        resource;
 
     std::unordered_map<std::string, Mat3x3> ctms;
+    bool                                    blocked = false;
 };
 
 class CHyprlandCTMControlProtocol : public IWaylandProtocol {
@@ -37,6 +39,7 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
 
     //
     std::vector<SP<CHyprlandCTMControlResource>> m_vManagers;
+    WP<CHyprlandCTMControlResource>              m_pManager;
 
     //
     struct SCTMData {

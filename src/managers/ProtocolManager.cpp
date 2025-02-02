@@ -167,7 +167,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::xdgDialog           = makeUnique<CXDGDialogProtocol>(&xdg_dialog_v1_interface, 1, "XDGDialog");
     PROTO::singlePixel         = makeUnique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
     PROTO::securityContext     = makeUnique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
-    PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
+    PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 2, "CTMControl");
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
 
     if (*PENABLEXXCM) {

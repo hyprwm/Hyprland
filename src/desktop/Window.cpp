@@ -15,6 +15,7 @@
 #include "../managers/AnimationManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/ContentType.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
 #include "../events/Events.hpp"
@@ -29,6 +30,7 @@
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
+using enum NContentType::eContentType;
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
@@ -1723,4 +1725,17 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
         m_pXWaylandSurface->configure({windowPos, size});
     else if (m_pXDGSurface && m_pXDGSurface->toplevel)
         m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(size), size.floor());
+}
+
+NContentType::eContentType CWindow::getContentType() {
+    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : CONTENT_TYPE_NONE;
+}
+
+void CWindow::setContentType(NContentType::eContentType contentType) {
+    if (!m_pWLSurface->resource()->contentType.valid())
+        m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
+    // else disallow content type change if proto is used?
+
+    Debug::log(INFO, "ContentType for window {}", (int)contentType);
+    m_pWLSurface->resource()->contentType->value = contentType;
 }

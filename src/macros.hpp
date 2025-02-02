@@ -111,6 +111,7 @@
         }                                                                                                                                                                          \
     }
 
+#define AQUAMARINE_VERSION_NUMBER (AQUAMARINE_VERSION_MAJOR * 10000 + AQUAMARINE_VERSION_MINOR * 100 + AQUAMARINE_VERSION_PATCH)
 #define AQUAMARINE_FORWARD(name)                                                                                                                                                   \
     namespace Aquamarine {                                                                                                                                                         \
         class name;                                                                                                                                                                \

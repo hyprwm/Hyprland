@@ -48,6 +48,7 @@
 #include "../protocols/SinglePixel.hpp"
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../protocols/HyprlandSurface.hpp"
 
 #include "../protocols/core/Seat.hpp"
@@ -168,6 +169,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::singlePixel         = makeUnique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
     PROTO::securityContext     = makeUnique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
+    PROTO::inputCapture        = makeUnique<CInputCaptureProtocol>(&hyprland_input_capture_manager_v1_interface, 1, "InputCapture");    
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
 
     if (*PENABLEXXCM) {
@@ -248,6 +250,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::singlePixel.reset();
     PROTO::securityContext.reset();
     PROTO::ctm.reset();
+    PROTO::inputCapture.reset();
     PROTO::hyprlandSurface.reset();
 
     PROTO::lease.reset();

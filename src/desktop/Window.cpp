@@ -561,10 +561,12 @@ void CWindow::onMap() {
         *m_fBorderAngleAnimationProgress = 1.f;
     }
 
-    m_vRealSize->setUpdateCallback([this](auto) {
-        if (validMapped(m_pSelf) && m_bIsFloating)
-            sendWindowSize();
-    });
+    m_vRealSize->setCallbackOnBegin(
+        [this](auto) {
+            if (m_bIsMapped && m_bIsFloating)
+                sendWindowSize();
+        },
+        false);
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
@@ -1705,8 +1707,8 @@ void CWindow::sendWindowSize(bool force) {
     const auto  PMONITOR           = m_pMonitor.lock();
 
     // TODO: this should be decoupled from setWindowSize IMO
-    Vector2D    windowPos = m_vRealPosition->goal();
-    Vector2D    size      = m_vRealSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    Vector2D windowPos = m_vRealPosition->goal();
+    Vector2D size      = m_vRealSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
 
     if (m_bIsX11 && PMONITOR) {
         windowPos = g_pXWaylandManager->waylandToXWaylandCoords(windowPos);

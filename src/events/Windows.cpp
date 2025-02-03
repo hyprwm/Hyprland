@@ -686,9 +686,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
-
-    if (!PWINDOW->isX11OverrideRedirect() && PWINDOW->m_bIsX11 && PWINDOW->m_bIsFloating)
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -955,7 +952,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->setHidden(true);
 
     if (PWINDOW->isFullscreen() || !PWINDOW->m_bIsFloating) {
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true);
+        PWINDOW->sendWindowSize(true);
         g_pHyprRenderer->damageWindow(PWINDOW);
         return;
     }

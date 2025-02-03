@@ -470,7 +470,7 @@ class CWindow {
     bool                       isModal();
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
-    void                       sendWindowSize(Vector2D size, bool force = false, std::optional<Vector2D> overridePos = std::nullopt);
+    void                       sendWindowSize(bool force = false);
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);
 

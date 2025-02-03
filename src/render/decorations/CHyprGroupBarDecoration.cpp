@@ -456,15 +456,13 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
     pDraggedWindow->m_bIsFloating = pWindowInsertAfter->m_bIsFloating; // match the floating state of the window
 
-    if (pWindowInsertAfter->m_bIsFloating)
-        pDraggedWindow->sendWindowSize(pWindowInsertAfter->m_vRealSize->goal()); // match the size of the window
-
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 
     if (WINDOWINDEX == -1)
         std::swap(pDraggedHead->m_sGroupData.head, pWindowInsertEnd->m_sGroupData.head);
 
     m_pWindow->setGroupCurrent(pDraggedWindow);
+    m_pWindow->sendWindowSize();
     pDraggedWindow->applyGroupRules();
     pDraggedWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);

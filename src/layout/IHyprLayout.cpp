@@ -177,7 +177,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 
     if (!pWindow->isX11OverrideRedirect()) {
-        pWindow->sendWindowSize(pWindow->m_vRealSize->goal());
+        pWindow->sendWindowSize();
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
     } else {
@@ -363,7 +363,7 @@ void IHyprLayout::onEndDragWindow() {
                 DRAGGINGWINDOW->m_bDraggingTiled    = false;
 
                 if (pWindow->m_bIsFloating)
-                    DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal()); // match the size of the window
+                    DRAGGINGWINDOW->sendWindowSize(); // match the size of the window
 
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
@@ -609,7 +609,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         else
             DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
 
-        DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal());
+        DRAGGINGWINDOW->sendWindowSize();
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
@@ -681,7 +681,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
             }
 
-            DRAGGINGWINDOW->sendWindowSize(DRAGGINGWINDOW->m_vRealSize->goal());
+            DRAGGINGWINDOW->sendWindowSize();
         } else {
             resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
@@ -787,7 +787,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
     pWindow->updateToplevel();
-    pWindow->sendWindowSize(pWindow->m_vRealSize->goal());
+    pWindow->sendWindowSize();
     g_pHyprRenderer->damageWindow(pWindow);
 }
 

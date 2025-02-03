@@ -37,7 +37,7 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 - All of the eyecandy: gradient borders, blur, animations, shadows and much more
 - A lot of customization
-- 100% independent, no wlroots, no libweston, no kwin, no mutter.
+- 100% independent, no wlroots, no libweston, no kwin and no mutter.
 - Custom bezier curves for the best animations
 - Powerful plugin support
 - Built-in plugin manager

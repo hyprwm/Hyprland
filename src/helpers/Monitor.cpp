@@ -1019,15 +1019,17 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace == activeWorkspace)
         return;
 
-    const auto POLDWORKSPACE  = activeWorkspace;
-    POLDWORKSPACE->m_bVisible = false;
-    pWorkspace->m_bVisible    = true;
+    const auto POLDWORKSPACE = activeWorkspace;
+    if (POLDWORKSPACE)
+        POLDWORKSPACE->m_bVisible = false;
+    pWorkspace->m_bVisible = true;
 
     activeWorkspace = pWorkspace;
 
     if (!internal) {
-        const auto ANIMTOLEFT = pWorkspace->m_iID > POLDWORKSPACE->m_iID;
-        POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
+        const auto ANIMTOLEFT = POLDWORKSPACE && pWorkspace->m_iID > POLDWORKSPACE->m_iID;
+        if (POLDWORKSPACE)
+            POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
         pWorkspace->startAnim(true, ANIMTOLEFT);
 
         // move pinned windows

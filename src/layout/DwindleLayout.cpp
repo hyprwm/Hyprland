@@ -1093,7 +1093,7 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
     // create a fake node
     SDwindleNodeData node;
 
-    if (!candidate)
+    if (!candidate || candidate->monitorID() != g_pCompositor->m_pLastMonitor->ID)
         return g_pCompositor->m_pLastMonitor->vecSize;
     else {
         const auto PNODE = getNodeFromWindow(candidate);

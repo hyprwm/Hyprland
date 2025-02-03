@@ -1332,7 +1332,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (DOEXPLICIT) {
         Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
-        output->state->setExplicitInFence(explicitWaitFD.get());
+        output->state->setExplicitInFence(std::move(explicitWaitFD));
     }
 
     bool ok = output->commit();
@@ -1443,7 +1443,7 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
 }
 
 void CMonitorState::ensureBufferPresent() {
-    const auto STATE = m_pOwner->output->state->state();
+    const auto& STATE = m_pOwner->output->state->state();
     if (!STATE.enabled) {
         Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;

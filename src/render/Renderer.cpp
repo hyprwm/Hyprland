@@ -1461,13 +1461,6 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamar
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
-    // apply timelines for explicit sync
-    // save inFD otherwise reset will reset it
-    CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
-    pMonitor->output->state->resetExplicitFences();
-    if (inFD.isValid())
-        pMonitor->output->state->setExplicitInFence(inFD.get());
-
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
@@ -1514,7 +1507,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setCTM(pMonitor->ctm);
     }
 
-    bool ok = pMonitor->state.commit();
+    bool        ok   = pMonitor->state.commit();
+    const auto& inFD = pMonitor->output->state->state().explicitInFence;
     if (!ok) {
         if (inFD.isValid()) {
             Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
@@ -2288,7 +2282,7 @@ void CHyprRenderer::endRender() {
                 return;
             }
 
-            PMONITOR->output->state->setExplicitInFence(fd.take());
+            PMONITOR->output->state->setExplicitInFence(std::move(fd));
         } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();

@@ -385,9 +385,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Verify window swallowing. Get the swallower before calling onWindowCreated(PWINDOW) because getSwallower() wouldn't get it after if PWINDOW gets auto grouped.
     const auto SWALLOWER  = PWINDOW->getSwallower();
     PWINDOW->m_pSwallowed = SWALLOWER;
-    if (PWINDOW->m_pSwallowed) {
+    if (PWINDOW->m_pSwallowed)
         PWINDOW->m_pSwallowed->m_bCurrentlySwallowed = true;
-    }
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);

@@ -2217,6 +2217,9 @@ bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
 
 void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 
+    if (!pWorkspace)
+        return;
+
     const auto FULLSCREEN = pWorkspace->m_bHasFullscreenWindow;
 
     for (auto const& w : g_pCompositor->m_vWindows) {

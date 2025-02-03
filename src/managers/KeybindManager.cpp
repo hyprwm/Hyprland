@@ -367,7 +367,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     return true;
 }
 
-void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
+void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory) {
     static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
@@ -386,7 +386,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
         if (!PWINDOWTOCHANGETO->m_bPinned)
             g_pCompositor->setWindowFullscreenInternal(PLASTWINDOW, FSMODE_NONE);
 
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+        g_pCompositor->focusWindow(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
 
         if (!PWINDOWTOCHANGETO->m_bPinned)
             g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, MODE);
@@ -396,7 +396,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
         PWINDOWTOCHANGETO->m_vRealSize->warp();
     } else {
         updateRelativeCursorCoords();
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+        g_pCompositor->focusWindow(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
@@ -1473,7 +1473,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     }
 
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
-        (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
+        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, arg != 'd' && arg != 'b' && arg != 'r') :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Prioritize focus change within groups if the window is a part of it.
@@ -2221,11 +2221,13 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
         floatStatus = true;
 
     const auto  VISIBLE = args.contains("visible") || args.contains("v");
-    const auto& w       = (args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l")) ?
-              g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus, VISIBLE) :
-              g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus, VISIBLE);
+    const auto  PREV    = args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l");
+    const auto  NEXT    = args.contains("next") || args.contains("n"); // prev is default in classic alt+tab
+    const auto  HIST    = args.contains("hist") || args.contains("h");
+    const auto& w       = HIST ? g_pCompositor->getWindowCycleHist(g_pCompositor->m_pLastWindow, true, floatStatus, VISIBLE, NEXT) :
+                                 g_pCompositor->getWindowCycle(g_pCompositor->m_pLastWindow.lock(), true, floatStatus, VISIBLE, PREV);
 
-    switchToWindow(w);
+    switchToWindow(w, HIST);
 
     return {};
 }
@@ -2620,18 +2622,12 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
         g_pCompositor->m_pLastWindow->m_pLastCycledWindow.lock() :
         nullptr;
 
-    if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-        toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW, true);
-    else
-        toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW, true);
+    const bool NEED_PREV = arg == "last" || arg == "l" || arg == "prev" || arg == "p";
+    toSwap               = g_pCompositor->getWindowCycle(PLASTCYCLED ? PLASTCYCLED : PLASTWINDOW, true, std::nullopt, false, NEED_PREV);
 
     // sometimes we may come back to ourselves.
-    if (toSwap == PLASTWINDOW) {
-        if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-            toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true);
-        else
-            toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
-    }
+    if (toSwap == PLASTWINDOW)
+        toSwap = g_pCompositor->getWindowCycle(PLASTWINDOW, true, std::nullopt, false, NEED_PREV);
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, toSwap);
 

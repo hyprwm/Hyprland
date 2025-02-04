@@ -251,8 +251,9 @@ void CCompositor::setRandomSplash() {
     auto        tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     auto        local = *localtime(&tt);
 
-    static auto splashesFile = CConfigValue<std::string>("misc:splashes_file");
-    static std::vector<std::string> configSplashes = loadCustomSplashes(*splashesFile);
+    static CConfigValue<std::string> splashesFile{"misc:splashes_file"};
+    const auto SPLASHFILE = *splashesFile;
+    static std::vector<std::string> configSplashes = loadCustomSplashes(SPLASHFILE);
     const auto* SPLASHES = configSplashes.empty() ? &NSplashes::SPLASHES : &configSplashes;
 
     if (local.tm_mon + 1 == 12 && local.tm_mday >= 23 && local.tm_mday <= 27) // dec 23-27

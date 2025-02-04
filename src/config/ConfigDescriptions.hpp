@@ -1181,6 +1181,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1000, 0, 5000},
     },
+    SConfigOptionDescription{
+        .value       = "misc:splashes_file",
+        .description = "Path to a custom splashes file",
+        .type        = CONFIG_OPTION_STRING_LONG,
+        .data        = SConfigOptionDescription::SStringData{STRVAL_EMPTY},
+    },
 
     /*
      * binds:

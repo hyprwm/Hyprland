@@ -233,11 +233,27 @@ CCompositor::~CCompositor() {
         cleanup();
 }
 
+
+std::vector<std::string> CCompositor::loadCustomSplashes(const std::string& path) {
+    std::vector<std::string> customSplashes;
+    std::ifstream file(path);
+    if (!file.is_open())
+        return customSplashes;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (!line.empty())
+            customSplashes.push_back(line);
+    }
+    return customSplashes;
+}
+
 void CCompositor::setRandomSplash() {
     auto        tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     auto        local = *localtime(&tt);
 
-    const auto* SPLASHES = &NSplashes::SPLASHES;
+    static auto splashesFile = CConfigValue<std::string>("misc:splashes_file");
+    static std::vector<std::string> configSplashes = loadCustomSplashes(*splashesFile);
+    const auto* SPLASHES = configSplashes.empty() ? &NSplashes::SPLASHES : &configSplashes;
 
     if (local.tm_mon + 1 == 12 && local.tm_mday >= 23 && local.tm_mday <= 27) // dec 23-27
         SPLASHES = &NSplashes::SPLASHES_CHRISTMAS;

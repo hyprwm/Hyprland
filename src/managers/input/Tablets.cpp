@@ -161,16 +161,23 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
     const auto PTOOL = ensureTabletToolPresent(e.tool);
     const auto POS   = e.tip;
 
-    auto       x = POS.x;
-    auto       y = POS.y;
-    //Calculate transformations if active area is set
-    if (!PTAB->activeArea.empty()) {
-        if (!std::isnan(POS.x))
-            x = (POS.x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-        if (!std::isnan(POS.y))
-            y = (POS.y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-    }
-    g_pPointerManager->warpAbsolute({x, y}, PTAB);
+    if (PTAB->relativeInput)
+        g_pPointerManager->move({0, 0});
+    else {
+        auto x = POS.x;
+        auto y = POS.y;
+
+        //Calculate transformations if active area is set
+        if (!PTAB->activeArea.empty()) {
+            if (!std::isnan(POS.x))
+                x = (POS.x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
+            if (!std::isnan(POS.y))
+                y = (POS.y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
+        }
+
+        g_pPointerManager->warpAbsolute({x, y}, PTAB);
+    };
+
     refocusTablet(PTAB, PTOOL, true);
 
     if (e.in)

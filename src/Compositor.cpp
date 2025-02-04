@@ -251,9 +251,12 @@ void CCompositor::setRandomSplash() {
     auto        tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     auto        local = *localtime(&tt);
 
-    static CConfigValue<std::string> splashesFile{"misc:splashes_file"};
-    const auto SPLASHFILE = *splashesFile;
-    static std::vector<std::string> configSplashes = loadCustomSplashes(SPLASHFILE);
+    static std::vector<std::string> configSplashes;
+    if (g_pConfigManager) {
+        CConfigValue<std::string> splashesFile{"misc:splashes_file"};
+        configSplashes = loadCustomSplashes(*splashesFile);
+    }
+
     const auto* SPLASHES = configSplashes.empty() ? &NSplashes::SPLASHES : &configSplashes;
 
     if (local.tm_mon + 1 == 12 && local.tm_mday >= 23 && local.tm_mday <= 27) // dec 23-27
@@ -403,6 +406,8 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         onNewMonitor(o);
     }
     pendingOutputs.clear();
+
+    setRandomSplash(); // re-set splash after all the managers are initialized to allow for custom splashes.
 }
 
 void CCompositor::initAllSignals() {

@@ -82,7 +82,6 @@ requests:
 flags:
     See 'hyprctl --help')#";
 
-
 const std::string_view HYPRSUNSET_HELP = R"#(usage: hyprctl [flags] hyprsunset <request>
 
 requests:

@@ -233,10 +233,9 @@ CCompositor::~CCompositor() {
         cleanup();
 }
 
-
 std::vector<std::string> CCompositor::loadCustomSplashes(const std::string& path) {
     std::vector<std::string> customSplashes;
-    std::ifstream file(path);
+    std::ifstream            file(path);
     if (!file.is_open())
         return customSplashes;
     std::string line;
@@ -248,8 +247,8 @@ std::vector<std::string> CCompositor::loadCustomSplashes(const std::string& path
 }
 
 void CCompositor::setRandomSplash() {
-    auto        tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto        local = *localtime(&tt);
+    auto                            tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto                            local = *localtime(&tt);
 
     static std::vector<std::string> configSplashes;
     if (g_pConfigManager) {

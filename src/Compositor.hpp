@@ -157,17 +157,17 @@ class CCompositor {
     std::string            explicitConfigPath;
 
   private:
-    void                                  initAllSignals();
-    void                                  removeAllSignals();
-    void                                  cleanEnvironment();
-    void                                  setRandomSplash();
-    void                                  initManagers(eManagersInitStage stage);
-    void                                  prepareFallbackOutput();
-    static std::vector<std::string>       loadCustomSplashes(const std::string&);
+    void                            initAllSignals();
+    void                            removeAllSignals();
+    void                            cleanEnvironment();
+    void                            setRandomSplash();
+    void                            initManagers(eManagersInitStage stage);
+    void                            prepareFallbackOutput();
+    static std::vector<std::string> loadCustomSplashes(const std::string&);
 
-    uint64_t         m_iHyprlandPID    = 0;
-    wl_event_source* m_critSigSource   = nullptr;
-    rlimit           m_sOriginalNofile = {};
+    uint64_t                        m_iHyprlandPID    = 0;
+    wl_event_source*                m_critSigSource   = nullptr;
+    rlimit                          m_sOriginalNofile = {};
 };
 
 inline UP<CCompositor> g_pCompositor;

@@ -979,6 +979,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition->goal();
         PWINDOW->m_vSize     = PWINDOW->m_vRealSize->goal();
+        PWINDOW->sendWindowSize();
 
         PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition->value() + PWINDOW->m_vRealSize->value() / 2.f)->activeWorkspace;
 

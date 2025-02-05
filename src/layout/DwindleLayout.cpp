@@ -198,16 +198,12 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
         *PWINDOW->m_vRealPosition = wb.pos();
         *PWINDOW->m_vRealSize     = wb.size();
-
-        PWINDOW->sendWindowSize();
     } else {
         CBox wb = {calcPos, calcSize};
         wb.round(); // avoid rounding mess
 
         *PWINDOW->m_vRealSize     = wb.size();
         *PWINDOW->m_vRealPosition = wb.pos();
-
-        PWINDOW->sendWindowSize();
     }
 
     if (force) {

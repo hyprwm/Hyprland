@@ -456,9 +456,6 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         SWALLOWED->m_pMonitor = m_pMonitor;
     }
 
-    // update xwayland coords
-    sendWindowSize();
-
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -563,8 +560,10 @@ void CWindow::onMap() {
 
     m_vRealSize->setCallbackOnBegin(
         [this](auto) {
-            if (m_bIsMapped && m_bIsFloating)
-                sendWindowSize();
+            if (!m_bIsMapped || isX11OverrideRedirect())
+                return;
+
+            sendWindowSize();
         },
         false);
 
@@ -1320,7 +1319,6 @@ void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
     *m_vRealPosition = m_vRealPosition->goal() + DELTA / 2.0;
     *m_vRealSize     = NEWSIZE;
-    sendWindowSize();
 }
 
 bool CWindow::isFullscreen() {
@@ -1571,8 +1569,6 @@ void CWindow::onX11Configure(CBox box) {
     m_vPosition = m_vRealPosition->goal();
     m_vSize     = m_vRealSize->goal();
 
-    sendWindowSize(true);
-
     m_vPendingReportedSize = box.size();
     m_vReportedSize        = box.size();
 
@@ -1705,6 +1701,9 @@ Vector2D CWindow::requestedMaxSize() {
 void CWindow::sendWindowSize(bool force) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
     const auto  PMONITOR           = m_pMonitor.lock();
+
+    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_szTitle, m_vRealPosition->goal(),
+               m_vRealSize->goal(), force);
 
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = m_vRealPosition->goal();

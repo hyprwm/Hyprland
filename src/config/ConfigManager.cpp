@@ -49,6 +49,7 @@
 #include <memory>
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
+using enum NContentType::eContentType;
 
 //NOLINTNEXTLINE
 extern "C" char** environ;
@@ -1650,37 +1651,34 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             m->vrrActive = true;
             return;
-        } else if (USEVRR == 2) {
+        } else if (USEVRR == 2 || USEVRR == 3) {
             const auto PWORKSPACE = m->activeWorkspace;
 
             if (!PWORKSPACE)
                 return; // ???
 
-            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
+            bool wantVRR = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
+            if (wantVRR && USEVRR == 3) {
+                const auto contentType = PWORKSPACE->getFullscreenWindow()->getContentType();
+                wantVRR                = contentType == CONTENT_TYPE_GAME || contentType == CONTENT_TYPE_VIDEO;
+            }
 
-            if (WORKSPACEFULL) {
+            if (wantVRR) {
                 /* fullscreen */
                 m->vrrActive = true;
 
-                m->output->state->resetExplicitFences();
-                m->output->state->setAdaptiveSync(true);
+                if (!m->output->state->state().adaptiveSync) {
+                    m->output->state->setAdaptiveSync(true);
 
-                if (!m->state.test()) {
-                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
-                    m->output->state->setAdaptiveSync(false);
+                    if (!m->state.test()) {
+                        Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
+                        m->output->state->setAdaptiveSync(false);
+                    }
                 }
-
-                if (!m->state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
-
-            } else if (!WORKSPACEFULL) {
+            } else {
                 m->vrrActive = false;
 
-                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
-
-                if (!m->state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
             }
         }
     };

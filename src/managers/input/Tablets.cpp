@@ -89,17 +89,17 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 }
 
 Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeArea) {
-    auto new_pos = pos;
+    auto newPos = pos;
 
     //Calculate transformations if active area is set
     if (!activeArea.empty()) {
         if (!std::isnan(pos.x))
-            new_pos.x = (pos.x - activeArea.x) / (activeArea.w - activeArea.x);
+            newPos.x = (pos.x - activeArea.x) / (activeArea.w - activeArea.x);
         if (!std::isnan(pos.y))
-            new_pos.y = (pos.y - activeArea.y) / (activeArea.h - activeArea.y);
+            newPos.y = (pos.y - activeArea.y) / (activeArea.h - activeArea.y);
     }
 
-    return new_pos;
+    return newPos;
 }
 
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
@@ -127,9 +127,9 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
                 if (PTAB->relativeInput)
                     g_pPointerManager->move(delta);
-                else {
+                else
                     g_pPointerManager->warpAbsolute(transformToActiveRegion({x, y}, PTAB->activeArea), PTAB);
-                }
+
                 break;
             }
         }
@@ -170,9 +170,8 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 
     if (PTAB->relativeInput)
         g_pPointerManager->move({0, 0});
-    else {
+    else
         g_pPointerManager->warpAbsolute(transformToActiveRegion(POS, PTAB->activeArea), PTAB);
-    }
 
     refocusTablet(PTAB, PTOOL, true);
 

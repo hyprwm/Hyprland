@@ -392,6 +392,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Verify window swallowing. Get the swallower before calling onWindowCreated(PWINDOW) because getSwallower() wouldn't get it after if PWINDOW gets auto grouped.
     const auto SWALLOWER  = PWINDOW->getSwallower();
     PWINDOW->m_pSwallowed = SWALLOWER;
+    if (PWINDOW->m_pSwallowed)
+        PWINDOW->m_pSwallowed->m_bCurrentlySwallowed = true;
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
@@ -731,12 +733,15 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // swallowing
     if (valid(PWINDOW->m_pSwallowed)) {
-        PWINDOW->m_pSwallowed->setHidden(false);
+        if (PWINDOW->m_pSwallowed->m_bCurrentlySwallowed) {
+            PWINDOW->m_pSwallowed->m_bCurrentlySwallowed = false;
+            PWINDOW->m_pSwallowed->setHidden(false);
 
-        if (PWINDOW->m_sGroupData.pNextWindow.lock())
-            PWINDOW->m_pSwallowed->m_bGroupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
+            if (PWINDOW->m_sGroupData.pNextWindow.lock())
+                PWINDOW->m_pSwallowed->m_bGroupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
 
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
+            g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
+        }
 
         PWINDOW->m_pSwallowed->m_bGroupSwallowed = false;
         PWINDOW->m_pSwallowed.reset();

@@ -88,6 +88,20 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     PROTO::tablet->motion(tool, local);
 }
 
+Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeArea) {
+    auto new_pos = pos;
+
+    //Calculate transformations if active area is set
+    if (!activeArea.empty()) {
+        if (!std::isnan(pos.x))
+            new_pos.x = (pos.x - activeArea.x) / (activeArea.w - activeArea.x);
+        if (!std::isnan(pos.y))
+            new_pos.y = (pos.y - activeArea.y) / (activeArea.h - activeArea.y);
+    }
+
+    return new_pos;
+}
+
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
@@ -114,14 +128,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
                 if (PTAB->relativeInput)
                     g_pPointerManager->move(delta);
                 else {
-                    //Calculate transformations if active area is set
-                    if (!PTAB->activeArea.empty()) {
-                        if (!std::isnan(x))
-                            x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-                        if (!std::isnan(y))
-                            y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-                    }
-                    g_pPointerManager->warpAbsolute({x, y}, PTAB);
+                    g_pPointerManager->warpAbsolute(transformToActiveRegion({x, y}, PTAB->activeArea), PTAB);
                 }
                 break;
             }
@@ -164,19 +171,8 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
     if (PTAB->relativeInput)
         g_pPointerManager->move({0, 0});
     else {
-        auto x = POS.x;
-        auto y = POS.y;
-
-        //Calculate transformations if active area is set
-        if (!PTAB->activeArea.empty()) {
-            if (!std::isnan(POS.x))
-                x = (POS.x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-            if (!std::isnan(POS.y))
-                y = (POS.y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-        }
-
-        g_pPointerManager->warpAbsolute({x, y}, PTAB);
-    };
+        g_pPointerManager->warpAbsolute(transformToActiveRegion(POS, PTAB->activeArea), PTAB);
+    }
 
     refocusTablet(PTAB, PTOOL, true);
 

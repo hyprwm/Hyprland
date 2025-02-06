@@ -379,7 +379,10 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        // some things may force us to ignore the special/not special disparity
+        const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
+
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         // render active window after all others of this pass
@@ -390,10 +393,13 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
+        w.reset();
     }
 
     if (lastWindow)
         renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
+
+    lastWindow.reset();
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -403,7 +409,10 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        // some things may force us to ignore the special/not special disparity
+        const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
+
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         // render the bad boy
@@ -419,7 +428,10 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         if (!w->m_bIsFloating || w->m_bPinned)
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        // some things may force us to ignore the special/not special disparity
+        const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
+
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_pMonitor != pWorkspace->m_pMonitor)

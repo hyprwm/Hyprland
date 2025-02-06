@@ -46,7 +46,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
         return;
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    m_sFramebuffer.unbind();
 
     listeners.destroyBuffer = buffer->events.destroy.registerListener([this](std::any d) { g_pHyprRenderer->onRenderbufferDestroy(this); });
 
@@ -68,11 +68,7 @@ void CRenderbuffer::bindFB() {
 
 void CRenderbuffer::unbind() {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
-#ifndef GLES2
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-#endif
+    m_sFramebuffer.unbind();
 }
 
 CFramebuffer* CRenderbuffer::getFB() {

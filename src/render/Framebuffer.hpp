@@ -11,6 +11,7 @@ class CFramebuffer {
     bool         alloc(int w, int h, uint32_t format = GL_RGBA);
     void         addStencil(SP<CTexture> tex);
     void         bind();
+    void         unbind();
     void         release();
     void         reset();
     bool         isAllocated();

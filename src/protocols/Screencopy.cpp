@@ -289,6 +289,12 @@ bool CScreencopyFrame::copyShm() {
 
     g_pHyprOpenGL->m_RenderData.pMonitor.reset();
 
+#ifndef GLES2
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#endif
+
     LOGM(TRACE, "Copied frame via shm");
 
     return true;

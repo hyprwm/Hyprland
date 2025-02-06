@@ -475,7 +475,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
                 if (flipRB) {
                     for (size_t i = 0; i < shmBuffer.size(); i += 4) {
-                        std::swap(shmBuffer.at(i), shmBuffer.at(i + 2)); // little-endian!!!!!!
+                        std::swap(shmBuffer[i], shmBuffer[i + 2]); // little-endian!!!!!!
                     }
                 }
             } else {

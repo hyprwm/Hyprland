@@ -402,14 +402,14 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     result.reserve(mods.size());
 
     bool linearIsExternal = false;
-    for (size_t i = 0; i < mods.size(); ++i) {
-        if (external.at(i)) {
-            if (mods.at(i) == DRM_FORMAT_MOD_LINEAR)
+    for (size_t i = 0; i < std::min(mods.size(), external.size()); ++i) {
+        if (external[i]) {
+            if (mods[i] == DRM_FORMAT_MOD_LINEAR)
                 linearIsExternal = true;
             continue;
         }
 
-        result.push_back(mods.at(i));
+        result.push_back(mods[i]);
     }
 
     // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)

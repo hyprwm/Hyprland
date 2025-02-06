@@ -482,7 +482,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadStandardCursors(std::string cons
 
     // load the default xcursor shapes that exist in the theme
     for (size_t i = 0; i < XCURSOR_STANDARD_NAMES.size(); ++i) {
-        std::string shape{XCURSOR_STANDARD_NAMES.at(i)};
+        std::string shape{XCURSOR_STANDARD_NAMES[i]};
         auto        xImages = XcursorShapeLoadImages(i << 1 /* wtf xcursor? */, name.c_str(), size);
 
         if (!xImages) {

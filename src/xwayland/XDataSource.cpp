@@ -57,8 +57,8 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
         mimeAtom = HYPRATOMS["UTF8_STRING"];
     else {
         for (size_t i = 0; i < mimeTypes.size(); ++i) {
-            if (mimeTypes.at(i) == mime) {
-                mimeAtom = mimeAtoms.at(i);
+            if (mimeTypes[i] == mime) {
+                mimeAtom = mimeAtoms[i];
                 break;
             }
         }

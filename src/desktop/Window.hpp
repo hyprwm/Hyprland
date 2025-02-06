@@ -474,6 +474,7 @@ class CWindow {
     void                       sendWindowSize(bool force = false);
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);
+    void                       deactivateGroupMembers();
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

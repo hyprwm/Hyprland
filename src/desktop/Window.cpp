@@ -1748,3 +1748,19 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
     Debug::log(INFO, "ContentType for window {}", (int)contentType);
     m_pWLSurface->resource()->contentType->value = contentType;
 }
+
+void CWindow::deactivateGroupMembers() {
+    auto curr = getGroupHead();
+    while (curr) {
+        if (curr != m_pSelf.lock()) {
+            if (curr->m_bIsX11)
+                curr->m_pXWaylandSurface->activate(false);
+            else if (curr->m_pXDGSurface && curr->m_pXDGSurface->toplevel)
+                curr->m_pXDGSurface->toplevel->setActive(false);
+        }
+
+        curr = curr->m_sGroupData.pNextWindow.lock();
+        if (curr == getGroupHead())
+            break;
+    }
+}

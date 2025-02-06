@@ -22,7 +22,7 @@ CRenderbuffer::~CRenderbuffer() {
 }
 
 CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_pHLBuffer(buffer), m_uDrmFormat(format) {
-    auto dma = buffer->dmabuf();
+    const auto& dma = buffer->dmabuf();
 
     m_iImage = g_pHyprOpenGL->createEGLImage(dma);
     if (m_iImage == EGL_NO_IMAGE_KHR) {

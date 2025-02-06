@@ -347,18 +347,19 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             continue;
 
         if (!allowsInput) {
-            const Vector2D offset =
-                p->m_pResource && p->m_pResource->surface ? (p->size() - p->m_pResource->geometry.size()) / 2.F - p->m_pResource->surface->current.geometry.pos() : Vector2D{};
-            const Vector2D size = p->m_pResource ? p->m_pResource->geometry.size() : p->size();
+            const bool HASSURFACE = p->m_pResource && p->m_pResource->surface;
 
-            const auto     BOX = CBox{p->coordsGlobal() + offset, size};
+            Vector2D   offset = HASSURFACE ? p->m_pResource->surface->current.geometry.pos() : Vector2D{};
+            Vector2D   size   = HASSURFACE ? p->m_pResource->surface->current.geometry.size() : p->size();
+
+            if (size == Vector2D{})
+                size = p->size();
+
+            const auto BOX = CBox{p->coordsGlobal() + offset, size};
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const Vector2D offset =
-                p->m_pResource && p->m_pResource->surface ? (p->size() - p->m_pResource->geometry.size()) / 2.F - p->m_pResource->surface->current.geometry.pos() : Vector2D{};
-            const auto REGION =
-                CRegion{p->m_pWLSurface->resource()->current.input}.intersect(CBox{{}, p->m_pWLSurface->resource()->current.size}).translate(p->coordsGlobal() + offset);
+            const auto REGION = CRegion{p->m_pWLSurface->resource()->current.input}.intersect(CBox{{}, p->m_pWLSurface->resource()->current.size}).translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

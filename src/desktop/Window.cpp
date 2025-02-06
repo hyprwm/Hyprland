@@ -1729,15 +1729,30 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
         m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(size), size.floor());
 }
 
+SP<CWLSurfaceResource> CWindow::getSurfaceResource() {
+    if (m_bIsX11 && m_pXWaylandSurface)
+        return m_pXWaylandSurface->surface.lock();
+    else if (m_pWLSurface)
+        return m_pWLSurface->resource();
+    else
+        return nullptr;
+}
+
 NContentType::eContentType CWindow::getContentType() {
-    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : CONTENT_TYPE_NONE;
+    const auto resource = getSurfaceResource();
+    return resource && resource->contentType.valid() ? resource->contentType->value : CONTENT_TYPE_NONE;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {
-    if (!m_pWLSurface->resource()->contentType.valid())
-        m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
+    const auto resource = getSurfaceResource();
+    if (!resource) {
+        Debug::log(ERR, "Can't set content type for window without surface");
+        return;
+    }
+    if (!resource->contentType.valid())
+        resource->contentType = PROTO::contentType->getContentType(resource);
     // else disallow content type change if proto is used?
 
-    Debug::log(INFO, "ContentType for window {}", (int)contentType);
-    m_pWLSurface->resource()->contentType->value = contentType;
+    Debug::log(TRACE, "ContentType for window {}", (int)contentType);
+    resource->contentType->value = contentType;
 }

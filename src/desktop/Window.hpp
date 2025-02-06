@@ -20,6 +20,7 @@
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
 #include "../protocols/types/ContentType.hpp"
+#include "protocols/core/Compositor.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -472,6 +473,7 @@ class CWindow {
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
     void                       sendWindowSize(Vector2D size, bool force = false, std::optional<Vector2D> overridePos = std::nullopt);
+    SP<CWLSurfaceResource>     getSurfaceResource();
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);
 

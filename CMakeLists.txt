@@ -9,6 +9,7 @@ project(
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
 
+include(CTest)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
 
@@ -395,7 +396,6 @@ endif()
 if(NO_TESTS)
   message(STATUS "building tests is disabled")
 else()
-  add_subdirectory(hyprtester)
   message(STATUS "building tests is enabled (NO_TESTS not defined)")
 endif()
 
@@ -452,3 +452,16 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
   PATTERN "*.h*")
+
+
+if (NOT NO_TESTS)
+  add_custom_target(tests)
+
+  add_subdirectory(hyprtester)
+  add_test(
+    NAME "Main Test"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
+    COMMAND hyprtester)
+  
+  add_dependencies(tests hyprtester)
+endif()

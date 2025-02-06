@@ -451,9 +451,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 WORKSPACEID count;
                 if (wantsCountGroup)
-                    count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
-                                      wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                      wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    count =
+                        getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                  wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
                     count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
                                        wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,

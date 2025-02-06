@@ -20,10 +20,10 @@
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
 #include "../protocols/types/ContentType.hpp"
-#include "protocols/core/Compositor.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
+class CWLSurfaceResource;
 
 enum eIdleInhibitMode : uint8_t {
     IDLEINHIBIT_NONE = 0,

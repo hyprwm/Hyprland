@@ -1730,7 +1730,10 @@ void CWindow::sendWindowSize(Vector2D size, bool force, std::optional<Vector2D> 
 }
 
 NContentType::eContentType CWindow::getContentType() {
-    return m_pWLSurface->resource()->contentType.valid() ? m_pWLSurface->resource()->contentType->value : CONTENT_TYPE_NONE;
+    if (!m_pWLSurface || !m_pWLSurface->resource() || !m_pWLSurface->resource()->contentType.valid())
+        return CONTENT_TYPE_NONE;
+
+    return m_pWLSurface->resource()->contentType->value;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {

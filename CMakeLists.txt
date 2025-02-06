@@ -9,6 +9,7 @@ project(
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
 
+include(CTest)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
 
@@ -340,7 +341,8 @@ protocolnew("protocols" "wayland-drm" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-ctm-control-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-surface-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-lock-notify-v1" true)
-protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-mapping-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-mapping-v1"
+            true)
 
 protocolnew("staging/tearing-control" "tearing-control-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
@@ -393,7 +395,6 @@ endif()
 if(NO_TESTS)
   message(STATUS "building tests is disabled")
 else()
-  add_subdirectory(hyprtester)
   message(STATUS "building tests is enabled (NO_TESTS not defined)")
 endif()
 
@@ -451,5 +452,16 @@ install(
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "*.hpp"
-  PATTERN "*.inc"
-  )
+  PATTERN "*.inc")
+
+if(NOT NO_TESTS)
+  add_custom_target(tests)
+
+  add_subdirectory(hyprtester)
+  add_test(
+    NAME "Main Test"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
+    COMMAND hyprtester)
+
+  add_dependencies(tests hyprtester)
+endif()

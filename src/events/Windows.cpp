@@ -688,13 +688,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
-
-    // Fix some X11 popups being invisible / having incorrect size on open.
-    // What the ACTUAL FUCK is going on?????? I HATE X11
-    if (!PWINDOW->isX11OverrideRedirect() && PWINDOW->m_bIsX11 && PWINDOW->m_bIsFloating) {
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true, PWINDOW->m_vRealPosition->goal() - Vector2D{1, 1});
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true);
-    }
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -964,7 +957,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->setHidden(true);
 
     if (PWINDOW->isFullscreen() || !PWINDOW->m_bIsFloating) {
-        PWINDOW->sendWindowSize(PWINDOW->m_vRealSize->goal(), true);
+        PWINDOW->sendWindowSize(true);
         g_pHyprRenderer->damageWindow(PWINDOW);
         return;
     }

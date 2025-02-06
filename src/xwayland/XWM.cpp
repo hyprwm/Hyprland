@@ -1051,13 +1051,13 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     };
 
     for (size_t i = 0; i < interestingProps.size(); i++) {
-        xcb_get_property_cookie_t cookie = xcb_get_property(connection, 0, surf->xID, interestingProps.at(i), XCB_ATOM_ANY, 0, 2048);
+        xcb_get_property_cookie_t cookie = xcb_get_property(connection, 0, surf->xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
         xcb_get_property_reply_t* reply  = xcb_get_property_reply(connection, cookie, nullptr);
         if (!reply) {
             Debug::log(ERR, "[xwm] Failed to get window property");
             continue;
         }
-        readProp(surf, interestingProps.at(i), reply);
+        readProp(surf, interestingProps[i], reply);
         free(reply);
     }
 }

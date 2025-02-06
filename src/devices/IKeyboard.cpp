@@ -126,14 +126,14 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         updateModifiers(0, 0, modifiersState.locked, modifiersState.group);
     }
 
-    for (size_t i = 0; i < LEDNAMES.size(); ++i) {
-        ledIndexes.at(i) = xkb_map_led_get_index(xkbKeymap, LEDNAMES.at(i));
-        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES.at(i), ledIndexes.at(i));
+    for (size_t i = 0; i < std::min(LEDNAMES.size(), ledIndexes.size()); ++i) {
+        ledIndexes[i] = xkb_map_led_get_index(xkbKeymap, LEDNAMES[i]);
+        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES[i], ledIndexes[i]);
     }
 
-    for (size_t i = 0; i < MODNAMES.size(); ++i) {
-        modIndexes.at(i) = xkb_map_mod_get_index(xkbKeymap, MODNAMES.at(i));
-        Debug::log(LOG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES.at(i), modIndexes.at(i));
+    for (size_t i = 0; i < std::min(MODNAMES.size(), modIndexes.size()); ++i) {
+        modIndexes[i] = xkb_map_mod_get_index(xkbKeymap, MODNAMES[i]);
+        Debug::log(LOG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES[i], modIndexes[i]);
     }
 
     updateKeymapFD();
@@ -289,8 +289,8 @@ std::optional<uint32_t> IKeyboard::getLEDs() {
         return {};
 
     uint32_t leds = 0;
-    for (uint32_t i = 0; i < LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(xkbState, ledIndexes.at(i)))
+    for (uint32_t i = 0; i < std::min((size_t)LED_COUNT, ledIndexes.size()); ++i) {
+        if (xkb_state_led_index_is_active(xkbState, ledIndexes[i]))
             leds |= (1 << i);
     }
 
@@ -323,10 +323,10 @@ uint32_t IKeyboard::getModifiers() {
     uint32_t modMask = modifiersState.depressed | modifiersState.latched;
     uint32_t mods    = 0;
     for (size_t i = 0; i < modIndexes.size(); ++i) {
-        if (modIndexes.at(i) == XKB_MOD_INVALID)
+        if (modIndexes[i] == XKB_MOD_INVALID)
             continue;
 
-        if (!(modMask & (1 << modIndexes.at(i))))
+        if (!(modMask & (1 << modIndexes[i])))
             continue;
 
         mods |= (1 << i);

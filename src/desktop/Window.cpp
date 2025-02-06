@@ -1626,17 +1626,17 @@ PHLWINDOW CWindow::getSwallower() {
     if (!(*PSWALLOWREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_szClass, *PSWALLOWREGEX); });
 
-    if (candidates.size() <= 0)
+    if (candidates.size() == 0)
         return nullptr;
 
     if (!(*PSWALLOWEXREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_szTitle, *PSWALLOWEXREGEX); });
 
-    if (candidates.size() <= 0)
+    if (candidates.size() == 0)
         return nullptr;
 
     if (candidates.size() == 1)
-        return candidates.at(0);
+        return candidates[0];
 
     // walk up the focus history and find the last focused
     for (auto const& w : g_pCompositor->m_vWindowFocusHistory) {
@@ -1648,7 +1648,7 @@ PHLWINDOW CWindow::getSwallower() {
     }
 
     // if none are found (??) then just return the first one
-    return candidates.at(0);
+    return candidates[0];
 }
 
 void CWindow::unsetWindowData(eOverridePriority priority) {

@@ -1357,7 +1357,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
 
     int        nextOrPrev = 0;
     for (size_t i = 0; i < cycle.size(); ++i) {
-        if (PWORKSPACEDATA->orientation == cycle.at(i)) {
+        if (PWORKSPACEDATA->orientation == cycle[i]) {
             nextOrPrev = i + direction;
             break;
         }

@@ -11,6 +11,7 @@
 #include "../render/Renderer.hpp"
 
 #include <algorithm>
+#include <hyprutils/math/Vector2D.hpp>
 
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -290,29 +291,28 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
 
     auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
 
-    int  origin_x = 0;
-    int  origin_y = 0;
+    auto origin = Vector2D(0, 0);
     switch (PMONITOR->transform) {
         case WL_OUTPUT_TRANSFORM_FLIPPED_180:
         case WL_OUTPUT_TRANSFORM_90: {
-            origin_y = PMONITOR->vecPixelSize.y - box.height;
+            origin.y = PMONITOR->vecPixelSize.y - box.height;
             break;
         }
         case WL_OUTPUT_TRANSFORM_FLIPPED_270:
         case WL_OUTPUT_TRANSFORM_180: {
-            origin_x = PMONITOR->vecPixelSize.x - box.width;
-            origin_y = PMONITOR->vecPixelSize.y - box.height;
+            origin.x = PMONITOR->vecPixelSize.x - box.width;
+            origin.y = PMONITOR->vecPixelSize.y - box.height;
             break;
         }
         case WL_OUTPUT_TRANSFORM_FLIPPED:
         case WL_OUTPUT_TRANSFORM_270: {
-            origin_x = PMONITOR->vecPixelSize.x - box.width;
+            origin.x = PMONITOR->vecPixelSize.x - box.width;
             break;
         }
         default: break;
     }
 
-    glReadPixels(origin_x, origin_y, box.width, box.height, glFormat, PFORMAT->glType, pixelData);
+    glReadPixels(origin.x, origin.y, box.width, box.height, glFormat, PFORMAT->glType, pixelData);
 
     if (overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());

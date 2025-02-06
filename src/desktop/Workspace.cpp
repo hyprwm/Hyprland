@@ -261,6 +261,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // n - named: n[true] or n[s:string] or n[e:string]
             // m - monitor: m[monitor_selector]
             // w - windowCount: w[1-4] or w[1], optional flag t or f for tiled or floating and
+            //                  flag p to count only pinned windows, e.g. w[p1-2], w[pg4]
             //                  flag g to count groups instead of windows, e.g. w[t1-2], w[fg4]
             //                  flag v will count only visible windows
             // f - fullscreen state : f[-1], f[0], f[1], or f[2] for different fullscreen states
@@ -370,6 +371,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 prop = prop.substr(2, prop.length() - 3);
 
                 int  wantsOnlyTiled    = -1;
+                int  wantsOnlyPinned   = false;
                 bool wantsCountGroup   = false;
                 bool wantsCountVisible = false;
 
@@ -380,6 +382,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         flagCount++;
                     } else if (flag == 'f' && wantsOnlyTiled == -1) {
                         wantsOnlyTiled = 0;
+                        flagCount++;
+                    } else if (flag == 'p' && !wantsOnlyPinned) {
+                        wantsOnlyPinned = true;
                         flagCount++;
                     } else if (flag == 'g' && !wantsCountGroup) {
                         wantsCountGroup = true;
@@ -411,9 +416,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     int count;
                     if (wantsCountGroup)
                         count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                          wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
                         count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                            wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
@@ -445,9 +452,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 WORKSPACEID count;
                 if (wantsCountGroup)
                     count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                      wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
                     count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                       wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                        wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
@@ -535,12 +544,14 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->activeWorkspace->m_iID == m_iID;
 }
 
-int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
+int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->workspaceID() != m_iID || !w->m_bIsMapped)
             continue;
         if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyPinned.has_value() && w->m_bPinned != onlyPinned.value())
             continue;
         if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
             continue;
@@ -550,7 +561,7 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
     return no;
 }
 
-int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
+int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->workspaceID() != m_iID || !w->m_bIsMapped)
@@ -558,6 +569,8 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
         if (!w->m_sGroupData.head)
             continue;
         if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyPinned.has_value() && w->m_bPinned != onlyPinned.value())
             continue;
         if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
             continue;

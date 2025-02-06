@@ -206,10 +206,11 @@ void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return;
     static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+    static auto  PSWIPEMULT = CConfigValue<Hyprlang::FLOAT>("gestures:workspace_swipe_speed_multiplier");
     const auto   ANIMSTYLE  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
     const bool   VERTANIMS  = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
-    const double delta = m_sActiveSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
+    const double delta = m_sActiveSwipe.delta + ((VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x)) * *(PSWIPEMULT.ptr()));
     updateWorkspaceSwipe(delta);
 }
 

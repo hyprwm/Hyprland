@@ -1636,6 +1636,17 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to move not found"};
 
+    if (PLASTWINDOW->isFullscreen()) {
+        const auto PMONITOR = g_pCompositor->getMonitorInDirection(arg);
+        if (PMONITOR) {
+            if (silent)
+                moveActiveToWorkspaceSilent(PMONITOR->activeWorkspace->getConfigName());
+            else
+                moveActiveToWorkspace(PMONITOR->activeWorkspace->getConfigName());
+            return {};
+        }
+    }
+
     if (PLASTWINDOW->isFullscreen())
         return {.success = false, .error = "Can't move fullscreen window"};
 

@@ -1469,8 +1469,13 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     if (!PLASTWINDOW) {
         if (*PMONITORFALLBACK)
             tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
-
         return {};
+    }
+
+    if (PLASTWINDOW->isFullscreen()) {
+        const auto PMONITOR = g_pCompositor->getMonitorInDirection(arg);
+        if (PMONITOR && tryMoveFocusToMonitor(PMONITOR))
+            return {};
     }
 
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?

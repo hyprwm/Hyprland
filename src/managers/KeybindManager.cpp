@@ -1652,7 +1652,6 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
 }
 
 SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
-
     char arg    = args[0];
     bool silent = args.ends_with(" silent");
     if (silent)

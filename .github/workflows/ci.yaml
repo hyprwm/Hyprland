@@ -157,7 +157,9 @@ jobs:
           path: build/
 
       - name: Verify downloaded files
-        run: ls -l build/
+        run: |
+          ls -lAh build/
+          ls -lAh build/hyprtester
 
       - name: Run tests
         run: |

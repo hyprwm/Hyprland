@@ -452,8 +452,8 @@ install(
   FILES_MATCHING
   PATTERN "*.h*")
 
-
-if (NOT NO_TESTS)
+if(NOT NO_TESTS)
+  enable_testing()
   add_custom_target(tests)
 
   add_subdirectory(hyprtester)
@@ -461,6 +461,6 @@ if (NOT NO_TESTS)
     NAME "Main Test"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
     COMMAND hyprtester)
-  
+
   add_dependencies(tests hyprtester)
 endif()

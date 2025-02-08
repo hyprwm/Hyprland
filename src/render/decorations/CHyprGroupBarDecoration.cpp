@@ -40,7 +40,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
     info.edges    = DECORATION_EDGE_TOP;
-    info.priority = *PPRIORITY;
+    info.priority = static_cast<int>(std::clamp(static_cast<int>(*PPRIORITY), 0, 6));
     info.reserved = true;
 
     if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {

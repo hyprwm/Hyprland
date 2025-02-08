@@ -907,7 +907,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "group:groupbar:priority",
         .description = "sets the decoration priority for groupbars",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{3, 0, 6}, //##TODO RANGE?
+        .data        = SConfigOptionDescription::SRangeData{3, 0, 6},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:render_titles",

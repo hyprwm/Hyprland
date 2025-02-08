@@ -123,7 +123,8 @@
             };
           };
         };
-      });
+      }
+      // (import ./nix/tests inputs pkgsFor.${system}));
 
     packages = eachSystem (system: {
       default = self.packages.${system}.hyprland;

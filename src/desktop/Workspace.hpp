@@ -72,8 +72,8 @@ class CWorkspace {
     SWorkspaceIDName getPrevWorkspaceIDName() const;
     void             updateWindowDecos();
     void             updateWindowData();
-    int              getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
-    int              getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
+    int              getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    int              getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     bool             hasUrgentWindow();
     PHLWINDOW        getFirstWindow();
     PHLWINDOW        getTopLeftWindow();

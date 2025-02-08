@@ -159,6 +159,7 @@ jobs:
       - name: Verify downloaded files
         run: |
           chmod +x build/hyprtester/hyprtester
+          chmod +x build/Hyprland
           ls -lAh build/
           ls -lAh build/hyprtester
 

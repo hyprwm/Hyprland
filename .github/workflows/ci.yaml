@@ -44,6 +44,14 @@ jobs:
           name: Build archive
           path: Hyprland.tar.xz
 
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: build/
+          key: ${{ runner.os }}-hyprland-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-hyprland-build-
+
   meson:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     name: "Build Hyprland with Meson (Arch)"
@@ -127,3 +135,28 @@ jobs:
 
       - name: clang-format check
         run: ninja -C build clang-format-check
+
+  tests:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    name: "Tests (Arch)"
+    needs: gcc
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Checkout repository actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Setup base
+        uses: ./.github/actions/setup_base
+
+      - name: Run tests
+        run: cd build && ctest
+
+      - name: Restore build artifacts
+        uses: actions/cache@v3
+        with:
+          path: build/
+          key: ${{ runner.os }}-hyprland-build-${{ github.sha }}

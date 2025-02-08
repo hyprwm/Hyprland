@@ -455,6 +455,7 @@ install(
   PATTERN "*.inc")
 
 if(NOT NO_TESTS)
+  enable_testing()
   add_custom_target(tests)
 
   add_subdirectory(hyprtester)

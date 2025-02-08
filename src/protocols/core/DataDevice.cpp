@@ -39,7 +39,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         accepted = mime;
     });
 
-    resource->setReceive([this](CWlDataOffer* r, const char* mime, uint32_t fd) {
+    resource->setReceive([this](CWlDataOffer* r, const char* mime, int fd) {
         CFileDescriptor sendFd{fd};
         if (!source) {
             LOGM(WARN, "Possible bug: Receive on an offer w/o a source");

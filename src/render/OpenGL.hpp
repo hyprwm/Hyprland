@@ -233,8 +233,6 @@ class CHyprOpenGLImpl {
 
     SCurrentRenderData                   m_RenderData;
 
-    GLint                                m_iCurrentOutputFb = 0;
-
     Hyprutils::OS::CFileDescriptor       m_iGBMFD;
     gbm_device*                          m_pGbmDevice   = nullptr;
     EGLContext                           m_pEglContext  = nullptr;

@@ -88,7 +88,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     PROTO::tablet->motion(tool, local);
 }
 
-Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeArea) {
+static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeArea) {
     auto newPos = pos;
 
     //Calculate transformations if active area is set

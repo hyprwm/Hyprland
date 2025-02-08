@@ -44,13 +44,11 @@ jobs:
           name: Build archive
           path: Hyprland.tar.xz
 
-      - name: Cache build artifacts
-        uses: actions/cache@v4
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
+          name: hyprland-build
           path: build/
-          key: ${{ runner.os }}-hyprland-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-hyprland-build-
 
   meson:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
@@ -152,11 +150,16 @@ jobs:
       - name: Setup base
         uses: ./.github/actions/setup_base
 
-      - name: Run tests
-        run: cd build && ctest
-
-      - name: Restore build artifacts
-        uses: actions/cache@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
+          name: hyprland-build
           path: build/
-          key: ${{ runner.os }}-hyprland-build-${{ github.sha }}
+
+      - name: Verify downloaded files
+        run: ls -l build/
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure

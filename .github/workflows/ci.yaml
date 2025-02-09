@@ -164,7 +164,7 @@ jobs:
           ls -lAh build/hyprtester
 
       - name: Set up environment
-        run: export XDG_RUNTIME_DIR="$PWD"
+        run: export XDG_RUNTIME_DIR="/run/user/$UID"
 
       - name: Run tests
         run: |

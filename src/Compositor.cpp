@@ -69,6 +69,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <malloc.h>
+#include <unistd.h>
 
 using namespace Hyprutils::String;
 using namespace Aquamarine;
@@ -162,9 +164,21 @@ void CCompositor::restoreNofile() {
         Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
+void CCompositor::setMallocThreshold() {
+#ifdef M_TRIM_THRESHOLD
+    // The default is 128 pages,
+    // which is very large and can lead to a lot of memory used for no reason
+    // because trimming hasn't happened
+    static const int PAGESIZE = sysconf(_SC_PAGESIZE);
+    mallopt(M_TRIM_THRESHOLD, 6 * PAGESIZE);
+#endif
+}
+
 CCompositor::CCompositor(bool onlyConfig) : m_bOnlyConfigVerification(onlyConfig), m_iHyprlandPID(getpid()) {
     if (onlyConfig)
         return;
+
+    setMallocThreshold();
 
     m_szHyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
 

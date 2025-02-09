@@ -52,8 +52,6 @@ class CCompositor {
     void                                       startCompositor();
     void                                       stopCompositor();
     void                                       cleanup();
-    void                                       createLockFile();
-    void                                       removeLockFile();
     void                                       bumpNofile();
     void                                       restoreNofile();
 
@@ -163,6 +161,9 @@ class CCompositor {
     void             setRandomSplash();
     void             initManagers(eManagersInitStage stage);
     void             prepareFallbackOutput();
+    void             createLockFile();
+    void             removeLockFile();
+    void             setMallocThreshold();
 
     uint64_t         m_iHyprlandPID    = 0;
     wl_event_source* m_critSigSource   = nullptr;

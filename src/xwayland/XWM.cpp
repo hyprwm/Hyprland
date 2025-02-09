@@ -59,7 +59,7 @@ void CXWM::handleDestroy(xcb_destroy_notify_event_t* e) {
     std::erase_if(surfaces, [XSURF](const auto& other) { return XSURF == other; });
 }
 
-void CXWM::handleConfigure(xcb_configure_request_event_t* e) {
+void CXWM::handleConfigureRequest(xcb_configure_request_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
     if (!XSURF)
@@ -70,8 +70,9 @@ void CXWM::handleConfigure(xcb_configure_request_event_t* e) {
     if (!(MASK & GEOMETRY))
         return;
 
-    XSURF->events.configure.emit(CBox{MASK & XCB_CONFIG_WINDOW_X ? e->x : XSURF->geometry.x, MASK & XCB_CONFIG_WINDOW_Y ? e->y : XSURF->geometry.y,
-                                      MASK & XCB_CONFIG_WINDOW_WIDTH ? e->width : XSURF->geometry.width, MASK & XCB_CONFIG_WINDOW_HEIGHT ? e->height : XSURF->geometry.height});
+    XSURF->events.configureRequest.emit(CBox{MASK & XCB_CONFIG_WINDOW_X ? e->x : XSURF->geometry.x, MASK & XCB_CONFIG_WINDOW_Y ? e->y : XSURF->geometry.y,
+                                             MASK & XCB_CONFIG_WINDOW_WIDTH ? e->width : XSURF->geometry.width,
+                                             MASK & XCB_CONFIG_WINDOW_HEIGHT ? e->height : XSURF->geometry.height});
 }
 
 void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
@@ -757,7 +758,7 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         switch (event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
             case XCB_CREATE_NOTIFY: handleCreate((xcb_create_notify_event_t*)event); break;
             case XCB_DESTROY_NOTIFY: handleDestroy((xcb_destroy_notify_event_t*)event); break;
-            case XCB_CONFIGURE_REQUEST: handleConfigure((xcb_configure_request_event_t*)event); break;
+            case XCB_CONFIGURE_REQUEST: handleConfigureRequest((xcb_configure_request_event_t*)event); break;
             case XCB_CONFIGURE_NOTIFY: handleConfigureNotify((xcb_configure_notify_event_t*)event); break;
             case XCB_MAP_REQUEST: handleMapRequest((xcb_map_request_event_t*)event); break;
             case XCB_MAP_NOTIFY: handleMapNotify((xcb_map_notify_event_t*)event); break;

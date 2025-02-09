@@ -99,7 +99,11 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     // get how many bars we will draw
     int         barsToDraw = m_dwGroupMembers.size();
 
-    static auto PENABLED                   = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+
+    if (!*PENABLED || !m_pWindow->m_sWindowData.decorate.valueOrDefault())
+        return;
+
     static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
     static auto PTITLEFONTSIZE             = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto PHEIGHT                    = CConfigValue<Hyprlang::INT>("group:groupbar:height");
@@ -110,14 +114,19 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGRADIENTROUNDING          = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_rounding");
     static auto PGRADIENTROUNDINGONLYEDGES = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_round_only_edges");
     static auto PROUNDONLYEDGES            = CConfigValue<Hyprlang::INT>("group:groupbar:round_only_edges");
+    static auto PGROUPCOLACTIVE            = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
+    static auto PGROUPCOLINACTIVE          = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
+    static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
+    static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+    auto* const GROUPCOLACTIVE             = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
+    auto* const GROUPCOLINACTIVE           = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
+    auto* const GROUPCOLACTIVELOCKED       = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
+    auto* const GROUPCOLINACTIVELOCKED     = (CGradientValueData*)(PGROUPCOLINACTIVELOCKED.ptr())->getData();
 
-    if (!*PENABLED || !m_pWindow->m_sWindowData.decorate.valueOrDefault())
-        return;
+    const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
-    const auto ASSIGNEDBOX = assignedBoxGlobal();
-
-    const auto ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
-    m_fBarWidth             = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
+    const auto  ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+    m_fBarWidth              = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
     m_fBarHeight = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - BAR_PADDING_OUTER_VERT) - BAR_PADDING_OUTER_VERT * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - BAR_PADDING_OUTER_VERT;
 
     const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT : BAR_PADDING_OUTER_VERT * 2L + ONEBARHEIGHT;
@@ -134,19 +143,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                            ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y,
                            m_fBarWidth, *PINDICATORHEIGHT};
 
-        if (rect.width <= 0 || rect.height <= 0)
-            break;
-
         rect.scale(pMonitor->scale);
-
-        static auto       PGROUPCOLACTIVE         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
-        static auto       PGROUPCOLINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
-        static auto       PGROUPCOLACTIVELOCKED   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
-        static auto       PGROUPCOLINACTIVELOCKED = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
-        auto* const       GROUPCOLACTIVE          = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
-        auto* const       GROUPCOLINACTIVE        = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
-        auto* const       GROUPCOLACTIVELOCKED    = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
-        auto* const       GROUPCOLINACTIVELOCKED  = (CGradientValueData*)(PGROUPCOLINACTIVELOCKED.ptr())->getData();
 
         const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked || g_pKeybindManager->m_bGroupsLocked;
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
@@ -154,94 +151,99 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
         color.a *= a;
-        CRectPassElement::SRectData rectdata;
-        rectdata.color = color;
-        rectdata.box   = rect;
-        if (*PROUNDING) {
-            if (*PROUNDONLYEDGES) {
-                static constexpr double PADDING = 20;
 
-                if (i == 0 && barsToDraw == 1)
+        if (!rect.empty()) {
+            CRectPassElement::SRectData rectdata;
+            rectdata.color = color;
+            rectdata.box   = rect;
+            if (*PROUNDING) {
+                if (*PROUNDONLYEDGES) {
+                    static constexpr double PADDING = 20;
+
+                    if (i == 0 && barsToDraw == 1)
+                        rectdata.round = *PROUNDING;
+                    else if (i == 0) {
+                        double first     = rect.w - (*PROUNDING * 2);
+                        rectdata.round   = *PROUNDING;
+                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
+                        g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
+                        rectdata.round   = 0;
+                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                    } else if (i == barsToDraw - 1) {
+                        double first     = *PROUNDING * 2;
+                        rectdata.round   = 0;
+                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
+                        g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
+                        rectdata.round   = *PROUNDING;
+                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                    }
+                } else
                     rectdata.round = *PROUNDING;
-                else if (i == 0) {
-                    double first     = rect.w - (*PROUNDING * 2);
-                    rectdata.round   = *PROUNDING;
-                    rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                    g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
-                    rectdata.round   = 0;
-                    rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
-                } else if (i == barsToDraw - 1) {
-                    double first     = *PROUNDING * 2;
-                    rectdata.round   = 0;
-                    rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                    g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
-                    rectdata.round   = *PROUNDING;
-                    rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
-                }
-            } else
-                rectdata.round = *PROUNDING;
+            }
+            g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
         }
-        g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
 
         rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
         rect.scale(pMonitor->scale);
 
-        if (*PGRADIENTS) {
-            const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                                      (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
-            if (GRADIENTTEX->m_iTexID) {
-                CTexPassElement::SRenderData data;
-                data.tex = GRADIENTTEX;
-                data.box = rect;
-                if (*PGRADIENTROUNDING) {
-                    if (*PGRADIENTROUNDINGONLYEDGES) {
-                        static constexpr double PADDING = 20;
+        if (!rect.empty()) {
+            if (*PGRADIENTS) {
+                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                          (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+                if (GRADIENTTEX->m_iTexID) {
+                    CTexPassElement::SRenderData data;
+                    data.tex = GRADIENTTEX;
+                    data.box = rect;
+                    if (*PGRADIENTROUNDING) {
+                        if (*PGRADIENTROUNDINGONLYEDGES) {
+                            static constexpr double PADDING = 20;
 
-                        if (i == 0 && barsToDraw == 1)
+                            if (i == 0 && barsToDraw == 1)
+                                data.round = *PGRADIENTROUNDING;
+                            else if (i == 0) {
+                                double first = rect.w - (*PGRADIENTROUNDING * 2);
+                                data.round   = *PGRADIENTROUNDING;
+                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
+                                g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+                                data.round   = 0;
+                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                            } else if (i == barsToDraw - 1) {
+                                double first = *PGRADIENTROUNDING * 2;
+                                data.round   = 0;
+                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
+                                g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+                                data.round   = *PGRADIENTROUNDING;
+                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                            }
+                        } else
                             data.round = *PGRADIENTROUNDING;
-                        else if (i == 0) {
-                            double first = rect.w - (*PGRADIENTROUNDING * 2);
-                            data.round   = *PGRADIENTROUNDING;
-                            data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                            g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
-                            data.round   = 0;
-                            data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
-                        } else if (i == barsToDraw - 1) {
-                            double first = *PGRADIENTROUNDING * 2;
-                            data.round   = 0;
-                            data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                            g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
-                            data.round   = *PGRADIENTROUNDING;
-                            data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
-                        }
-                    } else
-                        rectdata.round = *PGRADIENTROUNDING;
+                    }
+                    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
                 }
+            }
+
+            if (*PRENDERTITLES) {
+                CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_szTitle);
+
+                if (!pTitleTex)
+                    pTitleTex =
+                        m_sTitleTexs.titleTexs
+                            .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
+                                                                Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
+                            .get();
+                rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
+                rect.height = pTitleTex->texSize.y;
+                rect.width  = pTitleTex->texSize.x;
+                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (pTitleTex->texSize.x / 2.0));
+                rect.round();
+
+                CTexPassElement::SRenderData data;
+                data.tex = pTitleTex->tex;
+                data.box = rect;
                 g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
             }
-        }
-
-        if (*PRENDERTITLES) {
-            CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_szTitle);
-
-            if (!pTitleTex)
-                pTitleTex =
-                    m_sTitleTexs.titleTexs
-                        .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
-                                                            Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
-                        .get();
-            rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
-            rect.height = pTitleTex->texSize.y;
-            rect.width  = pTitleTex->texSize.x;
-            rect.x += std::round((m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->texSize.x / 2.0));
-            rect.round();
-
-            CTexPassElement::SRenderData data;
-            data.tex = pTitleTex->tex;
-            data.box = rect;
-            g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
         }
 
         if (*PSTACKED)

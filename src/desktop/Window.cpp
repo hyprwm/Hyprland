@@ -1536,8 +1536,8 @@ void CWindow::onX11Configure(CBox box) {
         m_pXWaylandSurface->configure(box);
         m_vPendingReportedSize = box.size();
         m_vReportedSize        = box.size();
-        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
-            m_fX11SurfaceScaledBy = PMONITOR->scale;
+        m_vReportedPosition    = box.pos();
+        updateX11SurfaceScale();
         return;
     }
 
@@ -1555,18 +1555,8 @@ void CWindow::onX11Configure(CBox box) {
     else
         setHidden(true);
 
-    const auto LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords(box.pos());
-
-    m_vRealPosition->setValueAndWarp(LOGICALPOS);
-    m_vRealSize->setValueAndWarp(box.size());
-
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-    if (*PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR) {
-            m_vRealSize->setValueAndWarp(m_vRealSize->goal() / PMONITOR->scale);
-            m_fX11SurfaceScaledBy = PMONITOR->scale;
-        }
-    }
+    m_vRealPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
+    m_vRealSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
 
     m_vPosition = m_vRealPosition->goal();
     m_vSize     = m_vRealSize->goal();
@@ -1578,6 +1568,7 @@ void CWindow::onX11Configure(CBox box) {
         m_vReportedPosition    = box.pos();
     }
 
+    updateX11SurfaceScale();
     updateWindowDecos();
 
     if (!m_pWorkspace || !m_pWorkspace->isVisible())
@@ -1704,37 +1695,74 @@ Vector2D CWindow::requestedMaxSize() {
     return maxSize;
 }
 
-void CWindow::sendWindowSize(bool force) {
+Vector2D CWindow::realToReportSize() {
+    if (!m_bIsX11)
+        return m_vRealSize->goal().clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-    const auto  PMONITOR           = m_pMonitor.lock();
+
+    const auto  REPORTSIZE = m_vRealSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto  PMONITOR   = m_pMonitor.lock();
+
+    if (*PXWLFORCESCALEZERO && PMONITOR)
+        return REPORTSIZE * PMONITOR->scale;
+
+    return REPORTSIZE;
+}
+
+Vector2D CWindow::realToReportPosition() {
+    if (!m_bIsX11)
+        return m_vRealPosition->goal();
+
+    return g_pXWaylandManager->waylandToXWaylandCoords(m_vRealPosition->goal());
+}
+
+Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    const auto  PMONITOR = m_pMonitor.lock();
+    const auto  SIZE     = size.clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->scale : 1.0f;
+
+    return SIZE / SCALE;
+}
+
+Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
+    return g_pXWaylandManager->xwaylandToWaylandCoords(pos);
+}
+
+void CWindow::updateX11SurfaceScale() {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    m_fX11SurfaceScaledBy = 1.0f;
+    if (m_bIsX11 && *PXWLFORCESCALEZERO) {
+        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
+            m_fX11SurfaceScaledBy = PMONITOR->scale;
+    }
+}
+
+void CWindow::sendWindowSize(bool force) {
+    const auto PMONITOR = m_pMonitor.lock();
 
     Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_szTitle, m_vRealPosition->goal(),
                m_vRealSize->goal(), force);
 
     // TODO: this should be decoupled from setWindowSize IMO
-    Vector2D windowPos = m_vRealPosition->goal();
-    Vector2D size      = m_vRealSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto REPORTPOS = realToReportPosition();
 
-    if (m_bIsX11 && PMONITOR) {
-        windowPos = g_pXWaylandManager->waylandToXWaylandCoords(windowPos);
-        if (*PXWLFORCESCALEZERO)
-            size *= PMONITOR->scale;
-    }
+    const auto REPORTSIZE = realToReportSize();
 
-    if (!force && m_vPendingReportedSize == size && (windowPos == m_vReportedPosition || !m_bIsX11))
+    if (!force && m_vPendingReportedSize == REPORTSIZE && (m_vReportedPosition == REPORTPOS || !m_bIsX11))
         return;
 
-    m_vReportedPosition    = windowPos;
-    m_vPendingReportedSize = size;
-    m_fX11SurfaceScaledBy  = 1.0f;
-
-    if (*PXWLFORCESCALEZERO && m_bIsX11 && PMONITOR)
-        m_fX11SurfaceScaledBy = PMONITOR->scale;
+    m_vReportedPosition    = REPORTPOS;
+    m_vPendingReportedSize = REPORTSIZE;
+    updateX11SurfaceScale();
 
     if (m_bIsX11 && m_pXWaylandSurface)
-        m_pXWaylandSurface->configure({windowPos, size});
+        m_pXWaylandSurface->configure({REPORTPOS, REPORTSIZE});
     else if (m_pXDGSurface && m_pXDGSurface->toplevel)
-        m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(size), size.floor());
+        m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
 }
 
 NContentType::eContentType CWindow::getContentType() {

@@ -471,6 +471,11 @@ class CWindow {
     bool                       isModal();
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
+    Vector2D                   realToReportSize();
+    Vector2D                   realToReportPosition();
+    Vector2D                   xwaylandSizeToReal(Vector2D size);
+    Vector2D                   xwaylandPositionToReal(Vector2D size);
+    void                       updateX11SurfaceScale();
     void                       sendWindowSize(bool force = false);
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);

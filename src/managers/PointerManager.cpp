@@ -486,7 +486,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         // then, we just yeet it into the dumb buffer
 
-        const auto DMABUF      = buf->dmabuf();
+        const auto& DMABUF     = buf->dmabuf();
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
         auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);

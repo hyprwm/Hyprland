@@ -1571,8 +1571,12 @@ void CWindow::onX11Configure(CBox box) {
     m_vPosition = m_vRealPosition->goal();
     m_vSize     = m_vRealSize->goal();
 
-    m_vPendingReportedSize = box.size();
-    m_vReportedSize        = box.size();
+    if (m_vPendingReportedSize != box.size() || m_vReportedPosition != box.pos()) {
+        m_pXWaylandSurface->configure(box);
+        m_vReportedSize        = box.size();
+        m_vPendingReportedSize = box.size();
+        m_vReportedPosition    = box.pos();
+    }
 
     updateWindowDecos();
 

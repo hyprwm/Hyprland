@@ -20,6 +20,9 @@ constexpr int       BAR_PADDING_OUTER_HORZ = 2;
 constexpr int       BAR_TEXT_PAD           = 2;
 constexpr int       BAR_HORIZONTAL_PADDING = 2;
 
+constexpr int       MIN_PRIORITY = 0;
+constexpr int       MAX_PRIORITY = 6;
+
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
@@ -40,7 +43,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
     info.edges    = DECORATION_EDGE_TOP;
-    info.priority = static_cast<int>(std::clamp(static_cast<int>(*PPRIORITY), 0, 6));
+    info.priority = static_cast<int>(std::clamp(static_cast<int>(*PPRIORITY), MIN_PRIORITY, MAX_PRIORITY));
     info.reserved = true;
 
     if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {

@@ -323,8 +323,8 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "ispersistent": {}
 }})#",
                            w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"),
-                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "", ((int)w->m_bPersistent == 1 ? "true" : "false"));
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), w->m_bHasFullscreenWindow ? "true" : "false",
+                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "", w->m_bPersistent ? "true" : "false");
     } else {
         return std::format(
             "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: {}\n\n",

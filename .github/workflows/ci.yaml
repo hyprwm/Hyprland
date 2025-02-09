@@ -163,10 +163,8 @@ jobs:
           ls -lAh build/
           ls -lAh build/hyprtester
 
-      - name: Set up environment
-        run: export XDG_RUNTIME_DIR="/run/user/$UID"
-
       - name: Run tests
         run: |
+          export XDG_RUNTIME_DIR="/run/user/$UID"
           cd build
           ctest --output-on-failure

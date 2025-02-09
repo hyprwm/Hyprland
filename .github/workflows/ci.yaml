@@ -165,6 +165,6 @@ jobs:
 
       - name: Run tests
         run: |
-          export XDG_RUNTIME_DIR="/run/user/$UID"
+          export XDG_RUNTIME_DIR="/tmp"
           cd build
           ctest --output-on-failure

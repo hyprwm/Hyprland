@@ -95,15 +95,15 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_pXDGSurface(resource) {
 CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
     m_pWLSurface = CWLSurface::create();
 
-    listeners.map            = m_pXWaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
-    listeners.unmap          = m_pXWaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
-    listeners.destroy        = m_pXWaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
-    listeners.commit         = m_pXWaylandSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
-    listeners.configure      = m_pXWaylandSurface->events.configure.registerListener([this](std::any d) { onX11Configure(std::any_cast<CBox>(d)); });
-    listeners.updateState    = m_pXWaylandSurface->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
-    listeners.updateMetadata = m_pXWaylandSurface->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
-    listeners.resourceChange = m_pXWaylandSurface->events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
-    listeners.activate       = m_pXWaylandSurface->events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
+    listeners.map              = m_pXWaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    listeners.unmap            = m_pXWaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    listeners.destroy          = m_pXWaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    listeners.commit           = m_pXWaylandSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    listeners.configureRequest = m_pXWaylandSurface->events.configureRequest.registerListener([this](std::any d) { onX11ConfigureRequest(std::any_cast<CBox>(d)); });
+    listeners.updateState      = m_pXWaylandSurface->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    listeners.updateMetadata   = m_pXWaylandSurface->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
+    listeners.resourceChange   = m_pXWaylandSurface->events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
+    listeners.activate         = m_pXWaylandSurface->events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
 
     if (m_pXWaylandSurface->overrideRedirect)
         listeners.setGeometry = m_pXWaylandSurface->events.setGeometry.registerListener([this](std::any d) { Events::listener_unmanagedSetGeometry(this, nullptr); });
@@ -1530,7 +1530,7 @@ void CWindow::onResourceChangeX11() {
     Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface->resource().get());
 }
 
-void CWindow::onX11Configure(CBox box) {
+void CWindow::onX11ConfigureRequest(CBox box) {
 
     if (!m_pXWaylandSurface->surface || !m_pXWaylandSurface->mapped || !m_bIsMapped) {
         m_pXWaylandSurface->configure(box);

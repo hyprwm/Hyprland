@@ -460,7 +460,7 @@ class CWindow {
     void                       onFocusAnimUpdate();
     void                       onUpdateState();
     void                       onUpdateMeta();
-    void                       onX11Configure(CBox box);
+    void                       onX11ConfigureRequest(CBox box);
     void                       onResourceChangeX11();
     std::string                fetchTitle();
     std::string                fetchClass();
@@ -502,7 +502,7 @@ class CWindow {
         CHyprSignalListener commit;
         CHyprSignalListener destroy;
         CHyprSignalListener activate;
-        CHyprSignalListener configure;
+        CHyprSignalListener configureRequest;
         CHyprSignalListener setGeometry;
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;

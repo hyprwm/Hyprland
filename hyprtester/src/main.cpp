@@ -40,7 +40,7 @@ static bool launchHyprland() {
         return false;
     }
 
-    hyprlandProc = CProcess{cwd + "/../build/Hyprland", {"--config", cwd + "/test.conf"}};
+    hyprlandProc = CProcess{cwd + "/../build/Hyprland", {"--config", cwd + "/test.conf", "--i-am-really-stupid" /* omit root checks, for gh runners */}};
     hyprlandProc.addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
     return hyprlandProc.runAsync();

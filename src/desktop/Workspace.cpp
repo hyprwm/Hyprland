@@ -632,6 +632,11 @@ void CWorkspace::updateWindowData() {
     }
 }
 
+void CWorkspace::recheckPersistent() {
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_pSelf.lock());
+    m_bPersistent            = WORKSPACERULE.isPersistent;
+}
+
 void CWorkspace::forceReportSizesToWindows() {
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
@@ -647,6 +652,8 @@ void CWorkspace::rename(const std::string& name) {
 
     Debug::log(LOG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_iID, name);
     m_szName = name;
+
+    recheckPersistent();
 
     g_pEventManager->postEvent({"renameworkspace", std::to_string(m_iID) + "," + m_szName});
 }

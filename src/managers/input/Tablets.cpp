@@ -88,6 +88,20 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     PROTO::tablet->motion(tool, local);
 }
 
+static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeArea) {
+    auto newPos = pos;
+
+    //Calculate transformations if active area is set
+    if (!activeArea.empty()) {
+        if (!std::isnan(pos.x))
+            newPos.x = (pos.x - activeArea.x) / (activeArea.w - activeArea.x);
+        if (!std::isnan(pos.y))
+            newPos.y = (pos.y - activeArea.y) / (activeArea.h - activeArea.y);
+    }
+
+    return newPos;
+}
+
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
@@ -113,16 +127,9 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
                 if (PTAB->relativeInput)
                     g_pPointerManager->move(delta);
-                else {
-                    //Calculate transformations if active area is set
-                    if (!PTAB->activeArea.empty()) {
-                        if (!std::isnan(x))
-                            x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-                        if (!std::isnan(y))
-                            y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-                    }
-                    g_pPointerManager->warpAbsolute({x, y}, PTAB);
-                }
+                else
+                    g_pPointerManager->warpAbsolute(transformToActiveRegion({x, y}, PTAB->activeArea), PTAB);
+
                 break;
             }
         }
@@ -160,7 +167,12 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
     const auto POS   = e.tip;
-    g_pPointerManager->warpAbsolute(POS, PTAB);
+
+    if (PTAB->relativeInput)
+        g_pPointerManager->move({0, 0});
+    else
+        g_pPointerManager->warpAbsolute(transformToActiveRegion(POS, PTAB->activeArea), PTAB);
+
     refocusTablet(PTAB, PTOOL, true);
 
     if (e.in)

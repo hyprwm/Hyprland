@@ -44,6 +44,12 @@ jobs:
           name: Build archive
           path: Hyprland.tar.xz
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyprland-build
+          path: build/
+
   meson:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     name: "Build Hyprland with Meson (Arch)"
@@ -127,3 +133,38 @@ jobs:
 
       - name: clang-format check
         run: ninja -C build clang-format-check
+
+  tests:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    name: "Tests (Arch)"
+    needs: gcc
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Checkout repository actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Setup base
+        uses: ./.github/actions/setup_base
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: hyprland-build
+          path: build/
+
+      - name: Verify downloaded files
+        run: |
+          chmod +x build/hyprtester/hyprtester
+          chmod +x build/Hyprland
+          ls -lAh build/
+          ls -lAh build/hyprtester
+
+      - name: Run tests
+        run: |
+          export XDG_RUNTIME_DIR="/tmp"
+          cd build
+          ctest --output-on-failure

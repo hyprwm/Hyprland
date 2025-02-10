@@ -1,0 +1,64 @@
+diff --git a/src/layout/IHyprLayout.cpp b/src/layout/IHyprLayout.cpp
+index e84ffb21..5e66e823 100644
+--- a/src/layout/IHyprLayout.cpp
++++ b/src/layout/IHyprLayout.cpp
+@@ -121,16 +121,23 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
+         if (pWindow->m_vRealSize->goal().x <= 5 || pWindow->m_vRealSize->goal().y <= 5)
+             *pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
+ 
+-        if (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect()) {
++        static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
++        auto* const PGAPSOUT = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+ 
++        if (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect()) {
+             if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
+                 *pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
+-            else
+-                *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize->goal().x) / 2.f,
+-                                                     PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize->goal().y) / 2.f);
++            else {
++                const auto WORKAREA = Vector2D(PMONITOR->vecSize.x - PGAPSOUT->left - PGAPSOUT->right,
++                                             PMONITOR->vecSize.y - PGAPSOUT->top - PGAPSOUT->bottom);
++                *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + PGAPSOUT->left + (WORKAREA.x - pWindow->m_vRealSize->goal().x) / 2.f,
++                                                   PMONITOR->vecPosition.y + PGAPSOUT->top + (WORKAREA.y - pWindow->m_vRealSize->goal().y) / 2.f);
++            }
+         } else {
+-            *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize->goal().x) / 2.f,
+-                                                 PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize->goal().y) / 2.f);
++            const auto WORKAREA = Vector2D(PMONITOR->vecSize.x - PGAPSOUT->left - PGAPSOUT->right,
++                                         PMONITOR->vecSize.y - PGAPSOUT->top - PGAPSOUT->bottom);
++            *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + PGAPSOUT->left + (WORKAREA.x - pWindow->m_vRealSize->goal().x) / 2.f,
++                                               PMONITOR->vecPosition.y + PGAPSOUT->top + (WORKAREA.y - pWindow->m_vRealSize->goal().y) / 2.f);
+         }
+     } else {
+         // we respect the size.
+@@ -160,11 +167,27 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
+         } else {
+             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
+             // most of these are popups
++            static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
++            auto* const PGAPSOUT = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
++
++            // Make a function that ensures the window respects gaps
++            auto ensureWithinGaps = [&](const Vector2D& pos) -> Vector2D {
++                Vector2D result = pos;
++                const auto WORKAREA_START = Vector2D(PMONITOR->vecPosition.x + PGAPSOUT->left,
++                                                   PMONITOR->vecPosition.y + PGAPSOUT->top);
++                const auto WORKAREA_END = Vector2D(PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PGAPSOUT->right,
++                                                 PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PGAPSOUT->bottom);
++
++                // Clamp the position to respect gaps
++                result.x = std::clamp(result.x, WORKAREA_START.x, WORKAREA_END.x - pWindow->m_vRealSize->goal().x);
++                result.y = std::clamp(result.y, WORKAREA_START.y, WORKAREA_END.y - pWindow->m_vRealSize->goal().y);
++                return result;
++            };
+ 
+             if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID)
+-                *pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
++                *pWindow->m_vRealPosition = ensureWithinGaps(Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition);
+             else
+-                *pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
++                *pWindow->m_vRealPosition = ensureWithinGaps(Vector2D(desiredGeometry.x, desiredGeometry.y));
+         }
+     }
+ 

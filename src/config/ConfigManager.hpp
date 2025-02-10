@@ -36,7 +36,7 @@ struct SWorkspaceRule {
     bool                               isPersistent    = false;
     std::optional<CCssGapData>         gapsIn;
     std::optional<CCssGapData>         gapsOut;
-    std::optional<CCssGapData>         float_gapsIn = gapsIn;
+    std::optional<CCssGapData>         float_gapsIn  = gapsIn;
     std::optional<CCssGapData>         float_gapsOut = gapsOut;
     std::optional<int64_t>             borderSize;
     std::optional<bool>                decorate;

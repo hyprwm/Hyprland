@@ -33,6 +33,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SStringData{"20"},
     },
     SConfigOptionDescription{
+        .value       = "general:float_gaps_in",
+        .description = "gaps between windows for floating windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"5"},
+    },
+    SConfigOptionDescription{
+        .value       = "general:float_gaps_out",
+        .description = "gaps between windows and monitor edges for floating windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"20"},
+    },
+    SConfigOptionDescription{
         .value       = "general:gaps_workspaces",
         .description = "gaps between workspaces. Stacks with gaps_out.",
         .type        = CONFIG_OPTION_INT,

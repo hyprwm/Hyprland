@@ -1687,7 +1687,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
         std::optional<float> vPosx, vPosy;
         const auto           PMONITOR     = PLASTWINDOW->m_monitor.lock();
         const auto           BORDERSIZE   = PLASTWINDOW->getRealBorderSize();
-        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
         auto* const          PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
         switch (arg) {

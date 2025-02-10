@@ -1,0 +1,171 @@
+From a7244473463fa8e693ccffc63af960004a986327 Mon Sep 17 00:00:00 2001
+From: littleblack111 <littleblack11111@gmail.com>
+Date: Fri, 7 Feb 2025 11:00:53 +0800
+Subject: [PATCH 1/4] keybinds: movewindow respect gaps out for floating
+ windows
+
+---
+ src/managers/KeybindManager.cpp | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/src/managers/KeybindManager.cpp b/src/managers/KeybindManager.cpp
+index 8daa6838791..c700f8041a3 100644
+--- a/src/managers/KeybindManager.cpp
++++ b/src/managers/KeybindManager.cpp
+@@ -1603,6 +1603,7 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
+ }
+ 
+ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
++
+     char arg    = args[0];
+     bool silent = args.ends_with(" silent");
+     if (silent)
+@@ -1636,16 +1637,22 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
+ 
+     if (PLASTWINDOW->m_bIsFloating) {
+         std::optional<float> vPosx, vPosy;
+-        const auto           PMONITOR   = PLASTWINDOW->m_pMonitor.lock();
+-        const auto           BORDERSIZE = PLASTWINDOW->getRealBorderSize();
++        const auto           PMONITOR     = PLASTWINDOW->m_pMonitor.lock();
++        const auto           BORDERSIZE   = PLASTWINDOW->getRealBorderSize();
++        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
++        auto* const          PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+ 
+         switch (arg) {
+-            case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
+-            case 'r': vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize->goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
++            case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x + PGAPSOUT->left; break;
++            case 'r':
++                vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize->goal().x - BORDERSIZE + PMONITOR->vecPosition.x - PGAPSOUT->right;
++                break;
+             case 't':
+-            case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
++            case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y + PGAPSOUT->top; break;
+             case 'b':
+-            case 'd': vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize->goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
++            case 'd':
++                vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize->goal().y - BORDERSIZE + PMONITOR->vecPosition.y - PGAPSOUT->bottom;
++                break;
+         }
+ 
+         *PLASTWINDOW->m_vRealPosition = Vector2D(vPosx.value_or(PLASTWINDOW->m_vRealPosition->goal().x), vPosy.value_or(PLASTWINDOW->m_vRealPosition->goal().y));
+
+From 18d97a46043b7e75301b6f8da591c1682cfa2ec1 Mon Sep 17 00:00:00 2001
+From: littleblack111 <littleblack11111@gmail.com>
+Date: Fri, 7 Feb 2025 11:05:39 +0800
+Subject: [PATCH 2/4] fixup! random space
+
+---
+ src/managers/KeybindManager.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/managers/KeybindManager.cpp b/src/managers/KeybindManager.cpp
+index c700f8041a3..7b143d286a0 100644
+--- a/src/managers/KeybindManager.cpp
++++ b/src/managers/KeybindManager.cpp
+@@ -1603,7 +1603,6 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
+ }
+ 
+ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
+-
+     char arg    = args[0];
+     bool silent = args.ends_with(" silent");
+     if (silent)
+
+From 210c64cffe1901024fb66f9fa787a0a4fe60e746 Mon Sep 17 00:00:00 2001
+From: littleblack111 <littleblack11111@gmail.com>
+Date: Mon, 10 Feb 2025 15:09:12 +0800
+Subject: [PATCH 3/4] seperate gap values for float
+
+---
+ src/config/ConfigDescriptions.hpp | 12 ++++++++++++
+ src/config/ConfigManager.cpp      |  2 ++
+ src/config/ConfigManager.hpp      |  2 ++
+ src/managers/KeybindManager.cpp   |  2 +-
+ 4 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/src/config/ConfigDescriptions.hpp b/src/config/ConfigDescriptions.hpp
+index 8d1b73c4e0e..9dd47c0177e 100644
+--- a/src/config/ConfigDescriptions.hpp
++++ b/src/config/ConfigDescriptions.hpp
+@@ -32,6 +32,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
+         .type        = CONFIG_OPTION_STRING_SHORT,
+         .data        = SConfigOptionDescription::SStringData{"20"},
+     },
++    SConfigOptionDescription{
++        .value       = "general:float_gaps_in",
++        .description = "gaps between windows for floating windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
++        .type        = CONFIG_OPTION_STRING_SHORT,
++        .data        = SConfigOptionDescription::SStringData{"5"},
++    },
++    SConfigOptionDescription{
++        .value       = "general:float_gaps_out",
++        .description = "gaps between windows and monitor edges for floating windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
++        .type        = CONFIG_OPTION_STRING_SHORT,
++        .data        = SConfigOptionDescription::SStringData{"20"},
++    },
+     SConfigOptionDescription{
+         .value       = "general:gaps_workspaces",
+         .description = "gaps between workspaces. Stacks with gaps_out.",
+diff --git a/src/config/ConfigManager.cpp b/src/config/ConfigManager.cpp
+index f87a5e6b1ab..b524a1c7f3b 100644
+--- a/src/config/ConfigManager.cpp
++++ b/src/config/ConfigManager.cpp
+@@ -384,6 +384,8 @@ CConfigManager::CConfigManager() {
+     m_pConfig->addConfigValue("general:border_part_of_window", Hyprlang::INT{1});
+     m_pConfig->addConfigValue("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
+     m_pConfig->addConfigValue("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
++    m_pConfig->addConfigValue("general:float_gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
++    m_pConfig->addConfigValue("general:float_gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
+     m_pConfig->addConfigValue("general:gaps_workspaces", Hyprlang::INT{0});
+     m_pConfig->addConfigValue("general:no_focus_fallback", Hyprlang::INT{0});
+     m_pConfig->addConfigValue("general:resize_on_border", Hyprlang::INT{0});
+diff --git a/src/config/ConfigManager.hpp b/src/config/ConfigManager.hpp
+index f069688277a..98e4e37c08f 100644
+--- a/src/config/ConfigManager.hpp
++++ b/src/config/ConfigManager.hpp
+@@ -36,6 +36,8 @@ struct SWorkspaceRule {
+     bool                               isPersistent    = false;
+     std::optional<CCssGapData>         gapsIn;
+     std::optional<CCssGapData>         gapsOut;
++    std::optional<CCssGapData>         float_gapsIn = gapsIn;
++    std::optional<CCssGapData>         float_gapsOut = gapsOut;
+     std::optional<int64_t>             borderSize;
+     std::optional<bool>                decorate;
+     std::optional<bool>                noRounding;
+diff --git a/src/managers/KeybindManager.cpp b/src/managers/KeybindManager.cpp
+index 7b143d286a0..02cbca8b605 100644
+--- a/src/managers/KeybindManager.cpp
++++ b/src/managers/KeybindManager.cpp
+@@ -1638,7 +1638,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
+         std::optional<float> vPosx, vPosy;
+         const auto           PMONITOR     = PLASTWINDOW->m_pMonitor.lock();
+         const auto           BORDERSIZE   = PLASTWINDOW->getRealBorderSize();
+-        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
++        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
+         auto* const          PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+ 
+         switch (arg) {
+
+From d38db1e927c64392f4c899f622a25ee4fc72bfd6 Mon Sep 17 00:00:00 2001
+From: littleblack111 <littleblack11111@gmail.com>
+Date: Mon, 10 Feb 2025 16:29:13 +0800
+Subject: [PATCH 4/4] fixup! seperate gap values for float
+
+---
+ src/config/ConfigManager.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/config/ConfigManager.hpp b/src/config/ConfigManager.hpp
+index 98e4e37c08f..27ba36af7a6 100644
+--- a/src/config/ConfigManager.hpp
++++ b/src/config/ConfigManager.hpp
+@@ -36,7 +36,7 @@ struct SWorkspaceRule {
+     bool                               isPersistent    = false;
+     std::optional<CCssGapData>         gapsIn;
+     std::optional<CCssGapData>         gapsOut;
+-    std::optional<CCssGapData>         float_gapsIn = gapsIn;
++    std::optional<CCssGapData>         float_gapsIn  = gapsIn;
+     std::optional<CCssGapData>         float_gapsOut = gapsOut;
+     std::optional<int64_t>             borderSize;
+     std::optional<bool>                decorate;

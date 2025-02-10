@@ -166,5 +166,6 @@ jobs:
       - name: Run tests
         run: |
           export XDG_RUNTIME_DIR="/tmp"
+          export XDG_CACHE_HOME="/tmp"
           cd build
           ctest --output-on-failure

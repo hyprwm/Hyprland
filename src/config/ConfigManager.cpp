@@ -384,6 +384,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:border_part_of_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
     m_pConfig->addConfigValue("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
+    m_pConfig->addConfigValue("general:float_gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
+    m_pConfig->addConfigValue("general:float_gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
     m_pConfig->addConfigValue("general:gaps_workspaces", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:no_focus_fallback", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_on_border", Hyprlang::INT{0});

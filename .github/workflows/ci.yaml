@@ -180,6 +180,7 @@ jobs:
             libxkbcommon \
             libxkbfile \
             lld \
+            mesa \
             meson \
             ninja \
             pango \

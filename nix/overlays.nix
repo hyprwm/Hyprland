@@ -78,6 +78,18 @@ in {
     })
   ];
 
+  # Debug
+  hyprland-debug = lib.composeManyExtensions [
+    # Dependencies
+    self.overlays.hyprland-packages
+
+    (final: prev: {
+      aquamarine = prev.aquamarine.override {debug = true;};
+      hyprutils = prev.hyprutils.override {debug = true;};
+      hyprland-debug = prev.hyprland.override {debug = true;};
+    })
+  ];
+
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
   hyprland-extras = lib.composeManyExtensions [

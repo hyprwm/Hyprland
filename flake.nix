@@ -91,6 +91,7 @@
         overlays = with self.overlays; [
           hyprland-packages
           hyprland-extras
+          hyprland-debug
         ];
       });
     pkgsCrossFor = eachSystem (system: crossSystem:
@@ -100,6 +101,22 @@
         overlays = with self.overlays; [
           hyprland-packages
           hyprland-extras
+          hyprland-debug
+        ];
+      });
+    pkgsDebugFor = eachSystem (system:
+      import nixpkgs {
+        localSystem = system;
+        overlays = with self.overlays; [
+          hyprland-debug
+        ];
+      });
+    pkgsDebugCrossFor = eachSystem (system: crossSystem:
+      import nixpkgs {
+        localSystem = system;
+        inherit crossSystem;
+        overlays = with self.overlays; [
+          hyprland-debug
         ];
       });
   in {
@@ -132,13 +149,14 @@
         (pkgsFor.${system})
         # hyprland-packages
         hyprland
-        hyprland-debug
         hyprland-unwrapped
         hyprtester
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;
+      inherit (pkgsDebugFor.${system}) hyprland-debug;
       hyprland-cross = (pkgsCrossFor.${system} "aarch64-linux").hyprland;
+      hyprland-debug-cross = (pkgsDebugCrossFor.${system} "aarch64-linux").hyprland-debug;
     });
 
     devShells = eachSystem (system: {

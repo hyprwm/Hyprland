@@ -9,19 +9,22 @@ class CEventLoopTimer;
 
 class CExtIdleNotification {
   public:
-    CExtIdleNotification(SP<CExtIdleNotificationV1> resource_, uint32_t timeoutMs);
+    CExtIdleNotification(SP<CExtIdleNotificationV1> resource_, uint32_t timeoutMs, bool obeyInhibitors);
     ~CExtIdleNotification();
 
     bool good();
     void onTimerFired();
     void onActivity();
 
+    bool inhibitorsAreObeyed() const;
+
   private:
     SP<CExtIdleNotificationV1> resource;
     uint32_t                   timeoutMs = 0;
     SP<CEventLoopTimer>        timer;
 
-    bool                       idled = false;
+    bool                       idled          = false;
+    bool                       obeyInhibitors = false;
 
     void                       updateTimer();
 };
@@ -38,7 +41,7 @@ class CIdleNotifyProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(wl_resource* res);
     void destroyNotification(CExtIdleNotification* notif);
-    void onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t id, uint32_t timeout, wl_resource* seat);
+    void onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t id, uint32_t timeout, wl_resource* seat, bool obeyInhibitors);
 
     bool isInhibited = false;
 

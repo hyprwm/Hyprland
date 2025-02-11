@@ -3,8 +3,10 @@
 #pragma once
 #include <iostream>
 
-inline std::string HIS       = "";
-inline std::string WLDISPLAY = "";
+inline std::string HIS          = "";
+inline std::string WLDISPLAY    = "";
+inline int         TESTS_PASSED = 0;
+inline int         TESTS_FAILED = 0;
 
 namespace Colors {
     constexpr const char* RED     = "\x1b[31m";
@@ -20,8 +22,10 @@ namespace Colors {
     if (const auto RESULT = expr; RESULT != (val)) {                                                                                                                               \
         std::cout << Colors::RED << "Failed: " << Colors::RESET << #expr << ", expected " << val << " but got " << RESULT << "\n";                                                 \
         ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
     } else {                                                                                                                                                                       \
         std::cout << Colors::GREEN << "Passed " << Colors::RESET << #expr << ". Got " << val << "\n";                                                                              \
+        TESTS_PASSED++;                                                                                                                                                            \
     }
 #define EXPECT_VECTOR2D(expr, val)                                                                                                                                                 \
     do {                                                                                                                                                                           \
@@ -31,7 +35,9 @@ namespace Colors {
             std::cout << Colors::RED << "Failed: " << Colors::RESET << #expr << ", expected (" << EXPECTED.x << ", " << EXPECTED.y << ") but got (" << RESULT.x << ", "            \
                       << RESULT.y << ")\n";                                                                                                                                        \
             ret = 1;                                                                                                                                                               \
+            TESTS_FAILED++;                                                                                                                                                        \
         } else {                                                                                                                                                                   \
             std::cout << Colors::GREEN << "Passed " << Colors::RESET << #expr << ". Got (" << RESULT.x << ", " << RESULT.y << ")\n";                                               \
+            TESTS_PASSED++;                                                                                                                                                        \
         }                                                                                                                                                                          \
     } while (0)

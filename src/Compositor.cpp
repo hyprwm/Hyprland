@@ -3040,11 +3040,12 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             continue;
         }
 
-        auto        PWORKSPACE = pWorkspace;
+        auto PWORKSPACE = pWorkspace;
 
-        WORKSPACEID id     = rule.workspaceId;
-        std::string wsname = rule.workspaceName;
         if (!PWORKSPACE) {
+            WORKSPACEID id     = rule.workspaceId;
+            std::string wsname = rule.workspaceName;
+
             if (id == WORKSPACE_INVALID) {
                 const auto R = getWorkspaceIDNameFromString(rule.workspaceString);
                 id           = R.id;
@@ -3056,6 +3057,8 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
                 continue;
             }
             PWORKSPACE = getWorkspaceByID(id);
+            if (!PWORKSPACE)
+                createNewWorkspace(id, PMONITOR ? PMONITOR : m_pLastMonitor.lock(), wsname, false);
         }
         if (PWORKSPACE) {
             PWORKSPACE->m_bPersistent = true;
@@ -3069,8 +3072,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->szName);
             moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
             continue;
-        } else
-            createNewWorkspace(id, PMONITOR ? PMONITOR : m_pLastMonitor.lock(), wsname, false);
+        }
     }
 
     // cleanup old

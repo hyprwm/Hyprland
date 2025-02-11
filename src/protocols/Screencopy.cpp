@@ -117,7 +117,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
+    if (const auto& attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
         bufferDMA = true;
 
         if (attrs.format != dmabufFormat) {
@@ -126,7 +126,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
             PROTO::screencopy->destroyResource(this);
             return;
         }
-    } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
+    } else if (const auto& attrs = PBUFFER->buffer->shm(); attrs.success) {
         if (attrs.format != shmFormat) {
             LOGM(ERR, "Invalid buffer shm format in {:x}", (uintptr_t)pFrame);
             resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");

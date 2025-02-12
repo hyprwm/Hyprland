@@ -3040,7 +3040,13 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             continue;
         }
 
-        auto PWORKSPACE = pWorkspace;
+        PHLWORKSPACE PWORKSPACE = nullptr;
+        if (pWorkspace) {
+            if (pWorkspace->matchesStaticSelector(rule.workspaceString))
+                PWORKSPACE = pWorkspace;
+            else
+                continue;
+        }
 
         if (!PWORKSPACE) {
             WORKSPACEID id     = rule.workspaceId;

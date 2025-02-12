@@ -255,6 +255,7 @@ class CInputManager {
 
     // used for warping back after non-mouse input
     Vector2D m_vLastMousePos   = {};
+    double   m_vMousePosDelta  = 0;
     bool     m_bLastInputMouse = true;
 
     // for holding focus on buttons held

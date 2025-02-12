@@ -9,6 +9,7 @@ project(
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
 
+include(CTest)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
 
@@ -390,6 +391,12 @@ else()
   message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
 endif()
 
+if(NO_TESTS)
+  message(STATUS "building tests is disabled")
+else()
+  message(STATUS "building tests is enabled (NO_TESTS not defined)")
+endif()
+
 # binary and symlink
 install(TARGETS Hyprland)
 
@@ -443,3 +450,16 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
   PATTERN "*.h*")
+
+if(NOT NO_TESTS)
+  enable_testing()
+  add_custom_target(tests)
+
+  add_subdirectory(hyprtester)
+  add_test(
+    NAME "Main Test"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
+    COMMAND hyprtester)
+
+  add_dependencies(tests hyprtester)
+endif()

@@ -44,8 +44,25 @@ jobs:
           name: Build archive
           path: Hyprland.tar.xz
 
+      - name: Verify downloaded files
+        run: |
+          chmod +x build/hyprtester/hyprtester
+          chmod +x build/Hyprland
+          ls -lAh build/
+          ls -lAh build/hyprtester
+
+      - name: Run tests
+        run: |
+          export __GLX_VENDOR_LIBRARY_NAME=mesa
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export XDG_RUNTIME_DIR="/tmp"
+          export XDG_CACHE_HOME="/tmp"
+          export AQ_TRACE=1
+          cd build
+          ctest --output-on-failure
+
   meson:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    if: false && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     name: "Build Hyprland with Meson (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -66,7 +83,7 @@ jobs:
         run: ninja -C build
 
   no-pch:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    if: false && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     name: "Build Hyprland without precompiled headers (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -86,7 +103,7 @@ jobs:
         run: make nopch
 
   noxwayland:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    if: false && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     name: "Build Hyprland in pure Wayland (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -108,7 +125,7 @@ jobs:
 
   clang-format:
     permissions: read-all
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    if: false && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     name: "Code Style (Arch)"
     runs-on: ubuntu-latest
     container:

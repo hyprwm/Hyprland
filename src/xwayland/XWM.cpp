@@ -1274,9 +1274,31 @@ void SXSelection::onSelection() {
         return;
 
     if (g_pSeatManager->selection.currentSelection) {
-        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->pWM->connection);
-        g_pXWayland->pWM->clipboard.notifyOnFocus = true;
+        xcb_get_selection_owner_cookie_t cookie = xcb_get_selection_owner(g_pXWayland->pWM->connection, HYPRATOMS["CLIPBOARD"]);
+        xcb_get_selection_owner_reply_t* reply  = xcb_get_selection_owner_reply(g_pXWayland->pWM->connection, cookie, nullptr);
+
+        if (reply) {
+            owner = reply->owner;
+            free(reply);
+
+            if (owner != XCB_NONE) {
+                timestamp = XCB_CURRENT_TIME;
+                window    = g_pXWayland->pWM->clipboard.window;
+
+                xcb_set_selection_owner(g_pXWayland->pWM->connection, window, HYPRATOMS["CLIPBOARD"], timestamp);
+                xcb_flush(g_pXWayland->pWM->connection);
+
+                xcb_get_selection_owner_cookie_t verifyCookie = xcb_get_selection_owner(g_pXWayland->pWM->connection, HYPRATOMS["CLIPBOARD"]);
+                xcb_get_selection_owner_reply_t* verifyReply  = xcb_get_selection_owner_reply(g_pXWayland->pWM->connection, verifyCookie, nullptr);
+
+                if (verifyReply) {
+                    if (verifyReply->owner == window) {
+                        notifyOnFocus = true;
+                    }
+                    free(verifyReply);
+                }
+            }
+        }
     }
 }
 

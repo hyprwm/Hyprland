@@ -533,6 +533,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("animations:first_launch_animation", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("input:follow_mouse", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("input:follow_mouse_threshold", Hyprlang::FLOAT{0});
     m_pConfig->addConfigValue("input:focus_on_close", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:mouse_refocus", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:special_fallthrough", Hyprlang::INT{0});

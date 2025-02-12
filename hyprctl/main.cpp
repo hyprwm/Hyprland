@@ -282,6 +282,10 @@ int requestHyprpaper(std::string arg) {
     return requestIPC(".hyprpaper.sock", arg);
 }
 
+int requestHyprsunset(std::string arg) {
+    return requestIPC(".hyprsunset.sock", arg);
+}
+
 void batchRequest(std::string arg, bool json) {
     std::string commands = arg.substr(arg.find_first_of(' ') + 1);
 
@@ -386,6 +390,8 @@ int main(int argc, char** argv) {
 
                 if (cmd == "hyprpaper") {
                     std::println("{}", HYPRPAPER_HELP);
+                } else if (cmd == "hyprsunset") {
+                    std::println("{}", HYPRSUNSET_HELP);
                 } else if (cmd == "notify") {
                     std::println("{}", NOTIFY_HELP);
                 } else if (cmd == "output") {
@@ -467,6 +473,8 @@ int main(int argc, char** argv) {
         batchRequest(fullRequest, json);
     else if (fullRequest.contains("/hyprpaper"))
         exitStatus = requestHyprpaper(fullRequest);
+    else if (fullRequest.contains("/hyprsunset"))
+        exitStatus = requestHyprsunset(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))

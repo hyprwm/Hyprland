@@ -12,3 +12,14 @@ jobs:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     uses: ./.github/workflows/nix-build.yml
     secrets: inherit
+
+  test:
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
+    needs: build
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      # TODO: run a proper testing command
+      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#checks.x86_64-linux.xeyes' -L --extra-substituters "https://hyprland.cachix.org"

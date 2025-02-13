@@ -885,9 +885,9 @@ void CConfigManager::setDefaultAnimationVars() {
     m_AnimationTree.createNode("specialWorkspaceOut", "specialWorkspace");
 
     // init the root nodes
-    m_AnimationTree.setConfigForNode("global", 1, 8.f, "", "default");
-    m_AnimationTree.setConfigForNode("__internal_fadeCTM", 1, 5.f, "", "linear");
-    m_AnimationTree.setConfigForNode("borderangle", 0, 0.f, "", "default");
+    m_AnimationTree.setConfigForNode("global", 1, 8.f, "default");
+    m_AnimationTree.setConfigForNode("__internal_fadeCTM", 1, 5.f, "linear");
+    m_AnimationTree.setConfigForNode("borderangle", 0, 1, "default");
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {

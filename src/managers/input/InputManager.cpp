@@ -174,9 +174,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 
     if (FOLLOWMOUSE == 1 && m_tmrLastCursorMovement.getSeconds() < 0.5)
-        m_vMousePosDelta += MOUSECOORDSFLOORED.distance(m_vLastCursorPosFloored);
+        m_fMousePosDelta += MOUSECOORDSFLOORED.distance(m_vLastCursorPosFloored);
     else
-        m_vMousePosDelta = 0;
+        m_fMousePosDelta = 0;
 
     m_pFoundSurfaceToFocus.reset();
     m_pFoundLSToFocus.reset();
@@ -520,7 +520,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                     // TODO: this looks wrong. When over a popup, it constantly is switching.
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
                     if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow) {
-                        if (m_vMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus)
+                        if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus)
                             g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                     } else
                         g_pCompositor->focusSurface(foundSurface, pFoundWindow);

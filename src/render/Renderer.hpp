@@ -75,7 +75,7 @@ class CHyprRenderer {
     bool                            isNvidia();
     void                            makeEGLCurrent();
     void                            unsetEGL();
-    SExplicitSyncSettings           getExplicitSyncSettings();
+    SExplicitSyncSettings           getExplicitSyncSettings(SP<Aquamarine::IOutput> output);
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeWindowSnapshot(PHLWINDOW);
     void                            makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);

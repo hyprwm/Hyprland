@@ -1557,7 +1557,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    auto explicitOptions = getExplicitSyncSettings();
+    auto explicitOptions = getExplicitSyncSettings(pMonitor->output);
     if (!explicitOptions.explicitEnabled)
         return ok;
 
@@ -2293,7 +2293,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        auto explicitOptions = getExplicitSyncSettings();
+        auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
             auto sync = g_pHyprOpenGL->createEGLSync({});
@@ -2336,13 +2336,21 @@ bool CHyprRenderer::isNvidia() {
     return m_bNvidia;
 }
 
-SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
+SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOutput> output) {
     static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
 
     SExplicitSyncSettings settings;
     settings.explicitEnabled    = *PENABLEEXPLICIT;
     settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
+
+    if (!output->supportsExplicit) {
+        Debug::log(LOG, "Renderer: the aquamarine output does not support explicit, explicit settings are disabled.");
+        settings.explicitEnabled    = false;
+        settings.explicitKMSEnabled = false;
+
+        return settings;
+    }
 
     if (*PENABLEEXPLICIT == 2 /* auto */)
         settings.explicitEnabled = true;

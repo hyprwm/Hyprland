@@ -1312,7 +1312,7 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings();
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
 
     // wait for the explicit fence if present, and if kms explicit is allowed
     bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;

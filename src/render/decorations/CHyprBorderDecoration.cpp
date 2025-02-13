@@ -63,6 +63,11 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (m_pWindow->m_fBorderAngleAnimationProgress->enabled()) {
         grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress->value() * M_PI * 2;
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
+
+        // When borderangle is animated, it is counterintuitive to fade between inactive/active gradient angles.
+        // Instead we sync the angles to avoid fading between them and additionally rotating the border angle.
+        if (ANIMATED)
+            m_pWindow->m_cRealBorderColorPrevious.m_fAngle = grad.m_fAngle;
     }
 
     int                             borderSize    = m_pWindow->getRealBorderSize();

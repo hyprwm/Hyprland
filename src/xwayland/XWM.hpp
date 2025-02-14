@@ -58,7 +58,7 @@ struct SXSelection {
         CHyprSignalListener keyboardFocusChange;
     } listeners;
 
-    UP<SXTransfer> transfer;
+    std::vector<UP<SXTransfer>> transfers;
 };
 
 class CXCBConnection {

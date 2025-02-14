@@ -25,6 +25,12 @@ inputs: pkgs: {
         portalPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
       };
 
+
+      # XXX: remove asap (as soon as we no longer build the world)
+      xdg.portal.enable = pkgs.lib.mkForce false;
+      # enabled by default for some reason
+      services.speechd.enable = false;
+
       environment.etc."xdg/hypr/hyprland.conf".source = ./test.conf;
       environment.etc."xdg/hypr/hyprlandd.conf".source = ./test.conf;
 

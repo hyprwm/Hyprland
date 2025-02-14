@@ -3033,13 +3033,6 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
         if (!rule.isPersistent)
             continue;
 
-        const auto PMONITOR = getMonitorFromString(rule.monitor);
-
-        if (!PMONITOR) {
-            Debug::log(ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.monitor);
-            continue;
-        }
-
         PHLWORKSPACE PWORKSPACE = nullptr;
         if (pWorkspace) {
             if (pWorkspace->matchesStaticSelector(rule.workspaceString))
@@ -3047,6 +3040,8 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             else
                 continue;
         }
+
+        const auto PMONITOR = getMonitorFromString(rule.monitor);
 
         if (!PWORKSPACE) {
             WORKSPACEID id     = rule.workspaceId;
@@ -3066,9 +3061,16 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             if (!PWORKSPACE)
                 createNewWorkspace(id, PMONITOR ? PMONITOR : m_pLastMonitor.lock(), wsname, false);
         }
-        if (PWORKSPACE) {
+
+        if (PWORKSPACE)
             PWORKSPACE->m_bPersistent = true;
 
+        if (!PMONITOR) {
+            Debug::log(ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.monitor);
+            continue;
+        }
+
+        if (PWORKSPACE) {
             if (PWORKSPACE->m_pMonitor == PMONITOR) {
                 Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.workspaceString, PMONITOR->szName);
 

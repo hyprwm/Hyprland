@@ -7,24 +7,21 @@ inputs: pkgs: {
       environment.systemPackages = with pkgs; [
         kitty
         xorg.xeyes
-        gdb
       ];
 
-      # Automatically configure and start Sway when logging in on tty1:
+      # Automatically configure and start Hyprland when logging in on tty1:
       programs.bash.loginShellInit = ''
         if [ "$(tty)" = "/dev/tty1" ]; then
           set -e
 
-          # sed s/Mod4/Mod1/ /etc/sway/config > ~/.config/sway/config
-
-          # Hyprland --validate
+          Hyprland --verify-config
           Hyprland && touch /tmp/hyprland-exit-ok
         fi
       '';
 
       programs.hyprland = {
         enable = true;
-        package = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.hyprland-debug;
+        package = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
         portalPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
       };
 

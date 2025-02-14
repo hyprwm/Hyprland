@@ -67,15 +67,6 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
         return;
     }
 
-    xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
-
-    xcb_client_message_data_t data = {0};
-    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
-    data.data32[1]                 = XDND_VERSION << 24;
-
-    // let the client know it needs to check for DND_TYPE_LIST
-    data.data32[1] |= 1;
-
     std::vector<xcb_atom_t> targets;
     // reserve to avoid reallocations
     targets.reserve(SOURCE->mimes().size());
@@ -86,6 +77,14 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
 
     xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndTypeList"], XCB_ATOM_ATOM, 32, targets.size(),
                         targets.data());
+
+    xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->pWM->connection);
+
+    xcb_client_message_data_t data = {0};
+    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
+    data.data32[1]                 = XDND_VERSION << 24;
+    data.data32[1] |= 1;
 
     g_pXWayland->pWM->sendDndEvent(surf, HYPRATOMS["XdndEnter"], data);
 
@@ -103,6 +102,13 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
 #endif
 }
 
+void CX11DataDevice::cleanupState() {
+    lastSurface.reset();
+    lastOffer.reset();
+    lastSurfaceCoords = {};
+    lastTime          = 0;
+}
+
 void CX11DataDevice::sendLeave() {
 #ifndef NO_XWAYLAND
     if (!lastSurface)
@@ -113,10 +119,7 @@ void CX11DataDevice::sendLeave() {
 
     g_pXWayland->pWM->sendDndEvent(lastSurface->surface.lock(), HYPRATOMS["XdndLeave"], data);
 
-    lastSurface.reset();
-    lastOffer.reset();
-
-    xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->dndSelection.window, XCB_ATOM_NONE, XCB_TIME_CURRENT_TIME);
+    cleanupState();
 #endif
 }
 
@@ -140,17 +143,26 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 
 void CX11DataDevice::sendDrop() {
 #ifndef NO_XWAYLAND
-    if (!lastSurface || !lastOffer)
+    if (!lastSurface || !lastOffer) {
+        Debug::log(ERR, "CX11DataDevice::sendDrop: No surface or offer");
         return;
+    }
 
-    // we don't have timeMs here, just send last time + 1
     xcb_client_message_data_t data = {0};
     data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
-    data.data32[2]                 = lastTime + 1;
+    data.data32[2]                 = lastTime;
 
     g_pXWayland->pWM->sendDndEvent(lastSurface->surface.lock(), HYPRATOMS["XdndDrop"], data);
 
-    sendLeave();
+    auto source = lastOffer->getSource();
+    if (source) {
+        source->sendDndDropPerformed();
+    }
+
+    cleanupState();
+
+    g_pInputManager->simulateMouseMovement();
+    g_pSeatManager->resendEnterEvents();
 #endif
 }
 
@@ -216,4 +228,24 @@ void CX11DataSource::sendDndDropPerformed() {
 
 void CX11DataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
     ;
+}
+
+void CX11DataDevice::forceCleanupDnd() {
+#ifndef NO_XWAYLAND
+    if (lastOffer) {
+        auto source = lastOffer->getSource();
+        if (source) {
+            source->cancelled();
+            source->sendDndFinished();
+        }
+    }
+
+    xcb_set_selection_owner(g_pXWayland->pWM->connection, XCB_ATOM_NONE, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->pWM->connection);
+
+    cleanupState();
+
+    g_pSeatManager->setPointerFocus(nullptr, {});
+    g_pInputManager->simulateMouseMovement();
+#endif
 }

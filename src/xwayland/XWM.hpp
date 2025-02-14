@@ -143,8 +143,6 @@ class CXWM {
 
     void                 updateClientList();
 
-    void                 sendDndEvent(SP<CWLSurfaceResource> destination, xcb_atom_t type, xcb_client_message_data_t& data);
-
     // event handlers
     void         handleCreate(xcb_create_notify_event_t* e);
     void         handleDestroy(xcb_destroy_notify_event_t* e);

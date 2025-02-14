@@ -1177,7 +1177,7 @@ static int writeDataSource(int fd, uint32_t mask, void* data) {
 void CXWM::getTransferData(SXSelection& sel) {
     Debug::log(LOG, "[xwm] getTransferData");
 
-    auto it = std::find_if(sel.transfers.begin(), sel.transfers.end(), [](const auto& t) { return !t->propertyReply; });
+    auto it = std::ranges::find_if(sel.transfers, [](const auto& t) { return !t->propertyReply; });
     if (it == sel.transfers.end()) {
         Debug::log(ERR, "[xwm] No pending transfer found");
         return;
@@ -1323,7 +1323,7 @@ void SXSelection::onKeyboardFocus() {
 }
 
 int SXSelection::onRead(int fd, uint32_t mask) {
-    auto it = std::find_if(transfers.begin(), transfers.end(), [fd](const auto& t) { return t->wlFD.get() == fd; });
+    auto it = std::ranges::find_if(transfers, [fd](const auto& t) { return t->wlFD.get() == fd; });
     if (it == transfers.end()) {
         Debug::log(ERR, "[xwm] No transfer found for fd {}", fd);
         return 0;
@@ -1406,13 +1406,13 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     selection->send(mime, CFileDescriptor{p[1]});
 
     transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
-    transfers.push_back(std::move(transfer));
+    transfers.emplace_back(std::move(transfer));
 
     return true;
 }
 
 int SXSelection::onWrite() {
-    auto it = std::find_if(transfers.begin(), transfers.end(), [](const auto& t) { return t->propertyReply; });
+    auto it = std::ranges::find_if(transfers, [](const auto& t) { return t->propertyReply; });
     if (it == transfers.end()) {
         Debug::log(ERR, "[xwm] No transfer with property data found");
         return 0;

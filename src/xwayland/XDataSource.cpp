@@ -84,7 +84,7 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     //TODO: make CFileDescriptor setflags take SETFL aswell
     fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);
     transfer->wlFD = std::move(fd);
-    selection.transfers.push_back(std::move(transfer));
+    selection.transfers.emplace_back(std::move(transfer));
 }
 
 void CXDataSource::accepted(const std::string& mime) {

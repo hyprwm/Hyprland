@@ -2345,7 +2345,6 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOut
     settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
 
     if (!output->supportsExplicit) {
-        Debug::log(LOG, "Renderer: the aquamarine output does not support explicit, explicit settings are disabled.");
         settings.explicitEnabled    = false;
         settings.explicitKMSEnabled = false;
 

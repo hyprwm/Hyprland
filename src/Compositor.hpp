@@ -147,7 +147,7 @@ class CCompositor {
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
-    void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules);
+    void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
 
     SImageDescription      getPreferredImageDescription();
     bool                   shouldChangePreferredImageDescription();

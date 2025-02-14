@@ -17,6 +17,7 @@
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/window/window.hpp"
+#include "tests/window/groups.hpp"
 
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
@@ -77,6 +78,7 @@ int main(int argc, char** argv, char** envp) {
 
     // now we can start issuing stuff.
     EXPECT(testWindows(), true);
+    EXPECT(testGroups(), true);
 
     // kill hyprland
     getFromSocket("/dispatch exit");

@@ -535,7 +535,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 
     for (int i = 0; i < attrs.planes; i++) {
         attribs.push_back(attrNames[i].fd);
-        attribs.push_back(attrs.fds[i]);
+        attribs.push_back(attrs.fds[i].get());
         attribs.push_back(attrNames[i].offset);
         attribs.push_back(attrs.offsets[i]);
         attribs.push_back(attrNames[i].pitch);

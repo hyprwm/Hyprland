@@ -135,6 +135,7 @@
         hyprland-debug
         hyprland-legacy-renderer
         hyprland-unwrapped
+        hyprtester
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

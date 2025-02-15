@@ -1441,6 +1441,24 @@ void CMonitor::onMonitorFrame() {
         g_pHyprRenderer->renderMonitor(self.lock());
 }
 
+void CMonitor::onCursorMovedOnMonitor() {
+    if (!tearingState.activelyTearing || !solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
+        return;
+
+    // submit a frame immediately. This will only update the cursor pos.
+    // output->state->setBuffer(output->state->state().buffer);
+    // output->state->addDamage(CRegion{});
+    // output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+    // if (!output->commit())
+    //     Debug::log(ERR, "onCursorMovedOnMonitor: tearing and wanted to update cursor, failed.");
+
+    // FIXME: try to do the above. We currently can't just render because drm is a fucking bitch
+    // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
+    // this will throw too but fix it if we use sw cursors
+
+    tearingState.frameScheduledWhileBusy = true;
+}
+
 CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
     ;
 }

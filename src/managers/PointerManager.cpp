@@ -17,6 +17,9 @@
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
 
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
@@ -310,7 +313,12 @@ void CPointerManager::onCursorMoved() {
             recalc = true;
         }
 
-        if (state->hardwareFailed || !state->entered)
+        if (!state->entered)
+            continue;
+
+        CScopeGuard x([m] { m->onCursorMovedOnMonitor(); });
+
+        if (state->hardwareFailed)
             continue;
 
         const auto CURSORPOS = getCursorPosForMonitor(m);

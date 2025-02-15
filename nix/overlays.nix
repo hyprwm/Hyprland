@@ -8,7 +8,7 @@
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
-  version = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
+  ver = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
 in {
   # Contains what a user is most likely to care about:
   # Hyprland itself, XDPH and the Share Picker.
@@ -33,13 +33,13 @@ in {
     # Hyprland packages themselves
     (final: _prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
+      version = "${ver}+date=${date}_${self.shortRev or "dirty"}";
     in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc15Stdenv;
-        version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         revCount = self.sourceInfo.revCount or "";
-        inherit date;
+        inherit date version;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
@@ -48,6 +48,10 @@ in {
         aquamarine = final.aquamarine.override {debug = true;};
         hyprutils = final.hyprutils.override {debug = true;};
         debug = true;
+      };
+
+      hyprtester = final.callPackage ./hyprtester.nix {
+        inherit version;
       };
 
       # deprecated packages

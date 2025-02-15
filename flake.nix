@@ -134,6 +134,7 @@
         hyprland
         hyprland-debug
         hyprland-unwrapped
+        hyprtester
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

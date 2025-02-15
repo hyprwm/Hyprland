@@ -503,7 +503,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:follow_mouse_threshold",
-        .description = "The smallest distance the mouse needs to travel for the window under it to get focused, works only with follow_mouse = 1.",
+        .description = "The smallest distance in logical pixels the mouse needs to travel for the window under it to get focused. Works only with follow_mouse = 1.",
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{},
     },

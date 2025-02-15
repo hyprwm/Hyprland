@@ -186,6 +186,7 @@ class CMonitor {
     void        scheduleDone();
     bool        attemptDirectScanout();
     void        setCTM(const Mat3x3& ctm);
+    void        onCursorMovedOnMonitor();
 
     void        debugLastPresentation(const std::string& message);
     void        onMonitorFrame();

@@ -571,9 +571,10 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
     SXSelection* sel = getSelection(e->selection);
 
     if (e->property == XCB_ATOM_NONE) {
-        if (!sel->transfers.empty()) {
+        auto it = std::ranges::find_if(sel->transfers, [](const auto& t) { return !t->propertyReply; });
+        if (it != sel->transfers.end()) {
             Debug::log(TRACE, "[xwm] converting selection failed");
-            sel->transfers.clear();
+            sel->transfers.erase(it);
         }
     } else if (e->target == HYPRATOMS["TARGETS"] && sel == &clipboard) {
         if (!focusedSurface) {

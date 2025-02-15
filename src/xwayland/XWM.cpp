@@ -571,9 +571,10 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
     SXSelection* sel = getSelection(e->selection);
 
     if (e->property == XCB_ATOM_NONE) {
-        if (sel->transfer) {
+        auto it = std::ranges::find_if(sel->transfers, [](const auto& t) { return !t->propertyReply; });
+        if (it != sel->transfers.end()) {
             Debug::log(TRACE, "[xwm] converting selection failed");
-            sel->transfer.reset();
+            sel->transfers.erase(it);
         }
     } else if (e->target == HYPRATOMS["TARGETS"] && sel == &clipboard) {
         if (!focusedSurface) {
@@ -582,7 +583,7 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
         }
 
         setClipboardToWayland(*sel);
-    } else if (sel->transfer)
+    } else if (!sel->transfers.empty())
         getTransferData(*sel);
 }
 
@@ -1177,17 +1178,50 @@ static int writeDataSource(int fd, uint32_t mask, void* data) {
 void CXWM::getTransferData(SXSelection& sel) {
     Debug::log(LOG, "[xwm] getTransferData");
 
-    sel.transfer->getIncomingSelectionProp(true);
-
-    if (sel.transfer->propertyReply->type == HYPRATOMS["INCR"]) {
-        Debug::log(ERR, "[xwm] Transfer is INCR, which we don't support :(");
-        sel.transfer.reset();
+    auto it = std::ranges::find_if(sel.transfers, [](const auto& t) { return !t->propertyReply; });
+    if (it == sel.transfers.end()) {
+        Debug::log(ERR, "[xwm] No pending transfer found");
         return;
-    } else {
-        sel.onWrite();
-        if (sel.transfer)
-            sel.transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, sel.transfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
     }
+
+    auto& transfer = *it;
+    if (!transfer || !transfer->incomingWindow) {
+        Debug::log(ERR, "[xwm] Invalid transfer state");
+        sel.transfers.erase(it);
+        return;
+    }
+
+    if (!transfer->getIncomingSelectionProp(true)) {
+        Debug::log(ERR, "[xwm] Failed to get property data");
+        sel.transfers.erase(it);
+        return;
+    }
+
+    if (!transfer->propertyReply) {
+        Debug::log(ERR, "[xwm] No property reply");
+        sel.transfers.erase(it);
+        return;
+    }
+
+    if (transfer->propertyReply->type == HYPRATOMS["INCR"]) {
+        Debug::log(ERR, "[xwm] Transfer is INCR, which we don't support :(");
+        sel.transfers.erase(it);
+        return;
+    }
+
+    const size_t pos = std::distance(sel.transfers.begin(), it);
+    sel.onWrite();
+
+    if (pos >= sel.transfers.size())
+        return;
+
+    auto newIt = sel.transfers.begin() + pos;
+    if (newIt == sel.transfers.end() || !(*newIt))
+        return;
+
+    auto& updatedTransfer = *newIt;
+    if (updatedTransfer->eventSource && updatedTransfer->wlFD.get() != -1)
+        updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
 }
 
 void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot) {
@@ -1290,16 +1324,21 @@ void SXSelection::onKeyboardFocus() {
 }
 
 int SXSelection::onRead(int fd, uint32_t mask) {
-    // TODO: support INCR
+    auto it = std::ranges::find_if(transfers, [fd](const auto& t) { return t->wlFD.get() == fd; });
+    if (it == transfers.end()) {
+        Debug::log(ERR, "[xwm] No transfer found for fd {}", fd);
+        return 0;
+    }
 
-    size_t pre = transfer->data.size();
+    auto&  transfer = *it;
+    size_t pre      = transfer->data.size();
     transfer->data.resize(INCR_CHUNK_SIZE + pre);
 
     auto len = read(fd, transfer->data.data() + pre, INCR_CHUNK_SIZE - 1);
     if (len < 0) {
         Debug::log(ERR, "[xwm] readDataSource died");
         g_pXWayland->pWM->selectionSendNotify(&transfer->request, false);
-        transfer.reset();
+        transfers.erase(it);
         return 0;
     }
 
@@ -1311,7 +1350,7 @@ int SXSelection::onRead(int fd, uint32_t mask) {
                             transfer->data.size(), transfer->data.data());
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->selectionSendNotify(&transfer->request, true);
-        transfer.reset();
+        transfers.erase(it);
     } else
         Debug::log(LOG, "[xwm] Received {} bytes, waiting...", len);
 
@@ -1346,7 +1385,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
         mime = *MIMES.begin();
     }
 
-    transfer          = makeUnique<SXTransfer>(*this);
+    auto transfer     = makeUnique<SXTransfer>(*this);
     transfer->request = *e;
 
     int p[2];
@@ -1368,18 +1407,26 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     selection->send(mime, CFileDescriptor{p[1]});
 
     transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
+    transfers.emplace_back(std::move(transfer));
 
     return true;
 }
 
 int SXSelection::onWrite() {
+    auto it = std::ranges::find_if(transfers, [](const auto& t) { return t->propertyReply; });
+    if (it == transfers.end()) {
+        Debug::log(ERR, "[xwm] No transfer with property data found");
+        return 0;
+    }
+
+    auto&   transfer  = *it;
     char*   property  = (char*)xcb_get_property_value(transfer->propertyReply);
     int     remainder = xcb_get_property_value_length(transfer->propertyReply) - transfer->propertyStart;
 
     ssize_t len = write(transfer->wlFD.get(), property + transfer->propertyStart, remainder);
     if (len == -1) {
         Debug::log(ERR, "[xwm] write died in transfer get");
-        transfer.reset();
+        transfers.erase(it);
         return 0;
     }
 
@@ -1388,7 +1435,7 @@ int SXSelection::onWrite() {
         Debug::log(LOG, "[xwm] wl client read partially: len {}", len);
     } else {
         Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
-        transfer.reset();
+        transfers.erase(it);
     }
 
     return 1;

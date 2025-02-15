@@ -33,7 +33,7 @@ class CDRMSyncobjSurfaceResource {
 
 class CDRMSyncobjTimelineResource {
   public:
-    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor fd_);
+    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor&& fd_);
     ~CDRMSyncobjTimelineResource() = default;
     static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 

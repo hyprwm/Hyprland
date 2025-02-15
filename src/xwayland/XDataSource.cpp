@@ -71,19 +71,20 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
 
     Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
 
-    selection.transfer                 = makeUnique<SXTransfer>(selection);
-    selection.transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
-    const uint32_t MASK                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, selection.transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0,
-                      XCB_WINDOW_CLASS_INPUT_OUTPUT, g_pXWayland->pWM->screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
+    auto transfer            = makeUnique<SXTransfer>(selection);
+    transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
+    const uint32_t MASK      = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
+    xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                      g_pXWayland->pWM->screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
 
-    xcb_convert_selection(g_pXWayland->pWM->connection, selection.transfer->incomingWindow, HYPRATOMS["CLIPBOARD"], mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
+    xcb_convert_selection(g_pXWayland->pWM->connection, transfer->incomingWindow, HYPRATOMS["CLIPBOARD"], mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
 
     xcb_flush(g_pXWayland->pWM->connection);
 
     //TODO: make CFileDescriptor setflags take SETFL aswell
     fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);
-    selection.transfer->wlFD = std::move(fd);
+    transfer->wlFD = std::move(fd);
+    selection.transfers.emplace_back(std::move(transfer));
 }
 
 void CXDataSource::accepted(const std::string& mime) {

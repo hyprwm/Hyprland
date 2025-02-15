@@ -621,7 +621,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 
-    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
@@ -2798,12 +2798,13 @@ const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions(
     return CONFIG_OPTIONS;
 }
 
-bool CConfigManager::shouldUseSoftwareCursors() {
+bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
+        case 2: return pMonitor->tearingState.activelyTearing;
         default: break;
     }
 

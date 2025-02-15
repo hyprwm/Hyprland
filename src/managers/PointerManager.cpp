@@ -274,7 +274,7 @@ void CPointerManager::updateCursorBackend() {
             continue;
         }
 
-        if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors() || !attemptHardwareCursor(state)) {
+        if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors(m) || !attemptHardwareCursor(state)) {
             Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
             state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
@@ -737,7 +737,8 @@ void CPointerManager::damageIfSoftware() {
         if (mw->monitor.expired() || !mw->monitor->output)
             continue;
 
-        if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors()) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
+        if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(mw->monitor.lock())) &&
+            b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
             g_pHyprRenderer->damageBox(b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
             break;
         }

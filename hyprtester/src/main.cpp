@@ -34,14 +34,28 @@ static Hyprutils::OS::CProcess hyprlandProc("", {});
 static const std::string       cwd = std::filesystem::current_path().string();
 
 //
-static bool launchHyprland() {
-    std::error_code ec;
-    if (!std::filesystem::exists(cwd + "/../build/Hyprland", ec) || ec) {
-        std::println("{}No Hyprland binary", Colors::RED);
-        return false;
+static bool launchHyprland(std::string configPath, std::string binaryPath) {
+    if (binaryPath == "") {
+        std::error_code ec;
+        if (!std::filesystem::exists(cwd + "/../build/Hyprland", ec) || ec) {
+            std::println("{}No Hyprland binary", Colors::RED);
+            return false;
+        }
+
+        binaryPath = cwd + "/../build/Hyprland";
     }
 
-    hyprlandProc = CProcess{cwd + "/../build/Hyprland", {"--config", cwd + "/test.conf"}};
+    if (configPath == "") {
+        std::error_code ec;
+        if (!std::filesystem::exists(cwd + "/test.conf", ec) || ec) {
+            std::println("{}No test config", Colors::RED);
+            return false;
+        }
+
+        configPath = cwd + "/test.conf";
+    }
+
+    hyprlandProc = CProcess{binaryPath, {"--config", configPath}};
     hyprlandProc.addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
     return hyprlandProc.runAsync();
@@ -52,9 +66,85 @@ static bool hyprlandAlive() {
     return errno != ESRCH;
 }
 
+static void help() {
+    std::println("usage: hyprtester [arg [...]].\n");
+    std::println(R"(Arguments:
+    --help              -h       - Show this message again
+    --config FILE       -c FILE  - Specify config file to use
+    --binary FILE       -b FILE  - Specify Hyprland binary to use)");
+}
+
 int main(int argc, char** argv, char** envp) {
 
-    if (!launchHyprland())
+    std::string              configPath = "";
+    std::string              binaryPath = "";
+
+    std::vector<std::string> args{argv + 1, argv + argc};
+
+    for (auto it = args.begin(); it != args.end(); it++) {
+        if (*it == "--config" || *it == "-c") {
+            if (std::next(it) == args.end()) {
+                help();
+
+                return 1;
+            }
+
+            configPath = *std::next(it);
+
+            try {
+                configPath = std::filesystem::canonical(configPath);
+
+                if (!std::filesystem::is_regular_file(configPath)) {
+                    throw std::exception();
+                }
+            } catch (...) {
+                std::println(stderr, "[ ERROR ] Config file '{}' doesn't exist!", configPath);
+                help();
+
+                return 1;
+            }
+
+            it++;
+
+            continue;
+        } else if (*it == "--binary" || *it == "-b") {
+            if (std::next(it) == args.end()) {
+                help();
+
+                return 1;
+            }
+
+            binaryPath = *std::next(it);
+
+            try {
+                binaryPath = std::filesystem::canonical(binaryPath);
+
+                if (!std::filesystem::is_regular_file(binaryPath)) {
+                    throw std::exception();
+                }
+            } catch (...) {
+                std::println(stderr, "[ ERROR ] Binary '{}' doesn't exist!", binaryPath);
+                help();
+
+                return 1;
+            }
+
+            it++;
+
+            continue;
+        } else if (*it == "--help" || *it == "-h") {
+            help();
+
+            return 0;
+        } else {
+            std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
+            help();
+
+            return 1;
+        }
+    }
+
+    if (!launchHyprland(configPath, binaryPath))
         return 1;
 
     // hyprland has launched, let's check if it's alive after 2s

@@ -460,7 +460,7 @@ class CWindow {
     void                       onFocusAnimUpdate();
     void                       onUpdateState();
     void                       onUpdateMeta();
-    void                       onX11Configure(CBox box);
+    void                       onX11ConfigureRequest(CBox box);
     void                       onResourceChangeX11();
     std::string                fetchTitle();
     std::string                fetchClass();
@@ -471,6 +471,11 @@ class CWindow {
     bool                       isModal();
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
+    Vector2D                   realToReportSize();
+    Vector2D                   realToReportPosition();
+    Vector2D                   xwaylandSizeToReal(Vector2D size);
+    Vector2D                   xwaylandPositionToReal(Vector2D size);
+    void                       updateX11SurfaceScale();
     void                       sendWindowSize(bool force = false);
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);
@@ -497,7 +502,7 @@ class CWindow {
         CHyprSignalListener commit;
         CHyprSignalListener destroy;
         CHyprSignalListener activate;
-        CHyprSignalListener configure;
+        CHyprSignalListener configureRequest;
         CHyprSignalListener setGeometry;
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;

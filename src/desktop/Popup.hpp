@@ -34,6 +34,9 @@ class CPopup {
     void           recheckTree();
 
     bool           visible();
+    bool           inert() const {
+        return m_bInert;
+    }
 
     // will also loop over this node
     void       breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data);

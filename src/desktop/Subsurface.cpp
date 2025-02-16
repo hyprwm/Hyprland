@@ -107,7 +107,7 @@ void CSubsurface::onCommit() {
 
     g_pHyprRenderer->damageSurface(m_pWLSurface->resource(), COORDS.x, COORDS.y);
 
-    if (m_pPopupParent)
+    if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_pWLSurface && m_pPopupParent->m_pWLSurface->exists())
         m_pPopupParent->recheckTree();
     if (!m_pWindowParent.expired()) // I hate you firefox why are you doing this
         m_pWindowParent->m_pPopupHead->recheckTree();
@@ -124,7 +124,7 @@ void CSubsurface::onCommit() {
         // g_pHyprRenderer->damageBox(box);
 
         CBox box;
-        if (m_pPopupParent)
+        if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_pWLSurface && m_pPopupParent->m_pWLSurface->exists())
             box = m_pPopupParent->m_pWLSurface->getSurfaceBoxGlobal().value_or(CBox{});
         else if (m_pWindowParent)
             box = m_pWindowParent->getWindowMainSurfaceBox();

@@ -1176,7 +1176,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_maximized_state",
+        .value       = "misc:disable_maximized_hints",
         .description = "disable telling windows they are maximized, which can help with windows remembering their size",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},

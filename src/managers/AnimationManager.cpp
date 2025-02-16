@@ -357,6 +357,21 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
         *pWindow->m_vRealPosition = posOffset;
 }
 
+void CHyprAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
+    const auto GOALPOS  = pWindow->m_vRealPosition->goal();
+    const auto GOALSIZE = pWindow->m_vRealSize->goal();
+
+    if (close) {
+        *pWindow->m_vRealPosition = GOALPOS + Vector2D{0.F, GOALSIZE.y / 2.F};
+        *pWindow->m_vRealSize     = Vector2D{GOALSIZE.x, 0.F};
+    } else {
+        pWindow->m_vRealPosition->setValueAndWarp(GOALPOS + Vector2D{0.F, GOALSIZE.y / 2.F});
+        pWindow->m_vRealSize->setValueAndWarp(Vector2D{GOALSIZE.x, 0.F});
+        *pWindow->m_vRealPosition = GOALPOS;
+        *pWindow->m_vRealSize     = GOALSIZE;
+    }
+}
+
 void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!close) {
         pWindow->m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
@@ -387,7 +402,9 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
             animationSlide(pWindow, animList2[1], close);
-        } else {
+        } else if (STYLE == "gnomed" || STYLE == "gnome")
+            animationGnomed(pWindow, close);
+        else {
             // anim popin, fallback
 
             float minPerc = 0.f;
@@ -405,6 +422,8 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
     } else {
         if (animList[0] == "slide")
             animationSlide(pWindow, animList[1], close);
+        else if (animList[0] == "gnomed" || animList[0] == "gnome")
+            animationGnomed(pWindow, close);
         else {
             // anim popin, fallback
 
@@ -425,7 +444,7 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
 
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
-        if (style.starts_with("slide"))
+        if (style.starts_with("slide") || style == "gnome" || style == "gnomed")
             return "";
         else if (style.starts_with("popin")) {
             // try parsing

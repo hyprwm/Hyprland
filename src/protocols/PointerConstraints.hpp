@@ -24,6 +24,9 @@ class CPointerConstraint {
     void           activate();
     bool           isActive();
 
+    void           setAttached();
+    bool           isActivationPending();
+
     SP<CWLSurface> owner();
 
     CRegion        logicConstraintRegion();
@@ -42,6 +45,8 @@ class CPointerConstraint {
     Vector2D                        positionHint        = {-1, -1};
     Vector2D                        cursorPosOnActivate = {-1, -1};
     bool                            active              = false;
+    bool                            attached            = false;
+    bool                            pendingActivation   = false;
     bool                            locked              = false;
     bool                            dead                = false;
     zwpPointerConstraintsV1Lifetime lifetime            = ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT;

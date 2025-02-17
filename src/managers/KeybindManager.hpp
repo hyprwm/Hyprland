@@ -193,6 +193,7 @@ class CKeybindManager {
     static SDispatchResult toggleSpecialWorkspace(std::string);
     static SDispatchResult forceRendererReload(std::string);
     static SDispatchResult resizeActive(std::string);
+    static SDispatchResult scaleActive(std::string);
     static SDispatchResult moveActive(std::string);
     static SDispatchResult moveWindow(std::string);
     static SDispatchResult resizeWindow(std::string);

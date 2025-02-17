@@ -13,6 +13,7 @@
 #include "../../managers/HookSystemManager.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../xwayland/Dnd.hpp"
 using namespace Hyprutils::OS;
 
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
@@ -689,7 +690,7 @@ void CWLDataDeviceProtocol::updateDrag() {
                                  g_pSeatManager->state.dndPointerFocus->current.size / 2.F, offer);
 }
 
-void CWLDataDeviceProtocol::resetDndState() {
+void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput) {
     dnd.dndSurface.reset();
     dnd.dndSurfaceCommit.reset();
     dnd.dndSurfaceDestroy.reset();
@@ -697,6 +698,16 @@ void CWLDataDeviceProtocol::resetDndState() {
     dnd.mouseMove.reset();
     dnd.touchUp.reset();
     dnd.touchMove.reset();
+
+    if (resetDevice)
+        dnd.focusedDevice.reset();
+    if (resetSource)
+        dnd.currentSource.reset();
+
+    if (simulateInput) {
+        g_pInputManager->simulateMouseMovement();
+        g_pSeatManager->resendEnterEvents();
+    }
 }
 
 void CWLDataDeviceProtocol::dropDrag() {
@@ -712,21 +723,31 @@ void CWLDataDeviceProtocol::dropDrag() {
     }
 
     dnd.focusedDevice->sendDrop();
+
+#ifndef NO_XWAYLAND
+    if (dnd.focusedDevice->getX11()) {
+        dnd.focusedDevice->sendLeave();
+        if (dnd.overriddenCursor)
+            g_pInputManager->unsetCursorImage();
+        dnd.overriddenCursor = false;
+        cleanupDndState(true, true, true);
+        return;
+    }
+#endif
+
     dnd.focusedDevice->sendLeave();
-
-    resetDndState();
-
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
+    cleanupDndState(false, false, false);
 }
 
 bool CWLDataDeviceProtocol::wasDragSuccessful() {
-    if (!dnd.focusedDevice || !dnd.currentSource)
+    if (!dnd.currentSource)
         return false;
 
     for (auto const& o : m_vOffers) {
-        if (o->dead || !o->source || !o->source->hasDnd())
+        if (o->dead || o->source != dnd.currentSource)
             continue;
 
         if (o->recvd || o->accepted)
@@ -734,25 +755,14 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
     }
 
 #ifndef NO_XWAYLAND
-    if (g_pXWayland->pWM) {
-        for (auto const& o : g_pXWayland->pWM->dndDataOffers) {
-            if (o->dead || !o->source || !o->source->hasDnd())
-                continue;
-
-            if (o->source != dnd.currentSource)
-                continue;
-
-            return true;
-        }
-    }
+    if (dnd.focusedDevice->getX11())
+        return true;
 #endif
 
     return false;
 }
 
 void CWLDataDeviceProtocol::completeDrag() {
-    resetDndState();
-
     if (!dnd.focusedDevice && !dnd.currentSource)
         return;
 
@@ -761,15 +771,11 @@ void CWLDataDeviceProtocol::completeDrag() {
         dnd.currentSource->sendDndFinished();
     }
 
-    dnd.focusedDevice.reset();
-    dnd.currentSource.reset();
-
-    g_pInputManager->simulateMouseMovement();
-    g_pSeatManager->resendEnterEvents();
+    cleanupDndState(true, true, true);
 }
 
 void CWLDataDeviceProtocol::abortDrag() {
-    resetDndState();
+    cleanupDndState(false, false, false);
 
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
@@ -778,8 +784,14 @@ void CWLDataDeviceProtocol::abortDrag() {
     if (!dnd.focusedDevice && !dnd.currentSource)
         return;
 
-    if (dnd.focusedDevice)
+    if (dnd.focusedDevice) {
+#ifndef NO_XWAYLAND
+        if (auto x11Device = dnd.focusedDevice->getX11(); x11Device)
+            x11Device->forceCleanupDnd();
+#endif
         dnd.focusedDevice->sendLeave();
+    }
+
     if (dnd.currentSource)
         dnd.currentSource->cancelled();
 

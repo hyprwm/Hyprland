@@ -166,7 +166,8 @@ void CXWaylandSurface::configure(const CBox& box) {
     geometry = box;
 
     uint32_t mask     = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-    uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
+    uint32_t values[] = {g_pXWayland->pWM->applyScale(box.x), g_pXWayland->pWM->applyScale(box.y), g_pXWayland->pWM->applyScale(box.width),
+                         g_pXWayland->pWM->applyScale(box.height), 0};
     xcb_configure_window(g_pXWayland->pWM->connection, xID, mask, values);
 
     if (geometry.width == box.width && geometry.height == box.height) {
@@ -175,10 +176,10 @@ void CXWaylandSurface::configure(const CBox& box) {
         e.response_type     = XCB_CONFIGURE_NOTIFY;
         e.event             = xID;
         e.window            = xID;
-        e.x                 = box.x;
-        e.y                 = box.y;
-        e.width             = box.width;
-        e.height            = box.height;
+        e.x                 = g_pXWayland->pWM->applyScale(box.x);
+        e.y                 = g_pXWayland->pWM->applyScale(box.y);
+        e.width             = g_pXWayland->pWM->applyScale(box.width);
+        e.height            = g_pXWayland->pWM->applyScale(box.height);
         e.border_width      = 0;
         e.above_sibling     = XCB_NONE;
         e.override_redirect = overrideRedirect;

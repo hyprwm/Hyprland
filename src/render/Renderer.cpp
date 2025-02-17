@@ -32,10 +32,8 @@
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "debug/Log.hpp"
-#include "protocols/ColorManagement.hpp"
-#if AQUAMARINE_VERSION_NUMBER > 702 // >0.7.2
-#include "protocols/types/ContentType.hpp"
-#endif
+#include "../protocols/ColorManagement.hpp"
+#include "../protocols/types/ContentType.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -1209,7 +1207,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     pMonitor->tearingState.activelyTearing = shouldTear;
 
     if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow() && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
+         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
+          pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
         !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;

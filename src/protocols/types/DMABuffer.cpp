@@ -4,13 +4,10 @@
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 
-CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : attrs(attrs_) {
+CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs&& attrs_) : attrs(std::move(attrs_)) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
-        closeFDs();
-        listeners.resourceDestroy.reset();
-    });
+    listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) { listeners.resourceDestroy.reset(); });
 
     size     = attrs.size;
     resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
@@ -18,25 +15,32 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     auto eglImage = g_pHyprOpenGL->createEGLImage(attrs);
 
     if UNLIKELY (!eglImage) {
-        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
-        attrs.modifier = DRM_FORMAT_MOD_INVALID;
-        eglImage       = g_pHyprOpenGL->createEGLImage(attrs);
+        implicit = {.success  = attrs.success,
+                    .size     = attrs.size,
+                    .format   = attrs.format,
+                    .modifier = DRM_FORMAT_MOD_INVALID,
+                    .planes   = attrs.planes,
+                    .offsets  = attrs.offsets,
+                    .strides  = attrs.strides};
+        for (auto i = 0; i < attrs.planes; i++)
+            implicit.fds.at(i) = attrs.fds.at(i).duplicate();
+
+        eglImage = g_pHyprOpenGL->createEGLImage(implicit);
         if UNLIKELY (!eglImage) {
             Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
+
+        texture = makeShared<CTexture>(implicit, eglImage); // texture takes ownership of the eglImage
+        opaque  = NFormatUtils::isFormatOpaque(implicit.format);
+    } else {
+        texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
+        opaque  = NFormatUtils::isFormatOpaque(attrs.format);
     }
 
-    texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
-    opaque  = NFormatUtils::isFormatOpaque(attrs.format);
     success = texture->m_iTexID;
-
     if UNLIKELY (!success)
         Debug::log(ERR, "Failed to create a dmabuf: texture is null");
-}
-
-CDMABuffer::~CDMABuffer() {
-    closeFDs();
 }
 
 Aquamarine::eBufferCapability CDMABuffer::caps() {
@@ -55,7 +59,7 @@ bool CDMABuffer::isSynchronous() {
     return false;
 }
 
-Aquamarine::SDMABUFAttrs CDMABuffer::dmabuf() {
+const Aquamarine::SDMABUFAttrs& CDMABuffer::dmabuf() const {
     return attrs;
 }
 
@@ -70,14 +74,4 @@ void CDMABuffer::endDataPtr() {
 
 bool CDMABuffer::good() {
     return success;
-}
-
-void CDMABuffer::closeFDs() {
-    for (int i = 0; i < attrs.planes; ++i) {
-        if (attrs.fds[i] == -1)
-            continue;
-        close(attrs.fds[i]);
-        attrs.fds[i] = -1;
-    }
-    attrs.planes = 0;
 }

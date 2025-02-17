@@ -1510,6 +1510,10 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
             }
             trimTrailingComma(result);
             result += "]";
+        } else if (format == eHyprCtlOutputFormat::FORMAT_TERSE) {
+            for (auto const& p : PLUGINS) {
+                result += std::format("{}\n", p->name);
+            }
         } else {
             if (PLUGINS.size() == 0)
                 return "no plugins loaded";
@@ -1719,6 +1723,8 @@ std::string CHyprCtl::getReply(std::string request) {
 
             if (c == 'j')
                 format = eHyprCtlOutputFormat::FORMAT_JSON;
+            else if (c == 't')
+                format = eHyprCtlOutputFormat::FORMAT_TERSE;
             else if (c == 'r')
                 reloadAll = true;
             else if (c == 'a')
@@ -1755,7 +1761,7 @@ std::string CHyprCtl::getReply(std::string request) {
             }
         }
 
-    if (result.empty())
+    if (result.empty() && format != eHyprCtlOutputFormat::FORMAT_TERSE)
         return "unknown request";
 
     if (reloadAll) {

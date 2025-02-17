@@ -440,13 +440,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     m_bEmptyFocusCursorSet = false;
 
-    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
+    const Vector2D relMouseCoords = mouseCoords - surfacePos;
+    Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : (pFoundWindow? relMouseCoords * pFoundWindow->m_fContentScale : relMouseCoords);
 
     if (pFoundWindow && !pFoundWindow->m_bIsX11 && surfacePos != Vector2D(-1337, -1337)) {
         // calc for oversized windows... fucking bullshit.
         CBox geom = pFoundWindow->m_pXDGSurface->current.geometry;
 
-        surfaceLocal = mouseCoords - surfacePos + geom.pos();
+        surfaceLocal = (pFoundWindow? relMouseCoords * pFoundWindow->m_fContentScale : relMouseCoords) + geom.pos();
     }
 
     if (pFoundWindow && pFoundWindow->m_bIsX11) // for x11 force scale zero

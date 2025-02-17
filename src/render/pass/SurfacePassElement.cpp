@@ -85,7 +85,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     if (data.surface->colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
-    g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+    g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1, data.contentScale);
 
     auto cancelRender                      = false;
     g_pHyprOpenGL->m_RenderData.clipRegion = visibleRegion(cancelRender);
@@ -146,7 +146,7 @@ CBox CSurfacePassElement::getTexBox() {
 
     CBox         windowBox;
     if (data.surface && data.mainSurface) {
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, data.w, data.h};
+        windowBox = {(int)outputX + data.pos.x + (data.localPos.x / data.contentScale), (int)outputY + data.pos.y + (data.localPos.y / data.contentScale), data.w, data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them
         const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
@@ -168,8 +168,8 @@ CBox CSurfacePassElement::getTexBox() {
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->current.size.x, 2.F),
-                     std::max((float)data.surface->current.size.y, 2.F)};
+        windowBox = {(int)outputX + data.pos.x + (data.localPos.x / data.contentScale), (int)outputY + data.pos.y + (data.localPos.y / data.contentScale), std::max((float)data.surface->current.size.x / data.contentScale, 2.F),
+                     std::max((float)data.surface->current.size.y / data.contentScale, 2.F)};
         if (data.pWindow && data.pWindow->m_vRealSize->isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
             windowBox.width  = (windowBox.width / data.pWindow->m_vReportedSize.x) * data.pWindow->m_vRealSize->value().x;

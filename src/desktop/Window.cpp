@@ -1750,7 +1750,7 @@ void CWindow::sendWindowSize(bool force) {
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();
 
-    const auto REPORTSIZE = realToReportSize();
+    const auto REPORTSIZE = realToReportSize() * m_fContentScale;
 
     if (!force && m_vPendingReportedSize == REPORTSIZE && (m_vReportedPosition == REPORTPOS || !m_bIsX11))
         return;

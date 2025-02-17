@@ -25,6 +25,7 @@ class CSurfacePassElement : public IPassElement {
         float                  alpha = 1.F, fadeAlpha = 1.F;
         bool                   blur                  = false;
         bool                   blockBlurOptimization = false;
+        float                  contentScale = 1.F;
 
         // only for windows, not popups
         bool squishOversized = true;

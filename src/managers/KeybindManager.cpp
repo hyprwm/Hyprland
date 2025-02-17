@@ -108,6 +108,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]            = forceRendererReload;
     m_mDispatchers["resizeactive"]                   = resizeActive;
+    m_mDispatchers["scaleactive"]                    = scaleActive;
     m_mDispatchers["moveactive"]                     = moveActive;
     m_mDispatchers["cyclenext"]                      = circleNext;
     m_mDispatchers["focuswindowbyclass"]             = focusWindow;
@@ -2144,6 +2145,32 @@ SDispatchResult CKeybindManager::resizeActive(std::string args) {
 
     if (PLASTWINDOW->m_vRealSize->goal().x > 1 && PLASTWINDOW->m_vRealSize->goal().y > 1)
         PLASTWINDOW->setHidden(false);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::scaleActive(std::string args) {
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+
+    if (!PLASTWINDOW)
+        return {.success = false, .error = "Window not found"};
+
+    std::optional<float> scaleResult;
+
+    try {
+        scaleResult = stof(args);
+    } catch (...) {
+        Debug::log(ERR, "Invalid arg \"{}\" in scaleactive!", args);
+        return {.success = false, .error = "Invalid scale in scaleactive!"};
+    }
+
+    float scale = scaleResult.value();
+    if (scale > 0.0f) {
+        PLASTWINDOW->m_fContentScale = 1.0 / scale;
+    } else {
+        PLASTWINDOW->m_fContentScale = 1.0f;
+    }
+    PLASTWINDOW->sendWindowSize();
 
     return {};
 }

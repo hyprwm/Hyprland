@@ -578,6 +578,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                 renderdata.texture     = s->current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pWindow->m_pWLSurface->resource();
+                renderdata.contentScale = pWindow->m_fContentScale;
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -611,7 +612,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         if (!pWindow->m_bIsX11) {
             CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
-            renderdata.pos -= geom.pos();
+            renderdata.pos -= geom.pos() / pWindow->m_fContentScale;
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
@@ -638,10 +639,13 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
-                    renderdata.pos += pos;
-
+                    const float scale = popup->getContentScale();
+                    // pos in window coordinates
+                    renderdata.pos += pos / scale;
+                    renderdata.contentScale = scale;
                     popup->m_pWLSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                            // offset in surface coordinates
                             renderdata.localPos    = offset;
                             renderdata.texture     = s->current.texture;
                             renderdata.surface     = s;
@@ -1015,7 +1019,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 }
 
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
-                                          const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
+                                          const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1, float contentScale) {
     if (!pWindow || !pWindow->m_bIsX11) {
         static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
 
@@ -1054,7 +1058,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->scale);
             const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
             const auto EXPECTED_SIZE =
-                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale)
+                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale / contentScale)
                     .round();
             if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
                 // this will not work with shm AFAIK, idk why.
@@ -1079,11 +1083,11 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x || geom.height > projSizeUnscaled.y) {
-            const auto XPERC = (double)geom.x / (double)pSurface->current.size.x;
-            const auto YPERC = (double)geom.y / (double)pSurface->current.size.y;
-            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.size.x;
-            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.size.y;
+        if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x * contentScale || geom.height > projSizeUnscaled.y * contentScale) {
+            const auto XPERC = (double)geom.x / (double)pSurface->current.size.x / contentScale;
+            const auto YPERC = (double)geom.y / (double)pSurface->current.size.y / contentScale;
+            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.size.x / contentScale;
+            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.size.y / contentScale;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
@@ -1094,10 +1098,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
                 maxSize = pWindow->m_pWLSurface->getViewporterCorrectedSize();
 
-            if (geom.width > maxSize.x)
-                uvBR.x = uvBR.x * (maxSize.x / geom.width);
-            if (geom.height > maxSize.y)
-                uvBR.y = uvBR.y * (maxSize.y / geom.height);
+            if (geom.width > maxSize.x * contentScale)
+                uvBR.x = uvBR.x * (maxSize.x * contentScale / geom.width);
+            if (geom.height > maxSize.y * contentScale)
+                uvBR.y = uvBR.y * (maxSize.y * contentScale / geom.height);
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

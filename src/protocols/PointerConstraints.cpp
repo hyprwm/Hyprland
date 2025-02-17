@@ -111,7 +111,8 @@ void CPointerConstraint::deactivate() {
     else
         resourceC->sendUnconfined();
 
-    active = false;
+    pendingActivation = false;
+    active            = false;
 
     if (lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT) {
         dead = true;
@@ -127,7 +128,13 @@ void CPointerConstraint::activate() {
     if (dead || active)
         return;
 
-    // TODO: hack, probably not a super duper great idea
+    if (!attached) {
+        pendingActivation = true;
+        return;
+    }
+    pendingActivation = false;
+
+    //TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->state.pointerFocus != pHLSurface->resource()) {
         const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
@@ -146,6 +153,14 @@ void CPointerConstraint::activate() {
 
 bool CPointerConstraint::isActive() {
     return active;
+}
+
+void CPointerConstraint::setAttached() {
+    attached = true;
+}
+
+bool CPointerConstraint::isActivationPending() {
+    return pendingActivation;
 }
 
 void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
@@ -244,6 +259,10 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
     OWNER->appendConstraint(constraint);
 
     g_pInputManager->m_vConstraints.emplace_back(constraint);
+
+    constraint->setAttached();
+    if (constraint->isActivationPending())
+        constraint->activate();
 }
 
 void CPointerConstraintsProtocol::onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,

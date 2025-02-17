@@ -123,7 +123,8 @@
             };
           };
         };
-      });
+      }
+      // (import ./nix/tests inputs pkgsFor.${system}));
 
     packages = eachSystem (system: {
       default = self.packages.${system}.hyprland;
@@ -134,6 +135,7 @@
         hyprland-debug
         hyprland-legacy-renderer
         hyprland-unwrapped
+        hyprtester
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

@@ -239,7 +239,7 @@ class CWindow {
     PHLANIMVAR<Vector2D> m_vRealPosition;
     PHLANIMVAR<Vector2D> m_vRealSize;
 
-    float m_fContentScale = 1.0f;
+    float                m_fContentScale = 1.0f;
 
     // for not spamming the protocols
     Vector2D                                     m_vReportedPosition;

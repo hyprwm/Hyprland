@@ -574,10 +574,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         renderdata.surfaceCounter = 0;
         pWindow->m_pWLSurface->resource()->breadthfirst(
             [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-                renderdata.localPos    = offset;
-                renderdata.texture     = s->current.texture;
-                renderdata.surface     = s;
-                renderdata.mainSurface = s == pWindow->m_pWLSurface->resource();
+                renderdata.localPos     = offset;
+                renderdata.texture      = s->current.texture;
+                renderdata.surface      = s;
+                renderdata.mainSurface  = s == pWindow->m_pWLSurface->resource();
                 renderdata.contentScale = pWindow->m_fContentScale;
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
@@ -639,7 +639,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
-                    const float scale = popup->getContentScale();
+                    const float    scale  = popup->getContentScale();
                     // pos in window coordinates
                     renderdata.pos += pos / scale;
                     renderdata.contentScale = scale;
@@ -1058,7 +1058,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->scale);
             const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
             const auto EXPECTED_SIZE =
-                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale / contentScale)
+                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale /
+                 contentScale)
                     .round();
             if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
                 // this will not work with shm AFAIK, idk why.

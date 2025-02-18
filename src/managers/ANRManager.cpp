@@ -119,15 +119,26 @@ void CANRManager::setWindowTint(const T& owner, float tint) {
 void CANRManager::handleDialog(SP<SANRData>& data, PHLWINDOW firstWindow, pid_t pid, const WP<CXDGWMBase>& wmBase) {
     if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
         data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, pid);
-        setWindowTint(wmBase, 0.2F);
+        setWindowTint(wmBase, NOT_RESPONDING_TINT);
     }
 }
 
 void CANRManager::handleXWaylandDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<CXWaylandSurface>& surf) {
     if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
         data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, surf->pid);
-        setWindowTint(surf, 0.2F);
+        setWindowTint(surf, NOT_RESPONDING_TINT);
     }
+}
+
+void CANRManager::sendXWaylandPing(const WP<CXWaylandSurface>& surf) {
+    xcb_client_message_event_t event = {.response_type = XCB_CLIENT_MESSAGE,
+                                        .format        = 32,
+                                        .window        = surf->xID,
+                                        .type          = HYPRATOMS["_NET_WM_PING"],
+                                        .data          = {.data32 = {XCB_CURRENT_TIME, HYPRATOMS["_NET_WM_PING"], surf->xID}}};
+
+    xcb_send_event(g_pXWayland->pWM->getConnection(), 0, surf->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_flush(g_pXWayland->pWM->getConnection());
 }
 
 void CANRManager::onTick() {
@@ -174,15 +185,7 @@ void CANRManager::onTick() {
             data->dialogThreadSaidWait = false;
 
         data->missedResponses++;
-
-        xcb_client_message_event_t event = {.response_type = XCB_CLIENT_MESSAGE,
-                                            .format        = 32,
-                                            .window        = surf->xID,
-                                            .type          = HYPRATOMS["_NET_WM_PING"],
-                                            .data          = {.data32 = {XCB_CURRENT_TIME, HYPRATOMS["_NET_WM_PING"], surf->xID}}};
-
-        xcb_send_event(g_pXWayland->pWM->getConnection(), 0, surf->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
-        xcb_flush(g_pXWayland->pWM->getConnection());
+        sendXWaylandPing(surf);
     }
 
     m_timer->updateTimeout(TIMER_TIMEOUT);

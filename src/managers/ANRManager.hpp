@@ -51,9 +51,12 @@ class CANRManager {
     std::pair<PHLWINDOW, int> findFirstXWaylandWindowAndCount(const WP<CXWaylandSurface>& surf);
     void                      handleDialog(SP<SANRData>& data, PHLWINDOW firstWindow, pid_t pid, const WP<CXDGWMBase>& wmBase);
     void                      handleXWaylandDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<CXWaylandSurface>& surf);
+    void                      sendXWaylandPing(const WP<CXWaylandSurface>& surf);
 
     template <typename T>
-    void setWindowTint(const T& owner, float tint);
+    void                   setWindowTint(const T& owner, float tint);
+
+    static constexpr float NOT_RESPONDING_TINT = 0.2F;
 };
 
 inline UP<CANRManager> g_pANRManager;

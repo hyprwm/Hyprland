@@ -589,9 +589,18 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
 }
 
 bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
-    // Debug::log(LOG, "[xwm] Selection property notify for {} target {}", e->atom, e->window);
+    if (e->state != XCB_PROPERTY_DELETE)
+        return false;
 
-    // Debug::log(ERR, "[xwm] FIXME: CXWM::handleSelectionPropertyNotify stub");
+    auto it = std::ranges::find_if(clipboard.transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
+    if (it != clipboard.transfers.end()) {
+        if (!(*it)->getIncomingSelectionProp(true)) {
+            clipboard.transfers.erase(it);
+            return false;
+        }
+        getTransferData(clipboard);
+        return true;
+    }
 
     return false;
 }
@@ -1205,8 +1214,10 @@ void CXWM::getTransferData(SXSelection& sel) {
     }
 
     if (transfer->propertyReply->type == HYPRATOMS["INCR"]) {
-        Debug::log(ERR, "[xwm] Transfer is INCR, which we don't support :(");
-        sel.transfers.erase(it);
+        transfer->incremental   = true;
+        transfer->propertyStart = 0;
+        free(transfer->propertyReply);
+        transfer->propertyReply = nullptr;
         return;
     }
 
@@ -1426,6 +1437,8 @@ int SXSelection::onWrite() {
 
     ssize_t len = write(transfer->wlFD.get(), property + transfer->propertyStart, remainder);
     if (len == -1) {
+        if (errno == EAGAIN)
+            return 1;
         Debug::log(ERR, "[xwm] write died in transfer get");
         transfers.erase(it);
         return 0;
@@ -1436,7 +1449,13 @@ int SXSelection::onWrite() {
         Debug::log(LOG, "[xwm] wl client read partially: len {}", len);
     } else {
         Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
-        transfers.erase(it);
+        if (!transfer->incremental) {
+            transfers.erase(it);
+        } else {
+            free(transfer->propertyReply);
+            transfer->propertyReply = nullptr;
+            transfer->propertyStart = 0;
+        }
     }
 
     return 1;

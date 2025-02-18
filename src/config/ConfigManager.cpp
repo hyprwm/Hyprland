@@ -430,6 +430,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:lockdead_screen_delay", Hyprlang::INT{1000});
+    m_pConfig->addConfigValue("misc:enable_anr_dialog", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});

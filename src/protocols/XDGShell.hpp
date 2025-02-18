@@ -241,11 +241,16 @@ class CXDGWMBase {
 
     bool                                    good();
     wl_client*                              client();
+    void                                    ping();
 
     std::vector<WP<CXDGPositionerResource>> positioners;
     std::vector<WP<CXDGSurfaceResource>>    surfaces;
 
     WP<CXDGWMBase>                          self;
+
+    struct {
+        CSignal pong;
+    } events;
 
   private:
     SP<CXdgWmBase> resource;

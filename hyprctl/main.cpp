@@ -354,7 +354,12 @@ int main(int argc, char** argv) {
             parseArgs = false;
             continue;
         }
-        if (parseArgs && (ARGS[i][0] == '-') && !isNumber(ARGS[i], true) /* For stuff like -2 */) {
+
+        std::size_t argumentLength = ARGS[i].find(',');
+        if (argumentLength == std::string::npos)
+            argumentLength = ARGS[i].size();
+
+        if (parseArgs && (ARGS[i][0] == '-') && !isNumber(ARGS[i].substr(0, argumentLength), true) /* For stuff like -2 */) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";

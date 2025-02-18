@@ -17,51 +17,41 @@ using namespace Hyprutils::OS;
 
 static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
 
-CANRManager::CANRManager() {
-    if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-        Debug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
-        return;
+template <typename T>
+bool CANRManager::isMatchingWindow(const PHLWINDOW& window, const T& owner) {
+    if constexpr (std::is_same_v<T, WP<CXDGWMBase>>) {
+        return !window->m_bIsX11 && window->m_pXDGSurface && window->m_pXDGSurface->owner == owner;
+    } else {
+        return window->m_bIsX11 && window->m_pXWaylandSurface && window->m_pXWaylandSurface == owner;
     }
+}
 
-    m_timer = makeShared<CEventLoopTimer>(TIMER_TIMEOUT, [this](SP<CEventLoopTimer> self, void* data) { onTick(); }, this);
-    g_pEventLoopManager->addTimer(m_timer);
-
-    m_active = true;
-
-    static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
-        if (window->m_bIsX11) {
-            if (!window->m_pXWaylandSurface)
-                return;
-
-            for (const auto& w : g_pCompositor->m_vWindows) {
-                if (!w->m_bIsX11 || w == window || !w->m_pXWaylandSurface)
-                    continue;
-
-                if (w->m_pXWaylandSurface->pid == window->m_pXWaylandSurface->pid)
-                    return;
-            }
-
-            m_xwaylandData[window->m_pXWaylandSurface] = makeShared<SANRData>();
-            return;
-        }
-
+template <typename T>
+bool CANRManager::hasWindowWithSameOwner(const PHLWINDOW& window) {
+    if constexpr (std::is_same_v<T, CXDGWMBase>) {
         if (!window->m_pXDGSurface)
-            return;
+            return false;
 
         for (const auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsX11 || w == window || !w->m_pXDGSurface)
+            if (w == window || w->m_bIsX11 || !w->m_pXDGSurface)
                 continue;
 
             if (w->m_pXDGSurface->owner == window->m_pXDGSurface->owner)
-                return;
+                return true;
         }
+    } else {
+        if (!window->m_pXWaylandSurface)
+            return false;
 
-        m_data[window->m_pXDGSurface->owner] = makeShared<SANRData>();
-    });
+        for (const auto& w : g_pCompositor->m_vWindows) {
+            if (w == window || !w->m_bIsX11 || !w->m_pXWaylandSurface)
+                continue;
 
-    m_timer->updateTimeout(TIMER_TIMEOUT);
+            if (w->m_pXWaylandSurface->pid == window->m_pXWaylandSurface->pid)
+                return true;
+        }
+    }
+    return false;
 }
 
 template <typename T>
@@ -73,13 +63,8 @@ std::pair<PHLWINDOW, int> CANRManager::findFirstWindowAndCount(const WP<T>& owne
         if (!w->m_bIsMapped)
             continue;
 
-        if constexpr (std::is_same_v<T, CXDGWMBase>) {
-            if (w->m_bIsX11 || !w->m_pXDGSurface || w->m_pXDGSurface->owner != owner)
-                continue;
-        } else {
-            if (!w->m_bIsX11 || !w->m_pXWaylandSurface || w->m_pXWaylandSurface != owner)
-                continue;
-        }
+        if (!isMatchingWindow(w, owner))
+            continue;
 
         count++;
         if (!firstWindow)
@@ -109,13 +94,8 @@ void CANRManager::setWindowTint(const T& owner, float tint) {
         if (!w->m_bIsMapped)
             continue;
 
-        if constexpr (std::is_same_v<T, WP<CXDGWMBase>>) {
-            if (w->m_bIsX11 || !w->m_pXDGSurface || w->m_pXDGSurface->owner != owner)
-                continue;
-        } else {
-            if (!w->m_bIsX11 || !w->m_pXWaylandSurface || w->m_pXWaylandSurface != owner)
-                continue;
-        }
+        if (!isMatchingWindow(w, owner))
+            continue;
 
         *w->m_notRespondingTint = tint;
     }
@@ -134,70 +114,115 @@ void CANRManager::sendXWaylandPing(const WP<CXWaylandSurface>& surf) {
 #endif
 }
 
+template <typename T>
+void CANRManager::handleANRData(std::map<WP<T>, SP<SANRData>>& dataMap) {
+    for (auto& [owner, data] : dataMap) {
+        auto [firstWindow, count] = findFirstWindowAndCount(owner);
+        if (count == 0)
+            continue;
+
+        if (data->missedResponses > 0)
+            handleANRDialog(data, firstWindow, owner);
+        else if (data->isThreadRunning())
+            data->killDialog();
+
+        if (data->missedResponses == 0)
+            data->dialogThreadSaidWait = false;
+
+        data->missedResponses++;
+
+        if constexpr (std::is_same_v<T, CXDGWMBase>)
+            owner->ping();
+        else
+            sendXWaylandPing(owner);
+    }
+}
+
+template <typename T>
+void CANRManager::handleResponse(std::map<WP<T>, SP<SANRData>>& dataMap, SP<T> owner) {
+    if (auto it = dataMap.find(owner); it != dataMap.end()) {
+        auto& data            = it->second;
+        data->missedResponses = 0;
+        if (data->isThreadRunning())
+            data->killDialog();
+    }
+}
+
+template <typename T>
+bool CANRManager::isNotRespondingImpl(const std::map<WP<T>, SP<SANRData>>& dataMap, SP<T> owner) {
+    if (auto it = dataMap.find(owner); it != dataMap.end())
+        return it->second->missedResponses > 1;
+    return false;
+}
+
+void CANRManager::onResponse(SP<CXDGWMBase> wmBase) {
+    handleResponse(m_data, wmBase);
+}
+
+void CANRManager::onXWaylandResponse(SP<CXWaylandSurface> surf) {
+    handleResponse(m_xwaylandData, surf);
+}
+
+bool CANRManager::isNotResponding(SP<CXDGWMBase> wmBase) {
+    return isNotRespondingImpl(m_data, wmBase);
+}
+
+bool CANRManager::isXWaylandNotResponding(SP<CXWaylandSurface> surf) {
+    return isNotRespondingImpl(m_xwaylandData, surf);
+}
+
+CANRManager::CANRManager() {
+    if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
+        Debug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
+        return;
+    }
+
+    m_timer = makeShared<CEventLoopTimer>(TIMER_TIMEOUT, [this](SP<CEventLoopTimer> self, void* data) { onTick(); }, this);
+    g_pEventLoopManager->addTimer(m_timer);
+
+    m_active = true;
+
+    static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        if (window->m_bIsX11) {
+            if (!window->m_pXWaylandSurface)
+                return;
+
+            if (hasWindowWithSameOwner<CXWaylandSurface>(window))
+                return;
+
+            m_xwaylandData[window->m_pXWaylandSurface] = makeShared<SANRData>();
+            return;
+        }
+
+        if (!window->m_pXDGSurface)
+            return;
+
+        if (hasWindowWithSameOwner<CXDGWMBase>(window))
+            return;
+
+        m_data[window->m_pXDGSurface->owner] = makeShared<SANRData>();
+    });
+
+    m_timer->updateTimeout(TIMER_TIMEOUT);
+}
+
 void CANRManager::onTick() {
     std::erase_if(m_data, [](const auto& e) { return e.first.expired(); });
     std::erase_if(m_xwaylandData, [](const auto& e) { return e.first.expired(); });
 
     static auto PENABLEANR = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
 
-    if (!*PENABLEANR) {
-        m_timer->updateTimeout(TIMER_TIMEOUT * 10);
-        return;
+    if (!m_active && *PENABLEANR) {
+        m_active = true;
+        m_timer->updateTimeout(TIMER_TIMEOUT);
     }
 
-    for (auto& [wmBase, data] : m_data) {
-        auto [firstWindow, count] = findFirstWindowAndCount(wmBase);
-        if (count == 0)
-            continue;
-
-        if (data->missedResponses > 0)
-            handleANRDialog(data, firstWindow, wmBase);
-        else if (data->isThreadRunning())
-            data->killDialog();
-
-        if (data->missedResponses == 0)
-            data->dialogThreadSaidWait = false;
-
-        data->missedResponses++;
-        wmBase->ping();
-    }
-
-    for (auto& [surf, data] : m_xwaylandData) {
-        auto [firstWindow, count] = findFirstWindowAndCount(surf);
-        if (count == 0)
-            continue;
-
-        if (data->missedResponses > 0)
-            handleANRDialog(data, firstWindow, surf);
-        else if (data->isThreadRunning())
-            data->killDialog();
-
-        if (data->missedResponses == 0)
-            data->dialogThreadSaidWait = false;
-
-        data->missedResponses++;
-        sendXWaylandPing(surf);
-    }
+    handleANRData(m_data);
+    handleANRData(m_xwaylandData);
 
     m_timer->updateTimeout(TIMER_TIMEOUT);
-}
-
-void CANRManager::onResponse(SP<CXDGWMBase> wmBase) {
-    if (auto it = m_data.find(wmBase); it != m_data.end()) {
-        auto& data            = it->second;
-        data->missedResponses = 0;
-        if (data->isThreadRunning())
-            data->killDialog();
-    }
-}
-
-void CANRManager::onXWaylandResponse(SP<CXWaylandSurface> surf) {
-    if (auto it = m_xwaylandData.find(surf); it != m_xwaylandData.end()) {
-        auto& data            = it->second;
-        data->missedResponses = 0;
-        if (data->isThreadRunning())
-            data->killDialog();
-    }
 }
 
 void CANRManager::SANRData::runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
@@ -256,16 +281,4 @@ CANRManager::SANRData::~SANRData() {
         // dangerous: might lock if the above failed!!
         dialogThread.join();
     }
-}
-
-bool CANRManager::isNotResponding(SP<CXDGWMBase> wmBase) {
-    if (auto it = m_data.find(wmBase); it != m_data.end())
-        return it->second->missedResponses > 1;
-    return false;
-}
-
-bool CANRManager::isXWaylandNotResponding(SP<CXWaylandSurface> surf) {
-    if (auto it = m_xwaylandData.find(surf); it != m_xwaylandData.end())
-        return it->second->missedResponses > 1;
-    return false;
 }

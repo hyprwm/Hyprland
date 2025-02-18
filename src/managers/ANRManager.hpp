@@ -51,7 +51,22 @@ class CANRManager {
     void handleANRDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<T>& owner);
 
     template <typename T>
-    void                                         setWindowTint(const T& owner, float tint);
+    void setWindowTint(const T& owner, float tint);
+
+    template <typename T>
+    void handleANRData(std::map<WP<T>, SP<SANRData>>& dataMap);
+
+    template <typename T>
+    void handleResponse(std::map<WP<T>, SP<SANRData>>& dataMap, SP<T> owner);
+
+    template <typename T>
+    bool isNotRespondingImpl(const std::map<WP<T>, SP<SANRData>>& dataMap, SP<T> owner);
+
+    template <typename T>
+    bool isMatchingWindow(const PHLWINDOW& window, const T& owner);
+
+    template <typename T>
+    bool                                         hasWindowWithSameOwner(const PHLWINDOW& window);
 
     void                                         sendXWaylandPing(const WP<CXWaylandSurface>& surf);
 

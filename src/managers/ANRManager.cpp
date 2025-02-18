@@ -7,6 +7,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../xwayland/XWayland.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -26,7 +27,23 @@ CANRManager::CANRManager() {
     static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         auto window = std::any_cast<PHLWINDOW>(data);
 
-        if (window->m_bIsX11)
+        if (window->m_bIsX11) {
+            if (!window->m_pXWaylandSurface)
+                return;
+
+            for (const auto& w : g_pCompositor->m_vWindows) {
+                if (!w->m_bIsX11 || w == window || !w->m_pXWaylandSurface)
+                    continue;
+
+                if (w->m_pXWaylandSurface->pid == window->m_pXWaylandSurface->pid)
+                    return;
+            }
+
+            m_xwaylandData[window->m_pXWaylandSurface] = makeShared<SANRData>();
+            return;
+        }
+
+        if (!window->m_pXDGSurface)
             return;
 
         for (const auto& w : g_pCompositor->m_vWindows) {
@@ -43,8 +60,79 @@ CANRManager::CANRManager() {
     m_timer->updateTimeout(TIMER_TIMEOUT);
 }
 
+std::pair<PHLWINDOW, int> CANRManager::findFirstWindowAndCount(const WP<CXDGWMBase>& wmBase) {
+    PHLWINDOW firstWindow = nullptr;
+    int       count       = 0;
+
+    for (const auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->m_bIsX11 || !w->m_pXDGSurface)
+            continue;
+
+        if (w->m_pXDGSurface->owner != wmBase)
+            continue;
+
+        count++;
+        if (!firstWindow)
+            firstWindow = w;
+    }
+
+    return {firstWindow, count};
+}
+
+std::pair<PHLWINDOW, int> CANRManager::findFirstXWaylandWindowAndCount(const WP<CXWaylandSurface>& surf) {
+    PHLWINDOW firstWindow = nullptr;
+    int       count       = 0;
+
+    for (const auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || !w->m_bIsX11 || !w->m_pXWaylandSurface)
+            continue;
+
+        if (w->m_pXWaylandSurface != surf)
+            continue;
+
+        count++;
+        if (!firstWindow)
+            firstWindow = w;
+    }
+
+    return {firstWindow, count};
+}
+
+template <typename T>
+void CANRManager::setWindowTint(const T& owner, float tint) {
+    for (const auto& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped)
+            continue;
+
+        if constexpr (std::is_same_v<T, WP<CXDGWMBase>>) {
+            if (w->m_bIsX11 || !w->m_pXDGSurface || w->m_pXDGSurface->owner != owner)
+                continue;
+        } else {
+            if (!w->m_bIsX11 || !w->m_pXWaylandSurface || w->m_pXWaylandSurface != owner)
+                continue;
+        }
+
+        *w->m_notRespondingTint = tint;
+    }
+}
+
+void CANRManager::handleDialog(SP<SANRData>& data, PHLWINDOW firstWindow, pid_t pid, const WP<CXDGWMBase>& wmBase) {
+    if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
+        data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, pid);
+        setWindowTint(wmBase, 0.2F);
+    }
+}
+
+void CANRManager::handleXWaylandDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<CXWaylandSurface>& surf) {
+    if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
+        data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, surf->pid);
+        setWindowTint(surf, 0.2F);
+    }
+}
+
 void CANRManager::onTick() {
     std::erase_if(m_data, [](const auto& e) { return e.first.expired(); });
+    std::erase_if(m_xwaylandData, [](const auto& e) { return e.first.expired(); });
 
     static auto PENABLEANR = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
 
@@ -54,39 +142,31 @@ void CANRManager::onTick() {
     }
 
     for (auto& [wmBase, data] : m_data) {
-        PHLWINDOW firstWindow;
-        int       count = 0;
-        for (const auto& w : g_pCompositor->m_vWindows) {
-            if (!w->m_bIsMapped || w->m_bIsX11 || !w->m_pXDGSurface)
-                continue;
-
-            if (w->m_pXDGSurface->owner != wmBase)
-                continue;
-
-            count++;
-            if (!firstWindow)
-                firstWindow = w;
-        }
-
+        auto [firstWindow, count] = findFirstWindowAndCount(wmBase);
         if (count == 0)
             continue;
 
         if (data->missedResponses > 0) {
-            if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
-                pid_t pid = 0;
-                wl_client_get_credentials(wmBase->client(), &pid, nullptr, nullptr);
-                data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, pid);
+            pid_t pid = 0;
+            wl_client_get_credentials(wmBase->client(), &pid, nullptr, nullptr);
+            handleDialog(data, firstWindow, pid, wmBase);
+        } else if (data->isThreadRunning())
+            data->killDialog();
 
-                for (const auto& w : g_pCompositor->m_vWindows) {
-                    if (!w->m_bIsMapped || w->m_bIsX11 || !w->m_pXDGSurface)
-                        continue;
+        if (data->missedResponses == 0)
+            data->dialogThreadSaidWait = false;
 
-                    if (w->m_pXDGSurface->owner != wmBase)
-                        continue;
+        data->missedResponses++;
+        wmBase->ping();
+    }
 
-                    *w->m_notRespondingTint = 0.2F;
-                }
-            }
+    for (auto& [surf, data] : m_xwaylandData) {
+        auto [firstWindow, count] = findFirstXWaylandWindowAndCount(surf);
+        if (count == 0)
+            continue;
+
+        if (data->missedResponses > 0) {
+            handleXWaylandDialog(data, firstWindow, surf);
         } else if (data->isThreadRunning())
             data->killDialog();
 
@@ -95,7 +175,14 @@ void CANRManager::onTick() {
 
         data->missedResponses++;
 
-        wmBase->ping();
+        xcb_client_message_event_t event = {.response_type = XCB_CLIENT_MESSAGE,
+                                            .format        = 32,
+                                            .window        = surf->xID,
+                                            .type          = HYPRATOMS["_NET_WM_PING"],
+                                            .data          = {.data32 = {XCB_CURRENT_TIME, HYPRATOMS["_NET_WM_PING"], surf->xID}}};
+
+        xcb_send_event(g_pXWayland->pWM->getConnection(), 0, surf->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+        xcb_flush(g_pXWayland->pWM->getConnection());
     }
 
     m_timer->updateTimeout(TIMER_TIMEOUT);
@@ -106,6 +193,16 @@ void CANRManager::onResponse(SP<CXDGWMBase> wmBase) {
         return;
 
     auto& data            = m_data.at(wmBase);
+    data->missedResponses = 0;
+    if (data->isThreadRunning())
+        data->killDialog();
+}
+
+void CANRManager::onXWaylandResponse(SP<CXWaylandSurface> surf) {
+    if (!m_xwaylandData.contains(surf))
+        return;
+
+    auto& data            = m_xwaylandData.at(surf);
     data->missedResponses = 0;
     if (data->isThreadRunning())
         data->killDialog();
@@ -170,4 +267,10 @@ bool CANRManager::isNotResponding(SP<CXDGWMBase> wmBase) {
     if (!m_data.contains(wmBase))
         return false;
     return m_data[wmBase]->missedResponses > 1;
+}
+
+bool CANRManager::isXWaylandNotResponding(SP<CXWaylandSurface> surf) {
+    if (!m_xwaylandData.contains(surf))
+        return false;
+    return m_xwaylandData[surf]->missedResponses > 1;
 }

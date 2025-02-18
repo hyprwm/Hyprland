@@ -17,6 +17,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../managers/ANRManager.hpp"
 using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
@@ -315,13 +316,13 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
     if (!XSURF)
         return;
 
-    std::string propName = "?";
-    for (auto const& ha : HYPRATOMS) {
-        if (ha.second != e->type)
-            continue;
+    std::string propName = getAtomName(e->type);
 
-        propName = ha.first;
-        break;
+    if (e->type == HYPRATOMS["_NET_WM_PING"]) {
+        if (e->data.data32[0] == XCB_CURRENT_TIME && e->data.data32[1] == HYPRATOMS["_NET_WM_PING"]) {
+            g_pANRManager->onXWaylandResponse(XSURF);
+            return;
+        }
     }
 
     if (e->type == HYPRATOMS["WL_SURFACE_ID"]) {
@@ -1463,6 +1464,10 @@ bool SXTransfer::getIncomingSelectionProp(bool erase) {
     }
 
     return true;
+}
+
+CXCBConnection& CXWM::getConnection() {
+    return connection;
 }
 
 #endif

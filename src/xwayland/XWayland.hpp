@@ -83,6 +83,7 @@ inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
     HYPRATOM("_NET_WORKAREA"),
     HYPRATOM("_NET_WM_ICON"),
     HYPRATOM("_NET_WM_CM_S0"),
+    HYPRATOM("_NET_WM_PING"),
     HYPRATOM("WM_PROTOCOLS"),
     HYPRATOM("WM_HINTS"),
     HYPRATOM("WM_DELETE_WINDOW"),

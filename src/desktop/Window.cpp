@@ -1801,8 +1801,11 @@ void CWindow::deactivateGroupMembers() {
 }
 
 bool CWindow::isNotResponding() {
-    if (!m_pXDGSurface)
+    if (!m_pXDGSurface && !m_pXWaylandSurface)
         return false;
+
+    if (m_bIsX11)
+        return g_pANRManager->isXWaylandNotResponding(m_pXWaylandSurface.lock());
 
     return g_pANRManager->isNotResponding(m_pXDGSurface->owner.lock());
 }

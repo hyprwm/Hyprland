@@ -8,6 +8,10 @@
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XWayland.hpp"
+#ifndef NO_XWAYLAND
+#include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
+#endif
 
 using namespace Hyprutils::OS;
 
@@ -131,6 +135,7 @@ void CANRManager::handleXWaylandDialog(SP<SANRData>& data, PHLWINDOW firstWindow
 }
 
 void CANRManager::sendXWaylandPing(const WP<CXWaylandSurface>& surf) {
+#ifndef NO_XWAYLAND
     xcb_client_message_event_t event = {.response_type = XCB_CLIENT_MESSAGE,
                                         .format        = 32,
                                         .window        = surf->xID,
@@ -139,6 +144,7 @@ void CANRManager::sendXWaylandPing(const WP<CXWaylandSurface>& surf) {
 
     xcb_send_event(g_pXWayland->pWM->getConnection(), 0, surf->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
     xcb_flush(g_pXWayland->pWM->getConnection());
+#endif
 }
 
 void CANRManager::onTick() {

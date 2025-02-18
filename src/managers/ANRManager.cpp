@@ -126,7 +126,7 @@ void CANRManager::SANRData::runDialog(const std::string& title, const std::strin
             makeShared<CProcess>("hyprland-dialog",
                                          std::vector<std::string>{"--title", title, "--text",
                                                           std::format("Application {} with class of {} is not responding.\nWhat do you want to do with it?", appName, appClass),
-                                                          "--buttons", "terminate;wait"});
+                                                          "--buttons", "Terminate;Wait"});
 
         dialogProc = proc;
         proc->runSync();
@@ -136,9 +136,9 @@ void CANRManager::SANRData::runDialog(const std::string& title, const std::strin
         if (proc->stdOut().empty())
             return;
 
-        if (proc->stdOut().starts_with("terminate"))
+        if (proc->stdOut().starts_with("Terminate"))
             kill(dialogWmPID, SIGKILL);
-        if (proc->stdOut().starts_with("wait"))
+        if (proc->stdOut().starts_with("Wait"))
             dialogThreadSaidWait = true;
     });
 }

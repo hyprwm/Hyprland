@@ -1396,12 +1396,18 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         glUniform1f(shader->roundingPower, roundingPower);
 
         if (allowDim && m_RenderData.currentWindow) {
-            glUniform1i(shader->applyTint, 1);
-            const auto DIM = m_RenderData.currentWindow->m_fDimPercent->value();
-            glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-        } else {
+            if (m_RenderData.currentWindow->m_notRespondingTint->value() > 0) {
+                const auto DIM = m_RenderData.currentWindow->m_notRespondingTint->value();
+                glUniform1i(shader->applyTint, 1);
+                glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
+            } else if (m_RenderData.currentWindow->m_fDimPercent->value() > 0) {
+                glUniform1i(shader->applyTint, 1);
+                const auto DIM = m_RenderData.currentWindow->m_fDimPercent->value();
+                glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
+            } else
+                glUniform1i(shader->applyTint, 0);
+        } else
             glUniform1i(shader->applyTint, 0);
-        }
     }
 
     const float verts[] = {

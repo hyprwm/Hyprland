@@ -473,6 +473,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     if (ignorePosition) {
         renderdata.pos.x = pMonitor->vecPosition.x;
         renderdata.pos.y = pMonitor->vecPosition.y;
+    } else {
+        const bool ANR = pWindow->isNotResponding();
+        if (ANR && pWindow->m_notRespondingTint->goal() != 0.2F)
+            *pWindow->m_notRespondingTint = 0.2F;
+        else if (!ANR && pWindow->m_notRespondingTint->goal() != 0.F)
+            *pWindow->m_notRespondingTint = 0.F;
     }
 
     if (standalone)

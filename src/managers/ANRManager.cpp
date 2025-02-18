@@ -183,23 +183,21 @@ void CANRManager::onTick() {
 }
 
 void CANRManager::onResponse(SP<CXDGWMBase> wmBase) {
-    if (!m_data.contains(wmBase))
-        return;
-
-    auto& data            = m_data.at(wmBase);
-    data->missedResponses = 0;
-    if (data->isThreadRunning())
-        data->killDialog();
+    if (auto it = m_data.find(wmBase); it != m_data.end()) {
+        auto& data            = it->second;
+        data->missedResponses = 0;
+        if (data->isThreadRunning())
+            data->killDialog();
+    }
 }
 
 void CANRManager::onXWaylandResponse(SP<CXWaylandSurface> surf) {
-    if (!m_xwaylandData.contains(surf))
-        return;
-
-    auto& data            = m_xwaylandData.at(surf);
-    data->missedResponses = 0;
-    if (data->isThreadRunning())
-        data->killDialog();
+    if (auto it = m_xwaylandData.find(surf); it != m_xwaylandData.end()) {
+        auto& data            = it->second;
+        data->missedResponses = 0;
+        if (data->isThreadRunning())
+            data->killDialog();
+    }
 }
 
 void CANRManager::SANRData::runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
@@ -261,13 +259,13 @@ CANRManager::SANRData::~SANRData() {
 }
 
 bool CANRManager::isNotResponding(SP<CXDGWMBase> wmBase) {
-    if (!m_data.contains(wmBase))
-        return false;
-    return m_data[wmBase]->missedResponses > 1;
+    if (auto it = m_data.find(wmBase); it != m_data.end())
+        return it->second->missedResponses > 1;
+    return false;
 }
 
 bool CANRManager::isXWaylandNotResponding(SP<CXWaylandSurface> surf) {
-    if (!m_xwaylandData.contains(surf))
-        return false;
-    return m_xwaylandData[surf]->missedResponses > 1;
+    if (auto it = m_xwaylandData.find(surf); it != m_xwaylandData.end())
+        return it->second->missedResponses > 1;
+    return false;
 }

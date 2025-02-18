@@ -32,19 +32,16 @@ class CANRManager {
     struct SANRData {
         ~SANRData();
 
-        int                         missedResponses      = 0;
-        bool                        dialogThreadExited   = true;
-        bool                        dialogThreadSaidWait = false;
+        int                         missedResponses = 0;
         std::thread                 dialogThread;
         SP<Hyprutils::OS::CProcess> dialogProc;
+        std::atomic<bool>           dialogThreadExited   = true;
+        std::atomic<bool>           dialogThreadSaidWait = false;
 
         void                        runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID);
         bool                        isThreadRunning();
         void                        killDialog() const;
     };
-
-    std::map<WP<CXDGWMBase>, SP<SANRData>>       m_data;
-    std::map<WP<CXWaylandSurface>, SP<SANRData>> m_xwaylandData;
 
   private:
     template <typename T>
@@ -54,11 +51,14 @@ class CANRManager {
     void handleANRDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<T>& owner);
 
     template <typename T>
-    void                   setWindowTint(const T& owner, float tint);
+    void                                         setWindowTint(const T& owner, float tint);
 
-    void                   sendXWaylandPing(const WP<CXWaylandSurface>& surf);
+    void                                         sendXWaylandPing(const WP<CXWaylandSurface>& surf);
 
-    static constexpr float NOT_RESPONDING_TINT = 0.2F;
+    std::map<WP<CXDGWMBase>, SP<SANRData>>       m_data;
+    std::map<WP<CXWaylandSurface>, SP<SANRData>> m_xwaylandData;
+
+    static constexpr float                       NOT_RESPONDING_TINT = 0.2F;
 };
 
 inline UP<CANRManager> g_pANRManager;

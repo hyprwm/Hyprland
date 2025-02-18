@@ -1187,6 +1187,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1000, 0, 5000},
     },
+    SConfigOptionDescription{
+        .value       = "misc:enable_anr_dialog",
+        .description = "whether to enable the ANR (app not responding) dialog when your apps hang",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * binds:

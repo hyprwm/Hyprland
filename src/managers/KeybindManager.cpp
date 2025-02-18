@@ -2166,9 +2166,9 @@ SDispatchResult CKeybindManager::scaleActive(std::string args) {
 
     float scale = scaleResult.value();
     if (scale > 0.0f) {
-        PLASTWINDOW->m_fContentScale = 1.0 / scale;
+        PLASTWINDOW->m_sWindowData.contentScale = CWindowOverridableVar(1.0f / scale, PRIORITY_SET_PROP);
     } else {
-        PLASTWINDOW->m_fContentScale = 1.0f;
+        PLASTWINDOW->m_sWindowData.contentScale.unset(PRIORITY_SET_PROP);
     }
     PLASTWINDOW->sendWindowSize();
 
@@ -3162,6 +3162,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             PWINDOW->m_sWindowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL), PRIORITY_SET_PROP);
             PWINDOW->clampWindowSize(PWINDOW->m_sWindowData.minSize.value(), std::nullopt);
             PWINDOW->setHidden(false);
+        } else if (PROP == "contentscale") {
+            PWINDOW->m_sWindowData.contentScale = CWindowOverridableVar(1.0f / std::stof(VAL), PRIORITY_SET_PROP);
+            PWINDOW->sendWindowSize();
         } else if (PROP == "alpha") {
             PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {

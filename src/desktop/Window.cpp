@@ -767,6 +767,14 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
             break;
         }
+        case CWindowRule::RULE_CONTENTSCALE: {
+            try {
+                const auto SCALE           = std::stof(r->szRule.substr(13));
+                m_sWindowData.contentScale = CWindowOverridableVar(1.0f / SCALE, priority);
+                sendWindowSize();
+            } catch (std::exception& e) { Debug::log(ERR, "contentscale rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            break;
+        }
         case CWindowRule::RULE_RENDERUNFOCUSED: {
             m_sWindowData.renderUnfocused = CWindowOverridableVar(true, priority);
             g_pHyprRenderer->addWindowToRenderUnfocused(m_pSelf.lock());
@@ -1221,6 +1229,10 @@ float CWindow::getScrollMouse() {
 float CWindow::getScrollTouchpad() {
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
     return m_sWindowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
+}
+
+float CWindow::getContentScale() {
+    return m_sWindowData.contentScale.valueOr(1.0f);
 }
 
 bool CWindow::canBeTorn() {
@@ -1750,7 +1762,7 @@ void CWindow::sendWindowSize(bool force) {
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();
 
-    const auto REPORTSIZE = realToReportSize() * m_fContentScale;
+    const auto REPORTSIZE = realToReportSize() * getContentScale();
 
     if (!force && m_vPendingReportedSize == REPORTSIZE && (m_vReportedPosition == REPORTPOS || !m_bIsX11))
         return;

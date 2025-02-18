@@ -10,7 +10,7 @@ static const auto RULES = std::unordered_set<std::string>{
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "animation", "bordercolor",   "bordersize", "center",    "content", "fullscreenstate", "group",    "idleinhibit",   "maxsize",     "minsize",
     "monitor",   "move",          "opacity",    "plugin:",   "prop",    "pseudo",          "rounding", "roundingpower", "scrollmouse", "scrolltouchpad",
-    "size",      "suppressevent", "tag",        "workspace", "xray",
+    "size",      "suppressevent", "tag",        "workspace", "xray",    "contentscale",
 };
 
 CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) : szValue(value), szRule(rule), v2(isV2), execRule(isExecRule) {
@@ -55,6 +55,8 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_MAXSIZE;
     else if (rule.starts_with("minsize"))
         ruleType = RULE_MINSIZE;
+    else if (rule.starts_with("contentscale"))
+        ruleType = RULE_CONTENTSCALE;
     else if (rule.starts_with("monitor"))
         ruleType = RULE_MONITOR;
     else if (rule.starts_with("move"))

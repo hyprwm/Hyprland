@@ -1015,7 +1015,7 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
         return PPOPUP->m_pWLSurface->resource();
     }
 
-    auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition->goal(), true, pWindow->m_fContentScale);
+    auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition->goal(), true, pWindow->getContentScale());
     if (surf) {
         sl = local;
         return surf;

@@ -264,7 +264,7 @@ Vector2D CPopup::coordsGlobal() {
 Vector2D CPopup::localToGlobal(const Vector2D& rel) {
     const auto coords = t1ParentCoords();
     if (!m_pWindowOwner.expired())
-        return coords + rel / m_pWindowOwner->m_fContentScale;
+        return coords + rel / m_pWindowOwner->getContentScale();
 
     return coords + rel;
 }
@@ -281,7 +281,7 @@ Vector2D CPopup::t1ParentCoords() {
 
 float CPopup::getContentScale() const {
     if (!m_pWindowOwner.expired())
-        return m_pWindowOwner->m_fContentScale;
+        return m_pWindowOwner->getContentScale();
 
     return 1.0f;
 }

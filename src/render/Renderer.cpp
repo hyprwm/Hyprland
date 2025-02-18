@@ -578,7 +578,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                 renderdata.texture      = s->current.texture;
                 renderdata.surface      = s;
                 renderdata.mainSurface  = s == pWindow->m_pWLSurface->resource();
-                renderdata.contentScale = pWindow->m_fContentScale;
+                renderdata.contentScale = pWindow->getContentScale();
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -612,7 +612,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         if (!pWindow->m_bIsX11) {
             CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
-            renderdata.pos -= geom.pos() / pWindow->m_fContentScale;
+            renderdata.pos -= geom.pos() / pWindow->getContentScale();
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups

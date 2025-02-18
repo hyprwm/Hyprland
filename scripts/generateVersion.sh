@@ -2,8 +2,8 @@
 
 # if the git directory doesn't exist, don't gather data to avoid overwriting, unless
 # the version file is missing altogether (otherwise compiling will fail)
-if [[ ! -d ./.git ]]; then
-    if [[ -f ./src/version.h ]]; then
+if [ ! -d ./.git ]; then
+    if [ -f ./src/version.h ]; then
         exit 0
     fi
 fi

@@ -64,16 +64,22 @@ CANRManager::CANRManager() {
     m_timer->updateTimeout(TIMER_TIMEOUT);
 }
 
-std::pair<PHLWINDOW, int> CANRManager::findFirstWindowAndCount(const WP<CXDGWMBase>& wmBase) {
+template <typename T>
+std::pair<PHLWINDOW, int> CANRManager::findFirstWindowAndCount(const WP<T>& owner) {
     PHLWINDOW firstWindow = nullptr;
     int       count       = 0;
 
     for (const auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->m_bIsX11 || !w->m_pXDGSurface)
+        if (!w->m_bIsMapped)
             continue;
 
-        if (w->m_pXDGSurface->owner != wmBase)
-            continue;
+        if constexpr (std::is_same_v<T, CXDGWMBase>) {
+            if (w->m_bIsX11 || !w->m_pXDGSurface || w->m_pXDGSurface->owner != owner)
+                continue;
+        } else {
+            if (!w->m_bIsX11 || !w->m_pXWaylandSurface || w->m_pXWaylandSurface != owner)
+                continue;
+        }
 
         count++;
         if (!firstWindow)
@@ -83,23 +89,18 @@ std::pair<PHLWINDOW, int> CANRManager::findFirstWindowAndCount(const WP<CXDGWMBa
     return {firstWindow, count};
 }
 
-std::pair<PHLWINDOW, int> CANRManager::findFirstXWaylandWindowAndCount(const WP<CXWaylandSurface>& surf) {
-    PHLWINDOW firstWindow = nullptr;
-    int       count       = 0;
+template <typename T>
+void CANRManager::handleANRDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<T>& owner) {
+    if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
+        pid_t pid = 0;
+        if constexpr (std::is_same_v<T, CXDGWMBase>)
+            wl_client_get_credentials(owner->client(), &pid, nullptr, nullptr);
+        else
+            pid = owner->pid;
 
-    for (const auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || !w->m_bIsX11 || !w->m_pXWaylandSurface)
-            continue;
-
-        if (w->m_pXWaylandSurface != surf)
-            continue;
-
-        count++;
-        if (!firstWindow)
-            firstWindow = w;
+        data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, pid);
+        setWindowTint(owner, NOT_RESPONDING_TINT);
     }
-
-    return {firstWindow, count};
 }
 
 template <typename T>
@@ -117,20 +118,6 @@ void CANRManager::setWindowTint(const T& owner, float tint) {
         }
 
         *w->m_notRespondingTint = tint;
-    }
-}
-
-void CANRManager::handleDialog(SP<SANRData>& data, PHLWINDOW firstWindow, pid_t pid, const WP<CXDGWMBase>& wmBase) {
-    if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
-        data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, pid);
-        setWindowTint(wmBase, NOT_RESPONDING_TINT);
-    }
-}
-
-void CANRManager::handleXWaylandDialog(SP<SANRData>& data, PHLWINDOW firstWindow, const WP<CXWaylandSurface>& surf) {
-    if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
-        data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, surf->pid);
-        setWindowTint(surf, NOT_RESPONDING_TINT);
     }
 }
 
@@ -163,11 +150,9 @@ void CANRManager::onTick() {
         if (count == 0)
             continue;
 
-        if (data->missedResponses > 0) {
-            pid_t pid = 0;
-            wl_client_get_credentials(wmBase->client(), &pid, nullptr, nullptr);
-            handleDialog(data, firstWindow, pid, wmBase);
-        } else if (data->isThreadRunning())
+        if (data->missedResponses > 0)
+            handleANRDialog(data, firstWindow, wmBase);
+        else if (data->isThreadRunning())
             data->killDialog();
 
         if (data->missedResponses == 0)
@@ -178,13 +163,13 @@ void CANRManager::onTick() {
     }
 
     for (auto& [surf, data] : m_xwaylandData) {
-        auto [firstWindow, count] = findFirstXWaylandWindowAndCount(surf);
+        auto [firstWindow, count] = findFirstWindowAndCount(surf);
         if (count == 0)
             continue;
 
-        if (data->missedResponses > 0) {
-            handleXWaylandDialog(data, firstWindow, surf);
-        } else if (data->isThreadRunning())
+        if (data->missedResponses > 0)
+            handleANRDialog(data, firstWindow, surf);
+        else if (data->isThreadRunning())
             data->killDialog();
 
         if (data->missedResponses == 0)

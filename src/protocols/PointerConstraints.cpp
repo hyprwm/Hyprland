@@ -93,9 +93,6 @@ void CPointerConstraint::sharedConstructions() {
     }
 
     cursorPosOnActivate = g_pInputManager->getMouseCoordsInternal();
-
-    if (g_pCompositor->m_pLastFocus == pHLSurface->resource())
-        activate();
 }
 
 bool CPointerConstraint::good() {
@@ -111,8 +108,7 @@ void CPointerConstraint::deactivate() {
     else
         resourceC->sendUnconfined();
 
-    pendingActivation = false;
-    active            = false;
+    active = false;
 
     if (lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT) {
         dead = true;
@@ -128,13 +124,7 @@ void CPointerConstraint::activate() {
     if (dead || active)
         return;
 
-    if (!attached) {
-        pendingActivation = true;
-        return;
-    }
-    pendingActivation = false;
-
-    //TODO: hack, probably not a super duper great idea
+    // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->state.pointerFocus != pHLSurface->resource()) {
         const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
@@ -153,14 +143,6 @@ void CPointerConstraint::activate() {
 
 bool CPointerConstraint::isActive() {
     return active;
-}
-
-void CPointerConstraint::setAttached() {
-    attached = true;
-}
-
-bool CPointerConstraint::isActivationPending() {
-    return pendingActivation;
 }
 
 void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
@@ -260,8 +242,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_vConstraints.emplace_back(constraint);
 
-    constraint->setAttached();
-    if (constraint->isActivationPending())
+    if (g_pCompositor->m_pLastFocus == OWNER->resource())
         constraint->activate();
 }
 

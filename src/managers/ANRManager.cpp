@@ -19,11 +19,10 @@ static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
 
 template <typename T>
 bool CANRManager::isMatchingWindow(const PHLWINDOW& window, const T& owner) {
-    if constexpr (std::is_same_v<T, WP<CXDGWMBase>>) {
+    if constexpr (std::is_same_v<T, WP<CXDGWMBase>>)
         return !window->m_bIsX11 && window->m_pXDGSurface && window->m_pXDGSurface->owner == owner;
-    } else {
+    else
         return window->m_bIsX11 && window->m_pXWaylandSurface && window->m_pXWaylandSurface == owner;
-    }
 }
 
 template <typename T>

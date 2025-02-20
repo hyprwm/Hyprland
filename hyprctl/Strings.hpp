@@ -22,7 +22,7 @@ commands:
     getoption <option>  → Gets the config option status (values)
     globalshortcuts     → Lists all global shortcuts
     hyprpaper ...       → Issue a hyprpaper request
-    hyprsunset ...       → Issue a hyprsunset request
+    hyprsunset ...      → Issue a hyprsunset request
     instances           → Lists all running instances of Hyprland with
                           their info
     keyword <name> <value> → Issue a keyword to call a config keyword
@@ -85,7 +85,9 @@ flags:
 const std::string_view HYPRSUNSET_HELP = R"#(usage: hyprctl [flags] hyprsunset <request>
 
 requests:
-    TODO!!!
+    temperature <temp> → Enable blue-light filter
+    identity           → Disable blue-light filter
+    gamma <gamma>      → Enable gamma filter
 
 flags:
     See 'hyprctl --help')#";

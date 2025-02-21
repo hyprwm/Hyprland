@@ -2,6 +2,7 @@
 #include "XWayland.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../managers/ANRManager.hpp"
 
 #ifndef NO_XWAYLAND
 
@@ -243,6 +244,28 @@ void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
     xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
 }
 
+void CXWaylandSurface::ping() {
+    bool supportsPing = std::ranges::find(protocols, HYPRATOMS["_NET_WM_PING"]) != protocols.end();
+
+    if (!supportsPing) {
+        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
+        g_pANRManager->onResponse(self.lock());
+        return;
+    }
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    xcb_client_message_data_t msg = {};
+    msg.data32[0]                 = HYPRATOMS["_NET_WM_PING"];
+    msg.data32[1]                 = now.tv_sec * 1000 + now.tv_nsec / 1000000;
+    msg.data32[2]                 = xID;
+
+    lastPingSeq = msg.data32[1];
+
+    g_pXWayland->pWM->sendWMMessage(self.lock(), &msg, XCB_EVENT_MASK_PROPERTY_CHANGE);
+}
+
 #else
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
@@ -294,6 +317,10 @@ void CXWaylandSurface::considerMap() {
 }
 
 void CXWaylandSurface::setWithdrawn(bool withdrawn) {
+    ;
+}
+
+void CXWaylandSurface::ping() {
     ;
 }
 

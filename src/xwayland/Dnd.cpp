@@ -43,7 +43,7 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
     xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->pWM->connection, proxyCookie, nullptr);
 
     const auto                isValidPropertyReply = [](xcb_get_property_reply_t* reply) {
-        return reply && reply->type == XCB_ATOM_WINDOW && reply->format == XCB_PROPERTY_FORMAT_32BIT && xcb_get_property_value_length(reply) == sizeof(xcb_window_t);
+        return reply && reply->type == XCB_ATOM_WINDOW && reply->format == PROPERTY_FORMAT_32BIT && xcb_get_property_value_length(reply) == sizeof(xcb_window_t);
     };
 
     if (isValidPropertyReply(proxyReply)) {

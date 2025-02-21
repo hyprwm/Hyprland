@@ -1801,8 +1801,5 @@ void CWindow::deactivateGroupMembers() {
 }
 
 bool CWindow::isNotResponding() {
-    if (!m_pXDGSurface)
-        return false;
-
-    return g_pANRManager->isNotResponding(m_pXDGSurface->owner.lock());
+    return g_pANRManager->isNotResponding(m_pSelf.lock());
 }

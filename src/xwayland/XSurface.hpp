@@ -69,10 +69,11 @@ class CXWaylandSurface {
         std::optional<bool> requestsMinimize;
     } state;
 
-    uint32_t                          xID      = 0;
-    uint64_t                          wlID     = 0;
-    uint64_t                          wlSerial = 0;
-    pid_t                             pid      = 0;
+    uint32_t                          xID         = 0;
+    uint64_t                          wlID        = 0;
+    uint64_t                          wlSerial    = 0;
+    uint32_t                          lastPingSeq = 0;
+    pid_t                             pid         = 0;
     CBox                              geometry;
     bool                              overrideRedirect = false;
     bool                              withdrawn        = false;
@@ -88,7 +89,7 @@ class CXWaylandSurface {
 
     UP<xcb_icccm_wm_hints_t>          hints;
     UP<xcb_size_hints_t>              sizeHints;
-    std::vector<uint32_t>             atoms;
+    std::vector<uint32_t>             atoms, protocols;
     std::string                       role      = "";
     bool                              transient = false;
 
@@ -99,6 +100,7 @@ class CXWaylandSurface {
     void                              setMinimized(bool mz);
     void                              restackToTop();
     void                              close();
+    void                              ping();
 
   private:
     CXWaylandSurface(uint32_t xID, CBox geometry, bool OR);

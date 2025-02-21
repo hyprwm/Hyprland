@@ -10,8 +10,8 @@
 #define XDND_VERSION 5
 
 #define PROPERTY_FORMAT_32BIT 32
-#define XCB_PROPERTY_LENGTH       1
-#define XCB_PROPERTY_OFFSET       0
+#define XCB_PROPERTY_LENGTH   1
+#define XCB_PROPERTY_OFFSET   0
 
 class CXWaylandSurface;
 

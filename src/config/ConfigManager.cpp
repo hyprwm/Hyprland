@@ -430,6 +430,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:lockdead_screen_delay", Hyprlang::INT{1000});
+    m_pConfig->addConfigValue("misc:enable_anr_dialog", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
@@ -539,6 +540,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("animations:first_launch_animation", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("input:follow_mouse", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("input:follow_mouse_threshold", Hyprlang::FLOAT{0});
     m_pConfig->addConfigValue("input:focus_on_close", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:mouse_refocus", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:special_fallthrough", Hyprlang::INT{0});
@@ -621,7 +623,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 
-    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
@@ -2798,12 +2800,13 @@ const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions(
     return CONFIG_OPTIONS;
 }
 
-bool CConfigManager::shouldUseSoftwareCursors() {
+bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
+        case 2: return pMonitor->tearingState.activelyTearing;
         default: break;
     }
 

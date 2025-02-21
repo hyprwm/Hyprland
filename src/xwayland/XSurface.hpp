@@ -50,7 +50,7 @@ class CXWaylandSurface {
         CSignal resourceChange; // associated / dissociated
 
         CSignal setGeometry;
-        CSignal configure; // CBox
+        CSignal configureRequest; // CBox
 
         CSignal map;
         CSignal unmap;

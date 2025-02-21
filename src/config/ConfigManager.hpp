@@ -189,7 +189,7 @@ class CConfigManager {
     void                                               ensureMonitorStatus();
     void                                               ensureVRR(PHLMONITOR pMonitor = nullptr);
 
-    bool                                               shouldUseSoftwareCursors();
+    bool                                               shouldUseSoftwareCursors(PHLMONITOR pMonitor);
     void                                               updateWatcher();
 
     std::string                                        parseKeyword(const std::string&, const std::string&);

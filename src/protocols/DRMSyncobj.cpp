@@ -75,7 +75,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if (materialized)
+        if (materialized.value())
             return;
 
         surface->lockPendingState();
@@ -104,7 +104,7 @@ bool CDRMSyncobjSurfaceResource::good() {
     return resource->resource();
 }
 
-CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, CFileDescriptor fd_) : fd(std::move(fd_)), resource(resource_) {
+CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, CFileDescriptor&& fd_) : fd(std::move(fd_)), resource(resource_) {
     if UNLIKELY (!good())
         return;
 

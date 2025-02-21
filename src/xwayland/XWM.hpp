@@ -58,7 +58,7 @@ struct SXSelection {
         CHyprSignalListener keyboardFocusChange;
     } listeners;
 
-    UP<SXTransfer> transfer;
+    std::vector<UP<SXTransfer>> transfers;
 };
 
 class CXCBConnection {
@@ -146,7 +146,7 @@ class CXWM {
     // event handlers
     void         handleCreate(xcb_create_notify_event_t* e);
     void         handleDestroy(xcb_destroy_notify_event_t* e);
-    void         handleConfigure(xcb_configure_request_event_t* e);
+    void         handleConfigureRequest(xcb_configure_request_event_t* e);
     void         handleConfigureNotify(xcb_configure_notify_event_t* e);
     void         handleMapRequest(xcb_map_request_event_t* e);
     void         handleMapNotify(xcb_map_notify_event_t* e);

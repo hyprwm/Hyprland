@@ -319,15 +319,17 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "windows": {},
     "hasfullscreen": {},
     "lastwindow": "0x{:x}",
-    "lastwindowtitle": "{}"
+    "lastwindowtitle": "{}",
+    "ispersistent": {}
 }})#",
                            w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"),
-                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "");
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), w->m_bHasFullscreenWindow ? "true" : "false",
+                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "", w->m_bPersistent ? "true" : "false");
     } else {
-        return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID,
-                           w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_bHasFullscreenWindow,
-                           (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_szTitle : "");
+        return std::format(
+            "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: {}\n\n",
+            w->m_iID, w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_bHasFullscreenWindow,
+            (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_szTitle : "", (int)w->m_bPersistent);
     }
 }
 
@@ -809,8 +811,11 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& sh : SHORTCUTS)
+        for (auto const& sh : SHORTCUTS) {
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
+        }
+        if (ret.empty())
+            ret = "none";
     } else {
         ret += "[";
         for (auto const& sh : SHORTCUTS) {

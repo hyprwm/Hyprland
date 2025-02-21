@@ -502,6 +502,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 3},
     },
     SConfigOptionDescription{
+        .value       = "input:follow_mouse_threshold",
+        .description = "The smallest distance in logical pixels the mouse needs to travel for the window under it to get focused. Works only with follow_mouse = 1.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{},
+    },
+    SConfigOptionDescription{
         .value       = "input:focus_on_close",
         .description = "Controls the window focus behavior when a window is closed. When set to 0, focus will shift to the next window candidate. When set to 1, focus will shift "
                        "to the window under the cursor.",
@@ -1181,6 +1187,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1000, 0, 5000},
     },
+    SConfigOptionDescription{
+        .value       = "misc:enable_anr_dialog",
+        .description = "whether to enable the ANR (app not responding) dialog when your apps hang",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * binds:
@@ -1356,7 +1368,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "cursor:no_hardware_cursors",
-        .description = "disables hardware cursors",
+        .description = "disables hardware cursors. Auto = disable when tearing",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Auto"},
     },

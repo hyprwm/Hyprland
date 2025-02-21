@@ -161,16 +161,22 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
         return;
 
-    static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
-    static auto PFOLLOWONDND      = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
-    static auto PFLOATBEHAVIOR    = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
-    static auto PMOUSEFOCUSMON    = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
-    static auto PRESIZEONBORDER   = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PRESIZECURSORICON = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
-    static auto PZOOMFACTOR       = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+    static auto PFOLLOWMOUSE          = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Hyprlang::FLOAT>("input:follow_mouse_threshold");
+    static auto PMOUSEREFOCUS         = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
+    static auto PFOLLOWONDND          = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
+    static auto PFLOATBEHAVIOR        = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
+    static auto PMOUSEFOCUSMON        = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
+    static auto PRESIZEONBORDER       = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+    static auto PRESIZECURSORICON     = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
+    static auto PZOOMFACTOR           = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
+
+    if (FOLLOWMOUSE == 1 && m_tmrLastCursorMovement.getSeconds() < 0.5)
+        m_fMousePosDelta += MOUSECOORDSFLOORED.distance(m_vLastCursorPosFloored);
+    else
+        m_fMousePosDelta = 0;
 
     m_pFoundSurfaceToFocus.reset();
     m_pFoundLSToFocus.reset();
@@ -513,9 +519,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
                     // TODO: this looks wrong. When over a popup, it constantly is switching.
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
-                    if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow)
-                        g_pCompositor->focusWindow(pFoundWindow, foundSurface);
-                    else
+                    if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow) {
+                        if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus)
+                            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                    } else
                         g_pCompositor->focusSurface(foundSurface, pFoundWindow);
                 }
             }

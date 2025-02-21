@@ -59,6 +59,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     // Anim stuff
     void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
     void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
+    void animationGnomed(PHLWINDOW, bool close = false);
 };
 
 inline UP<CHyprAnimationManager> g_pAnimationManager;

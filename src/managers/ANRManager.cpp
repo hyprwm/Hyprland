@@ -155,6 +155,11 @@ void CANRManager::SANRData::killDialog() const {
     if (!dialogProc)
         return;
 
+    if (!dialogProc->pid()) {
+        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid. If you have hyprutils <= 0.6.0, you will crash soon. Otherwise, dialog failed to spawn??");
+        return;
+    }
+
     kill(dialogProc->pid(), SIGKILL);
 }
 

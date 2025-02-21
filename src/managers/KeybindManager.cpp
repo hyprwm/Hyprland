@@ -2156,20 +2156,28 @@ SDispatchResult CKeybindManager::scaleActive(std::string args) {
         return {.success = false, .error = "Window not found"};
 
     std::optional<float> scaleResult;
+    bool                 exact = false;
 
-    try {
-        scaleResult = stof(args);
-    } catch (...) {
+    if (args.starts_with("exact")) {
+        exact       = true;
+        scaleResult = getPlusMinusKeywordResult(args.substr(5), 0);
+    } else
+        scaleResult = getPlusMinusKeywordResult(args, 0);
+
+    if (!scaleResult.has_value()) {
         Debug::log(ERR, "Invalid arg \"{}\" in scaleactive!", args);
-        return {.success = false, .error = "Invalid scale in scaleactive!"};
+        return {.success = false, .error = "Invalid scale argument in scaleactive!"};
     }
 
     float scale = scaleResult.value();
-    if (scale > 0.0f) {
+    if (!exact)
+        scale += 1.0 / PLASTWINDOW->m_sWindowData.contentScale.valueOr(1.0f);
+
+    if (scale > 0.0f)
         PLASTWINDOW->m_sWindowData.contentScale = CWindowOverridableVar(1.0f / scale, PRIORITY_SET_PROP);
-    } else {
+    else
         PLASTWINDOW->m_sWindowData.contentScale.unset(PRIORITY_SET_PROP);
-    }
+
     PLASTWINDOW->sendWindowSize();
 
     return {};

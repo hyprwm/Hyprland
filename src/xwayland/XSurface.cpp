@@ -2,6 +2,7 @@
 #include "XWayland.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../managers/ANRManager.hpp"
 
 #ifndef NO_XWAYLAND
 
@@ -244,6 +245,14 @@ void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
 }
 
 void CXWaylandSurface::ping() {
+    bool supportsPing = std::ranges::find(protocols, HYPRATOMS["_NET_WM_PING"]) != protocols.end();
+
+    if (!supportsPing) {
+        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
+        g_pANRManager->onResponse(self.lock());
+        return;
+    }
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 

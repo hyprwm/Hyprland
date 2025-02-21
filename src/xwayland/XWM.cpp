@@ -284,6 +284,16 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
                 XSURF->sizeHints->max_height = -1;
             }
         }
+    } else if (atom == HYPRATOMS["WM_PROTOCOLS"]) {
+        if (reply->type == XCB_ATOM_ATOM) {
+            auto                  atoms = (xcb_atom_t*)xcb_get_property_value(reply);
+            std::vector<uint32_t> vec;
+            vec.reserve(reply->value_len);
+            for (size_t i = 0; i < reply->value_len; ++i) {
+                vec.emplace_back(atoms[i]);
+            }
+            XSURF->protocols = vec;
+        }
     } else {
         Debug::log(TRACE, "[xwm] Unhandled prop {} -> {}", atom, propName);
         return;
@@ -1055,9 +1065,10 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
 }
 
 void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
-    const std::array<xcb_atom_t, 8> interestingProps = {
+    const std::array<xcb_atom_t, 9> interestingProps = {
         XCB_ATOM_WM_CLASS,          XCB_ATOM_WM_NAME,          XCB_ATOM_WM_TRANSIENT_FOR,        HYPRATOMS["WM_HINTS"],
         HYPRATOMS["_NET_WM_STATE"], HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["_NET_WM_WINDOW_TYPE"], HYPRATOMS["WM_NORMAL_HINTS"],
+        HYPRATOMS["WM_PROTOCOLS"],
     };
 
     for (size_t i = 0; i < interestingProps.size(); i++) {

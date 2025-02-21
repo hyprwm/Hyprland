@@ -89,7 +89,7 @@ class CXWaylandSurface {
 
     UP<xcb_icccm_wm_hints_t>          hints;
     UP<xcb_size_hints_t>              sizeHints;
-    std::vector<uint32_t>             atoms;
+    std::vector<uint32_t>             atoms, protocols;
     std::string                       role      = "";
     bool                              transient = false;
 

@@ -15,6 +15,7 @@
 #include "../protocols/core/Seat.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/ANRManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 using namespace Hyprutils::OS;
@@ -315,16 +316,14 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
     if (!XSURF)
         return;
 
-    std::string propName = "?";
-    for (auto const& ha : HYPRATOMS) {
-        if (ha.second != e->type)
-            continue;
+    std::string propName = getAtomName(e->type);
 
-        propName = ha.first;
-        break;
-    }
-
-    if (e->type == HYPRATOMS["WL_SURFACE_ID"]) {
+    if (e->type == HYPRATOMS["_NET_WM_PING"]) {
+        if (e->data.data32[0] == XCB_CURRENT_TIME && e->data.data32[1] == HYPRATOMS["_NET_WM_PING"]) {
+            g_pANRManager->onResponse(XSURF);
+            return;
+        }
+    } else if (e->type == HYPRATOMS["WL_SURFACE_ID"]) {
         if (XSURF->surface) {
             Debug::log(WARN, "[xwm] Re-assignment of WL_SURFACE_ID");
             dissociate(XSURF);

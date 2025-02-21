@@ -243,6 +243,17 @@ void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
     xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
 }
 
+void CXWaylandSurface::ping() {
+    xcb_client_message_event_t event = {.response_type = XCB_CLIENT_MESSAGE,
+                                        .format        = 32,
+                                        .window        = xID,
+                                        .type          = HYPRATOMS["_NET_WM_PING"],
+                                        .data          = {.data32 = {XCB_CURRENT_TIME, HYPRATOMS["_NET_WM_PING"], xID}}};
+
+    xcb_send_event(g_pXWayland->pWM->connection, 0, xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_flush(g_pXWayland->pWM->connection);
+}
+
 #else
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
@@ -294,6 +305,10 @@ void CXWaylandSurface::considerMap() {
 }
 
 void CXWaylandSurface::setWithdrawn(bool withdrawn) {
+    ;
+}
+
+void CXWaylandSurface::ping() {
     ;
 }
 

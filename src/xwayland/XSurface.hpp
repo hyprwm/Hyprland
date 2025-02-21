@@ -99,6 +99,7 @@ class CXWaylandSurface {
     void                              setMinimized(bool mz);
     void                              restackToTop();
     void                              close();
+    void                              ping();
 
   private:
     CXWaylandSurface(uint32_t xID, CBox geometry, bool OR);

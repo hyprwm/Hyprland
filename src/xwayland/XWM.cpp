@@ -318,8 +318,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
     std::string propName = getAtomName(e->type);
 
-    if (e->type == HYPRATOMS["_NET_WM_PING"]) {
-        if (e->data.data32[0] == XCB_CURRENT_TIME && e->data.data32[1] == HYPRATOMS["_NET_WM_PING"]) {
+    if (e->type == HYPRATOMS["WM_PROTOCOLS"]) {
+        if (e->data.data32[1] == XSURF->lastPingSeq && e->data.data32[0] == HYPRATOMS["_NET_WM_PING"]) {
             g_pANRManager->onResponse(XSURF);
             return;
         }

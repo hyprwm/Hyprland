@@ -69,10 +69,11 @@ class CXWaylandSurface {
         std::optional<bool> requestsMinimize;
     } state;
 
-    uint32_t                          xID      = 0;
-    uint64_t                          wlID     = 0;
-    uint64_t                          wlSerial = 0;
-    pid_t                             pid      = 0;
+    uint32_t                          xID         = 0;
+    uint64_t                          wlID        = 0;
+    uint64_t                          wlSerial    = 0;
+    uint32_t                          lastPingSeq = 0;
+    pid_t                             pid         = 0;
     CBox                              geometry;
     bool                              overrideRedirect = false;
     bool                              withdrawn        = false;

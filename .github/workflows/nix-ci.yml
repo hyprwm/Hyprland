@@ -27,4 +27,4 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       # TODO: run a proper testing command
-      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#checks.x86_64-linux.xeyes' -L --extra-substituters "https://hyprland.cachix.org"
+      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"

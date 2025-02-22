@@ -60,9 +60,11 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
     hyprlandProc.addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
     return hyprlandProc.runAsync();
+    std::println("{}Launched async process", Colors::YELLOW);
 }
 
 static bool hyprlandAlive() {
+    std::println("{}hyprlandAlive", Colors::YELLOW);
     kill(hyprlandProc.pid(), 0);
     return errno != ESRCH;
 }
@@ -149,13 +151,15 @@ int main(int argc, char** argv, char** envp) {
         return 1;
 
     // hyprland has launched, let's check if it's alive after 2s
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    std::println("{}slept for 2s", Colors::YELLOW);
     if (!hyprlandAlive()) {
         std::println("{}Hyprland failed to launch", Colors::RED);
         return 1;
     }
 
     // wonderful, we are in. Let's get the instance signature.
+    std::println("{}trying to get INSTANCES", Colors::YELLOW);
     const auto INSTANCES = instances();
     if (INSTANCES.empty()) {
         std::println("{}Hyprland failed to launch (2)", Colors::RED);
@@ -165,13 +169,20 @@ int main(int argc, char** argv, char** envp) {
     HIS       = INSTANCES.back().id;
     WLDISPLAY = INSTANCES.back().wlSocket;
 
+    std::println("{}trying to get create headless output", Colors::YELLOW);
     getFromSocket("/output create headless");
 
     // now we can start issuing stuff.
+    std::println("{}testing windows", Colors::YELLOW);
     EXPECT(testWindows(), true);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    std::println("{}testing groups", Colors::YELLOW);
     EXPECT(testGroups(), true);
 
     // kill hyprland
+    std::println("{}dispatching exit", Colors::YELLOW);
     getFromSocket("/dispatch exit");
 
     std::println("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,

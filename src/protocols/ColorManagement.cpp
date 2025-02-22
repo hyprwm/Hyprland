@@ -1,10 +1,14 @@
 #include "ColorManagement.hpp"
 #include "Compositor.hpp"
 #include "color-management-v1.hpp"
+#include "helpers/Monitor.hpp"
+#include "protocols/core/Output.hpp"
 #include "protocols/types/ColorManagement.hpp"
 #include <cstdint>
 
 using namespace NColorManagement;
+
+static uint64_t lastImageID = 0; // FIXME use for deduplication
 
 CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
@@ -63,8 +67,23 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->setDestroy([](CWpColorManagerV1* r) { LOGM(TRACE, "Destroy WP_color_manager at {:x} (generated default)", (uintptr_t)r); });
     m_resource->setGetOutput([](CWpColorManagerV1* r, uint32_t id, wl_resource* output) {
         LOGM(TRACE, "Get output for id={}, output={}", id, (uintptr_t)output);
+
+        const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
+
+        if UNLIKELY (!OUTPUTRESOURCE) {
+            r->error(-1, "Invalid output (2)");
+            return;
+        }
+
+        const auto PMONITOR = OUTPUTRESOURCE->monitor.lock();
+
+        if UNLIKELY (!PMONITOR) {
+            r->error(-1, "Invalid output (2)");
+            return;
+        }
+
         const auto RESOURCE =
-            PROTO::colorManagement->m_vOutputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id)));
+            PROTO::colorManagement->m_vOutputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id), PMONITOR));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -171,13 +190,14 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         RESOURCE->self                          = RESOURCE;
+        RESOURCE->settings.id                   = ++lastImageID;
         RESOURCE->settings.windowsScRGB         = true;
         RESOURCE->settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
         RESOURCE->settings.primariesNameSet     = true;
         RESOURCE->settings.primaries            = NColorPrimaries::BT709;
         RESOURCE->settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
         RESOURCE->settings.luminances.reference = 203;
-        RESOURCE->resource()->sendReady(id);
+        RESOURCE->resource()->sendReady(RESOURCE->settings.id);
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -189,7 +209,7 @@ bool CColorManager::good() {
     return m_resource->resource();
 }
 
-CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> resource) : m_resource(resource) {
+CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor) : m_resource(resource), m_monitor(monitor) {
     if UNLIKELY (!good())
         return;
 
@@ -200,6 +220,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
 
     m_resource->setGetImageDescription([this](CWpColorManagementOutputV1* r, uint32_t id) {
         LOGM(TRACE, "Get image description for output={}, id={}", (uintptr_t)r, id);
+
         if (imageDescription.valid())
             PROTO::colorManagement->destroyResource(imageDescription.get());
 
@@ -213,6 +234,14 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
         }
 
         RESOURCE->self = RESOURCE;
+        if (!m_monitor.valid())
+            RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
+        else {
+            RESOURCE->settings = m_monitor->imageDescription;
+            if (RESOURCE->settings.id)
+                RESOURCE->settings.id = ++lastImageID;
+            RESOURCE->m_resource->sendReady(RESOURCE->settings.id); // FIXME: create correct id
+        }
     });
 }
 
@@ -348,8 +377,38 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         m_currentPreferred = RESOURCE;
 
         m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
+        if (!m_currentPreferred->settings.id)
+            m_currentPreferred->settings.id = ++lastImageID;
 
-        RESOURCE->resource()->sendReady(id);
+        RESOURCE->resource()->sendReady(++lastImageID); // FIXME: create correct id
+    });
+
+    m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
+        LOGM(TRACE, "Get preferred for id {}", id);
+
+        if (m_currentPreferred.valid())
+            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
+
+        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            return;
+        }
+
+        RESOURCE->self     = RESOURCE;
+        m_currentPreferred = RESOURCE;
+
+        m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
+        if (!PROTO::colorManagement->m_debug && m_currentPreferred->settings.icc.fd) {
+            LOGM(ERR, "FIXME: parse icc profile");
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
+            return;
+        }
+
+        RESOURCE->resource()->sendReady(++lastImageID); // FIXME: create correct id
     });
 }
 
@@ -397,7 +456,8 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
 
         RESOURCE->self     = RESOURCE;
         RESOURCE->settings = settings;
-        RESOURCE->resource()->sendReady(id);
+        settings.id        = ++lastImageID;
+        RESOURCE->resource()->sendReady(settings.id); // FIXME: create correct id
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -451,7 +511,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
 
         RESOURCE->self     = RESOURCE;
         RESOURCE->settings = settings;
-        RESOURCE->resource()->sendReady(id);
+        settings.id        = ++lastImageID;
+        RESOURCE->resource()->sendReady(settings.id); // FIXME: create correct id
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -477,7 +538,15 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Transfer function power already set");
             return;
         }
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "TF power is not supported");
+            return;
+        }
         settings.transferFunctionPower = eexp / 10000.0f;
+        if (settings.transferFunctionPower < 1.0 || settings.transferFunctionPower > 10.0) {
+            r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Power should be between 1.0 and 10.0");
+            return;
+        }
         valuesSet |= PC_TF_POWER;
     });
     m_resource->setSetPrimariesNamed([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t primaries) {
@@ -517,8 +586,15 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Primaries already set");
                 return;
             }
+            if (!PROTO::colorManagement->m_debug) {
+                r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Custom primaries aren't supported");
+                return;
+            }
             settings.primariesNameSet = false;
-            settings.primaries        = SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
+            settings.primaries        = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
+                                                     .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
+                                                     .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
+                                                     .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
             valuesSet |= PC_PRIMARIES;
         });
     m_resource->setSetLuminances([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
@@ -532,18 +608,30 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Luminances aren't supported");
+            return;
+        }
         settings.luminances = SImageDescription::SPCLuminances{.min = min, .max = max_lum, .reference = reference_lum};
         valuesSet |= PC_LUMINANCES;
     });
     m_resource->setSetMasteringDisplayPrimaries(
         [this](CWpImageDescriptionCreatorParamsV1* r, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {
             LOGM(TRACE, "Set image description mastering primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
-            // if (valuesSet & PC_MASTERING_PRIMARIES) {
-            //     r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
-            //     return;
-            // }
-            settings.masteringPrimaries = SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
+            if (valuesSet & PC_MASTERING_PRIMARIES) {
+                r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
+                return;
+            }
+            settings.masteringPrimaries = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
+                                                       .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
+                                                       .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
+                                                       .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
             valuesSet |= PC_MASTERING_PRIMARIES;
+
+            // FIXME:
+            // If a compositor additionally supports target color volume exceeding the primary color volume, it must advertise wp_color_manager_v1.feature.extended_target_volume.
+            // If a client uses target color volume exceeding the primary color volume and the compositor does not support it, the result is implementation defined.
+            // Compositors are recommended to detect this case and fail the image description gracefully, but it may as well result in color artifacts.
         });
     m_resource->setSetMasteringLuminance([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t min_lum, uint32_t max_lum) {
         auto min = min_lum / 10000.0f;
@@ -686,6 +774,13 @@ void CColorManagementProtocol::bindManager(wl_client* client, void* data, uint32
 void CColorManagementProtocol::onImagePreferredChanged(uint32_t preferredId) {
     for (auto const& feedback : m_vFeedbackSurfaces) {
         feedback->m_resource->sendPreferredChanged(preferredId);
+    }
+}
+
+void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> monitor) {
+    for (auto const& output : m_vOutputs) {
+        if (output->m_monitor == monitor)
+            output->m_resource->sendImageDescriptionChanged();
     }
 }
 

@@ -118,6 +118,8 @@ namespace NColorManagement {
     const SPCPRimaries& getPrimaries(ePrimaries name);
 
     struct SImageDescription {
+        uint32_t id = 0; // FIXME needs id setting
+
         struct SIccFile {
             int      fd     = -1;
             uint32_t length = 0;

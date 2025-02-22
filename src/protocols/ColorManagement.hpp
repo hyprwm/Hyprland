@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
+#include "helpers/Monitor.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "color-management-v1.hpp"
 #include "types/ColorManagement.hpp"
@@ -25,7 +26,7 @@ class CColorManager {
 
 class CColorManagementOutput {
   public:
-    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource);
+    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor);
 
     bool                                 good();
     wl_client*                           client();
@@ -36,6 +37,7 @@ class CColorManagementOutput {
   private:
     SP<CWpColorManagementOutputV1> m_resource;
     wl_client*                     pClient = nullptr;
+    WP<CMonitor>                   m_monitor;
 
     friend class CColorManagementProtocol;
     friend class CColorManagementImageDescription;
@@ -174,6 +176,7 @@ class CColorManagementProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     void         onImagePreferredChanged(uint32_t preferredId);
+    void         onMonitorImageDescriptionChanged(WP<CMonitor> monitor);
 
   private:
     void                                               destroyResource(CColorManager* resource);

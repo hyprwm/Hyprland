@@ -22,13 +22,16 @@ bool testGroups() {
     std::println("{}Testing groups", Colors::GREEN);
 
     // test on workspace "window"
+    std::println("{}Dispatching workspace `groups`", Colors::YELLOW);
     getFromSocket("/dispatch workspace name:groups");
 
+    std::println("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
     int  counter    = 0;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    std::println("{}Keep checking whether kitty spawned", Colors::YELLOW);
     while (Tests::processAlive(kittyProcA.pid()) && Tests::windowCount() != 1) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -39,9 +42,11 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Expecting 1 window", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 1);
 
     // check kitty properties. One kitty should take the entire screen, minus the gaps.
+    std::println("{}Check kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(Tests::countOccurrences(str, "at: 22,22"), 1);
@@ -50,10 +55,12 @@ bool testGroups() {
     }
 
     // group the kitty
+    std::println("{}Enable group and groupbar", Colors::YELLOW);
     EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
     EXPECT(getFromSocket("/keyword group:groupbar:enabled 1"), "ok");
 
     // check the height of the window now
+    std::println("{}Recheck kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 22,45"), true);
@@ -61,9 +68,11 @@ bool testGroups() {
     }
 
     // disable the groupbar for ease of testing for now
+    std::println("{}Disable groupbar", Colors::YELLOW);
     EXPECT(getFromSocket("r/keyword group:groupbar:enabled 0"), "ok");
 
     // kill all
+    std::println("{}Kill windows", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         auto pos = str.find("Window ");
@@ -74,11 +83,13 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Spawn kitty again", Colors::YELLOW);
     kittyProcA = Tests::spawnKitty();
     counter    = 0;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
+    std::println("{}Wait for it to start", Colors::YELLOW);
     while (Tests::processAlive(kittyProcA.pid()) && Tests::windowCount() != 1) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -89,20 +100,24 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Group kitty", Colors::YELLOW);
     EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
 
     // check the height of the window now
+    std::println("{}Check kitty dimensions 2", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 22,22"), true);
         EXPECT(str.contains("size: 1876,1036"), true);
     }
 
+    std::println("{}Spawn kittyProcB", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
     counter         = 0;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    std::println("{}Wait for it to start 2", Colors::YELLOW);
     while (Tests::processAlive(kittyProcB.pid()) && Tests::windowCount() != 2) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -113,10 +128,12 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Expecting 2 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 2);
 
     size_t lastActiveKittyIdx = 0;
 
+    std::println("{}Get last active kitty id", Colors::YELLOW);
     {
         auto str           = getFromSocket("/activewindow");
         lastActiveKittyIdx = std::stoull(str.substr(7, str.find(" -> ") - 7));
@@ -124,8 +141,10 @@ bool testGroups() {
 
     // test cycling through
 
+    std::println("{}Test cycling through grouped windows", Colors::YELLOW);
     getFromSocket("/dispatch changegroupactive f");
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::println("{}Weird 25ms thing", Colors::YELLOW);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     {
         auto str = getFromSocket("/activewindow");
@@ -133,20 +152,23 @@ bool testGroups() {
     }
 
     getFromSocket("/dispatch changegroupactive f");
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     {
         auto str = getFromSocket("/activewindow");
         EXPECT(lastActiveKittyIdx == std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
     }
 
+    std::println("{}Disable autogrouping", Colors::YELLOW);
     EXPECT(getFromSocket("/keyword group:auto_group false"), "ok");
 
+    std::println("{}Spawn kittyProcC", Colors::YELLOW);
     auto kittyProcC = Tests::spawnKitty();
     counter         = 0;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    std::println("{}Wait for it to spawn 3", Colors::YELLOW);
     while (Tests::processAlive(kittyProcC.pid()) && Tests::windowCount() != 3) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -157,6 +179,7 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Expecting 3 windows 2", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 3);
     {
         auto str = getFromSocket("/clients");
@@ -167,13 +190,15 @@ bool testGroups() {
     EXPECT(getFromSocket("/dispatch changegroupactive 1"), "ok");
     EXPECT(getFromSocket("/keyword group:auto_group true"), "ok");
     EXPECT(getFromSocket("/keyword group:insert_after_current false"), "ok");
-    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    std::println("{}Spawn kittyProcD", Colors::YELLOW);
     auto kittyProcD = Tests::spawnKitty();
     counter         = 0;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    std::println("{}Wait for it to spawn 4", Colors::YELLOW);
     while (Tests::processAlive(kittyProcD.pid()) && Tests::windowCount() != 4) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -184,11 +209,12 @@ bool testGroups() {
         }
     }
 
+    std::println("{}Expecting 4 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 4);
 
     EXPECT(getFromSocket("/dispatch changegroupactive 3"), "ok");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     {
         auto str = getFromSocket("/activewindow");
@@ -196,6 +222,7 @@ bool testGroups() {
     }
 
     // kill all
+    std::println("{}Kill windows", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         auto pos = str.find("Window ");
@@ -208,6 +235,7 @@ bool testGroups() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
+    std::println("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
     return !ret;

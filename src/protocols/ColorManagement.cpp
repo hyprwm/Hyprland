@@ -1,6 +1,9 @@
 #include "ColorManagement.hpp"
 #include "Compositor.hpp"
+#include "protocols/types/ColorManagement.hpp"
 #include <cstdint>
+
+using namespace NColorManagement;
 
 CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_resource(resource), m_debug(debug) {
     if UNLIKELY (!good())
@@ -369,7 +372,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
-        settings.transferFunction = (wpColorManagerV1TransferFunction)tf;
+        settings.transferFunction = convertTransferFunction((wpColorManagerV1TransferFunction)tf);
         valuesSet |= PC_TF;
     });
     m_resource->setSetTfPower([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t eexp) {
@@ -391,13 +394,13 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         switch (primaries) {
             case WP_COLOR_MANAGER_V1_PRIMARIES_SRGB:
                 settings.primariesNameSet = true;
-                settings.primariesNamed   = WP_COLOR_MANAGER_V1_PRIMARIES_SRGB;
+                settings.primariesNamed   = CM_PRIMARIES_SRGB;
                 settings.primaries        = NColorPrimaries::BT709;
                 valuesSet |= PC_PRIMARIES;
                 break;
             case WP_COLOR_MANAGER_V1_PRIMARIES_BT2020:
                 settings.primariesNameSet = true;
-                settings.primariesNamed   = WP_COLOR_MANAGER_V1_PRIMARIES_BT2020;
+                settings.primariesNamed   = CM_PRIMARIES_BT2020;
                 settings.primaries        = NColorPrimaries::BT2020;
                 valuesSet |= PC_PRIMARIES;
                 break;
@@ -412,8 +415,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 return;
             }
             settings.primariesNameSet = false;
-            settings.primaries =
-                SImageDescription::SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
+            settings.primaries        = SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
             valuesSet |= PC_PRIMARIES;
         });
     m_resource->setSetLuminances([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
@@ -437,8 +439,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             //     r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
             //     return;
             // }
-            settings.masteringPrimaries =
-                SImageDescription::SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
+            settings.masteringPrimaries = SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
             valuesSet |= PC_MASTERING_PRIMARIES;
         });
     m_resource->setSetMasteringLuminance([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t min_lum, uint32_t max_lum) {

@@ -46,26 +46,26 @@ class CXXColorManagementSurface {
     CXXColorManagementSurface(SP<CWLSurfaceResource> surface_); // temporary interface for frog CM
     CXXColorManagementSurface(SP<CXxColorManagementSurfaceV4> resource_, SP<CWLSurfaceResource> surface_);
 
-    bool                          good();
-    wl_client*                    client();
+    bool                                       good();
+    wl_client*                                 client();
 
-    WP<CXXColorManagementSurface> self;
-    WP<CWLSurfaceResource>        surface;
+    WP<CXXColorManagementSurface>              self;
+    WP<CWLSurfaceResource>                     surface;
 
-    const SImageDescription&      imageDescription();
-    bool                          hasImageDescription();
-    void                          setHasImageDescription(bool has);
-    const hdr_output_metadata&    hdrMetadata();
-    void                          setHDRMetadata(const hdr_output_metadata& metadata);
-    bool                          needsHdrMetadataUpdate();
+    const NColorManagement::SImageDescription& imageDescription();
+    bool                                       hasImageDescription();
+    void                                       setHasImageDescription(bool has);
+    const hdr_output_metadata&                 hdrMetadata();
+    void                                       setHDRMetadata(const hdr_output_metadata& metadata);
+    bool                                       needsHdrMetadataUpdate();
 
   private:
-    SP<CXxColorManagementSurfaceV4> resource;
-    wl_client*                      pClient = nullptr;
-    SImageDescription               m_imageDescription;
-    bool                            m_hasImageDescription = false;
-    bool                            m_needsNewMetadata    = false;
-    hdr_output_metadata             m_hdrMetadata;
+    SP<CXxColorManagementSurfaceV4>     resource;
+    wl_client*                          pClient = nullptr;
+    NColorManagement::SImageDescription m_imageDescription;
+    bool                                m_hasImageDescription = false;
+    bool                                m_needsNewMetadata    = false;
+    hdr_output_metadata                 m_hdrMetadata;
 
     friend class CFrogColorManagementSurface;
 };
@@ -98,7 +98,7 @@ class CXXColorManagementParametricCreator {
 
     WP<CXXColorManagementParametricCreator> self;
 
-    SImageDescription                       settings;
+    NColorManagement::SImageDescription     settings;
 
   private:
     enum eValuesSet : uint32_t { // NOLINT
@@ -127,7 +127,7 @@ class CXXColorManagementImageDescription {
 
     WP<CXXColorManagementImageDescription> self;
 
-    SImageDescription                      settings;
+    NColorManagement::SImageDescription    settings;
 
   private:
     SP<CXxImageDescriptionV4> m_resource;
@@ -139,15 +139,15 @@ class CXXColorManagementImageDescription {
 
 class CXXColorManagementImageDescriptionInfo {
   public:
-    CXXColorManagementImageDescriptionInfo(SP<CXxImageDescriptionInfoV4> resource_, const SImageDescription& settings_);
+    CXXColorManagementImageDescriptionInfo(SP<CXxImageDescriptionInfoV4> resource_, const NColorManagement::SImageDescription& settings_);
 
     bool       good();
     wl_client* client();
 
   private:
-    SP<CXxImageDescriptionInfoV4> m_resource;
-    wl_client*                    pClient = nullptr;
-    SImageDescription             settings;
+    SP<CXxImageDescriptionInfoV4>       m_resource;
+    wl_client*                          pClient = nullptr;
+    NColorManagement::SImageDescription settings;
 };
 
 class CXXColorManagementProtocol : public IWaylandProtocol {

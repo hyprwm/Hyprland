@@ -41,6 +41,7 @@
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 extern "C" {
 #include <xf86drm.h>
@@ -1449,7 +1450,7 @@ static hdr_output_metadata createHDRMetadata(uint8_t eotf, Aquamarine::IOutput::
 }
 
 static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
-    if (settings.transferFunction != WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ)
+    if (settings.transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ)
         return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
 
     const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };

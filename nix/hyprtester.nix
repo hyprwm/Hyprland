@@ -1,31 +1,43 @@
 {
   lib,
   stdenv,
+  stdenvAdapters,
   cmake,
   pkg-config,
   hyprutils,
   version ? "git",
-}:
-stdenv.mkDerivation (finalAttrs: {
-  pname = "hyprtester";
-  inherit version;
+}: let
+  inherit (lib.lists) flatten foldl';
 
-  src = ../hyprtester;
-
-  nativeBuildInputs = [
-    cmake
-    pkg-config
+  adapters = flatten [
+    stdenvAdapters.useMoldLinker
+    stdenvAdapters.keepDebugInfo
   ];
 
-  buildInputs = [
-    hyprutils
-  ];
+  customStdenv = foldl' (acc: adapter: adapter acc) stdenv adapters;
+in
+  customStdenv.mkDerivation (finalAttrs: {
+    pname = "hyprtester";
+    inherit version;
 
-  meta = {
-    homepage = "https://github.com/hyprwm/Hyprland";
-    description = "Hyprland testing framework";
-    license = lib.licenses.bsd3;
-    platforms = hyprutils.meta.platforms;
-    mainProgram = "hyprtester";
-  };
-})
+    src = ../hyprtester;
+
+    nativeBuildInputs = [
+      cmake
+      pkg-config
+    ];
+
+    buildInputs = [
+      hyprutils
+    ];
+
+    cmakeBuildType = "Debug";
+
+    meta = {
+      homepage = "https://github.com/hyprwm/Hyprland";
+      description = "Hyprland testing framework";
+      license = lib.licenses.bsd3;
+      platforms = hyprutils.meta.platforms;
+      mainProgram = "hyprtester";
+    };
+  })

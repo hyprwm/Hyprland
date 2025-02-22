@@ -3029,8 +3029,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->onMonitorFrame();
 
-    if (PROTO::colorManagement && shouldChangePreferredImageDescription())
-        PROTO::colorManagement->onImagePreferredChanged();
+    if (PROTO::colorManagement && shouldChangePreferredImageDescription()) {
+        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        PROTO::colorManagement->onImagePreferredChanged(0);
+    }
 }
 
 SImageDescription CCompositor::getPreferredImageDescription() {

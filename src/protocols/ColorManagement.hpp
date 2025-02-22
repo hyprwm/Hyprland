@@ -74,7 +74,7 @@ class CColorManagementSurface {
 
 class CColorManagementFeedbackSurface {
   public:
-    CColorManagementFeedbackSurface(SP<CWpColorManagementFeedbackSurfaceV1> resource, SP<CWLSurfaceResource> surface_);
+    CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_);
 
     bool                                good();
     wl_client*                          client();
@@ -83,7 +83,7 @@ class CColorManagementFeedbackSurface {
     WP<CWLSurfaceResource>              surface;
 
   private:
-    SP<CWpColorManagementFeedbackSurfaceV1> m_resource;
+    SP<CWpColorManagementSurfaceFeedbackV1> m_resource;
     wl_client*                              pClient = nullptr;
 
     WP<CColorManagementImageDescription>    m_currentPreferred;

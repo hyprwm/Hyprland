@@ -35,7 +35,6 @@ protocols = [
 	'wlr-screencopy-unstable-v1.xml',
 	'xx-color-management-v4.xml',
 	'frog-color-management-v1.xml',
-	'color-management-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-global-shortcuts-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-toplevel-export-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-focus-grab-v1.xml',
@@ -72,6 +71,7 @@ protocols = [
 	wayland_protocol_dir / 'staging/single-pixel-buffer/single-pixel-buffer-v1.xml',
 	wayland_protocol_dir / 'staging/security-context/security-context-v1.xml',
 	wayland_protocol_dir / 'staging/content-type/content-type-v1.xml',
+	wayland_protocol_dir / 'staging/color-management/color-management-v1.xml',
 ]
 
 wl_protocols = []

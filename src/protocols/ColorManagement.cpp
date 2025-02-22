@@ -97,7 +97,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
 
         SURF->colorManagement = RESOURCE;
     });
-    m_resource->setGetFeedbackSurface([](CWpColorManagerV1* r, uint32_t id, wl_resource* surface) {
+    m_resource->setGetSurfaceFeedback([](CWpColorManagerV1* r, uint32_t id, wl_resource* surface) {
         LOGM(TRACE, "Get feedback surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
@@ -108,7 +108,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
         }
 
         const auto RESOURCE = PROTO::colorManagement->m_vFeedbackSurfaces.emplace_back(
-            makeShared<CColorManagementFeedbackSurface>(makeShared<CWpColorManagementFeedbackSurfaceV1>(r->client(), r->version(), id), SURF));
+            makeShared<CColorManagementFeedbackSurface>(makeShared<CWpColorManagementSurfaceFeedbackV1>(r->client(), r->version(), id), SURF));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -266,27 +266,27 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
     return m_needsNewMetadata;
 }
 
-CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementFeedbackSurfaceV1> resource, SP<CWLSurfaceResource> surface_) :
+CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :
     surface(surface_), m_resource(resource) {
     if UNLIKELY (!good())
         return;
 
     pClient = m_resource->client();
 
-    m_resource->setDestroy([this](CWpColorManagementFeedbackSurfaceV1* r) {
+    m_resource->setDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
         LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
-    m_resource->setOnDestroy([this](CWpColorManagementFeedbackSurfaceV1* r) {
+    m_resource->setOnDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
         LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
 
-    m_resource->setGetPreferred([this](CWpColorManagementFeedbackSurfaceV1* r, uint32_t id) {
+    m_resource->setGetPreferred([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
         LOGM(TRACE, "Get preferred for id {}", id);
 
         if (m_currentPreferred.valid())

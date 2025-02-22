@@ -84,8 +84,10 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
         PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
     }
 
-    if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription())
-        PROTO::colorManagement->onImagePreferredChanged();
+    if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
+        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        PROTO::colorManagement->onImagePreferredChanged(0);
+    }
 }
 
 CProtocolManager::CProtocolManager() {

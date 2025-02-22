@@ -1946,11 +1946,17 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             error += "invalid resolution ";
             newrule.resolution = Vector2D();
         } else {
-            newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
-            newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
+            try {
+                newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
+                newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
 
-            if (ARGS[1].contains("@"))
-                newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+                if (ARGS[1].contains("@"))
+                    newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+            }
+            catch (...) {
+                error += "invalid resolution ";
+                newrule.resolution = Vector2D();
+            }
         }
     }
 

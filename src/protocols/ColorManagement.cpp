@@ -1,15 +1,16 @@
 #include "ColorManagement.hpp"
 #include "Compositor.hpp"
+#include "color-management-v1.hpp"
 #include "protocols/types/ColorManagement.hpp"
 #include <cstdint>
 
 using namespace NColorManagement;
 
-CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_resource(resource), m_debug(debug) {
+CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
 
-    if (m_debug) {
+    if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
@@ -21,7 +22,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
     }
 
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
-    if (m_debug) {
+    if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_BT2020); // HDR for fullscreen only
 
         m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_PAL_M);
@@ -35,7 +36,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
     }
 
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);
-    if (m_debug) {
+    if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ); // HDR for fullscreen only
 
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886);
@@ -52,7 +53,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
     }
 
     m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_PERCEPTUAL);
-    if (m_debug) {
+    if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_RELATIVE);
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_SATURATION);
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_ABSOLUTE);
@@ -123,7 +124,21 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
     });
     m_resource->setCreateIccCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(WARN, "New ICC creator for id={} (unsupported)", id);
-        r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
+            return;
+        }
+
+        const auto RESOURCE =
+            PROTO::colorManagement->m_vIccCreators.emplace_back(makeShared<CColorManagementIccCreator>(makeShared<CWpImageDescriptionCreatorIccV1>(r->client(), r->version(), id)));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_vIccCreators.pop_back();
+            return;
+        }
+
+        RESOURCE->self = RESOURCE;
     });
     m_resource->setCreateParametricCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(TRACE, "New parametric creator for id={}", id);
@@ -138,6 +153,31 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource, bool debug) : m_res
         }
 
         RESOURCE->self = RESOURCE;
+    });
+    m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
+        LOGM(WARN, "New Windows scRGB description id={} (unsupported)", id);
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Windows scRGB profiles are not supported");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            return;
+        }
+
+        RESOURCE->self                          = RESOURCE;
+        RESOURCE->settings.windowsScRGB         = true;
+        RESOURCE->settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
+        RESOURCE->settings.primariesNameSet     = true;
+        RESOURCE->settings.primaries            = NColorPrimaries::BT709;
+        RESOURCE->settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
+        RESOURCE->settings.luminances.reference = 203;
+        RESOURCE->resource()->sendReady(id);
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -321,6 +361,62 @@ wl_client* CColorManagementFeedbackSurface::client() {
     return pClient;
 }
 
+CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCreatorIccV1> resource) : m_resource(resource) {
+    if UNLIKELY (!good())
+        return;
+    //
+    pClient = m_resource->client();
+
+    m_resource->setOnDestroy([this](CWpImageDescriptionCreatorIccV1* r) { PROTO::colorManagement->destroyResource(this); });
+
+    m_resource->setCreate([this](CWpImageDescriptionCreatorIccV1* r, uint32_t id) {
+        LOGM(TRACE, "Create image description from icc for id {}", id);
+
+        // FIXME actually check completeness
+        if (settings.icc.fd < 0 || !settings.icc.length) {
+            r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INCOMPLETE_SET, "Missing required settings");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            return;
+        }
+
+        LOGM(ERR, "FIXME: Parse icc file {}({},{}) for id {}", settings.icc.fd, settings.icc.offset, settings.icc.length, id);
+
+        // FIXME actually check support
+        if (settings.icc.fd < 0 || !settings.icc.length) {
+            RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "unsupported");
+            return;
+        }
+
+        RESOURCE->self     = RESOURCE;
+        RESOURCE->settings = settings;
+        RESOURCE->resource()->sendReady(id);
+
+        PROTO::colorManagement->destroyResource(this);
+    });
+
+    m_resource->setSetIccFile([this](CWpImageDescriptionCreatorIccV1* r, int fd, uint32_t offset, uint32_t length) {
+        settings.icc.fd     = fd;
+        settings.icc.offset = offset;
+        settings.icc.length = length;
+    });
+}
+
+bool CColorManagementIccCreator::good() {
+    return m_resource->resource();
+}
+
+wl_client* CColorManagementIccCreator::client() {
+    return pClient;
+}
+
 CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImageDescriptionCreatorParamsV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
@@ -391,17 +487,24 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             return;
         }
 
+        if (!PROTO::colorManagement->m_debug && primaries != WP_COLOR_MANAGER_V1_PRIMARIES_SRGB) {
+            r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_PRIMARIES_NAMED, "Unsupported primaries");
+            return;
+        }
+
         switch (primaries) {
             case WP_COLOR_MANAGER_V1_PRIMARIES_SRGB:
-                settings.primariesNameSet = true;
-                settings.primariesNamed   = CM_PRIMARIES_SRGB;
-                settings.primaries        = NColorPrimaries::BT709;
-                valuesSet |= PC_PRIMARIES;
-                break;
             case WP_COLOR_MANAGER_V1_PRIMARIES_BT2020:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_PAL_M:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_PAL:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_NTSC:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_GENERIC_FILM:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_DCI_P3:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_DISPLAY_P3:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB:
                 settings.primariesNameSet = true;
-                settings.primariesNamed   = CM_PRIMARIES_BT2020;
-                settings.primaries        = NColorPrimaries::BT2020;
+                settings.primariesNamed   = convertPrimaries((wpColorManagerV1Primaries)primaries);
+                settings.primaries        = getPrimaries(settings.primariesNamed);
                 valuesSet |= PC_PRIMARIES;
                 break;
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_PRIMARIES_NAMED, "Unsupported primaries");
@@ -532,8 +635,8 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
 
     const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
 
-    if (settings.iccFd >= 0)
-        m_resource->sendIccFile(settings.iccFd, settings.iccSize);
+    if (settings.icc.fd >= 0)
+        m_resource->sendIccFile(settings.icc.fd, settings.icc.length);
 
     // send preferred client paramateres
     m_resource->sendPrimaries(toProto(settings.primaries.red.x), toProto(settings.primaries.red.y), toProto(settings.primaries.green.x), toProto(settings.primaries.green.y),
@@ -563,7 +666,8 @@ wl_client* CColorManagementImageDescriptionInfo::client() {
     return pClient;
 }
 
-CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug) :
+    IWaylandProtocol(iface, ver, name), m_debug(debug) {
     ;
 }
 
@@ -599,6 +703,10 @@ void CColorManagementProtocol::destroyResource(CColorManagementSurface* resource
 
 void CColorManagementProtocol::destroyResource(CColorManagementFeedbackSurface* resource) {
     std::erase_if(m_vFeedbackSurfaces, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CColorManagementProtocol::destroyResource(CColorManagementIccCreator* resource) {
+    std::erase_if(m_vIccCreators, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementParametricCreator* resource) {

@@ -15,13 +15,12 @@ class CColorManagementProtocol;
 
 class CColorManager {
   public:
-    CColorManager(SP<CWpColorManagerV1> resource, bool debug = false);
+    CColorManager(SP<CWpColorManagerV1> resource);
 
     bool good();
 
   private:
     SP<CWpColorManagerV1> m_resource;
-    bool                  m_debug = false;
 };
 
 class CColorManagementOutput {
@@ -91,6 +90,22 @@ class CColorManagementFeedbackSurface {
     friend class CColorManagementProtocol;
 };
 
+class CColorManagementIccCreator {
+  public:
+    CColorManagementIccCreator(SP<CWpImageDescriptionCreatorIccV1> resource);
+
+    bool                                good();
+    wl_client*                          client();
+
+    WP<CColorManagementIccCreator>      self;
+
+    NColorManagement::SImageDescription settings;
+
+  private:
+    SP<CWpImageDescriptionCreatorIccV1> m_resource;
+    wl_client*                          pClient = nullptr;
+};
+
 class CColorManagementParametricCreator {
   public:
     CColorManagementParametricCreator(SP<CWpImageDescriptionCreatorParamsV1> resource);
@@ -154,7 +169,7 @@ class CColorManagementImageDescriptionInfo {
 
 class CColorManagementProtocol : public IWaylandProtocol {
   public:
-    CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug = false);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
@@ -165,6 +180,7 @@ class CColorManagementProtocol : public IWaylandProtocol {
     void                                               destroyResource(CColorManagementOutput* resource);
     void                                               destroyResource(CColorManagementSurface* resource);
     void                                               destroyResource(CColorManagementFeedbackSurface* resource);
+    void                                               destroyResource(CColorManagementIccCreator* resource);
     void                                               destroyResource(CColorManagementParametricCreator* resource);
     void                                               destroyResource(CColorManagementImageDescription* resource);
 
@@ -172,13 +188,16 @@ class CColorManagementProtocol : public IWaylandProtocol {
     std::vector<SP<CColorManagementOutput>>            m_vOutputs;
     std::vector<SP<CColorManagementSurface>>           m_vSurfaces;
     std::vector<SP<CColorManagementFeedbackSurface>>   m_vFeedbackSurfaces;
+    std::vector<SP<CColorManagementIccCreator>>        m_vIccCreators;
     std::vector<SP<CColorManagementParametricCreator>> m_vParametricCreators;
     std::vector<SP<CColorManagementImageDescription>>  m_vImageDescriptions;
+    bool                                               m_debug = false;
 
     friend class CColorManager;
     friend class CColorManagementOutput;
     friend class CColorManagementSurface;
     friend class CColorManagementFeedbackSurface;
+    friend class CColorManagementIccCreator;
     friend class CColorManagementParametricCreator;
     friend class CColorManagementImageDescription;
 

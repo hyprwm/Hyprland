@@ -7,7 +7,7 @@
 using namespace Hyprutils::OS;
 
 CProcess Tests::spawnKitty() {
-    CProcess kitty{"/bin/bash", {"-c", std::format("WAYLAND_DISPLAY={} kitty", WLDISPLAY)}};
+    CProcess kitty{"/bin/sh", {"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)}};
     kitty.runAsync();
     return kitty;
 }

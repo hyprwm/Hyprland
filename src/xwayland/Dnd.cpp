@@ -39,7 +39,7 @@ void CX11DataDevice::sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xc
 xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
     xcb_window_t              targetWindow = window;
     xcb_get_property_cookie_t proxyCookie =
-        xcb_get_property(g_pXWayland->pWM->connection, XCB_PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, XCB_PROPERTY_OFFSET, XCB_PROPERTY_LENGTH);
+        xcb_get_property(g_pXWayland->pWM->connection, PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
     xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->pWM->connection, proxyCookie, nullptr);
 
     const auto                isValidPropertyReply = [](xcb_get_property_reply_t* reply) {
@@ -50,7 +50,7 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
         xcb_window_t              proxyWindow = *(xcb_window_t*)xcb_get_property_value(proxyReply);
 
         xcb_get_property_cookie_t proxyVerifyCookie =
-            xcb_get_property(g_pXWayland->pWM->connection, XCB_PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, XCB_PROPERTY_OFFSET, XCB_PROPERTY_LENGTH);
+            xcb_get_property(g_pXWayland->pWM->connection, PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
         xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->pWM->connection, proxyVerifyCookie, nullptr);
 
         if (isValidPropertyReply(proxyVerifyReply)) {

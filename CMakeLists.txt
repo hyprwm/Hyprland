@@ -129,7 +129,7 @@ pkg_check_modules(
   xkbcommon
   uuid
   wayland-server>=1.22.90
-  wayland-protocols
+  wayland-protocols>=1.41
   cairo
   pango
   pangocairo

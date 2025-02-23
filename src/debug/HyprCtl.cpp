@@ -479,9 +479,10 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "y": {},
                     "w": {},
                     "h": {},
-                    "namespace": "{}"
+                    "namespace": "{}",
+                    "pid": {}
                 }},)#",
-                        (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, escapeJSONStrings(layer->szNamespace));
+                        (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, escapeJSONStrings(layer->szNamespace), layer->getPID());
                 }
 
                 trimTrailingComma(result);

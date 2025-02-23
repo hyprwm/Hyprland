@@ -162,6 +162,11 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->setCreateParametricCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(TRACE, "New parametric creator for id={}", id);
 
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Parametric creator is not supported");
+            return;
+        }
+
         const auto RESOURCE = PROTO::colorManagement->m_vParametricCreators.emplace_back(
             makeShared<CColorManagementParametricCreator>(makeShared<CWpImageDescriptionCreatorParamsV1>(r->client(), r->version(), id)));
 
@@ -385,6 +390,11 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
         LOGM(TRACE, "Get preferred for id {}", id);
+
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Parametric descriptions are not supported");
+            return;
+        }
 
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
@@ -622,6 +632,10 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
                 return;
             }
+            if (!PROTO::colorManagement->m_debug) {
+                r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering primaries are not supported");
+                return;
+            }
             settings.masteringPrimaries = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
                                                        .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
                                                        .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
@@ -642,6 +656,10 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         // }
         if (min > 0 && max_lum > 0 && max_lum <= min) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_LUMINANCE, "Invalid luminances");
+            return;
+        }
+        if (!PROTO::colorManagement->m_debug) {
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering luminances are not supported");
             return;
         }
         settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};

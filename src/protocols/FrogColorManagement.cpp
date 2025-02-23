@@ -37,9 +37,6 @@ CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_
             return;
         }
 
-        if (SURF->role->role() == SURFACE_ROLE_SUBSURFACE)
-            SURF = ((CSubsurfaceRole*)SURF->role.get())->subsurface->t1Parent();
-
         const auto RESOURCE = PROTO::frogColorManagement->m_vSurfaces.emplace_back(
             makeShared<CFrogColorManagementSurface>(makeShared<CFrogColorManagedSurface>(r->client(), r->version(), id), SURF));
         if UNLIKELY (!RESOURCE->good()) {

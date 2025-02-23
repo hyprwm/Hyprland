@@ -306,6 +306,23 @@ void CWLSurfaceResource::breadthfirst(std::function<void(SP<CWLSurfaceResource>,
     bfHelper(surfs, fn, data);
 }
 
+SP<CWLSurfaceResource> CWLSurfaceResource::findFirstHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn) {
+    if (fn(root))
+        return root;
+    for (auto const& sub : root->subsurfaces) {
+        if (sub.expired() || sub->surface.expired())
+            continue;
+        const auto found = findFirstHelper(sub->surface.lock(), fn);
+        if (found)
+            return found;
+    }
+    return nullptr;
+}
+
+SP<CWLSurfaceResource> CWLSurfaceResource::findFirst(std::function<bool(SP<CWLSurfaceResource>)> fn) {
+    return findFirstHelper(self.lock(), fn);
+}
+
 std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2D& localCoords, bool allowsInput) {
     std::vector<std::pair<SP<CWLSurfaceResource>, Vector2D>> surfs;
     breadthfirst([&surfs](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { surfs.emplace_back(std::make_pair<>(surf, offset)); }, &surfs);

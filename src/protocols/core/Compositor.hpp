@@ -127,6 +127,7 @@ class CWLSurfaceResource {
     WP<CContentType>                       contentType;
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    SP<CWLSurfaceResource>                 findFirst(std::function<bool(SP<CWLSurfaceResource>)> fn);
     CRegion                                accumulateCurrentBufferDamage();
     void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   lockPendingState();
@@ -142,17 +143,18 @@ class CWLSurfaceResource {
 
     // this is for cursor dumb copy. Due to our (and wayland's...) architecture,
     // this stupid-ass hack is used
-    WP<IHLBuffer> lastBuffer;
+    WP<IHLBuffer>          lastBuffer;
 
-    int           stateLocks = 0;
+    int                    stateLocks = 0;
 
-    void          destroy();
-    void          releaseBuffers(bool onlyCurrent = true);
-    void          dropPendingBuffer();
-    void          dropCurrentBuffer();
-    void          commitPendingState();
-    void          bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
-    void          updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
+    void                   destroy();
+    void                   releaseBuffers(bool onlyCurrent = true);
+    void                   dropPendingBuffer();
+    void                   dropCurrentBuffer();
+    void                   commitPendingState();
+    void                   bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    SP<CWLSurfaceResource> findFirstHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
+    void                   updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
 
     friend class CWLPointerResource;
 };

@@ -1952,8 +1952,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
                 if (ARGS[1].contains("@"))
                     newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
-            }
-            catch (...) {
+            } catch (...) {
                 error += "invalid resolution ";
                 newrule.resolution = Vector2D();
             }

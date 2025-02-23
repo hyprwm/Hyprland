@@ -9,10 +9,6 @@
 
 #define XDND_VERSION 5
 
-#define PROPERTY_FORMAT_32BIT 32
-#define PROPERTY_LENGTH       1
-#define PROPERTY_OFFSET       0
-
 class CXWaylandSurface;
 
 class CX11DataOffer : public IDataOffer {

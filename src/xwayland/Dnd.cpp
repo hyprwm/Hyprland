@@ -10,6 +10,10 @@
 
 using namespace Hyprutils::OS;
 
+#define PROPERTY_FORMAT_32BIT 32
+#define PROPERTY_LENGTH       1
+#define PROPERTY_OFFSET       0
+
 #ifndef NO_XWAYLAND
 static xcb_atom_t dndActionToAtom(uint32_t actions) {
     if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)

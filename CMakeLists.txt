@@ -77,6 +77,7 @@ add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
 include_directories(. "src/" "protocols/")
 
 set(CMAKE_CXX_STANDARD 26)
+set(CXX_STANDARD_REQUIRED ON)
 add_compile_options(
   -Wall
   -Wextra

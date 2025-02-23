@@ -561,8 +561,8 @@ CXXColorManagementImageDescriptionInfo::CXXColorManagementImageDescriptionInfo(S
 
     const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
 
-    if (settings.iccFd >= 0)
-        m_resource->sendIccFile(settings.iccFd, settings.iccSize);
+    if (settings.icc.fd >= 0)
+        m_resource->sendIccFile(settings.icc.fd, settings.icc.length);
 
     // send preferred client paramateres
     m_resource->sendPrimaries(toProto(settings.primaries.red.x), toProto(settings.primaries.red.y), toProto(settings.primaries.green.x), toProto(settings.primaries.green.y),

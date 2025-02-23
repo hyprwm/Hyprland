@@ -584,3 +584,11 @@ int CLayerSurface::popupsCount() {
 MONITORID CLayerSurface::monitorID() {
     return monitor ? monitor->ID : MONITOR_INVALID;
 }
+
+pid_t CLayerSurface::getPID() {
+    pid_t PID = -1;
+
+    wl_client_get_credentials(layerSurface->surface->getResource()->resource()->client, &PID, nullptr, nullptr);
+
+    return PID;
+}

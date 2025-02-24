@@ -514,8 +514,8 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}\n", (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
-                                          layer->geometry.height, layer->szNamespace);
+                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y,
+                                          layer->geometry.width, layer->geometry.height, layer->szNamespace, layer->getPID());
                 }
 
                 layerLevel++;

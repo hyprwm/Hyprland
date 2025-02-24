@@ -18,6 +18,7 @@
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
+#include "../helpers/MiscFunctions.hpp"
 
 #include <optional>
 #include <iterator>
@@ -918,9 +919,18 @@ uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitial
 
     if (!RULES.empty()) {
         const auto RULESLIST = CVarList(RULES, 0, ';');
+        auto       global    = false;
 
         for (auto const& r : RULESLIST) {
-            g_pConfigManager->addExecRule({r, (unsigned long)PROC});
+            if (r == "global")
+                global = true;
+            else {
+                if (global) {
+                    for (const auto& pid : getAllPIDOf(getProcNameOf(PROC)))
+                        g_pConfigManager->addExecRule({r, (unsigned long)pid});
+                } else
+                    g_pConfigManager->addExecRule({r, (unsigned long)PROC});
+            }
         }
 
         Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());

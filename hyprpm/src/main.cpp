@@ -29,6 +29,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --verbose      | -v    → Enable too much logging
 ┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
 ┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources
+┣ --hl-url       |       → Pass a custom hyprland source url
 ┗
 )#";
 
@@ -45,6 +46,7 @@ int                        main(int argc, char** argv, char** envp) {
 
     std::vector<std::string> command;
     bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false;
+    std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
@@ -59,6 +61,13 @@ int                        main(int argc, char** argv, char** envp) {
                 verbose = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
                 noShallow = true;
+            } else if (ARGS[i] == "--hl-url") {
+                if (i + 1 >= argc) {
+                    std::println(stderr, "Missing argument for --hl-url");
+                    return 1;
+                }
+                customHlUrl = ARGS[i + 1];
+                i++;
             } else if (ARGS[i] == "--force" || ARGS[i] == "-f") {
                 force = true;
                 std::println("{}", statusString("!", Colors::RED, "Using --force, I hope you know what you are doing."));
@@ -66,9 +75,8 @@ int                        main(int argc, char** argv, char** envp) {
                 std::println(stderr, "Unrecognized option {}", ARGS[i]);
                 return 1;
             }
-        } else {
+        } else
             command.push_back(ARGS[i]);
-        }
     }
 
     if (command.empty()) {
@@ -76,9 +84,10 @@ int                        main(int argc, char** argv, char** envp) {
         return 1;
     }
 
-    g_pPluginManager               = std::make_unique<CPluginManager>();
-    g_pPluginManager->m_bVerbose   = verbose;
-    g_pPluginManager->m_bNoShallow = noShallow;
+    g_pPluginManager                  = std::make_unique<CPluginManager>();
+    g_pPluginManager->m_bVerbose      = verbose;
+    g_pPluginManager->m_bNoShallow    = noShallow;
+    g_pPluginManager->m_szCustomHlUrl = customHlUrl;
 
     if (command[0] == "add") {
         if (command.size() < 2) {

@@ -557,7 +557,7 @@ void logSystemInfo() {
     Debug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
-int64_t getPPIDof(int64_t pid) {
+pid_t getPPIDof(pid_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {
         CTL_KERN,           KERN_PROC, KERN_PROC_PID, (int)pid,
@@ -605,6 +605,107 @@ int64_t getPPIDof(int64_t pid) {
     } catch (std::exception& e) { return 0; }
 #endif
 }
+
+std::vector<pid_t> getAllPIDOf(const std::string& name) {
+    std::vector<pid_t> results;
+
+#if defined(KERN_PROC_ALL)
+    int mib[] = {
+        CTL_KERN, KERN_PROC, KERN_PROC_ALL,
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+        0, sizeof(KINFO_PROC), 0
+#endif
+    };
+    u_int miblen = sizeof(mib) / sizeof(mib[0]);
+    
+    size_t size = 0;
+    if (sysctl(mib, miblen, NULL, &size, NULL, 0) == -1)
+        return results;
+
+    std::vector<KINFO_PROC> kprocList(size / sizeof(KINFO_PROC));
+    
+    if (sysctl(mib, miblen, kprocList.data(), &size, NULL, 0) != -1) {
+        for (auto& kproc : kprocList) {
+#if defined(__DragonFly__)
+            if (name == std::string(kproc.kp_comm))
+                results.push_back(kproc.kp_pid);
+#elif defined(__FreeBSD__)
+            if (name == std::string(kproc.ki_comm))
+                results.push_back(kproc.ki_pid);
+#else
+            if (name == std::string(kproc.p_comm))
+                results.push_back(kproc.p_pid);
+#endif
+        }
+    }
+#else
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator("/proc", ec)) {
+        if (!entry.is_directory())
+            continue;
+
+        const auto& dirname = entry.path().filename().string();
+        if (!isNumber(dirname))
+            continue;
+
+        const auto pid = std::stoll(dirname);
+        std::string procName = getProcNameOf(pid);
+
+        if (procName == name)
+            results.push_back(pid);
+    }
+#endif
+
+    return results;
+}
+
+std::string getProcNameOf(pid_t pid) {
+#if defined(KERN_PROC_PID)
+    int mib[] = {
+        CTL_KERN,           KERN_PROC, KERN_PROC_PID, (int)pid,
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+        sizeof(KINFO_PROC), 1,
+#endif
+    };
+    u_int      miblen = sizeof(mib) / sizeof(mib[0]);
+    KINFO_PROC kp;
+    size_t     sz = sizeof(KINFO_PROC);
+
+    if (sysctl(mib, miblen, &kp, &sz, NULL, 0) != -1) {
+#if defined(__DragonFly__)
+        return std::string(kp.kp_comm);
+#elif defined(__FreeBSD__)
+        return std::string(kp.ki_comm);
+#elif defined(__NetBSD__)
+        return std::string(kp.p_comm);
+#elif defined(__OpenBSD__)
+        return std::string(kp.p_comm);
+#endif
+    }
+
+    return {};
+#else
+    const std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
+    CFileDescriptor fd{open(commPath.c_str(), O_RDONLY | O_CLOEXEC)};
+    
+    if (!fd.isValid())
+        return {};
+
+    char buffer[256] = {0};
+    const auto bytesRead = read(fd.get(), buffer, sizeof(buffer) - 1);
+    
+    if (bytesRead <= 0)
+        return {};
+
+    std::string name{buffer};
+    if (!name.empty() && name.back() == '\n')
+        name.pop_back();
+
+    return name;
+#endif
+}
+
+
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
     auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {

@@ -28,7 +28,9 @@ std::optional<std::string>          cleanCmdForWorkspace(const std::string&, std
 float                               vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 void                                logSystemInfo();
 std::string                         execAndGet(const char*);
-int64_t                             getPPIDof(int64_t pid);
+pid_t                             getPPIDof(pid_t pid);
+std::string getProcNameOf(int64_t pid);
+std::vector<pid_t> getAllPIDOf(const std::string& name);
 std::expected<int64_t, std::string> configStringToInt(const std::string&);
 Vector2D                            configStringToVector2D(const std::string&);
 std::optional<float>                getPlusMinusKeywordResult(std::string in, float relative);

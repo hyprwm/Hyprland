@@ -1,4 +1,17 @@
-lib: with lib; let
+lib: let
+  inherit (lib)
+    attrNames
+    filterAttrs
+    foldl
+    generators
+    partition
+    ;
+
+  inherit (lib.strings)
+    concatMapStrings
+    hasPrefix
+    ;
+
   /**
     Convert a structured Nix attribute set into Hyprland's configuration format.
 

@@ -190,7 +190,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void updateDrag();
     void dropDrag();
     void completeDrag();
-    void resetDndState();
+    void cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput);
     bool wasDragSuccessful();
 
     //

@@ -1125,20 +1125,22 @@ void CXWM::dissociate(SP<CXWaylandSurface> surf) {
 }
 
 void CXWM::updateClientList() {
-    std::erase_if(mappedSurfaces, [](const auto& e) { return e.expired() || !e->mapped; });
-    std::erase_if(mappedSurfacesStacking, [](const auto& e) { return e.expired() || !e->mapped; });
-
     std::vector<xcb_window_t> windows;
-    for (auto const& m : mappedSurfaces) {
-        windows.push_back(m->xID);
+    windows.reserve(mappedSurfaces.size());
+
+    for (auto const& s : mappedSurfaces) {
+        if (auto surf = s.lock(); surf)
+            windows.push_back(surf->xID);
     }
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, screen->root, HYPRATOMS["_NET_CLIENT_LIST"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
 
     windows.clear();
+    windows.reserve(mappedSurfacesStacking.size());
 
-    for (auto const& m : mappedSurfacesStacking) {
-        windows.push_back(m->xID);
+    for (auto const& s : mappedSurfacesStacking) {
+        if (auto surf = s.lock(); surf)
+            windows.push_back(surf->xID);
     }
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, screen->root, HYPRATOMS["_NET_CLIENT_LIST_STACKING"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
@@ -1277,29 +1279,6 @@ void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& si
     uint32_t values[] = {cursorXID};
     xcb_change_window_attributes(connection, screen->root, XCB_CW_CURSOR, values);
     xcb_flush(connection);
-}
-
-void CXWM::sendDndEvent(SP<CWLSurfaceResource> destination, xcb_atom_t type, xcb_client_message_data_t& data) {
-    auto XSURF = windowForWayland(destination);
-
-    if (!XSURF) {
-        Debug::log(ERR, "[xwm] No xwayland surface for destination in sendDndEvent");
-        return;
-    }
-
-    xcb_client_message_event_t event = {
-        .response_type = XCB_CLIENT_MESSAGE,
-        .format        = 32,
-        .sequence      = 0,
-        .window        = XSURF->xID,
-        .type          = type,
-        .data          = data,
-    };
-
-    xcb_send_event(g_pXWayland->pWM->connection,
-                   0, // propagate
-                   XSURF->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
-    xcb_flush(g_pXWayland->pWM->connection);
 }
 
 SP<CX11DataDevice> CXWM::getDataDevice() {

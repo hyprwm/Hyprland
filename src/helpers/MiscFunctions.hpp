@@ -29,7 +29,7 @@ float                               vecToRectDistanceSquared(const Vector2D& vec
 void                                logSystemInfo();
 std::string                         execAndGet(const char*);
 pid_t                             getPPIDof(pid_t pid);
-std::string getProcNameOf(int64_t pid);
+std::string getProcNameOf(pid_t pid);
 std::vector<pid_t> getAllPIDOf(const std::string& name);
 std::expected<int64_t, std::string> configStringToInt(const std::string&);
 Vector2D                            configStringToVector2D(const std::string&);

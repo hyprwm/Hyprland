@@ -309,7 +309,15 @@ class CConfigManager {
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 
+    void                                      registerConfigVar(const char* name, const Hyprlang::INT& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::FLOAT& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::VEC2& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::STRING& val);
+    void                                      registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& val);
+
     std::unordered_map<std::string, Vector2D> m_mStoredFloatingSizes;
+
+    friend struct SConfigOptionDescription;
 };
 
 inline UP<CConfigManager> g_pConfigManager;

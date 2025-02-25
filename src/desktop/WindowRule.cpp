@@ -39,6 +39,8 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_TILE;
     else if (rule == "renderunfocused")
         ruleType = RULE_RENDERUNFOCUSED;
+    else if (rule == "persistentsize")
+        ruleType = RULE_PERSISTENTSIZE;
     else if (rule.starts_with("animation"))
         ruleType = RULE_ANIMATION;
     else if (rule.starts_with("bordercolor"))

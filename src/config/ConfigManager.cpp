@@ -2867,3 +2867,17 @@ std::string SConfigOptionDescription::jsonify() const {
 void CConfigManager::ensurePersistentWorkspacesPresent() {
     g_pCompositor->ensurePersistentWorkspacesPresent(m_vWorkspaceRules);
 }
+
+void CConfigManager::storeFloatingSize(const std::string& szClass, const std::string& szTitle, const Vector2D& size) {
+    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, szClass, szTitle);
+    m_mStoredFloatingSizes[szClass + "|||" + szTitle] = size;
+}
+
+std::optional<Vector2D> CConfigManager::getStoredFloatingSize(const std::string& szClass, const std::string& szTitle) {
+    const auto KEY = szClass + "|||" + szTitle;
+    if (m_mStoredFloatingSizes.contains(KEY)) {
+        Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[KEY].x, m_mStoredFloatingSizes[KEY].y, szClass, szTitle);
+        return m_mStoredFloatingSizes[KEY];
+    }
+    return std::nullopt;
+}

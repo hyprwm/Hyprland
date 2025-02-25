@@ -260,10 +260,13 @@ class CConfigManager {
         {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
 
-    bool m_bWantsMonitorReload                  = false;
-    bool m_bNoMonitorReload                     = false;
-    bool isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
-    bool m_bLastConfigVerificationWasSuccessful = true;
+    bool                    m_bWantsMonitorReload                  = false;
+    bool                    m_bNoMonitorReload                     = false;
+    bool                    isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
+    bool                    m_bLastConfigVerificationWasSuccessful = true;
+
+    void                    storeFloatingSize(const std::string& szClass, const std::string& szTitle, const Vector2D& size);
+    std::optional<Vector2D> getStoredFloatingSize(const std::string& szClass, const std::string& szTitle);
 
   private:
     UP<Hyprlang::CConfig>                            m_pConfig;
@@ -298,13 +301,15 @@ class CConfigManager {
     std::string                                      m_szConfigErrors = "";
 
     // internal methods
-    void                       updateBlurredLS(const std::string&, const bool);
-    void                       setDefaultAnimationVars();
-    std::optional<std::string> resetHLConfig();
-    std::optional<std::string> generateConfig(std::string configPath);
-    std::optional<std::string> verifyConfigExists();
-    void                       postConfigReload(const Hyprlang::CParseResult& result);
-    SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+    void                                      updateBlurredLS(const std::string&, const bool);
+    void                                      setDefaultAnimationVars();
+    std::optional<std::string>                resetHLConfig();
+    std::optional<std::string>                generateConfig(std::string configPath);
+    std::optional<std::string>                verifyConfigExists();
+    void                                      postConfigReload(const Hyprlang::CParseResult& result);
+    SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+
+    std::unordered_map<std::string, Vector2D> m_mStoredFloatingSizes;
 };
 
 inline UP<CConfigManager> g_pConfigManager;

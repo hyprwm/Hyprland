@@ -588,7 +588,8 @@ MONITORID CLayerSurface::monitorID() {
 pid_t CLayerSurface::getPID() {
     pid_t PID = -1;
 
-    if (!layerSurface || !layerSurface->surface || !layerSurface->surface->getResource() || !layerSurface->surface->getResource()->resource() || !layerSurface->surface->getResource()->resource()->client)
+    if (!layerSurface || !layerSurface->surface || !layerSurface->surface->getResource() || !layerSurface->surface->getResource()->resource() ||
+        !layerSurface->surface->getResource()->resource()->client)
         return -1;
 
     wl_client_get_credentials(layerSurface->surface->getResource()->resource()->client, &PID, nullptr, nullptr);

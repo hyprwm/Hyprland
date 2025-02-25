@@ -179,10 +179,10 @@ CBox CSurfacePassElement::getTexBox() {
     }
 
     if (data.squishOversized) {
-        if (data.localPos.x + windowBox.width > data.w)
-            windowBox.width = data.w - data.localPos.x;
-        if (data.localPos.y + windowBox.height > data.h)
-            windowBox.height = data.h - data.localPos.y;
+        if (data.localPos.x / data.contentScale + windowBox.width > data.w)
+            windowBox.width = data.w - data.localPos.x / data.contentScale;
+        if (data.localPos.y / data.contentScale + windowBox.height > data.h)
+            windowBox.height = data.h - data.localPos.y / data.contentScale;
     }
 
     return windowBox;

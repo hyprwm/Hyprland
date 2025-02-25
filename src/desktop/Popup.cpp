@@ -226,7 +226,11 @@ void CPopup::reposition() {
     if (!PMONITOR)
         return;
 
-    CBox box = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    CBox       box   = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    const auto scale = getContentScale();
+    box.w            = COORDS.x + (box.w - COORDS.x) * scale;
+    box.h            = COORDS.y + (box.h - COORDS.y) * scale;
+
     m_pResource->applyPositioning(box, COORDS);
 }
 

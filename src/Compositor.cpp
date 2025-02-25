@@ -13,6 +13,7 @@
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
 #include "managers/DonationNagManager.hpp"
+#include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -592,6 +593,7 @@ void CCompositor::cleanup() {
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
+    g_pANRManager.reset();
     g_pConfigWatcher.reset();
 
     if (m_pAqBackend)
@@ -693,6 +695,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the DonationNag!");
             g_pDonationNagManager = makeUnique<CDonationNagManager>();
+
+            Debug::log(LOG, "Creating the ANRManager!");
+            g_pANRManager = makeUnique<CANRManager>();
 
             Debug::log(LOG, "Starting XWayland");
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_bWantsXwayland);

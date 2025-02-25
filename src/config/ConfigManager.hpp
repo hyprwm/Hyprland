@@ -300,6 +300,8 @@ class CConfigManager {
     std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
     std::string                                      m_szConfigErrors = "";
 
+    uint32_t                                         m_configValueNumber = 0;
+
     // internal methods
     void                                      updateBlurredLS(const std::string&, const bool);
     void                                      setDefaultAnimationVars();

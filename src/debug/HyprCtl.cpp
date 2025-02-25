@@ -811,8 +811,11 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& sh : SHORTCUTS)
+        for (auto const& sh : SHORTCUTS) {
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
+        }
+        if (ret.empty())
+            ret = "none";
     } else {
         ret += "[";
         for (auto const& sh : SHORTCUTS) {

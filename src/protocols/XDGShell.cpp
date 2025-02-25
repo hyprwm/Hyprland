@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/ANRManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
@@ -740,6 +741,11 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
 
         LOGM(LOG, "New xdg_surface at {:x}", (uintptr_t)RESOURCE.get());
     });
+
+    resource->setPong([this](CXdgWmBase* r, uint32_t serial) {
+        g_pANRManager->onResponse(self.lock());
+        events.pong.emit();
+    });
 }
 
 bool CXDGWMBase::good() {
@@ -748,6 +754,10 @@ bool CXDGWMBase::good() {
 
 wl_client* CXDGWMBase::client() {
     return pClient;
+}
+
+void CXDGWMBase::ping() {
+    resource->sendPing(1337);
 }
 
 CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

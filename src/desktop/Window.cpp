@@ -13,6 +13,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../managers/AnimationManager.hpp"
+#include "../managers/ANRManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ContentType.hpp"
@@ -48,6 +49,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fDimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, g_pConfigManager->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
@@ -71,6 +73,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fDimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, g_pConfigManager->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
@@ -1804,4 +1807,8 @@ void CWindow::deactivateGroupMembers() {
         if (curr == getGroupHead())
             break;
     }
+}
+
+bool CWindow::isNotResponding() {
+    return g_pANRManager->isNotResponding(m_pSelf.lock());
 }

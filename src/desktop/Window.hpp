@@ -390,6 +390,9 @@ class CWindow {
     // window tags
     CTagKeeper m_tags;
 
+    // ANR
+    PHLANIMVAR<float> m_notRespondingTint;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) const {
         return m_pXDGSurface == rhs.m_pXDGSurface && m_pXWaylandSurface == rhs.m_pXWaylandSurface && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
@@ -482,6 +485,7 @@ class CWindow {
     NContentType::eContentType getContentType();
     void                       setContentType(NContentType::eContentType contentType);
     void                       deactivateGroupMembers();
+    bool                       isNotResponding();
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

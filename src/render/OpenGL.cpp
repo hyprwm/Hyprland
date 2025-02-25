@@ -1948,8 +1948,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
                                             float blurA, float overallA) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
-    static auto PNOBLUROVERSIZED = CConfigValue<Hyprlang::INT>("decoration:no_blur_on_oversized");
-
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
     // make a damage region for this window
@@ -1966,11 +1964,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
 
     m_RenderData.renderModif.applyToRegion(texDamage);
 
-    if (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        renderTexture(tex, box, a, round, roundingPower, false, true);
-        return;
-    }
-
     // amazing hack: the surface has an opaque region!
     CRegion inverseOpaque;
     if (a >= 1.f && std::round(pSurface->current.size.x * m_RenderData.pMonitor->scale) == box.w && std::round(pSurface->current.size.y * m_RenderData.pMonitor->scale) == box.h) {
@@ -1982,9 +1975,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
             renderTexture(tex, box, a, round, roundingPower, false, true);
             return;
         }
-    } else {
+    } else
         inverseOpaque = {0, 0, box.width, box.height};
-    }
 
     inverseOpaque.scale(m_RenderData.pMonitor->scale);
 

@@ -32,7 +32,8 @@ namespace NColorManagement {
         CM_TRANSFER_FUNCTION_HLG        = 13,
     };
 
-    // FIXME should be ok this way. unsupported primaries/tfs must be rejected earlier. might need a proper switch-case with exception as default.
+    // NOTE should be ok this way. unsupported primaries/tfs must be rejected earlier. supported enum values should be in sync with proto.
+    // might need a proper switch-case and additional INVALID enum value.
     inline wpColorManagerV1Primaries convertPrimaries(ePrimaries primaries) {
         return (wpColorManagerV1Primaries)primaries;
     }

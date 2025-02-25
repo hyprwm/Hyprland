@@ -18,6 +18,7 @@
 #include "hyprctlCompat.hpp"
 #include "tests/window/window.hpp"
 #include "tests/window/groups.hpp"
+#include "tests/plugin/plugin.hpp"
 
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
@@ -172,6 +173,14 @@ int main(int argc, char** argv, char** envp) {
     std::println("{}trying to get create headless output", Colors::YELLOW);
     getFromSocket("/output create headless");
 
+    std::println("{}trying to load plugin", Colors::YELLOW);
+    if (getFromSocket(std::format("/plugin load {}/plugin/hyprtestplugin.so", std::filesystem::current_path().string())) != "ok") {
+        std::println("{}Failed to load the test plugin", Colors::RED);
+        return 1;
+    }
+
+    std::println("{}Loaded plugin", Colors::YELLOW);
+
     // now we can start issuing stuff.
     std::println("{}testing windows", Colors::YELLOW);
     EXPECT(testWindows(), true);
@@ -180,6 +189,9 @@ int main(int argc, char** argv, char** envp) {
 
     std::println("{}testing groups", Colors::YELLOW);
     EXPECT(testGroups(), true);
+
+    std::println("{}running plugin test", Colors::YELLOW);
+    EXPECT(testPlugin(), true);
 
     // kill hyprland
     std::println("{}dispatching exit", Colors::YELLOW);

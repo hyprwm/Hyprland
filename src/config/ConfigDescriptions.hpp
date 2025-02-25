@@ -608,14 +608,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
-
     SConfigOptionDescription{
         .value       = "input:touchpad:flip_x",
         .description = "Inverts the horizontal movement of the touchpad",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
-
     SConfigOptionDescription{
         .value       = "input:touchpad:flip_y",
         .description = "Inverts the vertical movement of the touchpad",

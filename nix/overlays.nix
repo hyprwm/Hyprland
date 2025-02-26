@@ -91,7 +91,7 @@ in {
     });
   };
 
-  # Temporary bump until https://nixpk.gs/pr-tracker.html?pr=367753 is merged.
+  # Temporary bump until https://nixpk.gs/pr-tracker.html?pr=382812 is merged.
   # Expect to build the universe.
   wayland-protocols-bump = final: prev: {
     wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {

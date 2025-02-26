@@ -922,11 +922,11 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 
 // Dispatchers
 SDispatchResult CKeybindManager::spawn(std::string args) {
-    const uint64_t PROC = spawnWithRules(args, nullptr);
+    const pid_t PROC = spawnWithRules(args, nullptr);
     return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
-uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWorkspace) {
+pid_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWorkspace) {
 
     args = trim(args);
 
@@ -938,7 +938,7 @@ uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitial
         args  = args.substr(args.find_first_of(']') + 1);
     }
 
-    const uint64_t PROC = spawnRawProc(args, pInitialWorkspace);
+    const pid_t PROC = spawnRawProc(args, pInitialWorkspace);
 
     if (!RULES.empty()) {
         const auto RULESLIST = CVarList(RULES, 0, ';');
@@ -963,11 +963,11 @@ uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitial
 }
 
 SDispatchResult CKeybindManager::spawnRaw(std::string args) {
-    const uint64_t PROC = spawnRawProc(args, nullptr);
+    const pid_t PROC = spawnRawProc(args, nullptr);
     return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
-uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace) {
+pid_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace) {
     Debug::log(LOG, "Executing {}", args);
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);

@@ -1,8 +1,8 @@
 #include "XXColorManagement.hpp"
-#include "Compositor.hpp"
+#include "../Compositor.hpp"
 #include "ColorManagement.hpp"
 #include "color-management-v1.hpp"
-#include "protocols/types/ColorManagement.hpp"
+#include "types/ColorManagement.hpp"
 
 using namespace NColorManagement;
 

@@ -948,10 +948,10 @@ pid_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWor
             if (r == "global")
                 global = true;
             else {
-                if (global) {
+                if (global)
                     for (const auto& pid : getAllPIDOf(getProcNameOf(PROC)))
                         g_pConfigManager->addExecRule({r, (unsigned long)pid});
-                } else
+                else
                     g_pConfigManager->addExecRule({r, (unsigned long)PROC});
             }
         }

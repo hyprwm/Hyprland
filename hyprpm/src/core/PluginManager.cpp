@@ -463,7 +463,9 @@ bool CPluginManager::updateHeaders(bool force) {
         return false;
     }
 
-    progress.printMessageAbove(statusString("!", Colors::YELLOW, "Cloning https://github.com/hyprwm/Hyprland, this might take a moment."));
+    const auto& HL_URL = m_szCustomHlUrl.empty() ? "https://github.com/hyprwm/Hyprland" : m_szCustomHlUrl;
+
+    progress.printMessageAbove(statusString("!", Colors::YELLOW, "Cloning {}, this might take a moment.", HL_URL));
 
     const bool bShallow = (HLVER.branch == "main") && !m_bNoShallow;
 
@@ -474,12 +476,12 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose && bShallow)
         progress.printMessageAbove(verboseString("will shallow since: {}", SHALLOW_DATE));
 
-    std::string ret = execAndGet(std::format("cd {} && git clone --recursive https://github.com/hyprwm/Hyprland hyprland-{}{}", getTempRoot(), USERNAME,
-                                             (bShallow ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
+    std::string ret =
+        execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}{}", getTempRoot(), HL_URL, USERNAME, (bShallow ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
 
     if (!std::filesystem::exists(WORKINGDIR)) {
         progress.printMessageAbove(failureString("Clone failed. Retrying without shallow."));
-        ret = execAndGet(std::format("cd {} && git clone --recursive https://github.com/hyprwm/hyprland hyprland-{}", getTempRoot(), USERNAME));
+        ret = execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}", getTempRoot(), HL_URL, USERNAME));
     }
 
     if (!std::filesystem::exists(WORKINGDIR + "/.git")) {

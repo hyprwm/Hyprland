@@ -479,9 +479,11 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "y": {},
                     "w": {},
                     "h": {},
-                    "namespace": "{}"
+                    "namespace": "{}",
+                    "pid": {}
                 }},)#",
-                        (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, escapeJSONStrings(layer->szNamespace));
+                        (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width, layer->geometry.height, escapeJSONStrings(layer->szNamespace),
+                        layer->getPID());
                 }
 
                 trimTrailingComma(result);
@@ -512,8 +514,8 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}\n", (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
-                                          layer->geometry.height, layer->szNamespace);
+                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y,
+                                          layer->geometry.width, layer->geometry.height, layer->szNamespace, layer->getPID());
                 }
 
                 layerLevel++;
@@ -811,8 +813,11 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& sh : SHORTCUTS)
+        for (auto const& sh : SHORTCUTS) {
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
+        }
+        if (ret.empty())
+            ret = "none";
     } else {
         ret += "[";
         for (auto const& sh : SHORTCUTS) {

@@ -300,6 +300,9 @@ void CPopup::recheckTree() {
 }
 
 void CPopup::recheckChildrenRecursive() {
+    if (m_bInert || !m_pWLSurface)
+        return;
+
     std::vector<WP<CPopup>> cpy;
     std::ranges::for_each(m_vChildren, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
@@ -386,4 +389,8 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
     }
 
     return {};
+}
+
+bool CPopup::inert() const {
+    return m_bInert;
 }

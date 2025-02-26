@@ -1,8 +1,11 @@
 #pragma once
 
 #include "../protocols/types/DataDevice.hpp"
+#include "../managers/SeatManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include <wayland-server-protocol.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <xcb/xcb.h>
 
 #define XDND_VERSION 5
 
@@ -72,10 +75,16 @@ class CX11DataDevice : public IDataDevice {
     virtual void                      sendDrop();
     virtual void                      sendSelection(SP<IDataOffer> offer);
     virtual eDataSourceType           type();
+    void                              forceCleanupDnd();
 
     WP<CX11DataDevice>                self;
 
   private:
+    void cleanupState();
+#ifndef NO_XWAYLAND
+    xcb_window_t getProxyWindow(xcb_window_t window);
+    void         sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xcb_client_message_data_t& data);
+#endif
     WP<CXWaylandSurface> lastSurface;
     WP<IDataOffer>       lastOffer;
     Vector2D             lastSurfaceCoords;

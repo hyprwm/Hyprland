@@ -149,10 +149,10 @@ class CCompositor {
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
     void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
 
-    SImageDescription      getPreferredImageDescription();
-    bool                   shouldChangePreferredImageDescription();
+    NColorManagement::SImageDescription getPreferredImageDescription();
+    bool                                shouldChangePreferredImageDescription();
 
-    std::string            explicitConfigPath;
+    std::string                         explicitConfigPath;
 
   private:
     void             initAllSignals();

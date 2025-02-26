@@ -13,6 +13,7 @@
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
 #include "managers/DonationNagManager.hpp"
+#include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -75,6 +76,7 @@
 using namespace Hyprutils::String;
 using namespace Aquamarine;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 static int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -592,6 +594,7 @@ void CCompositor::cleanup() {
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
+    g_pANRManager.reset();
     g_pConfigWatcher.reset();
 
     if (m_pAqBackend)
@@ -693,6 +696,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the DonationNag!");
             g_pDonationNagManager = makeUnique<CDonationNagManager>();
+
+            Debug::log(LOG, "Creating the ANRManager!");
+            g_pANRManager = makeUnique<CANRManager>();
 
             Debug::log(LOG, "Starting XWayland");
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_bWantsXwayland);
@@ -3026,8 +3032,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->onMonitorFrame();
 
-    if (PROTO::colorManagement && shouldChangePreferredImageDescription())
-        PROTO::colorManagement->onImagePreferredChanged();
+    if (PROTO::colorManagement && shouldChangePreferredImageDescription()) {
+        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        PROTO::colorManagement->onImagePreferredChanged(0);
+    }
 }
 
 SImageDescription CCompositor::getPreferredImageDescription() {

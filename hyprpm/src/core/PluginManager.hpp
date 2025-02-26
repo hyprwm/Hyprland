@@ -62,6 +62,7 @@ class CPluginManager {
 
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
+    std::string            m_szCustomHlUrl;
 
     // will delete recursively if exists!!
     bool createSafeDirectory(const std::string& path);

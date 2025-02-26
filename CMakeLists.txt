@@ -77,6 +77,7 @@ add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
 include_directories(. "src/" "protocols/")
 
 set(CMAKE_CXX_STANDARD 26)
+set(CXX_STANDARD_REQUIRED ON)
 add_compile_options(
   -Wall
   -Wextra
@@ -104,7 +105,7 @@ find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.4.5)
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
-pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.5.0)
+pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.5.1)
 pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=0.1.1)
 
 string(REPLACE "." ";" AQ_VERSION_LIST ${aquamarine_dep_VERSION})
@@ -128,7 +129,7 @@ pkg_check_modules(
   xkbcommon
   uuid
   wayland-server>=1.22.90
-  wayland-protocols
+  wayland-protocols>=1.41
   cairo
   pango
   pangocairo
@@ -377,6 +378,7 @@ protocolnew("staging/xdg-dialog" "xdg-dialog-v1" false)
 protocolnew("staging/single-pixel-buffer" "single-pixel-buffer-v1" false)
 protocolnew("staging/security-context" "security-context-v1" false)
 protocolnew("staging/content-type" "content-type-v1" false)
+protocolnew("staging/color-management" "color-management-v1" false)
 
 protocolwayland()
 

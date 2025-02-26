@@ -299,6 +299,8 @@ class CConfigManager {
     std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
     std::string                                      m_szConfigErrors = "";
 
+    uint32_t                                         m_configValueNumber = 0;
+
     // internal methods
     void                       updateBlurredLS(const std::string&, const bool);
     void                       setDefaultAnimationVars();
@@ -307,6 +309,14 @@ class CConfigManager {
     std::optional<std::string> verifyConfigExists();
     void                       postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+
+    void                       registerConfigVar(const char* name, const Hyprlang::INT& val);
+    void                       registerConfigVar(const char* name, const Hyprlang::FLOAT& val);
+    void                       registerConfigVar(const char* name, const Hyprlang::VEC2& val);
+    void                       registerConfigVar(const char* name, const Hyprlang::STRING& val);
+    void                       registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& val);
+
+    friend struct SConfigOptionDescription;
 };
 
 inline UP<CConfigManager> g_pConfigManager;

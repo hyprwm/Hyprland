@@ -1044,7 +1044,7 @@ SDispatchResult CKeybindManager::killWindow(std::string args) {
 }
 
 SDispatchResult CKeybindManager::signalActive(std::string args) {
-    if (!std::all_of(args.begin(), args.end(), ::isdigit))
+    if (!isNumber(args))
         return {.success = false, .error = "signalActive: signal has to be int"};
 
     try {

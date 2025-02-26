@@ -34,6 +34,7 @@ class CPopup {
     void           recheckTree();
 
     bool           visible();
+    bool           inert() const;
 
     float          getContentScale() const;
 

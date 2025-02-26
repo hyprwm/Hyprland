@@ -41,6 +41,7 @@
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 extern "C" {
 #include <xf86drm.h>
@@ -1449,7 +1450,7 @@ static hdr_output_metadata createHDRMetadata(uint8_t eotf, Aquamarine::IOutput::
 }
 
 static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
-    if (settings.transferFunction != XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ)
+    if (settings.transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ)
         return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
 
     const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
@@ -1498,12 +1499,15 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
-            const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
-            const auto SURF   = WINDOW->m_pWLSurface->resource();
-            if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
+            const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
+            const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();
+            const auto SURF =
+                ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
+
+            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
                 bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
                 if (SURF->colorManagement->needsHdrMetadataUpdate())
-                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
+                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), pMonitor->output->parsedEDID));
                 if (needsHdrMetadataUpdate)
                     pMonitor->output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
             } else if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != *PHDR)

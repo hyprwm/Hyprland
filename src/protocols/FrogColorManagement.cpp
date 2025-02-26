@@ -1,6 +1,24 @@
 #include "FrogColorManagement.hpp"
+#include "color-management-v1.hpp"
 #include "protocols/ColorManagement.hpp"
 #include "protocols/core/Subcompositor.hpp"
+#include "protocols/types/ColorManagement.hpp"
+
+using namespace NColorManagement;
+
+static wpColorManagerV1TransferFunction getWPTransferFunction(frogColorManagedSurfaceTransferFunction tf) {
+    switch (tf) {
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ;
+        case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+    }
+}
+
+static wpColorManagerV1Primaries getWPPrimaries(frogColorManagedSurfacePrimaries primaries) {
+    return (wpColorManagerV1Primaries)(primaries + 1);
+}
 
 CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -18,9 +36,6 @@ CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_
             r->error(-1, "Invalid surface (2)");
             return;
         }
-
-        if (SURF->role->role() == SURFACE_ROLE_SUBSURFACE)
-            SURF = ((CSubsurfaceRole*)SURF->role.get())->subsurface->t1Parent();
 
         const auto RESOURCE = PROTO::frogColorManagement->m_vSurfaces.emplace_back(
             makeShared<CFrogColorManagementSurface>(makeShared<CFrogColorManagedSurface>(r->client(), r->version(), id), SURF));
@@ -77,20 +92,22 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         LOGM(TRACE, "Set frog cm transfer function {} for {}", (uint32_t)tf, surface->id());
         switch (tf) {
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ:
-                surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
+                surface->colorManagement->m_imageDescription.transferFunction =
+                    convertTransferFunction(getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ));
                 break;
                 ;
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22:
                 if (pqIntentSent) {
                     LOGM(TRACE,
                          "FIXME: assuming broken enum value 2 (FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22) referring to eotf value 2 (TRANSFER_FUNCTION_ST2084_PQ)");
-                    surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
+                    surface->colorManagement->m_imageDescription.transferFunction =
+                        convertTransferFunction(getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ));
                     break;
                 }; // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
-                surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
+                surface->colorManagement->m_imageDescription.transferFunction = convertTransferFunction(getWPTransferFunction(tf));
 
                 surface->colorManagement->setHasImageDescription(true);
         }
@@ -102,6 +119,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: surface->colorManagement->m_imageDescription.primaries = NColorPrimaries::BT709; break;
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: surface->colorManagement->m_imageDescription.primaries = NColorPrimaries::BT2020; break;
         }
+        surface->colorManagement->m_imageDescription.primariesNamed = convertPrimaries(getWPPrimaries(primariesName));
 
         surface->colorManagement->setHasImageDescription(true);
     });
@@ -113,10 +131,10 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
     resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x, uint32_t w_y,
                                        uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
         LOGM(TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll, fall);
-        surface->colorManagement->m_imageDescription.masteringPrimaries      = SImageDescription::SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
-                                                                                                               .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
-                                                                                                               .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},
-                                                                                                               .white = {.x = w_x / 50000.0f, .y = w_y / 50000.0f}};
+        surface->colorManagement->m_imageDescription.masteringPrimaries      = SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
+                                                                                            .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
+                                                                                            .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},
+                                                                                            .white = {.x = w_x / 50000.0f, .y = w_y / 50000.0f}};
         surface->colorManagement->m_imageDescription.masteringLuminances.min = min_lum / 10000.0f;
         surface->colorManagement->m_imageDescription.masteringLuminances.max = max_lum;
         surface->colorManagement->m_imageDescription.maxCLL                  = cll;

@@ -76,6 +76,7 @@
 using namespace Hyprutils::String;
 using namespace Aquamarine;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 static int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -3029,8 +3030,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->onMonitorFrame();
 
-    if (PROTO::colorManagement && shouldChangePreferredImageDescription())
-        PROTO::colorManagement->onImagePreferredChanged();
+    if (PROTO::colorManagement && shouldChangePreferredImageDescription()) {
+        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        PROTO::colorManagement->onImagePreferredChanged(0);
+    }
 }
 
 SImageDescription CCompositor::getPreferredImageDescription() {

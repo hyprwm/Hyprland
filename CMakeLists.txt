@@ -129,7 +129,7 @@ pkg_check_modules(
   xkbcommon
   uuid
   wayland-server>=1.22.90
-  wayland-protocols
+  wayland-protocols>=1.41
   cairo
   pango
   pangocairo
@@ -378,6 +378,7 @@ protocolnew("staging/xdg-dialog" "xdg-dialog-v1" false)
 protocolnew("staging/single-pixel-buffer" "single-pixel-buffer-v1" false)
 protocolnew("staging/security-context" "security-context-v1" false)
 protocolnew("staging/content-type" "content-type-v1" false)
+protocolnew("staging/color-management" "color-management-v1" false)
 
 protocolwayland()
 

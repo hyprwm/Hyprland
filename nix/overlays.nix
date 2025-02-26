@@ -95,11 +95,11 @@ in {
   # Expect to build the universe.
   wayland-protocols-bump = final: prev: {
     wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
-      version = "1.40";
+      version = "1.41";
 
       src = prev.fetchurl {
         url = "https://gitlab.freedesktop.org/wayland/${super.pname}/-/releases/${self.version}/downloads/${super.pname}-${self.version}.tar.xz";
-        hash = "sha256-shcReTJHwsQnY5FDkt+p/LnjcoyktKoRCtuNkV/ABok=";
+        hash = "sha256-J4a2sbeZZeMT8sKJwSB1ue1wDUGESBDFGv2hDuMpV2s=";
       };
     });
   };

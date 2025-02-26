@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
-#include "protocols/core/Compositor.hpp"
+#include "core/Compositor.hpp"
 #include "xx-color-management-v4.hpp"
 #include "types/ColorManagement.hpp"
 

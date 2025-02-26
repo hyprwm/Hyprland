@@ -1,9 +1,9 @@
 #include "ColorManagement.hpp"
 #include "Compositor.hpp"
 #include "color-management-v1.hpp"
-#include "helpers/Monitor.hpp"
-#include "protocols/core/Output.hpp"
-#include "protocols/types/ColorManagement.hpp"
+#include "../helpers/Monitor.hpp"
+#include "core/Output.hpp"
+#include "types/ColorManagement.hpp"
 #include <cstdint>
 
 using namespace NColorManagement;

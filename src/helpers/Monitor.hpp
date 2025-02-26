@@ -12,7 +12,7 @@
 #include "Timer.hpp"
 #include "math/Math.hpp"
 #include <optional>
-#include "protocols/types/ColorManagement.hpp"
+#include "../protocols/types/ColorManagement.hpp"
 #include "signal/Signal.hpp"
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>

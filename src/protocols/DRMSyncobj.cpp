@@ -8,7 +8,8 @@
 #include <fcntl.h>
 using namespace Hyprutils::OS;
 
-CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
+CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_) :
+    surface(surface_), resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -104,7 +105,7 @@ bool CDRMSyncobjSurfaceResource::good() {
     return resource->resource();
 }
 
-CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, CFileDescriptor&& fd_) : fd(std::move(fd_)), resource(resource_) {
+CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTimelineV1>&& resource_, CFileDescriptor&& fd_) : fd(std::move(fd_)), resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -121,16 +122,20 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTi
     }
 }
 
-SP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
-    auto data = (CDRMSyncobjTimelineResource*)(((CWpLinuxDrmSyncobjTimelineV1*)wl_resource_get_user_data(res))->data());
-    return data ? data->self.lock() : nullptr;
+WP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
+    for (const auto& r : PROTO::sync->m_vTimelines) {
+        if (r && r->resource && r->resource->resource() == res)
+            return r;
+    }
+
+    return {};
 }
 
 bool CDRMSyncobjTimelineResource::good() {
     return resource->resource();
 }
 
-CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjManagerV1> resource_) : resource(resource_) {
+CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjManagerV1>&& resource_) : resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -154,27 +159,27 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjMana
             return;
         }
 
-        auto RESOURCE = makeShared<CDRMSyncobjSurfaceResource>(makeShared<CWpLinuxDrmSyncobjSurfaceV1>(resource->client(), resource->version(), id), SURF);
+        const auto& RESOURCE = PROTO::sync->m_vSurfaces.emplace_back(
+            makeUnique<CDRMSyncobjSurfaceResource>(makeUnique<CWpLinuxDrmSyncobjSurfaceV1>(resource->client(), resource->version(), id), SURF));
         if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
+            PROTO::sync->m_vSurfaces.pop_back();
             return;
         }
 
-        PROTO::sync->m_vSurfaces.emplace_back(RESOURCE);
         SURF->syncobj = RESOURCE;
 
         LOGM(LOG, "New linux_syncobj at {:x} for surface {:x}", (uintptr_t)RESOURCE.get(), (uintptr_t)SURF.get());
     });
 
     resource->setImportTimeline([this](CWpLinuxDrmSyncobjManagerV1* r, uint32_t id, int32_t fd) {
-        auto RESOURCE = makeShared<CDRMSyncobjTimelineResource>(makeShared<CWpLinuxDrmSyncobjTimelineV1>(resource->client(), resource->version(), id), CFileDescriptor{fd});
+        const auto& RESOURCE = PROTO::sync->m_vTimelines.emplace_back(
+            makeUnique<CDRMSyncobjTimelineResource>(makeUnique<CWpLinuxDrmSyncobjTimelineV1>(resource->client(), resource->version(), id), CFileDescriptor{fd}));
         if UNLIKELY (!RESOURCE->good()) {
             resource->noMemory();
+            PROTO::sync->m_vTimelines.pop_back();
             return;
         }
-
-        PROTO::sync->m_vTimelines.emplace_back(RESOURCE);
-        RESOURCE->self = RESOURCE;
 
         LOGM(LOG, "New linux_drm_timeline at {:x}", (uintptr_t)RESOURCE.get());
     });
@@ -184,12 +189,10 @@ bool CDRMSyncobjManagerResource::good() {
     return resource->resource();
 }
 
-CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    drmFD = g_pCompositor->m_iDRMFD;
-}
+CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name), drmFD(g_pCompositor->m_iDRMFD) {}
 
 void CDRMSyncobjProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CDRMSyncobjManagerResource>(makeShared<CWpLinuxDrmSyncobjManagerV1>(client, ver, id)));
+    const auto& RESOURCE = m_vManagers.emplace_back(makeUnique<CDRMSyncobjManagerResource>(makeUnique<CWpLinuxDrmSyncobjManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

@@ -138,22 +138,22 @@ struct SFirstExecRequest {
     bool        withRules = false;
 };
 
-struct FloatCache {
+struct SFloatCache {
     std::string class_name;
     std::string title;
 
-    FloatCache(PHLWINDOW window) : class_name(window->m_szClass), title(window->m_szTitle) {}
-    FloatCache(const std::string& class_name_, const std::string& title_) : class_name(class_name_), title(title_) {}
+    SFloatCache(PHLWINDOW window) : class_name(window->m_szClass), title(window->m_szTitle) {}
+    SFloatCache(const std::string& class_name_, const std::string& title_) : class_name(class_name_), title(title_) {}
 
-    bool operator==(const FloatCache& other) const {
+    bool operator==(const SFloatCache& other) const {
         return class_name == other.class_name && title == other.title;
     }
 };
 
 namespace std {
     template <>
-    struct hash<FloatCache> {
-        size_t operator()(const FloatCache& id) const {
+    struct hash<SFloatCache> {
+        size_t operator()(const SFloatCache& id) const {
             return std::hash<std::string>{}(id.class_name) ^ (std::hash<std::string>{}(id.title) << 1);
         }
     };
@@ -338,7 +338,7 @@ class CConfigManager {
     void                                     registerConfigVar(const char* name, const Hyprlang::STRING& val);
     void                                     registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& val);
 
-    std::unordered_map<FloatCache, Vector2D> m_mStoredFloatingSizes;
+    std::unordered_map<SFloatCache, Vector2D> m_mStoredFloatingSizes;
 
     friend struct SConfigOptionDescription;
 };

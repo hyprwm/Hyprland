@@ -2952,12 +2952,12 @@ void CConfigManager::ensurePersistentWorkspacesPresent() {
 
 void CConfigManager::storeFloatingSize(const std::string& szClass, const std::string& szTitle, const Vector2D& size) {
     Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, szClass, szTitle);
-    FloatCache id{szClass, szTitle};
+    SFloatCache id{szClass, szTitle};
     m_mStoredFloatingSizes[id] = size;
 }
 
 std::optional<Vector2D> CConfigManager::getStoredFloatingSize(const std::string& szClass, const std::string& szTitle) {
-    FloatCache id{szClass, szTitle};
+    SFloatCache id{szClass, szTitle};
     if (m_mStoredFloatingSizes.contains(id)) {
         Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[id].x, m_mStoredFloatingSizes[id].y, szClass, szTitle);
         return m_mStoredFloatingSizes[id];

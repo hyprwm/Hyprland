@@ -19,7 +19,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     const bool HASPERSISTENTSIZE =
         std::any_of(pWindow->m_vMatchedRules.begin(), pWindow->m_vMatchedRules.end(), [](const auto& rule) { return rule->ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
 
-    const auto STOREDSIZE = HASPERSISTENTSIZE ? g_pConfigManager->getStoredFloatingSize(pWindow->m_szClass, pWindow->m_szTitle) : std::nullopt;
+    const auto STOREDSIZE = HASPERSISTENTSIZE ? g_pConfigManager->getStoredFloatingSize(pWindow) : std::nullopt;
 
     if (STOREDSIZE.has_value()) {
         Debug::log(LOG, "using stored size {}x{} for new window {}::{}", STOREDSIZE->x, STOREDSIZE->y, pWindow->m_szClass, pWindow->m_szTitle);

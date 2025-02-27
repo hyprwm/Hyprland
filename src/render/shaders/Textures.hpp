@@ -137,11 +137,38 @@ uniform vec3 tint;
 #define CM_TRANSFER_FUNCTION_ST428      12
 #define CM_TRANSFER_FUNCTION_HLG        13
 
+// sRGB constants
+#define SRGB_POW 2.4
+#define SRGB_INV_POW (1.0 / SRGB_POW)
+#define SRGB_D_CUT 0.04045
+#define SRGB_E_CUT 0.0031308
+#define SRGB_LO 12.92
+#define SRGB_HI 1.055
+#define SRGB_HI_ADD 0.055
+
+
+// PQ constants
+#define PQ_M1 0.1593017578125
+#define PQ_M2 78.84375
+#define PQ_INV_M1 (1.0 / PQ_M1)
+#define PQ_INV_M2 (1.0 / PQ_M2)
+#define PQ_C1 0.8359375
+#define PQ_C2 18.8515625
+#define PQ_C3 18.6875
 
 vec4 toLinear(vec4 color, int tf) {
     switch (tf) {
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:
             return color;
+        case CM_TRANSFER_FUNCTION_ST2084_PQ:
+            vec3 E = pow(clamp(color.rgb, vec3(0.0), vec3(1.0)), vec3(PQ_INV_M2));
+            return vec4(
+                pow(
+                    (max(E - PQ_C1, vec3(0.0))) / (PQ_C2 - PQ_C3 * E),
+                    vec3(PQ_INV_M1)
+                ),
+                color[3]
+            );
 
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_GAMMA22:
@@ -151,16 +178,15 @@ vec4 toLinear(vec4 color, int tf) {
         case CM_TRANSFER_FUNCTION_LOG_316:
         case CM_TRANSFER_FUNCTION_XVYCC:
         case CM_TRANSFER_FUNCTION_EXT_SRGB:
-        case CM_TRANSFER_FUNCTION_ST2084_PQ:
         case CM_TRANSFER_FUNCTION_ST428:
         case CM_TRANSFER_FUNCTION_HLG:
 
         case CM_TRANSFER_FUNCTION_SRGB:
         default:
-            bvec3 isLow = lessThanEqual(color.rgb, vec3(0.04045));
-            vec3 loPart = color.rgb / 12.92;
-            vec3 hiPart = pow((color.rgb + 0.055) / 1.055, vec3(12.0 / 5.0));
-            return vec4(mix(hiPart, loPart, isLow), color[3]);
+            bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_D_CUT));
+            vec3 lo = color.rgb / SRGB_LO;
+            vec3 hi = pow((color.rgb + SRGB_HI_ADD) / SRGB_HI, vec3(SRGB_POW));
+            return vec4(mix(hi, lo, isLow), color[3]);
     }
 }
 
@@ -168,6 +194,15 @@ vec4 fromLinear(vec4 color, int tf) {
     switch (tf) {
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:
             return color;
+        case CM_TRANSFER_FUNCTION_ST2084_PQ:
+            vec3 E = pow(clamp(color.rgb, vec3(0.0), vec3(1.0)), vec3(PQ_M1));
+            return vec4(
+                pow(
+                    (vec3(PQ_C1) + PQ_C2 * E) / (vec3(1.0) + PQ_C3 * E),
+                    vec3(PQ_M2)
+                ),
+                color[3]
+            );
 
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_GAMMA22:
@@ -177,16 +212,15 @@ vec4 fromLinear(vec4 color, int tf) {
         case CM_TRANSFER_FUNCTION_LOG_316:
         case CM_TRANSFER_FUNCTION_XVYCC:
         case CM_TRANSFER_FUNCTION_EXT_SRGB:
-        case CM_TRANSFER_FUNCTION_ST2084_PQ:
         case CM_TRANSFER_FUNCTION_ST428:
         case CM_TRANSFER_FUNCTION_HLG:
 
         case CM_TRANSFER_FUNCTION_SRGB:
         default:
-            bvec3 isLow = lessThanEqual(color.rgb, vec3(0.0031308));
-            vec3 loPart = color.rgb * 12.92;
-            vec3 hiPart = pow(color.rgb, vec3(5.0 / 12.0)) * 1.055 - 0.055;
-            return vec4(mix(hiPart, loPart, isLow), color[3]);
+            bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_E_CUT));
+            vec3 lo = color.rgb * SRGB_LO;
+            vec3 hi = pow(color.rgb, vec3(SRGB_INV_POW)) * SRGB_HI - SRGB_HI_ADD;
+            return vec4(mix(hi, lo, isLow), color[3]);
     }
 }
 
@@ -195,10 +229,6 @@ vec3 xy2xyz(vec2 xy) {
         return vec3(0.0, 0.0, 0.0);
     
     return vec3(xy.x / xy.y, 1.0, (1.0 - xy.x - xy.y) / xy.y);
-}
-
-vec3 componentMul(vec3 a, vec3 b) {
-    return vec3(a[0] * b[0], a[1] * b[1], a[2] * b[2]);
 }
 
 mat3 primaries2xyz(mat4x2 primaries) {
@@ -213,11 +243,7 @@ mat3 primaries2xyz(mat4x2 primaries) {
 
     vec3 s = invMat * w;
 
-    return mat3(
-        r[0] * s[0], r[1] * s[1], r[2] * s[2],
-        g[0] * s[0], g[1] * s[1], g[2] * s[2],
-        b[0] * s[0], b[1] * s[1], b[2] * s[2]
-    );
+    return mat3(r * s, g * s, b * s);
 }
 
 vec4 convertPrimaries(vec4 color, mat4x2 src, mat4x2 dst) {
@@ -251,11 +277,8 @@ void main() {
     if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
         discard;
 
-    if (applyTint == 1) {
-	    pixColor[0] = pixColor[0] * tint[0];
-	    pixColor[1] = pixColor[1] * tint[1];
-	    pixColor[2] = pixColor[2] * tint[2];
-    }
+    if (applyTint == 1)
+        pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);
 
     if (radius > 0.0) {
     )#" +

@@ -718,8 +718,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "tap-to-click", Hyprlang::INT{1});
     m_pConfig->addSpecialConfigValue("device", "tap-and-drag", Hyprlang::INT{1});
     m_pConfig->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{0});
-    m_pConfig->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});
-    m_pConfig->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "left_handed", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "scroll_method", {STRVAL_EMPTY});
     m_pConfig->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});

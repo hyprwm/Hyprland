@@ -27,6 +27,7 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 
 #include "../debug/TracyDefines.hpp"
+#include "../protocols/core/Compositor.hpp"
 
 struct gbm_device;
 class CHyprRenderer;
@@ -105,41 +106,42 @@ struct SMonitorRenderData {
     CShader m_shSHADOW;
     CShader m_shBORDER1;
     CShader m_shGLITCH;
-    //
+    CShader m_shCM;
 };
 
 struct SCurrentRenderData {
-    PHLMONITORREF       pMonitor;
-    Mat3x3              projection;
-    Mat3x3              savedProjection;
-    Mat3x3              monitorProjection;
+    PHLMONITORREF          pMonitor;
+    Mat3x3                 projection;
+    Mat3x3                 savedProjection;
+    Mat3x3                 monitorProjection;
 
-    SMonitorRenderData* pCurrentMonData = nullptr;
-    CFramebuffer*       currentFB       = nullptr; // current rendering to
-    CFramebuffer*       mainFB          = nullptr; // main to render to
-    CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData*    pCurrentMonData = nullptr;
+    CFramebuffer*          currentFB       = nullptr; // current rendering to
+    CFramebuffer*          mainFB          = nullptr; // main to render to
+    CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    CRegion             damage;
-    CRegion             finalDamage; // damage used for funal off -> main
+    CRegion                damage;
+    CRegion                finalDamage; // damage used for funal off -> main
 
-    SRenderModifData    renderModif;
-    float               mouseZoomFactor    = 1.f;
-    bool                mouseZoomUseMouse  = true; // true by default
-    bool                useNearestNeighbor = false;
-    bool                blockScreenShader  = false;
-    bool                simplePass         = false;
+    SRenderModifData       renderModif;
+    float                  mouseZoomFactor    = 1.f;
+    bool                   mouseZoomUseMouse  = true; // true by default
+    bool                   useNearestNeighbor = false;
+    bool                   blockScreenShader  = false;
+    bool                   simplePass         = false;
 
-    Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    CBox                clipBox = {}; // scaled coordinates
-    CRegion             clipRegion;
+    CBox                   clipBox = {}; // scaled coordinates
+    CRegion                clipRegion;
 
-    uint32_t            discardMode    = DISCARD_OPAQUE;
-    float               discardOpacity = 0.f;
+    uint32_t               discardMode    = DISCARD_OPAQUE;
+    float                  discardOpacity = 0.f;
 
-    PHLLSREF            currentLS;
-    PHLWINDOWREF        currentWindow;
+    PHLLSREF               currentLS;
+    PHLWINDOWREF           currentWindow;
+    WP<CWLSurfaceResource> surface;
 };
 
 class CEGLSync {

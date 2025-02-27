@@ -61,6 +61,8 @@ class CLayerSurface {
     std::string                szNamespace = "";
     UP<CPopup>                 popupHead;
 
+    pid_t                      getPID();
+
     void                       onDestroy();
     void                       onMap();
     void                       onUnmap();

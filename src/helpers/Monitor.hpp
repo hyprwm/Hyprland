@@ -12,6 +12,7 @@
 #include "Timer.hpp"
 #include "math/Math.hpp"
 #include <optional>
+#include "../protocols/types/ColorManagement.hpp"
 #include "signal/Signal.hpp"
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -162,38 +163,39 @@ class CMonitor {
     std::array<std::vector<PHLLSREF>, 4> m_aLayerSurfaceLayers;
 
     // methods
-    void        onConnect(bool noRule);
-    void        onDisconnect(bool destroy = false);
-    bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
-    void        addDamage(const pixman_region32_t* rg);
-    void        addDamage(const CRegion& rg);
-    void        addDamage(const CBox& box);
-    bool        shouldSkipScheduleFrameOnMouseEvent();
-    void        setMirror(const std::string&);
-    bool        isMirror();
-    bool        matchesStaticSelector(const std::string& selector) const;
-    float       getDefaultScale();
-    void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-    void        setSpecialWorkspace(const WORKSPACEID& id);
-    void        moveTo(const Vector2D& pos);
-    Vector2D    middle();
-    void        updateMatrix();
-    WORKSPACEID activeWorkspaceID();
-    WORKSPACEID activeSpecialWorkspaceID();
-    CBox        logicalBox();
-    void        scheduleDone();
-    bool        attemptDirectScanout();
-    void        setCTM(const Mat3x3& ctm);
-    void        onCursorMovedOnMonitor();
+    void                                onConnect(bool noRule);
+    void                                onDisconnect(bool destroy = false);
+    bool                                applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
+    void                                addDamage(const pixman_region32_t* rg);
+    void                                addDamage(const CRegion& rg);
+    void                                addDamage(const CBox& box);
+    bool                                shouldSkipScheduleFrameOnMouseEvent();
+    void                                setMirror(const std::string&);
+    bool                                isMirror();
+    bool                                matchesStaticSelector(const std::string& selector) const;
+    float                               getDefaultScale();
+    void                                changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void                                changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void                                setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+    void                                setSpecialWorkspace(const WORKSPACEID& id);
+    void                                moveTo(const Vector2D& pos);
+    Vector2D                            middle();
+    void                                updateMatrix();
+    WORKSPACEID                         activeWorkspaceID();
+    WORKSPACEID                         activeSpecialWorkspaceID();
+    CBox                                logicalBox();
+    void                                scheduleDone();
+    bool                                attemptDirectScanout();
+    void                                setCTM(const Mat3x3& ctm);
+    void                                onCursorMovedOnMonitor();
 
-    void        debugLastPresentation(const std::string& message);
-    void        onMonitorFrame();
+    void                                debugLastPresentation(const std::string& message);
+    void                                onMonitorFrame();
 
-    bool        m_bEnabled             = false;
-    bool        m_bRenderingInitPassed = false;
-    WP<CWindow> m_previousFSWindow;
+    bool                                m_bEnabled             = false;
+    bool                                m_bRenderingInitPassed = false;
+    WP<CWindow>                         m_previousFSWindow;
+    NColorManagement::SImageDescription imageDescription;
 
     // For the list lookup
 

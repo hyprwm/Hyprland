@@ -48,10 +48,17 @@ namespace NColorManagement {
     }
 
     struct SPCPRimaries {
-        struct {
+        struct xy { //NOLINT(readability-identifier-naming)
             float x = 0;
             float y = 0;
+
+            bool  operator==(const xy& p2) const {
+                return x == p2.x && y == p2.y;
+            }
         } red, green, blue, white;
+        bool operator==(const SPCPRimaries& p2) const {
+            return red == p2.red && green == p2.green && blue == p2.blue && white == p2.white;
+        }
     };
 
     namespace NColorPrimaries {
@@ -125,6 +132,9 @@ namespace NColorManagement {
             int      fd     = -1;
             uint32_t length = 0;
             uint32_t offset = 0;
+            bool     operator==(const SIccFile& i2) const {
+                return fd == i2.fd;
+            }
         } icc;
 
         bool              windowsScRGB = false;
@@ -135,7 +145,8 @@ namespace NColorManagement {
         bool              primariesNameSet = false;
         ePrimaries        primariesNamed   = CM_PRIMARIES_SRGB;
         // primaries are stored as FP values with the same scale as standard defines (0.0 - 1.0)
-        // wayland protocol expects int32_t values multiplied by 10000
+        // wayland protocol expects int32_t values multiplied by 1000000
+        // xx protocol expects int32_t values multiplied by 10000
         // drm expects uint16_t values multiplied by 50000
         // frog protocol expects drm values
         SPCPRimaries primaries, masteringPrimaries;
@@ -146,13 +157,32 @@ namespace NColorManagement {
             float    min       = 0.2; // 0.2 cd/m²
             uint32_t max       = 80;  // 80 cd/m²
             uint32_t reference = 80;  // 80 cd/m²
+            bool     operator==(const SPCLuminances& l2) const {
+                return min == l2.min && max == l2.max && reference == l2.reference;
+            }
         } luminances;
         struct SPCMasteringLuminances {
             float    min = 0;
             uint32_t max = 0;
+            bool     operator==(const SPCMasteringLuminances& l2) const {
+                return min == l2.min && max == l2.max;
+            }
         } masteringLuminances;
 
         uint32_t maxCLL  = 0;
         uint32_t maxFALL = 0;
+
+        bool     operator==(const SImageDescription& d2) const {
+            return (id != 0 && id == d2.id) ||
+                (icc == d2.icc && windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
+                 ((primariesNameSet && primariesNamed == d2.primariesNameSet) || (primaries == d2.primaries)) && masteringPrimaries == d2.masteringPrimaries &&
+                 luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL && maxFALL == d2.maxFALL);
+        }
+
+        const SPCPRimaries& getPrimaries() const {
+            if (primariesNameSet || primaries == SPCPRimaries{})
+                return NColorManagement::getPrimaries(primariesNamed);
+            return primaries;
+        }
     };
 }

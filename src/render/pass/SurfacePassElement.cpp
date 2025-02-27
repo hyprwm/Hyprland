@@ -18,6 +18,7 @@ CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData&
 
 void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_RenderData.currentWindow      = data.pWindow;
+    g_pHyprOpenGL->m_RenderData.surface            = data.surface;
     g_pHyprOpenGL->m_RenderData.currentLS          = data.pLS;
     g_pHyprOpenGL->m_RenderData.clipBox            = data.clipBox;
     g_pHyprOpenGL->m_RenderData.discardMode        = data.discardMode;
@@ -36,6 +37,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = false;
         g_pHyprOpenGL->m_bEndFrame                              = false;
         g_pHyprOpenGL->m_RenderData.currentWindow.reset();
+        g_pHyprOpenGL->m_RenderData.surface.reset();
         g_pHyprOpenGL->m_RenderData.currentLS.reset();
     }};
 

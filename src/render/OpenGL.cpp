@@ -9,6 +9,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/ColorManagement.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "pass/TexPassElement.hpp"
@@ -20,6 +21,7 @@
 #include <gbm.h>
 #include <filesystem>
 using namespace Hyprutils::OS;
+using namespace NColorManagement;
 
 const std::vector<const char*> ASSET_PATHS = {
 #ifdef DATAROOTDIR
@@ -866,6 +868,31 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.radius        = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shQUAD.roundingPower = glGetUniformLocation(prog, "roundingPower");
 
+    prog                                                   = createProgram(TEXVERTSRC320, TEXFRAGSRCCM);
+    m_RenderData.pCurrentMonData->m_shCM.program           = prog;
+    m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
+    m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
+    m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
+    m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
+    m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
+    m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
+    m_RenderData.pCurrentMonData->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
+    m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
+    m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
+    m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
+    m_RenderData.pCurrentMonData->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
+    m_RenderData.pCurrentMonData->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
+    m_RenderData.pCurrentMonData->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+    m_RenderData.pCurrentMonData->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+    m_RenderData.pCurrentMonData->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+    m_RenderData.pCurrentMonData->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
+    m_RenderData.pCurrentMonData->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
+    m_RenderData.pCurrentMonData->m_shCM.radius            = glGetUniformLocation(prog, "radius");
+    m_RenderData.pCurrentMonData->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
+    m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
+    m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
+    m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+
     prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
     m_RenderData.pCurrentMonData->m_shRGBA.program           = prog;
     m_RenderData.pCurrentMonData->m_shRGBA.proj              = glGetUniformLocation(prog, "proj");
@@ -1304,6 +1331,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 
     const bool CRASHING = m_bApplyFinalShader && g_pHyprRenderer->m_bCrashingInProgress;
 
+    auto       texType = tex->m_iType;
+
     if (CRASHING) {
         shader           = &m_RenderData.pCurrentMonData->m_shGLITCH;
         usingFinalShader = true;
@@ -1316,16 +1345,18 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             usingFinalShader = true;
         } else {
             switch (tex->m_iType) {
-                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
-                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
-                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break;
+                case TEXTURE_RGBA:
+                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shCM; break;
+                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break; // might be unused
                 default: RASSERT(false, "tex->m_iTarget unsupported!");
             }
         }
     }
 
-    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault())
-        shader = &m_RenderData.pCurrentMonData->m_shRGBX;
+    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
+        shader  = &m_RenderData.pCurrentMonData->m_shCM;
+        texType = TEXTURE_RGBX;
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_iTarget, tex->m_iTexID);
@@ -1350,6 +1381,29 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform1i(shader->tex, 0);
+    if (!usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
+        glUniform1i(shader->texType, texType);
+        const auto imageDescription =
+            m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+        glUniform1i(shader->sourceTF, imageDescription.transferFunction);
+        glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
+        const auto sourcePrimaries =
+            imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
+        const auto    targetPrimaries = m_RenderData.pMonitor->imageDescription.primariesNameSet || m_RenderData.pMonitor->imageDescription.primaries == SPCPRimaries{} ?
+               getPrimaries(m_RenderData.pMonitor->imageDescription.primariesNamed) :
+               m_RenderData.pMonitor->imageDescription.primaries;
+
+        const GLfloat glSourcePrimaries[8] = {
+            sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
+            sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
+        };
+        const GLfloat glTargetPrimaries[8] = {
+            targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
+            targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
+        };
+        glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
+        glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
+    }
 
     if ((usingFinalShader && *PDT == 0) || CRASHING) {
         glUniform1f(shader->time, m_tGlobalTimer.getSeconds() - shader->initialTime);

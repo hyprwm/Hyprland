@@ -11,6 +11,11 @@ class CShader {
     GLint   proj              = -1;
     GLint   color             = -1;
     GLint   alphaMatte        = -1;
+    GLint   texType           = -1;
+    GLint   sourceTF          = -1;
+    GLint   targetTF          = -1;
+    GLint   sourcePrimaries   = -1;
+    GLint   targetPrimaries   = -1;
     GLint   tex               = -1;
     GLint   alpha             = -1;
     GLint   posAttrib         = -1;

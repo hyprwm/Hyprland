@@ -2,13 +2,15 @@
 #include "SyncTimeline.hpp"
 #include "../../render/OpenGL.hpp"
 
-CSyncReleaser::CSyncReleaser(WP<CSyncTimeline> timeline_, uint64_t point_) : timeline(timeline_), point(point_) {
+CSyncReleaser::CSyncReleaser(SP<CSyncTimeline> timeline_, uint64_t point_) : timeline(timeline_), point(point_) {
     ;
 }
 
 CSyncReleaser::~CSyncReleaser() {
-    if (timeline.expired())
+    if (!timeline) {
+        Debug::log(ERR, "CSyncReleaser destructing without a timeline");
         return;
+    }
 
     if (sync)
         timeline->importFromSyncFileFD(point, sync->fd());

@@ -40,20 +40,21 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : resource(res
     resource->sendSupportedFeature(XX_COLOR_MANAGER_V4_FEATURE_SET_LUMINANCES);
 
     resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_SRGB);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_PAL_M);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_PAL);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_NTSC);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_GENERIC_FILM);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_PAL_M);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_PAL);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_NTSC);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_GENERIC_FILM);
     resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_BT2020);
     // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_CIE1931_XYZ);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_DCI_P3);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_DISPLAY_P3);
-    // resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_DCI_P3);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_DISPLAY_P3);
+    resource->sendSupportedPrimariesNamed(XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB);
 
-    // resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA22);
+    resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA22);
+    resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA28);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ);
-    // resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR);
+    resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR);
 
     resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_PERCEPTUAL);
     // resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_RELATIVE);
@@ -396,8 +397,11 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         }
 
         switch (tf) {
-            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB: break;
-            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ: break;
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA22:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA28:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR: break;
             default: r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
@@ -422,15 +426,17 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
 
         switch (primaries) {
             case XX_COLOR_MANAGER_V4_PRIMARIES_SRGB:
-                settings.primariesNameSet = true;
-                settings.primariesNamed   = convertPrimaries(getWPPrimaries(XX_COLOR_MANAGER_V4_PRIMARIES_SRGB));
-                settings.primaries        = NColorPrimaries::BT709;
-                valuesSet |= PC_PRIMARIES;
-                break;
+            case XX_COLOR_MANAGER_V4_PRIMARIES_PAL_M:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_PAL:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_NTSC:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_GENERIC_FILM:
             case XX_COLOR_MANAGER_V4_PRIMARIES_BT2020:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_DCI_P3:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_DISPLAY_P3:
+            case XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB:
                 settings.primariesNameSet = true;
-                settings.primariesNamed   = convertPrimaries(getWPPrimaries(XX_COLOR_MANAGER_V4_PRIMARIES_BT2020));
-                settings.primaries        = NColorPrimaries::BT2020;
+                settings.primariesNamed   = convertPrimaries(getWPPrimaries((xxColorManagerV4Primaries)primaries));
+                settings.primaries        = getPrimaries(settings.primariesNamed);
                 valuesSet |= PC_PRIMARIES;
                 break;
             default: r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_PRIMARIES, "Unsupported primaries");

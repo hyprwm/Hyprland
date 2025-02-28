@@ -14,10 +14,10 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     if UNLIKELY (!good())
         return;
 
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC);
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
@@ -26,28 +26,28 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     }
 
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
-    if (PROTO::colorManagement->m_debug) {
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_BT2020); // HDR for fullscreen only
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_BT2020);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_PAL_M);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_PAL);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_NTSC);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_GENERIC_FILM);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DCI_P3);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DISPLAY_P3);
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB);
 
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_PAL_M);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_PAL);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_NTSC);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_GENERIC_FILM);
+    if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_CIE1931_XYZ);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DCI_P3);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DISPLAY_P3);
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB);
     }
 
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);
+    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22);
+    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28);
+    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ); // HDR for fullscreen only
 
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886);
-        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22);
-        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST240);
-        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_100);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_316);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_XVYCC);
@@ -161,11 +161,6 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     });
     m_resource->setCreateParametricCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(TRACE, "New parametric creator for id={}", id);
-
-        if (!PROTO::colorManagement->m_debug) {
-            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Parametric creator is not supported");
-            return;
-        }
 
         const auto RESOURCE = PROTO::colorManagement->m_vParametricCreators.emplace_back(
             makeShared<CColorManagementParametricCreator>(makeShared<CWpImageDescriptionCreatorParamsV1>(r->client(), r->version(), id)));
@@ -536,6 +531,9 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         switch (tf) {
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28: break;
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 

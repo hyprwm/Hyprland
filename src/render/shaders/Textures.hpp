@@ -94,6 +94,10 @@ void main() {
     v_texcoord = texcoord;
 })#";
 
+inline const std::string TEXFRAGSRCCM =
+#include "CM.frag"
+    ;
+
 inline const std::string TEXFRAGSRCRGBA = R"#(
 precision highp float;
 varying vec2 v_texcoord; // is in 0-1

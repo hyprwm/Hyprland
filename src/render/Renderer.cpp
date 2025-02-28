@@ -1498,6 +1498,18 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
     Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
+        if (*PHDR != (pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ)) {
+            if (*PHDR) {
+                pMonitor->imageDescription.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ;
+                pMonitor->imageDescription.primariesNameSet     = true;
+                pMonitor->imageDescription.primariesNamed       = NColorManagement::CM_PRIMARIES_BT2020;
+                pMonitor->imageDescription.luminances.min       = pMonitor->output->parsedEDID.hdrMetadata->desiredContentMinLuminance;
+                pMonitor->imageDescription.luminances.max       = pMonitor->output->parsedEDID.hdrMetadata->desiredContentMaxLuminance;
+                pMonitor->imageDescription.luminances.reference = pMonitor->output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance;
+            } else {
+                pMonitor->imageDescription = {};
+            }
+        }
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();

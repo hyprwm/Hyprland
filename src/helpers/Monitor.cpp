@@ -1289,7 +1289,7 @@ bool CMonitor::attemptDirectScanout() {
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
 
-    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    const auto& params = PSURFACE->current.buffer->buffer->dmabuf();
     // scanout buffer isn't dmabuf, so no scanout
     if (!params.success)
         return false;
@@ -1335,7 +1335,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (DOEXPLICIT) {
         Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
-        output->state->setExplicitInFence(explicitWaitFD.get());
+        output->state->setExplicitInFence(std::move(explicitWaitFD));
     }
 
     bool ok = output->commit();
@@ -1464,14 +1464,14 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
 }
 
 void CMonitorState::ensureBufferPresent() {
-    const auto STATE = m_pOwner->output->state->state();
+    const auto& STATE = m_pOwner->output->state->state();
     if (!STATE.enabled) {
         Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
     if (STATE.buffer) {
-        if (const auto params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
+        if (const auto& params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
             return;
     }
 

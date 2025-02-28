@@ -14,7 +14,10 @@ static void displayDestroyInternal(struct wl_listener* listener, void* data) {
 void IWaylandProtocol::onDisplayDestroy() {
     wl_list_remove(&m_liDisplayDestroy.listener.link);
     wl_list_init(&m_liDisplayDestroy.listener.link);
-    wl_global_destroy(m_pGlobal);
+    if (m_pGlobal) {
+        wl_global_destroy(m_pGlobal);
+        m_pGlobal = nullptr;
+    }
 }
 
 IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
@@ -38,7 +41,8 @@ IWaylandProtocol::~IWaylandProtocol() {
 }
 
 void IWaylandProtocol::removeGlobal() {
-    wl_global_remove(m_pGlobal);
+    if (m_pGlobal)
+        wl_global_remove(m_pGlobal);
 }
 
 wl_global* IWaylandProtocol::getGlobal() {

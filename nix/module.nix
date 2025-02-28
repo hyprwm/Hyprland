@@ -5,72 +5,8 @@ inputs: {
   ...
 }: let
   inherit (pkgs.stdenv.hostPlatform) system;
+  selflib = import ./lib.nix lib;
   cfg = config.programs.hyprland;
-
-  # basically 1:1 taken from https://github.com/nix-community/home-manager/blob/master/modules/services/window-managers/hyprland.nix
-  toHyprconf = {
-    attrs,
-    indentLevel ? 0,
-    importantPrefixes ? ["$"],
-  }: let
-    inherit
-      (lib)
-      all
-      concatMapStringsSep
-      concatStrings
-      concatStringsSep
-      filterAttrs
-      foldl
-      generators
-      hasPrefix
-      isAttrs
-      isList
-      mapAttrsToList
-      replicate
-      ;
-
-    initialIndent = concatStrings (replicate indentLevel "  ");
-
-    toHyprconf' = indent: attrs: let
-      sections =
-        filterAttrs (n: v: isAttrs v || (isList v && all isAttrs v)) attrs;
-
-      mkSection = n: attrs:
-        if lib.isList attrs
-        then (concatMapStringsSep "\n" (a: mkSection n a) attrs)
-        else ''
-          ${indent}${n} {
-          ${toHyprconf' "  ${indent}" attrs}${indent}}
-        '';
-
-      mkFields = generators.toKeyValue {
-        listsAsDuplicateKeys = true;
-        inherit indent;
-      };
-
-      allFields =
-        filterAttrs (n: v: !(isAttrs v || (isList v && all isAttrs v)))
-        attrs;
-
-      isImportantField = n: _:
-        foldl (acc: prev:
-          if hasPrefix prev n
-          then true
-          else acc)
-        false
-        importantPrefixes;
-
-      importantFields = filterAttrs isImportantField allFields;
-
-      fields =
-        builtins.removeAttrs allFields
-        (mapAttrsToList (n: _: n) importantFields);
-    in
-      mkFields importantFields
-      + concatStringsSep "\n" (mapAttrsToList mkSection sections)
-      + mkFields fields;
-  in
-    toHyprconf' initialIndent attrs;
 in {
   options = {
     programs.hyprland = {
@@ -105,6 +41,9 @@ in {
           Hyprland configuration written in Nix. Entries with the same key
           should be written as lists. Variables' and colors' names should be
           quoted. See <https://wiki.hyprland.org> for more examples.
+
+          Special categories (e.g `devices`) should be written as
+          `"devices[device-name]"`.
 
           ::: {.note}
           Use the [](#programs.hyprland.plugins) option to
@@ -151,20 +90,21 @@ in {
         '';
       };
 
-      sourceFirst =
-        lib.mkEnableOption ''
-          putting source entries at the top of the configuration
-        ''
-        // {
-          default = true;
-        };
-
-      importantPrefixes = lib.mkOption {
+      topPrefixes = lib.mkOption {
         type = with lib.types; listOf str;
-        default = ["$" "bezier" "name"] ++ lib.optionals cfg.sourceFirst ["source"];
-        example = ["$" "bezier"];
+        default = ["$" "bezier"];
+        example = ["$" "bezier" "source"];
         description = ''
-          List of prefix of attributes to source at the top of the config.
+          List of prefix of attributes to put at the top of the config.
+        '';
+      };
+
+      bottomPrefixes = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = [];
+        example = ["source"];
+        description = ''
+          List of prefix of attributes to put at the bottom of the config.
         '';
       };
     };
@@ -173,38 +113,38 @@ in {
     {
       programs.hyprland = {
         package = lib.mkDefault inputs.self.packages.${system}.hyprland;
-        portalPackage = lib.mkDefault (inputs.self.packages.${system}.xdg-desktop-portal-hyprland.override {
-          hyprland = cfg.finalPackage;
-        });
+        portalPackage = lib.mkDefault inputs.self.packages.${system}.xdg-desktop-portal-hyprland;
       };
     }
     (lib.mkIf cfg.enable {
       environment.etc."xdg/hypr/hyprland.conf" = let
         shouldGenerate = cfg.extraConfig != "" || cfg.settings != {} || cfg.plugins != [];
 
-        pluginsToHyprconf = plugins:
-          toHyprconf {
-            attrs = {
-              plugin = let
-                mkEntry = entry:
-                  if lib.types.package.check entry
-                  then "${entry}/lib/lib${entry.pname}.so"
-                  else entry;
-              in
-                map mkEntry cfg.plugins;
-            };
-            inherit (cfg) importantPrefixes;
+        pluginsToHyprlang = plugins:
+          selflib.toHyprlang {
+            topCommandsPrefixes = cfg.topPrefixes;
+            bottomCommandsPrefixes = cfg.bottomPrefixes;
+          }
+          {
+            plugin = let
+              mkEntry = entry:
+                if lib.types.package.check entry
+                then "${entry}/lib/lib${entry.pname}.so"
+                else entry;
+            in
+              map mkEntry cfg.plugins;
           };
       in
         lib.mkIf shouldGenerate {
           text =
             lib.optionalString (cfg.plugins != [])
-            (pluginsToHyprconf cfg.plugins)
+            (pluginsToHyprlang cfg.plugins)
             + lib.optionalString (cfg.settings != {})
-            (toHyprconf {
-              attrs = cfg.settings;
-              inherit (cfg) importantPrefixes;
-            })
+            (selflib.toHyprlang {
+                topCommandsPrefixes = cfg.topPrefixes;
+                bottomCommandsPrefixes = cfg.bottomPrefixes;
+              }
+              cfg.settings)
             + lib.optionalString (cfg.extraConfig != "") cfg.extraConfig;
         };
     })

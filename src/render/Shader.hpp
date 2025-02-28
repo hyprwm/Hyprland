@@ -17,6 +17,9 @@ class CShader {
     GLint   targetTF          = -1;
     GLint   sourcePrimaries   = -1;
     GLint   targetPrimaries   = -1;
+    GLint   maxLuminance      = -1;
+    GLint   dstMaxLuminance   = -1;
+    GLint   dstRefLuminance   = -1;
     GLint   tex               = -1;
     GLint   alpha             = -1;
     GLint   posAttrib         = -1;

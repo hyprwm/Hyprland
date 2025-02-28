@@ -15,7 +15,7 @@ class CEGLSync;
 
 class CSyncReleaser {
   public:
-    CSyncReleaser(WP<CSyncTimeline> timeline_, uint64_t point_);
+    CSyncReleaser(SP<CSyncTimeline> timeline_, uint64_t point_);
     ~CSyncReleaser();
 
     // drops the releaser, will never signal anymore
@@ -25,7 +25,7 @@ class CSyncReleaser {
     void addReleaseSync(SP<CEGLSync> sync);
 
   private:
-    WP<CSyncTimeline> timeline;
+    SP<CSyncTimeline> timeline;
     uint64_t          point = 0;
     SP<CEGLSync>      sync;
 };

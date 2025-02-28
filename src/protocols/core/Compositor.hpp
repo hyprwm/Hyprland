@@ -77,6 +77,7 @@ class CWLSurfaceResource {
     Vector2D                      sourceSize();
 
     struct {
+        CSignal bufferAttach;
         CSignal precommit;  // before commit
         CSignal roleCommit; // commit for role objects, before regular commit
         CSignal commit;     // after commit
@@ -102,6 +103,7 @@ class CWLSurfaceResource {
         } viewport;
         bool rejected  = false;
         bool newBuffer = false;
+        bool sameBufferCommit = false;
 
         //
         void reset() {
@@ -132,6 +134,7 @@ class CWLSurfaceResource {
     void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   lockPendingState();
     void                                   unlockPendingState();
+    void                                   commitPendingState();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface
@@ -145,13 +148,12 @@ class CWLSurfaceResource {
     // this stupid-ass hack is used
     WP<IHLBuffer>          lastBuffer;
 
-    int                    stateLocks = 0;
+    bool                   stateLocked = false;
 
     void                   destroy();
     void                   releaseBuffers(bool onlyCurrent = true);
     void                   dropPendingBuffer();
     void                   dropCurrentBuffer();
-    void                   commitPendingState();
     void                   bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource> findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
     void                   updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});

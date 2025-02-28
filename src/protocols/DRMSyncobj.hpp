@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "WaylandProtocol.hpp"
+#include "helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -10,22 +11,51 @@ class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
 class CSyncTimeline;
 
-class CDRMSyncobjSurfaceResource {
+class CDRMSyncPointState {
   public:
-    CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_);
+    CDRMSyncPointState() = default;
+    CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_, bool acquirePoint);
+    ~CDRMSyncPointState() = default;
 
-    bool                   good();
-
-    WP<CWLSurfaceResource> surface;
-    struct {
-        WP<CDRMSyncobjTimelineResource> acquireTimeline, releaseTimeline;
-        uint64_t                        acquirePoint = 0, releasePoint = 0;
-    } current, pending;
+    const uint64_t&                                  point();
+    WP<CDRMSyncobjTimelineResource>                  resource();
+    WP<CSyncTimeline>                                timeline();
+    bool                                             expired();
+    Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
+    bool                                             addWaiter(const std::function<void()>& waiter);
+    bool                                             waited();
+    Hyprutils::OS::CFileDescriptor                   exportAsFD();
+    void                                             signal();
 
   private:
-    SP<CWpLinuxDrmSyncobjSurfaceV1> resource;
+    WP<CDRMSyncobjTimelineResource> m_resource      = {};
+    uint64_t                        m_point         = 0;
+    WP<CSyncTimeline>               m_timeline      = {};
+    bool                            m_acquirePoint  = false;
+    bool                            m_acquireWaited = false;
+    bool                            m_releaseTaken  = false;
+};
+
+class CDRMSyncobjSurfaceResource {
+  public:
+    CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_);
+    ~CDRMSyncobjSurfaceResource() = default;
+
+    bool protocolError();
+    bool good();
+
+  private:
+    WP<CWLSurfaceResource>          surface;
+    UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
     struct {
+        CDRMSyncPointState acquire, release;
+    } pending;
+
+    size_t pendingCommits = 0;
+
+    struct {
+        CHyprSignalListener surfaceBufferAttach;
         CHyprSignalListener surfacePrecommit;
         CHyprSignalListener surfaceCommit;
     } listeners;
@@ -33,33 +63,34 @@ class CDRMSyncobjSurfaceResource {
 
 class CDRMSyncobjTimelineResource {
   public:
-    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor&& fd_);
+    CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTimelineV1>&& resource_, Hyprutils::OS::CFileDescriptor&& fd_);
     ~CDRMSyncobjTimelineResource() = default;
-    static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
+    static WP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();
 
-    WP<CDRMSyncobjTimelineResource>        self;
     Hyprutils::OS::CFileDescriptor         fd;
     SP<CSyncTimeline>                      timeline;
 
   private:
-    SP<CWpLinuxDrmSyncobjTimelineV1> resource;
+    UP<CWpLinuxDrmSyncobjTimelineV1> resource;
 };
 
 class CDRMSyncobjManagerResource {
   public:
-    CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjManagerV1> resource_);
+    CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjManagerV1>&& resource_);
+    ~CDRMSyncobjManagerResource() = default;
 
     bool good();
 
   private:
-    SP<CWpLinuxDrmSyncobjManagerV1> resource;
+    UP<CWpLinuxDrmSyncobjManagerV1> resource;
 };
 
 class CDRMSyncobjProtocol : public IWaylandProtocol {
   public:
     CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    ~CDRMSyncobjProtocol() = default;
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
@@ -69,9 +100,9 @@ class CDRMSyncobjProtocol : public IWaylandProtocol {
     void destroyResource(CDRMSyncobjSurfaceResource* resource);
 
     //
-    std::vector<SP<CDRMSyncobjManagerResource>>  m_vManagers;
-    std::vector<SP<CDRMSyncobjTimelineResource>> m_vTimelines;
-    std::vector<SP<CDRMSyncobjSurfaceResource>>  m_vSurfaces;
+    std::vector<UP<CDRMSyncobjManagerResource>>  m_vManagers;
+    std::vector<UP<CDRMSyncobjTimelineResource>> m_vTimelines;
+    std::vector<UP<CDRMSyncobjSurfaceResource>>  m_vSurfaces;
 
     //
     int drmFD = -1;

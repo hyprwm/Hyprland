@@ -198,6 +198,8 @@ struct SWindowData {
 
     CWindowOverridableVar<CGradientValueData> activeBorderColor;
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
+
+    CWindowOverridableVar<float>              contentScale;
 };
 
 struct SInitialWorkspaceToken {
@@ -438,6 +440,7 @@ class CWindow {
     int                        getRealBorderSize();
     float                      getScrollMouse();
     float                      getScrollTouchpad();
+    float                      getContentScale();
     void                       updateWindowData();
     void                       updateWindowData(const struct SWorkspaceRule&);
     void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);

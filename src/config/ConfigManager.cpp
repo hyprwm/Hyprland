@@ -603,6 +603,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:tap-and-drag", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
+    registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});

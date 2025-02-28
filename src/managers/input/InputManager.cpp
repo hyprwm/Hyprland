@@ -89,15 +89,31 @@ CInputManager::~CInputManager() {
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
+    static auto PFLIPX   = CConfigValue<Hyprlang::INT>("input:touchpad:flip_x");
+    static auto PFLIPY   = CConfigValue<Hyprlang::INT>("input:touchpad:flip_y");
 
-    const auto  DELTA = *PNOACCEL == 1 ? e.unaccel : e.delta;
+    Vector2D    delta   = e.delta;
+    Vector2D    unaccel = e.unaccel;
+
+    if (!e.mouse) {
+        if (*PFLIPX) {
+            delta.x   = -delta.x;
+            unaccel.x = -unaccel.x;
+        }
+        if (*PFLIPY) {
+            delta.y   = -delta.y;
+            unaccel.y = -unaccel.y;
+        }
+    }
+
+    const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
     if (g_pSeatManager->isPointerFrameSkipped)
-        g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
+        g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, unaccel);
     else
-        g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
+        g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, unaccel);
 
-    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, unaccel);
 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();

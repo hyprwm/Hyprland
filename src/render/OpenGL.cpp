@@ -873,6 +873,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
     m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
     m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
+    m_RenderData.pCurrentMonData->m_shCM.skipCM            = glGetUniformLocation(prog, "skipCM");
     m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
     m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
     m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
@@ -1382,27 +1383,32 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 #endif
     glUniform1i(shader->tex, 0);
     if (!usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
+        const bool skipCM = m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
+            m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
         glUniform1i(shader->texType, texType);
-        const auto imageDescription =
-            m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
-        glUniform1i(shader->sourceTF, imageDescription.transferFunction);
-        glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
-        const auto sourcePrimaries =
-            imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
-        const auto    targetPrimaries = m_RenderData.pMonitor->imageDescription.primariesNameSet || m_RenderData.pMonitor->imageDescription.primaries == SPCPRimaries{} ?
-               getPrimaries(m_RenderData.pMonitor->imageDescription.primariesNamed) :
-               m_RenderData.pMonitor->imageDescription.primaries;
+        glUniform1i(shader->skipCM, skipCM);
+        if (!skipCM) {
+            const auto imageDescription =
+                m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+            glUniform1i(shader->sourceTF, imageDescription.transferFunction);
+            glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
+            const auto sourcePrimaries =
+                imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
+            const auto    targetPrimaries = m_RenderData.pMonitor->imageDescription.primariesNameSet || m_RenderData.pMonitor->imageDescription.primaries == SPCPRimaries{} ?
+                   getPrimaries(m_RenderData.pMonitor->imageDescription.primariesNamed) :
+                   m_RenderData.pMonitor->imageDescription.primaries;
 
-        const GLfloat glSourcePrimaries[8] = {
-            sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
-            sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
-        };
-        const GLfloat glTargetPrimaries[8] = {
-            targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
-            targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
-        };
-        glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
-        glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
+            const GLfloat glSourcePrimaries[8] = {
+                sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
+                sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
+            };
+            const GLfloat glTargetPrimaries[8] = {
+                targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
+                targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
+            };
+            glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
+            glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
+        }
     }
 
     if ((usingFinalShader && *PDT == 0) || CRASHING) {

@@ -12,6 +12,7 @@ class CShader {
     GLint   color             = -1;
     GLint   alphaMatte        = -1;
     GLint   texType           = -1;
+    GLint   skipCM            = -1;
     GLint   sourceTF          = -1;
     GLint   targetTF          = -1;
     GLint   sourcePrimaries   = -1;

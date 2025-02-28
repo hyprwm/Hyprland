@@ -1504,9 +1504,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 pMonitor->imageDescription.primariesNameSet = true;
                 pMonitor->imageDescription.primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020;
             } else {
-                pMonitor->imageDescription.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
-                pMonitor->imageDescription.primariesNameSet = true;
-                pMonitor->imageDescription.primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB;
+                pMonitor->imageDescription = {};
             }
         }
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {

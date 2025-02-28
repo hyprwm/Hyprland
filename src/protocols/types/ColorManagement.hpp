@@ -109,6 +109,7 @@ namespace NColorManagement {
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.314, .y = 0.351},
         };
+
         static const auto DISPLAY_P3 = SPCPRimaries{
             .red   = {.x = 0.680, .y = 0.320},
             .green = {.x = 0.265, .y = 0.690},

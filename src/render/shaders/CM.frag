@@ -13,6 +13,10 @@ uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 sourcePrimaries;
 uniform mat4x2 targetPrimaries;
+uniform float maxLuminance;
+uniform float dstMaxLuminance;
+uniform float dstRefLuminance;
+
 uniform float alpha;
 
 uniform vec2 topLeft;
@@ -61,8 +65,12 @@ uniform vec3 tint;
 #define PQ_C2 18.8515625
 #define PQ_C3 18.6875
 
+#define MAX_LUMINANCE 10000.0
+
 // smoothing constant for the edge: more = blurrier, but smoother
-#define SMOOTHING_CONSTANT (3.1415926535897932384626433832795 / 5.34665792551)
+#define M_PI 3.1415926535897932384626433832795
+#define M_E 2.718281828459045
+#define SMOOTHING_CONSTANT (M_PI / 5.34665792551)
 
 vec4 rounding(vec4 color) {
 	highp vec2 pixCoord = vec2(gl_FragCoord);
@@ -179,15 +187,66 @@ mat3 primaries2xyz(mat4x2 primaries) {
     return mat3(r * s, g * s, b * s);
 }
 
-vec4 convertPrimaries(vec4 color, mat4x2 src, mat4x2 dst) {
-    if (src == dst)
-        return color;
-
-    mat3 srcxyz = primaries2xyz(src);
-    mat3 dstxyz = primaries2xyz(dst);
-    mat3 convMat = transpose(srcxyz * inverse(dstxyz));
-
+vec4 convertPrimaries(vec4 color, mat3 src, mat3 dst) {
+    mat3 convMat = transpose(src * inverse(dst));
     return vec4(convMat * color.rgb, color[3]);
+}
+
+const mat3 BT2020toLMS = mat3(
+    0.3592, 0.6976, -0.0358,
+    -0.1922, 1.1004, 0.0755,
+    0.0070, 0.0749, 0.8434
+);
+const mat3 LMStoBT2020 = inverse(BT2020toLMS);
+
+const mat3 ICtCpPQ = transpose(mat3(
+    2048.0, 2048.0, 0.0,
+    6610.0, -13613.0, 7003.0,
+    17933.0, -17390.0, -543.0
+) / 4096.0);
+const mat3 ICtCpPQInv = inverse(ICtCpPQ);
+
+const mat3 ICtCpHLG = transpose(mat3(
+    2048.0, 2048.0, 0.0,
+    3625.0, -7465.0, 3840.0,
+    9500.0, -9212.0, -288.0
+) / 4096.0);
+const mat3 ICtCpHLGInv = inverse(ICtCpHLG);
+
+vec4 tonemap(vec4 color, mat3 dstXYZ) {
+    if (maxLuminance < dstMaxLuminance * 1.01)
+        return vec4(clamp(color.rgb, vec3(0.0), vec3(dstMaxLuminance)), color[3]);
+
+    mat3 toLMS = BT2020toLMS * dstXYZ;
+    mat3 fromLMS = inverse(dstXYZ) * LMStoBT2020;
+
+    vec3 lms = fromLinear(vec4((toLMS * color.rgb) / MAX_LUMINANCE, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
+    vec3 ICtCp = ICtCpPQ * lms;
+
+    float E = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_INV_M2);
+    float luminance = pow(
+        (max(E - PQ_C1, 0.0)) / (PQ_C2 - PQ_C3 * E),
+        PQ_INV_M1
+    ) * MAX_LUMINANCE;
+
+    float srcScale = maxLuminance / dstRefLuminance;
+    float dstScale = dstMaxLuminance / dstRefLuminance;
+
+    float minScale = min(srcScale, 1.5);
+    float dimming = 1.0 / clamp(minScale / dstScale, 1.0, minScale);
+    float refLuminance = dstRefLuminance * dimming;
+
+    float low = min(luminance * dimming, refLuminance);
+    float highlight = clamp((luminance / dstRefLuminance - 1.0) / (srcScale - 1.0), 0.0, 1.0);
+    float high = log(highlight * (M_E - 1.0) + 1.0) * (dstMaxLuminance - refLuminance);
+    luminance = low + high;
+
+    E = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_M1);
+    ICtCp[0] = pow(
+        (PQ_C1 + PQ_C2 * E) / (1.0 + PQ_C3 * E),
+        PQ_M2
+    ) / MAX_LUMINANCE;
+    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * MAX_LUMINANCE, color[3]);
 }
 
 layout(location = 0) out vec4 fragColor;
@@ -208,7 +267,15 @@ void main() {
 
     if (skipCM == 0) {
         pixColor = toLinear(pixColor, sourceTF);
-        pixColor = convertPrimaries(pixColor, sourcePrimaries, targetPrimaries);
+        mat3 srcxyz = primaries2xyz(sourcePrimaries);
+        mat3 dstxyz;
+        if (sourcePrimaries == targetPrimaries)
+            dstxyz = srcxyz;
+        else {
+            dstxyz = primaries2xyz(targetPrimaries);
+            pixColor = convertPrimaries(pixColor, srcxyz, dstxyz);
+        }
+        pixColor = tonemap(pixColor, dstxyz);
         pixColor = fromLinear(pixColor, targetTF);
     }
 

@@ -1500,9 +1500,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
         if (*PHDR != (pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ)) {
             if (*PHDR) {
-                pMonitor->imageDescription.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ;
-                pMonitor->imageDescription.primariesNameSet = true;
-                pMonitor->imageDescription.primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020;
+                pMonitor->imageDescription.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ;
+                pMonitor->imageDescription.primariesNameSet     = true;
+                pMonitor->imageDescription.primariesNamed       = NColorManagement::CM_PRIMARIES_BT2020;
+                pMonitor->imageDescription.luminances.min       = pMonitor->output->parsedEDID.hdrMetadata->desiredContentMinLuminance;
+                pMonitor->imageDescription.luminances.max       = pMonitor->output->parsedEDID.hdrMetadata->desiredContentMaxLuminance;
+                pMonitor->imageDescription.luminances.reference = pMonitor->output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance;
             } else {
                 pMonitor->imageDescription = {};
             }

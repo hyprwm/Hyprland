@@ -65,7 +65,11 @@ uniform vec3 tint;
 #define PQ_C2 18.8515625
 #define PQ_C3 18.6875
 
-#define MAX_LUMINANCE 10000.0
+#define SDR_MIN_LUMINANCE 0.02
+#define SDR_MAX_LUMINANCE 80.0
+#define HDR_MIN_LUMINANCE 0.005
+#define HDR_MAX_LUMINANCE 10000.0
+#define HLG_MAX_LUMINANCE 1000.0
 
 // smoothing constant for the edge: more = blurrier, but smoother
 #define M_PI 3.1415926535897932384626433832795
@@ -73,43 +77,41 @@ uniform vec3 tint;
 #define SMOOTHING_CONSTANT (M_PI / 5.34665792551)
 
 vec4 rounding(vec4 color) {
-	highp vec2 pixCoord = vec2(gl_FragCoord);
+    highp vec2 pixCoord = vec2(gl_FragCoord);
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
     pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
 
     if (pixCoord.x + pixCoord.y > radius) {
+        float dist = pow(pow(pixCoord.x, roundingPower) + pow(pixCoord.y, roundingPower), 1.0/roundingPower);
 
-		float dist = pow(pow(pixCoord.x, roundingPower) + pow(pixCoord.y, roundingPower), 1.0/roundingPower);
-
-		if (dist > radius + SMOOTHING_CONSTANT)
-			discard;
+        if (dist > radius + SMOOTHING_CONSTANT)
+            discard;
 
         float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
 
-	    color *= normalized;
+        color *= normalized;
     }
 
-	return color;
+    return color;
 }
 
-vec4 toLinear(vec4 color, int tf) {
+vec3 toLinearRGB(vec3 color, int tf) {
     if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
         return color;
     
-    color.rgb /= max(color.a, 0.001);
     switch (tf) {
         case CM_TRANSFER_FUNCTION_ST2084_PQ:
             vec3 E = pow(clamp(color.rgb, vec3(0.0), vec3(1.0)), vec3(PQ_INV_M2));
-            color.rgb = pow(
+            return pow(
                 (max(E - PQ_C1, vec3(0.0))) / (PQ_C2 - PQ_C3 * E),
                 vec3(PQ_INV_M1)
             );
         case CM_TRANSFER_FUNCTION_GAMMA22:
-            color.rgb = pow(max(color.rgb, vec3(0.0)), vec3(2.2));
+            return pow(max(color.rgb, vec3(0.0)), vec3(2.2));
         case CM_TRANSFER_FUNCTION_GAMMA28:
-            color.rgb = pow(max(color.rgb, vec3(0.0)), vec3(2.8));
+            return pow(max(color.rgb, vec3(0.0)), vec3(2.8));
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_ST240:
         case CM_TRANSFER_FUNCTION_LOG_100:
@@ -124,29 +126,66 @@ vec4 toLinear(vec4 color, int tf) {
             bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_D_CUT));
             vec3 lo = color.rgb / SRGB_LO;
             vec3 hi = pow((color.rgb + SRGB_HI_ADD) / SRGB_HI, vec3(SRGB_POW));
-            color.rgb = mix(hi, lo, isLow);
+            return mix(hi, lo, isLow);
     }
+}
+
+vec4 toLinear(vec4 color, int tf) {
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+        return color;
+
+    color.rgb /= max(color.a, 0.001);
+    color.rgb = toLinearRGB(color.rgb, tf);
     color.rgb *= color.a;
     return color;
 }
 
-vec4 fromLinear(vec4 color, int tf) {
+vec4 toLinearNit(vec4 color, int tf) {
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+        color.rgb = color.rgb * SDR_MAX_LUMINANCE;
+    else {
+        color.rgb /= max(color.a, 0.001);
+        color.rgb = toLinearRGB(color.rgb, tf);
+
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                color.rgb = color.rgb * (HDR_MAX_LUMINANCE - HDR_MIN_LUMINANCE) + HDR_MIN_LUMINANCE; break;
+            case CM_TRANSFER_FUNCTION_HLG:
+                color.rgb = color.rgb * (HLG_MAX_LUMINANCE - HDR_MIN_LUMINANCE) + HDR_MIN_LUMINANCE; break;
+            case CM_TRANSFER_FUNCTION_GAMMA22:
+            case CM_TRANSFER_FUNCTION_GAMMA28:
+            case CM_TRANSFER_FUNCTION_BT1886:
+            case CM_TRANSFER_FUNCTION_ST240:
+            case CM_TRANSFER_FUNCTION_LOG_100:
+            case CM_TRANSFER_FUNCTION_LOG_316:
+            case CM_TRANSFER_FUNCTION_XVYCC:
+            case CM_TRANSFER_FUNCTION_EXT_SRGB:
+            case CM_TRANSFER_FUNCTION_ST428:
+            case CM_TRANSFER_FUNCTION_SRGB:
+            default:
+                color.rgb = color.rgb * (SDR_MAX_LUMINANCE - SDR_MIN_LUMINANCE) + SDR_MIN_LUMINANCE; break;
+        }
+
+        color.rgb *= color.a;
+    }
+    return color;
+}
+
+vec3 fromLinearRGB(vec3 color, int tf) {
     switch (tf) {
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:
             return color;
         case CM_TRANSFER_FUNCTION_ST2084_PQ:
             vec3 E = pow(clamp(color.rgb, vec3(0.0), vec3(1.0)), vec3(PQ_M1));
-            return vec4(
-                pow(
-                    (vec3(PQ_C1) + PQ_C2 * E) / (vec3(1.0) + PQ_C3 * E),
-                    vec3(PQ_M2)
-                ),
-                color[3]
+            return pow(
+                (vec3(PQ_C1) + PQ_C2 * E) / (vec3(1.0) + PQ_C3 * E),
+                vec3(PQ_M2)
             );
+            break;
         case CM_TRANSFER_FUNCTION_GAMMA22:
-            color.rgb = pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.2));
+            return pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.2));
         case CM_TRANSFER_FUNCTION_GAMMA28:
-            color.rgb = pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.8));
+            return pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.8));
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_ST240:
         case CM_TRANSFER_FUNCTION_LOG_100:
@@ -161,8 +200,50 @@ vec4 fromLinear(vec4 color, int tf) {
             bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_E_CUT));
             vec3 lo = color.rgb * SRGB_LO;
             vec3 hi = pow(color.rgb, vec3(SRGB_INV_POW)) * SRGB_HI - SRGB_HI_ADD;
-            return vec4(mix(hi, lo, isLow), color[3]);
+            return mix(hi, lo, isLow);
     }
+}
+
+vec4 fromLinear(vec4 color, int tf) {
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+        return color;
+    
+    color.rgb /= max(color.a, 0.001);
+    color.rgb = fromLinearRGB(color.rgb, tf);
+    color.rgb *= color.a;
+    return color;
+}
+
+vec4 fromLinearNit(vec4 color, int tf) {
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+        color.rgb = color.rgb / SDR_MAX_LUMINANCE;
+    else {
+        color.rgb /= max(color.a, 0.001);
+        
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                color.rgb = (color.rgb - HDR_MIN_LUMINANCE) / (HDR_MAX_LUMINANCE - HDR_MIN_LUMINANCE); break;
+            case CM_TRANSFER_FUNCTION_HLG:
+                color.rgb = (color.rgb - HDR_MIN_LUMINANCE) / (HLG_MAX_LUMINANCE - HDR_MIN_LUMINANCE); break;
+            case CM_TRANSFER_FUNCTION_GAMMA22:
+            case CM_TRANSFER_FUNCTION_GAMMA28:
+            case CM_TRANSFER_FUNCTION_BT1886:
+            case CM_TRANSFER_FUNCTION_ST240:
+            case CM_TRANSFER_FUNCTION_LOG_100:
+            case CM_TRANSFER_FUNCTION_LOG_316:
+            case CM_TRANSFER_FUNCTION_XVYCC:
+            case CM_TRANSFER_FUNCTION_EXT_SRGB:
+            case CM_TRANSFER_FUNCTION_ST428:
+            case CM_TRANSFER_FUNCTION_SRGB:
+            default:
+                color.rgb = (color.rgb - SDR_MIN_LUMINANCE) / (SDR_MAX_LUMINANCE - SDR_MIN_LUMINANCE); break;
+        }
+
+        color.rgb = fromLinearRGB(color.rgb, tf);
+        
+        color.rgb *= color.a;
+    }
+    return color;
 }
 
 vec3 xy2xyz(vec2 xy) {
@@ -220,14 +301,14 @@ vec4 tonemap(vec4 color, mat3 dstXYZ) {
     mat3 toLMS = BT2020toLMS * dstXYZ;
     mat3 fromLMS = inverse(dstXYZ) * LMStoBT2020;
 
-    vec3 lms = fromLinear(vec4((toLMS * color.rgb) / MAX_LUMINANCE, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
+    vec3 lms = fromLinear(vec4((toLMS * color.rgb) / HDR_MAX_LUMINANCE, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
     vec3 ICtCp = ICtCpPQ * lms;
 
     float E = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_INV_M2);
     float luminance = pow(
         (max(E - PQ_C1, 0.0)) / (PQ_C2 - PQ_C3 * E),
         PQ_INV_M1
-    ) * MAX_LUMINANCE;
+    ) * HDR_MAX_LUMINANCE;
 
     float srcScale = maxLuminance / dstRefLuminance;
     float dstScale = dstMaxLuminance / dstRefLuminance;
@@ -245,8 +326,8 @@ vec4 tonemap(vec4 color, mat3 dstXYZ) {
     ICtCp[0] = pow(
         (PQ_C1 + PQ_C2 * E) / (1.0 + PQ_C3 * E),
         PQ_M2
-    ) / MAX_LUMINANCE;
-    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * MAX_LUMINANCE, color[3]);
+    ) / HDR_MAX_LUMINANCE;
+    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE, color[3]);
 }
 
 layout(location = 0) out vec4 fragColor;
@@ -266,7 +347,7 @@ void main() {
         discard;
 
     if (skipCM == 0) {
-        pixColor = toLinear(pixColor, sourceTF);
+        pixColor = toLinearNit(pixColor, sourceTF);
         mat3 srcxyz = primaries2xyz(sourcePrimaries);
         mat3 dstxyz;
         if (sourcePrimaries == targetPrimaries)
@@ -276,7 +357,7 @@ void main() {
             pixColor = convertPrimaries(pixColor, srcxyz, dstxyz);
         }
         pixColor = tonemap(pixColor, dstxyz);
-        pixColor = fromLinear(pixColor, targetTF);
+        pixColor = fromLinearNit(pixColor, targetTF);
     }
 
     if (applyTint == 1)

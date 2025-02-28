@@ -88,6 +88,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+
+        events.bufferAttach.emit();
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -113,8 +115,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (stateLocks <= 0)
-            commitPendingState();
+        commitPendingState();
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) { pending.damage.add(CBox{x, y, w, h}); });
@@ -429,28 +430,35 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
 }
 
 void CWLSurfaceResource::lockPendingState() {
-    stateLocks++;
+    stateLocked = true;
 }
 
 void CWLSurfaceResource::unlockPendingState() {
-    stateLocks--;
-    if (stateLocks <= 0)
-        commitPendingState();
+    stateLocked = false;
 }
 
 void CWLSurfaceResource::commitPendingState() {
-    static auto PDROP = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
-    current           = pending;
-    pending.damage.clear();
-    pending.bufferDamage.clear();
-    pending.newBuffer = false;
-    if (!*PDROP)
+    if (syncobj && stateLocked)
+        return;
+
+    auto const previousBuffer = current.buffer;
+
+    if (pending.newBuffer && pending.buffer) {
+        current = pending;
+        pending.damage.clear();
+        pending.bufferDamage.clear();
+        pending.newBuffer = false;
         dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
+    } else if (current.buffer && current.buffer->buffer) {
+        current.damage       = pending.damage;
+        current.bufferDamage = pending.bufferDamage;
+        pending.damage.clear();
+        pending.bufferDamage.clear();
+    }
+
+    current.sameBufferCommit = current.buffer == previousBuffer;
 
     events.roleCommit.emit();
-
-    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
-        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -463,14 +471,6 @@ void CWLSurfaceResource::commitPendingState() {
         // TODO: don't update the entire texture
         if (role->role() == SURFACE_ROLE_CURSOR && !DAMAGE.empty())
             updateCursorShm(DAMAGE);
-
-        // release the buffer if it's synchronous as update() has done everything thats needed
-        // so we can let the app know we're done.
-        // Some clients aren't ready to receive a release this early. Should be fine to release it on the next commitPendingState.
-        if (current.buffer->buffer->isSynchronous() && *PDROP) {
-            dropCurrentBuffer();
-            dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
-        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
@@ -492,6 +492,21 @@ void CWLSurfaceResource::commitPendingState() {
                 surf->events.commit.emit();
             },
             nullptr);
+    }
+
+    // release the buffer if it's synchronous as update() has done everything thats needed
+    // so we can let the app know we're done.
+    if (!current.sameBufferCommit && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
+        dropCurrentBuffer();
+    }
+
+    // for async buffers, we can only release the buffer once we are unrefing it from current.
+    // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
+    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
+        if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
+            previousBuffer->buffer->lock();
+            previousBuffer->buffer->onBackendRelease([previousBuffer]() { previousBuffer->buffer->unlock(); });
+        }
     }
 
     lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};

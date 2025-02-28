@@ -33,6 +33,13 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, int drmSyncobjFD) {
 }
 
 CSyncTimeline::~CSyncTimeline() {
+    for (auto& w : waiters) {
+        if (w->source) {
+            wl_event_source_remove(w->source);
+            w->source = nullptr;
+        }
+    }
+
     if (handle == 0)
         return;
 

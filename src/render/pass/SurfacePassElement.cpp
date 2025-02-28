@@ -52,8 +52,8 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         return;
 
     // explicit sync: wait for the timeline, if any
-    if (data.surface->syncobj && data.surface->syncobj->current.acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(data.surface->syncobj->current.acquireTimeline->timeline, data.surface->syncobj->current.acquirePoint)) {
+    if (data.surface->syncobj && !data.surface->current.sameBufferCommit && data.surface->current.buffer && data.surface->current.buffer->acquire && !data.surface->current.buffer->acquire->expired()) {
+        if (!g_pHyprOpenGL->waitForTimelinePoint(data.surface->current.buffer->acquire->timeline().lock(), data.surface->current.buffer->acquire->point())) {
             Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }

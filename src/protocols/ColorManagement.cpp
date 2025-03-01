@@ -45,6 +45,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ);
+    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_HLG);
 
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886);
@@ -54,7 +55,6 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_XVYCC);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_SRGB);
         m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST428);
-        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_HLG);
     }
 
     m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_PERCEPTUAL);
@@ -535,6 +535,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_HLG: break;
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 

@@ -1493,7 +1493,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (inFD.isValid())
         pMonitor->output->state->setExplicitInFence(inFD.get());
 
-    static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
+    static auto PHDR  = CConfigValue<Hyprlang::INT>("experimental:hdr");
+    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
 
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
     Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
@@ -1510,7 +1511,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 pMonitor->imageDescription = {};
             }
         }
-        if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+        if (*PPASS && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();
             const auto SURF =

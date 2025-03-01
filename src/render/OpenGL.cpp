@@ -1311,7 +1311,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     CBox newBox = box;
     m_RenderData.renderModif.applyToBox(newBox);
 
-    static auto PDT = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
+    static auto PDT   = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
+    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
 
     // get the needed transform for this texture
     const bool TRANSFORMS_MATCH = wlTransformToHyprutils(m_RenderData.pMonitor->transform) == tex->m_eTransform; // FIXME: combine them properly!!!
@@ -1386,7 +1387,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 #endif
     glUniform1i(shader->tex, 0);
     if (!usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
-        const bool skipCM = m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
+        const bool skipCM = *PPASS && m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
             m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
         glUniform1i(shader->texType, texType);
         glUniform1i(shader->skipCM, skipCM);

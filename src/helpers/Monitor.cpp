@@ -1124,12 +1124,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     bool animate = true;
     //close if open elsewhere
     const auto PMONITORWORKSPACEOWNER = pWorkspace->m_pMonitor.lock();
-    if (PMONITORWORKSPACEOWNER->activeSpecialWorkspace == pWorkspace) {
-        PMONITORWORKSPACEOWNER->activeSpecialWorkspace.reset();
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+    if (const auto PMWSOWNER = pWorkspace->m_pMonitor.lock(); PMWSOWNER && PMWSOWNER->activeSpecialWorkspace == pWorkspace) {
+        PMWSOWNER->activeSpecialWorkspace.reset();
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMWSOWNER->ID);
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->szName});
 
-        const auto PACTIVEWORKSPACE = PMONITORWORKSPACEOWNER->activeWorkspace;
+        const auto PACTIVEWORKSPACE = PMWSOWNER->activeWorkspace;
         g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
 
         animate = false;

@@ -13,4 +13,4 @@ $(TARGET): $(SRC)
 clean:
 	rm -f ./$(TARGET)
 
-.PHONY: all meson-build clean
+.PHONY: all clean

@@ -1759,18 +1759,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "experimental:wide_color_gamut",
-        .description = "force wide color gamut for all supported outputs",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "experimental:hdr",
-        .description = "force static hdr for all supported outputs",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",
         .description = "enable color management protocol",
         .type        = CONFIG_OPTION_BOOL,

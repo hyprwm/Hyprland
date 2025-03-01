@@ -21,7 +21,7 @@ int Tests::windowCount() {
     return countOccurrences(getFromSocket("/clients"), "focusHistoryID: ");
 }
 
-int                     Tests::countOccurrences(const std::string& in, const std::string& what) {
+int Tests::countOccurrences(const std::string& in, const std::string& what) {
     int  cnt = 0;
     auto pos = in.find(what);
     while (pos != std::string::npos) {

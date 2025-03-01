@@ -10,7 +10,6 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-
 bool testPlugin() {
     const auto RESPONSE = getFromSocket("/dispatch plugin:test:test");
 

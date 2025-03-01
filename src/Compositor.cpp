@@ -2700,6 +2700,9 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     if (pWindow->m_bPinned && pWorkspace->m_bIsSpecialWorkspace)
         return;
 
+    if (pWindow->m_pWorkspace == pWorkspace)
+        return;
+
     const bool FULLSCREEN     = pWindow->isFullscreen();
     const auto FULLSCREENMODE = pWindow->m_sFullscreenState.internal;
     const bool WASVISIBLE     = pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible();

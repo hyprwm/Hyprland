@@ -89,18 +89,29 @@ CInputManager::~CInputManager() {
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
-    static auto PFLIPX   = CConfigValue<Hyprlang::INT>("input:touchpad:flip_x");
-    static auto PFLIPY   = CConfigValue<Hyprlang::INT>("input:touchpad:flip_y");
 
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
 
     if (!e.mouse) {
-        if (*PFLIPX) {
+        std::string devname = "";
+
+        for (auto& pointer : m_vPointers) {
+            if (pointer->connected && !pointer->isVirtual()) {
+                devname = pointer->hlName;
+                if (g_pConfigManager->deviceConfigExists(devname))
+                    break;
+            }
+        }
+
+        bool flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+        bool flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
+
+        if (flipX) {
             delta.x   = -delta.x;
             unaccel.x = -unaccel.x;
         }
-        if (*PFLIPY) {
+        if (flipY) {
             delta.y   = -delta.y;
             unaccel.y = -unaccel.y;
         }

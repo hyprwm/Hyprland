@@ -109,6 +109,8 @@ class IPointer : public IHID {
 
     bool         connected   = false; // means connected to the cursor
     std::string  boundOutput = "";
+    bool         flip_x      = false; // decide to invert horizontal movement
+    bool         flip_y      = false; // decie to invert vertical movement
 
     WP<IPointer> self;
 };

@@ -94,26 +94,24 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    unaccel = e.unaccel;
 
     if (!e.mouse) {
-        std::string devname = "";
+        SP<IPointer> activePointer = nullptr;
 
         for (auto& pointer : m_vPointers) {
             if (pointer->connected && !pointer->isVirtual()) {
-                devname = pointer->hlName;
-                if (g_pConfigManager->deviceConfigExists(devname))
-                    break;
+                activePointer = pointer;
+                break;
             }
         }
 
-        bool flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
-        bool flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
-
-        if (flipX) {
-            delta.x   = -delta.x;
-            unaccel.x = -unaccel.x;
-        }
-        if (flipY) {
-            delta.y   = -delta.y;
-            unaccel.y = -unaccel.y;
+        if (activePointer) {
+            if (activePointer->flip_x) {
+                delta.x   = -delta.x;
+                unaccel.x = -unaccel.x;
+            }
+            if (activePointer->flip_y) {
+                delta.y   = -delta.y;
+                unaccel.y = -unaccel.y;
+            }
         }
     }
 
@@ -1206,6 +1204,9 @@ void CInputManager::setPointerConfigs() {
 
             const auto LIBINPUTSENS = std::clamp(g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity"), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
+
+            m->flip_x = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+            m->flip_y = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
 
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
             const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");

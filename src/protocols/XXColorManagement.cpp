@@ -3,6 +3,7 @@
 #include "ColorManagement.hpp"
 #include "color-management-v1.hpp"
 #include "types/ColorManagement.hpp"
+#include "xx-color-management-v4.hpp"
 
 using namespace NColorManagement;
 
@@ -52,6 +53,7 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : resource(res
 
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA22);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA28);
+    resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_HLG);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ);
     resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR);
@@ -399,6 +401,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         switch (tf) {
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA22:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_GAMMA28:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_HLG:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR: break;

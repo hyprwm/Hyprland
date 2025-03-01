@@ -55,7 +55,6 @@ uniform vec3 tint;
 #define SRGB_HI 1.055
 #define SRGB_HI_ADD 0.055
 
-
 // PQ constants
 #define PQ_M1 0.1593017578125
 #define PQ_M2 78.84375
@@ -64,6 +63,13 @@ uniform vec3 tint;
 #define PQ_C1 0.8359375
 #define PQ_C2 18.8515625
 #define PQ_C3 18.6875
+
+// HLG constants
+#define HLG_D_CUT (1.0 / 12.0)
+#define HLG_E_CUT (sqrt(3.0) * pow(HLG_D_CUT, 0.5))
+#define HLG_A 0.17883277
+#define HLG_B 0.28466892
+#define HLG_C 0.55991073
 
 #define SDR_MIN_LUMINANCE 0.02
 #define SDR_MAX_LUMINANCE 80.0
@@ -101,6 +107,9 @@ vec3 toLinearRGB(vec3 color, int tf) {
     if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
         return color;
     
+    bvec3 isLow;
+    vec3 lo;
+    vec3 hi;
     switch (tf) {
         case CM_TRANSFER_FUNCTION_ST2084_PQ:
             vec3 E = pow(clamp(color.rgb, vec3(0.0), vec3(1.0)), vec3(PQ_INV_M2));
@@ -112,6 +121,11 @@ vec3 toLinearRGB(vec3 color, int tf) {
             return pow(max(color.rgb, vec3(0.0)), vec3(2.2));
         case CM_TRANSFER_FUNCTION_GAMMA28:
             return pow(max(color.rgb, vec3(0.0)), vec3(2.8));
+        case CM_TRANSFER_FUNCTION_HLG:
+            isLow = lessThanEqual(color.rgb, vec3(HLG_D_CUT));
+            lo = sqrt(3.0) * pow(color.rgb, vec3(0.5));
+            hi = HLG_A * log(12.0 * color.rgb - HLG_B) + HLG_C;
+            return mix(hi, lo, isLow);
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_ST240:
         case CM_TRANSFER_FUNCTION_LOG_100:
@@ -119,13 +133,12 @@ vec3 toLinearRGB(vec3 color, int tf) {
         case CM_TRANSFER_FUNCTION_XVYCC:
         case CM_TRANSFER_FUNCTION_EXT_SRGB:
         case CM_TRANSFER_FUNCTION_ST428:
-        case CM_TRANSFER_FUNCTION_HLG:
 
         case CM_TRANSFER_FUNCTION_SRGB:
         default:
-            bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_D_CUT));
-            vec3 lo = color.rgb / SRGB_LO;
-            vec3 hi = pow((color.rgb + SRGB_HI_ADD) / SRGB_HI, vec3(SRGB_POW));
+            isLow = lessThanEqual(color.rgb, vec3(SRGB_D_CUT));
+            lo = color.rgb / SRGB_LO;
+            hi = pow((color.rgb + SRGB_HI_ADD) / SRGB_HI, vec3(SRGB_POW));
             return mix(hi, lo, isLow);
     }
 }
@@ -172,6 +185,10 @@ vec4 toLinearNit(vec4 color, int tf) {
 }
 
 vec3 fromLinearRGB(vec3 color, int tf) {
+    bvec3 isLow;
+    vec3 lo;
+    vec3 hi;
+    
     switch (tf) {
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:
             return color;
@@ -186,6 +203,11 @@ vec3 fromLinearRGB(vec3 color, int tf) {
             return pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.2));
         case CM_TRANSFER_FUNCTION_GAMMA28:
             return pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.8));
+        case CM_TRANSFER_FUNCTION_HLG:
+            isLow = lessThanEqual(color.rgb, vec3(HLG_E_CUT));
+            lo = pow(color.rgb / sqrt(3), vec3(2));
+            hi = (pow(vec3(M_E), (color.rgb - HLG_C) / HLG_A) + HLG_B) / 12.0;
+            return mix(hi, lo, isLow);
         case CM_TRANSFER_FUNCTION_BT1886:
         case CM_TRANSFER_FUNCTION_ST240:
         case CM_TRANSFER_FUNCTION_LOG_100:
@@ -193,13 +215,12 @@ vec3 fromLinearRGB(vec3 color, int tf) {
         case CM_TRANSFER_FUNCTION_XVYCC:
         case CM_TRANSFER_FUNCTION_EXT_SRGB:
         case CM_TRANSFER_FUNCTION_ST428:
-        case CM_TRANSFER_FUNCTION_HLG:
 
         case CM_TRANSFER_FUNCTION_SRGB:
         default:
-            bvec3 isLow = lessThanEqual(color.rgb, vec3(SRGB_E_CUT));
-            vec3 lo = color.rgb * SRGB_LO;
-            vec3 hi = pow(color.rgb, vec3(SRGB_INV_POW)) * SRGB_HI - SRGB_HI_ADD;
+            isLow = lessThanEqual(color.rgb, vec3(SRGB_E_CUT));
+            lo = color.rgb * SRGB_LO;
+            hi = pow(color.rgb, vec3(SRGB_INV_POW)) * SRGB_HI - SRGB_HI_ADD;
             return mix(hi, lo, isLow);
     }
 }
@@ -364,7 +385,7 @@ void main() {
         pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);
 
     if (radius > 0.0)
-		pixColor = rounding(pixColor);
+        pixColor = rounding(pixColor);
     
     fragColor = pixColor * alpha;
 }

@@ -69,6 +69,11 @@
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
 
+// ********************************************************************************************
+// * IMPORTANT: make sure to .reset() any protocol UP's you create! (put reset in destructor) *
+// * otherwise Hyprland might crash when exiting.                                             *
+// ********************************************************************************************
+
 void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();
 
@@ -177,6 +182,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
     PROTO::colorManagement     = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
+    // please read the top of this file before adding another protocol
 
     if (*PENABLEXXCM) {
         PROTO::xxColorManagement   = makeUnique<CXXColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "XXColorManagement");
@@ -257,6 +263,10 @@ CProtocolManager::~CProtocolManager() {
     PROTO::securityContext.reset();
     PROTO::ctm.reset();
     PROTO::hyprlandSurface.reset();
+    PROTO::contentType.reset();
+    PROTO::colorManagement.reset();
+    PROTO::xxColorManagement.reset();
+    PROTO::frogColorManagement.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

@@ -225,28 +225,28 @@ class CConfigManager {
     std::string                                        getErrors();
 
     // keywords
-    std::optional<std::string> handleRawExec(const std::string&, const std::string&);
-    std::optional<std::string> handleExec(const std::string&, const std::string&);
-    std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
-    std::optional<std::string> handleExecRawOnce(const std::string&, const std::string&);
-    std::optional<std::string> handleExecShutdown(const std::string&, const std::string&);
-    std::optional<std::string> handleMonitor(const std::string&, const std::string&);
-    std::optional<std::string> handleBind(const std::string&, const std::string&);
-    std::optional<std::string> handleUnbind(const std::string&, const std::string&);
-    std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
-    std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
-    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
-    std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
-    std::optional<std::string> handleBezier(const std::string&, const std::string&);
-    std::optional<std::string> handleAnimation(const std::string&, const std::string&);
-    std::optional<std::string> handleSource(const std::string&, const std::string&);
-    std::optional<std::string> handleSubmap(const std::string&, const std::string&);
-    std::optional<std::string> handleBlurLS(const std::string&, const std::string&);
-    std::optional<std::string> handleBindWS(const std::string&, const std::string&);
-    std::optional<std::string> handleEnv(const std::string&, const std::string&);
-    std::optional<std::string> handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExec(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExecRawOnce(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExecShutdown(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleMonitor(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleBind(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleUnbind(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleWindowRule(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleLayerRule(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleWindowRuleV2(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleWorkspaceRules(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleBezier(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleAnimation(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleSource(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleSubmap(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleBlurLS(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleBindWS(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleEnv(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handlePlugin(const std::string&, const std::string&);
 
-    std::string configCurrentPath;
+    std::string                                                                                    configCurrentPath;
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> mbWindowProperties = {
         {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.allowsInput; }},

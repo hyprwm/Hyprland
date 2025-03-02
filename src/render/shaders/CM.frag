@@ -205,7 +205,7 @@ vec3 fromLinearRGB(vec3 color, int tf) {
             return pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.8));
         case CM_TRANSFER_FUNCTION_HLG:
             isLow = lessThanEqual(color.rgb, vec3(HLG_E_CUT));
-            lo = pow(color.rgb / sqrt(3), vec3(2));
+            lo = pow(color.rgb / sqrt(3.0), vec3(2.0));
             hi = (pow(vec3(M_E), (color.rgb - HLG_C) / HLG_A) + HLG_B) / 12.0;
             return mix(hi, lo, isLow);
         case CM_TRANSFER_FUNCTION_BT1886:

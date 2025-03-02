@@ -13,6 +13,7 @@ hyprland.pc
 _deps
 
 build/
+cmake-build-debug/
 result*
 /.pre-commit-config.yaml
 /.vscode/

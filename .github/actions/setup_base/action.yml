@@ -4,7 +4,7 @@ inputs:
   INSTALL_XORG_PKGS:
     description: 'Install xorg dependencies'
     required: false
-    default: false
+    default: 'false'
 
 runs:
   using: "composite"

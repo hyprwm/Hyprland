@@ -1,12 +1,12 @@
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*\.hpp'
-FormatStyle: file
+FormatStyle: 'file'
 Checks: >
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
-  -bugprone-forward-declararion-namespace,
-  -bugprone-forward-declararion-namespace,
+  -bugprone-forward-declaration-namespace,
+  -bugprone-forward-declaration-namespace,
   -bugprone-macro-parentheses,
   -bugprone-narrowing-conversions,
   -bugprone-branch-clone,
@@ -88,14 +88,18 @@ CheckOptions:
   performance-for-range-copy.WarnOnAllAutoCopies: true
   performance-inefficient-string-concatenation.StrictMode: true
   readability-braces-around-statements.ShortStatementLines: 0
-  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.ClassCase: camelCase
   readability-identifier-naming.ClassIgnoredRegexp: I.*
   readability-identifier-naming.ClassPrefix: C # We can't use regex here?!?!?!?
-  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.ClassMemberCase: camelBack
+  readability-identifier-naming.ClassMemberPrefix: m_
+  readability-identifier-naming.ConstantCase: UPPER_CASE
+  readability-identifier-naming.EnumCase: camelCase
   readability-identifier-naming.EnumPrefix: e
-  readability-identifier-naming.EnumConstantCase: UPPER_CASE
-  readability-identifier-naming.FunctionCase: camelBack
-  readability-identifier-naming.NamespaceCase: CamelCase
+  readability-identifier-naming.FunctionCase: camelCase
+  readability-identifier-naming.GlobalPointerCase: camelCase
+  readability-identifier-naming.GlobalPointerPrefix: g_
+  readability-identifier-naming.NamespaceCase: camelCase
   readability-identifier-naming.NamespacePrefix: N
   readability-identifier-naming.StructPrefix: S
-  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.StructCase: camelCase

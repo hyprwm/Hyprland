@@ -85,12 +85,12 @@
       This object represents a single frame.
 
       When created, a series of buffer events will be sent, each representing a
-      supported buffer type. The "buffer_done" event is sent afterwards to
+      supported buffer type. The "buffer_done" event is sent afterward, to
       indicate that all supported buffer types have been enumerated. The client
       will then be able to send a "copy" request. If the capture is successful,
       the compositor will send a "flags" followed by a "ready" event.
 
-      For objects version 2 or lower, wl_shm buffers are always supported, ie.
+      For objects version 2 or lower, wl_shm buffers are always supported, i.e.
       the "buffer" event is guaranteed to be sent.
 
       If the capture failed, the "failed" event is sent. This can happen anytime
@@ -114,9 +114,9 @@
 
     <request name="copy">
       <description summary="copy the frame">
-        Copy the frame to the supplied buffer. The buffer must have a the
+        Copy the frame to the supplied buffer. The buffer must be of the
         correct size, see zwlr_screencopy_frame_v1.buffer and
-        zwlr_screencopy_frame_v1.linux_dmabuf. The buffer needs to have a
+        zwlr_screencopy_frame_v1.linux_dmabuf. The buffer needs to follow a
         supported format.
 
         If the frame is successfully copied, a "flags" and a "ready" events are

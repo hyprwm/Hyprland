@@ -1,4 +1,4 @@
-# This is a file feeded to complgen to generate bash/fish/zsh completions
+# This is a file fed to complgen to generate bash/fish/zsh completions
 # Repo: https://github.com/adaszko/complgen
 # Generate completion scripts: "complgen aot --bash-script hyprctl.bash --fish-script hyprctl.fish --zsh-script hyprctl.zsh ./hyprctl.usage"
 

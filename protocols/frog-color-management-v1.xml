@@ -121,9 +121,9 @@
 				color volume
 				is implementation-specific, and may differ between different transfer functions it is paired
 				with:
-				ie. sRGB + 709 rendering may have it's primaries widened to more of the available display's
+				i.e. sRGB + 709 rendering may have its primaries widened to more of the available display's
 				gamut
-				to be be more pleasing for the viewer.
+				to be more pleasing for the viewer.
 				Compared to scRGB Linear + 709 being treated faithfully as 709
 				(including utilizing negatives out of the 709 gamut triangle)
 			</description>
@@ -138,7 +138,7 @@
 				HDR Metadata Infoframe as per CTA 861.G spec.
 
 				Usage of this HDR metadata is implementation specific and
-				outside of the scope of this protocol.
+				outside the scope of this protocol.
 			</description>
 			<arg name="mastering_display_primary_red_x" type="uint">
 				<description summary="red primary x coordinate">

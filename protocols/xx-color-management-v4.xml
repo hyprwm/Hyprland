@@ -134,7 +134,7 @@
       <entry name="extended_target_volume" value="6">
         <description summary="parametric target exceeds primary color volume">
           The compositor additionally supports target color volumes that
-          extend outside of the primary color volume.
+          extend outside the primary color volume.
 
           This can only be advertised if feature set_mastering_display_primaries
           is supported as well.
@@ -424,7 +424,7 @@
 
         This request can be used when the compositor advertises
         xx_color_manager_v4.feature.icc_v2_v4.
-        Otherwise this request raises the protocol error unsupported_feature.
+        Otherwise, this request raises the protocol error unsupported_feature.
       </description>
 
       <arg name="obj"
@@ -441,7 +441,7 @@
 
         This request can be used when the compositor advertises
         xx_color_manager_v4.feature.parametric.
-        Otherwise this request raises the protocol error unsupported_feature.
+        Otherwise, this request raises the protocol error unsupported_feature.
       </description>
 
       <arg name="obj"
@@ -498,7 +498,7 @@
       output.
 
       The xx_color_management_output_v4 is associated with the wl_output global
-      underlying the wl_output object. Therefore the client destroying the
+      underlying the wl_output object. Therefore, the client destroying the
       wl_output object has no impact, but the compositor removing the output
       global makes the xx_color_management_output_v4 object inert.
     </description>
@@ -554,7 +554,7 @@
         description object shall immediately deliver the
         xx_image_description_v4.failed event with the low_version cause.
 
-        Otherwise the object shall immediately deliver the ready event.
+        Otherwise, the object shall immediately deliver the ready event.
       </description>
 
       <arg name="image_description"
@@ -671,7 +671,7 @@
         It is only a hint, and clients may set any valid image description with
         set_image_description but there might be performance and color accuracy
         improvements by providing the wl_surface contents in the preferred
-        image description. Therefore clients that can, should render according
+        image description. Therefore, clients that can, should render according
         to the preferred image description
       </description>
     </event>
@@ -885,7 +885,7 @@
         Also, the combination of the parameter set is verified. If the set is
         not consistent, the protocol error inconsistent_set is raised.
 
-        If the particular combination of the parameter set is not supported
+        If the particular combination of the parameter set is unsupported
         by the compositor, the resulting image description object shall
         immediately deliver the xx_image_description_v4.failed event with the
         'unsupported' cause. If a valid image description was created from the
@@ -935,14 +935,14 @@
         The curve exponent shall be multiplied by 10000 to get the argument eexp
         value to carry the precision of 4 decimals.
 
-        The curve exponent must be at least 1.0 and at most 10.0. Otherwise the
+        The curve exponent must be at least 1.0 and at most 10.0. Otherwise, the
         protocol error invalid_tf is raised.
 
         If transfer characteristic has already been set on this object, the
         protocol error already_set is raised.
 
         This request can be used when the compositor advertises
-        xx_color_manager_v4.feature.set_tf_power. Otherwise this request raises
+        xx_color_manager_v4.feature.set_tf_power. Otherwise, this request raises
         the protocol error unsupported_feature.
       </description>
 
@@ -980,7 +980,7 @@
         already_set is raised.
 
         This request can be used if the compositor advertises
-        xx_color_manager_v4.feature.set_primaries. Otherwise this request raises
+        xx_color_manager_v4.feature.set_primaries. Otherwise, this request raises
         the protocol error unsupported_feature.
       </description>
 
@@ -1035,7 +1035,7 @@
         already_set is raised.
 
         This request can be used if the compositor advertises
-        xx_color_manager_v4.feature.set_luminances. Otherwise this request
+        xx_color_manager_v4.feature.set_luminances. Otherwise, this request
         raises the protocol error unsupported_feature.
       </description>
 
@@ -1082,7 +1082,7 @@
         protocol error already_set is raised.
 
         This request can be used if the compositor advertises
-        xx_color_manager_v4.feature.set_mastering_display_primaries. Otherwise
+        xx_color_manager_v4.feature.set_mastering_display_primaries. Otherwise,
         this request raises the protocol error unsupported_feature. The
         advertisement implies support only for target color volumes fully
         contained within the primary color volume.
@@ -1183,7 +1183,7 @@
       <description summary="destroy the image description">
         Destroy this object. It is safe to destroy an object which is not ready.
 
-        Destroying a xx_image_description_v4 object has no side-effects, not
+        Destroying a xx_image_description_v4 object has no side effects, not
         even if a xx_color_management_surface_v4.set_image_description has not
         yet been followed by a wl_surface.commit.
       </description>
@@ -1222,7 +1222,7 @@
         successfully formed.
 
         Once this event has been sent, the xx_image_description_v4 object will
-        never become ready and it can only be destroyed.
+        never become ready, and it can only be destroyed.
       </description>
 
       <arg name="cause" type="uint" enum="cause"
@@ -1307,7 +1307,7 @@
 
         The ICC profile version and other details are determined by the
         compositor. There is no provision for a client to ask for a specific
-        kind of a profile.
+        profile format.
       </description>
 
       <arg name="icc" type="fd" summary="ICC profile file descriptor" />

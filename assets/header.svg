@@ -64,8 +64,8 @@
             }
             </style>
             <contain>
-                <bgimg></bgimg>
-            <h1>Hyprland</h1>
+                <bgimg/>
+                <h1>Hyprland</h1>
             </contain>
         </div>
     </foreignObject>

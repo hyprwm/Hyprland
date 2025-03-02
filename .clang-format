@@ -3,46 +3,46 @@ Language: Cpp
 BasedOnStyle: LLVM
 
 AccessModifierOffset: -2
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: true
 AlignConsecutiveMacros: true
 AlignConsecutiveAssignments: true
-AlignEscapedNewlines: Right
+AlignEscapedNewlines: 'Right'
 AlignOperands: false
 AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: Always
+AllowShortBlocksOnASingleLine: 'Always'
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: All
+AllowShortFunctionsOnASingleLine: 'Empty'
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLambdasOnASingleLine: 'All'
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: 'None'
+AlwaysBreakAfterReturnType: 'None'
 AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: Yes
-BreakBeforeBraces: Attach
+BreakBeforeBraces: 'Attach'
 BreakBeforeTernaryOperators: false
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializers: 'AfterColon'
+BreakTemplateDeclarations: 'Yes'
 ColumnLimit: 180
 CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: false
-IncludeBlocks: Preserve
+IncludeBlocks: 'Preserve'
 IndentCaseLabels: true
 IndentWidth: 4
-PointerAlignment: Left
-ReflowComments: IndentOnly
-SortIncludes: Never
+PointerAlignment: 'Left'
+ReflowComments: 'IndentOnly'
+SortIncludes: 'Never'
 SortUsingDeclarations: false
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: true
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements
+SpaceBeforeParens: 'ControlStatements'
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
@@ -51,15 +51,15 @@ SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard: Auto
+Standard: 'Auto'
 TabWidth: 4
-UseTab: Never
+UseTab: 'Never'
 
 AllowShortEnumsOnASingleLine: false
 
 BraceWrapping:
   AfterEnum: false
 
-AlignConsecutiveDeclarations: AcrossEmptyLines
+AlignConsecutiveDeclarations: 'AcrossEmptyLines'
 
-NamespaceIndentation: All
+NamespaceIndentation: 'All'

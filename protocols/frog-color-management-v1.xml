@@ -38,7 +38,7 @@
 			The color management factory singleton creates color managed surface objects.
 		</description>
 
-		<request name="destroy" type="destructor"></request>
+		<request name="destroy" type="destructor"/>
 
 		<request name="get_color_managed_surface">
 			<description summary="create color management interface for surface">

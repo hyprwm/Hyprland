@@ -204,66 +204,33 @@ class CConfigManager {
     std::string                                        getErrors();
 
     // keywords
-    std::optional<std::string>                                                                     handleRawExec(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleExec(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleExecOnce(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleExecRawOnce(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleExecShutdown(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleMonitor(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleBind(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleUnbind(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleWindowRule(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleLayerRule(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleWindowRuleV2(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleWorkspaceRules(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleBezier(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleAnimation(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleSource(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleSubmap(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleBlurLS(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleBindWS(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handleEnv(const std::string&, const std::string&);
-    std::optional<std::string>                                                                     handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string> handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string> handleExec(const std::string&, const std::string&);
+    std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string> handleExecRawOnce(const std::string&, const std::string&);
+    std::optional<std::string> handleExecShutdown(const std::string&, const std::string&);
+    std::optional<std::string> handleMonitor(const std::string&, const std::string&);
+    std::optional<std::string> handleBind(const std::string&, const std::string&);
+    std::optional<std::string> handleUnbind(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
+    std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
+    std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
+    std::optional<std::string> handleBezier(const std::string&, const std::string&);
+    std::optional<std::string> handleAnimation(const std::string&, const std::string&);
+    std::optional<std::string> handleSource(const std::string&, const std::string&);
+    std::optional<std::string> handleSubmap(const std::string&, const std::string&);
+    std::optional<std::string> handleBlurLS(const std::string&, const std::string&);
+    std::optional<std::string> handleBindWS(const std::string&, const std::string&);
+    std::optional<std::string> handleEnv(const std::string&, const std::string&);
+    std::optional<std::string> handlePlugin(const std::string&, const std::string&);
 
-    std::string                                                                                    configCurrentPath;
+    std::string                configCurrentPath;
 
-    std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> mbWindowProperties = {
-        {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
-        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.dimAround; }},
-        {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.decorate; }},
-        {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
-        {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
-        {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
-        {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noAnim; }},
-        {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBlur; }},
-        {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBorder; }},
-        {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noDim; }},
-        {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFocus; }},
-        {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
-        {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noRounding; }},
-        {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShadow; }},
-        {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
-        {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.opaque; }},
-        {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.RGBX; }},
-        {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
-        {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.tearing; }},
-        {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
-    };
-
-    std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(const PHLWINDOW&)>> miWindowProperties = {
-        {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.rounding; }},
-        {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
-    };
-
-    std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> mfWindowProperties = {
-        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
-        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
-        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
-
-    bool m_bWantsMonitorReload                  = false;
-    bool m_bNoMonitorReload                     = false;
-    bool isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
-    bool m_bLastConfigVerificationWasSuccessful = true;
+    bool                       m_bWantsMonitorReload                  = false;
+    bool                       m_bNoMonitorReload                     = false;
+    bool                       isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
+    bool                       m_bLastConfigVerificationWasSuccessful = true;
 
   private:
     UP<Hyprlang::CConfig>                            m_pConfig;

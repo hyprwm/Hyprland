@@ -777,15 +777,15 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_PROP: {
             const CVarList VARS(r->szRule, 0, ' ');
-            if (auto search = g_pConfigManager->miWindowProperties.find(VARS[1]); search != g_pConfigManager->miWindowProperties.end()) {
+            if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
-            } else if (auto search = g_pConfigManager->mfWindowProperties.find(VARS[1]); search != g_pConfigManager->mfWindowProperties.end()) {
+            } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stof(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
-            } else if (auto search = g_pConfigManager->mbWindowProperties.find(VARS[1]); search != g_pConfigManager->mbWindowProperties.end()) {
+            } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
@@ -1653,13 +1653,13 @@ PHLWINDOW CWindow::getSwallower() {
 }
 
 void CWindow::unsetWindowData(eOverridePriority priority) {
-    for (auto const& element : g_pConfigManager->mbWindowProperties) {
+    for (auto const& element : NWindowProperties::boolWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
-    for (auto const& element : g_pConfigManager->miWindowProperties) {
+    for (auto const& element : NWindowProperties::intWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
-    for (auto const& element : g_pConfigManager->mfWindowProperties) {
+    for (auto const& element : NWindowProperties::floatWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
 }

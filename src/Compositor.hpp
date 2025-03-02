@@ -25,8 +25,8 @@ class CCompositor {
     CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
-    wl_display*                                m_sWLDisplay;
-    wl_event_loop*                             m_sWLEventLoop;
+    wl_display*                                m_sWLDisplay   = nullptr;
+    wl_event_loop*                             m_sWLEventLoop = nullptr;
     int                                        m_iDRMFD       = -1;
     bool                                       m_bInitialized = false;
     SP<Aquamarine::CBackend>                   m_pAqBackend;

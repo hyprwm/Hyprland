@@ -1708,8 +1708,11 @@ void CInputManager::releaseAllMouseButtons() {
     if (PROTO::data->dndActive())
         return;
 
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
     for (auto const& mb : buttonsCopy) {
-        g_pSeatManager->sendPointerButton(0, mb, WL_POINTER_BUTTON_STATE_RELEASED);
+        g_pSeatManager->sendPointerButton(now.tv_sec * 1000 + now.tv_nsec / 1000000, mb, WL_POINTER_BUTTON_STATE_RELEASED);
     }
 
     m_lCurrentlyHeldButtons.clear();

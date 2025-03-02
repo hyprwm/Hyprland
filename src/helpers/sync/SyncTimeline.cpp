@@ -131,6 +131,15 @@ void CSyncTimeline::removeWaiter(SWaiter* w) {
     std::erase_if(waiters, [w](const auto& e) { return e.get() == w; });
 }
 
+void CSyncTimeline::stopAllWaiters() {
+    for (auto& w : waiters) {
+        if (w->source) {
+            wl_event_source_remove(w->source);
+            w->source = nullptr;
+        }
+    }
+}
+
 CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {
     int      sync = -1;
 

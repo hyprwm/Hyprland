@@ -6,10 +6,12 @@
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <list>
 
 class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
 class CSyncTimeline;
+struct SSurfaceState;
 
 class CDRMSyncPointState {
   public:
@@ -23,23 +25,25 @@ class CDRMSyncPointState {
     bool                                             expired();
     Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
     bool                                             addWaiter(const std::function<void()>& waiter);
-    bool                                             waited();
+    bool                                             comitted();
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
+    bool                                             waitOnTimelinePoint();
 
   private:
-    WP<CDRMSyncobjTimelineResource> m_resource      = {};
-    uint64_t                        m_point         = 0;
-    WP<CSyncTimeline>               m_timeline      = {};
-    bool                            m_acquirePoint  = false;
-    bool                            m_acquireWaited = false;
-    bool                            m_releaseTaken  = false;
+    WP<CDRMSyncobjTimelineResource> m_resource         = {};
+    uint64_t                        m_point            = 0;
+    WP<CSyncTimeline>               m_timeline         = {};
+    bool                            m_acquirePoint     = false;
+    bool                            m_acquireCommitted = false;
+    bool                            m_acquireWaitedOn  = false;
+    bool                            m_releaseTaken     = false;
 };
 
 class CDRMSyncobjSurfaceResource {
   public:
     CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_);
-    ~CDRMSyncobjSurfaceResource() = default;
+    ~CDRMSyncobjSurfaceResource();
 
     bool protocolError();
     bool good();
@@ -48,16 +52,19 @@ class CDRMSyncobjSurfaceResource {
     WP<CWLSurfaceResource>          surface;
     UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
-    struct {
-        CDRMSyncPointState acquire, release;
-    } pending;
-
-    size_t pendingCommits = 0;
+    CDRMSyncPointState              pendingAcquire;
+    CDRMSyncPointState              pendingRelease;
+    std::list<SSurfaceState>        pendingStates;
 
     struct {
-        CHyprSignalListener surfaceBufferAttach;
+        CSignal acquireReady;
+    } events;
+
+    struct {
         CHyprSignalListener surfacePrecommit;
-        CHyprSignalListener surfaceCommit;
+        CHyprSignalListener surfaceRoleCommit;
+        CHyprSignalListener surfaceRoleCommitEnd;
+        CHyprSignalListener acquireReady;
     } listeners;
 };
 

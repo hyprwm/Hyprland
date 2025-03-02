@@ -8,7 +8,6 @@
 class CProtocolManager {
   public:
     CProtocolManager();
-    ~CProtocolManager();
 
     bool isGlobalPrivileged(const wl_global* global);
 

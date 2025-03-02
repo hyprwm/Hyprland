@@ -6,7 +6,7 @@
 #include <format>
 
 #include <print>
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 
 #include "../helpers/Colors.hpp"

@@ -19,6 +19,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
             .timeMs  = timeMs,
             .delta   = {wl_fixed_to_double(dx), wl_fixed_to_double(dy)},
             .unaccel = {wl_fixed_to_double(dx), wl_fixed_to_double(dy)},
+            .device  = nullptr,
         });
     });
 

@@ -93,25 +93,14 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
 
-    if (!e.mouse) {
-        SP<IPointer> activePointer = nullptr;
-
-        for (auto& pointer : m_vPointers) {
-            if (pointer->connected && !pointer->isVirtual()) {
-                activePointer = pointer;
-                break;
-            }
+    if (!e.mouse && e.device) {
+        if (e.device->flipX) {
+            delta.x   = -delta.x;
+            unaccel.x = -unaccel.x;
         }
-
-        if (activePointer) {
-            if (activePointer->flipX) {
-                delta.x   = -delta.x;
-                unaccel.x = -unaccel.x;
-            }
-            if (activePointer->flipY) {
-                delta.y   = -delta.y;
-                unaccel.y = -unaccel.y;
-            }
+        if (e.device->flipY) {
+            delta.y   = -delta.y;
+            unaccel.y = -unaccel.y;
         }
     }
 

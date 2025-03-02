@@ -113,7 +113,7 @@ CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
 }
 
 CWindow::~CWindow() {
-    if (g_pCompositor->m_pLastWindow.lock().get() == this) {
+    if (g_pCompositor->m_pLastWindow == m_pSelf) {
         g_pCompositor->m_pLastFocus.reset();
         g_pCompositor->m_pLastWindow.reset();
     }
@@ -124,7 +124,7 @@ CWindow::~CWindow() {
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return !other.first.lock() || other.first.lock().get() == this; });
+    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == this; });
 }
 
 SBoxExtents CWindow::getFullWindowExtents() {
@@ -415,7 +415,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent
                 SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
-                if (token.primaryOwner.lock().get() == this) {
+                if (token.primaryOwner == m_pSelf) {
                     token.workspace = pWorkspace->getConfigName();
                     TOKEN->data     = token;
                 }
@@ -505,7 +505,7 @@ void CWindow::onUnmap() {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent token, but the first window got removed so the token is gone
                 SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
-                if (token.primaryOwner.lock().get() == this)
+                if (token.primaryOwner == m_pSelf)
                     g_pTokenManager->removeToken(TOKEN);
             }
         }
@@ -513,7 +513,7 @@ void CWindow::onUnmap() {
 
     m_iLastWorkspace = m_pWorkspace->m_iID;
 
-    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other.expired() || other.lock().get() == this; });
+    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [this](const auto& other) { return other.expired() || other == m_pSelf; });
 
     if (*PCLOSEONLASTSPECIAL && m_pWorkspace && m_pWorkspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_pMonitor.lock();
@@ -523,7 +523,7 @@ void CWindow::onUnmap() {
 
     const auto PMONITOR = m_pMonitor.lock();
 
-    if (PMONITOR && PMONITOR->solitaryClient.lock().get() == this)
+    if (PMONITOR && PMONITOR->solitaryClient == m_pSelf)
         PMONITOR->solitaryClient.reset();
 
     if (m_pWorkspace) {
@@ -609,9 +609,8 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 void CWindow::setHidden(bool hidden) {
     m_bHidden = hidden;
 
-    if (hidden && g_pCompositor->m_pLastWindow.lock().get() == this) {
+    if (hidden && g_pCompositor->m_pLastWindow == m_pSelf)
         g_pCompositor->m_pLastWindow.reset();
-    }
 
     setSuspended(hidden);
 }
@@ -777,15 +776,15 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_PROP: {
             const CVarList VARS(r->szRule, 0, ' ');
-            if (auto search = g_pConfigManager->miWindowProperties.find(VARS[1]); search != g_pConfigManager->miWindowProperties.end()) {
+            if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
-            } else if (auto search = g_pConfigManager->mfWindowProperties.find(VARS[1]); search != g_pConfigManager->mfWindowProperties.end()) {
+            } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stof(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
-            } else if (auto search = g_pConfigManager->mbWindowProperties.find(VARS[1]); search != g_pConfigManager->mbWindowProperties.end()) {
+            } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
@@ -905,7 +904,7 @@ void CWindow::createGroup() {
 }
 
 void CWindow::destroyGroup() {
-    if (m_sGroupData.pNextWindow.lock().get() == this) {
+    if (m_sGroupData.pNextWindow == m_pSelf) {
         if (m_eGroupRules & GROUP_SET_ALWAYS) {
             Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
             return;
@@ -987,7 +986,7 @@ PHLWINDOW CWindow::getGroupCurrent() {
 int CWindow::getGroupSize() {
     int       size = 1;
     PHLWINDOW curr = m_pSelf.lock();
-    while (curr->m_sGroupData.pNextWindow.lock().get() != this) {
+    while (curr->m_sGroupData.pNextWindow != m_pSelf) {
         curr = curr->m_sGroupData.pNextWindow.lock();
         size++;
     }
@@ -1093,7 +1092,7 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
 PHLWINDOW CWindow::getGroupPrevious() {
     PHLWINDOW curr = m_sGroupData.pNextWindow.lock();
 
-    while (curr != m_pSelf.lock() && curr->m_sGroupData.pNextWindow.lock().get() != this)
+    while (curr != m_pSelf && curr->m_sGroupData.pNextWindow != m_pSelf)
         curr = curr->m_sGroupData.pNextWindow.lock();
 
     return curr;
@@ -1108,7 +1107,7 @@ void CWindow::switchWithWindowInGroup(PHLWINDOW pWindow) {
         m_sGroupData.pNextWindow                     = pWindow->m_sGroupData.pNextWindow;
         pWindow->m_sGroupData.pNextWindow            = m_pSelf;
 
-    } else if (pWindow->m_sGroupData.pNextWindow.lock().get() == this) { // A -> pWindow -> this -> B >> A -> this -> pWindow -> B
+    } else if (pWindow->m_sGroupData.pNextWindow == m_pSelf) { // A -> pWindow -> this -> B >> A -> this -> pWindow -> B
         pWindow->getGroupPrevious()->m_sGroupData.pNextWindow = m_pSelf;
         pWindow->m_sGroupData.pNextWindow                     = m_sGroupData.pNextWindow;
         m_sGroupData.pNextWindow                              = pWindow;
@@ -1662,13 +1661,13 @@ PHLWINDOW CWindow::getSwallower() {
 }
 
 void CWindow::unsetWindowData(eOverridePriority priority) {
-    for (auto const& element : g_pConfigManager->mbWindowProperties) {
+    for (auto const& element : NWindowProperties::boolWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
-    for (auto const& element : g_pConfigManager->miWindowProperties) {
+    for (auto const& element : NWindowProperties::intWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
-    for (auto const& element : g_pConfigManager->mfWindowProperties) {
+    for (auto const& element : NWindowProperties::floatWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
 }

@@ -2210,7 +2210,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     // finalize
     if (POLDMON) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
+        if (valid(POLDMON->activeWorkspace))
+            updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
         updateSuspendedStates();
     }
 
@@ -2697,6 +2698,9 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         return;
 
     if (pWindow->m_bPinned && pWorkspace->m_bIsSpecialWorkspace)
+        return;
+
+    if (pWindow->m_pWorkspace == pWorkspace)
         return;
 
     const bool FULLSCREEN     = pWindow->isFullscreen();

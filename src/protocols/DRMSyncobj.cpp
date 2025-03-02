@@ -133,8 +133,11 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
             return; // null buffer attached, destroy.
         }
 
-        if (!surface->pending.buffer && !surface->pending.newBuffer && surface->current.buffer)
+        if (!surface->pending.buffer && !surface->pending.newBuffer && surface->current.buffer) {
+            surface->current.damage.clear(); // #TODO clear damage to not rerender 24/7 ?
+            surface->current.bufferDamage.clear();
             surface->commitPendingState(); // no new buffer commit on current
+        }
 
         if (!surface->pending.buffer && !surface->pending.newBuffer)
             return; // no pending buffer, no current buffer. probably first commit, return.

@@ -52,7 +52,7 @@ void CProgressBar::print() {
     const auto BARWIDTH = std::clamp(w.ws_col - static_cast<unsigned long>(m_szCurrentMessage.length()) - 2, 0UL, 50UL);
 
     // draw bar
-    message += std::string{" "} + Colors::GREEN;
+    message += std::string{" "} + NColors::GREEN;
     size_t i = 0;
     for (; i < std::floor(percentDone * BARWIDTH); ++i) {
         message += "━";
@@ -61,13 +61,13 @@ void CProgressBar::print() {
     if (i < BARWIDTH) {
         i++;
 
-        message += std::string{"╍"} + Colors::RESET;
+        message += std::string{"╍"} + NColors::RESET;
 
         for (; i < BARWIDTH; ++i) {
             message += "━";
         }
     } else
-        message += Colors::RESET;
+        message += NColors::RESET;
 
     // draw progress
     if (m_fPercentage >= 0)

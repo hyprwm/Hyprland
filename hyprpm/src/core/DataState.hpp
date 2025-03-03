@@ -9,16 +9,16 @@ struct SGlobalState {
     bool        dontWarnInstall     = false;
 };
 
-namespace DataState {
-    std::filesystem::path              getDataStatePath();
-    std::string                        getHeadersPath();
-    std::vector<std::filesystem::path> getPluginStates();
-    void                               ensureStateStoreExists();
-    void                               addNewPluginRepo(const SPluginRepository& repo);
-    void                               removePluginRepo(const std::string& urlOrName);
-    bool                               pluginRepoExists(const std::string& urlOrName);
-    void                               updateGlobalState(const SGlobalState& state);
-    SGlobalState                       getGlobalState();
-    bool                               setPluginEnabled(const std::string& name, bool enabled);
-    std::vector<SPluginRepository>     getAllRepositories();
+namespace NDataState {
+    static std::filesystem::path              getDataStatePath();
+    static std::string                        getHeadersPath();
+    static std::vector<std::filesystem::path> getPluginStates();
+    static void                               ensureStateStoreExists();
+    static void                               addNewPluginRepo(const SPluginRepository& repo);
+    static void                               removePluginRepo(const std::string& urlOrName);
+    static bool                               pluginRepoExists(const std::string& urlOrName);
+    static void                               updateGlobalState(const SGlobalState& state);
+    static SGlobalState                       getGlobalState();
+    static bool                               setPluginEnabled(const std::string& name, bool enabled);
+    static std::vector<SPluginRepository>     getAllRepositories();
 };

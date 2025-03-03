@@ -4,7 +4,7 @@
 #include <fstream>
 #include "PluginManager.hpp"
 
-std::filesystem::path DataState::getDataStatePath() {
+static std::filesystem::path NDataState::getDataStatePath() {
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::println(stderr, "DataState: no $HOME");
@@ -19,11 +19,11 @@ std::filesystem::path DataState::getDataStatePath() {
     return std::filesystem::path{HOME} / ".local/share/hyprpm";
 }
 
-std::string DataState::getHeadersPath() {
+static std::string NDataState::getHeadersPath() {
     return getDataStatePath() / "headersRoot";
 }
 
-std::vector<std::filesystem::path> DataState::getPluginStates() {
+static std::vector<std::filesystem::path> NDataState::getPluginStates() {
     ensureStateStoreExists();
 
     std::vector<std::filesystem::path> states;
@@ -31,16 +31,16 @@ std::vector<std::filesystem::path> DataState::getPluginStates() {
         if (!entry.is_directory() || entry.path().stem() == "headersRoot")
             continue;
 
-        const auto stateFile = entry.path() / "state.toml";
-        if (!std::filesystem::exists(stateFile))
+        const auto STATE_FILE = entry.path() / "state.toml";
+        if (!std::filesystem::exists(STATE_FILE))
             continue;
 
-        states.emplace_back(stateFile);
+        states.emplace_back(STATE_FILE);
     }
     return states;
 }
 
-void DataState::ensureStateStoreExists() {
+static void NDataState::ensureStateStoreExists() {
     const auto PATH = getDataStatePath();
 
     if (!std::filesystem::exists(PATH))
@@ -50,7 +50,7 @@ void DataState::ensureStateStoreExists() {
         std::filesystem::create_directories(getHeadersPath());
 }
 
-void DataState::addNewPluginRepo(const SPluginRepository& repo) {
+static void NDataState::addNewPluginRepo(const SPluginRepository& repo) {
     ensureStateStoreExists();
 
     const auto PATH = getDataStatePath() / repo.name;
@@ -85,13 +85,13 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     ofs.close();
 }
 
-bool DataState::pluginRepoExists(const std::string& urlOrName) {
+static bool NDataState::pluginRepoExists(const std::string& urlOrName) {
     ensureStateStoreExists();
 
     const auto PATH = getDataStatePath();
 
-    for (const auto& stateFile : getPluginStates()) {
-        const auto STATE = toml::parse_file(stateFile.c_str());
+    for (const auto& STATE_FILE : getPluginStates()) {
+        const auto STATE = toml::parse_file(STATE_FILE.c_str());
         const auto NAME  = STATE["repository"]["name"].value_or("");
         const auto URL   = STATE["repository"]["url"].value_or("");
 
@@ -102,33 +102,33 @@ bool DataState::pluginRepoExists(const std::string& urlOrName) {
     return false;
 }
 
-void DataState::removePluginRepo(const std::string& urlOrName) {
+static void NDataState::removePluginRepo(const std::string& urlOrName) {
     ensureStateStoreExists();
 
     const auto PATH = getDataStatePath();
 
-    for (const auto& stateFile : getPluginStates()) {
-        const auto STATE = toml::parse_file(stateFile.c_str());
+    for (const auto& STATE_FILE : getPluginStates()) {
+        const auto STATE = toml::parse_file(STATE_FILE.c_str());
         const auto NAME  = STATE["repository"]["name"].value_or("");
         const auto URL   = STATE["repository"]["url"].value_or("");
 
         if (URL == urlOrName || NAME == urlOrName) {
 
             // unload the plugins!!
-            for (const auto& file : std::filesystem::directory_iterator(stateFile.parent_path())) {
+            for (const auto& file : std::filesystem::directory_iterator(STATE_FILE.parent_path())) {
                 if (!file.path().string().ends_with(".so"))
                     continue;
 
                 g_pPluginManager->loadUnloadPlugin(std::filesystem::absolute(file.path()), false);
             }
 
-            std::filesystem::remove_all(stateFile.parent_path());
+            std::filesystem::remove_all(STATE_FILE.parent_path());
             return;
         }
     }
 }
 
-void DataState::updateGlobalState(const SGlobalState& state) {
+static void NDataState::updateGlobalState(const SGlobalState& state) {
     ensureStateStoreExists();
 
     const auto PATH = getDataStatePath();
@@ -148,15 +148,15 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     ofs.close();
 }
 
-SGlobalState DataState::getGlobalState() {
+static SGlobalState NDataState::getGlobalState() {
     ensureStateStoreExists();
 
-    const auto stateFile = getDataStatePath() / "state.toml";
+    const auto STATE_FILE = getDataStatePath() / "state.toml";
 
-    if (!std::filesystem::exists(stateFile))
+    if (!std::filesystem::exists(STATE_FILE))
         return SGlobalState{};
 
-    auto         DATA = toml::parse_file(stateFile.c_str());
+    auto         DATA = toml::parse_file(STATE_FILE.c_str());
 
     SGlobalState state;
     state.headersHashCompiled = DATA["state"]["hash"].value_or("");
@@ -165,14 +165,14 @@ SGlobalState DataState::getGlobalState() {
     return state;
 }
 
-std::vector<SPluginRepository> DataState::getAllRepositories() {
+static std::vector<SPluginRepository> NDataState::getAllRepositories() {
     ensureStateStoreExists();
 
     const auto                     PATH = getDataStatePath();
 
     std::vector<SPluginRepository> repos;
-    for (const auto& stateFile : getPluginStates()) {
-        const auto        STATE = toml::parse_file(stateFile.c_str());
+    for (const auto& STATE_FILE : getPluginStates()) {
+        const auto        STATE = toml::parse_file(STATE_FILE.c_str());
 
         const auto        NAME = STATE["repository"]["name"].value_or("");
         const auto        URL  = STATE["repository"]["url"].value_or("");
@@ -202,13 +202,13 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
     return repos;
 }
 
-bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
+static bool NDataState::setPluginEnabled(const std::string& name, bool enabled) {
     ensureStateStoreExists();
 
     const auto PATH = getDataStatePath();
 
-    for (const auto& stateFile : getPluginStates()) {
-        const auto STATE = toml::parse_file(stateFile.c_str());
+    for (const auto& STATE_FILE : getPluginStates()) {
+        const auto STATE = toml::parse_file(STATE_FILE.c_str());
         for (const auto& [key, val] : STATE) {
             if (key == "repository")
                 continue;
@@ -224,7 +224,7 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
             auto modifiedState = STATE;
             (*modifiedState[key].as_table()).insert_or_assign("enabled", enabled);
 
-            std::ofstream state(stateFile, std::ios::trunc);
+            std::ofstream state(STATE_FILE, std::ios::trunc);
             state << modifiedState;
             state.close();
 

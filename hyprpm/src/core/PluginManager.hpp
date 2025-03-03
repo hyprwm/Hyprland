@@ -1,10 +1,10 @@
 #pragma once
-
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
-enum eHeadersErrors {
+enum eHeadersErrors : uint8_t {
     HEADERS_OK = 0,
     HEADERS_NOT_HYPRLAND,
     HEADERS_MISSING,
@@ -13,7 +13,7 @@ enum eHeadersErrors {
     HEADERS_DUPLICATED
 };
 
-enum eNotifyIcons {
+enum eNotifyIcons : uint8_t {
     ICON_WARNING = 0,
     ICON_INFO,
     ICON_HINT,
@@ -23,7 +23,7 @@ enum eNotifyIcons {
     ICON_NONE
 };
 
-enum ePluginLoadStateReturn {
+enum ePluginLoadStateReturn : uint8_t {
     LOADSTATE_OK = 0,
     LOADSTATE_FAIL,
     LOADSTATE_PARTIAL_FAIL,
@@ -56,7 +56,7 @@ class CPluginManager {
     bool                   loadUnloadPlugin(const std::string& path, bool load);
     SHyprlandVersion       getHyprlandVersion(bool running = true);
 
-    void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
+    void                   notify(const eNotifyIcons ICON, uint32_t color, int durationMs, const std::string& message);
 
     bool                   hasDeps();
 
@@ -68,8 +68,8 @@ class CPluginManager {
     bool createSafeDirectory(const std::string& path);
 
   private:
-    std::string headerError(const eHeadersErrors err);
-    std::string headerErrorShort(const eHeadersErrors err);
+    std::string headerError(const eHeadersErrors ERR);
+    std::string headerErrorShort(const eHeadersErrors ERR);
 
     std::string m_szWorkingPluginDirectory;
 };

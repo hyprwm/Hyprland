@@ -133,23 +133,23 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         return false;
     }
 
-    if (DataState::pluginRepoExists(url)) {
+    if (NDataState::pluginRepoExists(url)) {
         std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Repository already installed."));
         return false;
     }
 
-    auto GLOBALSTATE = DataState::getGlobalState();
+    auto GLOBALSTATE = NDataState::getGlobalState();
     if (!GLOBALSTATE.dontWarnInstall) {
-        std::println("{}!{} Disclaimer: {}", Colors::YELLOW, Colors::RED, Colors::RESET);
+        std::println("{}!{} Disclaimer: {}", NColors::YELLOW, NColors::RED, NColors::RESET);
         std::println("plugins, especially not official, have no guarantee of stability, availablity or security.\n"
                      "Run them at your own risk.\n"
                      "This message will not appear again.");
         GLOBALSTATE.dontWarnInstall = true;
-        DataState::updateGlobalState(GLOBALSTATE);
+        NDataState::updateGlobalState(GLOBALSTATE);
     }
 
-    std::cout << Colors::GREEN << "✔" << Colors::RESET << Colors::RED << " adding a new plugin repository " << Colors::RESET << "from " << url << "\n  " << Colors::RED
-              << "MAKE SURE" << Colors::RESET << " that you trust the authors. " << Colors::RED << "DO NOT" << Colors::RESET
+    std::cout << NColors::GREEN << "✔" << NColors::RESET << NColors::RED << " adding a new plugin repository " << NColors::RESET << "from " << url << "\n  " << NColors::RED
+              << "MAKE SURE" << NColors::RESET << " that you trust the authors. " << NColors::RED << "DO NOT" << NColors::RESET
               << " install random plugins without verifying the code and author.\n  "
               << "Are you sure? [Y/n] ";
     std::fflush(stdout);
@@ -293,7 +293,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(infoString("Building {}", p.name));
 
         for (auto const& bs : p.buildSteps) {
-            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
+            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, NDataState::getHeadersPath(), bs);
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 
@@ -331,7 +331,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     for (auto const& p : pManifest->m_vPlugins) {
         repo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, false, p.failed});
     }
-    DataState::addNewPluginRepo(repo);
+    NDataState::addNewPluginRepo(repo);
 
     progress.printMessageAbove(successString("installed repository"));
     progress.printMessageAbove(successString("you can now enable the plugin(s) with hyprpm enable"));
@@ -348,12 +348,12 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 }
 
 bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
-    if (!DataState::pluginRepoExists(urlOrName)) {
+    if (!NDataState::pluginRepoExists(urlOrName)) {
         std::println(stderr, "\n{}", failureString("Could not remove the repository. Repository is not installed."));
         return false;
     }
 
-    std::cout << Colors::YELLOW << "!" << Colors::RESET << Colors::RED << " removing a plugin repository: " << Colors::RESET << urlOrName << "\n  "
+    std::cout << NColors::YELLOW << "!" << NColors::RESET << NColors::RED << " removing a plugin repository: " << NColors::RESET << urlOrName << "\n  "
               << "Are you sure? [Y/n] ";
     std::fflush(stdout);
     std::string input;
@@ -364,7 +364,7 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
         return false;
     }
 
-    DataState::removePluginRepo(urlOrName);
+    NDataState::removePluginRepo(urlOrName);
 
     return true;
 }
@@ -372,11 +372,11 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 eHeadersErrors CPluginManager::headersValid() {
     const auto HLVER = getHyprlandVersion(false);
 
-    if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
+    if (!std::filesystem::exists(NDataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
         return HEADERS_MISSING;
 
     // find headers commit
-    const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", NDataState::getHeadersPath());
     auto               headers = execAndGet(cmd);
 
     if (!headers.contains("-I/"))
@@ -430,7 +430,7 @@ eHeadersErrors CPluginManager::headersValid() {
 
 bool CPluginManager::updateHeaders(bool force) {
 
-    DataState::ensureStateStoreExists();
+    NDataState::ensureStateStoreExists();
 
     const auto HLVER = getHyprlandVersion(false);
 
@@ -465,19 +465,19 @@ bool CPluginManager::updateHeaders(bool force) {
 
     const auto& HL_URL = m_szCustomHlUrl.empty() ? "https://github.com/hyprwm/Hyprland" : m_szCustomHlUrl;
 
-    progress.printMessageAbove(statusString("!", Colors::YELLOW, "Cloning {}, this might take a moment.", HL_URL));
+    progress.printMessageAbove(statusString("!", NColors::YELLOW, "Cloning {}, this might take a moment.", HL_URL));
 
-    const bool bShallow = (HLVER.branch == "main") && !m_bNoShallow;
+    const bool SHALLOW = (HLVER.branch == "main") && !m_bNoShallow;
 
     // let us give a bit of leg-room for shallowing
     // due to timezones, etc.
     const std::string SHALLOW_DATE = trim(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+%a %b %d %H:%M:%S %Y'");
 
-    if (m_bVerbose && bShallow)
+    if (m_bVerbose && SHALLOW)
         progress.printMessageAbove(verboseString("will shallow since: {}", SHALLOW_DATE));
 
     std::string ret =
-        execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}{}", getTempRoot(), HL_URL, USERNAME, (bShallow ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
+        execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}{}", getTempRoot(), HL_URL, USERNAME, (SHALLOW ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
 
     if (!std::filesystem::exists(WORKINGDIR)) {
         progress.printMessageAbove(failureString("Clone failed. Retrying without shallow."));
@@ -519,13 +519,13 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Building Hyprland";
     progress.print();
 
-    progress.printMessageAbove(statusString("!", Colors::YELLOW, "configuring Hyprland"));
+    progress.printMessageAbove(statusString("!", NColors::YELLOW, "configuring Hyprland"));
 
     if (m_bVerbose)
-        progress.printMessageAbove(verboseString("setting PREFIX for cmake to {}", DataState::getHeadersPath()));
+        progress.printMessageAbove(verboseString("setting PREFIX for cmake to {}", NDataState::getHeadersPath()));
 
     ret = execAndGet(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build -G Ninja", WORKINGDIR,
-                                 DataState::getHeadersPath()));
+                                 NDataState::getHeadersPath()));
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("cmake returned: {}", ret));
 
@@ -549,7 +549,7 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.print();
 
     const std::string& cmd =
-        std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile && cd {} && make installheaders", DataState::getHeadersPath(), WORKINGDIR, WORKINGDIR);
+        std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile && cd {} && make installheaders", NDataState::getHeadersPath(), WORKINGDIR, WORKINGDIR);
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("installation will run: {}", cmd));
 
@@ -589,7 +589,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return false;
     }
 
-    const auto REPOS = DataState::getAllRepositories();
+    const auto REPOS = NDataState::getAllRepositories();
 
     if (REPOS.size() < 1) {
         std::println("{}", failureString("No repos to update."));
@@ -709,7 +709,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(infoString("Building {}", p.name));
 
             for (auto const& bs : p.buildSteps) {
-                const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
+                const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, NDataState::getHeadersPath(), bs);
                 out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
 
@@ -743,8 +743,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
             newrepo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }
-        DataState::removePluginRepo(newrepo.name);
-        DataState::addNewPluginRepo(newrepo);
+        NDataState::removePluginRepo(newrepo.name);
+        NDataState::addNewPluginRepo(newrepo);
 
         std::filesystem::remove_all(m_szWorkingPluginDirectory);
 
@@ -755,9 +755,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    auto GLOBALSTATE                = DataState::getGlobalState();
+    auto GLOBALSTATE                = NDataState::getGlobalState();
     GLOBALSTATE.headersHashCompiled = HLVER.hash;
-    DataState::updateGlobalState(GLOBALSTATE);
+    NDataState::updateGlobalState(GLOBALSTATE);
 
     progress.m_iSteps++;
     progress.m_szCurrentMessage = "Done!";
@@ -769,14 +769,14 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 }
 
 bool CPluginManager::enablePlugin(const std::string& name) {
-    bool ret = DataState::setPluginEnabled(name, true);
+    bool ret = NDataState::setPluginEnabled(name, true);
     if (ret)
         std::println("{}", successString("Enabled {}", name));
     return ret;
 }
 
 bool CPluginManager::disablePlugin(const std::string& name) {
-    bool ret = DataState::setPluginEnabled(name, false);
+    bool ret = NDataState::setPluginEnabled(name, false);
     if (ret)
         std::println("{}", successString("Disabled {}", name));
     return ret;
@@ -794,16 +794,16 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
         std::println(stderr, "PluginManager: no $HOME or $HYPRLAND_INSTANCE_SIGNATURE");
         return LOADSTATE_FAIL;
     }
-    const auto HYPRPMPATH = DataState::getDataStatePath();
+    const auto HYPRPMPATH = NDataState::getDataStatePath();
 
-    const auto json = glz::read_json<glz::json_t::array_t>(execAndGet("hyprctl plugins list -j"));
-    if (!json) {
+    const auto JSON = glz::read_json<glz::json_t::array_t>(execAndGet("hyprctl plugins list -j"));
+    if (!JSON) {
         std::println(stderr, "PluginManager: couldn't parse hyprctl output");
         return LOADSTATE_FAIL;
     }
 
     std::vector<std::string> loadedPlugins;
-    for (const auto& plugin : json.value()) {
+    for (const auto& plugin : JSON.value()) {
         if (!plugin.is_object() || !plugin.contains("name")) {
             std::println(stderr, "PluginManager: couldn't parse plugin object");
             return LOADSTATE_FAIL;
@@ -814,7 +814,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
     std::println("{}", successString("Ensuring plugin load state"));
 
     // get state
-    const auto REPOS = DataState::getAllRepositories();
+    const auto REPOS = NDataState::getAllRepositories();
 
     auto       enabled = [REPOS](const std::string& plugin) -> bool {
         for (auto const& r : REPOS) {
@@ -878,7 +878,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
 }
 
 bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
-    auto state = DataState::getGlobalState();
+    auto state = NDataState::getGlobalState();
     auto HLVER = getHyprlandVersion(true);
 
     if (state.headersHashCompiled != HLVER.hash) {
@@ -895,7 +895,7 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
 }
 
 void CPluginManager::listAllPlugins() {
-    const auto REPOS = DataState::getAllRepositories();
+    const auto REPOS = NDataState::getAllRepositories();
 
     for (auto const& r : REPOS) {
         std::println("{}", infoString("Repository {}:", r.name));
@@ -904,11 +904,11 @@ void CPluginManager::listAllPlugins() {
             std::println("  │ Plugin {}", p.name);
 
             if (!p.failed)
-                std::println("  └─ enabled: {}", (p.enabled ? std::string{Colors::GREEN} + "true" : std::string{Colors::RED} + "false"));
+                std::println("  └─ enabled: {}", (p.enabled ? std::string{NColors::GREEN} + "true" : std::string{NColors::RED} + "false"));
             else
-                std::println("  └─ enabled: {}Plugin failed to build", Colors::RED);
+                std::println("  └─ enabled: {}Plugin failed to build", NColors::RED);
 
-            std::println("{}", Colors::RESET);
+            std::println("{}", NColors::RESET);
         }
     }
 }

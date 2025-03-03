@@ -91,7 +91,7 @@ CheckOptions:
   readability-identifier-naming.ClassCase: camelCase
   readability-identifier-naming.ClassIgnoredRegexp: I.*
   readability-identifier-naming.ClassPrefix: C # We can't use regex here?!?!?!?
-  readability-identifier-naming.ClassMemberCase: camelBack
+  readability-identifier-naming.ClassMemberCase: camelCase
   readability-identifier-naming.ClassMemberPrefix: m_
   readability-identifier-naming.ConstantCase: UPPER_CASE
   readability-identifier-naming.EnumCase: camelCase

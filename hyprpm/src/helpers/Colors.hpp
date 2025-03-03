@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Colors {
+namespace NColors {
     constexpr const char* RED     = "\x1b[31m";
     constexpr const char* GREEN   = "\x1b[32m";
     constexpr const char* YELLOW  = "\x1b[33m";

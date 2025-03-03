@@ -1,16 +1,16 @@
 #pragma once
-
+#include <cstdint>
 #include <string>
 #include <vector>
 
-enum eManifestType {
+enum eManifestType : uint8_t {
     MANIFEST_HYPRLOAD,
     MANIFEST_HYPRPM
 };
 
 class CManifest {
   public:
-    CManifest(const eManifestType type, const std::string& path);
+    CManifest(const eManifestType TYPE, const std::string& path);
 
     struct SManifestPlugin {
         std::string              name;

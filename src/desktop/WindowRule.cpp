@@ -24,59 +24,59 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         return;
 
     if (rule == "float")
-        ruleType = RULE_FLOAT;
+        m_ruleType = RULE_FLOAT;
     else if (rule == "fullscreen")
-        ruleType = RULE_FULLSCREEN;
+        m_ruleType = RULE_FULLSCREEN;
     else if (rule == "maximize")
-        ruleType = RULE_MAXIMIZE;
+        m_ruleType = RULE_MAXIMIZE;
     else if (rule == "noinitialfocus")
-        ruleType = RULE_NOINITIALFOCUS;
+        m_ruleType = RULE_NOINITIALFOCUS;
     else if (rule == "pin")
-        ruleType = RULE_PIN;
+        m_ruleType = RULE_PIN;
     else if (rule == "stayfocused")
-        ruleType = RULE_STAYFOCUSED;
+        m_ruleType = RULE_STAYFOCUSED;
     else if (rule == "tile")
-        ruleType = RULE_TILE;
+        m_ruleType = RULE_TILE;
     else if (rule == "renderunfocused")
-        ruleType = RULE_RENDERUNFOCUSED;
+        m_ruleType = RULE_RENDERUNFOCUSED;
     else if (rule.starts_with("animation"))
-        ruleType = RULE_ANIMATION;
+        m_ruleType = RULE_ANIMATION;
     else if (rule.starts_with("bordercolor"))
-        ruleType = RULE_BORDERCOLOR;
+        m_ruleType = RULE_BORDERCOLOR;
     else if (rule.starts_with("center"))
-        ruleType = RULE_CENTER;
+        m_ruleType = RULE_CENTER;
     else if (rule.starts_with("fullscreenstate"))
-        ruleType = RULE_FULLSCREENSTATE;
+        m_ruleType = RULE_FULLSCREENSTATE;
     else if (rule.starts_with("group"))
-        ruleType = RULE_GROUP;
+        m_ruleType = RULE_GROUP;
     else if (rule.starts_with("idleinhibit"))
-        ruleType = RULE_IDLEINHIBIT;
+        m_ruleType = RULE_IDLEINHIBIT;
     else if (rule.starts_with("maxsize"))
-        ruleType = RULE_MAXSIZE;
+        m_ruleType = RULE_MAXSIZE;
     else if (rule.starts_with("minsize"))
-        ruleType = RULE_MINSIZE;
+        m_ruleType = RULE_MINSIZE;
     else if (rule.starts_with("monitor"))
-        ruleType = RULE_MONITOR;
+        m_ruleType = RULE_MONITOR;
     else if (rule.starts_with("move"))
-        ruleType = RULE_MOVE;
+        m_ruleType = RULE_MOVE;
     else if (rule.starts_with("opacity"))
-        ruleType = RULE_OPACITY;
+        m_ruleType = RULE_OPACITY;
     else if (rule.starts_with("plugin:"))
-        ruleType = RULE_PLUGIN;
+        m_ruleType = RULE_PLUGIN;
     else if (rule.starts_with("pseudo"))
-        ruleType = RULE_PSEUDO;
+        m_ruleType = RULE_PSEUDO;
     else if (rule.starts_with("size"))
-        ruleType = RULE_SIZE;
+        m_ruleType = RULE_SIZE;
     else if (rule.starts_with("suppressevent"))
-        ruleType = RULE_SUPPRESSEVENT;
+        m_ruleType = RULE_SUPPRESSEVENT;
     else if (rule.starts_with("tag"))
-        ruleType = RULE_TAG;
+        m_ruleType = RULE_TAG;
     else if (rule.starts_with("workspace"))
-        ruleType = RULE_WORKSPACE;
+        m_ruleType = RULE_WORKSPACE;
     else if (rule.starts_with("prop"))
-        ruleType = RULE_PROP;
+        m_ruleType = RULE_PROP;
     else if (rule.starts_with("content"))
-        ruleType = RULE_CONTENT;
+        m_ruleType = RULE_CONTENT;
     else {
         // check if this is a prop.
         const CVarList VARS(rule, 0, 's', true);
@@ -84,11 +84,11 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
             NWindowProperties::boolWindowProperties.find(VARS[0]) != NWindowProperties::boolWindowProperties.end() ||
             NWindowProperties::floatWindowProperties.find(VARS[0]) != NWindowProperties::floatWindowProperties.end()) {
             *const_cast<std::string*>(&szRule) = "prop " + rule;
-            ruleType                           = RULE_PROP;
+            m_ruleType                         = RULE_PROP;
             NDebug::log(LOG, "CWindowRule: direct prop rule found, rewritten {} -> {}", rule, szRule);
         } else {
             NDebug::log(ERR, "CWindowRule: didn't match a rule that was found valid?!");
-            ruleType = RULE_INVALID;
+            m_ruleType = RULE_INVALID;
         }
     }
 }

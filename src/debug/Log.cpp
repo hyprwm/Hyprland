@@ -62,7 +62,7 @@ void NDebug::log(eLogLevel level, std::string str) {
     if (SRollingLogFollow::get().isRunning())
         SRollingLogFollow::get().addLog(str);
 
-    if (!disableLogs || !**disableLogs) {
+    if (!g_disableLogs || !**g_disableLogs) {
         // log to a file
         logOfs << str << "\n";
         logOfs.flush();
@@ -70,5 +70,5 @@ void NDebug::log(eLogLevel level, std::string str) {
 
     // log it to the stdout too.
     if (!disableStdout)
-        std::println("{}", ((coloredLogs && !**coloredLogs) ? str : coloredStr));
+        std::println("{}", ((g_coloredLogs && !**g_coloredLogs) ? str : coloredStr));
 }

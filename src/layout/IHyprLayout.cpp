@@ -891,7 +891,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r->ruleType != CWindowRule::RULE_SIZE)
+            if (r->m_ruleType != CWindowRule::RULE_SIZE)
                 continue;
 
             try {
@@ -922,7 +922,7 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
     if (!shouldBeFloated) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r->ruleType != CWindowRule::RULE_FLOAT)
+            if (r->m_ruleType != CWindowRule::RULE_FLOAT)
                 continue;
 
             shouldBeFloated = true;

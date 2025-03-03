@@ -81,7 +81,7 @@ class CGradientValueData : public CCustomConfigValueData {
     }
 };
 
-class CCssGapData : public ICustomConfigValueData {
+class CCssGapData : public CCustomConfigValueData {
   public:
     CCssGapData() : m_top(0), m_right(0), m_bottom(0), m_left(0) {};
     CCssGapData(int64_t global) : m_top(global), m_right(global), m_bottom(global), m_left(global) {};

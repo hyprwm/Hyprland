@@ -383,7 +383,7 @@ void CLayerSurface::applyRules() {
     animationStyle.reset();
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
-        switch (rule->ruleType) {
+        switch (rule->m_ruleType) {
             case CLayerRule::RULE_NOANIM: {
                 noAnimations = true;
                 break;
@@ -398,10 +398,10 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_IGNOREALPHA:
             case CLayerRule::RULE_IGNOREZERO: {
-                const auto  FIRST_SPACE_POS = rule->rule.find_first_of(' ');
+                const auto  FIRST_SPACE_POS = rule->m_RULE.find_first_of(' ');
                 std::string alphaValue      = "";
                 if (FIRST_SPACE_POS != std::string::npos)
-                    alphaValue = rule->rule.substr(FIRST_SPACE_POS + 1);
+                    alphaValue = rule->m_RULE.substr(FIRST_SPACE_POS + 1);
 
                 try {
                     ignoreAlpha = true;
@@ -415,19 +415,19 @@ void CLayerSurface::applyRules() {
                 break;
             }
             case CLayerRule::RULE_XRAY: {
-                CVarList vars{rule->rule, 0, ' '};
+                CVarList vars{rule->m_RULE, 0, ' '};
                 try {
                     xray = configStringToInt(vars[1]).value_or(false);
                 } catch (...) {}
                 break;
             }
             case CLayerRule::RULE_ANIMATION: {
-                CVarList vars{rule->rule, 2, 's'};
+                CVarList vars{rule->m_RULE, 2, 's'};
                 animationStyle = vars[1];
                 break;
             }
             case CLayerRule::RULE_ORDER: {
-                CVarList vars{rule->rule, 2, 's'};
+                CVarList vars{rule->m_RULE, 2, 's'};
                 try {
                     order = std::stoi(vars[1]);
                 } catch (...) { NDebug::log(ERR, "Invalid value passed to order"); }

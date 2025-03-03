@@ -139,7 +139,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     MONITORID requestedFSMonitor = PWINDOW->m_iWantsInitialFullscreenMonitor;
 
     for (auto const& r : PWINDOW->m_vMatchedRules) {
-        switch (r->ruleType) {
+        switch (r->m_ruleType) {
             case CWindowRule::RULE_MONITOR: {
                 try {
                     const auto MONITORSTR = trim(r->szRule.substr(r->szRule.find(' ')));
@@ -401,7 +401,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // size and move rules
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            switch (r->ruleType) {
+            switch (r->m_ruleType) {
                 case CWindowRule::RULE_SIZE: {
                     try {
                         auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
@@ -542,7 +542,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         bool setPseudo = false;
 
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            if (r->ruleType != CWindowRule::RULE_SIZE)
+            if (r->m_ruleType != CWindowRule::RULE_SIZE)
                 continue;
 
             try {

@@ -771,8 +771,8 @@ CConfigManager::CConfigManager() {
             "https://wiki.hyprland.org/Configuring/Variables/#debug");
     }
 
-    NDebug::disableLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
-    NDebug::disableTime = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
+    NDebug::g_disableLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
+    NDebug::g_disableTime = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
 
     if (g_pEventLoopManager && ERR.has_value())
         g_pEventLoopManager->doLater([ERR] { g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0}); });
@@ -1049,7 +1049,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (NDebug::disableStdout && isFirstLaunch)
         NDebug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
-    NDebug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
+    NDebug::g_coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
@@ -1432,7 +1432,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
         returns.emplace_back(rule);
 
         // apply tag with local tags
-        if (rule->ruleType == CWindowRule::RULE_TAG) {
+        if (rule->m_ruleType == CWindowRule::RULE_TAG) {
             CVarList vars{rule->szRule, 0, 's', true};
             if (vars.size() == 2 && vars[0] == "tag")
                 tags.applyTag(vars[1], true);
@@ -1473,8 +1473,8 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         return returns;
 
     for (auto const& lr : m_vLayerRules) {
-        if (lr->targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->targetNamespace)
+        if (lr->m_TARGETNAMESPACE.starts_with("address:0x")) {
+            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_TARGETNAMESPACE)
                 continue;
         } else if (!lr->targetNamespaceRegex.passes(pLS->layerSurface->layerNamespace))
             continue;
@@ -2317,29 +2317,29 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
+    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE  = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE.empty() || VALUE.empty())
+    if (m_RULE.empty() || VALUE.empty())
         return "empty rule?";
 
-    if (RULE == "unset") {
+    if (m_RULE == "unset") {
         std::erase_if(m_vWindowRules, [&](const auto& other) { return other->szValue == VALUE; });
         return {};
     }
 
-    auto newRule = makeShared<CWindowRule>(RULE, VALUE, false);
+    auto newRule = makeShared<CWindowRule>(m_RULE, VALUE, false);
 
     // verify we support a rule
-    if (newRule->ruleType == CWindowRule::RULE_INVALID) {
-        NDebug::log(ERR, "Invalid rule found: {}", RULE);
-        return "Invalid rule: " + RULE;
+    if (newRule->m_ruleType == CWindowRule::RULE_INVALID) {
+        NDebug::log(ERR, "Invalid rule found: {}", m_RULE);
+        return "Invalid rule: " + m_RULE;
     }
 
     newRule->rV1Regex = {VALUE.starts_with("title:") ? VALUE.substr(6) : VALUE};
 
-    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
+    if (m_RULE.starts_with("size") || m_RULE.starts_with("maxsize") || m_RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), newRule);
     else
         m_vWindowRules.emplace_back(newRule);
@@ -2348,23 +2348,23 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
+    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE  = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE.empty() || VALUE.empty())
+    if (m_RULE.empty() || VALUE.empty())
         return "empty rule?";
 
-    if (RULE == "unset") {
-        std::erase_if(m_vLayerRules, [&](const auto& other) { return other->targetNamespace == VALUE; });
+    if (m_RULE == "unset") {
+        std::erase_if(m_vLayerRules, [&](const auto& other) { return other->m_TARGETNAMESPACE == VALUE; });
         return {};
     }
 
-    auto rule = makeShared<CLayerRule>(RULE, VALUE);
+    auto rule = makeShared<CLayerRule>(m_RULE, VALUE);
 
-    if (rule->ruleType == CLayerRule::RULE_INVALID) {
-        NDebug::log(ERR, "Invalid rule found: {}", RULE);
-        return "Invalid rule found: " + RULE;
+    if (rule->m_ruleType == CLayerRule::RULE_INVALID) {
+        NDebug::log(ERR, "Invalid rule found: {}", m_RULE);
+        return "Invalid rule found: " + m_RULE;
     }
 
     rule->targetNamespaceRegex = {VALUE};
@@ -2380,14 +2380,14 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 }
 
 std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = value.substr(value.find_first_of(',') + 1);
+    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE  = value.substr(value.find_first_of(',') + 1);
 
-    auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
+    auto       rule = makeShared<CWindowRule>(m_RULE, VALUE, true);
 
-    if (rule->ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
-        NDebug::log(ERR, "Invalid rulev2 found: {}", RULE);
-        return "Invalid rulev2 found: " + RULE;
+    if (rule->m_ruleType == CWindowRule::RULE_INVALID && m_RULE != "unset") {
+        NDebug::log(ERR, "Invalid rulev2 found: {}", m_RULE);
+        return "Invalid rulev2 found: " + m_RULE;
     }
 
     // now we estract shit from the value
@@ -2517,7 +2517,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (CONTENTTYPEPOS != std::string::npos)
         rule->szContentType = extract(CONTENTTYPEPOS + 8);
 
-    if (RULE == "unset") {
+    if (m_RULE == "unset") {
         std::erase_if(m_vWindowRules, [&](const auto& other) {
             if (!other->v2)
                 return other->szClass == rule->szClass && !rule->szClass.empty();
@@ -2570,7 +2570,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         return {};
     }
 
-    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
+    if (m_RULE.starts_with("size") || m_RULE.starts_with("maxsize") || m_RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), rule);
     else
         m_vWindowRules.push_back(rule);

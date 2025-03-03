@@ -622,7 +622,7 @@ bool CWindow::isHidden() {
 void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
     const eOverridePriority priority = r->execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
 
-    switch (r->ruleType) {
+    switch (r->m_ruleType) {
         case CWindowRule::RULE_TAG: {
             CVarList vars{r->szRule, 0, 's', true};
 

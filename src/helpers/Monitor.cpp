@@ -385,10 +385,10 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     if (forceSize.has_value())
         activeMonitorRule.resolution = forceSize.value();
 
-    const auto RULE = &activeMonitorRule;
+    const auto m_RULE = &activeMonitorRule;
 
     // if it's disabled, disable and ignore
-    if (RULE->disabled) {
+    if (m_RULE->disabled) {
         if (m_bEnabled)
             onDisconnect();
 
@@ -409,22 +409,22 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     // Check if the rule isn't already applied
     // TODO: clean this up lol
-    if (!force && DELTALESSTHAN(vecPixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, RULE->resolution.y, 1) &&
-        DELTALESSTHAN(refreshRate, RULE->refreshRate, 1) && setScale == RULE->scale &&
-        ((DELTALESSTHAN(vecPosition.x, RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
-        transform == RULE->transform && RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
+    if (!force && DELTALESSTHAN(vecPixelSize.x, m_RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, m_RULE->resolution.y, 1) &&
+        DELTALESSTHAN(refreshRate, m_RULE->refreshRate, 1) && setScale == m_RULE->scale &&
+        ((DELTALESSTHAN(vecPosition.x, m_RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, m_RULE->offset.y, 1)) || m_RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
+        transform == m_RULE->transform && m_RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &m_RULE->drmMode, sizeof(customDrmMode))) {
 
         NDebug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
 
-        setMirror(RULE->mirrorOf);
+        setMirror(m_RULE->mirrorOf);
 
         return true;
     }
 
     bool autoScale = false;
 
-    if (RULE->scale > 0.1) {
-        scale = RULE->scale;
+    if (m_RULE->scale > 0.1) {
+        scale = m_RULE->scale;
     } else {
         autoScale               = true;
         const auto DEFAULTSCALE = getDefaultScale();
@@ -432,7 +432,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     setScale  = scale;
-    transform = RULE->transform;
+    transform = m_RULE->transform;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
@@ -453,7 +453,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     else
         requestedModes.push_back(output->preferredMode());
 
-    if (RULE->resolution == Vector2D()) {
+    if (m_RULE->resolution == Vector2D()) {
         requestedStr = "preferred";
 
         // fallback to first 3 modes if preferred fails/doesn't exist
@@ -464,7 +464,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
         if (output->preferredMode())
             requestedModes.push_back(output->preferredMode());
-    } else if (RULE->resolution == Vector2D(-1, -1)) {
+    } else if (m_RULE->resolution == Vector2D(-1, -1)) {
         requestedStr = "highrr";
 
         // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
@@ -475,7 +475,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 return true;
             return false;
         });
-    } else if (RULE->resolution == Vector2D(-1, -2)) {
+    } else if (m_RULE->resolution == Vector2D(-1, -2)) {
         requestedStr = "highres";
 
         // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
@@ -487,17 +487,17 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 return true;
             return false;
         });
-    } else if (RULE->resolution != Vector2D()) {
+    } else if (m_RULE->resolution != Vector2D()) {
         // user requested mode
-        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+        requestedStr = std::format("{:X0}@{:.2f}Hz", m_RULE->resolution, m_RULE->refreshRate);
 
         // sort by closeness to requested, then add best 3
         addBest3Modes([&](auto const& a, auto const& b) {
-            if (abs(a->pixelSize.x - RULE->resolution.x) < abs(b->pixelSize.x - RULE->resolution.x))
+            if (abs(a->pixelSize.x - m_RULE->resolution.x) < abs(b->pixelSize.x - m_RULE->resolution.x))
                 return true;
-            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - RULE->resolution.y) < abs(b->pixelSize.y - RULE->resolution.y))
+            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - m_RULE->resolution.y) < abs(b->pixelSize.y - m_RULE->resolution.y))
                 return true;
-            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - RULE->refreshRate) < abs((b->refreshRate / 1000.f) - RULE->refreshRate))
+            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - m_RULE->refreshRate) < abs((b->refreshRate / 1000.f) - m_RULE->refreshRate))
                 return true;
             return false;
         });
@@ -505,18 +505,19 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         // if the best mode isnt close to requested, then try requested as custom mode first
         if (!requestedModes.empty()) {
             auto bestMode = requestedModes.back();
-            if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
-                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
-                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+            if (!DELTALESSTHAN(bestMode->pixelSize.x, m_RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, m_RULE->resolution.y, 1) ||
+                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, m_RULE->refreshRate, 1))
+                requestedModes.push_back(
+                    makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = m_RULE->resolution, .refreshRate = m_RULE->refreshRate * 1000.f}));
         }
 
         // then if requested is custom, try custom mode first
-        if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
+        if (m_RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
             if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)
                 NDebug::log(ERR, "Tried to set custom modeline on non-DRM output");
             else
-                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(
-                    Aquamarine::SOutputMode{.pixelSize = {RULE->drmMode.hdisplay, RULE->drmMode.vdisplay}, .refreshRate = RULE->drmMode.vrefresh, .modeInfo = RULE->drmMode}));
+                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{
+                    .pixelSize = {m_RULE->drmMode.hdisplay, m_RULE->drmMode.vdisplay}, .refreshRate = m_RULE->drmMode.vrefresh, .modeInfo = m_RULE->drmMode}));
         }
     }
 
@@ -586,9 +587,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     // try requested as custom mode jic it works
-    if (!success && RULE->resolution != Vector2D() && RULE->resolution != Vector2D(-1, -1) && RULE->resolution != Vector2D(-1, -2)) {
-        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
-        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = refreshRate});
+    if (!success && m_RULE->resolution != Vector2D() && m_RULE->resolution != Vector2D(-1, -1) && m_RULE->resolution != Vector2D(-1, -2)) {
+        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? m_RULE->refreshRate * 1000 : 0;
+        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = m_RULE->resolution, .refreshRate = refreshRate});
         std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
         output->state->setCustomMode(mode);
@@ -631,7 +632,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     if (!success) {
-        NDebug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate);
+        NDebug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, m_RULE->resolution, m_RULE->refreshRate);
         return true;
     }
 
@@ -653,7 +654,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     bool set10bit = false;
 
-    for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
+    for (auto const& fmt : formats[(int)!m_RULE->enable10bit]) {
         output->state->setFormat(fmt.second);
         prevDrmFormat = drmFormat;
         drmFormat     = fmt.second;
@@ -662,7 +663,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             NDebug::log(ERR, "output {} failed basic test on format {}", szName, fmt.first);
         } else {
             NDebug::log(LOG, "output {} succeeded basic test on format {}", szName, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
+            if (m_RULE->enable10bit && fmt.first.contains("101010"))
                 set10bit = true;
             break;
         }
@@ -915,9 +916,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf.reset();
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
+        const auto m_RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
 
-        vecPosition = RULE.offset;
+        vecPosition = m_RULE.offset;
 
         // push to mvmonitors
 
@@ -938,9 +939,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             g_pCompositor->m_vMonitors.push_back(*thisWrapper);
         }
 
-        setupDefaultWS(RULE);
+        setupDefaultWS(m_RULE);
 
-        applyMonitorRule((SMonitorRule*)&RULE, true); // will apply the offset and stuff
+        applyMonitorRule((SMonitorRule*)&m_RULE, true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
         for (auto const& m : g_pCompositor->m_vMonitors) {

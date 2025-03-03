@@ -2,7 +2,7 @@
 #include "../defines.hpp"
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-namespace Events {
+namespace NEvents {
     // Window events
     DYNLISTENFUNC(commitWindow);
     DYNLISTENFUNC(mapWindow);

@@ -47,7 +47,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
         PHLWINDOW->m_bAnimatingIn = false;
 }
 
-void Events::listener_mapWindow(void* owner, void* data) {
+void NEvents::listener_mapWindow(void* owner, void* data) {
     PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
@@ -690,7 +690,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 }
 
-void Events::listener_unmapWindow(void* owner, void* data) {
+void NEvents::listener_unmapWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     NDebug::log(LOG, "{:c} unmapped", PWINDOW);
@@ -820,7 +820,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->onUnmap();
 }
 
-void Events::listener_commitWindow(void* owner, void* data) {
+void NEvents::listener_commitWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface->initialCommit) {
@@ -886,7 +886,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     }
 }
 
-void Events::listener_destroyWindow(void* owner, void* data) {
+void NEvents::listener_destroyWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     NDebug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
@@ -917,7 +917,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->m_listeners.commit.reset();
 }
 
-void Events::listener_activateX11(void* owner, void* data) {
+void NEvents::listener_activateX11(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     NDebug::log(LOG, "X11 Activate request for window {}", PWINDOW);
@@ -942,7 +942,7 @@ void Events::listener_activateX11(void* owner, void* data) {
     PWINDOW->activate();
 }
 
-void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
+void NEvents::listener_unmanagedSetGeometry(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsMapped || !PWINDOW->m_pXWaylandSurface || !PWINDOW->m_pXWaylandSurface->overrideRedirect)

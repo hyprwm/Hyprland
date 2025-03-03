@@ -4,7 +4,8 @@
   stdenvAdapters,
   cmake,
   pkg-config,
-  hyprutils,
+  hyprland,
+  hyprwayland-scanner,
   version ? "git",
 }: let
   inherit (lib.lists) flatten foldl';
@@ -20,16 +21,22 @@ in
     pname = "hyprtester";
     inherit version;
 
-    src = ../hyprtester;
+    src = ../.;
 
     nativeBuildInputs = [
       cmake
       pkg-config
+      hyprwayland-scanner
     ];
 
-    buildInputs = [
-      hyprutils
-    ];
+    buildInputs = hyprland.buildInputs;
+
+    preConfigure = ''
+      cmake -S . -B ./build
+      cmake --build ./build --target generate-protocol-headers -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+
+      cd hyprtester
+    '';
 
     cmakeBuildType = "Debug";
 
@@ -37,7 +44,7 @@ in
       homepage = "https://github.com/hyprwm/Hyprland";
       description = "Hyprland testing framework";
       license = lib.licenses.bsd3;
-      platforms = hyprutils.meta.platforms;
+      platforms = hyprland.meta.platforms;
       mainProgram = "hyprtester";
     };
   })

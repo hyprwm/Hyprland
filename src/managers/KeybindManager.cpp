@@ -1644,16 +1644,22 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
 
     if (PLASTWINDOW->m_bIsFloating) {
         std::optional<float> vPosx, vPosy;
-        const auto           PMONITOR   = PLASTWINDOW->m_pMonitor.lock();
-        const auto           BORDERSIZE = PLASTWINDOW->getRealBorderSize();
+        const auto           PMONITOR     = PLASTWINDOW->m_pMonitor.lock();
+        const auto           BORDERSIZE   = PLASTWINDOW->getRealBorderSize();
+        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
+        auto* const          PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
         switch (arg) {
-            case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
-            case 'r': vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize->goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x + PGAPSOUT->left; break;
+            case 'r':
+                vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize->goal().x - BORDERSIZE + PMONITOR->vecPosition.x - PGAPSOUT->right;
+                break;
             case 't':
-            case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y + PGAPSOUT->top; break;
             case 'b':
-            case 'd': vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize->goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'd':
+                vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize->goal().y - BORDERSIZE + PMONITOR->vecPosition.y - PGAPSOUT->bottom;
+                break;
         }
 
         *PLASTWINDOW->m_vRealPosition = Vector2D(vPosx.value_or(PLASTWINDOW->m_vRealPosition->goal().x), vPosy.value_or(PLASTWINDOW->m_vRealPosition->goal().y));

@@ -13,7 +13,11 @@ pkg_check_modules(hyprtester_deps REQUIRED IMPORTED_TARGET hyprutils>=0.5.0)
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(hyprtester ${SRCFILES})
-add_custom_command(TARGET hyprtester POST_BUILD COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/plugin/build.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/plugin)
+add_custom_command(
+  TARGET hyprtester
+  POST_BUILD
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/plugin/build.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/plugin)
 
 target_link_libraries(hyprtester PUBLIC PkgConfig::hyprtester_deps)
 

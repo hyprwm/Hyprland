@@ -5,7 +5,7 @@
 
 struct SXSelection;
 
-class CXDataSource : publicIataSource {
+class CXDataSource : public IDataSource {
   public:
     CXDataSource(SXSelection&);
 

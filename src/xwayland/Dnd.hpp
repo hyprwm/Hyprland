@@ -11,7 +11,7 @@
 
 class CXWaylandSurface;
 
-class CX11DataOffer : publicIataOffer {
+class CX11DataOffer : public IDataOffer {
   public:
     CX11DataOffer()  = default;
     ~CX11DataOffer() = default;
@@ -33,7 +33,7 @@ class CX11DataOffer : publicIataOffer {
     uint32_t                         actions = 0;
 };
 
-class CX11DataSource : publicIataSource {
+class CX11DataSource : public IDataSource {
   public:
     CX11DataSource()  = default;
     ~CX11DataSource() = default;
@@ -62,7 +62,7 @@ class CX11DataSource : publicIataSource {
     uint32_t                         supportedActions = 0;
 };
 
-class CX11DataDevice : publicIataDevice {
+class CX11DataDevice : public IDataDevice {
   public:
     CX11DataDevice() = default;
 

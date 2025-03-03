@@ -29,7 +29,7 @@ class CPrimarySelectionOffer {
     friend class CPrimarySelectionDevice;
 };
 
-class CPrimarySelectionSource : publicIataSource {
+class CPrimarySelectionSource : public IDataSource {
   public:
     CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1> resource_, SP<CPrimarySelectionDevice> device_);
     ~CPrimarySelectionSource();

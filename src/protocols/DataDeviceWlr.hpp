@@ -14,15 +14,15 @@ class CWLRDataOffer;
 
 class CWLRDataOffer {
   public:
-    CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<CIDataSource> source);
+    CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source);
 
-    bool             good();
-    void             sendData();
+    bool            good();
+    void            sendData();
 
-    bool             dead    = false;
-    bool             primary = false;
+    bool            dead    = false;
+    bool            primary = false;
 
-    WP<CIDataSource> source;
+    WP<IDataSource> source;
 
   private:
     SP<CZwlrDataControlOfferV1> resource;
@@ -105,8 +105,8 @@ class CDataDeviceWLRProtocol : public IWaylandProtocol {
     std::vector<SP<CWLRDataOffer>>                  m_vOffers;
 
     //
-    void setSelection(SP<CIDataSource> source, bool primary);
-    void sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<CIDataSource> sel, bool primary);
+    void setSelection(SP<IDataSource> source, bool primary);
+    void sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary);
 
     //
     SP<CWLRDataDevice> dataDeviceForClient(wl_client*);

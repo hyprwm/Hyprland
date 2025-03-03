@@ -1285,7 +1285,7 @@ SP<CX11DataDevice> CXWM::getDataDevice() {
     return dndDataDevice;
 }
 
-SP<CIDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<CIDataSource> source) {
+SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source) {
     auto XSURF = windowForWayland(surf);
 
     if (!XSURF) {
@@ -1367,7 +1367,7 @@ static int readDataSource(int fd, uint32_t mask, void* data) {
 }
 
 bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
-    WP<CIDataSource> selection;
+    WP<IDataSource> selection;
     if (this == &g_pXWayland->pWM->clipboard)
         selection = g_pSeatManager->selection.currentSelection;
     else if (!g_pXWayland->pWM->dndDataOffers.empty())

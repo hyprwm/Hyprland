@@ -9,7 +9,7 @@ enum eConfigValueDataTypes : int8_t {
 
 class ICustomConfigValueData {
   public:
-    virtual ~CICustomConfigValueData() = default;
+    virtual ~ICustomConfigValueData() = default;
 
     virtual eConfigValueDataTypes getDataType() = 0;
 

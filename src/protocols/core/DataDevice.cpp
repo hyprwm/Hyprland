@@ -16,7 +16,7 @@
 #include "../../xwayland/Dnd.hpp"
 using namespace Hyprutils::OS;
 
-CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<CIDataSource> source_) : source(source_), resource(resource_) {
+CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -123,7 +123,7 @@ SP<CX11DataOffer> CWLDataOfferResource::getX11() {
     return nullptr;
 }
 
-SP<CIDataSource> CWLDataOfferResource::getSource() {
+SP<IDataSource> CWLDataOfferResource::getSource() {
     return source.lock();
 }
 
@@ -286,7 +286,7 @@ wl_client* CWLDataDeviceResource::client() {
     return pClient;
 }
 
-void CWLDataDeviceResource::sendDataOffer(SP<CIDataOffer> offer) {
+void CWLDataDeviceResource::sendDataOffer(SP<IDataOffer> offer) {
     if (!offer)
         resource->sendDataOfferRaw(nullptr);
     else if (const auto WL = offer->getWayland(); WL)
@@ -294,7 +294,7 @@ void CWLDataDeviceResource::sendDataOffer(SP<CIDataOffer> offer) {
     //FIXME: X11
 }
 
-void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CIDataOffer> offer) {
+void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
     if (const auto WL = offer->getWayland(); WL)
         resource->sendEnterRaw(serial, surf->getResource()->resource(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), WL->resource->resource());
     // FIXME: X11
@@ -312,7 +312,7 @@ void CWLDataDeviceResource::sendDrop() {
     resource->sendDrop();
 }
 
-void CWLDataDeviceResource::sendSelection(SP<CIDataOffer> offer) {
+void CWLDataDeviceResource::sendSelection(SP<IDataOffer> offer) {
     if (!offer)
         resource->sendSelectionRaw(nullptr);
     else if (const auto WL = offer->getWayland(); WL)
@@ -418,7 +418,7 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
     std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-SP<CIDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
+SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
 #ifndef NO_XWAYLAND
     if (g_pXWayland->pServer && c == g_pXWayland->pServer->xwaylandClient)
         return g_pXWayland->pWM->getDataDevice();
@@ -430,13 +430,13 @@ SP<CIDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
     return *it;
 }
 
-void CWLDataDeviceProtocol::sendSelectionToDevice(SP<CIDataDevice> dev, SP<CIDataSource> sel) {
+void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataSource> sel) {
     if (!sel) {
         dev->sendSelection(nullptr);
         return;
     }
 
-    SP<CIDataOffer> offer;
+    SP<IDataOffer> offer;
 
     if (const auto WL = dev->getWayland(); WL) {
         const auto OFFER = m_vOffers.emplace_back(makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(WL->resource->client(), WL->resource->version(), 0), sel));
@@ -472,7 +472,7 @@ void CWLDataDeviceProtocol::onDestroyDataSource(WP<CWLDataSourceResource> source
         abortDrag();
 }
 
-void CWLDataDeviceProtocol::setSelection(SP<CIDataSource> source) {
+void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
     for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
@@ -656,7 +656,7 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (!dnd.focusedDevice)
         return;
 
-    SP<CIDataOffer> offer;
+    SP<IDataOffer> offer;
 
     if (const auto WL = dnd.focusedDevice->getWayland(); WL) {
         const auto OFFER =

@@ -19,10 +19,10 @@ class CX11DataOffer : public IDataOffer {
     virtual eDataSourceType          type();
     virtual SP<CWLDataOfferResource> getWayland();
     virtual SP<CX11DataOffer>        getX11();
-    virtual SP<CIDataSource>         getSource();
+    virtual SP<IDataSource>          getSource();
     virtual void                     markDead();
 
-    WP<CIDataSource>                 source;
+    WP<IDataSource>                  source;
     WP<CX11DataOffer>                self;
     WP<CXWaylandSurface>             xwaylandSurface;
 
@@ -68,12 +68,12 @@ class CX11DataDevice : public IDataDevice {
 
     virtual SP<CWLDataDeviceResource> getWayland();
     virtual SP<CX11DataDevice>        getX11();
-    virtual void                      sendDataOffer(SP<CIDataOffer> offer);
-    virtual void                      sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CIDataOffer> offer);
+    virtual void                      sendDataOffer(SP<IDataOffer> offer);
+    virtual void                      sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer);
     virtual void                      sendLeave();
     virtual void                      sendMotion(uint32_t timeMs, const Vector2D& local);
     virtual void                      sendDrop();
-    virtual void                      sendSelection(SP<CIDataOffer> offer);
+    virtual void                      sendSelection(SP<IDataOffer> offer);
     virtual eDataSourceType           type();
     void                              forceCleanupDnd();
 
@@ -86,7 +86,7 @@ class CX11DataDevice : public IDataDevice {
     void         sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xcb_client_message_data_t& data);
 #endif
     WP<CXWaylandSurface> lastSurface;
-    WP<CIDataOffer>      lastOffer;
+    WP<IDataOffer>       lastOffer;
     Vector2D             lastSurfaceCoords;
     uint32_t             lastTime = 0;
 };

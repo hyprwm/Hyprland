@@ -2869,7 +2869,7 @@ std::string SConfigOptionDescription::jsonify() const {
                     const auto V = std::any_cast<Hyprlang::VEC2>(CONFIGVALUE);
                     currentValue = std::format("{}, {}", V.x, V.y);
                 } else if (typeid(void*) == std::type_index(CONFIGVALUE.type())) {
-                    const auto DATA = (CICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
+                    const auto DATA = (ICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
                     currentValue    = DATA->toString();
                 }
 

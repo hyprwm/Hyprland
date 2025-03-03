@@ -111,7 +111,7 @@ struct SXSelection {
 
         int                onEvent(int fd, uint32_t mask);
         SP<CX11DataDevice> getDataDevice();
-        SP<CIDataOffer>    createX11DataOffer(SP<CWLSurfaceResource> surf, SP<CIDataSource> source);
+        SP<IDataOffer>     createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source);
 
       private:
         void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);

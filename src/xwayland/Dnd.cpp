@@ -84,7 +84,7 @@ SP<CX11DataOffer> CX11DataOffer::getX11() {
     return self.lock();
 }
 
-SP<CIDataSource> CX11DataOffer::getSource() {
+SP<IDataSource> CX11DataOffer::getSource() {
     return source.lock();
 }
 
@@ -94,11 +94,11 @@ void CX11DataOffer::markDead() {
 #endif
 }
 
-void CX11DataDevice::sendDataOffer(SP<CIDataOffer> offer) {
+void CX11DataDevice::sendDataOffer(SP<IDataOffer> offer) {
     ; // no-op, I don't think this has an X equiv
 }
 
-void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CIDataOffer> offer) {
+void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
 #ifndef NO_XWAYLAND
     auto XSURF = g_pXWayland->pWM->windowForWayland(surf);
 
@@ -214,7 +214,7 @@ void CX11DataDevice::sendDrop() {
 #endif
 }
 
-void CX11DataDevice::sendSelection(SP<CIDataOffer> offer) {
+void CX11DataDevice::sendSelection(SP<IDataOffer> offer) {
     ; // no-op. Selection is done separately.
 }
 

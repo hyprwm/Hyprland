@@ -17,7 +17,7 @@ jobs:
       - name: Setup base
         uses: ./.github/actions/setup_base
         with:
-          INSTALL_XORG_PKGS: 'true'
+          INSTALL_XORG_PKGS: true
 
       - name: Build Hyprland
         run: |
@@ -60,7 +60,6 @@ jobs:
         uses: ./.github/actions/setup_base
 
       - name: Configure
-        # noinspection SpellCheckingInspection
         run: meson setup build -Ddefault_library=static
 
       - name: Compile
@@ -81,10 +80,9 @@ jobs:
       - name: Setup base
         uses: ./.github/actions/setup_base
         with:
-          INSTALL_XORG_PKGS: 'true'
+          INSTALL_XORG_PKGS: true
 
       - name: Compile
-        # noinspection SpellCheckingInspection
         run: make nopch
 
   noxwayland:
@@ -125,7 +123,6 @@ jobs:
         uses: ./.github/actions/setup_base
 
       - name: Configure
-        # noinspection SpellCheckingInspection
         run: meson setup build -Ddefault_library=static
 
       - name: clang-format check

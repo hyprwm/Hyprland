@@ -791,6 +791,10 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             }
             break;
         }
+        case CWindowRule::RULE_PERSISTENTSIZE: {
+            m_sWindowData.persistentSize = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+            break;
+        }
         default: break;
     }
 }
@@ -1323,6 +1327,11 @@ void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
     *m_vRealPosition = m_vRealPosition->goal() + DELTA / 2.0;
     *m_vRealSize     = NEWSIZE;
+
+    if (m_bIsFloating && !m_bIsX11 && std::any_of(m_vMatchedRules.begin(), m_vMatchedRules.end(), [](const auto& r) { return r->ruleType == CWindowRule::RULE_PERSISTENTSIZE; })) {
+        Debug::log(LOG, "clamped window {}::{} to {}x{} (persistentsize)", m_szClass, m_szTitle, m_vRealSize->value().x, m_vRealSize->value().y);
+        g_pConfigManager->storeFloatingSize(m_pSelf.lock(), m_vRealSize->value());
+    }
 }
 
 bool CWindow::isFullscreen() {

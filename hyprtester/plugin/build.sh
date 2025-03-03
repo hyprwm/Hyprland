@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 make clean
 make all

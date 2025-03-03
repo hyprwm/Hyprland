@@ -113,8 +113,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (!syncobj || !current.buffer)
-            commitPendingState();
+        if (!syncobj)
+            commitPendingState(pending);
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) { pending.damage.add(CBox{x, y, w, h}); });
@@ -428,18 +428,16 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
     return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
 }
 
-void CWLSurfaceResource::commitPendingState() {
+void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     auto const previousBuffer = current.buffer;
 
-    if (!syncobj) {
-        current = pending;
-        pending.damage.clear();
-        pending.bufferDamage.clear();
-        pending.newBuffer = false;
-        dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
+    if (state.newBuffer) {
+        state.newBuffer = false;
+        current         = state;
+        state.damage.clear();
+        state.bufferDamage.clear();
+        state.buffer.reset();
     }
-
-    events.roleCommit.emit();
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -480,8 +478,6 @@ void CWLSurfaceResource::commitPendingState() {
             },
             nullptr);
     }
-
-    events.roleCommitEnd.emit();
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.

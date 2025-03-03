@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IHyprLayout.hpp"
+#include "CIHyprLayout.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include <vector>
@@ -49,7 +49,7 @@ struct SMasterWorkspaceData {
     }
 };
 
-class CHyprMasterLayout : public IHyprLayout {
+class CHyprMasterLayout : public CIHyprLayout {
   public:
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);

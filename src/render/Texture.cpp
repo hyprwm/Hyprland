@@ -23,24 +23,24 @@ CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     createFromDma(attrs, image);
 }
 
-CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
-    if (!buffer)
+CTexture::CTexture(const SP<Aquamarine::IBuffer> BUFFER, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
+    if (!BUFFER)
         return;
 
-    m_bOpaque = buffer->opaque;
+    m_bOpaque = BUFFER->opaque;
 
-    auto attrs = buffer->dmabuf();
+    auto attrs = BUFFER->dmabuf();
 
     if (!attrs.success) {
         // attempt shm
-        auto shm = buffer->shm();
+        auto shm = BUFFER->shm();
 
         if (!shm.success) {
-            NDebug::log(ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            NDebug::log(ERR, "Cannot create a texture: BUFFER has no dmabuf or shm");
             return;
         }
 
-        auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
+        auto [pixelData, fmt, bufLen] = BUFFER->beginDataPtr(0);
 
         m_iDrmFormat = fmt;
 
@@ -48,7 +48,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
         return;
     }
 
-    auto image = g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
+    auto image = g_pHyprOpenGL->createEGLImage(BUFFER->dmabuf());
 
     if (!image) {
         NDebug::log(ERR, "Cannot create a texture: failed to create an EGLImage");
@@ -61,10 +61,10 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
 void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
-    ASSERT(format);
+    const auto FORMAT = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+    ASSERT(FORMAT);
 
-    m_iType = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
+    m_iType = FORMAT->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
     m_vSize = size_;
     allocate();
 
@@ -72,13 +72,13 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 #ifndef GLES2
-    if (format->flipRB) {
+    if (FORMAT->flipRB) {
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
     }
 #endif
-    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
-    GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
+    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / FORMAT->bytesPerBlock));
+    GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, FORMAT->glInternalFormat ? FORMAT->glInternalFormat : FORMAT->glFormat, size_.x, size_.y, 0, FORMAT->glFormat, FORMAT->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
 
@@ -94,11 +94,11 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
         return;
     }
 
-    m_bOpaque = NFormatUtils::isFormatOpaque(attrs.format);
+    m_bOpaque = NFormatUtils::isFormatOpaque(attrs.FORMAT);
     m_iTarget = GL_TEXTURE_2D;
     m_iType   = TEXTURE_RGBA;
     m_vSize   = attrs.size;
-    m_iType   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    m_iType   = NFormatUtils::isFormatOpaque(attrs.FORMAT) ? TEXTURE_RGBX : TEXTURE_RGBA;
     allocate();
     m_pEglImage = image;
 
@@ -112,28 +112,28 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
-    ASSERT(format);
+    const auto FORMAT = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+    ASSERT(FORMAT);
 
     glBindTexture(GL_TEXTURE_2D, m_iTexID);
 
     auto rects = damage.copy().intersect(CBox{{}, m_vSize}).getRects();
 
 #ifndef GLES2
-    if (format->flipRB) {
+    if (FORMAT->flipRB) {
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
     }
 #endif
 
     for (auto const& rect : rects) {
-        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / FORMAT->bytesPerBlock));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
 
         int width  = rect.x2 - rect.x1;
         int height = rect.y2 - rect.y1;
-        GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
+        GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, FORMAT->glFormat, FORMAT->glType, pixels));
     }
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));

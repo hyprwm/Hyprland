@@ -1,4 +1,4 @@
-#include "IHyprLayout.hpp"
+#include "CIHyprLayout.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
@@ -13,7 +13,7 @@
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 
-void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
+void CIHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
@@ -24,7 +24,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
 
     pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
-    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    bool autoGrouped = CIHyprLayout::onWindowCreatedAutoGroup(pWindow);
     if (autoGrouped)
         return;
 
@@ -37,7 +37,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
         pWindow->applyGroupRules();
 }
 
-void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
+void CIHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
     if (pWindow->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
@@ -84,11 +84,11 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
         m_pLastTiledWindow.reset();
 }
 
-void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
+void CIHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
     ; // no-op
 }
 
-void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
+void CIHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
     CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
     const auto PMONITOR        = pWindow->m_pMonitor.lock();
@@ -184,7 +184,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 }
 
-bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
+bool CIHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
     const PHLWINDOW OPENINGON        = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
                g_pCompositor->m_pLastWindow.lock() :
@@ -219,7 +219,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     return false;
 }
 
-void IHyprLayout::onBeginDragWindow() {
+void CIHyprLayout::onBeginDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
 
     m_iMouseMoveEventCount = 1;
@@ -315,7 +315,7 @@ void IHyprLayout::onBeginDragWindow() {
     g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
 }
 
-void IHyprLayout::onEndDragWindow() {
+void CIHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
 
     m_iMouseMoveEventCount = 1;
@@ -536,7 +536,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
 }
 
-void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
+void CIHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->currentlyDraggedWindow.expired())
         return;
 
@@ -701,7 +701,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
-void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
+void CIHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     if (pWindow->isFullscreen()) {
         NDebug::log(LOG, "changeWindowFloatingMode: fullscreen");
@@ -785,7 +785,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     g_pHyprRenderer->damageWindow(pWindow);
 }
 
-void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
+void CIHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow.lock();
 
     if (!validMapped(PWINDOW))
@@ -803,11 +803,11 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
     g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
-void IHyprLayout::onWindowFocusChange(PHLWINDOW pNewFocus) {
+void CIHyprLayout::onWindowFocusChange(PHLWINDOW pNewFocus) {
     m_pLastTiledWindow = pNewFocus && !pNewFocus->m_bIsFloating ? pNewFocus : m_pLastTiledWindow;
 }
 
-PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
+PHLWINDOW CIHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     // although we don't expect nullptrs here, let's verify jic
     if (!pWindow)
         return nullptr;
@@ -867,11 +867,11 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     return pWindowCandidate;
 }
 
-bool IHyprLayout::isWindowReachable(PHLWINDOW pWindow) {
+bool CIHyprLayout::isWindowReachable(PHLWINDOW pWindow) {
     return pWindow && (!pWindow->isHidden() || pWindow->m_sGroupData.pNextWindow);
 }
 
-void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
+void CIHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
     if (pWindow == nullptr)
         return;
 
@@ -881,13 +881,13 @@ void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
     }
 }
 
-void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
+void CIHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
     bringWindowToTop(pWindow);
     g_pCompositor->focusWindow(pWindow);
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
-Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
+Vector2D CIHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
@@ -917,7 +917,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
     return sizeOverride;
 }
 
-Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
+Vector2D CIHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     bool shouldBeFloated = g_pXWaylandManager->shouldBeFloated(pWindow, true);
 
     if (!shouldBeFloated) {

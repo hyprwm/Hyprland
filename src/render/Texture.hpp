@@ -25,7 +25,7 @@ class CTexture {
 
     CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false);
 
-    CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    CTexture(const SP<Aquamarine::IBuffer> BUFFER, bool keepDataCopy = false);
     // this ctor takes ownership of the eglImage.
     CTexture(const Aquamarine::SDMABUFAttrs&, void* image);
     ~CTexture();

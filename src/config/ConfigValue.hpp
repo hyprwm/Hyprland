@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <typeindex>
 #include <hyprlang.hpp>
@@ -9,65 +8,45 @@
 template <typename T>
 class CConfigValue {
   public:
-    CConfigValue(const std::string& val) {
-        const auto PVHYPRLANG = g_pConfigManager->getHyprlangConfigValuePtr(val);
+    CConfigValue(const std::string& val);
 
-        // NOLINTNEXTLINE
-        p_ = PVHYPRLANG->getDataStaticPtr();
+    // NOLINTNEXTLINE
+    m_p_ = PVHYPRLANG->getDataStaticPtr();
 
 #ifdef HYPRLAND_DEBUG
-        // verify type
-        const auto ANY  = PVHYPRLANG->getValue();
-        const auto TYPE = std::type_index(ANY.type());
+    // verify type
+    const auto m_ANY  = PVHYPRLANG->getValue();
+    const auto m_TYPE = std::type_index(ANY.type());
 
-        // exceptions
-        const bool STRINGEX = (typeid(T) == typeid(std::string) && TYPE == typeid(Hyprlang::STRING));
-        const bool CUSTOMEX = (typeid(T) == typeid(Hyprlang::CUSTOMTYPE) && (TYPE == typeid(Hyprlang::CUSTOMTYPE*) || TYPE == typeid(void*) /* dunno why it does this? */));
+    // exceptions
+    const bool m_STRINGEX = (typeid(T) == typeid(std::string) && m_TYPE == typeid(Hyprlang::STRING));
+    const bool m_CUSTOMEX = (typeid(T) == typeid(Hyprlang::CUSTOMTYPE) && (m_TYPE == typeid(Hyprlang::CUSTOMTYPE*) || m_TYPE == typeid(void*) /* dunno why it does this? */));
 
-        RASSERT(typeid(T) == TYPE || STRINGEX || CUSTOMEX, "Mismatched type in CConfigValue<T>, got {} but has {}", typeid(T).name(), TYPE.name());
+    RASSERT(typeid(T) == m_TYPE || m_STRINGEX || m_CUSTOMEX, "Mismatched type in CConfigValue<T>, got {} but has {}", typeid(T).name(), m_TYPE.name());
 #endif
-    }
 
-    T* ptr() const {
-        return *(T* const*)p_;
-    }
+    T* ptr() const;
 
-    T operator*() const {
-        return *ptr();
-    }
+    T  operator*() const;
 
   private:
-    void* const* p_ = nullptr;
+    void* const* m_p_ = nullptr;
 };
 
 template <>
-inline std::string* CConfigValue<std::string>::ptr() const {
-    RASSERT(false, "Impossible to implement ptr() of CConfigValue<std::string>");
-    return nullptr;
-}
+std::string* CConfigValue<std::string>::ptr() const;
 
 template <>
-inline std::string CConfigValue<std::string>::operator*() const {
-    return std::string{*(Hyprlang::STRING*)p_};
-}
+std::string CConfigValue<std::string>::operator*() const;
 
 template <>
-inline Hyprlang::STRING* CConfigValue<Hyprlang::STRING>::ptr() const {
-    return (Hyprlang::STRING*)p_;
-}
+Hyprlang::STRING* CConfigValue<Hyprlang::STRING>::ptr() const;
 
 template <>
-inline Hyprlang::STRING CConfigValue<Hyprlang::STRING>::operator*() const {
-    return *(Hyprlang::STRING*)p_;
-}
+Hyprlang::STRING CConfigValue<Hyprlang::STRING>::operator*() const;
 
 template <>
-inline Hyprlang::CUSTOMTYPE* CConfigValue<Hyprlang::CUSTOMTYPE>::ptr() const {
-    return *(Hyprlang::CUSTOMTYPE* const*)p_;
-}
+Hyprlang::CUSTOMTYPE* CConfigValue<Hyprlang::CUSTOMTYPE>::ptr() const;
 
 template <>
-inline Hyprlang::CUSTOMTYPE CConfigValue<Hyprlang::CUSTOMTYPE>::operator*() const {
-    RASSERT(false, "Impossible to implement operator* of CConfigValue<Hyprlang::CUSTOMTYPE>, use ptr()");
-    return *ptr();
-}
+Hyprlang::CUSTOMTYPE CConfigValue<Hyprlang::CUSTOMTYPE>::operator*() const;

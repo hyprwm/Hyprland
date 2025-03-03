@@ -19,7 +19,7 @@ class CPlugin {
 
     HANDLE                                                    m_pHandle = nullptr;
 
-    std::vector<IHyprLayout*>                                 registeredLayouts;
+    std::vector<CIHyprLayout*>                                registeredLayouts;
     std::vector<IHyprWindowDecoration*>                       registeredDecorations;
     std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> registeredCallbacks;
     std::vector<std::string>                                  registeredDispatchers;

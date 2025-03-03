@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IHyprLayout.hpp"
+#include "CIHyprLayout.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
 #include <list>
@@ -42,7 +42,7 @@ struct SDwindleNodeData {
     CHyprDwindleLayout* layout = nullptr;
 };
 
-class CHyprDwindleLayout : public IHyprLayout {
+class CHyprDwindleLayout : public CIHyprLayout {
   public:
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);

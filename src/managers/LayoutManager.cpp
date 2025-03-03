@@ -5,7 +5,7 @@ CLayoutManager::CLayoutManager() {
     m_vLayouts.emplace_back(std::make_pair<>("master", &m_cMasterLayout));
 }
 
-IHyprLayout* CLayoutManager::getCurrentLayout() {
+CIHyprLayout* CLayoutManager::getCurrentLayout() {
     return m_vLayouts[m_iCurrentLayoutID].second;
 }
 
@@ -25,7 +25,7 @@ void CLayoutManager::switchToLayout(std::string layout) {
     NDebug::log(ERR, "Unknown layout!");
 }
 
-bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
+bool CLayoutManager::addLayout(const std::string& name, CIHyprLayout* layout) {
     if (std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_vLayouts.end())
         return false;
 
@@ -36,7 +36,7 @@ bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
     return true;
 }
 
-bool CLayoutManager::removeLayout(IHyprLayout* layout) {
+bool CLayoutManager::removeLayout(CIHyprLayout* layout) {
     const auto IT = std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.second == layout; });
 
     if (IT == m_vLayouts.end() || IT->first == "dwindle" || IT->first == "master")

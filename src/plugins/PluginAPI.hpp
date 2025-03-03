@@ -59,7 +59,7 @@ struct SVersionInfo {
 #define OPTIONAL
 #define HANDLE void*
 
-class CHyprLayout;
+class CIHyprLayout;
 class CWindow;
 class CHyprWindowDecoration;
 struct SConfigValue;
@@ -167,14 +167,14 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
+    APICALL bool addLayout(HANDLE handle, const std::string& name, CIHyprLayout* layout);
 
     /*
         Removes an added layout from Hyprland.
 
         returns: true on success. False otherwise.
     */
-    APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
+    APICALL bool removeLayout(HANDLE handle, CIHyprLayout* layout);
 
     /*
         Queues a config reload. Does not take effect immediately.

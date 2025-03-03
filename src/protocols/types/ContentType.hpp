@@ -12,7 +12,7 @@ namespace NContentType {
         CONTENT_TYPE_GAME  = 3,
     };
 
-    eContentType fromString(const std::string name);
+    eContentType fromString(const std::string NAME);
     eContentType fromWP(wpContentTypeV1Type contentType);
     uint16_t     toDRM(eContentType contentType);
 }

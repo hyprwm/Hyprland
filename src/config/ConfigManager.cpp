@@ -1476,7 +1476,7 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->m_TARGETNAMESPACE.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_TARGETNAMESPACE)
                 continue;
-        } else if (!lr->targetNamespaceRegex.passes(pLS->layerSurface->layerNamespace))
+        } else if (!lr->m_targetNamespaceRegex.passes(pLS->layerSurface->layerNamespace))
             continue;
 
         // hit
@@ -2317,29 +2317,29 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE  = trim(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (m_RULE.empty() || VALUE.empty())
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
-    if (m_RULE == "unset") {
+    if (RULE == "unset") {
         std::erase_if(m_vWindowRules, [&](const auto& other) { return other->szValue == VALUE; });
         return {};
     }
 
-    auto newRule = makeShared<CWindowRule>(m_RULE, VALUE, false);
+    auto newRule = makeShared<CWindowRule>(RULE, VALUE, false);
 
     // verify we support a rule
     if (newRule->m_ruleType == CWindowRule::RULE_INVALID) {
-        NDebug::log(ERR, "Invalid rule found: {}", m_RULE);
-        return "Invalid rule: " + m_RULE;
+        NDebug::log(ERR, "Invalid rule found: {}", RULE);
+        return "Invalid rule: " + RULE;
     }
 
     newRule->rV1Regex = {VALUE.starts_with("title:") ? VALUE.substr(6) : VALUE};
 
-    if (m_RULE.starts_with("size") || m_RULE.starts_with("maxsize") || m_RULE.starts_with("minsize"))
+    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), newRule);
     else
         m_vWindowRules.emplace_back(newRule);
@@ -2348,26 +2348,26 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
-    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE  = trim(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (m_RULE.empty() || VALUE.empty())
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
-    if (m_RULE == "unset") {
+    if (RULE == "unset") {
         std::erase_if(m_vLayerRules, [&](const auto& other) { return other->m_TARGETNAMESPACE == VALUE; });
         return {};
     }
 
-    auto rule = makeShared<CLayerRule>(m_RULE, VALUE);
+    auto rule = makeShared<CLayerRule>(RULE, VALUE);
 
     if (rule->m_ruleType == CLayerRule::RULE_INVALID) {
-        NDebug::log(ERR, "Invalid rule found: {}", m_RULE);
-        return "Invalid rule found: " + m_RULE;
+        NDebug::log(ERR, "Invalid rule found: {}", RULE);
+        return "Invalid rule found: " + RULE;
     }
 
-    rule->targetNamespaceRegex = {VALUE};
+    rule->m_targetNamespaceRegex = {VALUE};
 
     m_vLayerRules.emplace_back(rule);
 
@@ -2380,14 +2380,14 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 }
 
 std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto m_RULE = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE  = value.substr(value.find_first_of(',') + 1);
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
-    auto       rule = makeShared<CWindowRule>(m_RULE, VALUE, true);
+    auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
 
-    if (rule->m_ruleType == CWindowRule::RULE_INVALID && m_RULE != "unset") {
-        NDebug::log(ERR, "Invalid rulev2 found: {}", m_RULE);
-        return "Invalid rulev2 found: " + m_RULE;
+    if (rule->m_ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
+        NDebug::log(ERR, "Invalid rulev2 found: {}", RULE);
+        return "Invalid rulev2 found: " + RULE;
     }
 
     // now we estract shit from the value
@@ -2517,7 +2517,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (CONTENTTYPEPOS != std::string::npos)
         rule->szContentType = extract(CONTENTTYPEPOS + 8);
 
-    if (m_RULE == "unset") {
+    if (RULE == "unset") {
         std::erase_if(m_vWindowRules, [&](const auto& other) {
             if (!other->v2)
                 return other->szClass == rule->szClass && !rule->szClass.empty();
@@ -2570,7 +2570,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         return {};
     }
 
-    if (m_RULE.starts_with("size") || m_RULE.starts_with("maxsize") || m_RULE.starts_with("minsize"))
+    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), rule);
     else
         m_vWindowRules.push_back(rule);
@@ -2869,7 +2869,7 @@ std::string SConfigOptionDescription::jsonify() const {
                     const auto V = std::any_cast<Hyprlang::VEC2>(CONFIGVALUE);
                     currentValue = std::format("{}, {}", V.x, V.y);
                 } else if (typeid(void*) == std::type_index(CONFIGVALUE.type())) {
-                    const auto DATA = (ICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
+                    const auto DATA = (CICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
                     currentValue    = DATA->toString();
                 }
 

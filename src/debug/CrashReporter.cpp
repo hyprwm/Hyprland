@@ -31,11 +31,11 @@ static char const* const MESSAGES[] = {"Sorry, didn't mean to...",
                                        "All these computers..."};
 
 // <random> is not async-signal-safe, fake it with time(NULL) instead
-char const* getRandomMessage() {
+static char const* getRandomMessage() {
     return MESSAGES[time(nullptr) % (sizeof(MESSAGES) / sizeof(MESSAGES[0]))];
 }
 
-[[noreturn]] inline void exitWithError(char const* err) {
+[[noreturn]] static inline void exitWithError(char const* err) {
     write(STDERR_FILENO, err, strlen(err));
     // perror() is not signal-safe, but we use it here
     // because if the crash-handler already crashed, it can't get any worse.
@@ -123,11 +123,11 @@ void NCrashReporter::createAndSaveCrash(int sig) {
     if (g_pPluginSystem && g_pPluginSystem->pluginCount() > 0) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
-        const size_t          count = g_pPluginSystem->pluginCount();
-        std::vector<CPlugin*> plugins(count);
-        g_pPluginSystem->sigGetPlugins(plugins.data(), count);
+        const size_t          COUNT = g_pPluginSystem->pluginCount();
+        std::vector<CPlugin*> plugins(COUNT);
+        g_pPluginSystem->sigGetPlugins(plugins.data(), COUNT);
 
-        for (size_t i = 0; i < count; i++) {
+        for (size_t i = 0; i < COUNT; i++) {
             auto p = plugins[i];
             finalCrashReport += '\t';
             finalCrashReport += p->name;

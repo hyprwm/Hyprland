@@ -111,7 +111,7 @@ class CXWM {
 
     int                onEvent(int fd, uint32_t mask);
     SP<CX11DataDevice> getDataDevice();
-    SP<IDataOffer>     createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source);
+    SP<CIDataOffer>    createX11DataOffer(SP<CWLSurfaceResource> surf, SP<CIDataSource> source);
 
   private:
     void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);

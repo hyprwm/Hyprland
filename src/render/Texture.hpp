@@ -8,10 +8,10 @@ class CHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
 
 enum eTextureType : int8_t {
-    TEXTURE_INVALID = -1, // Invalid
-    TEXTURE_RGBA    = 0,  // 4 channels
-    TEXTURE_RGBX,         // discard A
-    TEXTURE_EXTERNAL,     // EGLImage
+    TEXTURE_INVALID  = -1, // Invalid
+    TEXTURE_RGBA     = 0,  // 4 channels
+    TEXTURE_RGBX     = 1,  // discard A
+    TEXTURE_EXTERNAL = 2   // EGLImage
 };
 
 class CTexture {

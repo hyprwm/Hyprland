@@ -542,7 +542,7 @@ SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
     return PROTO::seat->seatResourceForClient(client);
 }
 
-void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
+void CSeatManager::setCurrentSelection(SP<CIDataSource> source) {
     if (source == selection.currentSelection) {
         NDebug::log(WARN, "[seat] duplicated setCurrentSelection?");
         return;
@@ -567,7 +567,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     events.setSelection.emit();
 }
 
-void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
+void CSeatManager::setCurrentPrimarySelection(SP<CIDataSource> source) {
     if (source == selection.currentPrimarySelection) {
         NDebug::log(WARN, "[seat] duplicated setCurrentPrimarySelection?");
         return;

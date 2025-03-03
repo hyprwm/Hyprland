@@ -188,7 +188,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs);
+    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float TIMEMS);
 
     /*
         Creates a trampoline function hook to an internal hl func.

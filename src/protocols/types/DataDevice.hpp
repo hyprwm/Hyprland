@@ -20,10 +20,10 @@ enum eDataSourceType : uint8_t {
     DATA_SOURCE_TYPE_X11,
 };
 
-class CDataSource {
+class CIDataSource {
   public:
-    IDataSource()          = default;
-    virtual ~IDataSource() = default;
+    CIDataSource()          = default;
+    virtual ~CIDataSource() = default;
 
     virtual std::vector<std::string> mimes()                                                          = 0;
     virtual void                     send(const std::string& mime, Hyprutils::OS::CFileDescriptor fd) = 0;
@@ -48,30 +48,30 @@ class CDataSource {
     bool wasUsed = false;
 };
 
-class CDataOffer {
+class CIDataOffer {
   public:
-    IDataOffer()          = default;
-    virtual ~IDataOffer() = default;
+    CIDataOffer()          = default;
+    virtual ~CIDataOffer() = default;
 
     virtual eDataSourceType          type()       = 0;
     virtual SP<CWLDataOfferResource> getWayland() = 0;
     virtual SP<CX11DataOffer>        getX11()     = 0;
-    virtual SP<IDataSource>          getSource()  = 0;
+    virtual SP<CIDataSource>         getSource()  = 0;
     virtual void                     markDead();
 };
 
-class CDataDevice {
+class CIDataDevice {
   public:
-    IDataDevice()          = default;
-    virtual ~IDataDevice() = default;
+    CIDataDevice()          = default;
+    virtual ~CIDataDevice() = default;
 
-    virtual SP<CWLDataDeviceResource> getWayland()                                                                                         = 0;
-    virtual SP<CX11DataDevice>        getX11()                                                                                             = 0;
-    virtual void                      sendDataOffer(SP<IDataOffer> offer)                                                                  = 0;
-    virtual void                      sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) = 0;
-    virtual void                      sendLeave()                                                                                          = 0;
-    virtual void                      sendMotion(uint32_t timeMs, const Vector2D& local)                                                   = 0;
-    virtual void                      sendDrop()                                                                                           = 0;
-    virtual void                      sendSelection(SP<IDataOffer> offer)                                                                  = 0;
-    virtual eDataSourceType           type()                                                                                               = 0;
+    virtual SP<CWLDataDeviceResource> getWayland()                                                                                          = 0;
+    virtual SP<CX11DataDevice>        getX11()                                                                                              = 0;
+    virtual void                      sendDataOffer(SP<CIDataOffer> offer)                                                                  = 0;
+    virtual void                      sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CIDataOffer> offer) = 0;
+    virtual void                      sendLeave()                                                                                           = 0;
+    virtual void                      sendMotion(uint32_t timeMs, const Vector2D& local)                                                    = 0;
+    virtual void                      sendDrop()                                                                                            = 0;
+    virtual void                      sendSelection(SP<CIDataOffer> offer)                                                                  = 0;
+    virtual eDataSourceType           type()                                                                                                = 0;
 };

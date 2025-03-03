@@ -116,18 +116,18 @@ class CBufFileWriter {
 #endif
             sigaction(SIGCHLD, &act, nullptr);
         }
-        const pid_t pid = fork();
-        if (pid < 0) {
+        const pid_t PID = fork();
+        if (PID < 0) {
             *this += "<fork() failed with ";
             writeNum(errno);
             *this += ">\n";
             return;
         }
-        if (pid == 0) {
+        if (PID == 0) {
             close(pipefd[0]);
             dup2(pipefd[1], STDOUT_FILENO);
-            char const* const argv[] = {"/bin/sh", "-c", cmd, nullptr};
-            execv("/bin/sh", (char* const*)argv);
+            char const* const ARGV[] = {"/bin/sh", "-c", cmd, nullptr};
+            execv("/bin/sh", (char* const*)ARGV);
 
             CBufFileWriter<64> failmsg(pipefd[1]);
             failmsg += "<execv(";

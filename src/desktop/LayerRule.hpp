@@ -27,5 +27,5 @@ class CLayerRule {
     const std::string   m_TARGETNAMESPACE;
     const std::string   m_RULE;
 
-    CRuleRegexContainer targetNamespaceRegex;
+    CRuleRegexContainer m_targetNamespaceRegex;
 };

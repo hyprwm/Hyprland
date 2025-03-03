@@ -114,14 +114,14 @@ class CSeatManager {
     } events;
 
     struct {
-        WP<IDataSource>     currentSelection;
+        WP<CIDataSource>    currentSelection;
         CHyprSignalListener destroySelection;
-        WP<IDataSource>     currentPrimarySelection;
+        WP<CIDataSource>    currentPrimarySelection;
         CHyprSignalListener destroyPrimarySelection;
     } selection;
 
-    void setCurrentSelection(SP<IDataSource> source);
-    void setCurrentPrimarySelection(SP<IDataSource> source);
+    void setCurrentSelection(SP<CIDataSource> source);
+    void setCurrentPrimarySelection(SP<CIDataSource> source);
 
     // do not write to directly, use set...
     WP<IPointer>  mouse;

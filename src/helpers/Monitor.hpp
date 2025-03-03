@@ -28,6 +28,15 @@ enum eAutoDirs : uint8_t {
     DIR_AUTO_RIGHT
 };
 
+enum eCMType : uint8_t {
+    CM_AUTO = 0, // subject to change. srgb for 8bpc, wide for 10bpc if supported
+    CM_SRGB,     // default, sRGB primaries
+    CM_WIDE,     // wide color gamut, BT2020 primaries
+    CM_EDID,     // primaries from edid (known to be inaccurate)
+    CM_HDR,      // wide color gamut and HDR PQ transfer function
+    CM_HDR_EDID, // same as CM_HDR with edid primaries
+};
+
 struct SMonitorRule {
     eAutoDirs           autoDir     = DIR_AUTO_NONE;
     std::string         name        = "";
@@ -39,6 +48,7 @@ struct SMonitorRule {
     wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string         mirrorOf    = "";
     bool                enable10bit = false;
+    eCMType             cmType      = CM_SRGB;
     drmModeModeInfo     drmMode     = {};
     std::optional<int>  vrr;
 };
@@ -108,6 +118,7 @@ class CMonitor {
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
+    eCMType                     cmType           = CM_SRGB;
     bool                        createdByUser    = false;
     bool                        isUnsafeFallback = false;
 

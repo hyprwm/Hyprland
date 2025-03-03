@@ -119,9 +119,9 @@ class CPrimarySelectionProtocol : public IWaylandProtocol {
 
     struct {
         CHyprSignalListener onPointerFocusChange;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-namespace PROTO {
-    inline UP<CPrimarySelectionProtocol> primarySelection;
-};
+    namespace PROTO {
+        inline UP<CPrimarySelectionProtocol> primarySelection;
+    };

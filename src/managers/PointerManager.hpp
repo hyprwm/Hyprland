@@ -108,7 +108,7 @@ class CPointerManager {
 
         WP<IPointer>        pointer;
     };
-    std::vector<SP<SPointerListener>> pointerListeners;
+    std::vector<SP<SPointerListener>> pointerm_listeners;
 
     struct STouchListener {
         CHyprSignalListener destroy;
@@ -120,7 +120,7 @@ class CPointerManager {
 
         WP<ITouch>          touch;
     };
-    std::vector<SP<STouchListener>> touchListeners;
+    std::vector<SP<STouchListener>> touchm_listeners;
 
     struct STabletListener {
         CHyprSignalListener destroy;
@@ -131,7 +131,7 @@ class CPointerManager {
 
         WP<CTablet>         tablet;
     };
-    std::vector<SP<STabletListener>> tabletListeners;
+    std::vector<SP<STabletListener>> tabletm_listeners;
 
     struct {
         std::vector<CBox> monitorBoxes;

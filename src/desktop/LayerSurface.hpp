@@ -75,7 +75,7 @@ class CLayerSurface {
         CHyprSignalListener map;
         CHyprSignalListener unmap;
         CHyprSignalListener commit;
-    } listeners;
+    } m_m_listeners;
 
     void registerCallbacks();
 

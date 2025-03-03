@@ -221,5 +221,5 @@ class CMonitor {
         CHyprSignalListener needsFrame;
         CHyprSignalListener presented;
         CHyprSignalListener commit;
-    } listeners;
-};
+        m_m_listeners;
+    };

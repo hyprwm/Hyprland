@@ -489,7 +489,7 @@ class CWindow {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};
     }
 
-    // listeners
+    // m_listeners
     void onAck(uint32_t serial);
 
     //
@@ -498,7 +498,7 @@ class CWindow {
     //
     PHLWINDOWREF m_pSelf;
 
-    // make private once we move listeners to inside CWindow
+    // make private once we move m_listeners to inside CWindow
     struct {
         CHyprSignalListener map;
         CHyprSignalListener ack;
@@ -511,72 +511,72 @@ class CWindow {
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;
         CHyprSignalListener resourceChange;
-    } listeners;
+        m_m_listeners;
 
-  private:
-    // For hidden windows and stuff
-    bool        m_bHidden        = false;
-    bool        m_bSuspended     = false;
-    WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
-};
-
-inline bool valid(PHLWINDOW w) {
-    return w.get();
-}
-
-inline bool valid(PHLWINDOWREF w) {
-    return !w.expired();
-}
-
-inline bool validMapped(PHLWINDOW w) {
-    if (!valid(w))
-        return false;
-    return w->m_bIsMapped;
-}
-
-inline bool validMapped(PHLWINDOWREF w) {
-    if (!valid(w))
-        return false;
-    return w->m_bIsMapped;
-}
-
-namespace NWindowProperties {
-    static const std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> boolWindowProperties = {
-        {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
-        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.dimAround; }},
-        {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.decorate; }},
-        {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
-        {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
-        {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
-        {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noAnim; }},
-        {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBlur; }},
-        {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBorder; }},
-        {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noDim; }},
-        {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFocus; }},
-        {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
-        {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noRounding; }},
-        {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShadow; }},
-        {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
-        {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.opaque; }},
-        {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.RGBX; }},
-        {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
-        {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.tearing; }},
-        {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
+      private:
+        // For hidden windows and stuff
+        bool        m_bHidden        = false;
+        bool        m_bSuspended     = false;
+        WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
     };
 
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(const PHLWINDOW&)>> intWindowProperties = {
-        {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.rounding; }},
-        {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
+    inline bool valid(PHLWINDOW w) {
+        return w.get();
+    }
+
+    inline bool valid(PHLWINDOWREF w) {
+        return !w.expired();
+    }
+
+    inline bool validMapped(PHLWINDOW w) {
+        if (!valid(w))
+            return false;
+        return w->m_bIsMapped;
+    }
+
+    inline bool validMapped(PHLWINDOWREF w) {
+        if (!valid(w))
+            return false;
+        return w->m_bIsMapped;
+    }
+
+    namespace NWindowProperties {
+        static const std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> boolWindowProperties = {
+            {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
+            {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.dimAround; }},
+            {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.decorate; }},
+            {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
+            {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
+            {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
+            {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noAnim; }},
+            {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBlur; }},
+            {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBorder; }},
+            {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noDim; }},
+            {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFocus; }},
+            {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
+            {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noRounding; }},
+            {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShadow; }},
+            {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
+            {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.opaque; }},
+            {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+            {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
+            {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.tearing; }},
+            {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
+        };
+
+        const std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(const PHLWINDOW&)>> intWindowProperties = {
+            {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.rounding; }},
+            {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
+        };
+
+        const std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> floatWindowProperties = {
+            {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
+            {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
+            {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }},
+        };
     };
 
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> floatWindowProperties = {
-        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
-        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
-        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }},
-    };
-};
-
-/**
+    /**
     format specification
     - 'x', only address, equivalent of (uintpr_t)CWindow*
     - 'm', with monitor id
@@ -584,35 +584,35 @@ namespace NWindowProperties {
     - 'c', with application class
 */
 
-template <typename CharT>
-struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
-    bool formatAddressOnly = false;
-    bool formatWorkspace   = false;
-    bool formatMonitor     = false;
-    bool formatClass       = false;
-    FORMAT_PARSE(                           //
-        FORMAT_FLAG('x', formatAddressOnly) //
-        FORMAT_FLAG('m', formatMonitor)     //
-        FORMAT_FLAG('w', formatWorkspace)   //
-        FORMAT_FLAG('c', formatClass),
-        PHLWINDOW)
+    template <typename CharT>
+    struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
+        bool formatAddressOnly = false;
+        bool formatWorkspace   = false;
+        bool formatMonitor     = false;
+        bool formatClass       = false;
+        FORMAT_PARSE(                           //
+            FORMAT_FLAG('x', formatAddressOnly) //
+            FORMAT_FLAG('m', formatMonitor)     //
+            FORMAT_FLAG('w', formatWorkspace)   //
+            FORMAT_FLAG('c', formatClass),
+            PHLWINDOW)
 
-    template <typename FormatContext>
-    auto format(PHLWINDOW const& w, FormatContext& ctx) const {
-        auto&& out = ctx.out();
-        if (formatAddressOnly)
-            return std::format_to(out, "{:x}", (uintptr_t)w.get());
-        if (!w)
-            return std::format_to(out, "[Window nullptr]");
+        template <typename FormatContext>
+        auto format(PHLWINDOW const& w, FormatContext& ctx) const {
+            auto&& out = ctx.out();
+            if (formatAddressOnly)
+                return std::format_to(out, "{:x}", (uintptr_t)w.get());
+            if (!w)
+                return std::format_to(out, "[Window nullptr]");
 
-        std::format_to(out, "[");
-        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_szTitle);
-        if (formatWorkspace)
-            std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
-        if (formatMonitor)
-            std::format_to(out, ", monitor: {}", w->monitorID());
-        if (formatClass)
-            std::format_to(out, ", class: {}", w->m_szClass);
-        return std::format_to(out, "]");
-    }
-};
+            std::format_to(out, "[");
+            std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_szTitle);
+            if (formatWorkspace)
+                std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
+            if (formatMonitor)
+                std::format_to(out, ", monitor: {}", w->monitorID());
+            if (formatClass)
+                std::format_to(out, ", class: {}", w->m_szClass);
+            return std::format_to(out, "]");
+        }
+    };

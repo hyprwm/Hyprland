@@ -885,7 +885,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
 
     //
-    auto listener = pointerListeners.emplace_back(makeShared<SPointerListener>());
+    auto listener = pointerm_listeners.emplace_back(makeShared<SPointerListener>());
 
     listener->pointer = pointer;
 
@@ -1024,7 +1024,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
 
     //
-    auto listener = touchListeners.emplace_back(makeShared<STouchListener>());
+    auto listener = touchm_listeners.emplace_back(makeShared<STouchListener>());
 
     listener->touch = touch;
 
@@ -1079,7 +1079,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
 
     //
-    auto listener = tabletListeners.emplace_back(makeShared<STabletListener>());
+    auto listener = tabletm_listeners.emplace_back(makeShared<STabletListener>());
 
     listener->tablet = tablet;
 
@@ -1131,15 +1131,15 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 }
 
 void CPointerManager::detachPointer(SP<IPointer> pointer) {
-    std::erase_if(pointerListeners, [pointer](const auto& e) { return e->pointer.expired() || e->pointer == pointer; });
+    std::erase_if(pointerm_listeners, [pointer](const auto& e) { return e->pointer.expired() || e->pointer == pointer; });
 }
 
 void CPointerManager::detachTouch(SP<ITouch> touch) {
-    std::erase_if(touchListeners, [touch](const auto& e) { return e->touch.expired() || e->touch == touch; });
+    std::erase_if(touchm_listeners, [touch](const auto& e) { return e->touch.expired() || e->touch == touch; });
 }
 
 void CPointerManager::detachTablet(SP<CTablet> tablet) {
-    std::erase_if(tabletListeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
+    std::erase_if(tabletm_listeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
 }
 
 void CPointerManager::damageCursor(PHLMONITOR pMonitor) {

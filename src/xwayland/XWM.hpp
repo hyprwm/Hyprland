@@ -56,167 +56,167 @@ struct SXSelection {
     struct {
         CHyprSignalListener setSelection;
         CHyprSignalListener keyboardFocusChange;
-    } listeners;
+        m_m_listeners;
 
-    std::vector<UP<SXTransfer>> transfers;
-};
+        std::vector<UP<SXTransfer>> transfers;
+    };
 
-class CXCBConnection {
-  public:
-    CXCBConnection(int fd) : connection{xcb_connect_to_fd(fd, nullptr)} {
-        ;
-    }
+    class CXCBConnection {
+      public:
+        CXCBConnection(int fd) : connection{xcb_connect_to_fd(fd, nullptr)} {
+            ;
+        }
 
-    ~CXCBConnection() {
-        if (connection)
-            xcb_disconnect(connection);
-    }
+        ~CXCBConnection() {
+            if (connection)
+                xcb_disconnect(connection);
+        }
 
-    bool hasError() const {
-        return xcb_connection_has_error(connection);
-    }
+        bool hasError() const {
+            return xcb_connection_has_error(connection);
+        }
 
-    operator xcb_connection_t*() const {
-        return connection;
-    }
+        operator xcb_connection_t*() const {
+            return connection;
+        }
 
-  private:
-    xcb_connection_t* connection = nullptr;
-};
+      private:
+        xcb_connection_t* connection = nullptr;
+    };
 
-class CXCBErrorContext {
-  public:
-    explicit CXCBErrorContext(xcb_connection_t* connection) {
-        if (xcb_errors_context_new(connection, &errors) != 0)
-            errors = nullptr;
-    }
+    class CXCBErrorContext {
+      public:
+        explicit CXCBErrorContext(xcb_connection_t* connection) {
+            if (xcb_errors_context_new(connection, &errors) != 0)
+                errors = nullptr;
+        }
 
-    ~CXCBErrorContext() {
-        if (errors)
-            xcb_errors_context_free(errors);
-    }
+        ~CXCBErrorContext() {
+            if (errors)
+                xcb_errors_context_free(errors);
+        }
 
-    bool isValid() const {
-        return errors != nullptr;
-    }
+        bool isValid() const {
+            return errors != nullptr;
+        }
 
-  private:
-    xcb_errors_context_t* errors = nullptr;
-};
+      private:
+        xcb_errors_context_t* errors = nullptr;
+    };
 
-class CXWM {
-  public:
-    CXWM();
-    ~CXWM();
+    class CXWM {
+      public:
+        CXWM();
+        ~CXWM();
 
-    int                onEvent(int fd, uint32_t mask);
-    SP<CX11DataDevice> getDataDevice();
-    SP<CIDataOffer>    createX11DataOffer(SP<CWLSurfaceResource> surf, SP<CIDataSource> source);
+        int                onEvent(int fd, uint32_t mask);
+        SP<CX11DataDevice> getDataDevice();
+        SP<CIDataOffer>    createX11DataOffer(SP<CWLSurfaceResource> surf, SP<CIDataSource> source);
 
-  private:
-    void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
+      private:
+        void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
 
-    void                 gatherResources();
-    void                 getVisual();
-    void                 getRenderFormat();
-    void                 createWMWindow();
-    void                 initSelection();
+        void                 gatherResources();
+        void                 getVisual();
+        void                 getRenderFormat();
+        void                 createWMWindow();
+        void                 initSelection();
 
-    void                 onNewSurface(SP<CWLSurfaceResource> surf);
-    void                 onNewResource(SP<CXWaylandSurfaceResource> resource);
+        void                 onNewSurface(SP<CWLSurfaceResource> surf);
+        void                 onNewResource(SP<CXWaylandSurfaceResource> resource);
 
-    void                 setActiveWindow(xcb_window_t window);
-    void                 sendState(SP<CXWaylandSurface> surf);
-    void                 focusWindow(SP<CXWaylandSurface> surf);
-    void                 activateSurface(SP<CXWaylandSurface> surf, bool activate);
-    bool                 isWMWindow(xcb_window_t w);
-    void                 updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect);
+        void                 setActiveWindow(xcb_window_t window);
+        void                 sendState(SP<CXWaylandSurface> surf);
+        void                 focusWindow(SP<CXWaylandSurface> surf);
+        void                 activateSurface(SP<CXWaylandSurface> surf, bool activate);
+        bool                 isWMWindow(xcb_window_t w);
+        void                 updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect);
 
-    void                 sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask);
+        void                 sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask);
 
-    SP<CXWaylandSurface> windowForXID(xcb_window_t wid);
-    SP<CXWaylandSurface> windowForWayland(SP<CWLSurfaceResource> surf);
+        SP<CXWaylandSurface> windowForXID(xcb_window_t wid);
+        SP<CXWaylandSurface> windowForWayland(SP<CWLSurfaceResource> surf);
 
-    void                 readWindowData(SP<CXWaylandSurface> surf);
-    void                 associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf);
-    void                 dissociate(SP<CXWaylandSurface> surf);
+        void                 readWindowData(SP<CXWaylandSurface> surf);
+        void                 associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf);
+        void                 dissociate(SP<CXWaylandSurface> surf);
 
-    void                 updateClientList();
+        void                 updateClientList();
 
-    // event handlers
-    void         handleCreate(xcb_create_notify_event_t* e);
-    void         handleDestroy(xcb_destroy_notify_event_t* e);
-    void         handleConfigureRequest(xcb_configure_request_event_t* e);
-    void         handleConfigureNotify(xcb_configure_notify_event_t* e);
-    void         handleMapRequest(xcb_map_request_event_t* e);
-    void         handleMapNotify(xcb_map_notify_event_t* e);
-    void         handleUnmapNotify(xcb_unmap_notify_event_t* e);
-    void         handlePropertyNotify(xcb_property_notify_event_t* e);
-    void         handleClientMessage(xcb_client_message_event_t* e);
-    void         handleFocusIn(xcb_focus_in_event_t* e);
-    void         handleFocusOut(xcb_focus_out_event_t* e);
-    void         handleError(xcb_value_error_t* e);
+        // event handlers
+        void         handleCreate(xcb_create_notify_event_t* e);
+        void         handleDestroy(xcb_destroy_notify_event_t* e);
+        void         handleConfigureRequest(xcb_configure_request_event_t* e);
+        void         handleConfigureNotify(xcb_configure_notify_event_t* e);
+        void         handleMapRequest(xcb_map_request_event_t* e);
+        void         handleMapNotify(xcb_map_notify_event_t* e);
+        void         handleUnmapNotify(xcb_unmap_notify_event_t* e);
+        void         handlePropertyNotify(xcb_property_notify_event_t* e);
+        void         handleClientMessage(xcb_client_message_event_t* e);
+        void         handleFocusIn(xcb_focus_in_event_t* e);
+        void         handleFocusOut(xcb_focus_out_event_t* e);
+        void         handleError(xcb_value_error_t* e);
 
-    bool         handleSelectionEvent(xcb_generic_event_t* e);
-    void         handleSelectionNotify(xcb_selection_notify_event_t* e);
-    bool         handleSelectionPropertyNotify(xcb_property_notify_event_t* e);
-    void         handleSelectionRequest(xcb_selection_request_event_t* e);
-    bool         handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e);
+        bool         handleSelectionEvent(xcb_generic_event_t* e);
+        void         handleSelectionNotify(xcb_selection_notify_event_t* e);
+        bool         handleSelectionPropertyNotify(xcb_property_notify_event_t* e);
+        void         handleSelectionRequest(xcb_selection_request_event_t* e);
+        bool         handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e);
 
-    void         selectionSendNotify(xcb_selection_request_event_t* e, bool success);
-    xcb_atom_t   mimeToAtom(const std::string& mime);
-    std::string  mimeFromAtom(xcb_atom_t atom);
-    void         setClipboardToWayland(SXSelection& sel);
-    void         getTransferData(SXSelection& sel);
-    std::string  getAtomName(uint32_t atom);
-    void         readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
+        void         selectionSendNotify(xcb_selection_request_event_t* e, bool success);
+        xcb_atom_t   mimeToAtom(const std::string& mime);
+        std::string  mimeFromAtom(xcb_atom_t atom);
+        void         setClipboardToWayland(SXSelection& sel);
+        void         getTransferData(SXSelection& sel);
+        std::string  getAtomName(uint32_t atom);
+        void         readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
-    SXSelection* getSelection(xcb_atom_t atom);
+        SXSelection* getSelection(xcb_atom_t atom);
 
-    //
-    CXCBConnection                            connection;
-    xcb_errors_context_t*                     errors = nullptr;
-    xcb_screen_t*                             screen = nullptr;
+        //
+        CXCBConnection                            connection;
+        xcb_errors_context_t*                     errors = nullptr;
+        xcb_screen_t*                             screen = nullptr;
 
-    xcb_window_t                              wmWindow;
+        xcb_window_t                              wmWindow;
 
-    wl_event_source*                          eventSource = nullptr;
+        wl_event_source*                          eventSource = nullptr;
 
-    const xcb_query_extension_reply_t*        xfixes      = nullptr;
-    const xcb_query_extension_reply_t*        xres        = nullptr;
-    int                                       xfixesMajor = 0;
+        const xcb_query_extension_reply_t*        xfixes      = nullptr;
+        const xcb_query_extension_reply_t*        xres        = nullptr;
+        int                                       xfixesMajor = 0;
 
-    xcb_visualid_t                            visual_id;
-    xcb_colormap_t                            colormap;
-    uint32_t                                  cursorXID = 0;
+        xcb_visualid_t                            visual_id;
+        xcb_colormap_t                            colormap;
+        uint32_t                                  cursorXID = 0;
 
-    xcb_render_pictformat_t                   render_format_id;
+        xcb_render_pictformat_t                   render_format_id;
 
-    std::vector<WP<CXWaylandSurfaceResource>> shellResources;
-    std::vector<SP<CXWaylandSurface>>         surfaces;
-    std::vector<WP<CXWaylandSurface>>         mappedSurfaces;         // ordered by map time
-    std::vector<WP<CXWaylandSurface>>         mappedSurfacesStacking; // ordered by stacking
+        std::vector<WP<CXWaylandSurfaceResource>> shellResources;
+        std::vector<SP<CXWaylandSurface>>         surfaces;
+        std::vector<WP<CXWaylandSurface>>         mappedSurfaces;         // ordered by map time
+        std::vector<WP<CXWaylandSurface>>         mappedSurfacesStacking; // ordered by stacking
 
-    WP<CXWaylandSurface>                      focusedSurface;
-    uint64_t                                  lastFocusSeq = 0;
+        WP<CXWaylandSurface>                      focusedSurface;
+        uint64_t                                  lastFocusSeq = 0;
 
-    SXSelection                               clipboard;
-    SXSelection                               dndSelection;
-    SP<CX11DataDevice>                        dndDataDevice = makeShared<CX11DataDevice>();
-    std::vector<SP<CX11DataOffer>>            dndDataOffers;
+        SXSelection                               clipboard;
+        SXSelection                               dndSelection;
+        SP<CX11DataDevice>                        dndDataDevice = makeShared<CX11DataDevice>();
+        std::vector<SP<CX11DataOffer>>            dndDataOffers;
 
-    struct {
-        CHyprSignalListener newWLSurface;
-        CHyprSignalListener newXShellSurface;
-    } listeners;
+        struct {
+            CHyprSignalListener newWLSurface;
+            CHyprSignalListener newXShellSurface;
+            m_m_listeners;
 
-    friend class CXWaylandSurface;
-    friend class CXWayland;
-    friend class CXDataSource;
-    friend class CX11DataDevice;
-    friend class CX11DataSource;
-    friend class CX11DataOffer;
-    friend class CWLDataDeviceProtocol;
-    friend struct SXSelection;
-    friend struct SXTransfer;
-};
+            friend class CXWaylandSurface;
+            friend class CXWayland;
+            friend class CXDataSource;
+            friend class CX11DataDevice;
+            friend class CX11DataSource;
+            friend class CX11DataOffer;
+            friend class CWLDataDeviceProtocol;
+            friend struct SXSelection;
+            friend struct SXTransfer;
+        };

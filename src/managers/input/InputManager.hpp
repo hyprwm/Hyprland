@@ -213,14 +213,14 @@ class CInputManager {
     bool m_bEmptyFocusCursorSet = false;
 
   private:
-    // Listeners
+    // m_listeners
     struct {
         CHyprSignalListener setCursorShape;
         CHyprSignalListener newIdleInhibitor;
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
         CHyprSignalListener setCursor;
-    } m_sListeners;
+    } m_sm_listeners;
 
     bool                 m_bCursorImageOverridden = false;
     eBorderIconDirection m_eBorderIconDirection   = BORDERICON_NONE;

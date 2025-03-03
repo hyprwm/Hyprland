@@ -51,7 +51,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
         surface->pending.viewport.source    = {x, y, w, h};
     });
 
-    listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
+    m_listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
         if (!surface || !surface->pending.texture)
             return;
 

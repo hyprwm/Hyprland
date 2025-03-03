@@ -105,7 +105,7 @@ class CXWaylandSurface {
   private:
     CXWaylandSurface(uint32_t xID, CBox geometry, bool OR);
 
-    void ensureListeners();
+    void ensurem_listeners();
     void map();
     void unmap();
     void considerMap();
@@ -115,7 +115,7 @@ class CXWaylandSurface {
         CHyprSignalListener destroyResource;
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
-    } listeners;
+        m_m_listeners;
 
-    friend class CXWM;
-};
+        friend class CXWM;
+    };

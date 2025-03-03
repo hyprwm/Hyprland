@@ -26,29 +26,29 @@ class CAlphaModifier {
     struct {
         CHyprSignalListener surfaceCommitted;
         CHyprSignalListener surfaceDestroyed;
-    } listeners;
+        m_m_listeners;
 
-    friend class CAlphaModifierProtocol;
-};
+        friend class CAlphaModifierProtocol;
+    };
 
-class CAlphaModifierProtocol : public IWaylandProtocol {
-  public:
-    CAlphaModifierProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CAlphaModifierProtocol : public IWaylandProtocol {
+      public:
+        CAlphaModifierProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyManager(CWpAlphaModifierV1* res);
-    void destroyAlphaModifier(CAlphaModifier* surface);
-    void getSurface(CWpAlphaModifierV1* manager, uint32_t id, SP<CWLSurfaceResource> surface);
+      private:
+        void destroyManager(CWpAlphaModifierV1* res);
+        void destroyAlphaModifier(CAlphaModifier* surface);
+        void getSurface(CWpAlphaModifierV1* manager, uint32_t id, SP<CWLSurfaceResource> surface);
 
-    //
-    std::vector<UP<CWpAlphaModifierV1>>                            m_vManagers;
-    std::unordered_map<WP<CWLSurfaceResource>, UP<CAlphaModifier>> m_mAlphaModifiers;
+        //
+        std::vector<UP<CWpAlphaModifierV1>>                            m_vManagers;
+        std::unordered_map<WP<CWLSurfaceResource>, UP<CAlphaModifier>> m_mAlphaModifiers;
 
-    friend class CAlphaModifier;
-};
+        friend class CAlphaModifier;
+    };
 
-namespace PROTO {
-    inline UP<CAlphaModifierProtocol> alphaModifier;
-};
+    namespace PROTO {
+        inline UP<CAlphaModifierProtocol> alphaModifier;
+    };

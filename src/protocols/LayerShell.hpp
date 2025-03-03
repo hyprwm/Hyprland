@@ -80,31 +80,31 @@ class CLayerShellResource {
         CHyprSignalListener commitSurface;
         CHyprSignalListener destroySurface;
         CHyprSignalListener unmapSurface;
-    } listeners;
+        m_m_listeners;
 
-    bool                                       closed = false;
+        bool                                       closed = false;
 
-    std::vector<std::pair<uint32_t, Vector2D>> serials;
-};
+        std::vector<std::pair<uint32_t, Vector2D>> serials;
+    };
 
-class CLayerShellProtocol : public IWaylandProtocol {
-  public:
-    CLayerShellProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CLayerShellProtocol : public IWaylandProtocol {
+      public:
+        CLayerShellProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CLayerShellResource* surf);
-    void onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyResource(CLayerShellResource* surf);
+        void onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_);
 
-    //
-    std::vector<UP<CZwlrLayerShellV1>>   m_vManagers;
-    std::vector<SP<CLayerShellResource>> m_vLayers;
+        //
+        std::vector<UP<CZwlrLayerShellV1>>   m_vManagers;
+        std::vector<SP<CLayerShellResource>> m_vLayers;
 
-    friend class CLayerShellResource;
-};
+        friend class CLayerShellResource;
+    };
 
-namespace PROTO {
-    inline UP<CLayerShellProtocol> layerShell;
-};
+    namespace PROTO {
+        inline UP<CLayerShellProtocol> layerShell;
+    };

@@ -76,7 +76,7 @@ class CPopup {
         CHyprSignalListener commit;
         CHyprSignalListener dismissed;
         CHyprSignalListener reposition;
-    } listeners;
+    } m_m_listeners;
 
     void        initAllSignals();
     void        reposition();

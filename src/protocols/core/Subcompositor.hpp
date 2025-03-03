@@ -58,37 +58,37 @@ class CWLSubsurfaceResource {
 
     struct {
         CHyprSignalListener commitSurface;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CWLSubcompositorResource {
-  public:
-    CWLSubcompositorResource(SP<CWlSubcompositor> resource_);
+    class CWLSubcompositorResource {
+      public:
+        CWLSubcompositorResource(SP<CWlSubcompositor> resource_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CWlSubcompositor> resource;
-};
+      private:
+        SP<CWlSubcompositor> resource;
+    };
 
-class CWLSubcompositorProtocol : public IWaylandProtocol {
-  public:
-    CWLSubcompositorProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CWLSubcompositorProtocol : public IWaylandProtocol {
+      public:
+        CWLSubcompositorProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CWLSubcompositorResource* resource);
-    void destroyResource(CWLSubsurfaceResource* resource);
+      private:
+        void destroyResource(CWLSubcompositorResource* resource);
+        void destroyResource(CWLSubsurfaceResource* resource);
 
-    //
-    std::vector<SP<CWLSubcompositorResource>> m_vManagers;
-    std::vector<SP<CWLSubsurfaceResource>>    m_vSurfaces;
+        //
+        std::vector<SP<CWLSubcompositorResource>> m_vManagers;
+        std::vector<SP<CWLSubsurfaceResource>>    m_vSurfaces;
 
-    friend class CWLSubcompositorResource;
-    friend class CWLSubsurfaceResource;
-};
+        friend class CWLSubcompositorResource;
+        friend class CWLSubsurfaceResource;
+    };
 
-namespace PROTO {
-    inline UP<CWLSubcompositorProtocol> subcompositor;
-};
+    namespace PROTO {
+        inline UP<CWLSubcompositorProtocol> subcompositor;
+    };

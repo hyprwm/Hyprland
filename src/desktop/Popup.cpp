@@ -54,22 +54,23 @@ void CPopup::initAllSignals() {
 
     if (!m_pResource) {
         if (!m_pWindowOwner.expired())
-            listeners.newPopup = m_pWindowOwner->m_pXDGSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup =
+                m_pWindowOwner->m_pXDGSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else if (!m_pLayerOwner.expired())
-            listeners.newPopup = m_pLayerOwner->layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup = m_pLayerOwner->layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else
             ASSERT(false);
 
         return;
     }
 
-    listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
-    listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
-    listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
-    listeners.dismissed  = m_pResource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
-    listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
-    listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
-    listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+    m_listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
+    m_listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
+    m_listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.dismissed  = m_pResource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
+    m_listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
+    m_listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {

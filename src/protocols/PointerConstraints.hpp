@@ -51,29 +51,30 @@ class CPointerConstraint {
 
     struct {
         CHyprSignalListener destroySurface;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CPointerConstraintsProtocol : public IWaylandProtocol {
-  public:
-    CPointerConstraintsProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CPointerConstraintsProtocol : public IWaylandProtocol {
+      public:
+        CPointerConstraintsProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyPointerConstraint(CPointerConstraint* constraint);
-    void onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
-    void onConfinePointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
-    void onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyPointerConstraint(CPointerConstraint* constraint);
+        void onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
+        void onConfinePointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,
+                              zwpPointerConstraintsV1Lifetime lifetime);
+        void onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr);
 
-    //
-    std::vector<UP<CZwpPointerConstraintsV1>> m_vManagers;
-    std::vector<SP<CPointerConstraint>>       m_vConstraints;
+        //
+        std::vector<UP<CZwpPointerConstraintsV1>> m_vManagers;
+        std::vector<SP<CPointerConstraint>>       m_vConstraints;
 
-    friend class CPointerConstraint;
-};
+        friend class CPointerConstraint;
+    };
 
-namespace PROTO {
-    inline UP<CPointerConstraintsProtocol> constraints;
-};
+    namespace PROTO {
+        inline UP<CPointerConstraintsProtocol> constraints;
+    };

@@ -23,27 +23,27 @@ class COutputPower {
         CHyprSignalListener monitorDestroy;
         CHyprSignalListener monitorState;
         CHyprSignalListener monitorDpms;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class COutputPowerProtocol : public IWaylandProtocol {
-  public:
-    COutputPowerProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class COutputPowerProtocol : public IWaylandProtocol {
+      public:
+        COutputPowerProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyOutputPower(COutputPower* pointer);
-    void onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uint32_t id, wl_resource* output);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyOutputPower(COutputPower* pointer);
+        void onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uint32_t id, wl_resource* output);
 
-    //
-    std::vector<UP<CZwlrOutputPowerManagerV1>> m_vManagers;
-    std::vector<UP<COutputPower>>              m_vOutputPowers;
+        //
+        std::vector<UP<CZwlrOutputPowerManagerV1>> m_vManagers;
+        std::vector<UP<COutputPower>>              m_vOutputPowers;
 
-    friend class COutputPower;
-};
+        friend class COutputPower;
+    };
 
-namespace PROTO {
-    inline UP<COutputPowerProtocol> outputPower;
-};
+    namespace PROTO {
+        inline UP<COutputPowerProtocol> outputPower;
+    };

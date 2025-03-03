@@ -39,5 +39,5 @@ class CInputPopup {
         CHyprSignalListener unmap;
         CHyprSignalListener destroy;
         CHyprSignalListener commit;
-    } listeners;
-};
+        m_m_listeners;
+    };

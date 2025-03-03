@@ -54,59 +54,59 @@ class CWLSHMBuffer : public IHLBuffer {
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CWLSHMPoolResource {
-  public:
-    CWLSHMPoolResource(SP<CWlShmPool> resource_, Hyprutils::OS::CFileDescriptor fd, size_t size);
+    class CWLSHMPoolResource {
+      public:
+        CWLSHMPoolResource(SP<CWlShmPool> resource_, Hyprutils::OS::CFileDescriptor fd, size_t size);
 
-    bool                   good();
+        bool                   good();
 
-    SP<CSHMPool>           pool;
+        SP<CSHMPool>           pool;
 
-    WP<CWLSHMPoolResource> self;
+        WP<CWLSHMPoolResource> self;
 
-  private:
-    SP<CWlShmPool> resource;
+      private:
+        SP<CWlShmPool> resource;
 
-    friend class CWLSHMBuffer;
-};
+        friend class CWLSHMBuffer;
+    };
 
-class CWLSHMResource {
-  public:
-    CWLSHMResource(SP<CWlShm> resource_);
+    class CWLSHMResource {
+      public:
+        CWLSHMResource(SP<CWlShm> resource_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CWlShm> resource;
-};
+      private:
+        SP<CWlShm> resource;
+    };
 
-class CWLSHMProtocol : public IWaylandProtocol {
-  public:
-    CWLSHMProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CWLSHMProtocol : public IWaylandProtocol {
+      public:
+        CWLSHMProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CWLSHMResource* resource);
-    void destroyResource(CWLSHMPoolResource* resource);
-    void destroyResource(CWLSHMBuffer* resource);
+      private:
+        void destroyResource(CWLSHMResource* resource);
+        void destroyResource(CWLSHMPoolResource* resource);
+        void destroyResource(CWLSHMBuffer* resource);
 
-    //
-    std::vector<SP<CWLSHMResource>>     m_vManagers;
-    std::vector<SP<CWLSHMPoolResource>> m_vPools;
-    std::vector<SP<CWLSHMBuffer>>       m_vBuffers;
+        //
+        std::vector<SP<CWLSHMResource>>     m_vManagers;
+        std::vector<SP<CWLSHMPoolResource>> m_vPools;
+        std::vector<SP<CWLSHMBuffer>>       m_vBuffers;
 
-    //
-    std::vector<uint32_t> shmFormats;
+        //
+        std::vector<uint32_t> shmFormats;
 
-    friend class CWLSHMResource;
-    friend class CWLSHMPoolResource;
-    friend class CWLSHMBuffer;
-};
+        friend class CWLSHMResource;
+        friend class CWLSHMPoolResource;
+        friend class CWLSHMBuffer;
+    };
 
-namespace PROTO {
-    inline UP<CWLSHMProtocol> shm;
-};
+    namespace PROTO {
+        inline UP<CWLSHMProtocol> shm;
+    };

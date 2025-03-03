@@ -35,9 +35,9 @@ struct SSwitchDevice {
     struct {
         CHyprSignalListener destroy;
         CHyprSignalListener fire;
-    } listeners;
+        m_m_listeners;
 
-    bool operator==(const SSwitchDevice& other) const {
-        return pDevice == other.pDevice;
-    }
-};
+        bool operator==(const SSwitchDevice& other) const {
+            return pDevice == other.pDevice;
+        }
+    };

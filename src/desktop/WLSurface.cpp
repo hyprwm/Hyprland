@@ -134,7 +134,7 @@ void CWLSurface::destroy() {
 
     m_pConstraint.reset();
 
-    listeners.destroy.reset();
+    m_listeners.destroy.reset();
     m_pResource->hlSurface.reset();
     m_pWindowOwner.reset();
     m_pLayerOwner.reset();
@@ -158,7 +158,7 @@ void CWLSurface::init() {
 
     m_pResource->hlSurface = self.lock();
 
-    listeners.destroy = m_pResource->events.destroy.registerListener([this](std::any d) { destroy(); });
+    m_listeners.destroy = m_pResource->events.destroy.registerListener([this](std::any d) { destroy(); });
 
     NDebug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }

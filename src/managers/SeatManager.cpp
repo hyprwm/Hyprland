@@ -14,11 +14,11 @@
 #include <ranges>
 
 CSeatManager::CSeatManager() {
-    listeners.newSeatResource = PROTO::seat->events.newSeatResource.registerListener([this](std::any res) { onNewSeatResource(std::any_cast<SP<CWLSeatResource>>(res)); });
+    m_listeners.newSeatResource = PROTO::seat->events.newSeatResource.registerListener([this](std::any res) { onNewSeatResource(std::any_cast<SP<CWLSeatResource>>(res)); });
 }
 
 CSeatManager::SSeatResourceContainer::SSeatResourceContainer(SP<CWLSeatResource> res) : resource(res) {
-    listeners.destroy = res->events.destroy.registerListener(
+    m_listeners.destroy = res->events.destroy.registerListener(
         [this](std::any data) { std::erase_if(g_pSeatManager->seatResources, [this](const auto& e) { return e->resource.expired() || e->resource == resource; }); });
 }
 
@@ -111,7 +111,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         return;
     }
 
-    listeners.keyboardSurfaceDestroy.reset();
+    m_listeners.keyboardSurfaceDestroy.reset();
 
     if (state.keyboardFocusResource) {
         auto client = state.keyboardFocusResource->client();
@@ -151,7 +151,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         }
     }
 
-    listeners.keyboardSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
+    m_listeners.keyboardSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
 
     events.keyboardFocusChange.emit();
 }
@@ -208,7 +208,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         return;
     }
 
-    listeners.pointerSurfaceDestroy.reset();
+    m_listeners.pointerSurfaceDestroy.reset();
 
     if (state.pointerFocusResource) {
         auto client = state.pointerFocusResource->client();
@@ -258,7 +258,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     sendPointerFrame();
 
-    listeners.pointerSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
+    m_listeners.pointerSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
 
     events.pointerFocusChange.emit();
     events.dndPointerFocusChange.emit();
@@ -353,7 +353,7 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
 }
 
 void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, int32_t id, const Vector2D& local) {
-    listeners.touchSurfaceDestroy.reset();
+    m_listeners.touchSurfaceDestroy.reset();
 
     state.touchFocusResource.reset();
     state.touchFocus = surf;
@@ -372,7 +372,7 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
         }
     }
 
-    listeners.touchSurfaceDestroy = surf->events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
+    m_listeners.touchSurfaceDestroy = surf->events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
 
     touchLocks++;
 

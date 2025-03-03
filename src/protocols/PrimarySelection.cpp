@@ -227,8 +227,8 @@ void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint3
     LOGM(LOG, "New primary_seletion_manager at {:x}", (uintptr_t)RESOURCE.get());
 
     // we need to do it here because protocols come before seatMgr
-    if (!listeners.onPointerFocusChange)
-        listeners.onPointerFocusChange = g_pSeatManager->events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
+    if (!m_listeners.onPointerFocusChange)
+        m_listeners.onPointerFocusChange = g_pSeatManager->events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionManager* resource) {

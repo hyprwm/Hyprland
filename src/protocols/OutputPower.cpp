@@ -23,14 +23,14 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
 
     resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 
-    listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any v) {
+    m_listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any v) {
         pMonitor.reset();
         resource->sendFailed();
     });
 
-    listeners.monitorDpms = pMonitor->events.dpmsChanged.registerListener(
+    m_listeners.monitorDpms = pMonitor->events.dpmsChanged.registerListener(
         [this](std::any v) { resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
-    listeners.monitorState = pMonitor->events.modeChanged.registerListener(
+    m_listeners.monitorState = pMonitor->events.modeChanged.registerListener(
         [this](std::any v) { resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
 }
 

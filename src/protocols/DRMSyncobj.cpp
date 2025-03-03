@@ -39,7 +39,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         pending.releasePoint    = ((uint64_t)hi << 32) | (uint64_t)lo;
     });
 
-    listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
+    m_listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
         if ((pending.acquireTimeline || pending.releaseTimeline) && !surface->pending.texture) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
             surface->pending.rejected = true;
@@ -82,7 +82,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
     });
 
-    listeners.surfaceCommit = surface->events.roleCommit.registerListener([this](std::any d) {
+    m_listeners.surfaceCommit = surface->events.roleCommit.registerListener([this](std::any d) {
         // apply timelines if new ones have been attached, otherwise don't touch
         // the current ones
         if (pending.releaseTimeline) {

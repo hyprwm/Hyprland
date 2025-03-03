@@ -69,12 +69,12 @@ CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : tablet(tablet_) {
     if (!tablet)
         return;
 
-    listeners.destroy = tablet->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = tablet->events.destroy.registerListener([this](std::any d) {
         tablet.reset();
         events.destroy.emit();
     });
 
-    listeners.axis = tablet->events.axis.registerListener([this](std::any d) {
+    m_listeners.axis = tablet->events.axis.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITablet::SAxisEvent>(d);
 
         tabletEvents.axis.emit(SAxisEvent{
@@ -93,7 +93,7 @@ CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : tablet(tablet_) {
         });
     });
 
-    listeners.proximity = tablet->events.proximity.registerListener([this](std::any d) {
+    m_listeners.proximity = tablet->events.proximity.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITablet::SProximityEvent>(d);
 
         tabletEvents.proximity.emit(SProximityEvent{
@@ -105,7 +105,7 @@ CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : tablet(tablet_) {
         });
     });
 
-    listeners.tip = tablet->events.tip.registerListener([this](std::any d) {
+    m_listeners.tip = tablet->events.tip.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITablet::STipEvent>(d);
 
         tabletEvents.tip.emit(STipEvent{
@@ -117,7 +117,7 @@ CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : tablet(tablet_) {
         });
     });
 
-    listeners.button = tablet->events.button.registerListener([this](std::any d) {
+    m_listeners.button = tablet->events.button.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITablet::SButtonEvent>(d);
 
         tabletEvents.button.emit(SButtonEvent{
@@ -156,12 +156,12 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : pad(pad_) {
     if (!pad)
         return;
 
-    listeners.destroy = pad->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = pad->events.destroy.registerListener([this](std::any d) {
         pad.reset();
         events.destroy.emit();
     });
 
-    listeners.button = pad->events.button.registerListener([this](std::any d) {
+    m_listeners.button = pad->events.button.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITabletPad::SButtonEvent>(d);
 
         padEvents.button.emit(SButtonEvent{
@@ -173,7 +173,7 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : pad(pad_) {
         });
     });
 
-    listeners.ring = pad->events.ring.registerListener([this](std::any d) {
+    m_listeners.ring = pad->events.ring.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITabletPad::SRingEvent>(d);
 
         padEvents.ring.emit(SRingEvent{
@@ -185,7 +185,7 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : pad(pad_) {
         });
     });
 
-    listeners.strip = pad->events.strip.registerListener([this](std::any d) {
+    m_listeners.strip = pad->events.strip.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITabletPad::SStripEvent>(d);
 
         padEvents.strip.emit(SStripEvent{
@@ -197,7 +197,7 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : pad(pad_) {
         });
     });
 
-    listeners.attach = pad->events.attach.registerListener([](std::any d) {
+    m_listeners.attach = pad->events.attach.registerListener([](std::any d) {
         ; // TODO: this doesn't do anything in aq atm
     });
 
@@ -224,7 +224,7 @@ CTabletTool::CTabletTool(SP<Aquamarine::ITabletTool> tool_) : tool(tool_) {
     if (!tool)
         return;
 
-    listeners.destroyTool = tool->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyTool = tool->events.destroy.registerListener([this](std::any d) {
         tool.reset();
         events.destroy.emit();
     });
@@ -258,17 +258,17 @@ void CTabletTool::setSurface(SP<CWLSurfaceResource> surf) {
         return;
 
     if (pSurface) {
-        listeners.destroySurface.reset();
+        m_listeners.destroySurface.reset();
         pSurface.reset();
     }
 
     pSurface = surf;
 
     if (surf) {
-        listeners.destroySurface = surf->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = surf->events.destroy.registerListener([this](std::any d) {
             PROTO::tablet->proximityOut(self.lock());
             pSurface.reset();
-            listeners.destroySurface.reset();
+            m_listeners.destroySurface.reset();
         });
     }
 }

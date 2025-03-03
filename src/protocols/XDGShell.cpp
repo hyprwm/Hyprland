@@ -369,10 +369,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         PROTO::xdgShell->destroyResource(this);
     });
 
-    listeners.surfaceDestroy = surface->events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = surface->events.destroy.registerListener([this](std::any d) {
         LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
-        listeners.surfaceDestroy.reset();
-        listeners.surfaceCommit.reset();
+        m_listeners.surfaceDestroy.reset();
+        m_listeners.surfaceCommit.reset();
 
         if (mapped)
             events.unmap.emit();
@@ -382,7 +382,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         events.destroy.emit();
     });
 
-    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+    m_listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
         current = pending;
         if (toplevel)
             toplevel->current = toplevel->pending;

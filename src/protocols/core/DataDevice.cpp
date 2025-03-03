@@ -385,8 +385,8 @@ bool CWLDataDeviceManagerResource::good() {
 
 CWLDataDeviceProtocol::CWLDataDeviceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pEventLoopManager->doLater([this]() {
-        listeners.onKeyboardFocusChange   = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
-        listeners.onDndPointerFocusChange = g_pSeatManager->events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
+        m_listeners.onKeyboardFocusChange   = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
+        m_listeners.onDndPointerFocusChange = g_pSeatManager->events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
     });
 }
 

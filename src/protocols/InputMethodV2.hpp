@@ -125,38 +125,38 @@ class CInputMethodPopupV2 {
     struct {
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CInputMethodV2Protocol : public IWaylandProtocol {
-  public:
-    CInputMethodV2Protocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CInputMethodV2Protocol : public IWaylandProtocol {
+      public:
+        CInputMethodV2Protocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    struct {
-        CSignal newIME; // SP<CInputMethodV2>
-    } events;
+        struct {
+            CSignal newIME; // SP<CInputMethodV2>
+        } events;
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CInputMethodPopupV2* popup);
-    void destroyResource(CInputMethodKeyboardGrabV2* grab);
-    void destroyResource(CInputMethodV2* ime);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyResource(CInputMethodPopupV2* popup);
+        void destroyResource(CInputMethodKeyboardGrabV2* grab);
+        void destroyResource(CInputMethodV2* ime);
 
-    void onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id);
+        void onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id);
 
-    //
-    std::vector<UP<CZwpInputMethodManagerV2>>   m_vManagers;
-    std::vector<SP<CInputMethodV2>>             m_vIMEs;
-    std::vector<SP<CInputMethodKeyboardGrabV2>> m_vGrabs;
-    std::vector<SP<CInputMethodPopupV2>>        m_vPopups;
+        //
+        std::vector<UP<CZwpInputMethodManagerV2>>   m_vManagers;
+        std::vector<SP<CInputMethodV2>>             m_vIMEs;
+        std::vector<SP<CInputMethodKeyboardGrabV2>> m_vGrabs;
+        std::vector<SP<CInputMethodPopupV2>>        m_vPopups;
 
-    friend class CInputMethodPopupV2;
-    friend class CInputMethodKeyboardGrabV2;
-    friend class CInputMethodV2;
-};
+        friend class CInputMethodPopupV2;
+        friend class CInputMethodKeyboardGrabV2;
+        friend class CInputMethodV2;
+    };
 
-namespace PROTO {
-    inline UP<CInputMethodV2Protocol> ime;
-};
+    namespace PROTO {
+        inline UP<CInputMethodV2Protocol> ime;
+    };

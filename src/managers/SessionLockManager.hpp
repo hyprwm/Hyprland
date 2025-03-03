@@ -24,54 +24,54 @@ struct SSessionLockSurface {
         CHyprSignalListener map;
         CHyprSignalListener destroy;
         CHyprSignalListener commit;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-struct SSessionLock {
-    WP<CSessionLock>                     lock;
-    CTimer                               mLockTimer;
+    struct SSessionLock {
+        WP<CSessionLock>                     lock;
+        CTimer                               mLockTimer;
 
-    std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
-    std::unordered_map<uint64_t, CTimer> mMonitorsWithoutMappedSurfaceTimers;
+        std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
+        std::unordered_map<uint64_t, CTimer> mMonitorsWithoutMappedSurfaceTimers;
 
-    struct {
-        CHyprSignalListener newSurface;
-        CHyprSignalListener unlock;
-        CHyprSignalListener destroy;
-    } listeners;
+        struct {
+            CHyprSignalListener newSurface;
+            CHyprSignalListener unlock;
+            CHyprSignalListener destroy;
+            m_m_listeners;
 
-    bool                         m_hasSentLocked = false;
-    std::unordered_set<uint64_t> m_lockedMonitors;
-};
+            bool                         m_hasSentLocked = false;
+            std::unordered_set<uint64_t> m_lockedMonitors;
+        };
 
-class CSessionLockManager {
-  public:
-    CSessionLockManager();
-    ~CSessionLockManager() = default;
+        class CSessionLockManager {
+          public:
+            CSessionLockManager();
+            ~CSessionLockManager() = default;
 
-    WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
+            WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
 
-    float                   getRedScreenAlphaForMonitor(uint64_t);
+            float                   getRedScreenAlphaForMonitor(uint64_t);
 
-    bool                    isSessionLocked();
-    bool                    isSessionLockPresent();
-    bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
-    bool                    anySessionLockSurfacesPresent();
+            bool                    isSessionLocked();
+            bool                    isSessionLockPresent();
+            bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
+            bool                    anySessionLockSurfacesPresent();
 
-    void                    removeSessionLockSurface(SSessionLockSurface*);
+            void                    removeSessionLockSurface(SSessionLockSurface*);
 
-    void                    onLockscreenRenderedOnMonitor(uint64_t id);
+            void                    onLockscreenRenderedOnMonitor(uint64_t id);
 
-    bool                    shallConsiderLockMissing();
+            bool                    shallConsiderLockMissing();
 
-  private:
-    UP<SSessionLock> m_pSessionLock;
+          private:
+            UP<SSessionLock> m_pSessionLock;
 
-    struct {
-        CHyprSignalListener newLock;
-    } listeners;
+            struct {
+                CHyprSignalListener newLock;
+                m_m_listeners;
 
-    void onNewSessionLock(SP<CSessionLock> pWlrLock);
-};
+                void onNewSessionLock(SP<CSessionLock> pWlrLock);
+            };
 
-inline UP<CSessionLockManager> g_pSessionLockManager;
+            inline UP<CSessionLockManager> g_pSessionLockManager;

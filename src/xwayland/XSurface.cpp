@@ -41,27 +41,27 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
         free(reply);
     }
 
-    events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensureListeners(); }, nullptr);
+    events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensurem_listeners(); }, nullptr);
 }
 
-void CXWaylandSurface::ensureListeners() {
-    bool connected = listeners.destroySurface;
+void CXWaylandSurface::ensurem_listeners() {
+    bool connected = m_listeners.destroySurface;
 
     if (connected && !surface) {
-        listeners.destroySurface.reset();
-        listeners.commitSurface.reset();
+        m_listeners.destroySurface.reset();
+        m_listeners.commitSurface.reset();
     } else if (!connected && surface) {
-        listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
             if (mapped)
                 unmap();
 
             surface.reset();
-            listeners.destroySurface.reset();
-            listeners.commitSurface.reset();
+            m_listeners.destroySurface.reset();
+            m_listeners.commitSurface.reset();
             events.resourceChange.emit();
         });
 
-        listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
+        m_listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
             if (surface->pending.texture && !mapped) {
                 map();
                 return;
@@ -77,7 +77,7 @@ void CXWaylandSurface::ensureListeners() {
     }
 
     if (resource) {
-        listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
             unmap();
             surface.reset();
             events.resourceChange.emit();
@@ -272,7 +272,7 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
     ;
 }
 
-void CXWaylandSurface::ensureListeners() {
+void CXWaylandSurface::ensurem_listeners() {
     ;
 }
 

@@ -38,7 +38,7 @@
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {
-    m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+    m_sm_listeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
         if (!cursorImageUnlocked())
             return;
 
@@ -61,16 +61,16 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     });
 
-    m_sListeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_sListeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
+    m_sm_listeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_sm_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
         this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
         updateCapabilities();
     });
-    m_sListeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
+    m_sm_listeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
         this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
         updateCapabilities();
     });
-    m_sListeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
+    m_sm_listeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
 
     m_sCursorSurfaceInfo.wlSurface = CWLSurface::create();
 }
@@ -1643,9 +1643,9 @@ void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
 
     NDebug::log(LOG, "New switch with name \"{}\" added", pDevice->getName());
 
-    PNEWDEV->listeners.destroy = pDevice->events.destroy.registerListener([this, PNEWDEV](std::any d) { destroySwitch(PNEWDEV); });
+    PNEWDEV->m_listeners.destroy = pDevice->events.destroy.registerListener([this, PNEWDEV](std::any d) { destroySwitch(PNEWDEV); });
 
-    PNEWDEV->listeners.fire = pDevice->events.fire.registerListener([PNEWDEV](std::any d) {
+    PNEWDEV->m_listeners.fire = pDevice->events.fire.registerListener([PNEWDEV](std::any d) {
         const auto NAME = PNEWDEV->pDevice->getName();
         const auto E    = std::any_cast<Aquamarine::ISwitch::SFireEvent>(d);
 

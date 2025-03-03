@@ -205,9 +205,9 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     struct {
         CHyprSignalListener onKeyboardFocusChange;
         CHyprSignalListener onDndPointerFocusChange;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-namespace PROTO {
-    inline UP<CWLDataDeviceProtocol> data;
-};
+    namespace PROTO {
+        inline UP<CWLDataDeviceProtocol> data;
+    };

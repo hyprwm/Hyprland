@@ -80,7 +80,7 @@ CPointerConstraint::~CPointerConstraint() {
 
 void CPointerConstraint::sharedConstructions() {
     if (pHLSurface) {
-        listeners.destroySurface = pHLSurface->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = pHLSurface->events.destroy.registerListener([this](std::any d) {
             pHLSurface.reset();
             if (active)
                 deactivate();

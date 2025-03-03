@@ -56,11 +56,11 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
     struct {
         CHyprSignalListener modeChanged;
-    } listeners;
+        m_m_listeners;
 
-    friend class CWLOutputResource;
-};
+        friend class CWLOutputResource;
+    };
 
-namespace PROTO {
-    inline std::unordered_map<std::string, SP<CWLOutputProtocol>> outputs;
-};
+    namespace PROTO {
+        inline std::unordered_map<std::string, SP<CWLOutputProtocol>> outputs;
+    };

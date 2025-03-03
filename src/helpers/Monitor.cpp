@@ -60,22 +60,22 @@ void CMonitor::onConnect(bool noRule) {
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
-    listeners.commit = output->events.commit.registerListener([this](std::any d) {
+    m_listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
+    m_listeners.commit = output->events.commit.registerListener([this](std::any d) {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(self.lock());
             PROTO::toplevelExport->onOutputCommit(self.lock());
         }
     });
-    listeners.needsFrame =
+    m_listeners.needsFrame =
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
-    listeners.presented = output->events.present.registerListener([this](std::any d) {
+    m_listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
         PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
     });
 
-    listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
         NDebug::log(LOG, "Destroy called for monitor {}", szName);
 
         onDisconnect(true);
@@ -88,7 +88,7 @@ void CMonitor::onConnect(bool noRule) {
         std::erase_if(g_pCompositor->m_vRealMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
     });
 
-    listeners.state = output->events.state.registerListener([this](std::any d) {
+    m_listeners.state = output->events.state.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
 
         if (E.size == Vector2D{}) {
@@ -151,7 +151,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_bEnabled = false;
 
-        listeners.frame.reset();
+        m_listeners.frame.reset();
         return;
     }
 
@@ -299,10 +299,10 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
-    listeners.frame.reset();
-    listeners.presented.reset();
-    listeners.needsFrame.reset();
-    listeners.commit.reset();
+    m_listeners.frame.reset();
+    m_listeners.presented.reset();
+    m_listeners.needsFrame.reset();
+    m_listeners.commit.reset();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto const& ls : m_aLayerSurfaceLayers[i]) {

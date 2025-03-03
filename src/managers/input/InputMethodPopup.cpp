@@ -8,11 +8,11 @@
 #include "../../render/Renderer.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : popup(popup_) {
-    listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
-    listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
-    listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
-    surface           = CWLSurface::create();
+    m_listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
+    m_listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
+    m_listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    m_listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    surface             = CWLSurface::create();
     surface->assign(popup_->surface());
 }
 

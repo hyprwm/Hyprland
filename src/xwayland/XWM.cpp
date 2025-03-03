@@ -946,8 +946,8 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
     setActiveWindow(XCB_WINDOW_NONE);
     initSelection();
 
-    listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
-    listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
+    m_listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
+    m_listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();
 
@@ -1104,7 +1104,7 @@ void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     }
 
     surf->surface = wlSurf;
-    surf->ensureListeners();
+    surf->ensurem_listeners();
 
     readWindowData(surf);
 
@@ -1168,8 +1168,8 @@ void CXWM::initSelection() {
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
     xcb_xfixes_select_selection_input(connection, clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
-    clipboard.listeners.setSelection        = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
-    clipboard.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
+    clipboard.m_listeners.setSelection        = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
+    clipboard.m_listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
 
     dndSelection.window = xcb_generate_id(connection);
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, dndSelection.window, screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, screen->root_visual, XCB_CW_EVENT_MASK,

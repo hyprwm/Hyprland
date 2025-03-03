@@ -28,7 +28,7 @@ using namespace Hyprutils::OS;
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
 #if defined(__DragonFly__)
-#include <sys/kinfo.h> // struct kinfo_proc
+#include <sys/kinfo.h> // struct Skinfo_proc
 #elif defined(__FreeBSD__)
 #include <sys/user.h> // struct kinfo_proc
 #endif

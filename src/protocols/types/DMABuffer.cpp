@@ -7,9 +7,9 @@
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
+    m_listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
         closeFDs();
-        listeners.resourceDestroy.reset();
+        m_listeners.resourceDestroy.reset();
     });
 
     size     = attrs.size;

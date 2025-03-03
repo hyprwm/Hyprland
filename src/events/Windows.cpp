@@ -898,7 +898,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     PWINDOW->m_pWLSurface->unassign();
 
-    PWINDOW->listeners = {};
+    PWINDOW->m_listeners = {};
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -911,10 +911,10 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
 
-    PWINDOW->listeners.unmap.reset();
-    PWINDOW->listeners.destroy.reset();
-    PWINDOW->listeners.map.reset();
-    PWINDOW->listeners.commit.reset();
+    PWINDOW->m_listeners.unmap.reset();
+    PWINDOW->m_listeners.destroy.reset();
+    PWINDOW->m_listeners.map.reset();
+    PWINDOW->m_listeners.commit.reset();
 }
 
 void Events::listener_activateX11(void* owner, void* data) {

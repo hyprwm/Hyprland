@@ -113,7 +113,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::outputs.emplace(M->szName, ref);
         ref->self = ref;
 
-        m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
+        m_mModeChangem_listeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -121,7 +121,7 @@ CProtocolManager::CProtocolManager() {
         if (!PROTO::outputs.contains(M->szName))
             return;
         PROTO::outputs.at(M->szName)->remove();
-        m_mModeChangeListeners.erase(M->szName);
+        m_mModeChangem_listeners.erase(M->szName);
     });
 
     // Core

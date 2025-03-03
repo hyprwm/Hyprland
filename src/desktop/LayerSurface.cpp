@@ -59,10 +59,10 @@ void CLayerSurface::registerCallbacks() {
 }
 
 CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : layerSurface(resource_) {
-    listeners.commit  = layerSurface->events.commit.registerListener([this](std::any d) { onCommit(); });
-    listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
-    listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    m_listeners.commit  = layerSurface->events.commit.registerListener([this](std::any d) { onCommit(); });
+    m_listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
+    m_listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    m_listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
 
     surface = CWLSurface::create();
 }
@@ -123,10 +123,10 @@ void CLayerSurface::onDestroy() {
     if (surface)
         surface->unassign();
 
-    listeners.unmap.reset();
-    listeners.destroy.reset();
-    listeners.map.reset();
-    listeners.commit.reset();
+    m_listeners.unmap.reset();
+    m_listeners.destroy.reset();
+    m_listeners.map.reset();
+    m_listeners.commit.reset();
 }
 
 void CLayerSurface::onMap() {

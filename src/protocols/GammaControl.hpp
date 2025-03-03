@@ -29,29 +29,29 @@ class CGammaControl {
     struct {
         CHyprSignalListener monitorDisconnect;
         CHyprSignalListener monitorDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CGammaControlProtocol : public IWaylandProtocol {
-  public:
-    CGammaControlProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CGammaControlProtocol : public IWaylandProtocol {
+      public:
+        CGammaControlProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         applyGammaToState(PHLMONITOR pMonitor);
+        void         applyGammaToState(PHLMONITOR pMonitor);
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyGammaControl(CGammaControl* gamma);
-    void onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyGammaControl(CGammaControl* gamma);
+        void onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output);
 
-    //
-    std::vector<UP<CZwlrGammaControlManagerV1>> m_vManagers;
-    std::vector<UP<CGammaControl>>              m_vGammaControllers;
+        //
+        std::vector<UP<CZwlrGammaControlManagerV1>> m_vManagers;
+        std::vector<UP<CGammaControl>>              m_vGammaControllers;
 
-    friend class CGammaControl;
-};
+        friend class CGammaControl;
+    };
 
-namespace PROTO {
-    inline UP<CGammaControlProtocol> gamma;
-};
+    namespace PROTO {
+        inline UP<CGammaControlProtocol> gamma;
+    };

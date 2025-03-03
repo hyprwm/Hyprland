@@ -28,59 +28,59 @@ class CDRMSyncobjSurfaceResource {
     struct {
         CHyprSignalListener surfacePrecommit;
         CHyprSignalListener surfaceCommit;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CDRMSyncobjTimelineResource {
-  public:
-    CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor&& fd_);
-    ~CDRMSyncobjTimelineResource() = default;
-    static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
+    class CDRMSyncobjTimelineResource {
+      public:
+        CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, Hyprutils::OS::CFileDescriptor&& fd_);
+        ~CDRMSyncobjTimelineResource() = default;
+        static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
-    bool                                   good();
+        bool                                   good();
 
-    WP<CDRMSyncobjTimelineResource>        self;
-    Hyprutils::OS::CFileDescriptor         fd;
-    SP<CSyncTimeline>                      timeline;
+        WP<CDRMSyncobjTimelineResource>        self;
+        Hyprutils::OS::CFileDescriptor         fd;
+        SP<CSyncTimeline>                      timeline;
 
-  private:
-    SP<CWpLinuxDrmSyncobjTimelineV1> resource;
-};
+      private:
+        SP<CWpLinuxDrmSyncobjTimelineV1> resource;
+    };
 
-class CDRMSyncobjManagerResource {
-  public:
-    CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjManagerV1> resource_);
+    class CDRMSyncobjManagerResource {
+      public:
+        CDRMSyncobjManagerResource(SP<CWpLinuxDrmSyncobjManagerV1> resource_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CWpLinuxDrmSyncobjManagerV1> resource;
-};
+      private:
+        SP<CWpLinuxDrmSyncobjManagerV1> resource;
+    };
 
-class CDRMSyncobjProtocol : public IWaylandProtocol {
-  public:
-    CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CDRMSyncobjProtocol : public IWaylandProtocol {
+      public:
+        CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CDRMSyncobjManagerResource* resource);
-    void destroyResource(CDRMSyncobjTimelineResource* resource);
-    void destroyResource(CDRMSyncobjSurfaceResource* resource);
+      private:
+        void destroyResource(CDRMSyncobjManagerResource* resource);
+        void destroyResource(CDRMSyncobjTimelineResource* resource);
+        void destroyResource(CDRMSyncobjSurfaceResource* resource);
 
-    //
-    std::vector<SP<CDRMSyncobjManagerResource>>  m_vManagers;
-    std::vector<SP<CDRMSyncobjTimelineResource>> m_vTimelines;
-    std::vector<SP<CDRMSyncobjSurfaceResource>>  m_vSurfaces;
+        //
+        std::vector<SP<CDRMSyncobjManagerResource>>  m_vManagers;
+        std::vector<SP<CDRMSyncobjTimelineResource>> m_vTimelines;
+        std::vector<SP<CDRMSyncobjSurfaceResource>>  m_vSurfaces;
 
-    //
-    int drmFD = -1;
+        //
+        int drmFD = -1;
 
-    friend class CDRMSyncobjManagerResource;
-    friend class CDRMSyncobjTimelineResource;
-    friend class CDRMSyncobjSurfaceResource;
-};
+        friend class CDRMSyncobjManagerResource;
+        friend class CDRMSyncobjTimelineResource;
+        friend class CDRMSyncobjSurfaceResource;
+    };
 
-namespace PROTO {
-    inline UP<CDRMSyncobjProtocol> sync;
-};
+    namespace PROTO {
+        inline UP<CDRMSyncobjProtocol> sync;
+    };

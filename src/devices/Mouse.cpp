@@ -27,6 +27,7 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
             .delta   = E.delta,
             .unaccel = E.unaccel,
             .mouse   = true,
+            .device  = self.lock(),
         });
     });
 

@@ -4,7 +4,7 @@
 #include "PluginAPI.hpp"
 #include <csetjmp>
 
-class IHyprWindowDecoration;
+class CHyprWindowDecoration;
 
 class CPlugin {
   public:

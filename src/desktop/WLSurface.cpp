@@ -147,7 +147,7 @@ void CWLSurface::destroy() {
 
     m_pResource.reset();
 
-    Debug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
+    NDebug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
 }
 
 void CWLSurface::init() {
@@ -160,7 +160,7 @@ void CWLSurface::init() {
 
     listeners.destroy = m_pResource->events.destroy.registerListener([this](std::any d) { destroy(); });
 
-    Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
+    NDebug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
 
 PHLWINDOW CWLSurface::getWindow() const {

@@ -109,7 +109,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         PMONITOR = WS->m_pMonitor.lock();
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Orphaned Node {}!!", pNode);
+        NDebug::log(ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -125,7 +125,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(pNode->workspaceID));
 
     if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
+        NDebug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -265,7 +265,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->workspaceID());
 
-    Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->ID);
+    NDebug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->ID);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling
@@ -440,7 +440,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE) {
-        Debug::log(ERR, "onWindowRemovedTiling node null?");
+        NDebug::log(ERR, "onWindowRemovedTiling node null?");
         return;
     }
 
@@ -453,7 +453,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {
-        Debug::log(LOG, "Removing last node (dwindle)");
+        NDebug::log(LOG, "Removing last node (dwindle)");
         m_lDwindleNodesData.remove(*PNODE);
         return;
     }
@@ -947,7 +947,7 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         std::string direction = ARGS[1];
 
         if (direction.empty()) {
-            Debug::log(ERR, "Expected direction for preselect");
+            NDebug::log(ERR, "Expected direction for preselect");
             return "";
         }
 

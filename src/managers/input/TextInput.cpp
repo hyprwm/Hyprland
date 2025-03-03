@@ -54,10 +54,10 @@ void CTextInput::initCallbacks() {
 }
 
 void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
-    Debug::log(LOG, "TI ENABLE");
+    NDebug::log(LOG, "TI ENABLE");
 
     if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
-        // Debug::log(WARN, "Enabling TextInput on no IME!");
+        // NDebug::log(WARN, "Enabling TextInput on no IME!");
         return;
     }
 
@@ -74,7 +74,7 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
 void CTextInput::onDisabled() {
     if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
-        //  Debug::log(WARN, "Disabling TextInput on no IME!");
+        //  NDebug::log(WARN, "Disabling TextInput on no IME!");
         return;
     }
 
@@ -111,12 +111,12 @@ void CTextInput::onReset() {
 
 void CTextInput::onCommit() {
     if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
-        //   Debug::log(WARN, "Committing TextInput on no IME!");
+        //   NDebug::log(WARN, "Committing TextInput on no IME!");
         return;
     }
 
     if (!(isV3() ? pV3Input->current.enabled.value : pV1Input->active)) {
-        Debug::log(WARN, "Disabled TextInput commit?");
+        NDebug::log(WARN, "Disabled TextInput commit?");
         return;
     }
 
@@ -136,7 +136,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     listeners.surfaceDestroy.reset();
 
     listeners.surfaceUnmap = pSurface->events.unmap.registerListener([this](std::any d) {
-        Debug::log(LOG, "Unmap TI owner1");
+        NDebug::log(LOG, "Unmap TI owner1");
 
         if (enterLocks)
             enterLocks--;
@@ -156,7 +156,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     });
 
     listeners.surfaceDestroy = pSurface->events.destroy.registerListener([this](std::any d) {
-        Debug::log(LOG, "Destroy TI owner1");
+        NDebug::log(LOG, "Destroy TI owner1");
 
         if (enterLocks)
             enterLocks--;
@@ -192,7 +192,7 @@ void CTextInput::enter(SP<CWLSurfaceResource> pSurface) {
 
     enterLocks++;
     if (enterLocks != 1) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 1 locks in enter");
+        NDebug::log(ERR, "BUG THIS: TextInput has != 1 locks in enter");
         leave();
         enterLocks = 1;
     }
@@ -212,7 +212,7 @@ void CTextInput::leave() {
 
     enterLocks--;
     if (enterLocks != 0) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
+        NDebug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
         enterLocks = 0;
     }
 

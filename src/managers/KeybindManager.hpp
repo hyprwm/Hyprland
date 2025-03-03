@@ -13,7 +13,7 @@
 class CInputManager;
 class CConfigManager;
 class CPluginSystem;
-class IKeyboard;
+class CKeyboard;
 
 enum eMouseBindMode : int8_t;
 

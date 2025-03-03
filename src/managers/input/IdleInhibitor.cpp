@@ -8,7 +8,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_vIdleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
     PINHIBIT->inhibitor = std::any_cast<SP<CIdleInhibitor>>(inhibitor);
 
-    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface.get());
+    NDebug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface.get());
 
     PINHIBIT->inhibitor->listeners.destroy = PINHIBIT->inhibitor->resource->events.destroy.registerListener([this, PINHIBIT](std::any data) {
         std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
@@ -18,7 +18,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
     auto WLSurface = CWLSurface::fromResource(PINHIBIT->inhibitor->surface.lock());
 
     if (!WLSurface) {
-        Debug::log(LOG, "Inhibitor has no HL Surface attached to it, likely meaning it's a non-desktop element. Assuming it's visible.");
+        NDebug::log(LOG, "Inhibitor has no HL Surface attached to it, likely meaning it's a non-desktop element. Assuming it's visible.");
         PINHIBIT->nonDesktop = true;
         recheckIdleInhibitorStatus();
         return;

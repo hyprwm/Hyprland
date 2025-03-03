@@ -95,7 +95,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
 
 void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     if UNLIKELY (defunct)
-        Debug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
+        NDebug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
 
     const auto RESOURCE = m_vOutputs.emplace_back(makeShared<CWLOutputResource>(makeShared<CWlOutput>(client, ver, id), monitor.lock()));
 

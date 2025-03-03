@@ -16,7 +16,7 @@ void CFramebufferElement::draw(const CRegion& damage) {
         }
 
         if (!fb) {
-            Debug::log(ERR, "BUG THIS: CFramebufferElement::draw: main but null");
+            NDebug::log(ERR, "BUG THIS: CFramebufferElement::draw: main but null");
             return;
         }
 
@@ -31,7 +31,7 @@ void CFramebufferElement::draw(const CRegion& damage) {
         }
 
         if (!fb) {
-            Debug::log(ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
+            NDebug::log(ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
             return;
         }
     }

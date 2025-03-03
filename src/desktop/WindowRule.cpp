@@ -85,9 +85,9 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
             NWindowProperties::floatWindowProperties.find(VARS[0]) != NWindowProperties::floatWindowProperties.end()) {
             *const_cast<std::string*>(&szRule) = "prop " + rule;
             ruleType                           = RULE_PROP;
-            Debug::log(LOG, "CWindowRule: direct prop rule found, rewritten {} -> {}", rule, szRule);
+            NDebug::log(LOG, "CWindowRule: direct prop rule found, rewritten {} -> {}", rule, szRule);
         } else {
-            Debug::log(ERR, "CWindowRule: didn't match a rule that was found valid?!");
+            NDebug::log(ERR, "CWindowRule: didn't match a rule that was found valid?!");
             ruleType = RULE_INVALID;
         }
     }

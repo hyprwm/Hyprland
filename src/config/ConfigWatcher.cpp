@@ -10,14 +10,14 @@ using namespace Hyprutils::OS;
 
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
     if (!m_inotifyFd.isValid()) {
-        Debug::log(ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
+        NDebug::log(ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
         return;
     }
 
     // TODO: make CFileDescriptor take F_GETFL, F_SETFL
     const int FLAGS = fcntl(m_inotifyFd.get(), F_GETFL, 0);
     if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK) < 0) {
-        Debug::log(ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
+        NDebug::log(ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
         m_inotifyFd.reset();
         return;
     }
@@ -70,7 +70,7 @@ void CConfigWatcher::onInotifyEvent() {
         const auto WD = std::ranges::find_if(m_watches.begin(), m_watches.end(), [wd = ev.wd](const auto& e) { return e.wd == wd; });
 
         if (WD == m_watches.end()) {
-            Debug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev.wd);
+            NDebug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev.wd);
             return;
         }
 

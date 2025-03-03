@@ -564,7 +564,7 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
 }
 
 CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoord) {
-    Debug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
+    NDebug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
 
     // padding
     constraint.expand(-4);

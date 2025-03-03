@@ -10,8 +10,8 @@
 #include "signal/Signal.hpp"
 
 class CMonitor;
-class IPointer;
-class IKeyboard;
+class CPointer;
+class CKeyboard;
 class CWLSurfaceResource;
 
 AQUAMARINE_FORWARD(ISwitch);

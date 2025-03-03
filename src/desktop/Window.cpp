@@ -629,7 +629,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             if (vars.size() == 2 && vars[0] == "tag")
                 m_tags.applyTag(vars[1], true);
             else
-                Debug::log(ERR, "Tag rule invalid: {}", r->szRule);
+                NDebug::log(ERR, "Tag rule invalid: {}", r->szRule);
             break;
         }
         case CWindowRule::RULE_OPACITY: {
@@ -668,7 +668,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                     m_sWindowData.alphaInactive   = m_sWindowData.alpha;
                     m_sWindowData.alphaFullscreen = m_sWindowData.alpha;
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { NDebug::log(ERR, "Opacity rule \"{}\" failed with: {}", r->szRule, e.what()); }
             break;
         }
         case CWindowRule::RULE_ANIMATION: {
@@ -708,16 +708,16 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 
                 // Includes sanity checks for the number of colors in each gradient
                 if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
-                    Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r->szRule);
+                    NDebug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r->szRule);
                 else if (activeBorderGradient.m_vColors.empty())
-                    Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r->szRule);
+                    NDebug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r->szRule);
                 else if (inactiveBorderGradient.m_vColors.empty())
                     m_sWindowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, priority);
                 else {
                     m_sWindowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, priority);
                     m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { NDebug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r->szRule, e.what()); }
             break;
         }
         case CWindowRule::RULE_IDLEINHIBIT: {
@@ -732,7 +732,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             else if (IDLERULE == "fullscreen")
                 m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
             else
-                Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
+                NDebug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
             break;
         }
         case CWindowRule::RULE_MAXSIZE: {
@@ -741,14 +741,14 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                     return;
                 const auto VEC = configStringToVector2D(r->szRule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
-                    Debug::log(ERR, "Invalid size for maxsize");
+                    NDebug::log(ERR, "Invalid size for maxsize");
                     return;
                 }
 
                 m_sWindowData.maxSize = CWindowOverridableVar(VEC, priority);
                 clampWindowSize(std::nullopt, m_sWindowData.maxSize.value());
 
-            } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { NDebug::log(ERR, "maxsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
             break;
         }
         case CWindowRule::RULE_MINSIZE: {
@@ -757,7 +757,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                     return;
                 const auto VEC = configStringToVector2D(r->szRule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
-                    Debug::log(ERR, "Invalid size for minsize");
+                    NDebug::log(ERR, "Invalid size for minsize");
                     return;
                 }
 
@@ -766,7 +766,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 
                 if (m_sGroupData.pNextWindow.expired())
                     setHidden(false);
-            } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { NDebug::log(ERR, "minsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
             break;
         }
         case CWindowRule::RULE_RENDERUNFOCUSED: {
@@ -779,15 +779,15 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[2]), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                } catch (std::exception& e) { NDebug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stof(VARS[2]), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                } catch (std::exception& e) { NDebug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
                     *(search->second(m_pSelf.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                } catch (std::exception& e) { NDebug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             }
             break;
         }
@@ -876,7 +876,7 @@ void CWindow::applyGroupRules() {
 
 void CWindow::createGroup() {
     if (m_sGroupData.deny) {
-        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
+        NDebug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
         return;
     }
 
@@ -902,7 +902,7 @@ void CWindow::createGroup() {
 void CWindow::destroyGroup() {
     if (m_sGroupData.pNextWindow == m_pSelf) {
         if (m_eGroupRules & GROUP_SET_ALWAYS) {
-            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
+            NDebug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
             return;
         }
         m_sGroupData.pNextWindow.reset();
@@ -1402,7 +1402,7 @@ void CWindow::activate(bool force) {
         return;
 
     if (!m_bIsMapped) {
-        Debug::log(LOG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
+        NDebug::log(LOG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
         return;
     }
 
@@ -1460,7 +1460,7 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
+        NDebug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
         doUpdate = true;
     }
 
@@ -1474,7 +1474,7 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
+        NDebug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
         doUpdate = true;
     }
 
@@ -1529,7 +1529,7 @@ void CWindow::onResourceChangeX11() {
     // could be first assoc and we need to catch the class
     onUpdateMeta();
 
-    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface->resource().get());
+    NDebug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface->resource().get());
 }
 
 void CWindow::onX11ConfigureRequest(CBox box) {
@@ -1746,8 +1746,8 @@ void CWindow::updateX11SurfaceScale() {
 void CWindow::sendWindowSize(bool force) {
     const auto PMONITOR = m_pMonitor.lock();
 
-    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_szTitle, m_vRealPosition->goal(),
-               m_vRealSize->goal(), force);
+    NDebug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_szTitle, m_vRealPosition->goal(),
+                m_vRealSize->goal(), force);
 
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();
@@ -1779,7 +1779,7 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
         m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
     // else disallow content type change if proto is used?
 
-    Debug::log(INFO, "ContentType for window {}", (int)contentType);
+    NDebug::log(INFO, "ContentType for window {}", (int)contentType);
     m_pWLSurface->resource()->contentType->value = contentType;
 }
 

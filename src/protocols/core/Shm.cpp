@@ -34,7 +34,7 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     success = texture->m_iTexID;
 
     if UNLIKELY (!success)
-        Debug::log(ERR, "Failed creating a shm texture: null texture id");
+        NDebug::log(ERR, "Failed creating a shm texture: null texture id");
 }
 
 Aquamarine::eBufferCapability CWLSHMBuffer::caps() {

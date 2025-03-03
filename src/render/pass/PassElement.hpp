@@ -3,7 +3,7 @@
 #include "../../defines.hpp"
 #include <optional>
 
-class IPassElement {
+class CPassElement {
   public:
     virtual ~IPassElement() = default;
 

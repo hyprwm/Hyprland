@@ -17,7 +17,7 @@ class CWindow;
 class CIdleInhibitor;
 class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
-class IKeyboard;
+class CKeyboard;
 
 AQUAMARINE_FORWARD(IPointer);
 AQUAMARINE_FORWARD(IKeyboard);

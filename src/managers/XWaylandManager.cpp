@@ -29,13 +29,13 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
 
     auto HLSurface = CWLSurface::fromResource(pSurface);
     if (!HLSurface) {
-        Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-desktop surface, ignoring");
+        NDebug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-desktop surface, ignoring");
         return;
     }
 
     const auto PWINDOW = HLSurface->getWindow();
     if (!PWINDOW) {
-        Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-window surface, ignoring");
+        NDebug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-window surface, ignoring");
         return;
     }
 

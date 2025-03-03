@@ -65,7 +65,7 @@ void CEventLoopManager::enterLoop() {
 
     wl_display_run(m_sWayland.display);
 
-    Debug::log(LOG, "Kicked off the event loop! :(");
+    NDebug::log(LOG, "Kicked off the event loop! :(");
 }
 
 void CEventLoopManager::onTimerFire() {

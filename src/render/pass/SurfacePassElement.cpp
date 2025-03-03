@@ -52,7 +52,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // explicit sync: wait for the timeline, if any
     if (data.surface->syncobj && data.surface->syncobj->current.acquireTimeline) {
         if (!g_pHyprOpenGL->waitForTimelinePoint(data.surface->syncobj->current.acquireTimeline->timeline, data.surface->syncobj->current.acquirePoint)) {
-            Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
+            NDebug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }
     }
@@ -84,7 +84,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         (!data.pWindow || (!data.pWindow->m_vRealSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     if (data.surface->colorManagement.valid())
-        Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
+        NDebug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;
@@ -281,7 +281,7 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
 
 void CSurfacePassElement::discard() {
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-        Debug::log(TRACE, "discard for invisible surface");
+        NDebug::log(TRACE, "discard for invisible surface");
         data.surface->presentFeedback(data.when, data.pMonitor->self.lock(), true);
     }
 }

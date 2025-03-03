@@ -7,7 +7,7 @@
 #include "../../desktop/DesktopTypes.hpp"
 
 class CWindow;
-class IHyprWindowDecoration;
+class CHyprWindowDecoration;
 
 enum eDecorationPositioningPolicy : uint8_t {
     DECORATION_POSITION_ABSOLUTE = 0, /* Decoration wants absolute positioning */

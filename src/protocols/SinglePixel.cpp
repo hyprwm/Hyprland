@@ -21,7 +21,7 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
     size = {1, 1};
 
     if (!success)
-        Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
+        NDebug::log(ERR, "Failed creating a single pixel texture: null texture id");
 }
 
 Aquamarine::eBufferCapability CSinglePixelBuffer::caps() {

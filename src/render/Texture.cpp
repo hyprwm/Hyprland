@@ -36,7 +36,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
         auto shm = buffer->shm();
 
         if (!shm.success) {
-            Debug::log(ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            NDebug::log(ERR, "Cannot create a texture: buffer has no dmabuf or shm");
             return;
         }
 
@@ -51,7 +51,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
     auto image = g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
 
     if (!image) {
-        Debug::log(ERR, "Cannot create a texture: failed to create an EGLImage");
+        NDebug::log(ERR, "Cannot create a texture: failed to create an EGLImage");
         return;
     }
 
@@ -90,7 +90,7 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
 
 void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     if (!g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES) {
-        Debug::log(ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
+        NDebug::log(ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
         return;
     }
 

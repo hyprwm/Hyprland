@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <format>
 #include <iostream>
@@ -10,17 +11,17 @@
 #define ROLLING_LOG_SIZE 4096
 
 enum eLogLevel : int8_t {
-    NONE = -1,
-    LOG  = 0,
-    WARN,
-    ERR,
-    CRIT,
-    INFO,
-    TRACE
+    NONE  = -1,
+    LOG   = 0,
+    WARN  = 1,
+    ERR   = 2,
+    CRIT  = 3,
+    INFO  = 4,
+    TRACE = 5
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-namespace Debug {
+namespace NDebug {
     inline std::string     logFile;
     inline std::ofstream   logOfs;
     inline int64_t* const* disableLogs   = nullptr;

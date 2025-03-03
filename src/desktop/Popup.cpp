@@ -75,7 +75,7 @@ void CPopup::initAllSignals() {
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
     const auto& POPUP = m_vChildren.emplace_back(CPopup::create(popup, m_pSelf));
     POPUP->m_pSelf    = POPUP;
-    Debug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
+    NDebug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
 }
 
 void CPopup::onDestroy() {
@@ -120,7 +120,7 @@ void CPopup::onUnmap() {
         return;
 
     if (!m_pResource || !m_pResource->surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
+        NDebug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
         onDestroy();
         return;
     }
@@ -160,7 +160,7 @@ void CPopup::onUnmap() {
 
 void CPopup::onCommit(bool ignoreSiblings) {
     if (!m_pResource || !m_pResource->surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
+        NDebug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
         onDestroy();
         return;
     }
@@ -175,7 +175,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner.lock());
+            NDebug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner.lock());
         return;
     }
 
@@ -207,7 +207,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 }
 
 void CPopup::onReposition() {
-    Debug::log(LOG, "Popup {:x} requests reposition", (uintptr_t)this);
+    NDebug::log(LOG, "Popup {:x} requests reposition", (uintptr_t)this);
 
     m_bRequestedReposition = true;
 

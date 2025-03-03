@@ -99,7 +99,7 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
     try {
         return relative + stof(source);
     } catch (...) {
-        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
+        NDebug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};
     }
 }
@@ -140,7 +140,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
         if ((same_mon || next) && !g_pCompositor->m_pLastMonitor) {
-            Debug::log(ERR, "Empty monitor workspace on monitor null!");
+            NDebug::log(ERR, "Empty monitor workspace on monitor null!");
             return {WORKSPACE_INVALID};
         }
 
@@ -180,7 +180,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';
             if (!g_pCompositor->m_pLastMonitor) {
-                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+                NDebug::log(ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -342,7 +342,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             bool absolute      = in[1] == '~';
 
             if (!g_pCompositor->m_pLastMonitor) {
-                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+                NDebug::log(ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -414,7 +414,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                     result.id = std::max((int)PLUSMINUSRESULT.value(), 1);
                 } else {
-                    Debug::log(ERR, "Relative workspace on no mon!");
+                    NDebug::log(ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
                 }
             } else if (isNumber(in))
@@ -491,12 +491,12 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: {}", std::string{unameInfo.sysname});
-    Debug::log(LOG, "Node name: {}", std::string{unameInfo.nodename});
-    Debug::log(LOG, "Release: {}", std::string{unameInfo.release});
-    Debug::log(LOG, "Version: {}", std::string{unameInfo.version});
+    NDebug::log(LOG, "System name: {}", std::string{unameInfo.sysname});
+    NDebug::log(LOG, "Node name: {}", std::string{unameInfo.nodename});
+    NDebug::log(LOG, "Release: {}", std::string{unameInfo.release});
+    NDebug::log(LOG, "Version: {}", std::string{unameInfo.version});
 
-    Debug::log(NONE, "\n");
+    NDebug::log(NONE, "\n");
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
@@ -522,16 +522,16 @@ void logSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
 #endif
-    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
+    NDebug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
-        Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        NDebug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
     }
 
     // log etc
-    Debug::log(LOG, "os-release:");
+    NDebug::log(LOG, "os-release:");
 
-    Debug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
+    NDebug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
 int64_t getPPIDof(int64_t pid) {
@@ -734,7 +734,7 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 }
 
 void throwError(const std::string& err) {
-    Debug::log(CRIT, "Critical error thrown: {}", err);
+    NDebug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }
 

@@ -6,7 +6,7 @@
 
 AQUAMARINE_FORWARD(ITouch);
 
-class ITouch : public IHID {
+class CTouch : public IHID {
   public:
     virtual uint32_t               getCapabilities();
     virtual eHIDType               getType();

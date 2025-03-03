@@ -4,7 +4,7 @@
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
 
-class IHLBuffer;
+class CHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
 
 enum eTextureType : int8_t {

@@ -4,7 +4,7 @@
 
 //NOLINTNEXTLINE
 namespace re2 {
-    class RE2;
+    class CRE2;
 };
 
 class CRuleRegexContainer {

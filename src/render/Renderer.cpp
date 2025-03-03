@@ -65,13 +65,13 @@ CHyprRenderer::CHyprRenderer() {
             if (name.contains("nvidia"))
                 m_bNvidia = true;
 
-            Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                       std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+            NDebug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
 
             drmFreeVersion(DRMV);
         }
     } else {
-        Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
+        NDebug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
         const auto DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
 
@@ -82,17 +82,17 @@ CHyprRenderer::CHyprRenderer() {
             if (name.contains("nvidia"))
                 m_bNvidia = true;
 
-            Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                       std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+            NDebug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
         } else {
-            Debug::log(LOG, "No primary DRM driver information found");
+            NDebug::log(LOG, "No primary DRM driver information found");
         }
 
         drmFreeVersion(DRMV);
     }
 
     if (m_bNvidia)
-        Debug::log(WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
+        NDebug::log(WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
 
     // cursor hiding stuff
 
@@ -1195,17 +1195,17 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         pMonitor->tearingState.nextRenderTorn = false;
 
         if (!*PTEARINGENABLED) {
-            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+            NDebug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return;
         }
 
         if (g_pHyprOpenGL->m_RenderData.mouseZoomFactor != 1.0) {
-            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+            NDebug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
             return;
         }
 
         if (!pMonitor->tearingState.canTear) {
-            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+            NDebug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return;
         }
 
@@ -1221,7 +1221,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {
-            Debug::log(LOG, "Left a direct scanout.");
+            NDebug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
 
             // reset DRM format, but only if needed since it might modeset
@@ -1244,7 +1244,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         return;
 
     if (*PDAMAGETRACKINGMODE == -1) {
-        Debug::log(CRIT, "Damage tracking mode -1 ????");
+        NDebug::log(CRIT, "Damage tracking mode -1 ????");
         return;
     }
 
@@ -1283,7 +1283,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
-        Debug::log(ERR, "renderer: couldn't beginRender()!");
+        NDebug::log(ERR, "renderer: couldn't beginRender()!");
         return;
     }
 
@@ -1424,10 +1424,10 @@ static hdr_output_metadata createHDRMetadata(uint8_t eotf, Aquamarine::IOutput::
     const auto to16Bit     = [](float value) { return uint16_t(std::round(value * 50000)); };
     const auto colorimetry = edid.chromaticityCoords.value_or(BT709);
 
-    Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
-               colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
-    Debug::log(TRACE, "ColorManagement max avg {}, min {}, max {}", edid.hdrMetadata->desiredMaxFrameAverageLuminance, edid.hdrMetadata->desiredContentMinLuminance,
-               edid.hdrMetadata->desiredContentMaxLuminance);
+    NDebug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
+                colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+    NDebug::log(TRACE, "ColorManagement max avg {}, min {}, max {}", edid.hdrMetadata->desiredMaxFrameAverageLuminance, edid.hdrMetadata->desiredContentMinLuminance,
+                edid.hdrMetadata->desiredContentMaxLuminance);
     return hdr_output_metadata{
         .metadata_type = 0,
         .hdmi_metadata_type1 =
@@ -1461,9 +1461,9 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamar
                settings.masteringLuminances :
                SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
 
-    Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
-               colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
-    Debug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
+    NDebug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
+                colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+    NDebug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
         .metadata_type = 0,
         .hdmi_metadata_type1 =
@@ -1496,7 +1496,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
-    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
+    NDebug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
@@ -1523,12 +1523,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PWIDE    = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
     const bool  needsWCG = *PWIDE || pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
     if (pMonitor->output->state->state().wideColorGamut != needsWCG) {
-        Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
+        NDebug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
         pMonitor->output->state->setWideColorGamut(needsWCG);
 
         // FIXME do not trust enabled10bit, auto switch to 10bit and back if needed
         if (needsWCG && !pMonitor->enabled10bit) {
-            Debug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
+            NDebug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
             static bool shown = false;
             if (!shown) {
                 g_pHyprNotificationOverlay->addNotification("Wide color gamut is enabled but the display is not in 10bit mode", CHyprColor{}, 15000, ICON_WARNING);
@@ -1553,13 +1553,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     bool ok = pMonitor->state.commit();
     if (!ok) {
         if (inFD.isValid()) {
-            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+            NDebug::log(TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->output->state->resetExplicitFences();
             ok = pMonitor->state.commit();
         }
 
         if (!ok) {
-            Debug::log(TRACE, "Monitor state commit failed");
+            NDebug::log(TRACE, "Monitor state commit failed");
             // rollback the buffer to avoid writing to the front buffer that is being
             // displayed
             pMonitor->output->swapchain->rollback();
@@ -1571,11 +1571,11 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (!explicitOptions.explicitEnabled)
         return ok;
 
-    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
+    NDebug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
     auto sync = g_pHyprOpenGL->createEGLSync({});
 
     if (!sync)
-        Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
+        NDebug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
     else {
         for (auto const& e : explicitPresented) {
             if (!e->current.buffer || !e->current.buffer->releaser)
@@ -1599,7 +1599,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     TRACY_GPU_ZONE("RenderWorkspace");
 
     if (!DELTALESSTHAN((double)geometry.width / (double)geometry.height, pMonitor->vecPixelSize.x / pMonitor->vecPixelSize.y, 0.01)) {
-        Debug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
+        NDebug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
     }
@@ -1764,7 +1764,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             box.y -= PSTATE->margin.bottom;
 
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
+            NDebug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
             continue;
         }
 
@@ -1847,7 +1847,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     const auto WLSURF    = CWLSurface::fromResource(pSurface);
     CRegion    damageBox = WLSURF ? WLSURF->computeDamage() : CRegion{};
     if (!WLSURF) {
-        Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
+        NDebug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
 
@@ -1877,8 +1877,8 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
-                   damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
+        NDebug::log(LOG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
+                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
 void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
@@ -1905,7 +1905,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+        NDebug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -1918,7 +1918,7 @@ void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
+        NDebug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
 void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
@@ -1938,7 +1938,7 @@ void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Debug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
+        NDebug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
 }
 
 void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
@@ -2030,7 +2030,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
         return;
 
     if (HIDE) {
-        Debug::log(LOG, "Hiding the cursor (hl-mandated)");
+        NDebug::log(LOG, "Hiding the cursor (hl-mandated)");
 
         for (auto const& m : g_pCompositor->m_vMonitors) {
             if (!g_pPointerManager->softwareLockedFor(m))
@@ -2042,7 +2042,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
         setCursorHidden(true);
 
     } else {
-        Debug::log(LOG, "Showing the cursor (hl-mandated)");
+        NDebug::log(LOG, "Showing the cursor (hl-mandated)");
 
         for (auto const& m : g_pCompositor->m_vMonitors) {
             if (!g_pPointerManager->softwareLockedFor(m))
@@ -2242,7 +2242,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     if (!buffer) {
         m_pCurrentBuffer = pMonitor->output->swapchain->next(nullptr);
         if (!m_pCurrentBuffer) {
-            Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);
+            NDebug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);
             return false;
         }
     } else
@@ -2251,12 +2251,12 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     try {
         m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentBuffer, pMonitor->output->state->state().drmFormat);
     } catch (std::exception& e) {
-        Debug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->szName);
+        NDebug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->szName);
         return false;
     }
 
     if (!m_pCurrentRenderbuffer) {
-        Debug::log(ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->szName);
+        NDebug::log(ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->szName);
         return false;
     }
 
@@ -2308,19 +2308,19 @@ void CHyprRenderer::endRender() {
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
             auto sync = g_pHyprOpenGL->createEGLSync({});
             if (!sync) {
-                Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
+                NDebug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
             }
 
             bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
             if (!ok) {
-                Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
+                NDebug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
 
             auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
             if (!fd.isValid()) {
-                Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
+                NDebug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
                 return;
             }
 
@@ -2376,22 +2376,22 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOut
             if (once) {
                 once = false;
 
-                Debug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
+                NDebug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
 
                 if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
-                    Debug::log(LOG, "Renderer: Nvidia version file exists");
+                    NDebug::log(LOG, "Renderer: Nvidia version file exists");
 
                     std::ifstream ifs("/sys/module/nvidia_drm/version");
                     if (ifs.good()) {
                         try {
                             std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 
-                            Debug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
+                            NDebug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
 
                             CVarList ver(driverInfo, 0, '.', true);
                             driverMajor = std::stoi(ver[0]);
 
-                            Debug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
+                            NDebug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
 
                         } catch (std::exception& e) { settings.explicitKMSEnabled = false; }
 

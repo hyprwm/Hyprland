@@ -97,7 +97,7 @@ void CXWaylandSurface::map() {
     mapped = true;
     surface->map();
 
-    Debug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
+    NDebug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
 
     events.map.emit();
 
@@ -117,7 +117,7 @@ void CXWaylandSurface::unmap() {
     events.unmap.emit();
     surface->unmap();
 
-    Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
+    NDebug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
 
     g_pXWayland->pWM->updateClientList();
 }
@@ -127,17 +127,17 @@ void CXWaylandSurface::considerMap() {
         return;
 
     if (!surface) {
-        Debug::log(LOG, "XWayland surface: considerMap, nope, no surface");
+        NDebug::log(LOG, "XWayland surface: considerMap, nope, no surface");
         return;
     }
 
     if (surface->pending.texture) {
-        Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
+        NDebug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;
     }
 
-    Debug::log(LOG, "XWayland surface: considerMap, nope, we don't have a buffer");
+    NDebug::log(LOG, "XWayland surface: considerMap, nope, we don't have a buffer");
 }
 
 bool CXWaylandSurface::wantsFocus() {
@@ -248,7 +248,7 @@ void CXWaylandSurface::ping() {
     bool supportsPing = std::ranges::find(protocols, HYPRATOMS["_NET_WM_PING"]) != protocols.end();
 
     if (!supportsPing) {
-        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
+        NDebug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
         g_pANRManager->onResponse(self.lock());
         return;
     }

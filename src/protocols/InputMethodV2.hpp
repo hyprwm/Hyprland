@@ -10,7 +10,7 @@
 
 class CInputMethodKeyboardGrabV2;
 class CInputMethodPopupV2;
-class IKeyboard;
+class CKeyboard;
 
 class CInputMethodV2 {
   public:

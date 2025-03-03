@@ -8,7 +8,7 @@
 
 class CSyncReleaser;
 
-class IHLBuffer : public Aquamarine::IBuffer {
+class CHLBuffer : public Aquamarine::IBuffer {
   public:
     virtual ~IHLBuffer();
     virtual Aquamarine::eBufferCapability caps()                        = 0;

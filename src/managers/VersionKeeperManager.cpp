@@ -32,19 +32,19 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
 
     if (!isVersionOlderThanRunning(*LASTVER)) {
-        Debug::log(LOG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);
+        NDebug::log(LOG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);
         return;
     }
 
     NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, HYPRLAND_VERSION);
 
     if (*PNONOTIFY) {
-        Debug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
+        NDebug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
         return;
     }
 
     if (!NFsUtils::executableExistsInPath("hyprland-update-screen")) {
-        Debug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
+        NDebug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
         return;
     }
 

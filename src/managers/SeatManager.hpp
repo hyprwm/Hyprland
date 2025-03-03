@@ -11,8 +11,8 @@ constexpr size_t MAX_SERIAL_STORE_LEN = 100;
 
 class CWLSurfaceResource;
 class CWLSeatResource;
-class IPointer;
-class IKeyboard;
+class CPointer;
+class CKeyboard;
 
 /*
     A seat grab defines a restricted set of surfaces that can be focused.

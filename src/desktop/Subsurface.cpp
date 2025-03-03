@@ -99,7 +99,7 @@ void CSubsurface::onCommit() {
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowParent.lock());
+            NDebug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowParent.lock());
         return;
     }
 

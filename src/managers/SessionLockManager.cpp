@@ -50,12 +50,12 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
-        Debug::log(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        NDebug::log(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;
     }
 
-    Debug::log(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
+    NDebug::log(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 
     m_pSessionLock       = makeUnique<SSessionLock>();
     m_pSessionLock->lock = pLock;

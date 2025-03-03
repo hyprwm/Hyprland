@@ -20,7 +20,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->surface->assign(resource->surface.lock(), pLS);
 
     if (!pMonitor) {
-        Debug::log(ERR, "New LS has no monitor??");
+        NDebug::log(ERR, "New LS has no monitor??");
         return pLS;
     }
 
@@ -46,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
+    NDebug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
 
     return pLS;
 }
@@ -84,19 +84,19 @@ CLayerSurface::~CLayerSurface() {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
 
     const auto PMONITOR = monitor.lock();
 
     if (!PMONITOR)
-        Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
+        NDebug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!fadingOut) {
         if (mapped) {
-            Debug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
+            NDebug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
             onUnmap();
         } else {
-            Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
+            NDebug::log(LOG, "Removing LayerSurface that wasn't mapped.");
             if (alpha)
                 alpha->setValueAndWarp(0.f);
             fadingOut = true;
@@ -130,7 +130,7 @@ void CLayerSurface::onDestroy() {
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
 
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
@@ -194,7 +194,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", self.lock());
@@ -202,7 +202,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
     if (!monitor || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        NDebug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(self.lock());
 
@@ -407,7 +407,7 @@ void CLayerSurface::applyRules() {
                     ignoreAlpha = true;
                     if (!alphaValue.empty())
                         ignoreAlphaValue = std::stof(alphaValue);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
+                } catch (...) { NDebug::log(ERR, "Invalid value passed to ignoreAlpha"); }
                 break;
             }
             case CLayerRule::RULE_DIMAROUND: {
@@ -430,7 +430,7 @@ void CLayerSurface::applyRules() {
                 CVarList vars{rule->rule, 2, 's'};
                 try {
                     order = std::stoi(vars[1]);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
+                } catch (...) { NDebug::log(ERR, "Invalid value passed to order"); }
                 break;
             }
             default: break;

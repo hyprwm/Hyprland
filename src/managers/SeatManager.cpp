@@ -107,7 +107,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         return;
 
     if (!keyboard) {
-        Debug::log(ERR, "BUG THIS: setKeyboardFocus without a valid keyboard set");
+        NDebug::log(ERR, "BUG THIS: setKeyboardFocus without a valid keyboard set");
         return;
     }
 
@@ -197,14 +197,14 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
     if (PROTO::data->dndActive() && surf) {
         if (state.dndPointerFocus == surf)
             return;
-        Debug::log(LOG, "[seatmgr] Refusing pointer focus during an active dnd, but setting dndPointerFocus");
+        NDebug::log(LOG, "[seatmgr] Refusing pointer focus during an active dnd, but setting dndPointerFocus");
         state.dndPointerFocus = surf;
         events.dndPointerFocusChange.emit();
         return;
     }
 
     if (!mouse) {
-        Debug::log(ERR, "BUG THIS: setPointerFocus without a valid mouse set");
+        NDebug::log(ERR, "BUG THIS: setPointerFocus without a valid mouse set");
         return;
     }
 
@@ -525,13 +525,13 @@ void CSeatManager::refocusGrab() {
 
 void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot) {
     if (!state.pointerFocusResource || !seatResource || seatResource->client() != state.pointerFocusResource->client()) {
-        Debug::log(LOG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
+        NDebug::log(LOG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
         return;
     }
 
     // TODO: fix this. Probably should be done in the CWlPointer as the serial could be lost by us.
     // if (!serialValid(seatResource, serial)) {
-    //     Debug::log(LOG, "[seatmgr] Rejecting a setCursor because the serial is invalid");
+    //     NDebug::log(LOG, "[seatmgr] Rejecting a setCursor because the serial is invalid");
     //     return;
     // }
 
@@ -544,7 +544,7 @@ SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
 
 void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (source == selection.currentSelection) {
-        Debug::log(WARN, "[seat] duplicated setCurrentSelection?");
+        NDebug::log(WARN, "[seat] duplicated setCurrentSelection?");
         return;
     }
 
@@ -569,7 +569,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
 
 void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     if (source == selection.currentPrimarySelection) {
-        Debug::log(WARN, "[seat] duplicated setCurrentPrimarySelection?");
+        NDebug::log(WARN, "[seat] duplicated setCurrentPrimarySelection?");
         return;
     }
 

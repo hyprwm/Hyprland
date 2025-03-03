@@ -21,7 +21,7 @@ enum eKeyboardModifiers {
     HL_MODIFIER_MOD5  = (1 << 7),
 };
 
-class IKeyboard : public IHID {
+class CKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
     virtual uint32_t                  getCapabilities();

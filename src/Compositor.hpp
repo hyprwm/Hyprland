@@ -107,7 +107,7 @@ class CCompositor {
     PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
-    bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
+    bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR MONITOR = nullptr);
     PHLMONITOR             getMonitorInDirection(const char&);
     PHLMONITOR             getMonitorInDirection(PHLMONITOR, const char&);
     void                   updateAllWindowsAnimatedDecorationValues();
@@ -119,7 +119,7 @@ class CCompositor {
     bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
     void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState state);
+    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState STATE);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     void                   updateFullscreenFadeOnWorkspace(PHLWORKSPACE);
     PHLWINDOW              getX11Parent(PHLWINDOW);

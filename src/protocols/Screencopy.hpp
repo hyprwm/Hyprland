@@ -12,7 +12,7 @@
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CMonitor;
-class IHLBuffer;
+class CHLBuffer;
 
 enum eClientOwners {
     CLIENT_SCREENCOPY = 0,

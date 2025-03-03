@@ -59,9 +59,9 @@ struct SVersionInfo {
 #define OPTIONAL
 #define HANDLE void*
 
-class IHyprLayout;
+class CHyprLayout;
 class CWindow;
-class IHyprWindowDecoration;
+class CHyprWindowDecoration;
 struct SConfigValue;
 class CWindow;
 

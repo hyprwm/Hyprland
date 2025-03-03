@@ -62,7 +62,7 @@ enum eSuppressEvents : uint8_t {
     SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
 };
 
-class IWindowTransformer;
+class CWindowTransformer;
 
 struct SAlphaValue {
     float m_fAlpha;

@@ -19,7 +19,7 @@
 
 constexpr const char* HL_SEAT_NAME = "Hyprland";
 
-class IKeyboard;
+class CKeyboard;
 class CWLSurfaceResource;
 
 class CWLPointerResource;

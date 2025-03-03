@@ -9,7 +9,7 @@
 #include <tuple>
 
 class CMonitor;
-class IHID;
+class CHID;
 class CTexture;
 
 AQUAMARINE_FORWARD(IBuffer);

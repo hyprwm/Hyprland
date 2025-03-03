@@ -20,7 +20,7 @@ enum eDataSourceType : uint8_t {
     DATA_SOURCE_TYPE_X11,
 };
 
-class IDataSource {
+class CDataSource {
   public:
     IDataSource()          = default;
     virtual ~IDataSource() = default;
@@ -48,7 +48,7 @@ class IDataSource {
     bool wasUsed = false;
 };
 
-class IDataOffer {
+class CDataOffer {
   public:
     IDataOffer()          = default;
     virtual ~IDataOffer() = default;
@@ -60,7 +60,7 @@ class IDataOffer {
     virtual void                     markDead();
 };
 
-class IDataDevice {
+class CDataDevice {
   public:
     IDataDevice()          = default;
     virtual ~IDataDevice() = default;

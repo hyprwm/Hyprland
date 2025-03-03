@@ -32,7 +32,7 @@ CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : targe
     else if (rule.starts_with("order"))
         ruleType = RULE_ORDER;
     else {
-        Debug::log(ERR, "CLayerRule: didn't match a rule that was found valid?!");
+        NDebug::log(ERR, "CLayerRule: didn't match a rule that was found valid?!");
         ruleType = RULE_INVALID;
     }
 }

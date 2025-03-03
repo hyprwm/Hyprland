@@ -85,7 +85,7 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
-        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        NDebug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
         PROTO::colorManagement->onImagePreferredChanged(0);
     }
 }
@@ -197,7 +197,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
-        Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
+        NDebug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
 }
 
 CProtocolManager::~CProtocolManager() {

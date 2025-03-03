@@ -243,7 +243,7 @@ void CPointerManager::resetCursorImage(bool apply) {
 
     for (auto const& ms : monitorStates) {
         if (!ms->monitor || !ms->monitor->m_bEnabled || !ms->monitor->dpmsStatus) {
-            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            NDebug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
         }
 
@@ -260,7 +260,7 @@ void CPointerManager::updateCursorBackend() {
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         if (!m->m_bEnabled || !m->dpmsStatus) {
-            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            NDebug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
         }
 
@@ -275,7 +275,7 @@ void CPointerManager::updateCursorBackend() {
         }
 
         if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors(m) || !attemptHardwareCursor(state)) {
-            Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
+            NDebug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
             state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
 
@@ -305,11 +305,11 @@ void CPointerManager::onCursorMoved() {
         auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
 
         if (!CROSSES && state->cursorFrontBuffer) {
-            Debug::log(TRACE, "onCursorMoved for output {}: cursor left the viewport, removing it from the backend", m->szName);
+            NDebug::log(TRACE, "onCursorMoved for output {}: cursor left the viewport, removing it from the backend", m->szName);
             setHWCursorBuffer(state, nullptr);
             continue;
         } else if (CROSSES && !state->cursorFrontBuffer) {
-            Debug::log(TRACE, "onCursorMoved for output {}: cursor entered the output, but no front buffer, forcing recalc", m->szName);
+            NDebug::log(TRACE, "onCursorMoved for output {}: cursor entered the output, but no front buffer, forcing recalc", m->szName);
             recalc = true;
         }
 
@@ -341,7 +341,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
     auto texture = getCurrentCursorTexture();
 
     if (!texture) {
-        Debug::log(TRACE, "[pointer] no texture for hw cursor -> hiding");
+        NDebug::log(TRACE, "[pointer] no texture for hw cursor -> hiding");
         setHWCursorBuffer(state, nullptr);
         return true;
     }
@@ -349,7 +349,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
     auto buffer = renderHWCursorBuffer(state, texture);
 
     if (!buffer) {
-        Debug::log(TRACE, "[pointer] hw cursor failed rendering");
+        NDebug::log(TRACE, "[pointer] hw cursor failed rendering");
         setHWCursorBuffer(state, nullptr);
         return false;
     }
@@ -357,7 +357,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
     bool success = setHWCursorBuffer(state, buffer);
 
     if (!success) {
-        Debug::log(TRACE, "[pointer] hw cursor failed applying, hiding");
+        NDebug::log(TRACE, "[pointer] hw cursor failed applying, hiding");
         setHWCursorBuffer(state, nullptr);
         return false;
     } else
@@ -372,7 +372,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     const auto HOTSPOT = transformedHotspot(state->monitor.lock());
 
-    Debug::log(TRACE, "[pointer] hw transformed hotspot for {}: {}", state->monitor->szName, HOTSPOT);
+    NDebug::log(TRACE, "[pointer] hw transformed hotspot for {}: {}", state->monitor->szName, HOTSPOT);
 
     if (!state->monitor->output->setCursor(buf, HOTSPOT))
         return false;
@@ -398,7 +398,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     if (maxSize != Vector2D{-1, -1}) {
         if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
-            Debug::log(TRACE, "hardware cursor too big! {} > {}", currentCursorImage.size, maxSize);
+            NDebug::log(TRACE, "hardware cursor too big! {} > {}", currentCursorImage.size, maxSize);
             return nullptr;
         }
     } else
@@ -434,7 +434,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             options.format = DRM_FORMAT_ARGB8888;
 
         if (!state->monitor->cursorSwapchain->reconfigure(options)) {
-            Debug::log(TRACE, "Failed to reconfigure cursor swapchain");
+            NDebug::log(TRACE, "Failed to reconfigure cursor swapchain");
             return nullptr;
         }
     }
@@ -449,7 +449,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     auto buf = state->monitor->cursorSwapchain->next(nullptr);
     if (!buf) {
-        Debug::log(TRACE, "Failed to acquire a buffer from the cursor swapchain");
+        NDebug::log(TRACE, "Failed to acquire a buffer from the cursor swapchain");
         return nullptr;
     }
 
@@ -464,12 +464,12 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 bool       flipRB = false;
 
                 if (SURFACE->current.texture) {
-                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
+                    NDebug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
                     if (SURFACE->current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
-                        Debug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
+                        NDebug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
                         flipRB = true;
                     } else if (SURFACE->current.texture->m_iDrmFormat != DRM_FORMAT_ARGB8888) {
-                        Debug::log(TRACE, "Cursor CPU surface format rejected, falling back to sw");
+                        NDebug::log(TRACE, "Cursor CPU surface format rejected, falling back to sw");
                         return nullptr;
                     }
                 }
@@ -487,7 +487,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                     }
                 }
             } else {
-                Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
+                NDebug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
                 return nullptr;
             }
         }
@@ -561,7 +561,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
     if (!RBO) {
-        Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
+        NDebug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
         return nullptr;
     }
 
@@ -571,8 +571,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F});
 
     CBox xbox = {{}, Vector2D{currentCursorImage.size / currentCursorImage.scale * state->monitor->scale}.round()};
-    Debug::log(TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->szName, currentCursorImage.size, cursorSize,
-               currentCursorImage.scale, state->monitor->scale, xbox.size());
+    NDebug::log(TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->szName, currentCursorImage.size, cursorSize,
+                currentCursorImage.scale, state->monitor->scale, xbox.size());
 
     g_pHyprOpenGL->renderTexture(texture, xbox, 1.F);
 
@@ -1014,7 +1014,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached pointer {} to global", pointer->hlName);
+    NDebug::log(LOG, "Attached pointer {} to global", pointer->hlName);
 }
 
 void CPointerManager::attachTouch(SP<ITouch> touch) {
@@ -1069,7 +1069,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached touch {} to global", touch->hlName);
+    NDebug::log(LOG, "Attached touch {} to global", touch->hlName);
 }
 
 void CPointerManager::attachTablet(SP<CTablet> tablet) {
@@ -1127,7 +1127,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached tablet {} to global", tablet->hlName);
+    NDebug::log(LOG, "Attached tablet {} to global", tablet->hlName);
 }
 
 void CPointerManager::detachPointer(SP<IPointer> pointer) {

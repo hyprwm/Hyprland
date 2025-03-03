@@ -913,12 +913,12 @@ void CPluginManager::listAllPlugins() {
     }
 }
 
-void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message) {
-    execAndGet("hyprctl notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
+void CPluginManager::notify(const eNotifyIcons ICON, uint32_t color, int durationMs, const std::string& message) {
+    execAndGet("hyprctl notify " + std::to_string((int)ICON) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
 }
 
-std::string CPluginManager::headerError(const eHeadersErrors err) {
-    switch (err) {
+std::string CPluginManager::headerError(const eHeadersErrors ERR) {
+    switch (ERR) {
         case HEADERS_CORRUPTED: return failureString("Headers corrupted. Please run hyprpm update to fix those.\n");
         case HEADERS_MISMATCHED: return failureString("Headers version mismatch. Please run hyprpm update to fix those.\n");
         case HEADERS_NOT_HYPRLAND: return failureString("It doesn't seem you are running on hyprland.\n");
@@ -934,8 +934,8 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
     return failureString("Unknown header error. Please run hyprpm update to fix those.\n");
 }
 
-std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
-    switch (err) {
+std::string CPluginManager::headerErrorShort(const eHeadersErrors ERR) {
+    switch (ERR) {
         case HEADERS_CORRUPTED: return "Headers corrupted";
         case HEADERS_MISMATCHED: return "Headers version mismatched";
         case HEADERS_NOT_HYPRLAND: return "Not running on Hyprland";

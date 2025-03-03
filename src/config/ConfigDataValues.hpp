@@ -9,16 +9,16 @@ enum eConfigValueDataTypes : int8_t {
     CVD_TYPE_CSS_VALUE = 1
 };
 
-class ICustomConfigValueData {
+class CCustomConfigValueData {
   public:
-    virtual ~ICustomConfigValueData() = default;
+    virtual ~CCustomConfigValueData() = default;
 
     virtual eConfigValueDataTypes getDataType() = 0;
 
     virtual std::string           toString() = 0;
 };
 
-class CGradientValueData : public ICustomConfigValueData {
+class CGradientValueData : public CCustomConfigValueData {
   public:
     CGradientValueData() = default;
     CGradientValueData(CHyprColor col) {
@@ -83,17 +83,17 @@ class CGradientValueData : public ICustomConfigValueData {
 
 class CCssGapData : public ICustomConfigValueData {
   public:
-    CCssGapData() : top(0), right(0), bottom(0), left(0) {};
-    CCssGapData(int64_t global) : top(global), right(global), bottom(global), left(global) {};
-    CCssGapData(int64_t vertical, int64_t horizontal) : top(vertical), right(horizontal), bottom(vertical), left(horizontal) {};
-    CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : top(top), right(horizontal), bottom(bottom), left(horizontal) {};
-    CCssGapData(int64_t top, int64_t right, int64_t bottom, int64_t left) : top(top), right(right), bottom(bottom), left(left) {};
+    CCssGapData() : m_top(0), m_right(0), m_bottom(0), m_left(0) {};
+    CCssGapData(int64_t global) : m_top(global), m_right(global), m_bottom(global), m_left(global) {};
+    CCssGapData(int64_t vertical, int64_t horizontal) : m_top(vertical), m_right(horizontal), m_bottom(vertical), m_left(horizontal) {};
+    CCssGapData(int64_t m_top, int64_t horizontal, int64_t m_bottom) : m_top(m_top), m_right(horizontal), m_bottom(m_bottom), m_left(horizontal) {};
+    CCssGapData(int64_t m_top, int64_t m_right, int64_t m_bottom, int64_t m_left) : m_top(m_top), m_right(m_right), m_bottom(m_bottom), m_left(m_left) {};
 
     /* Css like directions */
-    int64_t top;
-    int64_t right;
-    int64_t bottom;
-    int64_t left;
+    int64_t m_top;
+    int64_t m_right;
+    int64_t m_bottom;
+    int64_t m_left;
 
     void    parseGapData(CVarList varlist) {
         switch (varlist.size()) {
@@ -114,7 +114,7 @@ class CCssGapData : public ICustomConfigValueData {
                 break;
             }
             default: {
-                Debug::log(WARN, "Too many arguments provided for gaps.");
+                NDebug::log(WARN, "Too many arguments provided for gaps.");
                 *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
                 break;
             }
@@ -122,10 +122,10 @@ class CCssGapData : public ICustomConfigValueData {
     }
 
     void reset(int64_t global) {
-        top    = global;
-        right  = global;
-        bottom = global;
-        left   = global;
+        m_top    = global;
+        m_right  = global;
+        m_bottom = global;
+        m_left   = global;
     }
 
     virtual eConfigValueDataTypes getDataType() {
@@ -133,6 +133,6 @@ class CCssGapData : public ICustomConfigValueData {
     }
 
     virtual std::string toString() {
-        return std::format("{} {} {} {}", top, right, bottom, left);
+        return std::format("{} {} {} {}", m_top, m_right, m_bottom, m_left);
     }
 };

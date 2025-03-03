@@ -39,9 +39,8 @@ UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
         return nullptr;
     }
 
-    if (m_releaseTaken) {
+    if (m_releaseTaken)
         Debug::log(ERR, "CDRMSyncPointState: creating a sync releaser on an already created SyncRelease");
-    }
 
     m_releaseTaken = true;
     return makeUnique<CSyncReleaser>(m_resource->timeline, m_point);
@@ -79,24 +78,6 @@ void CDRMSyncPointState::signal() {
     m_resource->timeline->signal(m_point);
 }
 
-bool CDRMSyncPointState::waitOnTimelinePoint() {
-    if (m_acquireWaitedOn) // dont wait on same point twice.
-        return false;
-
-    if (!g_pHyprOpenGL) {
-        Debug::log(ERR, "CDRMSyncPointState: trying to wait on a timeline without a renderer");
-        return false;
-    }
-
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: trying to wait on a timeline with an expired point");
-        return false;
-    }
-
-    m_acquireWaitedOn = true;
-    return g_pHyprOpenGL->waitForTimelinePoint(timeline().lock(), point());
-}
-
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_) :
     surface(surface_), resource(std::move(resource_)) {
     if UNLIKELY (!good())
@@ -129,18 +110,22 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
         if (!surface->pending.buffer && surface->pending.newBuffer && !surface->pending.texture) {
-            pendingStates.clear();
+            removeAllWaiters();
+            surface->commitPendingState(surface->pending);
             return; // null buffer attached, destroy.
         }
 
         if (!surface->pending.buffer && !surface->pending.newBuffer && surface->current.buffer) {
             surface->current.damage.clear(); // #TODO clear damage to not rerender 24/7 ?
             surface->current.bufferDamage.clear();
-            surface->commitPendingState(); // no new buffer commit on current
+            surface->commitPendingState(surface->current); // no new buffer commit on current
+            return;
         }
 
-        if (!surface->pending.buffer && !surface->pending.newBuffer)
-            return; // no pending buffer, no current buffer. probably first commit, return.
+        if (!surface->pending.buffer && !surface->pending.newBuffer) {
+            surface->commitPendingState(surface->pending); // no pending buffer, no current buffer. probably first commit
+            return;
+        }
 
         if (protocolError())
             return; // bad client.. return.
@@ -161,35 +146,23 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
             if (!surface)
                 return;
 
-            surface->ready = *it;
-            surface->commitPendingState();
-            events.acquireReady.emit(it);
+            surface->commitPendingState(*it);
+            pendingStates.erase(it);
         });
-    });
-
-    listeners.surfaceRoleCommit = surface->events.roleCommit.registerListener([this](std::any d) {
-        if (!surface->ready.newBuffer || !surface->ready.buffer) {
-            return;
-        }
-
-        surface->current = surface->ready;
-        surface->ready.damage.clear();
-        surface->ready.bufferDamage.clear();
-        surface->ready.newBuffer = false;
-        surface->ready.buffer.reset();
-    });
-
-    listeners.acquireReady = events.acquireReady.registerListener([this](std::any d) {
-        auto it = std::any_cast<std::list<SSurfaceState>::iterator>(d);
-        pendingStates.erase(it);
     });
 }
 
-CDRMSyncobjSurfaceResource::~CDRMSyncobjSurfaceResource() {
+void CDRMSyncobjSurfaceResource::removeAllWaiters() {
     for (auto& s : pendingStates) {
         if (s.buffer && s.buffer->acquire)
-            s.buffer->acquire->resource()->timeline->stopAllWaiters();
+            s.buffer->acquire->resource()->timeline->removeAllWaiters();
     }
+
+    pendingStates.clear();
+}
+
+CDRMSyncobjSurfaceResource::~CDRMSyncobjSurfaceResource() {
+    removeAllWaiters();
 }
 
 bool CDRMSyncobjSurfaceResource::protocolError() {

@@ -105,17 +105,15 @@ class CWLSurfaceResource {
     Vector2D                      sourceSize();
 
     struct {
-        CSignal precommit;  // before commit
-        CSignal roleCommit; // commit for role objects, before regular commit
-        CSignal roleCommitEnd;
-        CSignal commit; // after commit
+        CSignal precommit; // before commit
+        CSignal commit;    // after commit
         CSignal map;
         CSignal unmap;
         CSignal newSubsurface;
         CSignal destroy;
     } events;
 
-    SSurfaceState                          current, pending, ready;
+    SSurfaceState                          current, pending;
 
     std::vector<SP<CWLCallbackResource>>   callbacks;
     WP<CWLSurfaceResource>                 self;
@@ -133,7 +131,7 @@ class CWLSurfaceResource {
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     CRegion                                accumulateCurrentBufferDamage();
     void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
-    void                                   commitPendingState();
+    void                                   commitPendingState(SSurfaceState& state);
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

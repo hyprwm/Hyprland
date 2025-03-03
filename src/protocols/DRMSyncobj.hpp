@@ -28,7 +28,6 @@ class CDRMSyncPointState {
     bool                                             comitted();
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
-    bool                                             waitOnTimelinePoint();
 
   private:
     WP<CDRMSyncobjTimelineResource> m_resource         = {};
@@ -36,7 +35,6 @@ class CDRMSyncPointState {
     WP<CSyncTimeline>               m_timeline         = {};
     bool                            m_acquirePoint     = false;
     bool                            m_acquireCommitted = false;
-    bool                            m_acquireWaitedOn  = false;
     bool                            m_releaseTaken     = false;
 };
 
@@ -49,6 +47,7 @@ class CDRMSyncobjSurfaceResource {
     bool good();
 
   private:
+    void                            removeAllWaiters();
     WP<CWLSurfaceResource>          surface;
     UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
@@ -57,14 +56,7 @@ class CDRMSyncobjSurfaceResource {
     std::list<SSurfaceState>        pendingStates;
 
     struct {
-        CSignal acquireReady;
-    } events;
-
-    struct {
         CHyprSignalListener surfacePrecommit;
-        CHyprSignalListener surfaceRoleCommit;
-        CHyprSignalListener surfaceRoleCommitEnd;
-        CHyprSignalListener acquireReady;
     } listeners;
 };
 

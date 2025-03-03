@@ -25,7 +25,7 @@ void CLayoutManager::switchToLayout(std::string layout) {
     NDebug::log(ERR, "Unknown layout!");
 }
 
-bool CLayoutManager::addLayout(const std::string& name, CIHyprLayout* layout) {
+bool CLayoutManager::addLayout(const std::string& name, IyprLayout* layout) {
     if (std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_vLayouts.end())
         return false;
 

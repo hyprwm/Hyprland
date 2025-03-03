@@ -541,7 +541,7 @@ bool CHyprDwindleLayout::isWindowTiled(PHLWINDOW pWindow) {
 void CHyprDwindleLayout::onBeginDragWindow() {
     m_PseudoDragFlags.started = false;
     m_PseudoDragFlags.pseudo  = false;
-    CIHyprLayout::onBeginDragWindow();
+    IHyprLayout::onBeginDragWindow();
 }
 
 void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {

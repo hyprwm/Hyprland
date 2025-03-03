@@ -7,12 +7,12 @@ class CLayoutManager {
   public:
     CLayoutManager();
 
-    CIHyprLayout*            getCurrentLayout();
+    IHyprLayout*             getCurrentLayout();
 
     void                     switchToLayout(std::string);
 
-    bool                     addLayout(const std::string& name, CIHyprLayout* layout);
-    bool                     removeLayout(CIHyprLayout* layout);
+    bool                     addLayout(const std::string& name, IHyprLayout* layout);
+    bool                     removeLayout(IHyprLayout* layout);
     std::vector<std::string> getAllLayoutNames();
 
   private:
@@ -21,11 +21,11 @@ class CLayoutManager {
         LAYOUT_MASTER
     };
 
-    int                                                m_iCurrentLayoutID = LAYOUT_DWINDLE;
+    int                                               m_iCurrentLayoutID = LAYOUT_DWINDLE;
 
-    CHyprDwindleLayout                                 m_cDwindleLayout;
-    CHyprMasterLayout                                  m_cMasterLayout;
-    std::vector<std::pair<std::string, CIHyprLayout*>> m_vLayouts;
+    CHyprDwindleLayout                                m_cDwindleLayout;
+    CHyprMasterLayout                                 m_cMasterLayout;
+    std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
 };
 
 inline UP<CLayoutManager> g_pLayoutManager;

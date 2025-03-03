@@ -1,41 +1,41 @@
 #include "DataDevice.hpp"
 
-bool CIDataSource::hasDnd() {
+boolIataSource::hasDnd() {
     return false;
 }
 
-bool CIDataSource::dndDone() {
+boolIataSource::dndDone() {
     return false;
 }
 
-bool CIDataSource::used() {
+boolIataSource::used() {
     return wasUsed;
 }
 
-void CIDataSource::markUsed() {
+voidIataSource::markUsed() {
     wasUsed = true;
 }
 
-eDataSourceType CIDataSource::type() {
+eDataSourceTypeIataSource::type() {
     return DATA_SOURCE_TYPE_WAYLAND;
 }
 
-void CIDataSource::sendDndFinished() {
+voidIataSource::sendDndFinished() {
     ;
 }
 
-uint32_t CIDataSource::actions() {
+uint32_tIataSource::actions() {
     return 7; // all
 }
 
-void CIDataSource::sendDndDropPerformed() {
+voidIataSource::sendDndDropPerformed() {
     ;
 }
 
-void CIDataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
+voidIataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
     ;
 }
 
-void CIDataOffer::markDead() {
+voidIataOffer::markDead() {
     ;
 }

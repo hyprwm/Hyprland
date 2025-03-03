@@ -20,9 +20,9 @@ enum eDataSourceType : uint8_t {
     DATA_SOURCE_TYPE_X11,
 };
 
-class CIDataSource {
+classIataSource {
   public:
-    CIDataSource()          = default;
+    IataSource()            = default;
     virtual ~CIDataSource() = default;
 
     virtual std::vector<std::string> mimes()                                                          = 0;
@@ -48,9 +48,9 @@ class CIDataSource {
     bool wasUsed = false;
 };
 
-class CIDataOffer {
+classIataOffer {
   public:
-    CIDataOffer()          = default;
+    IataOffer()            = default;
     virtual ~CIDataOffer() = default;
 
     virtual eDataSourceType          type()       = 0;
@@ -60,9 +60,9 @@ class CIDataOffer {
     virtual void                     markDead();
 };
 
-class CIDataDevice {
+classIataDevice {
   public:
-    CIDataDevice()          = default;
+    IataDevice()            = default;
     virtual ~CIDataDevice() = default;
 
     virtual SP<CWLDataDeviceResource> getWayland()                                                                                          = 0;

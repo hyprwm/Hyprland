@@ -42,7 +42,7 @@ struct SDwindleNodeData {
     CHyprDwindleLayout* layout = nullptr;
 };
 
-class CHyprDwindleLayout : public CIHyprLayout {
+class CHyprDwindleLayout : public IHyprLayout {
   public:
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);

@@ -26,7 +26,7 @@ class CWLDataOfferResource;
 class CWLSurfaceResource;
 class CMonitor;
 
-class CWLDataOfferResource : public CIDataOffer {
+class CWLDataOfferResource : publicIataOffer {
   public:
     CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<CIDataSource> source_);
     ~CWLDataOfferResource();
@@ -55,7 +55,7 @@ class CWLDataOfferResource : public CIDataOffer {
     friend class CWLDataDeviceResource;
 };
 
-class CWLDataSourceResource : public CIDataSource {
+class CWLDataSourceResource : publicIataSource {
   public:
     CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWLDataDeviceResource> device_);
     ~CWLDataSourceResource();
@@ -94,7 +94,7 @@ class CWLDataSourceResource : public CIDataSource {
     friend class CWLDataDeviceProtocol;
 };
 
-class CWLDataDeviceResource : public CIDataDevice {
+class CWLDataDeviceResource : publicIataDevice {
   public:
     CWLDataDeviceResource(SP<CWlDataDevice> resource_);
 

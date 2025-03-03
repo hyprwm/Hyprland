@@ -30,7 +30,7 @@ class CWLRDataOffer {
     friend class CWLRDataDevice;
 };
 
-class CWLRDataSource : public CIDataSource {
+class CWLRDataSource : publicIataSource {
   public:
     CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDataDevice> device_);
     ~CWLRDataSource();

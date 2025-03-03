@@ -9,16 +9,16 @@ enum eConfigValueDataTypes : int8_t {
     CVD_TYPE_CSS_VALUE = 1
 };
 
-class CICustomConfigValueData {
+class ICustomConfigValueData {
   public:
-    virtual ~CICustomConfigValueData() = default;
+    virtual ~ICustomConfigValueData() = default;
 
     virtual eConfigValueDataTypes getDataType() = 0;
 
     virtual std::string           toString() = 0;
 };
 
-class CGradientValueData : public CICustomConfigValueData {
+class CGradientValueData : public ICustomConfigValueData {
   public:
     CGradientValueData() = default;
     CGradientValueData(CHyprColor col);
@@ -45,7 +45,7 @@ class CGradientValueData : public CICustomConfigValueData {
     virtual std::string toString();
 };
 
-class CCssGapData : public CICustomConfigValueData {
+class CCssGapData : public ICustomConfigValueData {
   public:
     CCssGapData();
     CCssGapData(int64_t global);

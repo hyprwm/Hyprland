@@ -41,9 +41,9 @@ enum eDirection : int8_t {
     DIRECTION_LEFT
 };
 
-class CIHyprLayout {
+class IHyprLayout {
   public:
-    virtual ~CIHyprLayout()  = default;
+    virtual ~IHyprLayout()   = default;
     virtual void onEnable()  = 0;
     virtual void onDisable() = 0;
 

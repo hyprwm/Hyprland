@@ -605,6 +605,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:invert_axis", Hyprlang::INT{0});    
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
@@ -735,6 +736,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
     m_pConfig->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
     m_pConfig->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
+    m_pConfig->addSpecialConfigValue("device", "invert_axis", Hyprlang::INT{0});              // only for touchpads    
 
     // keywords
     m_pConfig->registerHandler(&::handleExec, "exec", {false});

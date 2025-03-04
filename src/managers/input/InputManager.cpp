@@ -102,6 +102,10 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
             delta.y   = -delta.y;
             unaccel.y = -unaccel.y;
         }
+	if (e.device->invert_axis) {
+	    std::swap(delta.x, delta.y);
+	    std::swap(unaccel.x, unaccel.y);
+        }
     }
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
@@ -1196,7 +1200,8 @@ void CInputManager::setPointerConfigs() {
 
             m->flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
             m->flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
-
+            m->invert_axis = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+	    
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
             const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");
 

@@ -77,7 +77,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.texture.reset();
         } else {
             auto res           = CWLBufferResource::fromResource(buffer);
-            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
+            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer, self.lock()) : nullptr;
             pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
@@ -88,6 +88,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+
+        events.bufferAttach.emit();
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -113,8 +115,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (stateLocks <= 0)
-            commitPendingState();
+        if (!syncobj)
+            commitPendingState(pending);
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) { pending.damage.add(CBox{x, y, w, h}); });
@@ -428,30 +430,16 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
     return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
 }
 
-void CWLSurfaceResource::lockPendingState() {
-    stateLocks++;
-}
+void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
+    auto const previousBuffer = current.buffer;
 
-void CWLSurfaceResource::unlockPendingState() {
-    stateLocks--;
-    if (stateLocks <= 0)
-        commitPendingState();
-}
-
-void CWLSurfaceResource::commitPendingState() {
-    static auto PDROP          = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
-    auto const  previousBuffer = current.buffer;
-    current                    = pending;
-    pending.damage.clear();
-    pending.bufferDamage.clear();
-    pending.newBuffer = false;
-    if (!*PDROP)
-        dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
-
-    events.roleCommit.emit();
-
-    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
-        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
+    if (state.newBuffer) {
+        state.newBuffer = false;
+        current         = state;
+        state.damage.clear();
+        state.bufferDamage.clear();
+        state.buffer.reset();
+    }
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -467,10 +455,8 @@ void CWLSurfaceResource::commitPendingState() {
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        // Some clients aren't ready to receive a release this early. Should be fine to release it on the next commitPendingState.
-        if (current.buffer->buffer->isSynchronous() && *PDROP) {
+        if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
             dropCurrentBuffer();
-            dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
         }
     }
 
@@ -497,18 +483,17 @@ void CWLSurfaceResource::commitPendingState() {
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
-    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
+    // #TODO does this apply to explicit sync?
+    if (!syncobj && previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
         if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
             previousBuffer->buffer->lock();
             previousBuffer->buffer->unlockOnBufferRelease(self);
         }
     }
-
-    lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
-    auto buf = current.buffer ? current.buffer->buffer : lastBuffer;
+    auto buf = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 
     if UNLIKELY (!buf)
         return;

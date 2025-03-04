@@ -108,12 +108,19 @@ class IPointer : public IHID {
         CSignal holdEnd;
     } m_pointerEvents;
 
+<<<<<<< HEAD
     bool         m_connected   = false; // means connected to the cursor
     std::string  m_boundOutput = "";
     bool         m_flipX       = false; // decide to invert horizontal movement
     bool         m_flipY       = false; // decide to invert vertical movement
     bool         m_isTouchpad  = false;
-    bool         invert_axis = false;
+=======
+    bool         connected   = false; // means connected to the cursor
+    std::string  boundOutput = "";
+    bool         flipX       = false; // decide to invert horizontal movement
+    bool         flipY       = false; // decide to invert vertical movement
+    bool         swap_axis = false;
+>>>>>>> df661848 (fix https://github.com/hyprwm/Hyprland/issues/8795)
 
     WP<IPointer> m_self;
 };

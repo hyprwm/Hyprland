@@ -108,7 +108,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
                 unaccel.y = -unaccel.y;
             }
         }
-	if (e.device->invert_axis) {
+	if (e.device->swap_axis) {
 	    std::swap(delta.x, delta.y);
 	    std::swap(unaccel.x, unaccel.y);
         }
@@ -1232,10 +1232,17 @@ void CInputManager::setPointerConfigs() {
             const auto LIBINPUTSENS = std::clamp(g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity"), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
+<<<<<<< HEAD
             m->m_flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
             m->m_flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
             m->invert_axis = g_pConfigManager->getDeviceInt(devname, "invert_axis", "input:touchpad:invert_axis") != 0;
 
+=======
+            m->flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+            m->flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
+            m->swap_axis = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+	    
+>>>>>>> df661848 (fix https://github.com/hyprwm/Hyprland/issues/8795)
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
             const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");
 

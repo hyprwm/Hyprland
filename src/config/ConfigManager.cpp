@@ -651,7 +651,12 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:invert_axis", Hyprlang::INT{0});    
+<<<<<<< HEAD
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
+=======
+    registerConfigVar("input:touchpad:swap_axis", Hyprlang::INT{0});    
+    registerConfigVar("input:touchdevice:transform", Hyprlang::INT{0});
+>>>>>>> df661848 (fix https://github.com/hyprwm/Hyprland/issues/8795)
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
@@ -749,6 +754,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
     // devices
+<<<<<<< HEAD
     m_config->addSpecialCategory("device", {"name"});
     m_config->addSpecialConfigValue("device", "sensitivity", {0.F});
     m_config->addSpecialConfigValue("device", "accel_profile", {STRVAL_EMPTY});
@@ -788,6 +794,46 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
     m_pConfig->addSpecialConfigValue("device", "invert_axis", Hyprlang::INT{0});              // only for touchpads    
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
+=======
+    m_pConfig->addSpecialCategory("device", {"name"});
+    m_pConfig->addSpecialConfigValue("device", "sensitivity", {0.F});
+    m_pConfig->addSpecialConfigValue("device", "accel_profile", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "kb_file", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "kb_layout", {"us"});
+    m_pConfig->addSpecialConfigValue("device", "kb_variant", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "kb_options", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "kb_rules", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "kb_model", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "repeat_rate", Hyprlang::INT{25});
+    m_pConfig->addSpecialConfigValue("device", "repeat_delay", Hyprlang::INT{600});
+    m_pConfig->addSpecialConfigValue("device", "natural_scroll", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "tap_button_map", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "numlock_by_default", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "resolve_binds_by_sym", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "disable_while_typing", Hyprlang::INT{1});
+    m_pConfig->addSpecialConfigValue("device", "clickfinger_behavior", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "middle_button_emulation", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "tap-to-click", Hyprlang::INT{1});
+    m_pConfig->addSpecialConfigValue("device", "tap-and-drag", Hyprlang::INT{1});
+    m_pConfig->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "left_handed", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "scroll_method", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "scroll_button_lock", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "scroll_points", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "transform", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
+    m_pConfig->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
+    m_pConfig->addSpecialConfigValue("device", "region_position", Hyprlang::VEC2{0, 0});      // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "absolute_region_position", Hyprlang::INT{0}); // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "region_size", Hyprlang::VEC2{0, 0});          // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "relative_input", Hyprlang::INT{0});           // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "active_area_position", Hyprlang::VEC2{0, 0}); // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
+    m_pConfig->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
+    m_pConfig->addSpecialConfigValue("device", "swap_axis", Hyprlang::INT{0});              // only for touchpads    
+>>>>>>> df661848 (fix https://github.com/hyprwm/Hyprland/issues/8795)
 
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});

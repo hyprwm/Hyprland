@@ -1240,7 +1240,11 @@ void CInputManager::setPointerConfigs() {
 =======
             m->flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
             m->flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
+<<<<<<< HEAD
             m->swap_axis = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+=======
+            m->swap_axis = g_pConfigManager->getDeviceInt(devname, "swap_axis", "input:touchpad:swap_axis") != 0;
+>>>>>>> 1cbbe992 (Update InputManager.cpp)
 	    
 >>>>>>> df661848 (fix https://github.com/hyprwm/Hyprland/issues/8795)
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");

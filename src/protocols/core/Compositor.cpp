@@ -77,7 +77,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.texture.reset();
         } else {
             auto res           = CWLBufferResource::fromResource(buffer);
-            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
+            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer, self.lock()) : nullptr;
             pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
@@ -88,6 +88,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+
+        events.bufferAttach.emit();
     });
 
     resource->setCommit([this](CWlSurface* r) {

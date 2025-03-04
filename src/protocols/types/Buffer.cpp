@@ -38,7 +38,7 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     });
 }
 
-CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
+CHLBufferReference::CHLBufferReference(WP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
     buffer->lock();
 }
 

@@ -105,6 +105,7 @@ class CWLSurfaceResource {
     Vector2D                      sourceSize();
 
     struct {
+        CSignal bufferAttach;
         CSignal precommit; // before commit
         CSignal commit;    // after commit
         CSignal map;

@@ -70,6 +70,10 @@ CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* c
     });
 }
 
+CSinglePixelBufferResource::~CSinglePixelBufferResource() {
+    PROTO::singlePixel->destroyResource(this);
+}
+
 bool CSinglePixelBufferResource::good() {
     return buffer->good();
 }

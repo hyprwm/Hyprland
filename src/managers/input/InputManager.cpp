@@ -1200,7 +1200,7 @@ void CInputManager::setPointerConfigs() {
 
             m->flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
             m->flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
-            m->invert_axis = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+            m->invert_axis = g_pConfigManager->getDeviceInt(devname, "invert_axis", "input:touchpad:invert_axis") != 0;
 	    
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
             const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");

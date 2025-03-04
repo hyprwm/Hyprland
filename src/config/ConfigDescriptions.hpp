@@ -620,6 +620,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+
     SConfigOptionDescription{
         .value       = "input:touchpad:invert_axis",
         .description = "Inverts the axis of the touchpad",

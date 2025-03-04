@@ -2174,7 +2174,7 @@ SDispatchResult CKeybindManager::scaleActive(std::string args) {
         scale += 1.0 / PLASTWINDOW->m_sWindowData.contentScale.valueOr(1.0f);
 
     if (scale > 0.0f) {
-        scale = std::max(scale, 0.25f);
+        scale                                   = std::max(scale, 0.25f);
         PLASTWINDOW->m_sWindowData.contentScale = CWindowOverridableVar(1.0f / scale, PRIORITY_SET_PROP);
     } else
         PLASTWINDOW->m_sWindowData.contentScale.unset(PRIORITY_SET_PROP);

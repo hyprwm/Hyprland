@@ -93,12 +93,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
 
-    if (e.device && e.device->aq() && e.device->aq()->getLibinputHandle()) {
-        double     touchw = 0, touchh = 0;
-        const auto ISTOUCHPAD = libinput_device_has_capability(e.device->aq()->getLibinputHandle(), LIBINPUT_DEVICE_CAP_POINTER) &&
-            libinput_device_get_size(e.device->aq()->getLibinputHandle(), &touchw, &touchh) == 0;
-
-        if (ISTOUCHPAD) {
+    if (e.device) {
+        if (e.device->isTouchpad) {
             if (e.device->flipX) {
                 delta.x   = -delta.x;
                 unaccel.x = -unaccel.x;

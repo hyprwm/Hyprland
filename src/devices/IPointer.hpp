@@ -112,6 +112,7 @@ class IPointer : public IHID {
     std::string  boundOutput = "";
     bool         flipX       = false; // decide to invert horizontal movement
     bool         flipY       = false; // decide to invert vertical movement
+    bool         invert_axis = false;
 
     WP<IPointer> self;
 };

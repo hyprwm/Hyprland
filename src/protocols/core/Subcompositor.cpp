@@ -77,7 +77,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         std::sort(parent->subsurfaces.begin(), parent->subsurfaces.end(), [](const auto& a, const auto& b) { return a->zIndex < b->zIndex; });
     });
 
-    listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
+    m_listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
         if (surface->current.texture && !surface->mapped) {
             surface->map();
             surface->events.map.emit();

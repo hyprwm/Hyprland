@@ -23,7 +23,7 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 
     resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) { ackdConfigure = true; });
 
-    listeners.surfaceCommit = pSurface->events.commit.registerListener([this](std::any d) {
+    m_listeners.surfaceCommit = pSurface->events.commit.registerListener([this](std::any d) {
         if (!pSurface->current.texture) {
             LOGM(ERR, "SessionLock attached a null buffer");
             resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
@@ -45,11 +45,11 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         committed = true;
     });
 
-    listeners.surfaceDestroy = pSurface->events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = pSurface->events.destroy.registerListener([this](std::any d) {
         LOGM(WARN, "SessionLockSurface object remains but surface is being destroyed???");
         pSurface->unmap();
-        listeners.surfaceCommit.reset();
-        listeners.surfaceDestroy.reset();
+        m_listeners.surfaceCommit.reset();
+        m_listeners.surfaceDestroy.reset();
         if (g_pCompositor->m_pLastFocus == pSurface)
             g_pCompositor->m_pLastFocus.reset();
 
@@ -60,14 +60,14 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 
     sendConfigure();
 
-    listeners.monitorMode = pMonitor->events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
+    m_listeners.monitorMode = pMonitor->events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
     if (pSurface && pSurface->mapped)
         pSurface->unmap();
-    listeners.surfaceCommit.reset();
-    listeners.surfaceDestroy.reset();
+    m_listeners.surfaceCommit.reset();
+    m_listeners.surfaceDestroy.reset();
     events.destroy.emit(); // just in case.
 }
 

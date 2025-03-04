@@ -39,7 +39,7 @@ class CWindowRule {
         RULE_CONTENT,
     };
 
-    eRuleType         ruleType = RULE_INVALID;
+    eRuleType         m_ruleType = RULE_INVALID;
 
     const std::string szValue;
     const std::string szRule;

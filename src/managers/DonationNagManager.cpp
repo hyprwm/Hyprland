@@ -59,7 +59,7 @@ CDonationNagManager::CDonationNagManager() {
     try {
         LAST_EPOCH = std::stoull(*LASTNAGSTR);
     } catch (std::exception& e) {
-        Debug::log(ERR, "DonationNag: Last epoch invalid? Failed to parse \"{}\". Setting to today.", *LASTNAGSTR);
+        NDebug::log(ERR, "DonationNag: Last epoch invalid? Failed to parse \"{}\". Setting to today.", *LASTNAGSTR);
         const auto EPOCHSTR = std::format("{}", EPOCH);
         NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, EPOCHSTR);
         return;
@@ -68,12 +68,12 @@ CDonationNagManager::CDonationNagManager() {
     // don't nag if the last nag was less than a month ago. This is
     // mostly for first-time nags, as other nags happen in specific time frames shorter than a month
     if (EPOCH - LAST_EPOCH < MONTH_IN_SECONDS) {
-        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", (int)std::round((EPOCH - LAST_EPOCH) / (double)MONTH_IN_SECONDS));
+        NDebug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", (int)std::round((EPOCH - LAST_EPOCH) / (double)MONTH_IN_SECONDS));
         return;
     }
 
     if (!NFsUtils::executableExistsInPath("hyprland-donate-screen")) {
-        Debug::log(ERR, "DonationNag: executable doesn't exist, skipping.");
+        NDebug::log(ERR, "DonationNag: executable doesn't exist, skipping.");
         return;
     }
 
@@ -90,7 +90,7 @@ CDonationNagManager::CDonationNagManager() {
         if (DAY < nagPoint.dayStart || DAY > nagPoint.dayEnd)
             continue;
 
-        Debug::log(LOG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
+        NDebug::log(LOG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
 
         m_bFired = true;
 
@@ -106,7 +106,7 @@ CDonationNagManager::CDonationNagManager() {
     }
 
     if (!m_bFired)
-        Debug::log(LOG, "DonationNag: didn't hit any nagging periods");
+        NDebug::log(LOG, "DonationNag: didn't hit any nagging periods");
 }
 
 bool CDonationNagManager::fired() {

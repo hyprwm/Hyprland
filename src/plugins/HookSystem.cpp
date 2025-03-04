@@ -168,7 +168,7 @@ bool CFunctionHook::hook() {
     const auto PROBEFIXEDASM = fixInstructionProbeRIPCalls(probe);
 
     if (PROBEFIXEDASM.bytes.size() == 0) {
-        Debug::log(ERR, "[functionhook] failed, unsupported asm / failed assembling:\n{}", probe.assembly);
+        NDebug::log(ERR, "[functionhook] failed, unsupported asm / failed assembling:\n{}", probe.assembly);
         return false;
     }
 
@@ -178,7 +178,7 @@ bool CFunctionHook::hook() {
     const auto   TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX);
 
     if (TRAMPOLINE_SIZE > MAX_TRAMPOLINE_SIZE) {
-        Debug::log(ERR, "[functionhook] failed, not enough space in trampo to alloc:\n{}", probe.assembly);
+        NDebug::log(ERR, "[functionhook] failed, not enough space in trampo to alloc:\n{}", probe.assembly);
         return false;
     }
 
@@ -279,7 +279,7 @@ static uintptr_t seekNewPageAddr() {
 
         uint64_t start = 0, end = 0;
         if (props[0].empty()) {
-            Debug::log(WARN, "seekNewPageAddr: unexpected line in self maps");
+            NDebug::log(WARN, "seekNewPageAddr: unexpected line in self maps");
             continue;
         }
 
@@ -289,11 +289,11 @@ static uintptr_t seekNewPageAddr() {
             start = std::stoull(startEnd[0], nullptr, 16);
             end   = std::stoull(startEnd[1], nullptr, 16);
         } catch (std::exception& e) {
-            Debug::log(WARN, "seekNewPageAddr: unexpected line in self maps: {}", line);
+            NDebug::log(WARN, "seekNewPageAddr: unexpected line in self maps: {}", line);
             continue;
         }
 
-        Debug::log(LOG, "seekNewPageAddr: page 0x{:x} - 0x{:x}", start, end);
+        NDebug::log(LOG, "seekNewPageAddr: page 0x{:x} - 0x{:x}", start, end);
 
         if (lastStart == 0) {
             lastStart = start;
@@ -303,19 +303,19 @@ static uintptr_t seekNewPageAddr() {
 
         if (start - lastEnd > PAGESIZE_VAR * 2) {
             if (!line.contains("Hyprland") && !anchoredToHyprland) {
-                Debug::log(LOG, "seekNewPageAddr: skipping gap 0x{:x}-0x{:x}, not anchored to Hyprland code pages yet.", lastEnd, start);
+                NDebug::log(LOG, "seekNewPageAddr: skipping gap 0x{:x}-0x{:x}, not anchored to Hyprland code pages yet.", lastEnd, start);
                 lastStart = start;
                 lastEnd   = end;
                 continue;
             } else if (!anchoredToHyprland) {
-                Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
+                NDebug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
                 anchoredToHyprland = true;
                 lastStart          = start;
                 lastEnd            = end;
                 continue;
             }
 
-            Debug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
+            NDebug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
             MAPS.close();
             return lastEnd;
         }
@@ -347,7 +347,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
 
     if (!page->addr) {
         // allocate it
-        Debug::log(LOG, "getAddressForTrampo: Allocating new page for hooks");
+        NDebug::log(LOG, "getAddressForTrampo: Allocating new page for hooks");
         const uint64_t PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
         const auto     BASEPAGEADDR = seekNewPageAddr();
         for (int attempt = 0; attempt < 2; ++attempt) {
@@ -358,7 +358,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
                 page->len  = PAGESIZE_VAR;
                 page->used = 0;
 
-                Debug::log(LOG, "Attempted to allocate 0x{:x}, got 0x{:x}", PAGEADDR, page->addr);
+                NDebug::log(LOG, "Attempted to allocate 0x{:x}, got 0x{:x}", PAGEADDR, page->addr);
 
                 if (page->addr == (uint64_t)MAP_FAILED)
                     continue;
@@ -380,7 +380,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
 
     page->used += HOOK_TRAMPOLINE_MAX_SIZE;
 
-    Debug::log(LOG, "getAddressForTrampo: Returning addr 0x{:x} for page at 0x{:x}", ADDRFORCONSUMER, page->addr);
+    NDebug::log(LOG, "getAddressForTrampo: Returning addr 0x{:x} for page at 0x{:x}", ADDRFORCONSUMER, page->addr);
 
     return ADDRFORCONSUMER;
 }

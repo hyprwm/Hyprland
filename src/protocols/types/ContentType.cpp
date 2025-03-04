@@ -4,12 +4,12 @@
 #include <format>
 
 namespace NContentType {
-    static std::unordered_map<std::string, eContentType> const table = {
+    static std::unordered_map<std::string, eContentType> const TABLE = {
         {"none", CONTENT_TYPE_NONE}, {"photo", CONTENT_TYPE_PHOTO}, {"video", CONTENT_TYPE_VIDEO}, {"game", CONTENT_TYPE_GAME}};
 
-    eContentType fromString(const std::string name) {
-        auto it = table.find(name);
-        if (it != table.end())
+    eContentType fromString(const std::string NAME) {
+        auto it = TABLE.find(NAME);
+        if (it != TABLE.end())
             return it->second;
         else
             throw std::invalid_argument(std::format("Unknown content type {}", name));

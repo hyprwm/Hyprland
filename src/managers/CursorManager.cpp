@@ -15,7 +15,7 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
     if (level == HC_LOG_TRACE)
         return;
 
-    Debug::log(NONE, "[hc] {}", message);
+    NDebug::log(NONE, "[hc] {}", message);
 }
 
 CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_), surface(surf), stride(cairo_image_surface_get_stride(surf)) {
@@ -78,11 +78,11 @@ CCursorManager::CCursorManager() {
         }
 
         if (m_iSize <= 0) {
-            Debug::log(WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
+            NDebug::log(WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
             m_iSize = 24;
         }
     } else {
-        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_szTheme);
+        NDebug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_szTheme);
 
         auto const* SIZE = getenv("XCURSOR_SIZE");
         if (SIZE) {
@@ -92,7 +92,7 @@ CCursorManager::CCursorManager() {
         }
 
         if (m_iSize <= 0) {
-            Debug::log(WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
+            NDebug::log(WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
             m_iSize = 24;
         }
     }
@@ -198,7 +198,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
             }
 
             if (m_sCurrentCursorShapeData.images.size() < 1) {
-                Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
+                NDebug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
                 return false;
             }
         }
@@ -325,7 +325,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 
         m_pHyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
         if (!m_pHyprcursor->valid()) {
-            Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
+            NDebug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
             m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);
         }
     } else

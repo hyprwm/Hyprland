@@ -25,7 +25,7 @@ enum eHIDType : uint8_t {
     Base class for a HID device.
     This could be a keyboard, a mouse, or a touchscreen.
 */
-class IHID {
+class CHID {
   public:
     virtual ~IHID() = default;
 

@@ -11,8 +11,8 @@ constexpr size_t MAX_SERIAL_STORE_LEN = 100;
 
 class CWLSurfaceResource;
 class CWLSeatResource;
-class IPointer;
-class IKeyboard;
+class CPointer;
+class CKeyboard;
 
 /*
     A seat grab defines a restricted set of surfaces that can be focused.
@@ -142,27 +142,27 @@ class CSeatManager {
 
         struct {
             CHyprSignalListener destroy;
-        } listeners;
-    };
+            m_m_listeners;
+        };
 
-    std::vector<SP<SSeatResourceContainer>> seatResources;
-    void                                    onNewSeatResource(SP<CWLSeatResource> resource);
-    SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
+        std::vector<SP<SSeatResourceContainer>> seatResources;
+        void                                    onNewSeatResource(SP<CWLSeatResource> resource);
+        SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
 
-    void                                    refocusGrab();
+        void                                    refocusGrab();
 
-    struct {
-        CHyprSignalListener newSeatResource;
-        CHyprSignalListener keyboardSurfaceDestroy;
-        CHyprSignalListener pointerSurfaceDestroy;
-        CHyprSignalListener touchSurfaceDestroy;
-    } listeners;
+        struct {
+            CHyprSignalListener newSeatResource;
+            CHyprSignalListener keyboardSurfaceDestroy;
+            CHyprSignalListener pointerSurfaceDestroy;
+            CHyprSignalListener touchSurfaceDestroy;
+            m_m_listeners;
 
-    Vector2D lastLocalCoords;
-    int      touchLocks = 0; // we assume there aint like 20 touch devices at once...
+            Vector2D lastLocalCoords;
+            int      touchLocks = 0; // we assume there aint like 20 touch devices at once...
 
-    friend struct SSeatResourceContainer;
-    friend class CSeatGrab;
-};
+            friend struct SSeatResourceContainer;
+            friend class CSeatGrab;
+        };
 
-inline UP<CSeatManager> g_pSeatManager;
+        inline UP<CSeatManager> g_pSeatManager;

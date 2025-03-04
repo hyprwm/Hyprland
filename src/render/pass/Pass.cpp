@@ -128,9 +128,9 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         debugData = {false};
     else if (*PDEBUGPASS && !debugData.present) {
         debugData.present           = true;
-        debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", Colors::WHITE, 12);
-        debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", Colors::WHITE, 12);
-        debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", Colors::WHITE, 12);
+        debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", NColors::WHITE, 12);
+        debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", NColors::WHITE, 12);
+        debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", NColors::WHITE, 12);
     }
 
     if (WILLBLUR && !*PDEBUGPASS) {
@@ -199,9 +199,9 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 void CRenderPass::renderDebugData() {
     CBox box = {{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize};
     for (const auto& rg : occludedRegions) {
-        g_pHyprOpenGL->renderRectWithDamage(box, Colors::RED.modifyA(0.1F), rg);
+        g_pHyprOpenGL->renderRectWithDamage(box, NColors::RED.modifyA(0.1F), rg);
     }
-    g_pHyprOpenGL->renderRectWithDamage(box, Colors::GREEN.modifyA(0.1F), totalLiveBlurRegion);
+    g_pHyprOpenGL->renderRectWithDamage(box, NColors::GREEN.modifyA(0.1F), totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
@@ -238,10 +238,10 @@ void CRenderPass::renderDebugData() {
         offsets[surface.get()] += texture->m_vSize.y;
     };
 
-    renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
-    renderHLSurface(debugData.pointerFocusText, g_pSeatManager->state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
+    renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->state.keyboardFocus.lock(), NColors::PURPLE.modifyA(0.1F));
+    renderHLSurface(debugData.pointerFocusText, g_pSeatManager->state.pointerFocus.lock(), NColors::ORANGE.modifyA(0.1F));
     if (g_pCompositor->m_pLastWindow)
-        renderHLSurface(debugData.lastWindowText, g_pCompositor->m_pLastWindow->m_pWLSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
+        renderHLSurface(debugData.lastWindowText, g_pCompositor->m_pLastWindow->m_pWLSurface->resource(), NColors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->state.pointerFocus) {
         if (g_pSeatManager->state.pointerFocus->current.input.intersect(CBox{{}, g_pSeatManager->state.pointerFocus->current.size}).getExtents().size() !=
@@ -262,7 +262,7 @@ void CRenderPass::renderDebugData() {
     const auto DISCARDED_ELEMENTS = std::count_if(m_vPassElements.begin(), m_vPassElements.end(), [](const auto& e) { return e->discard; });
     auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", occludedRegions.size(), m_vPassElements.size(),
                                                      DISCARDED_ELEMENTS, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize),
-                                         Colors::WHITE, 12);
+                                         NColors::WHITE, 12);
 
     if (tex) {
         box = CBox{{0.F, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y - tex->m_vSize.y}, tex->m_vSize}.scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);
@@ -280,7 +280,7 @@ void CRenderPass::renderDebugData() {
     if (!passStructure.empty())
         passStructure.pop_back();
 
-    tex = g_pHyprOpenGL->renderText(passStructure, Colors::WHITE, 12);
+    tex = g_pHyprOpenGL->renderText(passStructure, NColors::WHITE, 12);
     if (tex) {
         box = CBox{{g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.x - tex->m_vSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize.y - tex->m_vSize.y}, tex->m_vSize}.scale(
             g_pHyprOpenGL->m_RenderData.pMonitor->scale);

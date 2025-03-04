@@ -21,5 +21,5 @@ class CTouchDevice : public ITouch {
         CHyprSignalListener motion;
         CHyprSignalListener cancel;
         CHyprSignalListener frame;
-    } listeners;
-};
+        m_m_listeners;
+    };

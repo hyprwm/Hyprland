@@ -27,52 +27,52 @@ class CSinglePixelBuffer : public IHLBuffer {
 
     struct {
         CHyprSignalListener resourceDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CSinglePixelBufferResource {
-  public:
-    CSinglePixelBufferResource(uint32_t id, wl_client* client, CHyprColor color);
-    ~CSinglePixelBufferResource() = default;
+    class CSinglePixelBufferResource {
+      public:
+        CSinglePixelBufferResource(uint32_t id, wl_client* client, CHyprColor color);
+        ~CSinglePixelBufferResource() = default;
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CSinglePixelBuffer> buffer;
+      private:
+        SP<CSinglePixelBuffer> buffer;
 
-    struct {
-        CHyprSignalListener bufferResourceDestroy;
-    } listeners;
-};
+        struct {
+            CHyprSignalListener bufferResourceDestroy;
+            m_m_listeners;
+        };
 
-class CSinglePixelBufferManagerResource {
-  public:
-    CSinglePixelBufferManagerResource(SP<CWpSinglePixelBufferManagerV1> resource_);
+        class CSinglePixelBufferManagerResource {
+          public:
+            CSinglePixelBufferManagerResource(SP<CWpSinglePixelBufferManagerV1> resource_);
 
-    bool good();
+            bool good();
 
-  private:
-    SP<CWpSinglePixelBufferManagerV1> resource;
-};
+          private:
+            SP<CWpSinglePixelBufferManagerV1> resource;
+        };
 
-class CSinglePixelProtocol : public IWaylandProtocol {
-  public:
-    CSinglePixelProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+        class CSinglePixelProtocol : public IWaylandProtocol {
+          public:
+            CSinglePixelProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+            virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CSinglePixelBufferManagerResource* resource);
-    void destroyResource(CSinglePixelBufferResource* resource);
+          private:
+            void destroyResource(CSinglePixelBufferManagerResource* resource);
+            void destroyResource(CSinglePixelBufferResource* resource);
 
-    //
-    std::vector<SP<CSinglePixelBufferManagerResource>> m_vManagers;
-    std::vector<SP<CSinglePixelBufferResource>>        m_vBuffers;
+            //
+            std::vector<SP<CSinglePixelBufferManagerResource>> m_vManagers;
+            std::vector<SP<CSinglePixelBufferResource>>        m_vBuffers;
 
-    friend class CSinglePixelBufferManagerResource;
-    friend class CSinglePixelBufferResource;
-};
+            friend class CSinglePixelBufferManagerResource;
+            friend class CSinglePixelBufferResource;
+        };
 
-namespace PROTO {
-    inline UP<CSinglePixelProtocol> singlePixel;
-};
+        namespace PROTO {
+            inline UP<CSinglePixelProtocol> singlePixel;
+        };

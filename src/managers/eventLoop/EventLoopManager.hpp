@@ -63,7 +63,7 @@ class CEventLoopManager {
 
     struct {
         CHyprSignalListener pollFDsChanged;
-    } m_sListeners;
+    } m_sm_listeners;
 
     wl_event_source* m_configWatcherInotifySource = nullptr;
 

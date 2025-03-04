@@ -800,10 +800,10 @@ static std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[\n\"log\":\"";
-        result += escapeJSONStrings(Debug::rollingLog);
+        result += escapeJSONStrings(NDebug::rollingLog);
         result += "\"]";
     } else {
-        result = Debug::rollingLog;
+        result = NDebug::rollingLog;
     }
 
     return result;
@@ -1054,7 +1054,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
 
     SDispatchResult res = DISPATCHER->second(DISPATCHARG);
 
-    Debug::log(LOG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
+    NDebug::log(LOG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
 
     return res.success ? "ok" : res.error;
 }
@@ -1120,7 +1120,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         }
     }
 
-    Debug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
+    NDebug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
     if (retval == "")
         return "ok";
@@ -1810,23 +1810,23 @@ static bool successWrite(int fd, const std::string& data, bool needLog = true) {
         return true;
 
     if (needLog)
-        Debug::log(ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
+        NDebug::log(ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
 
     return false;
 }
 
 static void runWritingDebugLogThread(const int conn) {
     using namespace std::chrono_literals;
-    Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
+    NDebug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
     std::thread([conn]() {
-        while (Debug::SRollingLogFollow::get().isRunning()) {
-            if (Debug::SRollingLogFollow::get().isEmpty(conn)) {
+        while (NDebug::SRollingLogFollow::get().isRunning()) {
+            if (NDebug::SRollingLogFollow::get().isEmpty(conn)) {
                 std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
-            auto line = Debug::SRollingLogFollow::get().getLog(conn);
+            auto line = NDebug::SRollingLogFollow::get().getLog(conn);
             if (!successWrite(conn, line))
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
@@ -1834,7 +1834,7 @@ static void runWritingDebugLogThread(const int conn) {
             std::this_thread::sleep_for(100ms);
         }
         close(conn);
-        Debug::SRollingLogFollow::get().stopFor(conn);
+        NDebug::SRollingLogFollow::get().stopFor(conn);
     }).detach();
 }
 
@@ -1888,17 +1888,17 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     try {
         reply = g_pHyprCtl->getReply(request);
     } catch (std::exception& e) {
-        Debug::log(ERR, "Error in request: {}", e.what());
+        NDebug::log(ERR, "Error in request: {}", e.what());
         reply = "Err: " + std::string(e.what());
     }
 
     successWrite(ACCEPTEDCONNECTION, reply);
 
     if (isFollowUpRollingLogRequest(request)) {
-        Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-        Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
+        NDebug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
+        NDebug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
         runWritingDebugLogThread(ACCEPTEDCONNECTION);
-        Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
+        NDebug::log(LOG, NDebug::SRollingLogFollow::get().debugInfo());
     } else
         close(ACCEPTEDCONNECTION);
 
@@ -1912,7 +1912,7 @@ void CHyprCtl::startHyprCtlSocket() {
     m_iSocketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
 
     if (!m_iSocketFD.isValid()) {
-        Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
+        NDebug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
         return;
     }
 
@@ -1923,14 +1923,14 @@ void CHyprCtl::startHyprCtlSocket() {
     strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
     if (bind(m_iSocketFD.get(), (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
-        Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
+        NDebug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
         return;
     }
 
     // 10 max queued.
     listen(m_iSocketFD.get(), 10);
 
-    Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
+    NDebug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

@@ -41,62 +41,62 @@ class CSessionLockSurface {
         CHyprSignalListener monitorMode;
         CHyprSignalListener surfaceCommit;
         CHyprSignalListener surfaceDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CSessionLock {
-  public:
-    CSessionLock(SP<CExtSessionLockV1> resource_);
-    ~CSessionLock();
+    class CSessionLock {
+      public:
+        CSessionLock(SP<CExtSessionLockV1> resource_);
+        ~CSessionLock();
 
-    bool good();
-    void sendLocked();
-    void sendDenied();
+        bool good();
+        void sendLocked();
+        void sendDenied();
 
-    struct {
-        CSignal newLockSurface; // SP<CSessionLockSurface>
-        CSignal unlockAndDestroy;
-        CSignal destroyed; // fires regardless of whether there was a unlockAndDestroy or not.
-    } events;
+        struct {
+            CSignal newLockSurface; // SP<CSessionLockSurface>
+            CSignal unlockAndDestroy;
+            CSignal destroyed; // fires regardless of whether there was a unlockAndDestroy or not.
+        } events;
 
-  private:
-    SP<CExtSessionLockV1> resource;
+      private:
+        SP<CExtSessionLockV1> resource;
 
-    bool                  inert = false;
+        bool                  inert = false;
 
-    friend class CSessionLockProtocol;
-};
+        friend class CSessionLockProtocol;
+    };
 
-class CSessionLockProtocol : public IWaylandProtocol {
-  public:
-    CSessionLockProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CSessionLockProtocol : public IWaylandProtocol {
+      public:
+        CSessionLockProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    bool         isLocked();
+        bool         isLocked();
 
-    struct {
-        CSignal newLock; // SP<CSessionLock>
-    } events;
+        struct {
+            CSignal newLock; // SP<CSessionLock>
+        } events;
 
-  private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CSessionLock* lock);
-    void destroyResource(CSessionLockSurface* surf);
-    void onLock(CExtSessionLockManagerV1* pMgr, uint32_t id);
-    void onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output);
+      private:
+        void onManagerResourceDestroy(wl_resource* res);
+        void destroyResource(CSessionLock* lock);
+        void destroyResource(CSessionLockSurface* surf);
+        void onLock(CExtSessionLockManagerV1* pMgr, uint32_t id);
+        void onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output);
 
-    bool locked = false;
+        bool locked = false;
 
-    //
-    std::vector<UP<CExtSessionLockManagerV1>> m_vManagers;
-    std::vector<SP<CSessionLock>>             m_vLocks;
-    std::vector<SP<CSessionLockSurface>>      m_vLockSurfaces;
+        //
+        std::vector<UP<CExtSessionLockManagerV1>> m_vManagers;
+        std::vector<SP<CSessionLock>>             m_vLocks;
+        std::vector<SP<CSessionLockSurface>>      m_vLockSurfaces;
 
-    friend class CSessionLock;
-    friend class CSessionLockSurface;
-};
+        friend class CSessionLock;
+        friend class CSessionLockSurface;
+    };
 
-namespace PROTO {
-    inline UP<CSessionLockProtocol> sessionLock;
-};
+    namespace PROTO {
+        inline UP<CSessionLockProtocol> sessionLock;
+    };

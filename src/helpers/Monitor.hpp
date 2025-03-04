@@ -204,8 +204,8 @@ class CMonitor {
     }
 
     // workspace previous per monitor functionality
-    SWorkspaceIDName getPrevWorkspaceIDName(const WORKSPACEID id);
-    void             addPrevWorkspaceID(const WORKSPACEID id);
+    SWorkspaceIDName getPrevWorkspaceIDName(const WORKSPACEID ID);
+    void             addPrevWorkspaceID(const WORKSPACEID ID);
 
   private:
     void                    setupDefaultWS(const SMonitorRule&);
@@ -221,5 +221,5 @@ class CMonitor {
         CHyprSignalListener needsFrame;
         CHyprSignalListener presented;
         CHyprSignalListener commit;
-    } listeners;
-};
+        m_m_listeners;
+    };

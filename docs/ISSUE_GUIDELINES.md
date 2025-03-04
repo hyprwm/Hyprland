@@ -49,7 +49,7 @@ basically, directories in $XDG_RUNTIME_DIR/hypr are your sessions.
 
 If you have `$XDG_CACHE_HOME` set, the crash report directory is `$XDG_CACHE_HOME/hyprland`. If not, it's `$HOME/.cache/hyprland`.
 
-Go to the crash report directory and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
+Go to the crash report directory, where you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
 
 Attach that file to your issue.
 ## Obtaining the Hyprland coredump (v0.21.0beta and below)
@@ -71,8 +71,7 @@ A debug coredump provides more information for debugging and may speed up the pr
 Make sure you're on latest git. Run `git pull --recurse-submodules` to sync everything.
 
 1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
-> Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
-
+    > Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
 2. `cd ~`
 3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`
 4. Reproduce the crash. Hyprland should instantly close.

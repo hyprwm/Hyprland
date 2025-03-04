@@ -24,5 +24,5 @@ class CDMABuffer : public IHLBuffer {
 
     struct {
         CHyprSignalListener resourceDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };

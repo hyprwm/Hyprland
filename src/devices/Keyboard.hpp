@@ -18,5 +18,5 @@ class CKeyboard : public IKeyboard {
         CHyprSignalListener destroy;
         CHyprSignalListener key;
         CHyprSignalListener modifiers;
-    } listeners;
-};
+        m_m_listeners;
+    };

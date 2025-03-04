@@ -9,7 +9,7 @@ AQUAMARINE_FORWARD(IPointer);
 /*
     Base class for a pointer.
 */
-class IPointer : public IHID {
+class CPointer : public IHID {
   public:
     virtual uint32_t                 getCapabilities();
     virtual eHIDType                 getType();

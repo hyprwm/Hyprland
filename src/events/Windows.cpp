@@ -47,7 +47,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
         PHLWINDOW->m_bAnimatingIn = false;
 }
 
-void Events::listener_mapWindow(void* owner, void* data) {
+void NEvents::listener_mapWindow(void* owner, void* data) {
     PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
@@ -80,13 +80,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
         const auto WINDOWENV = PWINDOW->getEnv();
         if (WINDOWENV.contains("HL_INITIAL_WORKSPACE_TOKEN")) {
             const auto SZTOKEN = WINDOWENV.at("HL_INITIAL_WORKSPACE_TOKEN");
-            Debug::log(LOG, "New window contains HL_INITIAL_WORKSPACE_TOKEN: {}", SZTOKEN);
+            NDebug::log(LOG, "New window contains HL_INITIAL_WORKSPACE_TOKEN: {}", SZTOKEN);
             const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
             if (TOKEN) {
                 // find workspace and use it
                 SInitialWorkspaceToken WS = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
 
-                Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
+                NDebug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
                 if (g_pCompositor->getWorkspaceByString(WS.workspace) != PWINDOW->m_pWorkspace) {
                     requestedWorkspace = WS.workspace;
@@ -139,7 +139,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     MONITORID requestedFSMonitor = PWINDOW->m_iWantsInitialFullscreenMonitor;
 
     for (auto const& r : PWINDOW->m_vMatchedRules) {
-        switch (r->ruleType) {
+        switch (r->m_ruleType) {
             case CWindowRule::RULE_MONITOR: {
                 try {
                     const auto MONITORSTR = trim(r->szRule.substr(r->szRule.find(' ')));
@@ -158,7 +158,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                             if (PMONITOR)
                                 PWINDOW->m_pMonitor = PMONITOR;
                             else {
-                                Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
+                                NDebug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
                                 continue;
                             }
                         }
@@ -173,9 +173,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
                     PWORKSPACE            = PWINDOW->m_pWorkspace;
 
-                    Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
+                    NDebug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
                     requestedFSMonitor = MONITOR_INVALID;
-                } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r->szRule, r->szValue, e.what()); }
+                } catch (std::exception& e) { NDebug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r->szRule, r->szValue, e.what()); }
                 break;
             }
             case CWindowRule::RULE_WORKSPACE: {
@@ -192,7 +192,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
                     requestedWorkspace = "";
 
-                Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r->szValue);
+                NDebug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r->szValue);
                 requestedFSMonitor = MONITOR_INVALID;
                 break;
             }
@@ -238,7 +238,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     else if (vars[i] == "fullscreenoutput")
                         PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN_OUTPUT;
                     else
-                        Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
+                        NDebug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
                 }
                 break;
             }
@@ -301,7 +301,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         else if (vPrev == "lock")
                             PWINDOW->m_eGroupRules |= GROUP_LOCK_ALWAYS;
                         else
-                            Debug::log(ERR, "windowrule `group` does not support `{} always`", vPrev);
+                            NDebug::log(ERR, "windowrule `group` does not support `{} always`", vPrev);
                     }
                     vPrev = v;
                 }
@@ -311,7 +311,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 const CVarList VARS(r->szRule, 0, ' ');
                 try {
                     PWINDOW->setContentType(NContentType::fromString(VARS[1]));
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                } catch (std::exception& e) { NDebug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
                 break;
             }
             default: break;
@@ -375,7 +375,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
         PWORKSPACE            = PWINDOW->m_pWorkspace;
 
-        Debug::log(LOG, "Requested monitor, applying to {:mw}", PWINDOW);
+        NDebug::log(LOG, "Requested monitor, applying to {:mw}", PWINDOW);
     }
 
     if (PWORKSPACE->m_bDefaultFloating)
@@ -401,7 +401,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // size and move rules
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            switch (r->ruleType) {
+            switch (r->m_ruleType) {
                 case CWindowRule::RULE_SIZE: {
                     try {
                         auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
@@ -425,12 +425,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) :
                                                                 stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize->goal().y, PMONITOR->vecSize.y);
 
-                        Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
+                        NDebug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
                         PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
 
                         PWINDOW->setHidden(false);
-                    } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
+                    } catch (...) { NDebug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
                     break;
                 }
                 case CWindowRule::RULE_MOVE: {
@@ -463,7 +463,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 posX -= PWINDOW->m_vRealSize->goal().x;
 
                             if (CURSOR)
-                                Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
+                                NDebug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
                         } else if (!CURSOR) {
                             posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
                         } else {
@@ -486,7 +486,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 posY -= PWINDOW->m_vRealSize->goal().y;
 
                             if (CURSOR)
-                                Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
+                                NDebug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
                         } else if (!CURSOR) {
                             posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
                         } else {
@@ -509,12 +509,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                               (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize->goal().y - borderSize));
                         }
 
-                        Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
+                        NDebug::log(LOG, "Rule move, applying to {}", PWINDOW);
 
                         *PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
 
                         PWINDOW->setHidden(false);
-                    } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r->szRule, r->szValue); }
+                    } catch (...) { NDebug::log(LOG, "Rule move failed, rule: {} -> {}", r->szRule, r->szValue); }
                     break;
                 }
                 case CWindowRule::RULE_CENTER: {
@@ -542,7 +542,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         bool setPseudo = false;
 
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            if (r->ruleType != CWindowRule::RULE_SIZE)
+            if (r->m_ruleType != CWindowRule::RULE_SIZE)
                 continue;
 
             try {
@@ -556,13 +556,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) : stringToPercentage(SIZEYSTR, PMONITOR->vecSize.y);
 
-                Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
+                NDebug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
 
                 setPseudo              = true;
                 PWINDOW->m_vPseudoSize = Vector2D(SIZEX, SIZEY);
 
                 PWINDOW->setHidden(false);
-            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
+            } catch (...) { NDebug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
         }
 
         if (!setPseudo)
@@ -649,7 +649,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_bFirstMap = false;
 
-    Debug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->szName, PWINDOW->m_vRealPosition->goal(), PWINDOW->m_vRealSize->goal());
+    NDebug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->szName, PWINDOW->m_vRealPosition->goal(), PWINDOW->m_vRealSize->goal());
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, PWINDOW->m_szClass, PWINDOW->m_szTitle)});
@@ -690,10 +690,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 }
 
-void Events::listener_unmapWindow(void* owner, void* data) {
+void NEvents::listener_unmapWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
-    Debug::log(LOG, "{:c} unmapped", PWINDOW);
+    NDebug::log(LOG, "{:c} unmapped", PWINDOW);
 
     static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
 
@@ -701,7 +701,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     const auto  CURRENTFSMODE        = PWINDOW->m_sFullscreenState.internal;
 
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
-        Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
+        NDebug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_bFadingOut = false;
         return;
     }
@@ -775,7 +775,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         else
             PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
-        Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
+        NDebug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
@@ -795,7 +795,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
             EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
         }
     } else {
-        Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
+        NDebug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
 
     PWINDOW->m_bFadingOut = true;
@@ -820,13 +820,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->onUnmap();
 }
 
-void Events::listener_commitWindow(void* owner, void* data) {
+void NEvents::listener_commitWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface->initialCommit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
 
-        Debug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
+        NDebug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
 
         PWINDOW->m_pXDGSurface->toplevel->setSize(predSize);
         return;
@@ -886,10 +886,10 @@ void Events::listener_commitWindow(void* owner, void* data) {
     }
 }
 
-void Events::listener_destroyWindow(void* owner, void* data) {
+void NEvents::listener_destroyWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
-    Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
+    NDebug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
     if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
         g_pCompositor->m_pLastWindow.reset();
@@ -898,7 +898,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     PWINDOW->m_pWLSurface->unassign();
 
-    PWINDOW->listeners = {};
+    PWINDOW->m_listeners = {};
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -907,24 +907,24 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->m_pXDGSurface.reset();
 
     if (!PWINDOW->m_bFadingOut) {
-        Debug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
+        NDebug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
 
-    PWINDOW->listeners.unmap.reset();
-    PWINDOW->listeners.destroy.reset();
-    PWINDOW->listeners.map.reset();
-    PWINDOW->listeners.commit.reset();
+    PWINDOW->m_listeners.unmap.reset();
+    PWINDOW->m_listeners.destroy.reset();
+    PWINDOW->m_listeners.map.reset();
+    PWINDOW->m_listeners.commit.reset();
 }
 
-void Events::listener_activateX11(void* owner, void* data) {
+void NEvents::listener_activateX11(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
-    Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
+    NDebug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
     if (PWINDOW->isX11OverrideRedirect()) {
 
-        Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
+        NDebug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 
         if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->getPID() != PWINDOW->getPID())
             return;
@@ -942,7 +942,7 @@ void Events::listener_activateX11(void* owner, void* data) {
     PWINDOW->activate();
 }
 
-void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
+void NEvents::listener_unmanagedSetGeometry(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsMapped || !PWINDOW->m_pXWaylandSurface || !PWINDOW->m_pXWaylandSurface->overrideRedirect)
@@ -968,7 +968,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
     if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - PWINDOW->m_pXWaylandSurface->geometry.width) > 2 ||
         abs(std::floor(SIZ.y) - PWINDOW->m_pXWaylandSurface->geometry.height) > 2) {
-        Debug::log(LOG, "Unmanaged window {} requests geometry update to {:j} {:j}", PWINDOW, LOGICALPOS, PWINDOW->m_pXWaylandSurface->geometry.size());
+        NDebug::log(LOG, "Unmanaged window {} requests geometry update to {:j} {:j}", PWINDOW, LOGICALPOS, PWINDOW->m_pXWaylandSurface->geometry.size());
 
         g_pHyprRenderer->damageWindow(PWINDOW);
         PWINDOW->m_vRealPosition->setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));

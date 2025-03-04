@@ -96,7 +96,7 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) 
     resource->setRelease([this](CZwlrOutputHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
     resource->setOnDestroy([this](CZwlrOutputHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
 
-    listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any d) {
+    m_listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any d) {
         resource->sendFinished();
 
         for (auto const& mw : modes) {
@@ -114,7 +114,7 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) 
         }
     });
 
-    listeners.monitorModeChange = pMonitor->events.modeChanged.registerListener([this](std::any d) { updateMode(); });
+    m_listeners.monitorModeChange = pMonitor->events.modeChanged.registerListener([this](std::any d) { updateMode(); });
 }
 
 bool COutputHead::good() {

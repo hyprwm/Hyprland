@@ -14,12 +14,12 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : touch(touch_) {
     if (!touch)
         return;
 
-    listeners.destroy = touch->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = touch->events.destroy.registerListener([this](std::any d) {
         events.destroy.emit();
         touch.reset();
     });
 
-    listeners.down = touch->events.down.registerListener([this](std::any d) {
+    m_listeners.down = touch->events.down.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITouch::SDownEvent>(d);
 
         touchEvents.down.emit(SDownEvent{
@@ -30,7 +30,7 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : touch(touch_) {
         });
     });
 
-    listeners.up = touch->events.up.registerListener([this](std::any d) {
+    m_listeners.up = touch->events.up.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITouch::SUpEvent>(d);
 
         touchEvents.up.emit(SUpEvent{
@@ -39,7 +39,7 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : touch(touch_) {
         });
     });
 
-    listeners.motion = touch->events.move.registerListener([this](std::any d) {
+    m_listeners.motion = touch->events.move.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITouch::SMotionEvent>(d);
 
         touchEvents.motion.emit(SMotionEvent{
@@ -49,7 +49,7 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : touch(touch_) {
         });
     });
 
-    listeners.cancel = touch->events.cancel.registerListener([this](std::any d) {
+    m_listeners.cancel = touch->events.cancel.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::ITouch::SCancelEvent>(d);
 
         touchEvents.cancel.emit(SCancelEvent{
@@ -58,7 +58,7 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : touch(touch_) {
         });
     });
 
-    listeners.frame = touch->events.frame.registerListener([this](std::any d) { touchEvents.frame.emit(); });
+    m_listeners.frame = touch->events.frame.registerListener([this](std::any d) { touchEvents.frame.emit(); });
 
     deviceName = touch->getName();
 }

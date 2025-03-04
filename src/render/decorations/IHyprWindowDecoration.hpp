@@ -30,7 +30,7 @@ class CWindow;
 class CMonitor;
 class CDecorationPositioner;
 
-class IHyprWindowDecoration {
+class CHyprWindowDecoration {
   public:
     IHyprWindowDecoration(PHLWINDOW);
     virtual ~IHyprWindowDecoration() = default;

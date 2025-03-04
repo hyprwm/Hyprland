@@ -30,5 +30,5 @@ class CRenderbuffer {
 
     struct {
         CHyprSignalListener destroyBuffer;
-    } listeners;
-};
+        m_m_listeners;
+    };

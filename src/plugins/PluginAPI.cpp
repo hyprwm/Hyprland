@@ -50,7 +50,7 @@ APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, c
         return g_pHyprCtl->makeDynamicCall(format + "/" + call + " " + args);
 }
 
-APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
+APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IyprLayout* layout) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
@@ -61,7 +61,7 @@ APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyp
     return g_pLayoutManager->addLayout(name, layout);
 }
 
-APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
+APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IyprLayout* layout) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
@@ -77,13 +77,13 @@ APICALL bool HyprlandAPI::reloadConfig() {
     return true;
 }
 
-APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs) {
+APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float TIMEMS) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
-    g_pHyprNotificationOverlay->addNotification(text, color, timeMs);
+    g_pHyprNotificationOverlay->addNotification(text, color, TIMEMS);
 
     return true;
 }
@@ -339,11 +339,11 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     };
 
     if (SYMBOLS.empty()) {
-        Debug::log(ERR, R"(Unable to search for function "{}": no symbols found in binary (is "{}" in path?))", name,
+        NDebug::log(ERR, R"(Unable to search for function "{}": no symbols found in binary (is "{}" in path?))", name,
 #ifdef __clang__
-                   "llvm-nm"
+                    "llvm-nm"
 #else
-                   "nm"
+                    "nm"
 #endif
         );
         return {};

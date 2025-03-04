@@ -110,76 +110,76 @@ class COutputHead {
     struct {
         CHyprSignalListener monitorDestroy;
         CHyprSignalListener monitorModeChange;
-    } listeners;
+        m_m_listeners;
 
-    friend class COutputManager;
-    friend class COutputManagementProtocol;
-};
+        friend class COutputManager;
+        friend class COutputManagementProtocol;
+    };
 
-class COutputConfigurationHead {
-  public:
-    COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, PHLMONITOR pMonitor_);
+    class COutputConfigurationHead {
+      public:
+        COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, PHLMONITOR pMonitor_);
 
-    bool                   good();
+        bool                   good();
 
-    SWlrManagerOutputState state;
+        SWlrManagerOutputState state;
 
-  private:
-    SP<CZwlrOutputConfigurationHeadV1> resource;
-    PHLMONITORREF                      pMonitor;
+      private:
+        SP<CZwlrOutputConfigurationHeadV1> resource;
+        PHLMONITORREF                      pMonitor;
 
-    friend class COutputConfiguration;
-};
+        friend class COutputConfiguration;
+    };
 
-class COutputConfiguration {
-  public:
-    COutputConfiguration(SP<CZwlrOutputConfigurationV1> resource_, SP<COutputManager> owner_);
+    class COutputConfiguration {
+      public:
+        COutputConfiguration(SP<CZwlrOutputConfigurationV1> resource_, SP<COutputManager> owner_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CZwlrOutputConfigurationV1>            resource;
-    std::vector<WP<COutputConfigurationHead>> heads;
-    WP<COutputManager>                        owner;
+      private:
+        SP<CZwlrOutputConfigurationV1>            resource;
+        std::vector<WP<COutputConfigurationHead>> heads;
+        WP<COutputManager>                        owner;
 
-    bool                                      applyTestConfiguration(bool test);
-};
+        bool                                      applyTestConfiguration(bool test);
+    };
 
-class COutputManagementProtocol : public IWaylandProtocol {
-  public:
-    COutputManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class COutputManagementProtocol : public IWaylandProtocol {
+      public:
+        COutputManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    // doesn't have to return one
-    SP<SWlrManagerSavedOutputState> getOutputStateFor(PHLMONITOR pMonitor);
+        // doesn't have to return one
+        SP<SWlrManagerSavedOutputState> getOutputStateFor(PHLMONITOR pMonitor);
 
-  private:
-    void destroyResource(COutputManager* resource);
-    void destroyResource(COutputHead* resource);
-    void destroyResource(COutputMode* resource);
-    void destroyResource(COutputConfiguration* resource);
-    void destroyResource(COutputConfigurationHead* resource);
+      private:
+        void destroyResource(COutputManager* resource);
+        void destroyResource(COutputHead* resource);
+        void destroyResource(COutputMode* resource);
+        void destroyResource(COutputConfiguration* resource);
+        void destroyResource(COutputConfigurationHead* resource);
 
-    void updateAllOutputs();
+        void updateAllOutputs();
 
-    //
-    std::vector<SP<COutputManager>>           m_vManagers;
-    std::vector<SP<COutputHead>>              m_vHeads;
-    std::vector<SP<COutputMode>>              m_vModes;
-    std::vector<SP<COutputConfiguration>>     m_vConfigurations;
-    std::vector<SP<COutputConfigurationHead>> m_vConfigurationHeads;
+        //
+        std::vector<SP<COutputManager>>           m_vManagers;
+        std::vector<SP<COutputHead>>              m_vHeads;
+        std::vector<SP<COutputMode>>              m_vModes;
+        std::vector<SP<COutputConfiguration>>     m_vConfigurations;
+        std::vector<SP<COutputConfigurationHead>> m_vConfigurationHeads;
 
-    SP<COutputHead>                           headFromResource(wl_resource* r);
-    SP<COutputMode>                           modeFromResource(wl_resource* r);
+        SP<COutputHead>                           headFromResource(wl_resource* r);
+        SP<COutputMode>                           modeFromResource(wl_resource* r);
 
-    friend class COutputManager;
-    friend class COutputHead;
-    friend class COutputMode;
-    friend class COutputConfiguration;
-    friend class COutputConfigurationHead;
-};
+        friend class COutputManager;
+        friend class COutputHead;
+        friend class COutputMode;
+        friend class COutputConfiguration;
+        friend class COutputConfigurationHead;
+    };
 
-namespace PROTO {
-    inline UP<COutputManagementProtocol> outputManagement;
-};
+    namespace PROTO {
+        inline UP<COutputManagementProtocol> outputManagement;
+    };

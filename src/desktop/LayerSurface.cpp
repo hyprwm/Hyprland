@@ -20,7 +20,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->surface->assign(resource->surface.lock(), pLS);
 
     if (!pMonitor) {
-        Debug::log(ERR, "New LS has no monitor??");
+        NDebug::log(ERR, "New LS has no monitor??");
         return pLS;
     }
 
@@ -46,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
+    NDebug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
 
     return pLS;
 }
@@ -59,10 +59,10 @@ void CLayerSurface::registerCallbacks() {
 }
 
 CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : layerSurface(resource_) {
-    listeners.commit  = layerSurface->events.commit.registerListener([this](std::any d) { onCommit(); });
-    listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
-    listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    m_listeners.commit  = layerSurface->events.commit.registerListener([this](std::any d) { onCommit(); });
+    m_listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
+    m_listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    m_listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
 
     surface = CWLSurface::create();
 }
@@ -84,19 +84,19 @@ CLayerSurface::~CLayerSurface() {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
 
     const auto PMONITOR = monitor.lock();
 
     if (!PMONITOR)
-        Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
+        NDebug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!fadingOut) {
         if (mapped) {
-            Debug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
+            NDebug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
             onUnmap();
         } else {
-            Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
+            NDebug::log(LOG, "Removing LayerSurface that wasn't mapped.");
             if (alpha)
                 alpha->setValueAndWarp(0.f);
             fadingOut = true;
@@ -123,14 +123,14 @@ void CLayerSurface::onDestroy() {
     if (surface)
         surface->unassign();
 
-    listeners.unmap.reset();
-    listeners.destroy.reset();
-    listeners.map.reset();
-    listeners.commit.reset();
+    m_listeners.unmap.reset();
+    m_listeners.destroy.reset();
+    m_listeners.map.reset();
+    m_listeners.commit.reset();
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
 
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
@@ -194,7 +194,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
+    NDebug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", self.lock());
@@ -202,7 +202,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
     if (!monitor || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        NDebug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(self.lock());
 
@@ -383,7 +383,7 @@ void CLayerSurface::applyRules() {
     animationStyle.reset();
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
-        switch (rule->ruleType) {
+        switch (rule->m_ruleType) {
             case CLayerRule::RULE_NOANIM: {
                 noAnimations = true;
                 break;
@@ -398,16 +398,16 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_IGNOREALPHA:
             case CLayerRule::RULE_IGNOREZERO: {
-                const auto  FIRST_SPACE_POS = rule->rule.find_first_of(' ');
+                const auto  FIRST_SPACE_POS = rule->m_RULE.find_first_of(' ');
                 std::string alphaValue      = "";
                 if (FIRST_SPACE_POS != std::string::npos)
-                    alphaValue = rule->rule.substr(FIRST_SPACE_POS + 1);
+                    alphaValue = rule->m_RULE.substr(FIRST_SPACE_POS + 1);
 
                 try {
                     ignoreAlpha = true;
                     if (!alphaValue.empty())
                         ignoreAlphaValue = std::stof(alphaValue);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
+                } catch (...) { NDebug::log(ERR, "Invalid value passed to ignoreAlpha"); }
                 break;
             }
             case CLayerRule::RULE_DIMAROUND: {
@@ -415,22 +415,22 @@ void CLayerSurface::applyRules() {
                 break;
             }
             case CLayerRule::RULE_XRAY: {
-                CVarList vars{rule->rule, 0, ' '};
+                CVarList vars{rule->m_RULE, 0, ' '};
                 try {
                     xray = configStringToInt(vars[1]).value_or(false);
                 } catch (...) {}
                 break;
             }
             case CLayerRule::RULE_ANIMATION: {
-                CVarList vars{rule->rule, 2, 's'};
+                CVarList vars{rule->m_RULE, 2, 's'};
                 animationStyle = vars[1];
                 break;
             }
             case CLayerRule::RULE_ORDER: {
-                CVarList vars{rule->rule, 2, 's'};
+                CVarList vars{rule->m_RULE, 2, 's'};
                 try {
                     order = std::stoi(vars[1]);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
+                } catch (...) { NDebug::log(ERR, "Invalid value passed to order"); }
                 break;
             }
             default: break;

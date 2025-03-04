@@ -15,7 +15,7 @@ static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
 
 CANRManager::CANRManager() {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-        Debug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
+        NDebug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
         return;
     }
 
@@ -208,7 +208,7 @@ void CANRManager::SANRData::killDialog() const {
         return;
 
     if (!dialogProc->pid()) {
-        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid. If you have hyprutils <= 0.6.0, you will crash soon. Otherwise, dialog failed to spawn??");
+        NDebug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid. If you have hyprutils <= 0.6.0, you will crash soon. Otherwise, dialog failed to spawn??");
         return;
     }
 

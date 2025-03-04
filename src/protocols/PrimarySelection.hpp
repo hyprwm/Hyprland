@@ -14,14 +14,14 @@ class CPrimarySelectionManager;
 
 class CPrimarySelectionOffer {
   public:
-    CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_);
+    CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<CIDataSource> source_);
 
-    bool            good();
-    void            sendData();
+    bool             good();
+    void             sendData();
 
-    bool            dead = false;
+    bool             dead = false;
 
-    WP<IDataSource> source;
+    WP<CIDataSource> source;
 
   private:
     SP<CZwpPrimarySelectionOfferV1> resource;
@@ -103,8 +103,8 @@ class CPrimarySelectionProtocol : public IWaylandProtocol {
     std::vector<SP<CPrimarySelectionOffer>>   m_vOffers;
 
     //
-    void setSelection(SP<IDataSource> source);
-    void sendSelectionToDevice(SP<CPrimarySelectionDevice> dev, SP<IDataSource> sel);
+    void setSelection(SP<CIDataSource> source);
+    void sendSelectionToDevice(SP<CPrimarySelectionDevice> dev, SP<CIDataSource> sel);
     void updateSelection();
     void onPointerFocus();
 
@@ -119,9 +119,9 @@ class CPrimarySelectionProtocol : public IWaylandProtocol {
 
     struct {
         CHyprSignalListener onPointerFocusChange;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-namespace PROTO {
-    inline UP<CPrimarySelectionProtocol> primarySelection;
-};
+    namespace PROTO {
+        inline UP<CPrimarySelectionProtocol> primarySelection;
+    };

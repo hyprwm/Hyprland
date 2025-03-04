@@ -35,19 +35,19 @@
         }                                                                                                                                                                          \
         if constexpr (std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value == 1 && std::is_same_v<decltype(__VA_ARGS__), std::string>) {                                 \
             oss << __VA_ARGS__;                                                                                                                                                    \
-            Debug::log(level, oss.str());                                                                                                                                          \
+            NDebug::log(level, oss.str());                                                                                                                                         \
         } else {                                                                                                                                                                   \
-            Debug::log(level, std::format("{}{}", oss.str(), std::format(__VA_ARGS__)));                                                                                           \
+            NDebug::log(level, std::format("{}{}", oss.str(), std::format(__VA_ARGS__)));                                                                                          \
         }                                                                                                                                                                          \
     } while (0)
 
-class IWaylandProtocol;
+class CWaylandProtocol;
 struct SIWaylandProtocolDestroyWrapper {
     wl_listener       listener;
     IWaylandProtocol* parent = nullptr;
 };
 
-class IWaylandProtocol {
+class CWaylandProtocol {
   public:
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
     virtual ~IWaylandProtocol();

@@ -21,7 +21,7 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
     size = {1, 1};
 
     if (!success)
-        Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
+        NDebug::log(ERR, "Failed creating a single pixel texture: null texture id");
 }
 
 Aquamarine::eBufferCapability CSinglePixelBuffer::caps() {
@@ -64,8 +64,8 @@ CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* c
 
     buffer->resource->buffer = buffer;
 
-    listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
-        listeners.bufferResourceDestroy.reset();
+    m_listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
+        m_listeners.bufferResourceDestroy.reset();
         PROTO::singlePixel->destroyResource(this);
     });
 }

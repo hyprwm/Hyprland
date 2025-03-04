@@ -23,5 +23,5 @@ class CVirtualKeyboard : public IKeyboard {
         CHyprSignalListener key;
         CHyprSignalListener modifiers;
         CHyprSignalListener keymap;
-    } listeners;
-};
+        m_m_listeners;
+    };

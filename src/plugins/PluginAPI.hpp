@@ -59,9 +59,9 @@ struct SVersionInfo {
 #define OPTIONAL
 #define HANDLE void*
 
-class IHyprLayout;
+classIyprLayout;
 class CWindow;
-class IHyprWindowDecoration;
+class CHyprWindowDecoration;
 struct SConfigValue;
 class CWindow;
 
@@ -167,14 +167,14 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
+    APICALL bool addLayout(HANDLE handle, const std::string& name, IyprLayout* layout);
 
     /*
         Removes an added layout from Hyprland.
 
         returns: true on success. False otherwise.
     */
-    APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
+    APICALL bool removeLayout(HANDLE handle, IyprLayout* layout);
 
     /*
         Queues a config reload. Does not take effect immediately.
@@ -188,7 +188,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs);
+    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float TIMEMS);
 
     /*
         Creates a trampoline function hook to an internal hl func.

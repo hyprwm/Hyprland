@@ -4,14 +4,14 @@
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
 
-class IHLBuffer;
+class CHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
 
 enum eTextureType : int8_t {
-    TEXTURE_INVALID = -1, // Invalid
-    TEXTURE_RGBA    = 0,  // 4 channels
-    TEXTURE_RGBX,         // discard A
-    TEXTURE_EXTERNAL,     // EGLImage
+    TEXTURE_INVALID  = -1, // Invalid
+    TEXTURE_RGBA     = 0,  // 4 channels
+    TEXTURE_RGBX     = 1,  // discard A
+    TEXTURE_EXTERNAL = 2   // EGLImage
 };
 
 class CTexture {
@@ -25,7 +25,7 @@ class CTexture {
 
     CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false);
 
-    CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    CTexture(const SP<Aquamarine::IBuffer> BUFFER, bool keepDataCopy = false);
     // this ctor takes ownership of the eglImage.
     CTexture(const Aquamarine::SDMABUFAttrs&, void* image);
     ~CTexture();

@@ -50,7 +50,7 @@
 
     <request name="get_output_power">
       <description summary="get a power management for an output">
-        Create a output power management mode control that can be used to
+        Create an output power management mode control that can be used to
         adjust the power management mode for a given output.
       </description>
       <arg name="id" type="new_id" interface="zwlr_output_power_v1"/>

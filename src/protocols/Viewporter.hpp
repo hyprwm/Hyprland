@@ -21,37 +21,37 @@ class CViewportResource {
 
     struct {
         CHyprSignalListener surfacePrecommit;
-    } listeners;
-};
+        m_m_listeners;
+    };
 
-class CViewporterResource {
-  public:
-    CViewporterResource(SP<CWpViewporter> resource_);
+    class CViewporterResource {
+      public:
+        CViewporterResource(SP<CWpViewporter> resource_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CWpViewporter> resource;
-};
+      private:
+        SP<CWpViewporter> resource;
+    };
 
-class CViewporterProtocol : public IWaylandProtocol {
-  public:
-    CViewporterProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CViewporterProtocol : public IWaylandProtocol {
+      public:
+        CViewporterProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CViewporterResource* resource);
-    void destroyResource(CViewportResource* resource);
+      private:
+        void destroyResource(CViewporterResource* resource);
+        void destroyResource(CViewportResource* resource);
 
-    //
-    std::vector<SP<CViewporterResource>> m_vManagers;
-    std::vector<SP<CViewportResource>>   m_vViewports;
+        //
+        std::vector<SP<CViewporterResource>> m_vManagers;
+        std::vector<SP<CViewportResource>>   m_vViewports;
 
-    friend class CViewporterResource;
-    friend class CViewportResource;
-};
+        friend class CViewporterResource;
+        friend class CViewportResource;
+    };
 
-namespace PROTO {
-    inline UP<CViewporterProtocol> viewport;
-};
+    namespace PROTO {
+        inline UP<CViewporterProtocol> viewport;
+    };

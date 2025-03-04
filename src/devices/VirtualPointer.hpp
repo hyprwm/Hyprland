@@ -35,5 +35,5 @@ class CVirtualPointer : public IPointer {
 
         CHyprSignalListener holdBegin;
         CHyprSignalListener holdEnd;
-    } listeners;
-};
+        m_m_listeners;
+    };

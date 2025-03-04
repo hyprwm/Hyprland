@@ -101,8 +101,8 @@ CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDM
 
     buffer->resource->buffer = buffer;
 
-    listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
-        listeners.bufferResourceDestroy.reset();
+    m_listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
+        m_listeners.bufferResourceDestroy.reset();
         PROTO::linuxDma->destroyResource(this);
     });
 
@@ -112,7 +112,7 @@ CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDM
 
 CLinuxDMABuffer::~CLinuxDMABuffer() {
     buffer.reset();
-    listeners.bufferResourceDestroy.reset();
+    m_listeners.bufferResourceDestroy.reset();
 }
 
 bool CLinuxDMABuffer::good() {

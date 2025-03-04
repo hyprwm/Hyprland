@@ -108,33 +108,44 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, false};
     });
 
+    listeners.surfaceBufferAttach = surface->events.bufferAttach.registerListener([this](std::any d) {
+        if (!surface->pending.buffer && surface->pending.newBuffer && !surface->pending.texture)
+            return; // null buffer attached.
+
+        if (!pendingAcquire.expired()) {
+            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
+            pendingAcquire                   = {};
+        }
+
+        if (!pendingRelease.expired()) {
+            surface->pending.buffer->release      = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            surface->pending.buffer->syncReleaser = surface->pending.buffer->release->createSyncRelease();
+            pendingRelease                        = {};
+        }
+    });
+
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
         if (!surface->pending.buffer && surface->pending.newBuffer && !surface->pending.texture) {
             removeAllWaiters();
             surface->commitPendingState(surface->pending);
-            return; // null buffer attached, destroy.
+            return; // null buffer attached.
         }
 
         if (!surface->pending.buffer && !surface->pending.newBuffer && surface->current.buffer) {
-            surface->current.damage.clear(); // #TODO clear damage to not rerender 24/7 ?
             surface->current.bufferDamage.clear();
-            surface->commitPendingState(surface->current); // no new buffer commit on current
-            return;
+            surface->current.damage.clear();
+            surface->commitPendingState(surface->current);
+            return; // no new buffer, but we still have current around and a commit happend, commit current again.
         }
 
-        if (!surface->pending.buffer && !surface->pending.newBuffer) {
+        if (!surface->pending.buffer && !surface->pending.newBuffer && !surface->current.buffer) {
             surface->commitPendingState(surface->pending); // no pending buffer, no current buffer. probably first commit
             return;
         }
 
-        if (protocolError())
+        if (protocolError()) {
             return; // bad client.. return.
-
-        surface->pending.buffer->acquire      = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
-        pendingAcquire                        = {};
-        surface->pending.buffer->release      = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-        surface->pending.buffer->syncReleaser = surface->pending.buffer->release->createSyncRelease();
-        pendingRelease                        = {};
+        }
 
         const auto& state = pendingStates.emplace_back(surface->pending);
         surface->pending.damage.clear();
@@ -163,6 +174,7 @@ void CDRMSyncobjSurfaceResource::removeAllWaiters() {
 
 CDRMSyncobjSurfaceResource::~CDRMSyncobjSurfaceResource() {
     removeAllWaiters();
+    PROTO::sync->destroyResource(this);
 }
 
 bool CDRMSyncobjSurfaceResource::protocolError() {
@@ -172,15 +184,15 @@ bool CDRMSyncobjSurfaceResource::protocolError() {
         return true;
     }
 
-    if (!!pendingAcquire.timeline() != !!pendingRelease.timeline()) {
-        resource->error(pendingAcquire.timeline() ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT,
+    if (!!surface->pending.buffer->acquire != !!surface->pending.buffer->release) {
+        resource->error(surface->pending.buffer->acquire ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT,
                         "Missing timeline");
         surface->pending.rejected = true;
         return true;
     }
 
-    if (pendingAcquire.timeline() == pendingRelease.timeline()) {
-        if (pendingAcquire.point() >= pendingRelease.point()) {
+    if (surface->pending.buffer->acquire->timeline() == surface->pending.buffer->release->timeline()) {
+        if (surface->pending.buffer->acquire->point() >= surface->pending.buffer->release->point()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
             surface->pending.rejected = true;
             return true;
@@ -209,6 +221,10 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTi
         resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE, "Timeline failed importing");
         return;
     }
+}
+
+CDRMSyncobjTimelineResource::~CDRMSyncobjTimelineResource() {
+    PROTO::sync->destroyResource(this);
 }
 
 WP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
@@ -272,6 +288,10 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjMana
 
         LOGM(LOG, "New linux_drm_timeline at {:x}", (uintptr_t)RESOURCE.get());
     });
+}
+
+CDRMSyncobjManagerResource::~CDRMSyncobjManagerResource() {
+    PROTO::sync->destroyResource(this);
 }
 
 bool CDRMSyncobjManagerResource::good() {

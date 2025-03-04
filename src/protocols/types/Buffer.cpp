@@ -33,7 +33,7 @@ void IHLBuffer::unlockOnBufferRelease(WP<CWLSurfaceResource> surf) {
     });
 }
 
-CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
+CHLBufferReference::CHLBufferReference(WP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
     buffer->lock();
 }
 

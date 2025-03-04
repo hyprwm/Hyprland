@@ -11,7 +11,7 @@ class CWLSurfaceResource;
 
 class CWLBufferResource {
   public:
-    static SP<CWLBufferResource> create(SP<CWlBuffer> resource);
+    static SP<CWLBufferResource> create(WP<CWlBuffer> resource);
     static SP<CWLBufferResource> fromResource(wl_resource* res);
 
     bool                         good();
@@ -23,7 +23,7 @@ class CWLBufferResource {
     WP<CWLBufferResource>        self;
 
   private:
-    CWLBufferResource(SP<CWlBuffer> resource_);
+    CWLBufferResource(WP<CWlBuffer> resource_);
 
     SP<CWlBuffer> resource;
 

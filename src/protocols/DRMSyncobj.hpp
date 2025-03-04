@@ -56,6 +56,7 @@ class CDRMSyncobjSurfaceResource {
     std::list<SSurfaceState>        pendingStates;
 
     struct {
+        CHyprSignalListener surfaceBufferAttach;
         CHyprSignalListener surfacePrecommit;
     } listeners;
 };
@@ -63,7 +64,7 @@ class CDRMSyncobjSurfaceResource {
 class CDRMSyncobjTimelineResource {
   public:
     CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTimelineV1>&& resource_, Hyprutils::OS::CFileDescriptor&& fd_);
-    ~CDRMSyncobjTimelineResource() = default;
+    ~CDRMSyncobjTimelineResource();
     static WP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();
@@ -78,7 +79,7 @@ class CDRMSyncobjTimelineResource {
 class CDRMSyncobjManagerResource {
   public:
     CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjManagerV1>&& resource_);
-    ~CDRMSyncobjManagerResource() = default;
+    ~CDRMSyncobjManagerResource();
 
     bool good();
 

@@ -1292,16 +1292,16 @@ void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, float alp
 }
 
 void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box, const CRegion& damage, float alpha, int round, float roundingPower, bool discardActive,
-                                              bool allowCustomUV, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
+                                              bool allowCustomUV) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, box, alpha, damage, round, roundingPower, discardActive, false, allowCustomUV, true, waitTimeline, waitPoint);
+    renderTextureInternalWithDamage(tex, box, alpha, damage, round, roundingPower, discardActive, false, allowCustomUV, true);
 
     scissor(nullptr);
 }
 
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CBox& box, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive,
-                                                      bool noAA, bool allowCustomUV, bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
+                                                      bool noAA, bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
@@ -1324,15 +1324,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     if (m_bEndFrame || TRANSFORMS_MATCH)
         TRANSFORM = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
 
-    Mat3x3 matrix   = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
-    Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
-
-    if (waitTimeline != nullptr) {
-        if (!waitForTimelinePoint(waitTimeline, waitPoint)) {
-            Debug::log(ERR, "renderTextureInternalWithDamage: failed to wait for explicit sync point {}", waitPoint);
-            return;
-        }
-    }
+    Mat3x3     matrix   = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3     glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
     CShader*   shader = nullptr;
 
@@ -2953,27 +2946,6 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(CFileDescriptor fenceFD) {
     return eglsync;
 }
 
-bool CHyprOpenGLImpl::waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point) {
-    auto fd = timeline->exportAsSyncFileFD(point);
-    if (!fd.isValid()) {
-        Debug::log(ERR, "waitForTimelinePoint: failed to get a fd from explicit timeline");
-        return false;
-    }
-
-    auto sync = g_pHyprOpenGL->createEGLSync(std::move(fd));
-    if (!sync) {
-        Debug::log(ERR, "waitForTimelinePoint: failed to get an eglsync from explicit timeline");
-        return false;
-    }
-
-    if (!sync->wait()) {
-        Debug::log(ERR, "waitForTimelinePoint: failed to wait on an eglsync from explicit timeline");
-        return false;
-    }
-
-    return true;
-}
-
 void SRenderModifData::applyToBox(CBox& box) {
     if (!enabled)
         return;
@@ -3043,17 +3015,10 @@ CEGLSync::~CEGLSync() {
         Debug::log(ERR, "eglDestroySyncKHR failed");
 }
 
-CFileDescriptor& CEGLSync::fd() {
-    return m_iFd;
+CFileDescriptor&& CEGLSync::takeFD() {
+    return std::move(m_iFd);
 }
 
-bool CEGLSync::wait() {
-    if (sync == EGL_NO_SYNC_KHR)
-        return false;
-
-    if (g_pHyprOpenGL->m_sProc.eglWaitSyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync, 0) != EGL_TRUE) {
-        Debug::log(ERR, "eglWaitSyncKHR failed");
-        return false;
-    }
-    return true;
+CFileDescriptor& CEGLSync::fd() {
+    return m_iFd;
 }

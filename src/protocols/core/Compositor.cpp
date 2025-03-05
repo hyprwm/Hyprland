@@ -452,12 +452,6 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
         // TODO: don't update the entire texture
         if (role->role() == SURFACE_ROLE_CURSOR && !DAMAGE.empty())
             updateCursorShm(DAMAGE);
-
-        // release the buffer if it's synchronous as update() has done everything thats needed
-        // so we can let the app know we're done.
-        if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
-            dropCurrentBuffer();
-        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
@@ -479,6 +473,12 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
                 surf->events.commit.emit();
             },
             nullptr);
+    }
+
+    // release the buffer if it's synchronous as update() has done everything thats needed
+    // so we can let the app know we're done.
+    if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
+        dropCurrentBuffer();
     }
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.

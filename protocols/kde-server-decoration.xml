@@ -24,7 +24,7 @@
 
             If the client does not create a server-side decoration object for
             a surface the server interprets this as lack of support for this
-            protocol and considers it as client-side decorated. Nevertheless a
+            protocol and considers it as client-side decorated. Nevertheless, a
             client-side decorated surface should use this protocol to indicate
             to the server that it does not want a server-side deco.
         </description>

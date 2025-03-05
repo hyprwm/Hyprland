@@ -41,27 +41,27 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
         free(reply);
     }
 
-    events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensureListeners(); }, nullptr);
+    events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensurem_listeners(); }, nullptr);
 }
 
-void CXWaylandSurface::ensureListeners() {
-    bool connected = listeners.destroySurface;
+void CXWaylandSurface::ensurem_listeners() {
+    bool connected = m_listeners.destroySurface;
 
     if (connected && !surface) {
-        listeners.destroySurface.reset();
-        listeners.commitSurface.reset();
+        m_listeners.destroySurface.reset();
+        m_listeners.commitSurface.reset();
     } else if (!connected && surface) {
-        listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
             if (mapped)
                 unmap();
 
             surface.reset();
-            listeners.destroySurface.reset();
-            listeners.commitSurface.reset();
+            m_listeners.destroySurface.reset();
+            m_listeners.commitSurface.reset();
             events.resourceChange.emit();
         });
 
-        listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
+        m_listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
             if (surface->pending.texture && !mapped) {
                 map();
                 return;
@@ -77,7 +77,7 @@ void CXWaylandSurface::ensureListeners() {
     }
 
     if (resource) {
-        listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
             unmap();
             surface.reset();
             events.resourceChange.emit();
@@ -97,7 +97,7 @@ void CXWaylandSurface::map() {
     mapped = true;
     surface->map();
 
-    Debug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
+    NDebug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
 
     events.map.emit();
 
@@ -117,7 +117,7 @@ void CXWaylandSurface::unmap() {
     events.unmap.emit();
     surface->unmap();
 
-    Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
+    NDebug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
 
     g_pXWayland->pWM->updateClientList();
 }
@@ -127,17 +127,17 @@ void CXWaylandSurface::considerMap() {
         return;
 
     if (!surface) {
-        Debug::log(LOG, "XWayland surface: considerMap, nope, no surface");
+        NDebug::log(LOG, "XWayland surface: considerMap, nope, no surface");
         return;
     }
 
     if (surface->pending.texture) {
-        Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
+        NDebug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;
     }
 
-    Debug::log(LOG, "XWayland surface: considerMap, nope, we don't have a buffer");
+    NDebug::log(LOG, "XWayland surface: considerMap, nope, we don't have a buffer");
 }
 
 bool CXWaylandSurface::wantsFocus() {
@@ -248,7 +248,7 @@ void CXWaylandSurface::ping() {
     bool supportsPing = std::ranges::find(protocols, HYPRATOMS["_NET_WM_PING"]) != protocols.end();
 
     if (!supportsPing) {
-        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
+        NDebug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
         g_pANRManager->onResponse(self.lock());
         return;
     }
@@ -272,7 +272,7 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
     ;
 }
 
-void CXWaylandSurface::ensureListeners() {
+void CXWaylandSurface::ensurem_listeners() {
     ;
 }
 

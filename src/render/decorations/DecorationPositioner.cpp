@@ -24,7 +24,7 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pW
     const int  EDGESNO = TOP + BOTTOM + LEFT + RIGHT;
 
     if (EDGESNO == 0 || EDGESNO == 3 || EDGESNO > 4) {
-        Debug::log(ERR, "getEdgeDefinedPoint: invalid number of edges");
+        NDebug::log(ERR, "getEdgeDefinedPoint: invalid number of edges");
         return {};
     }
 

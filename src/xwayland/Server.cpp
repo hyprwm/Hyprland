@@ -36,7 +36,7 @@ static CFileDescriptor createSocket(struct sockaddr_un* addr, size_t path_size) 
     socklen_t       size = offsetof(struct sockaddr_un, sun_path) + path_size + 1;
     CFileDescriptor fd{socket(AF_UNIX, SOCK_STREAM, 0)};
     if (!fd.isValid()) {
-        Debug::log(ERR, "Failed to create socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        NDebug::log(ERR, "Failed to create socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         return {};
     }
 
@@ -48,14 +48,14 @@ static CFileDescriptor createSocket(struct sockaddr_un* addr, size_t path_size) 
         unlink(addr->sun_path);
 
     if (bind(fd.get(), (struct sockaddr*)addr, size) < 0) {
-        Debug::log(ERR, "Failed to bind socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        NDebug::log(ERR, "Failed to bind socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         if (addr->sun_path[0])
             unlink(addr->sun_path);
         return {};
     }
 
     if (listen(fd.get(), SOCKET_BACKLOG) < 0) {
-        Debug::log(ERR, "Failed to listen to socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        NDebug::log(ERR, "Failed to listen to socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         if (addr->sun_path[0])
             unlink(addr->sun_path);
         return {};
@@ -68,23 +68,23 @@ static bool checkPermissionsForSocketDir() {
     struct stat buf;
 
     if (lstat("/tmp/.X11-unix", &buf)) {
-        Debug::log(ERR, "Failed to stat X11 socket dir");
+        NDebug::log(ERR, "Failed to stat X11 socket dir");
         return false;
     }
 
     if (!(buf.st_mode & S_IFDIR)) {
-        Debug::log(ERR, "X11 socket dir is not a directory");
+        NDebug::log(ERR, "X11 socket dir is not a directory");
         return false;
     }
 
     if ((buf.st_uid != 0) && (buf.st_uid != getuid())) {
-        Debug::log(ERR, "X11 socket dir is not owned by root or current user");
+        NDebug::log(ERR, "X11 socket dir is not owned by root or current user");
         return false;
     }
 
     if (!(buf.st_mode & S_ISVTX)) {
         if ((buf.st_mode & (S_IWGRP | S_IWOTH))) {
-            Debug::log(ERR, "X11 socket dir is writable by others");
+            NDebug::log(ERR, "X11 socket dir is writable by others");
             return false;
         }
     }
@@ -97,7 +97,7 @@ static bool ensureSocketDirExists() {
         if (errno == EEXIST)
             return checkPermissionsForSocketDir();
         else {
-            Debug::log(ERR, "XWayland: Couldn't create socket dir");
+            NDebug::log(ERR, "XWayland: Couldn't create socket dir");
             return false;
         }
     }
@@ -140,7 +140,7 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
 
 static void startServer(void* data) {
     if (!g_pXWayland->pServer->start())
-        Debug::log(ERR, "The XWayland server could not start! XWayland will not work...");
+        NDebug::log(ERR, "The XWayland server could not start! XWayland will not work...");
 }
 
 static int xwaylandReady(int fd, uint32_t mask, void* data) {
@@ -151,7 +151,7 @@ static int xwaylandReady(int fd, uint32_t mask, void* data) {
 static bool safeRemove(const std::string& path) {
     try {
         return std::filesystem::remove(path);
-    } catch (const std::exception& e) { Debug::log(ERR, "[XWayland] Failed to remove {}", path); }
+    } catch (const std::exception& e) { NDebug::log(ERR, "[XWayland] Failed to remove {}", path); }
     return false;
 }
 
@@ -199,11 +199,11 @@ bool CXWaylandServer::tryOpenSockets() {
     }
 
     if (display < 0) {
-        Debug::log(ERR, "Failed to find a suitable socket for XWayland");
+        NDebug::log(ERR, "Failed to find a suitable socket for XWayland");
         return false;
     }
 
-    Debug::log(LOG, "XWayland found a suitable display socket at DISPLAY: {}", displayName);
+    NDebug::log(LOG, "XWayland found a suitable display socket at DISPLAY: {}", displayName);
     return true;
 }
 
@@ -264,7 +264,7 @@ bool CXWaylandServer::create() {
 void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
     if (!xFDs[0].setFlags(xFDs[0].getFlags() & ~FD_CLOEXEC) || !xFDs[1].setFlags(xFDs[1].getFlags() & ~FD_CLOEXEC) ||
         !waylandFDs[1].setFlags(waylandFDs[1].getFlags() & ~FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() & ~FD_CLOEXEC)) {
-        Debug::log(ERR, "Failed to unset cloexec on fds");
+        NDebug::log(ERR, "Failed to unset cloexec on fds");
         _exit(EXIT_FAILURE);
     }
 
@@ -274,11 +274,11 @@ void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
     auto waylandSocket = std::format("{}", waylandFDs[1].get());
     setenv("WAYLAND_SOCKET", waylandSocket.c_str(), true);
 
-    Debug::log(LOG, "Starting XWayland with \"{}\", bon voyage!", cmd);
+    NDebug::log(LOG, "Starting XWayland with \"{}\", bon voyage!", cmd);
 
     execl("/bin/sh", "/bin/sh", "-c", cmd.c_str(), nullptr);
 
-    Debug::log(ERR, "XWayland failed to open");
+    NDebug::log(ERR, "XWayland failed to open");
     _exit(1);
 }
 
@@ -286,7 +286,7 @@ bool CXWaylandServer::start() {
     idleSource    = nullptr;
     int wlPair[2] = {-1, -1};
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, wlPair) != 0) {
-        Debug::log(ERR, "socketpair failed (1)");
+        NDebug::log(ERR, "socketpair failed (1)");
         die();
         return false;
     }
@@ -294,14 +294,14 @@ bool CXWaylandServer::start() {
     waylandFDs[1] = CFileDescriptor{wlPair[1]};
 
     if (!waylandFDs[0].setFlags(waylandFDs[0].getFlags() | FD_CLOEXEC) || !waylandFDs[1].setFlags(waylandFDs[1].getFlags() | FD_CLOEXEC)) {
-        Debug::log(ERR, "set_cloexec failed (1)");
+        NDebug::log(ERR, "set_cloexec failed (1)");
         die();
         return false;
     }
 
     int xwmPair[2] = {-1, -1};
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, xwmPair) != 0) {
-        Debug::log(ERR, "socketpair failed (2)");
+        NDebug::log(ERR, "socketpair failed (2)");
         die();
         return false;
     }
@@ -310,14 +310,14 @@ bool CXWaylandServer::start() {
     xwmFDs[1] = CFileDescriptor{xwmPair[1]};
 
     if (!xwmFDs[0].setFlags(xwmFDs[0].getFlags() | FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() | FD_CLOEXEC)) {
-        Debug::log(ERR, "set_cloexec failed (2)");
+        NDebug::log(ERR, "set_cloexec failed (2)");
         die();
         return false;
     }
 
     xwaylandClient = wl_client_create(g_pCompositor->m_sWLDisplay, waylandFDs[0].get());
     if (!xwaylandClient) {
-        Debug::log(ERR, "wl_client_create failed");
+        NDebug::log(ERR, "wl_client_create failed");
         die();
         return false;
     }
@@ -326,7 +326,7 @@ bool CXWaylandServer::start() {
 
     int notify[2] = {-1, -1};
     if (pipe(notify) < 0) {
-        Debug::log(ERR, "pipe failed");
+        NDebug::log(ERR, "pipe failed");
         die();
         return false;
     }
@@ -334,7 +334,7 @@ bool CXWaylandServer::start() {
     CFileDescriptor notifyFds[2] = {CFileDescriptor{notify[0]}, CFileDescriptor{notify[1]}};
 
     if (!notifyFds[0].setFlags(notifyFds[0].getFlags() | FD_CLOEXEC)) {
-        Debug::log(ERR, "set_cloexec failed (3)");
+        NDebug::log(ERR, "set_cloexec failed (3)");
         die();
         return false;
     }
@@ -344,13 +344,13 @@ bool CXWaylandServer::start() {
 
     serverPID = fork();
     if (serverPID < 0) {
-        Debug::log(ERR, "fork failed");
+        NDebug::log(ERR, "fork failed");
         die();
         return false;
     } else if (serverPID == 0) {
         pid_t pid = fork();
         if (pid < 0) {
-            Debug::log(ERR, "second fork failed");
+            NDebug::log(ERR, "second fork failed");
             _exit(1);
         } else if (pid == 0)
             runXWayland(notifyFds[1]);
@@ -367,7 +367,7 @@ int CXWaylandServer::ready(CFileDescriptor fd, uint32_t mask) {
         char    buf[64];
         ssize_t n = read(fd.get(), buf, sizeof(buf));
         if (n < 0 && errno != EINTR) {
-            Debug::log(ERR, "Xwayland: read from displayFd failed");
+            NDebug::log(ERR, "Xwayland: read from displayFd failed");
             mask = 0;
         } else if (n <= 0 || buf[n - 1] != '\n')
             return 1;
@@ -376,19 +376,19 @@ int CXWaylandServer::ready(CFileDescriptor fd, uint32_t mask) {
     while (waitpid(serverPID, nullptr, 0) < 0) {
         if (errno == EINTR)
             continue;
-        Debug::log(ERR, "Xwayland: waitpid for fork failed");
+        NDebug::log(ERR, "Xwayland: waitpid for fork failed");
         g_pXWayland->pServer.reset();
         return 1;
     }
 
     // if we don't have readable here, it failed
     if (!(mask & WL_EVENT_READABLE)) {
-        Debug::log(ERR, "Xwayland: startup failed, not setting up xwm");
+        NDebug::log(ERR, "Xwayland: startup failed, not setting up xwm");
         g_pXWayland->pServer.reset();
         return 1;
     }
 
-    Debug::log(LOG, "XWayland is ready");
+    NDebug::log(LOG, "XWayland is ready");
 
     wl_event_source_remove(pipeSource);
     pipeSource = nullptr;

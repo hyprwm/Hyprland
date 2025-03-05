@@ -107,114 +107,114 @@ class CTablet : public IHID {
         CHyprSignalListener proximity;
         CHyprSignalListener tip;
         CHyprSignalListener button;
-    } listeners;
-};
-
-class CTabletPad : public IHID {
-  public:
-    static SP<CTabletPad> create(SP<Aquamarine::ITabletPad> pad);
-    ~CTabletPad();
-
-    virtual uint32_t           getCapabilities();
-    virtual eHIDType           getType();
-    SP<Aquamarine::ITabletPad> aq();
-
-    struct SButtonEvent {
-        uint32_t timeMs = 0;
-        uint32_t button = 0;
-        bool     down   = false;
-        uint32_t mode   = 0;
-        uint32_t group  = 0;
+        m_m_listeners;
     };
 
-    struct SRingEvent {
-        uint32_t timeMs   = 0;
-        bool     finger   = false;
-        uint32_t ring     = 0;
-        double   position = 0;
-        uint32_t mode     = 0;
-    };
+    class CTabletPad : public IHID {
+      public:
+        static SP<CTabletPad> create(SP<Aquamarine::ITabletPad> pad);
+        ~CTabletPad();
 
-    struct SStripEvent {
-        uint32_t timeMs   = 0;
-        bool     finger   = false;
-        uint32_t strip    = 0;
-        double   position = 0;
-        uint32_t mode     = 0;
-    };
+        virtual uint32_t           getCapabilities();
+        virtual eHIDType           getType();
+        SP<Aquamarine::ITabletPad> aq();
 
-    struct {
-        CSignal button;
-        CSignal ring;
-        CSignal strip;
-        CSignal attach;
-    } padEvents;
+        struct SButtonEvent {
+            uint32_t timeMs = 0;
+            uint32_t button = 0;
+            bool     down   = false;
+            uint32_t mode   = 0;
+            uint32_t group  = 0;
+        };
 
-    WP<CTabletPad>  self;
-    WP<CTabletTool> parent;
+        struct SRingEvent {
+            uint32_t timeMs   = 0;
+            bool     finger   = false;
+            uint32_t ring     = 0;
+            double   position = 0;
+            uint32_t mode     = 0;
+        };
 
-  private:
-    CTabletPad(SP<Aquamarine::ITabletPad> pad);
+        struct SStripEvent {
+            uint32_t timeMs   = 0;
+            bool     finger   = false;
+            uint32_t strip    = 0;
+            double   position = 0;
+            uint32_t mode     = 0;
+        };
 
-    WP<Aquamarine::ITabletPad> pad;
+        struct {
+            CSignal button;
+            CSignal ring;
+            CSignal strip;
+            CSignal attach;
+        } padEvents;
 
-    struct {
-        CHyprSignalListener destroy;
-        CHyprSignalListener ring;
-        CHyprSignalListener strip;
-        CHyprSignalListener button;
-        CHyprSignalListener attach;
-    } listeners;
-};
+        WP<CTabletPad>  self;
+        WP<CTabletTool> parent;
 
-class CTabletTool : public IHID {
-  public:
-    static SP<CTabletTool> create(SP<Aquamarine::ITabletTool> tool);
-    ~CTabletTool();
+      private:
+        CTabletPad(SP<Aquamarine::ITabletPad> pad);
 
-    enum eTabletToolType : uint8_t {
-        HID_TABLET_TOOL_TYPE_PEN = 1,
-        HID_TABLET_TOOL_TYPE_ERASER,
-        HID_TABLET_TOOL_TYPE_BRUSH,
-        HID_TABLET_TOOL_TYPE_PENCIL,
-        HID_TABLET_TOOL_TYPE_AIRBRUSH,
-        HID_TABLET_TOOL_TYPE_MOUSE,
-        HID_TABLET_TOOL_TYPE_LENS,
-        HID_TABLET_TOOL_TYPE_TOTEM,
-    };
+        WP<Aquamarine::ITabletPad> pad;
 
-    enum eTabletToolCapabilities : uint8_t {
-        HID_TABLET_TOOL_CAPABILITY_TILT     = (1 << 0),
-        HID_TABLET_TOOL_CAPABILITY_PRESSURE = (1 << 1),
-        HID_TABLET_TOOL_CAPABILITY_DISTANCE = (1 << 2),
-        HID_TABLET_TOOL_CAPABILITY_ROTATION = (1 << 3),
-        HID_TABLET_TOOL_CAPABILITY_SLIDER   = (1 << 4),
-        HID_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
-    };
+        struct {
+            CHyprSignalListener destroy;
+            CHyprSignalListener ring;
+            CHyprSignalListener strip;
+            CHyprSignalListener button;
+            CHyprSignalListener attach;
+            m_m_listeners;
+        };
 
-    virtual uint32_t            getCapabilities();
-    SP<Aquamarine::ITabletTool> aq();
-    virtual eHIDType            getType();
-    SP<CWLSurfaceResource>      getSurface();
-    void                        setSurface(SP<CWLSurfaceResource>);
+        class CTabletTool : public IHID {
+          public:
+            static SP<CTabletTool> create(SP<Aquamarine::ITabletTool> tool);
+            ~CTabletTool();
 
-    WP<CTabletTool>             self;
-    Vector2D                    tilt;
-    bool                        active           = false; // true if in proximity
-    uint32_t                    toolCapabilities = 0;
+            enum eTabletToolType : uint8_t {
+                HID_TABLET_TOOL_TYPE_PEN = 1,
+                HID_TABLET_TOOL_TYPE_ERASER,
+                HID_TABLET_TOOL_TYPE_BRUSH,
+                HID_TABLET_TOOL_TYPE_PENCIL,
+                HID_TABLET_TOOL_TYPE_AIRBRUSH,
+                HID_TABLET_TOOL_TYPE_MOUSE,
+                HID_TABLET_TOOL_TYPE_LENS,
+                HID_TABLET_TOOL_TYPE_TOTEM,
+            };
 
-    bool                        isDown = false;
-    std::vector<uint32_t>       buttonsDown;
-    Vector2D                    absolutePos; // last known absolute position.
+            enum eTabletToolCapabilities : uint8_t {
+                HID_TABLET_TOOL_CAPABILITY_TILT     = (1 << 0),
+                HID_TABLET_TOOL_CAPABILITY_PRESSURE = (1 << 1),
+                HID_TABLET_TOOL_CAPABILITY_DISTANCE = (1 << 2),
+                HID_TABLET_TOOL_CAPABILITY_ROTATION = (1 << 3),
+                HID_TABLET_TOOL_CAPABILITY_SLIDER   = (1 << 4),
+                HID_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
+            };
 
-  private:
-    CTabletTool(SP<Aquamarine::ITabletTool> tool);
+            virtual uint32_t            getCapabilities();
+            SP<Aquamarine::ITabletTool> aq();
+            virtual eHIDType            getType();
+            SP<CWLSurfaceResource>      getSurface();
+            void                        setSurface(SP<CWLSurfaceResource>);
 
-    WP<CWLSurfaceResource>      pSurface;
-    WP<Aquamarine::ITabletTool> tool;
+            WP<CTabletTool>             self;
+            Vector2D                    tilt;
+            bool                        active           = false; // true if in proximity
+            uint32_t                    toolCapabilities = 0;
 
-    struct {
-        CHyprSignalListener destroySurface;
-        CHyprSignalListener destroyTool;
-    } listeners;
-};
+            bool                        isDown = false;
+            std::vector<uint32_t>       buttonsDown;
+            Vector2D                    absolutePos; // last known absolute position.
+
+          private:
+            CTabletTool(SP<Aquamarine::ITabletTool> tool);
+
+            WP<CWLSurfaceResource>      pSurface;
+            WP<Aquamarine::ITabletTool> tool;
+
+            struct {
+                CHyprSignalListener destroySurface;
+                CHyprSignalListener destroyTool;
+                m_m_listeners;
+            };

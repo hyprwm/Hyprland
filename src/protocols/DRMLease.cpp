@@ -55,7 +55,7 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
         m->monitor->isBeingLeased = true;
     }
 
-    listeners.destroyLease = lease->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyLease = lease->events.destroy.registerListener([this](std::any d) {
         for (auto const& m : requested) {
             if (m && m->monitor)
                 m->monitor->isBeingLeased = false;
@@ -79,7 +79,7 @@ bool CDRMLeaseResource::good() {
 CDRMLeaseResource::~CDRMLeaseResource() {
     // destroy in this order to ensure listener gets called
     lease.reset();
-    listeners.destroyLease.reset();
+    m_listeners.destroyLease.reset();
 }
 
 CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> resource_) : resource(resource_) {
@@ -143,7 +143,7 @@ CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1
 
     resource->setData(this);
 
-    listeners.destroyMonitor = monitor->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyMonitor = monitor->events.destroy.registerListener([this](std::any d) {
         resource->sendWithdrawn();
         dead = true;
     });

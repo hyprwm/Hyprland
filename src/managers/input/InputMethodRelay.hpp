@@ -52,11 +52,11 @@ class CInputMethodRelay {
         CHyprSignalListener commitIME;
         CHyprSignalListener destroyIME;
         CHyprSignalListener newPopup;
-    } listeners;
+        m_m_listeners;
 
-    friend class CHyprRenderer;
-    friend class CInputManager;
-    friend class CTextInputV1ProtocolManager;
-    friend class CTextInput;
-    friend class CHyprRenderer;
-};
+        friend class CHyprRenderer;
+        friend class CInputManager;
+        friend class CTextInputV1ProtocolManager;
+        friend class CTextInput;
+        friend class CHyprRenderer;
+    };

@@ -51,7 +51,7 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
         m_visibleRegion         = CWLRegionResource::fromResource(region)->region;
     });
 
-    listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
+    m_listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
         auto surface = CWLSurface::fromResource(m_pSurface.lock());
 
         if (surface && (surface->m_fOverallOpacity != m_fOpacity || m_bVisibleRegionChanged)) {
@@ -67,7 +67,7 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
         }
     });
 
-    listeners.surfaceDestroyed = m_pSurface->events.destroy.registerListener([this](std::any data) {
+    m_listeners.surfaceDestroyed = m_pSurface->events.destroy.registerListener([this](std::any data) {
         if (!m_pResource)
             PROTO::hyprlandSurface->destroySurface(this);
     });

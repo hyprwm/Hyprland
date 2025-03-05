@@ -83,7 +83,7 @@ body:
         Thanks for your understanding.
 
   # The main reason to disallow pasting directly or in a dropdown, is to not clutter
-  # the issue with unnecessary keywords, making the github issue search useless.
+  # the issue with unnecessary keywords, making the GitHub issue search useless.
   - type: checkboxes
     attributes:
       label: Attach not paste

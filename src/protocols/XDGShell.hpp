@@ -212,86 +212,86 @@ class CXDGSurfaceResource {
     struct {
         CHyprSignalListener surfaceDestroy;
         CHyprSignalListener surfaceCommit;
-    } listeners;
+        m_m_listeners;
 
-    friend class CXDGPopupResource;
-    friend class CXDGToplevelResource;
-};
+        friend class CXDGPopupResource;
+        friend class CXDGToplevelResource;
+    };
 
-class CXDGPositionerResource {
-  public:
-    CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<CXDGWMBase> owner_);
+    class CXDGPositionerResource {
+      public:
+        CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<CXDGWMBase> owner_);
 
-    static SP<CXDGPositionerResource> fromResource(wl_resource*);
+        static SP<CXDGPositionerResource> fromResource(wl_resource*);
 
-    bool                              good();
+        bool                              good();
 
-    SXDGPositionerState               state;
+        SXDGPositionerState               state;
 
-    WP<CXDGWMBase>                    owner;
-    WP<CXDGPositionerResource>        self;
+        WP<CXDGWMBase>                    owner;
+        WP<CXDGPositionerResource>        self;
 
-  private:
-    SP<CXdgPositioner> resource;
-};
+      private:
+        SP<CXdgPositioner> resource;
+    };
 
-class CXDGWMBase {
-  public:
-    CXDGWMBase(SP<CXdgWmBase> resource_);
+    class CXDGWMBase {
+      public:
+        CXDGWMBase(SP<CXdgWmBase> resource_);
 
-    bool                                    good();
-    wl_client*                              client();
-    void                                    ping();
+        bool                                    good();
+        wl_client*                              client();
+        void                                    ping();
 
-    std::vector<WP<CXDGPositionerResource>> positioners;
-    std::vector<WP<CXDGSurfaceResource>>    surfaces;
+        std::vector<WP<CXDGPositionerResource>> positioners;
+        std::vector<WP<CXDGSurfaceResource>>    surfaces;
 
-    WP<CXDGWMBase>                          self;
+        WP<CXDGWMBase>                          self;
 
-    struct {
-        CSignal pong;
-    } events;
+        struct {
+            CSignal pong;
+        } events;
 
-  private:
-    SP<CXdgWmBase> resource;
-    wl_client*     pClient = nullptr;
-};
+      private:
+        SP<CXdgWmBase> resource;
+        wl_client*     pClient = nullptr;
+    };
 
-class CXDGShellProtocol : public IWaylandProtocol {
-  public:
-    CXDGShellProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CXDGShellProtocol : public IWaylandProtocol {
+      public:
+        CXDGShellProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CXDGWMBase* resource);
-    void destroyResource(CXDGPositionerResource* resource);
-    void destroyResource(CXDGSurfaceResource* resource);
-    void destroyResource(CXDGToplevelResource* resource);
-    void destroyResource(CXDGPopupResource* resource);
+      private:
+        void destroyResource(CXDGWMBase* resource);
+        void destroyResource(CXDGPositionerResource* resource);
+        void destroyResource(CXDGSurfaceResource* resource);
+        void destroyResource(CXDGToplevelResource* resource);
+        void destroyResource(CXDGPopupResource* resource);
 
-    //
-    std::vector<SP<CXDGWMBase>>             m_vWMBases;
-    std::vector<SP<CXDGPositionerResource>> m_vPositioners;
-    std::vector<SP<CXDGSurfaceResource>>    m_vSurfaces;
-    std::vector<SP<CXDGToplevelResource>>   m_vToplevels;
-    std::vector<SP<CXDGPopupResource>>      m_vPopups;
+        //
+        std::vector<SP<CXDGWMBase>>             m_vWMBases;
+        std::vector<SP<CXDGPositionerResource>> m_vPositioners;
+        std::vector<SP<CXDGSurfaceResource>>    m_vSurfaces;
+        std::vector<SP<CXDGToplevelResource>>   m_vToplevels;
+        std::vector<SP<CXDGPopupResource>>      m_vPopups;
 
-    // current popup grab
-    WP<CXDGPopupResource>              grabOwner;
-    SP<CSeatGrab>                      grab;
-    std::vector<WP<CXDGPopupResource>> grabbed;
+        // current popup grab
+        WP<CXDGPopupResource>              grabOwner;
+        SP<CSeatGrab>                      grab;
+        std::vector<WP<CXDGPopupResource>> grabbed;
 
-    void                               addOrStartGrab(SP<CXDGPopupResource> popup);
-    void                               onPopupDestroy(WP<CXDGPopupResource> popup);
+        void                               addOrStartGrab(SP<CXDGPopupResource> popup);
+        void                               onPopupDestroy(WP<CXDGPopupResource> popup);
 
-    friend class CXDGWMBase;
-    friend class CXDGPositionerResource;
-    friend class CXDGSurfaceResource;
-    friend class CXDGToplevelResource;
-    friend class CXDGPopupResource;
-};
+        friend class CXDGWMBase;
+        friend class CXDGPositionerResource;
+        friend class CXDGSurfaceResource;
+        friend class CXDGToplevelResource;
+        friend class CXDGPopupResource;
+    };
 
-namespace PROTO {
-    inline UP<CXDGShellProtocol> xdgShell;
-};
+    namespace PROTO {
+        inline UP<CXDGShellProtocol> xdgShell;
+    };

@@ -60,35 +60,35 @@ void CMonitor::onConnect(bool noRule) {
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
-    listeners.commit = output->events.commit.registerListener([this](std::any d) {
+    m_listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
+    m_listeners.commit = output->events.commit.registerListener([this](std::any d) {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(self.lock());
             PROTO::toplevelExport->onOutputCommit(self.lock());
         }
     });
-    listeners.needsFrame =
+    m_listeners.needsFrame =
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
-    listeners.presented = output->events.present.registerListener([this](std::any d) {
+    m_listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
         PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
     });
 
-    listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
-        Debug::log(LOG, "Destroy called for monitor {}", szName);
+    m_listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
+        NDebug::log(LOG, "Destroy called for monitor {}", szName);
 
         onDisconnect(true);
 
         output                 = nullptr;
         m_bRenderingInitPassed = false;
 
-        Debug::log(LOG, "Removing monitor {} from realMonitors", szName);
+        NDebug::log(LOG, "Removing monitor {} from realMonitors", szName);
 
         std::erase_if(g_pCompositor->m_vRealMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
     });
 
-    listeners.state = output->events.state.registerListener([this](std::any d) {
+    m_listeners.state = output->events.state.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
 
         if (E.size == Vector2D{}) {
@@ -97,7 +97,7 @@ void CMonitor::onConnect(bool noRule) {
             if (createdByUser)
                 return;
 
-            Debug::log(LOG, "Reapplying monitor rule for {} from a state request", szName);
+            NDebug::log(LOG, "Reapplying monitor rule for {} from a state request", szName);
             applyMonitorRule(&activeMonitorRule, true);
             return;
         }
@@ -147,16 +147,16 @@ void CMonitor::onConnect(bool noRule) {
         output->state->setEnabled(false);
 
         if (!state.commit())
-            Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
+            NDebug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
         m_bEnabled = false;
 
-        listeners.frame.reset();
+        m_listeners.frame.reset();
         return;
     }
 
     if (output->nonDesktop) {
-        Debug::log(LOG, "Not configuring non-desktop output");
+        NDebug::log(LOG, "Not configuring non-desktop output");
         if (PROTO::lease)
             PROTO::lease->offer(self.lock());
 
@@ -188,11 +188,11 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&monitorRule, true);
 
     if (!state.commit())
-        Debug::log(WARN, "state.commit() failed in CMonitor::onCommit");
+        NDebug::log(WARN, "state.commit() failed in CMonitor::onCommit");
 
     damage.setSize(vecTransformedSize);
 
-    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output.get());
+    NDebug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output.get());
 
     setupDefaultWS(monitorRule);
 
@@ -269,7 +269,7 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!m_bEnabled || g_pCompositor->m_bIsShuttingDown)
         return;
 
-    Debug::log(LOG, "onDisconnect called for {}", output->name);
+    NDebug::log(LOG, "onDisconnect called for {}", output->name);
 
     events.disconnect.emit();
 
@@ -299,10 +299,10 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
-    listeners.frame.reset();
-    listeners.presented.reset();
-    listeners.needsFrame.reset();
-    listeners.commit.reset();
+    m_listeners.frame.reset();
+    m_listeners.presented.reset();
+    m_listeners.needsFrame.reset();
+    m_listeners.commit.reset();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto const& ls : m_aLayerSurfaceLayers[i]) {
@@ -312,10 +312,10 @@ void CMonitor::onDisconnect(bool destroy) {
         m_aLayerSurfaceLayers[i].clear();
     }
 
-    Debug::log(LOG, "Removed monitor {}!", szName);
+    NDebug::log(LOG, "Removed monitor {}!", szName);
 
     if (!BACKUPMON) {
-        Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
+        NDebug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
         g_pCompositor->enterUnsafeState();
     }
 
@@ -353,7 +353,7 @@ void CMonitor::onDisconnect(bool destroy) {
     output->state->setEnabled(false);
 
     if (!state.commit())
-        Debug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
+        NDebug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor == self)
         g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput.lock());
@@ -378,17 +378,17 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
 
-    Debug::log(LOG, "Applying monitor rule for {}", szName);
+    NDebug::log(LOG, "Applying monitor rule for {}", szName);
 
     activeMonitorRule = *pMonitorRule;
 
     if (forceSize.has_value())
         activeMonitorRule.resolution = forceSize.value();
 
-    const auto RULE = &activeMonitorRule;
+    const auto m_RULE = &activeMonitorRule;
 
     // if it's disabled, disable and ignore
-    if (RULE->disabled) {
+    if (m_RULE->disabled) {
         if (m_bEnabled)
             onDisconnect();
 
@@ -403,28 +403,28 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     if (!m_bEnabled) {
         onConnect(true); // enable it.
-        Debug::log(LOG, "Monitor {} is disabled but is requested to be enabled", szName);
+        NDebug::log(LOG, "Monitor {} is disabled but is requested to be enabled", szName);
         force = true;
     }
 
     // Check if the rule isn't already applied
     // TODO: clean this up lol
-    if (!force && DELTALESSTHAN(vecPixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, RULE->resolution.y, 1) &&
-        DELTALESSTHAN(refreshRate, RULE->refreshRate, 1) && setScale == RULE->scale &&
-        ((DELTALESSTHAN(vecPosition.x, RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
-        transform == RULE->transform && RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
+    if (!force && DELTALESSTHAN(vecPixelSize.x, m_RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, m_RULE->resolution.y, 1) &&
+        DELTALESSTHAN(refreshRate, m_RULE->refreshRate, 1) && setScale == m_RULE->scale &&
+        ((DELTALESSTHAN(vecPosition.x, m_RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, m_RULE->offset.y, 1)) || m_RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
+        transform == m_RULE->transform && m_RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &m_RULE->drmMode, sizeof(customDrmMode))) {
 
-        Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
+        NDebug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
 
-        setMirror(RULE->mirrorOf);
+        setMirror(m_RULE->mirrorOf);
 
         return true;
     }
 
     bool autoScale = false;
 
-    if (RULE->scale > 0.1) {
-        scale = RULE->scale;
+    if (m_RULE->scale > 0.1) {
+        scale = m_RULE->scale;
     } else {
         autoScale               = true;
         const auto DEFAULTSCALE = getDefaultScale();
@@ -432,7 +432,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     setScale  = scale;
-    transform = RULE->transform;
+    transform = m_RULE->transform;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
@@ -449,11 +449,11 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     // last fallback is always preferred mode
     if (!output->preferredMode())
-        Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
+        NDebug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
     else
         requestedModes.push_back(output->preferredMode());
 
-    if (RULE->resolution == Vector2D()) {
+    if (m_RULE->resolution == Vector2D()) {
         requestedStr = "preferred";
 
         // fallback to first 3 modes if preferred fails/doesn't exist
@@ -464,7 +464,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
         if (output->preferredMode())
             requestedModes.push_back(output->preferredMode());
-    } else if (RULE->resolution == Vector2D(-1, -1)) {
+    } else if (m_RULE->resolution == Vector2D(-1, -1)) {
         requestedStr = "highrr";
 
         // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
@@ -475,7 +475,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 return true;
             return false;
         });
-    } else if (RULE->resolution == Vector2D(-1, -2)) {
+    } else if (m_RULE->resolution == Vector2D(-1, -2)) {
         requestedStr = "highres";
 
         // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
@@ -487,17 +487,17 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 return true;
             return false;
         });
-    } else if (RULE->resolution != Vector2D()) {
+    } else if (m_RULE->resolution != Vector2D()) {
         // user requested mode
-        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+        requestedStr = std::format("{:X0}@{:.2f}Hz", m_RULE->resolution, m_RULE->refreshRate);
 
         // sort by closeness to requested, then add best 3
         addBest3Modes([&](auto const& a, auto const& b) {
-            if (abs(a->pixelSize.x - RULE->resolution.x) < abs(b->pixelSize.x - RULE->resolution.x))
+            if (abs(a->pixelSize.x - m_RULE->resolution.x) < abs(b->pixelSize.x - m_RULE->resolution.x))
                 return true;
-            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - RULE->resolution.y) < abs(b->pixelSize.y - RULE->resolution.y))
+            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - m_RULE->resolution.y) < abs(b->pixelSize.y - m_RULE->resolution.y))
                 return true;
-            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - RULE->refreshRate) < abs((b->refreshRate / 1000.f) - RULE->refreshRate))
+            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - m_RULE->refreshRate) < abs((b->refreshRate / 1000.f) - m_RULE->refreshRate))
                 return true;
             return false;
         });
@@ -505,18 +505,19 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         // if the best mode isnt close to requested, then try requested as custom mode first
         if (!requestedModes.empty()) {
             auto bestMode = requestedModes.back();
-            if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
-                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
-                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+            if (!DELTALESSTHAN(bestMode->pixelSize.x, m_RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, m_RULE->resolution.y, 1) ||
+                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, m_RULE->refreshRate, 1))
+                requestedModes.push_back(
+                    makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = m_RULE->resolution, .refreshRate = m_RULE->refreshRate * 1000.f}));
         }
 
         // then if requested is custom, try custom mode first
-        if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
+        if (m_RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
             if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)
-                Debug::log(ERR, "Tried to set custom modeline on non-DRM output");
+                NDebug::log(ERR, "Tried to set custom modeline on non-DRM output");
             else
-                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(
-                    Aquamarine::SOutputMode{.pixelSize = {RULE->drmMode.hdisplay, RULE->drmMode.vdisplay}, .refreshRate = RULE->drmMode.vrefresh, .modeInfo = RULE->drmMode}));
+                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{
+                    .pixelSize = {m_RULE->drmMode.hdisplay, m_RULE->drmMode.vdisplay}, .refreshRate = m_RULE->drmMode.vrefresh, .modeInfo = m_RULE->drmMode}));
         }
     }
 
@@ -533,13 +534,13 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     drmFormat     = DRM_FORMAT_XRGB8888;
     output->state->resetExplicitFences();
 
-    if (Debug::trace) {
-        Debug::log(TRACE, "Monitor {} requested modes:", szName);
+    if (NDebug::trace) {
+        NDebug::log(TRACE, "Monitor {} requested modes:", szName);
         if (requestedModes.empty())
-            Debug::log(TRACE, "| None");
+            NDebug::log(TRACE, "| None");
         else {
             for (auto const& mode : requestedModes | std::views::reverse) {
-                Debug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+                NDebug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
             }
         }
     }
@@ -551,7 +552,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             output->state->setCustomMode(mode);
 
             if (!state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
+                NDebug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
                 continue;
             }
 
@@ -560,9 +561,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             output->state->setMode(mode);
 
             if (!state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED available mode {}!", szName, modeStr);
+                NDebug::log(ERR, "Monitor {}: REJECTED available mode {}!", szName, modeStr);
                 if (mode->preferred)
-                    Debug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", szName);
+                    NDebug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", szName);
                 continue;
             }
 
@@ -576,25 +577,25 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         success = true;
 
         if (mode->preferred)
-            Debug::log(LOG, "Monitor {}: requested {}, using preferred mode {}", szName, requestedStr, modeStr);
+            NDebug::log(LOG, "Monitor {}: requested {}, using preferred mode {}", szName, requestedStr, modeStr);
         else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
-            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
+            NDebug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
         else
-            Debug::log(LOG, "Monitor {}: requested {}, using available mode {}", szName, requestedStr, modeStr);
+            NDebug::log(LOG, "Monitor {}: requested {}, using available mode {}", szName, requestedStr, modeStr);
 
         break;
     }
 
     // try requested as custom mode jic it works
-    if (!success && RULE->resolution != Vector2D() && RULE->resolution != Vector2D(-1, -1) && RULE->resolution != Vector2D(-1, -2)) {
-        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
-        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = refreshRate});
+    if (!success && m_RULE->resolution != Vector2D() && m_RULE->resolution != Vector2D(-1, -1) && m_RULE->resolution != Vector2D(-1, -2)) {
+        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? m_RULE->refreshRate * 1000 : 0;
+        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = m_RULE->resolution, .refreshRate = refreshRate});
         std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
         output->state->setCustomMode(mode);
 
         if (state.test()) {
-            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
+            NDebug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
 
             refreshRate   = mode->refreshRate / 1000.f;
             vecSize       = mode->pixelSize;
@@ -603,7 +604,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
             success = true;
         } else
-            Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
+            NDebug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
     }
 
     // try any of the modes if none of the above work
@@ -616,7 +617,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
             auto errorMessage =
                 std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:.2f}Hz", szName, mode->pixelSize, mode->refreshRate / 1000.f);
-            Debug::log(WARN, errorMessage);
+            NDebug::log(WARN, errorMessage);
             g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
             refreshRate   = mode->refreshRate / 1000.f;
@@ -631,7 +632,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     if (!success) {
-        Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate);
+        NDebug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, m_RULE->resolution, m_RULE->refreshRate);
         return true;
     }
 
@@ -653,16 +654,16 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     bool set10bit = false;
 
-    for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
+    for (auto const& fmt : formats[(int)!m_RULE->enable10bit]) {
         output->state->setFormat(fmt.second);
         prevDrmFormat = drmFormat;
         drmFormat     = fmt.second;
 
         if (!state.test()) {
-            Debug::log(ERR, "output {} failed basic test on format {}", szName, fmt.first);
+            NDebug::log(ERR, "output {} failed basic test on format {}", szName, fmt.first);
         } else {
-            Debug::log(LOG, "output {} succeeded basic test on format {}", szName, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
+            NDebug::log(LOG, "output {} succeeded basic test on format {}", szName, fmt.first);
+            if (m_RULE->enable10bit && fmt.first.contains("101010"))
                 set10bit = true;
             break;
         }
@@ -707,13 +708,13 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 if (autoScale)
                     scale = std::round(scaleZero);
                 else {
-                    Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", scale);
+                    NDebug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", scale);
                     g_pConfigManager->addParseError("Invalid scale passed to monitor " + szName + ", failed to find a clean divisor");
                     scale = getDefaultScale();
                 }
             } else {
                 if (!autoScale) {
-                    Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", scale, searchScale);
+                    NDebug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", scale, searchScale);
                     g_pConfigManager->addParseError(
                         std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", szName, searchScale));
                     scale = getDefaultScale();
@@ -726,7 +727,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     output->scheduleFrame();
 
     if (!state.commit())
-        Debug::log(ERR, "Couldn't commit output named {}", output->name);
+        NDebug::log(ERR, "Couldn't commit output named {}", output->name);
 
     Vector2D xfmd      = transform % 2 == 1 ? Vector2D{vecPixelSize.y, vecPixelSize.x} : vecPixelSize;
     vecSize            = (xfmd / scale).round();
@@ -761,8 +762,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // reload to fix mirrors
     g_pConfigManager->m_bWantsMonitorReload = true;
 
-    Debug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", szName, vecPixelSize, refreshRate, scale, (int)transform, vecPosition,
-               (int)enabled10bit);
+    NDebug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", szName, vecPixelSize, refreshRate, scale, (int)transform, vecPosition,
+                (int)enabled10bit);
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
@@ -859,12 +860,12 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         wsID                    = g_pCompositor->m_vWorkspaces.size() + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
-        Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
+        NDebug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
 
-    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, (int)(PNEWWORKSPACE != nullptr));
+    NDebug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, (int)(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -893,12 +894,12 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         return;
 
     if (PMIRRORMON && PMIRRORMON->isMirror()) {
-        Debug::log(ERR, "Cannot mirror a mirror!");
+        NDebug::log(ERR, "Cannot mirror a mirror!");
         return;
     }
 
     if (PMIRRORMON == self) {
-        Debug::log(ERR, "Cannot mirror self!");
+        NDebug::log(ERR, "Cannot mirror self!");
         return;
     }
 
@@ -915,9 +916,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf.reset();
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
+        const auto m_RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
 
-        vecPosition = RULE.offset;
+        vecPosition = m_RULE.offset;
 
         // push to mvmonitors
 
@@ -938,9 +939,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             g_pCompositor->m_vMonitors.push_back(*thisWrapper);
         }
 
-        setupDefaultWS(RULE);
+        setupDefaultWS(m_RULE);
 
-        applyMonitorRule((SMonitorRule*)&RULE, true); // will apply the offset and stuff
+        applyMonitorRule((SMonitorRule*)&m_RULE, true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
         for (auto const& m : g_pCompositor->m_vMonitors) {
@@ -1010,7 +1011,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (pWorkspace->m_bIsSpecialWorkspace) {
         if (activeSpecialWorkspace != pWorkspace) {
-            Debug::log(LOG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_iID);
+            NDebug::log(LOG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_iID);
             setSpecialWorkspace(pWorkspace);
         }
         return;
@@ -1287,7 +1288,7 @@ bool CMonitor::attemptDirectScanout() {
     if (!PSURFACE->current.buffer || !PSURFACE->current.buffer->buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt", (uintptr_t)PSURFACE.get());
+    NDebug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt", (uintptr_t)PSURFACE.get());
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
@@ -1311,7 +1312,7 @@ bool CMonitor::attemptDirectScanout() {
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!state.test()) {
-        Debug::log(TRACE, "attemptDirectScanout: failed basic test");
+        NDebug::log(TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
 
@@ -1323,7 +1324,7 @@ bool CMonitor::attemptDirectScanout() {
     if (DOEXPLICIT) {
         explicitWaitFD = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
         if (!explicitWaitFD.isValid())
-            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
+            NDebug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
     }
     DOEXPLICIT = DOEXPLICIT && explicitWaitFD.isValid();
 
@@ -1337,14 +1338,14 @@ bool CMonitor::attemptDirectScanout() {
     output->state->resetExplicitFences();
 
     if (DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
+        NDebug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
         output->state->setExplicitInFence(explicitWaitFD.get());
     }
 
     bool ok = output->commit();
 
     if (!ok && DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
+        NDebug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
         output->state->resetExplicitFences();
 
         ok = output->commit();
@@ -1353,12 +1354,12 @@ bool CMonitor::attemptDirectScanout() {
     if (ok) {
         if (lastScanout.expired()) {
             lastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+            NDebug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
         }
 
         // delay explicit sync feedback until kms release of the buffer
         if (DOEXPLICIT) {
-            Debug::log(TRACE, "attemptDirectScanout: Delaying explicit sync release feedback until kms release");
+            NDebug::log(TRACE, "attemptDirectScanout: Delaying explicit sync release feedback until kms release");
             PSURFACE->current.buffer->releaser->drop();
 
             PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
@@ -1368,7 +1369,7 @@ bool CMonitor::attemptDirectScanout() {
             });
         }
     } else {
-        Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
+        NDebug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
         lastScanout.reset();
         return false;
     }
@@ -1377,13 +1378,13 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {
-    Debug::log(TRACE, "{} (last presentation {} - {} fps)", message, lastPresentationTimer.getMillis(),
-               lastPresentationTimer.getMillis() > 0 ? 1000.0f / lastPresentationTimer.getMillis() : 0.0f);
+    NDebug::log(TRACE, "{} (last presentation {} - {} fps)", message, lastPresentationTimer.getMillis(),
+                lastPresentationTimer.getMillis() > 0 ? 1000.0f / lastPresentationTimer.getMillis() : 0.0f);
 }
 
 void CMonitor::onMonitorFrame() {
     if ((g_pCompositor->m_pAqBackend->hasSession() && !g_pCompositor->m_pAqBackend->session->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Attempted to render frame on inactive session!");
+        NDebug::log(WARN, "Attempted to render frame on inactive session!");
 
         if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
                 return m->output != g_pCompositor->m_pUnsafeOutput->output;
@@ -1453,7 +1454,7 @@ void CMonitor::onCursorMovedOnMonitor() {
     // output->state->addDamage(CRegion{});
     // output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
     // if (!output->commit())
-    //     Debug::log(ERR, "onCursorMovedOnMonitor: tearing and wanted to update cursor, failed.");
+    //     NDebug::log(ERR, "onCursorMovedOnMonitor: tearing and wanted to update cursor, failed.");
 
     // FIXME: try to do the above. We currently can't just render because drm is a fucking bitch
     // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
@@ -1469,7 +1470,7 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
 void CMonitorState::ensureBufferPresent() {
     const auto STATE = m_pOwner->output->state->state();
     if (!STATE.enabled) {
-        Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
+        NDebug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
@@ -1480,7 +1481,7 @@ void CMonitorState::ensureBufferPresent() {
 
     // this is required for modesetting being possible and might be missing in case of first tests in the renderer
     // where we test modes and buffers
-    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
+    NDebug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
     m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
     m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
@@ -1511,7 +1512,7 @@ bool CMonitorState::updateSwapchain() {
     const auto& STATE   = m_pOwner->output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
-        Debug::log(WARN, "updateSwapchain: No mode?");
+        NDebug::log(WARN, "updateSwapchain: No mode?");
         return true;
     }
     options.format  = m_pOwner->drmFormat;

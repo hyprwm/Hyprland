@@ -45,7 +45,7 @@ class CSubsurface {
         CHyprSignalListener mapSubsurface;
         CHyprSignalListener unmapSubsurface;
         CHyprSignalListener newSubsurface;
-    } listeners;
+    } m_m_listeners;
 
     WP<CWLSubsurfaceResource> m_pSubsurface;
     SP<CWLSurface>            m_pWLSurface;

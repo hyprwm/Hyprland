@@ -9,7 +9,7 @@ enum eSurfaceRole : uint8_t {
     SURFACE_ROLE_CURSOR,
 };
 
-class ISurfaceRole {
+class CSurfaceRole {
   public:
     virtual eSurfaceRole role() = 0;
     virtual ~ISurfaceRole()     = default;

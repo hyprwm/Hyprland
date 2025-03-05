@@ -19,41 +19,41 @@ class CMesaDRMBufferResource {
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
+        m_m_listeners;
 
-    friend class CMesaDRMResource;
-};
+        friend class CMesaDRMResource;
+    };
 
-class CMesaDRMResource {
-  public:
-    CMesaDRMResource(SP<CWlDrm> resource_);
+    class CMesaDRMResource {
+      public:
+        CMesaDRMResource(SP<CWlDrm> resource_);
 
-    bool good();
+        bool good();
 
-  private:
-    SP<CWlDrm> resource;
-};
+      private:
+        SP<CWlDrm> resource;
+    };
 
-class CMesaDRMProtocol : public IWaylandProtocol {
-  public:
-    CMesaDRMProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    class CMesaDRMProtocol : public IWaylandProtocol {
+      public:
+        CMesaDRMProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+        virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-  private:
-    void destroyResource(CMesaDRMResource* resource);
-    void destroyResource(CMesaDRMBufferResource* resource);
+      private:
+        void destroyResource(CMesaDRMResource* resource);
+        void destroyResource(CMesaDRMBufferResource* resource);
 
-    //
-    std::vector<SP<CMesaDRMResource>>       m_vManagers;
-    std::vector<SP<CMesaDRMBufferResource>> m_vBuffers;
+        //
+        std::vector<SP<CMesaDRMResource>>       m_vManagers;
+        std::vector<SP<CMesaDRMBufferResource>> m_vBuffers;
 
-    std::string                             nodeName = "";
+        std::string                             nodeName = "";
 
-    friend class CMesaDRMResource;
-    friend class CMesaDRMBufferResource;
-};
+        friend class CMesaDRMResource;
+        friend class CMesaDRMBufferResource;
+    };
 
-namespace PROTO {
-    inline UP<CMesaDRMProtocol> mesaDRM;
-};
+    namespace PROTO {
+        inline UP<CMesaDRMProtocol> mesaDRM;
+    };

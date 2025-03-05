@@ -38,7 +38,7 @@
     <event name="toplevel">
       <description summary="a toplevel has been created">
         This event is emitted whenever a new toplevel window is created. It
-        is emitted for all toplevels, regardless of the app that has created
+        is emitted for all top-levels, regardless of the app that has created
         them.
 
         All initial details of the toplevel(title, app_id, states, etc.) will
@@ -50,8 +50,8 @@
 
     <request name="stop">
       <description summary="stop sending events">
-        Indicates the client no longer wishes to receive events for new toplevels.
-        However the compositor may emit further toplevel_created events, until
+        Indicates the client no longer wishes to receive events for new top-levels.
+        However, the compositor may emit further toplevel_created events, until
         the finished event is emitted.
 
         The client must not send any more requests after this one.
@@ -71,7 +71,7 @@
   <interface name="zwlr_foreign_toplevel_handle_v1" version="3">
     <description summary="an opened toplevel">
       A zwlr_foreign_toplevel_handle_v1 object represents an opened toplevel
-      window. Each app may have multiple opened toplevels.
+      window. Each app may have multiple opened top-levels.
 
       Each toplevel has a list of outputs it is visible on, conveyed to the
       client with the output_enter and output_leave events.
@@ -191,7 +191,7 @@
       <description summary="the rectangle which represents the toplevel">
         The rectangle of the surface specified in this request corresponds to
         the place where the app using this protocol represents the given toplevel.
-        It can be used by the compositor as a hint for some operations, e.g
+        It can be used by the compositor as a hint for some operations, e.g.
         minimizing. The client is however not required to set this, in which
         case the compositor is free to decide some default value.
 

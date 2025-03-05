@@ -2,10 +2,10 @@
 #include <toml++/toml.hpp>
 #include <iostream>
 
-CManifest::CManifest(const eManifestType type, const std::string& path) {
+CManifest::CManifest(const eManifestType TYPE, const std::string& path) {
     auto manifest = toml::parse_file(path);
 
-    if (type == MANIFEST_HYPRLOAD) {
+    if (TYPE == MANIFEST_HYPRLOAD) {
         for (auto const& [key, val] : manifest) {
             if (key.str().ends_with(".build"))
                 continue;
@@ -41,7 +41,7 @@ CManifest::CManifest(const eManifestType type, const std::string& path) {
                 return;
             }
         }
-    } else if (type == MANIFEST_HYPRPM) {
+    } else if (TYPE == MANIFEST_HYPRPM) {
         m_sRepository.name = manifest["repository"]["name"].value_or("");
         auto authors       = manifest["repository"]["authors"].as_array();
         if (authors) {

@@ -94,7 +94,7 @@
     <request name="destroy" type="destructor" since="3">
       <description summary="destroy the layer_shell object">
         This request indicates that the client will not use the layer_shell
-        object any more. Objects that have been created through this instance
+        object anymore. Objects that have been created through this instance
         are not affected.
       </description>
     </request>
@@ -252,7 +252,7 @@
 
           Typically, the compositor will want to use its normal mechanism to
           manage keyboard focus between layer shell surfaces with this setting
-          and regular toplevels on the desktop layer (e.g. click to focus).
+          and regular top-levels on the desktop layer (e.g. click to focus).
           Nevertheless, it is possible for a compositor to require a special
           interaction to focus or unfocus layer shell surfaces (e.g. requiring
           a click even if focus follows the mouse normally, or providing a
@@ -398,7 +398,7 @@
         to set it explicitly to disambiguate, as it is not possible to deduce
         which one of the two corner edges should be used.
 
-        The edge must be one the surface is anchored to, otherwise the
+        The edge must be one that the surface is anchored to, otherwise the
         invalid_exclusive_edge protocol error will be raised.
       </description>
       <arg name="edge" type="uint" enum="anchor"/>

@@ -41,8 +41,8 @@ class CHyprNotificationOverlay {
     ~CHyprNotificationOverlay();
 
     void draw(PHLMONITOR pMonitor);
-    void addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon = ICON_NONE, const float fontSize = 13.f);
-    void dismissNotifications(const int amount);
+    void addNotification(const std::string& text, const CHyprColor& color, const float TIMEMS, const eIcons ICON = ICON_NONE, const float FONTSIZE = 13.f);
+    void dismissNotifications(const int AMOUNT);
     bool hasAny();
 
   private:

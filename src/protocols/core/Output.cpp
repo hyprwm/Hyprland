@@ -86,7 +86,7 @@ void CWLOutputResource::updateState() {
 CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name, PHLMONITOR pMonitor) :
     IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
 
-    listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
+    m_listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
         for (auto const& o : m_vOutputs) {
             o->updateState();
         }
@@ -95,7 +95,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
 
 void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     if UNLIKELY (defunct)
-        Debug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
+        NDebug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
 
     const auto RESOURCE = m_vOutputs.emplace_back(makeShared<CWLOutputResource>(makeShared<CWlOutput>(client, ver, id), monitor.lock()));
 

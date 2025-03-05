@@ -117,8 +117,8 @@ class CWLSurface {
 
     struct {
         CHyprSignalListener destroy;
-    } listeners;
+        m_m_listeners;
 
-    friend class CPointerConstraint;
-    friend class CXxColorManagerV4;
-};
+        friend class CPointerConstraint;
+        friend class CXxColorManagerV4;
+    };

@@ -61,7 +61,7 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
             xcb_window_t verifyWindow = *(xcb_window_t*)xcb_get_property_value(proxyVerifyReply);
             if (verifyWindow == proxyWindow) {
                 targetWindow = proxyWindow;
-                Debug::log(LOG, "Using XdndProxy window {:x} for window {:x}", proxyWindow, window);
+                NDebug::log(LOG, "Using XdndProxy window {:x} for window {:x}", proxyWindow, window);
             }
         }
         free(proxyVerifyReply);
@@ -103,14 +103,14 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
     auto XSURF = g_pXWayland->pWM->windowForWayland(surf);
 
     if (!XSURF) {
-        Debug::log(ERR, "CX11DataDevice::sendEnter: No xwayland surface for destination");
+        NDebug::log(ERR, "CX11DataDevice::sendEnter: No xwayland surface for destination");
         return;
     }
 
     auto SOURCE = offer->getSource();
 
     if (!SOURCE) {
-        Debug::log(ERR, "CX11DataDevice::sendEnter: No source");
+        NDebug::log(ERR, "CX11DataDevice::sendEnter: No source");
         return;
     }
 
@@ -141,7 +141,7 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
 
     auto hlSurface = XSURF->surface.lock();
     if (!hlSurface) {
-        Debug::log(ERR, "CX11DataDevice::sendEnter: Non desktop x surface?!");
+        NDebug::log(ERR, "CX11DataDevice::sendEnter: Non desktop x surface?!");
         lastSurfaceCoords = {};
         return;
     }
@@ -198,7 +198,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 void CX11DataDevice::sendDrop() {
 #ifndef NO_XWAYLAND
     if (!lastSurface || !lastOffer) {
-        Debug::log(ERR, "CX11DataDevice::sendDrop: No surface or offer");
+        NDebug::log(ERR, "CX11DataDevice::sendDrop: No surface or offer");
         return;
     }
 
@@ -256,7 +256,7 @@ bool CX11DataSource::dndDone() {
 }
 
 void CX11DataSource::error(uint32_t code, const std::string& msg) {
-    Debug::log(ERR, "CX11DataSource error: code {} msg {}", code, msg);
+    NDebug::log(ERR, "CX11DataSource error: code {} msg {}", code, msg);
     dndSuccess = false;
     dropped    = false;
 }

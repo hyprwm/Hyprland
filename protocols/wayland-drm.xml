@@ -142,7 +142,7 @@
     <!-- Notification of the path of the drm device which is used by
          the server.  The client should use this device for creating
          local buffers.  Only buffers created from this device should
-         be be passed to the server using this drm object's
+         be passed to the server using this drm object's
          create_buffer request. -->
     <event name="device">
       <arg name="name" type="string"/>

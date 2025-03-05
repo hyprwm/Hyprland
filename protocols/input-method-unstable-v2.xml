@@ -54,8 +54,8 @@
     <description summary="input method">
       An input method object allows for clients to compose text.
 
-      The objects connects the client to a text input in an application, and
-      lets the client to serve as an input method for a seat.
+      The objects connect the client to a text input in an application, and
+      lets the client serve as an input method for a seat.
 
       The zwp_input_method_v2 object can occupy two distinct states: active and
       inactive. In the active state, the object is associated to and
@@ -245,7 +245,7 @@
         hidden by the text input when both are equal to -1.
 
         cursor_begin indicates the beginning of the cursor. cursor_end
-        indicates the end of the cursor. It may be equal or different than
+        indicates the end of the cursor. It may be equal or different to
         cursor_begin.
 
         Values set with this event are double-buffered. They must be applied on
@@ -302,7 +302,7 @@
         The serial number reflects the last state of the zwp_input_method_v2
         object known to the client. The value of the serial argument must be
         equal to the number of done events already issued by that object. When
-        the compositor receives a commit request with a serial different than
+        the compositor receives a commit request with a serial different to
         the number of past done events, it must proceed as normal, except it
         should not change the current state of the zwp_input_method_v2 object.
       </description>

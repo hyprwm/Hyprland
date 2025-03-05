@@ -31,7 +31,7 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
 void CInputManager::beginWorkspaceSwipe() {
     const auto PWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
-    Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
+    NDebug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
@@ -149,7 +149,7 @@ void CInputManager::endWorkspaceSwipe() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the left");
+        NDebug::log(LOG, "Ended swipe to the left");
 
         pSwitchedTo = PWORKSPACEL;
     } else {
@@ -175,7 +175,7 @@ void CInputManager::endWorkspaceSwipe() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the right");
+        NDebug::log(LOG, "Ended swipe to the right");
 
         pSwitchedTo = PWORKSPACER;
     }

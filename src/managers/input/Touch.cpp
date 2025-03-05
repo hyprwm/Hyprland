@@ -63,7 +63,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (g_pSessionLockManager->isSessionLocked()) {
         m_sTouchData.touchFocusLockSurface = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
         if (!m_sTouchData.touchFocusLockSurface)
-            Debug::log(WARN, "The session is locked but can't find a lock surface");
+            NDebug::log(WARN, "The session is locked but can't find a lock surface");
         else
             m_sTouchData.touchFocusSurface = m_sTouchData.touchFocusLockSurface->surface->surface();
     } else {

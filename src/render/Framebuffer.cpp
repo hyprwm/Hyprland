@@ -47,7 +47,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {}, GL Error: 0x{:x})", status, (int)glGetError());
 
-        Debug::log(LOG, "Framebuffer created, status {}", status);
+        NDebug::log(LOG, "Framebuffer created, status {}", status);
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);

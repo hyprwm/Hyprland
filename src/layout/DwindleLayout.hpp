@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IHyprLayout.hpp"
+#include "CIHyprLayout.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
 #include <list>

@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 using namespace Hyprutils::OS;
 
-CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
+CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<CIDataSource> source_) : source(source_), resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -227,8 +227,8 @@ void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint3
     LOGM(LOG, "New primary_seletion_manager at {:x}", (uintptr_t)RESOURCE.get());
 
     // we need to do it here because protocols come before seatMgr
-    if (!listeners.onPointerFocusChange)
-        listeners.onPointerFocusChange = g_pSeatManager->events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
+    if (!m_listeners.onPointerFocusChange)
+        m_listeners.onPointerFocusChange = g_pSeatManager->events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionManager* resource) {
@@ -247,7 +247,7 @@ void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionOffer* resource
     std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice> dev, SP<IDataSource> sel) {
+void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice> dev, SP<CIDataSource> sel) {
     if (!sel) {
         dev->sendSelection(nullptr);
         return;
@@ -269,7 +269,7 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
     dev->sendSelection(OFFER);
 }
 
-void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
+void CPrimarySelectionProtocol::setSelection(SP<CIDataSource> source) {
     for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;

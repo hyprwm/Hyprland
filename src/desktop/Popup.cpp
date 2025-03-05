@@ -54,28 +54,29 @@ void CPopup::initAllSignals() {
 
     if (!m_pResource) {
         if (!m_pWindowOwner.expired())
-            listeners.newPopup = m_pWindowOwner->m_pXDGSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup =
+                m_pWindowOwner->m_pXDGSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else if (!m_pLayerOwner.expired())
-            listeners.newPopup = m_pLayerOwner->layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup = m_pLayerOwner->layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else
             ASSERT(false);
 
         return;
     }
 
-    listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
-    listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
-    listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
-    listeners.dismissed  = m_pResource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
-    listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
-    listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
-    listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+    m_listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
+    m_listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
+    m_listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.dismissed  = m_pResource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
+    m_listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
+    m_listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
     const auto& POPUP = m_vChildren.emplace_back(CPopup::create(popup, m_pSelf));
     POPUP->m_pSelf    = POPUP;
-    Debug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
+    NDebug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
 }
 
 void CPopup::onDestroy() {
@@ -120,7 +121,7 @@ void CPopup::onUnmap() {
         return;
 
     if (!m_pResource || !m_pResource->surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
+        NDebug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
         onDestroy();
         return;
     }
@@ -160,7 +161,7 @@ void CPopup::onUnmap() {
 
 void CPopup::onCommit(bool ignoreSiblings) {
     if (!m_pResource || !m_pResource->surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
+        NDebug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
         onDestroy();
         return;
     }
@@ -175,7 +176,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner.lock());
+            NDebug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner.lock());
         return;
     }
 
@@ -207,7 +208,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 }
 
 void CPopup::onReposition() {
-    Debug::log(LOG, "Popup {:x} requests reposition", (uintptr_t)this);
+    NDebug::log(LOG, "Popup {:x} requests reposition", (uintptr_t)this);
 
     m_bRequestedReposition = true;
 

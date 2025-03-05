@@ -4,7 +4,7 @@
 #include "core/Seat.hpp"
 using namespace Hyprutils::OS;
 
-CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
+CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<CIDataSource> source_) : source(source_), resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -259,7 +259,7 @@ void CDataDeviceWLRProtocol::destroyResource(CWLRDataOffer* resource) {
     std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary) {
+void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<CIDataSource> sel, bool primary) {
     if (!sel) {
         if (primary)
             dev->resource->sendPrimarySelectionRaw(nullptr);
@@ -288,7 +288,7 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
         dev->sendSelection(OFFER);
 }
 
-void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) {
+void CDataDeviceWLRProtocol::setSelection(SP<CIDataSource> source, bool primary) {
     for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;

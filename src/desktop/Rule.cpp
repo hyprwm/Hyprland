@@ -11,7 +11,7 @@ CRuleRegexContainer::CRuleRegexContainer(const std::string& regex_) {
 
     // TODO: maybe pop an error?
     if (!regex->ok())
-        Debug::log(ERR, "RuleRegexContainer: regex {} failed to parse!", regex_);
+        NDebug::log(ERR, "RuleRegexContainer: regex {} failed to parse!", regex_);
 }
 
 bool CRuleRegexContainer::passes(const std::string& str) const {

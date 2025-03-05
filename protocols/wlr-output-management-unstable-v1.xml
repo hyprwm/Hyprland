@@ -85,13 +85,13 @@
         the output manager object and after any subsequent changes. This applies
         to child head and mode objects as well. In other words, this event is
         sent whenever a head or mode is created or destroyed and whenever one of
-        their properties has been changed. Not all state is re-sent each time
-        the current configuration changes: only the actual changes are sent.
+        their properties has been changed. Not all state data is re-sent each time
+        the current configuration changes; rather, only the changes to the state.
 
         This allows changes to the output configuration to be seen as atomic,
         even if they happen via multiple events.
 
-        A serial is sent to be used in a future create_configuration request.
+        A serial gets sent to be used in a future create_configuration request.
       </description>
       <arg name="serial" type="uint" summary="current configuration serial"/>
     </event>
@@ -108,7 +108,7 @@
     <request name="stop">
       <description summary="stop sending events">
         Indicates the client no longer wishes to receive events for output
-        configuration changes. However the compositor may emit further events,
+        configuration changes. However, the compositor may emit further events,
         until the finished event is emitted.
 
         The client must not send any more requests after this one.
@@ -171,7 +171,7 @@
         This event describes a human-readable description of the head.
 
         The description is a UTF-8 string with no convention defined for its
-        contents. Examples might include 'Foocorp 11" Display' or 'Virtual X11
+        contents. Examples might include 'FooCorp 11" Display' or 'Virtual X11
         output via :1'. However, do not assume that the name is a reflection of
         the make, model, serial of the underlying DRM connector or the display
         name of the underlying X11 connection, etc.
@@ -313,8 +313,8 @@
         This event describes the serial number of the head.
 
         Together with the make and model events the purpose is to allow clients
-        to recognize heads from previous sessions and for example load head-
-        specific configurations back.
+        to recognize heads from previous sessions and for example load
+        head-specific configurations back.
 
         It is not guaranteed this event will be ever sent. A reason for that
         can be that the compositor does not have information about the serial
@@ -415,13 +415,13 @@
     <description summary="output configuration">
       This object is used by the client to describe a full output configuration.
 
-      First, the client needs to setup the output configuration. Each head can
+      First, the client needs to set up the output configuration. Each head can
       be either enabled (and configured) or disabled. It is a protocol error to
       send two enable_head or disable_head requests with the same head. It is a
       protocol error to omit a head in a configuration.
 
       Then, the client can apply or test the configuration. The compositor will
-      then reply with a succeeded, failed or cancelled event. Finally the client
+      then reply with a succeeded, failed or cancelled event. Finally, the client
       should destroy the configuration object.
     </description>
 
@@ -462,7 +462,7 @@
         configuration. For instance, a compositor might round the scale if it
         doesn't support fractional scaling.
 
-        After this request has been sent, the compositor must respond with an
+        After this request has been sent, the compositor must respond with a
         succeeded, failed or cancelled event. Sending a request that isn't the
         destructor is a protocol error.
       </description>
@@ -476,7 +476,7 @@
         Even if the compositor succeeds to test a configuration, applying it may
         fail.
 
-        After this request has been sent, the compositor must respond with an
+        After this request has been sent, the compositor must respond with a
         succeeded, failed or cancelled event. Sending a request that isn't the
         destructor is a protocol error.
       </description>

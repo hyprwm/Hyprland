@@ -103,7 +103,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     if (!PMONITOR) {
-        Debug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
+        NDebug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
         return;
     }
 
@@ -227,20 +227,20 @@ void IHyprLayout::onBeginDragWindow() {
 
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGWINDOW)) {
-        Debug::log(ERR, "Dragging attempted on an invalid window!");
+        NDebug::log(ERR, "Dragging attempted on an invalid window!");
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
     if (DRAGGINGWINDOW->isFullscreen()) {
-        Debug::log(LOG, "Dragging a fullscreen window");
+        NDebug::log(LOG, "Dragging a fullscreen window");
         g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
     }
 
     const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
-        Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
+        NDebug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
@@ -704,7 +704,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
     if (pWindow->isFullscreen()) {
-        Debug::log(LOG, "changeWindowFloatingMode: fullscreen");
+        NDebug::log(LOG, "changeWindowFloatingMode: fullscreen");
         g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
     }
 
@@ -792,7 +792,7 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
         return;
 
     if (!PWINDOW->m_bIsFloating) {
-        Debug::log(LOG, "Dwindle cannot move a tiled window in moveActiveWindow!");
+        NDebug::log(LOG, "Dwindle cannot move a tiled window in moveActiveWindow!");
         return;
     }
 
@@ -891,7 +891,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r->ruleType != CWindowRule::RULE_SIZE)
+            if (r->m_ruleType != CWindowRule::RULE_SIZE)
                 continue;
 
             try {
@@ -909,7 +909,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
 
                 sizeOverride = {SIZEX, SIZEY};
 
-            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
+            } catch (...) { NDebug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
             break;
         }
     }
@@ -922,7 +922,7 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
     if (!shouldBeFloated) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r->ruleType != CWindowRule::RULE_FLOAT)
+            if (r->m_ruleType != CWindowRule::RULE_FLOAT)
                 continue;
 
             shouldBeFloated = true;

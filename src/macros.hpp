@@ -49,9 +49,9 @@
 
 #define RASSERT(expr, reason, ...)                                                                                                                                                 \
     if (!(expr)) {                                                                                                                                                                 \
-        Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",            \
-                   std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                                   \
-                   ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                       \
+        NDebug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",           \
+                    std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                                  \
+                    ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                      \
         std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");                                                                                      \
         raise(SIGABRT);                                                                                                                                                            \
     }
@@ -87,7 +87,7 @@
 #if ISDEBUG
 #define UNREACHABLE()                                                                                                                                                              \
     {                                                                                                                                                                              \
-        Debug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                                     \
+        NDebug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                                    \
         raise(SIGABRT);                                                                                                                                                            \
     }
 #else
@@ -99,22 +99,22 @@
         __CALL__;                                                                                                                                                                  \
         auto err = glGetError();                                                                                                                                                   \
         if (err != GL_NO_ERROR) {                                                                                                                                                  \
-            Debug::log(ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                                     \
-                       ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                              \
+            NDebug::log(ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                                    \
+                        ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                             \
         }                                                                                                                                                                          \
     }
 
 #define HYPRUTILS_FORWARD(ns, name)                                                                                                                                                \
     namespace Hyprutils {                                                                                                                                                          \
         namespace ns {                                                                                                                                                             \
-            class name;                                                                                                                                                            \
+            class CName;                                                                                                                                                           \
         }                                                                                                                                                                          \
     }
 
 #define AQUAMARINE_VERSION_NUMBER (AQUAMARINE_VERSION_MAJOR * 10000 + AQUAMARINE_VERSION_MINOR * 100 + AQUAMARINE_VERSION_PATCH)
 #define AQUAMARINE_FORWARD(name)                                                                                                                                                   \
     namespace Aquamarine {                                                                                                                                                         \
-        class name;                                                                                                                                                                \
+        class Cname;                                                                                                                                                               \
     }
 
 #define UNLIKELY(expr) (expr) [[unlikely]]

@@ -10,8 +10,8 @@
 #include "signal/Signal.hpp"
 
 class CMonitor;
-class IPointer;
-class IKeyboard;
+class CPointer;
+class CKeyboard;
 class CWLSurfaceResource;
 
 AQUAMARINE_FORWARD(ISwitch);
@@ -35,9 +35,9 @@ struct SSwitchDevice {
     struct {
         CHyprSignalListener destroy;
         CHyprSignalListener fire;
-    } listeners;
+        m_m_listeners;
 
-    bool operator==(const SSwitchDevice& other) const {
-        return pDevice == other.pDevice;
-    }
-};
+        bool operator==(const SSwitchDevice& other) const {
+            return pDevice == other.pDevice;
+        }
+    };

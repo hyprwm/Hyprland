@@ -14,8 +14,8 @@ CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, A
     buffer                   = makeShared<CDMABuffer>(id, client, attrs_);
     buffer->resource->buffer = buffer;
 
-    listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
-        listeners.bufferResourceDestroy.reset();
+    m_listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
+        m_listeners.bufferResourceDestroy.reset();
         PROTO::mesaDRM->destroyResource(this);
     });
 
@@ -27,7 +27,7 @@ CMesaDRMBufferResource::~CMesaDRMBufferResource() {
     if (buffer && buffer->resource)
         buffer->resource->sendRelease();
     buffer.reset();
-    listeners.bufferResourceDestroy.reset();
+    m_listeners.bufferResourceDestroy.reset();
 }
 
 bool CMesaDRMBufferResource::good() {

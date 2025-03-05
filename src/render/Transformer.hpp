@@ -8,7 +8,7 @@
 // and finally render it back to the main fb after all transformers pass.
 //
 // Worth noting transformers for now only affect the main pass (not popups)
-class IWindowTransformer {
+class CWindowTransformer {
   public:
     virtual ~IWindowTransformer() = default;
 

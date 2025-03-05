@@ -51,5 +51,5 @@ class CTextInput {
         CHyprSignalListener destroy;
         CHyprSignalListener surfaceUnmap;
         CHyprSignalListener surfaceDestroy;
-    } listeners;
-};
+        m_m_listeners;
+    };

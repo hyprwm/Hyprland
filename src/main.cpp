@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
                 return 1;
             }
 
-            Debug::log(LOG, "User-specified config location: '{}'", configPath);
+            NDebug::log(LOG, "User-specified config location: '{}'", configPath);
 
             it++;
 
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
     if (!envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();
 
-    Debug::log(LOG, "Hyprland init finished.");
+    NDebug::log(LOG, "Hyprland init finished.");
 
     // If all's good to go, start.
     g_pCompositor->startCompositor();
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
 
     g_pCompositor.reset();
 
-    Debug::log(LOG, "Hyprland has reached the end.");
+    NDebug::log(LOG, "Hyprland has reached the end.");
 
     return EXIT_SUCCESS;
 }

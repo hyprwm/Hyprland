@@ -6,18 +6,18 @@
 #include <print>
 #include <fcntl.h>
 
-void Debug::init(const std::string& IS) {
+void NDebug::init(const std::string& IS) {
     logFile = IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
     logOfs.open(logFile, std::ios::out | std::ios::app);
     auto handle = logOfs.native_handle();
     fcntl(handle, F_SETFD, FD_CLOEXEC);
 }
 
-void Debug::close() {
+void NDebug::close() {
     logOfs.close();
 }
 
-void Debug::log(eLogLevel level, std::string str) {
+void NDebug::log(eLogLevel level, std::string str) {
     if (level == TRACE && !trace)
         return;
 
@@ -62,7 +62,7 @@ void Debug::log(eLogLevel level, std::string str) {
     if (SRollingLogFollow::get().isRunning())
         SRollingLogFollow::get().addLog(str);
 
-    if (!disableLogs || !**disableLogs) {
+    if (!g_disableLogs || !**g_disableLogs) {
         // log to a file
         logOfs << str << "\n";
         logOfs.flush();
@@ -70,5 +70,5 @@ void Debug::log(eLogLevel level, std::string str) {
 
     // log it to the stdout too.
     if (!disableStdout)
-        std::println("{}", ((coloredLogs && !**coloredLogs) ? str : coloredStr));
+        std::println("{}", ((g_coloredLogs && !**g_coloredLogs) ? str : coloredStr));
 }

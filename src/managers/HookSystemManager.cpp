@@ -62,7 +62,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
         } catch (std::exception& e) {
             // TODO: this works only once...?
             faultyHandles.push_back(cb.handle);
-            Debug::log(ERR, "[hookSystem] Hook from plugin {:x} caused a SIGSEGV, queueing for unloading.", (uintptr_t)cb.handle);
+            NDebug::log(ERR, "[hookSystem] Hook from plugin {:x} caused a SIGSEGV, queueing for unloading.", (uintptr_t)cb.handle);
         }
     }
 
@@ -77,7 +77,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
 
 std::vector<SCallbackFNPtr>* CHookSystemManager::getVecForEvent(const std::string& event) {
     if (!m_mRegisteredHooks.contains(event))
-        Debug::log(LOG, "[hookSystem] New hook event registered: {}", event);
+        NDebug::log(LOG, "[hookSystem] New hook event registered: {}", event);
 
     return &m_mRegisteredHooks[event];
 }

@@ -26,7 +26,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
 
     m_iImage = g_pHyprOpenGL->createEGLImage(dma);
     if (m_iImage == EGL_NO_IMAGE_KHR) {
-        Debug::log(ERR, "rb: createEGLImage failed");
+        NDebug::log(ERR, "rb: createEGLImage failed");
         return;
     }
 
@@ -42,13 +42,13 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_iRBO);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Debug::log(ERR, "rbo: glCheckFramebufferStatus failed");
+        NDebug::log(ERR, "rbo: glCheckFramebufferStatus failed");
         return;
     }
 
     m_sFramebuffer.unbind();
 
-    listeners.destroyBuffer = buffer->events.destroy.registerListener([this](std::any d) { g_pHyprRenderer->onRenderbufferDestroy(this); });
+    m_listeners.destroyBuffer = buffer->events.destroy.registerListener([this](std::any d) { g_pHyprRenderer->onRenderbufferDestroy(this); });
 
     m_bGood = true;
 }

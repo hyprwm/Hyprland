@@ -150,7 +150,7 @@ CKeybindManager::CKeybindManager() {
 
             const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(m_pLastLongPressKeybind->handler);
 
-            Debug::log(LOG, "Long press timeout passed, calling dispatcher.");
+            NDebug::log(LOG, "Long press timeout passed, calling dispatcher.");
             DISPATCHER->second(m_pLastLongPressKeybind->arg);
         },
         nullptr);
@@ -164,7 +164,7 @@ CKeybindManager::CKeybindManager() {
             for (const auto& k : m_vActiveKeybinds) {
                 const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
 
-                Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
+                NDebug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
                 DISPATCHER->second(k->arg);
             }
 
@@ -291,8 +291,8 @@ void CKeybindManager::updateXKBTranslationState() {
                                       ", layout: " + LAYOUT + " )",
                                   CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
-        Debug::log(ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
-                   rules.rules, rules.model, rules.options);
+        NDebug::log(ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
+                    rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
         PKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -333,7 +333,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     if (!LASTMONITOR)
         return false;
     if (LASTMONITOR == monitor) {
-        Debug::log(LOG, "Tried to move to active monitor");
+        NDebug::log(LOG, "Tried to move to active monitor");
         return false;
     }
 
@@ -423,7 +423,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     }
 
     if (!m_pXKBTranslationState) {
-        Debug::log(ERR, "BUG THIS: m_pXKBTranslationState nullptr!");
+        NDebug::log(ERR, "BUG THIS: m_pXKBTranslationState nullptr!");
         updateXKBTranslationState();
 
         if (!m_pXKBTranslationState)
@@ -490,7 +490,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
             }
         }
         if (!foundInPressedKeys) {
-            Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
+            NDebug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
             suppressEvent = !handleKeybinds(MODS, KEY, false).passEvent;
         }
@@ -576,7 +576,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
             }
         }
         if (!foundInPressedKeys) {
-            Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
+            NDebug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
             suppressEvent = !handleKeybinds(MODS, KEY, false).passEvent;
         }
@@ -755,10 +755,10 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
-            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
+            NDebug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
+            NDebug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             m_iPassPressed = (int)pressed;
 
@@ -791,7 +791,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     res.passEvent |= !found;
 
     if (!found && !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited()) {
-        Debug::log(LOG, "Keybind handling is disabled due to an inhibitor");
+        NDebug::log(LOG, "Keybind handling is disabled due to an inhibitor");
 
         res.success = false;
         if (res.error.empty())
@@ -871,7 +871,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
         if (ttynum == TTY)
             return true;
 
-        Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
+        NDebug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
         g_pCompositor->m_pAqBackend->session->switchVT(TTY);
     }
@@ -923,7 +923,7 @@ uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitial
             g_pConfigManager->addExecRule({r, (unsigned long)PROC});
         }
 
-        Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
+        NDebug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
     }
 
     return PROC;
@@ -935,13 +935,13 @@ SDispatchResult CKeybindManager::spawnRaw(std::string args) {
 }
 
 uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace) {
-    Debug::log(LOG, "Executing {}", args);
+    NDebug::log(LOG, "Executing {}", args);
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
     int        socket[2];
     if (pipe(socket) != 0) {
-        Debug::log(LOG, "Unable to create pipe for fork");
+        NDebug::log(LOG, "Unable to create pipe for fork");
     }
 
     CFileDescriptor pipeSock[2] = {CFileDescriptor{socket[0]}, CFileDescriptor{socket[1]}};
@@ -949,7 +949,7 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
     pid_t           child, grandchild;
     child = fork();
     if (child < 0) {
-        Debug::log(LOG, "Fail to create the first fork");
+        NDebug::log(LOG, "Fail to create the first fork");
         return 0;
     }
     if (child == 0) {
@@ -988,11 +988,11 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
     // clear child and leave grandchild to init
     waitpid(child, nullptr, 0);
     if (grandchild < 0) {
-        Debug::log(LOG, "Fail to create the second fork");
+        NDebug::log(LOG, "Fail to create the second fork");
         return 0;
     }
 
-    Debug::log(LOG, "Process Created with pid {}", grandchild);
+    NDebug::log(LOG, "Process Created with pid {}", grandchild);
 
     return grandchild;
 }
@@ -1001,7 +1001,7 @@ SDispatchResult CKeybindManager::killActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (!PWINDOW) {
-        Debug::log(ERR, "killActive: no window found");
+        NDebug::log(ERR, "killActive: no window found");
         return {.success = false, .error = "killActive: no window found"};
     }
 
@@ -1020,7 +1020,7 @@ SDispatchResult CKeybindManager::closeWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "closeWindow: no window found");
+        NDebug::log(ERR, "closeWindow: no window found");
         return {.success = false, .error = "closeWindow: no window found"};
     }
 
@@ -1033,7 +1033,7 @@ SDispatchResult CKeybindManager::killWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "killWindow: no window found");
+        NDebug::log(ERR, "killWindow: no window found");
         return {.success = false, .error = "killWindow: no window found"};
     }
 
@@ -1049,12 +1049,12 @@ SDispatchResult CKeybindManager::signalActive(std::string args) {
     try {
         const auto SIGNALNUM = std::stoi(args);
         if (SIGNALNUM < 1 || SIGNALNUM > 31) {
-            Debug::log(ERR, "signalActive: invalid signal number {}", SIGNALNUM);
+            NDebug::log(ERR, "signalActive: invalid signal number {}", SIGNALNUM);
             return {.success = false, .error = std::format("signalActive: invalid signal number {}", SIGNALNUM)};
         }
         kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGNALNUM);
     } catch (const std::exception& e) {
-        Debug::log(ERR, "signalActive: invalid signal format \"{}\"", args);
+        NDebug::log(ERR, "signalActive: invalid signal format \"{}\"", args);
         return {.success = false, .error = std::format("signalActive: invalid signal format \"{}\"", args)};
     }
 
@@ -1070,7 +1070,7 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "signalWindow: no window");
+        NDebug::log(ERR, "signalWindow: no window");
         return {.success = false, .error = "signalWindow: no window"};
     }
 
@@ -1080,12 +1080,12 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
     try {
         const auto SIGNALNUM = std::stoi(SIGNAL);
         if (SIGNALNUM < 1 || SIGNALNUM > 31) {
-            Debug::log(ERR, "signalWindow: invalid signal number {}", SIGNALNUM);
+            NDebug::log(ERR, "signalWindow: invalid signal number {}", SIGNALNUM);
             return {.success = false, .error = std::format("signalWindow: invalid signal number {}", SIGNALNUM)};
         }
         kill(PWINDOW->getPID(), SIGNALNUM);
     } catch (const std::exception& e) {
-        Debug::log(ERR, "signalWindow: invalid signal format \"{}\"", SIGNAL);
+        NDebug::log(ERR, "signalWindow: invalid signal format \"{}\"", SIGNAL);
         return {.success = false, .error = std::format("signalWindow: invalid signal format \"{}\"", SIGNAL)};
     }
 
@@ -1200,7 +1200,7 @@ static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSP
     const SWorkspaceIDName PPREVWS = PER_MON ? PMONITOR->getPrevWorkspaceIDName(PCURRENTWORKSPACE->m_iID) : PCURRENTWORKSPACE->getPrevWorkspaceIDName();
     // Do nothing if there's no previous workspace, otherwise switch to it.
     if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_iID) {
-        Debug::log(LOG, "No previous workspace to change to");
+        NDebug::log(LOG, "No previous workspace to change to");
         return {.id = WORKSPACE_NOT_CHANGED};
     }
 
@@ -1228,7 +1228,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
     const auto& [workspaceToChangeTo, workspaceName] = getWorkspaceToChangeFromArgs(args, PCURRENTWORKSPACE, PMONITOR);
     if (workspaceToChangeTo == WORKSPACE_INVALID) {
-        Debug::log(ERR, "Error in changeworkspace, invalid value");
+        NDebug::log(ERR, "Error in changeworkspace, invalid value");
         return {.success = false, .error = "Error in changeworkspace, invalid value"};
     }
 
@@ -1372,12 +1372,12 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
-        Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
+        NDebug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
         return {.success = false, .error = "Invalid workspace in moveActiveToWorkspace"};
     }
 
     if (WORKSPACEID == PWINDOW->workspaceID()) {
-        Debug::log(LOG, "Not moving to workspace because it didn't change.");
+        NDebug::log(LOG, "Not moving to workspace because it didn't change.");
         return {.success = false, .error = "Not moving to workspace because it didn't change."};
     }
 
@@ -1433,7 +1433,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
-        Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
+        NDebug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return {.success = false, .error = "Error in moveActiveToWorkspaceSilent, invalid value"};
     }
 
@@ -1469,7 +1469,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     char        arg              = args[0];
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        NDebug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return {.success = false, .error = std::format("Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
     }
 
@@ -1505,7 +1505,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
         return {};
     }
 
-    Debug::log(LOG, "No window found in direction {}, looking for a monitor", arg);
+    NDebug::log(LOG, "No window found in direction {}, looking for a monitor", arg);
 
     if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return {};
@@ -1514,7 +1514,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     if (*PNOFALLBACK)
         return {.success = false, .error = std::format("Nothing to focus to in direction {}", arg)};
 
-    Debug::log(LOG, "No monitor found in direction {}, getting the inverse edge", arg);
+    NDebug::log(LOG, "No monitor found in direction {}, getting the inverse edge", arg);
 
     const auto PMONITOR = PLASTWINDOW->m_pMonitor.lock();
 
@@ -1586,11 +1586,11 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     char arg = args[0];
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        NDebug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return {.success = false, .error = std::format("Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
     }
 
-    Debug::log(LOG, "Swapping active window in direction {}", arg);
+    NDebug::log(LOG, "Swapping active window in direction {}", arg);
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (!PLASTWINDOW)
@@ -1630,7 +1630,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
     }
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        NDebug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return {.success = false, .error = std::format("Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
     }
 
@@ -1785,7 +1785,7 @@ SDispatchResult CKeybindManager::alterSplitRatio(std::string args) {
         splitResult = getPlusMinusKeywordResult(args, 0);
 
     if (!splitResult.has_value()) {
-        Debug::log(ERR, "Splitratio invalid in alterSplitRatio!");
+        NDebug::log(ERR, "Splitratio invalid in alterSplitRatio!");
         return {.success = false, .error = "Splitratio invalid in alterSplitRatio!"};
     }
 
@@ -1808,14 +1808,14 @@ SDispatchResult CKeybindManager::focusMonitor(std::string arg) {
 
 SDispatchResult CKeybindManager::moveCursorToCorner(std::string arg) {
     if (!isNumber(arg)) {
-        Debug::log(ERR, "moveCursorToCorner, arg has to be a number.");
+        NDebug::log(ERR, "moveCursorToCorner, arg has to be a number.");
         return {.success = false, .error = "moveCursorToCorner, arg has to be a number."};
     }
 
     const auto CORNER = std::stoi(arg);
 
     if (CORNER < 0 || CORNER > 3) {
-        Debug::log(ERR, "moveCursorToCorner, corner not 0 - 3.");
+        NDebug::log(ERR, "moveCursorToCorner, corner not 0 - 3.");
         return {.success = false, .error = "moveCursorToCorner, corner not 0 - 3."};
     }
 
@@ -1853,7 +1853,7 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
 
     size_t      i = args.find_first_of(' ');
     if (i == std::string::npos) {
-        Debug::log(ERR, "moveCursor, takes 2 arguments.");
+        NDebug::log(ERR, "moveCursor, takes 2 arguments.");
         return {.success = false, .error = "moveCursor, takes 2 arguments"};
     }
 
@@ -1861,11 +1861,11 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
     y_str = args.substr(i + 1);
 
     if (!isNumber(x_str)) {
-        Debug::log(ERR, "moveCursor, x argument has to be a number.");
+        NDebug::log(ERR, "moveCursor, x argument has to be a number.");
         return {.success = false, .error = "moveCursor, x argument has to be a number."};
     }
     if (!isNumber(y_str)) {
-        Debug::log(ERR, "moveCursor, y argument has to be a number.");
+        NDebug::log(ERR, "moveCursor, y argument has to be a number.");
         return {.success = false, .error = "moveCursor, y argument has to be a number."};
     }
 
@@ -1922,7 +1922,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
             }
         }
     } else {
-        Debug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
+        NDebug::log(ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
         return {.success = false, .error = std::format("Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args)};
     }
 
@@ -1947,7 +1947,7 @@ SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
         else
             return {.success = false, .error = "No such workspace"};
     } catch (std::exception& e) {
-        Debug::log(ERR, R"(Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. "{}": "{}")", args, e.what());
+        NDebug::log(ERR, R"(Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. "{}": "{}")", args, e.what());
         return {.success = false, .error = std::format(R"(Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. "{}": "{}")", args, e.what())};
     }
 
@@ -1968,14 +1968,14 @@ SDispatchResult CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args)
     PHLMONITOR PMONITOR = g_pCompositor->getMonitorFromString(args);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
+        NDebug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
         return {.success = false, .error = "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist"};
     }
 
     // get the current workspace
     const auto PCURRENTWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
     if (!PCURRENTWORKSPACE) {
-        Debug::log(ERR, "moveCurrentWorkspaceToMonitor invalid workspace!");
+        NDebug::log(ERR, "moveCurrentWorkspaceToMonitor invalid workspace!");
         return {.success = false, .error = "moveCurrentWorkspaceToMonitor invalid workspace!"};
     }
 
@@ -1994,21 +1994,21 @@ SDispatchResult CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     const auto  PMONITOR = g_pCompositor->getMonitorFromString(monitor);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");
+        NDebug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");
         return {.success = false, .error = "Ignoring moveWorkspaceToMonitor: monitor doesnt exist"};
     }
 
     const auto WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
 
     if (WORKSPACEID == WORKSPACE_INVALID) {
-        Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
+        NDebug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
         return {.success = false, .error = "moveWorkspaceToMonitor invalid workspace!"};
     }
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
     if (!PWORKSPACE) {
-        Debug::log(ERR, "moveWorkspaceToMonitor workspace doesn't exist!");
+        NDebug::log(ERR, "moveWorkspaceToMonitor workspace doesn't exist!");
         return {.success = false, .error = "moveWorkspaceToMonitor workspace doesn't exist!"};
     }
 
@@ -2020,14 +2020,14 @@ SDispatchResult CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
     auto [workspaceID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (workspaceID == WORKSPACE_INVALID) {
-        Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
+        NDebug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return {.success = false, .error = "focusWorkspaceOnCurrentMonitor invalid workspace!"};
     }
 
     const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor.lock();
 
     if (!PCURRMONITOR) {
-        Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");
+        NDebug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");
         return {.success = false, .error = "focusWorkspaceOnCurrentMonitor monitor doesn't exist!"};
     }
 
@@ -2055,7 +2055,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
     if (pWorkspace->m_pMonitor != PCURRMONITOR) {
         const auto POLDMONITOR = pWorkspace->m_pMonitor.lock();
         if (!POLDMONITOR) { // wat
-            Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
+            NDebug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
             return {.success = false, .error = "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!"};
         }
         if (POLDMONITOR->activeWorkspaceID() == workspaceID) {
@@ -2074,7 +2074,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
 SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
     const auto& [workspaceID, workspaceName] = getWorkspaceIDNameFromString("special:" + args);
     if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
-        Debug::log(ERR, "Invalid workspace passed to special");
+        NDebug::log(ERR, "Invalid workspace passed to special");
         return {.success = false, .error = "Invalid workspace passed to special"};
     }
 
@@ -2091,10 +2091,10 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
-        Debug::log(LOG, "Toggling special workspace {} to closed", workspaceID);
+        NDebug::log(LOG, "Toggling special workspace {} to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
     } else {
-        Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
+        NDebug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
 
         if (!PSPECIALWORKSPACE)
@@ -2172,7 +2172,7 @@ SDispatchResult CKeybindManager::moveWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "moveWindow: no window");
+        NDebug::log(ERR, "moveWindow: no window");
         return {.success = false, .error = "moveWindow: no window"};
     }
 
@@ -2194,7 +2194,7 @@ SDispatchResult CKeybindManager::resizeWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "resizeWindow: no window");
+        NDebug::log(ERR, "resizeWindow: no window");
         return {.success = false, .error = "resizeWindow: no window"};
     }
 
@@ -2252,11 +2252,11 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
     if (!PWINDOW)
         return {.success = false, .error = "No such window found"};
 
-    Debug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle);
+    NDebug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle);
 
     const auto PWORKSPACE = PWINDOW->m_pWorkspace;
     if (!PWORKSPACE) {
-        Debug::log(ERR, "BUG THIS: null workspace in focusWindow");
+        NDebug::log(ERR, "BUG THIS: null workspace in focusWindow");
         return {.success = false, .error = "BUG THIS: null workspace in focusWindow"};
     }
 
@@ -2264,7 +2264,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
 
     if (g_pCompositor->m_pLastMonitor && g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_pWorkspace &&
         g_pCompositor->m_pLastMonitor->activeSpecialWorkspace != PWINDOW->m_pWorkspace) {
-        Debug::log(LOG, "Fake executing workspace to move focus");
+        NDebug::log(LOG, "Fake executing workspace to move focus");
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
@@ -2344,7 +2344,7 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
 SDispatchResult CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap == "") {
         m_szCurrentSelectedSubmap = "";
-        Debug::log(LOG, "Reset active submap to the default one.");
+        NDebug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
         EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
         return {};
@@ -2353,14 +2353,14 @@ SDispatchResult CKeybindManager::setSubmap(std::string submap) {
     for (const auto& k : g_pKeybindManager->m_vKeybinds) {
         if (k->submap == submap) {
             m_szCurrentSelectedSubmap = submap;
-            Debug::log(LOG, "Changed keybind submap to {}", submap);
+            NDebug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
             EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
             return {};
         }
     }
 
-    Debug::log(ERR, "Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap);
+    NDebug::log(ERR, "Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap);
     return {.success = false, .error = std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap)};
 }
 
@@ -2370,12 +2370,12 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "pass: window not found");
+        NDebug::log(ERR, "pass: window not found");
         return {.success = false, .error = "pass: window not found"};
     }
 
     if (!g_pSeatManager->keyboard) {
-        Debug::log(ERR, "No kb in pass?");
+        NDebug::log(ERR, "No kb in pass?");
         return {.success = false, .error = "No kb in pass?"};
     }
 
@@ -2444,7 +2444,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
     // args=<NEW_MODKEYS><NEW_KEY>[,WINDOW_RULES]
     const auto ARGS = CVarList(args, 3);
     if (ARGS.size() != 3) {
-        Debug::log(ERR, "sendshortcut: invalid args");
+        NDebug::log(ERR, "sendshortcut: invalid args");
         return {.success = false, .error = "sendshortcut: invalid args"};
     }
 
@@ -2462,7 +2462,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         keycode = std::stoi(KEY.substr(6));
         isMouse = true;
         if (keycode < 272) {
-            Debug::log(ERR, "sendshortcut: invalid mouse button");
+            NDebug::log(ERR, "sendshortcut: invalid mouse button");
             return {.success = false, .error = "sendshortcut: invalid mouse button"};
         }
     } else {
@@ -2477,7 +2477,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         const auto KB = g_pSeatManager->keyboard;
 
         if (!KB) {
-            Debug::log(ERR, "sendshortcut: no kb");
+            NDebug::log(ERR, "sendshortcut: no kb");
             return {.success = false, .error = "sendshortcut: no kb"};
         }
 
@@ -2501,7 +2501,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
             }
 
             if (!keycode) {
-                Debug::log(ERR, "sendshortcut: key not found");
+                NDebug::log(ERR, "sendshortcut: key not found");
                 return {.success = false, .error = "sendshortcut: key not found"};
             }
 
@@ -2510,7 +2510,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
     }
 
     if (!keycode) {
-        Debug::log(ERR, "sendshortcut: invalid key");
+        NDebug::log(ERR, "sendshortcut: invalid key");
         return {.success = false, .error = "sendshortcut: invalid key"};
     }
 
@@ -2524,12 +2524,12 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         PWINDOW = g_pCompositor->getWindowByRegex(regexp);
 
         if (!PWINDOW) {
-            Debug::log(ERR, "sendshortcut: window not found");
+            NDebug::log(ERR, "sendshortcut: window not found");
             return {.success = false, .error = "sendshortcut: window not found"};
         }
 
         if (!g_pSeatManager->keyboard) {
-            Debug::log(ERR, "No kb in sendshortcut?");
+            NDebug::log(ERR, "No kb in sendshortcut?");
             return {.success = false, .error = "No kb in sendshortcut?"};
         }
 
@@ -2625,7 +2625,7 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
         m->dpmsStatus = enable;
 
         if (!m->state.commit()) {
-            Debug::log(ERR, "Couldn't commit output {}", m->szName);
+            NDebug::log(ERR, "Couldn't commit output {}", m->szName);
             res.success = false;
             res.error   = "Couldn't commit output {}";
         }
@@ -2701,7 +2701,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
         PWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (!PWINDOW) {
-        Debug::log(ERR, "pin: window not found");
+        NDebug::log(ERR, "pin: window not found");
         return {.success = false, .error = "pin: window not found"};
     }
 
@@ -2713,7 +2713,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
     const auto PMONITOR = PWINDOW->m_pMonitor.lock();
 
     if (!PMONITOR) {
-        Debug::log(ERR, "pin: monitor not found");
+        NDebug::log(ERR, "pin: monitor not found");
         return {.success = false, .error = "pin: window not found"};
     }
 
@@ -2800,7 +2800,7 @@ SDispatchResult CKeybindManager::alterZOrder(std::string args) {
         PWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (!PWINDOW) {
-        Debug::log(ERR, "alterZOrder: no window");
+        NDebug::log(ERR, "alterZOrder: no window");
         return {.success = false, .error = "alterZOrder: no window"};
     }
 
@@ -2809,7 +2809,7 @@ SDispatchResult CKeybindManager::alterZOrder(std::string args) {
     else if (POSITION == "bottom")
         g_pCompositor->changeWindowZOrder(PWINDOW, false);
     else {
-        Debug::log(ERR, "alterZOrder: bad position: {}", POSITION);
+        NDebug::log(ERR, "alterZOrder: bad position: {}", POSITION);
         return {.success = false, .error = "alterZOrder: bad position: {}"};
     }
 
@@ -2932,7 +2932,7 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
         return {};
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        NDebug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return {.success = false, .error = std::format("Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
     }
 
@@ -2985,7 +2985,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
     static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
 
     if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
+        NDebug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
         return {.success = false, .error = std::format("Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
     }
 

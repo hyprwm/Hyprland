@@ -96,12 +96,6 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
         pendingAcquire = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, true};
-
-        // add new points if they arrive late.
-        if (surface->pending.buffer) {
-            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-            pendingAcquire                   = {};
-        }
     });
 
     resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -112,27 +106,6 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
         pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, false};
-
-        // add new points if they arrive late.
-        if (surface->pending.buffer) {
-            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-            pendingAcquire                   = {};
-        }
-    });
-
-    listeners.surfaceBufferAttach = surface->events.bufferAttach.registerListener([this](std::any d) {
-        if (!surface->pending.buffer && surface->pending.newBuffer && !surface->pending.texture)
-            return; // null buffer attached.
-
-        if (!pendingAcquire.expired()) {
-            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
-            pendingAcquire                   = {};
-        }
-
-        if (!pendingRelease.expired()) {
-            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-            pendingRelease                   = {};
-        }
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
@@ -152,6 +125,16 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         if (!surface->pending.buffer && !surface->pending.newBuffer && !surface->current.buffer) {
             surface->commitPendingState(surface->pending); // no pending buffer, no current buffer. probably first commit
             return;
+        }
+
+        if (!pendingAcquire.expired()) {
+            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
+            pendingAcquire                   = {};
+        }
+
+        if (!pendingRelease.expired()) {
+            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            pendingRelease                   = {};
         }
 
         if (protocolError())

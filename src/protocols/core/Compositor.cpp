@@ -88,8 +88,6 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-
-        events.bufferAttach.emit();
     });
 
     resource->setCommit([this](CWlSurface* r) {

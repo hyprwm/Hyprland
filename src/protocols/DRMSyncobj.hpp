@@ -56,7 +56,6 @@ class CDRMSyncobjSurfaceResource {
     std::list<SSurfaceState>        pendingStates;
 
     struct {
-        CHyprSignalListener surfaceBufferAttach;
         CHyprSignalListener surfacePrecommit;
     } listeners;
 };

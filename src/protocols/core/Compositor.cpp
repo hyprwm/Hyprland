@@ -478,13 +478,13 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     // release the buffer if it's synchronous as update() has done everything thats needed
     // so we can let the app know we're done.
     if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
-        dropCurrentBuffer();
+        //dropCurrentBuffer(); // lets not drop it at all, it will get dropped on next commit if a new buffer arrives.
+        // solves flickering on nonsyncobj apps on explicit sync.
     }
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
-    // #TODO does this apply to explicit sync?
-    if (!syncobj && previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
+    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
         if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
             previousBuffer->buffer->lock();
             previousBuffer->buffer->onBackendRelease([previousBuffer]() { previousBuffer->buffer->unlock(); });

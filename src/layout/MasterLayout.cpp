@@ -377,17 +377,17 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         static auto PALWAYSKEEPPOSITION = CConfigValue<Hyprlang::INT>("master:always_keep_position");
         if (*PALWAYSKEEPPOSITION) {
             const float WIDTH = WSSIZE.x * PMASTERNODE->percMaster;
-            float nextX = 0;
+            float       nextX = 0;
 
             if (orientation == ORIENTATION_RIGHT)
                 nextX = WSSIZE.x - WIDTH;
             else if (orientation == ORIENTATION_CENTER)
                 nextX = (WSSIZE.x - WIDTH) / 2;
 
-            PMASTERNODE->size = Vector2D(WIDTH, WSSIZE.y);
+            PMASTERNODE->size     = Vector2D(WIDTH, WSSIZE.y);
             PMASTERNODE->position = WSPOS + Vector2D((double)nextX, 0.0);
         } else {
-            PMASTERNODE->size = WSSIZE;
+            PMASTERNODE->size     = WSSIZE;
             PMASTERNODE->position = WSPOS;
         }
 

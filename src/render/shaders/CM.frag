@@ -280,17 +280,17 @@ mat3 primaries2xyz(mat4x2 primaries) {
     vec3 b = xy2xyz(primaries[2]);
     vec3 w = xy2xyz(primaries[3]);
     
-    mat3 invMat = transpose(inverse(
+    mat3 invMat = inverse(
         mat3(r, g, b)
-    ));
+    );
 
     vec3 s = invMat * w;
 
-    return mat3(r * s, g * s, b * s);
+    return transpose(mat3(r * s, g * s, b * s));
 }
 
 vec4 convertPrimaries(vec4 color, mat3 src, mat3 dst) {
-    mat3 convMat = transpose(src * inverse(dst));
+    mat3 convMat = src * inverse(dst);
     return vec4(convMat * color.rgb, color[3]);
 }
 

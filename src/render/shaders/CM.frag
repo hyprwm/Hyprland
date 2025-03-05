@@ -16,6 +16,8 @@ uniform mat4x2 targetPrimaries;
 uniform float maxLuminance;
 uniform float dstMaxLuminance;
 uniform float dstRefLuminance;
+uniform float sdrSaturation;
+uniform float sdrBrightnessMultiplier;
 
 uniform float alpha;
 
@@ -101,6 +103,21 @@ vec4 rounding(vec4 color) {
     }
 
     return color;
+}
+
+vec3 xy2xyz(vec2 xy) {
+    if (xy.y == 0.0)
+        return vec3(0.0, 0.0, 0.0);
+    
+    return vec3(xy.x / xy.y, 1.0, (1.0 - xy.x - xy.y) / xy.y);
+}
+
+vec4 saturate(vec4 color, mat3 primaries, float saturation) {
+    if (saturation == 1.0)
+        return color;
+    vec3 brightness = vec3(primaries[1][0], primaries[1][1], primaries[1][2]);
+    float Y = dot(color.rgb, brightness);
+    return vec4(mix(vec3(Y), color.rgb, saturation), color[3]);
 }
 
 vec3 toLinearRGB(vec3 color, int tf) {
@@ -267,13 +284,6 @@ vec4 fromLinearNit(vec4 color, int tf) {
     return color;
 }
 
-vec3 xy2xyz(vec2 xy) {
-    if (xy.y == 0.0)
-        return vec3(0.0, 0.0, 0.0);
-    
-    return vec3(xy.x / xy.y, 1.0, (1.0 - xy.x - xy.y) / xy.y);
-}
-
 mat3 primaries2xyz(mat4x2 primaries) {
     vec3 r = xy2xyz(primaries[0]);
     vec3 g = xy2xyz(primaries[1]);
@@ -378,6 +388,9 @@ void main() {
             pixColor = convertPrimaries(pixColor, srcxyz, dstxyz);
         }
         pixColor = tonemap(pixColor, dstxyz);
+        if (sourceTF == CM_TRANSFER_FUNCTION_SRGB && targetTF == CM_TRANSFER_FUNCTION_ST2084_PQ)
+            pixColor = saturate(pixColor, srcxyz, sdrSaturation);
+            pixColor *= sdrBrightnessMultiplier;
         pixColor = fromLinearNit(pixColor, targetTF);
     }
 

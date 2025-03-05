@@ -20,6 +20,8 @@ class CShader {
     GLint   maxLuminance      = -1;
     GLint   dstMaxLuminance   = -1;
     GLint   dstRefLuminance   = -1;
+    GLint   sdrSaturation     = -1; // sdr -> hdr saturation
+    GLint   sdrBrightness     = -1; // sdr -> hdr brightness multiplier
     GLint   tex               = -1;
     GLint   alpha             = -1;
     GLint   posAttrib         = -1;

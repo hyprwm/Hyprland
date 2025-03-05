@@ -38,18 +38,20 @@ enum eCMType : uint8_t {
 };
 
 struct SMonitorRule {
-    eAutoDirs           autoDir     = DIR_AUTO_NONE;
-    std::string         name        = "";
-    Vector2D            resolution  = Vector2D(1280, 720);
-    Vector2D            offset      = Vector2D(0, 0);
-    float               scale       = 1;
-    float               refreshRate = 60; // Hz
-    bool                disabled    = false;
-    wl_output_transform transform   = WL_OUTPUT_TRANSFORM_NORMAL;
-    std::string         mirrorOf    = "";
-    bool                enable10bit = false;
-    eCMType             cmType      = CM_SRGB;
-    drmModeModeInfo     drmMode     = {};
+    eAutoDirs           autoDir       = DIR_AUTO_NONE;
+    std::string         name          = "";
+    Vector2D            resolution    = Vector2D(1280, 720);
+    Vector2D            offset        = Vector2D(0, 0);
+    float               scale         = 1;
+    float               refreshRate   = 60; // Hz
+    bool                disabled      = false;
+    wl_output_transform transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string         mirrorOf      = "";
+    bool                enable10bit   = false;
+    eCMType             cmType        = CM_SRGB;
+    float               sdrSaturation = 1.0f; // SDR -> HDR
+    float               sdrBrightness = 1.0f; // SDR -> HDR
+    drmModeModeInfo     drmMode       = {};
     std::optional<int>  vrr;
 };
 
@@ -119,6 +121,8 @@ class CMonitor {
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
     eCMType                     cmType           = CM_SRGB;
+    float                       sdrSaturation    = 1.0f;
+    float                       sdrBrightness    = 1.0f;
     bool                        createdByUser    = false;
     bool                        isUnsafeFallback = false;
 

@@ -881,6 +881,8 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
     m_RenderData.pCurrentMonData->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
     m_RenderData.pCurrentMonData->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
+    m_RenderData.pCurrentMonData->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
+    m_RenderData.pCurrentMonData->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
     m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
     m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
     m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
@@ -1417,6 +1419,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             glUniform1f(shader->maxLuminance, maxLuminance * m_RenderData.pMonitor->imageDescription.luminances.reference / imageDescription.luminances.reference);
             glUniform1f(shader->dstMaxLuminance, m_RenderData.pMonitor->imageDescription.luminances.max > 0 ? m_RenderData.pMonitor->imageDescription.luminances.max : 10000);
             glUniform1f(shader->dstRefLuminance, m_RenderData.pMonitor->imageDescription.luminances.reference);
+            glUniform1f(shader->sdrSaturation,
+                        m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                            m_RenderData.pMonitor->sdrSaturation :
+                            1.0f);
+            glUniform1f(shader->sdrBrightness,
+                        m_RenderData.pMonitor->sdrBrightness > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                            m_RenderData.pMonitor->sdrBrightness :
+                            1.0f);
         }
     }
 

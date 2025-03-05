@@ -413,7 +413,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     if (!force && DELTALESSTHAN(vecPixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, RULE->resolution.y, 1) &&
         DELTALESSTHAN(refreshRate, RULE->refreshRate, 1) && setScale == RULE->scale &&
         ((DELTALESSTHAN(vecPosition.x, RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
-        transform == RULE->transform && RULE->enable10bit == enabled10bit && RULE->cmType == cmType && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
+        transform == RULE->transform && RULE->enable10bit == enabled10bit && RULE->cmType == cmType && RULE->sdrSaturation == sdrSaturation &&
+        RULE->sdrBrightness == sdrBrightness && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
 
@@ -727,6 +728,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
     if (oldImageDescription != imageDescription)
         PROTO::colorManagement->onMonitorImageDescriptionChanged(self);
+
+    sdrSaturation = RULE->sdrSaturation;
+    sdrBrightness = RULE->sdrBrightness;
 
     Vector2D logicalSize = vecPixelSize / scale;
     if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {

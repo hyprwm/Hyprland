@@ -2055,6 +2055,16 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             else
                 error = "invalid cm ";
             argno++;
+        } else if (ARGS[argno] == "sdrsaturation") {
+            try {
+                newrule.sdrSaturation = stof(ARGS[argno + 1]);
+            } catch (...) { error = "invalid sdrsaturation "; }
+            argno++;
+        } else if (ARGS[argno] == "sdrbrightness") {
+            try {
+                newrule.sdrBrightness = stof(ARGS[argno + 1]);
+            } catch (...) { error = "invalid sdrbrightness "; }
+            argno++;
         } else if (ARGS[argno] == "transform") {
             if (!isNumber(ARGS[argno + 1])) {
                 error = "invalid transform ";

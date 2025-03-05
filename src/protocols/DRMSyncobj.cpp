@@ -96,6 +96,12 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
         pendingAcquire = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, true};
+
+        // add new points if they arrive late.
+        if (surface->pending.buffer) {
+            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            pendingAcquire                   = {};
+        }
     });
 
     resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -106,6 +112,12 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
         pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, false};
+
+        // add new points if they arrive late.
+        if (surface->pending.buffer) {
+            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            pendingAcquire                   = {};
+        }
     });
 
     listeners.surfaceBufferAttach = surface->events.bufferAttach.registerListener([this](std::any d) {
@@ -118,9 +130,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         if (!pendingRelease.expired()) {
-            surface->pending.buffer->release      = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-            surface->pending.buffer->syncReleaser = surface->pending.buffer->release->createSyncRelease();
-            pendingRelease                        = {};
+            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            pendingRelease                   = {};
         }
     });
 
@@ -143,9 +154,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if (protocolError()) {
+        if (protocolError())
             return; // bad client.. return.
-        }
 
         const auto& state = pendingStates.emplace_back(surface->pending);
         surface->pending.damage.clear();
@@ -153,11 +163,12 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.newBuffer = false;
         surface->pending.buffer.reset();
 
-        state.buffer->acquire->addWaiter([this, it = std::prev(pendingStates.end())] {
-            if (!surface)
+        state.buffer->syncReleaser = state.buffer->release->createSyncRelease();
+        state.buffer->acquire->addWaiter([this, surf = surface, it = std::prev(pendingStates.end())] {
+            if (!surf)
                 return;
 
-            surface->commitPendingState(*it);
+            surf->commitPendingState(*it);
             pendingStates.erase(it);
         });
     });

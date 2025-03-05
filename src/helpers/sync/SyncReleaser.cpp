@@ -45,11 +45,10 @@ CFileDescriptor CSyncReleaser::mergeSyncFds(const CFileDescriptor& fd1, const CF
     do {
         err = ioctl(fd1.get(), SYNC_IOC_MERGE, &data);
     } while (err == -1 && (errno == EINTR || errno == EAGAIN));
-    if (err < 0) {
+    if (err < 0)
         return CFileDescriptor{};
-    } else {
+    else
         return CFileDescriptor(data.fence);
-    }
 }
 
 void CSyncReleaser::addReleaseSync(SP<CEGLSync> sync) {

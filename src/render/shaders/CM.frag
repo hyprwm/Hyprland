@@ -73,7 +73,7 @@ uniform vec3 tint;
 #define HLG_B 0.28466892
 #define HLG_C 0.55991073
 
-#define SDR_MIN_LUMINANCE 0.02
+#define SDR_MIN_LUMINANCE 0.2
 #define SDR_MAX_LUMINANCE 80.0
 #define HDR_MIN_LUMINANCE 0.005
 #define HDR_MAX_LUMINANCE 10000.0

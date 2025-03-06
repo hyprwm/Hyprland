@@ -53,7 +53,7 @@ CFileDescriptor CSyncReleaser::mergeSyncFds(const CFileDescriptor& fd1, const CF
 
 void CSyncReleaser::addReleaseSync(SP<CEGLSync> sync) {
     if (m_fd.isValid())
-        mergeSyncFds(m_fd, sync->takeFD());
+        m_fd = mergeSyncFds(m_fd, sync->takeFD());
     else
         m_fd = sync->fd().duplicate();
 

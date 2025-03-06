@@ -1576,13 +1576,11 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
             if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
                 libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
 
-            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "transform", "input:touchdevice:transform"), 0, 7);
-            Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->hlName);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV)) {
-                float current_matrix[6] = {.0, .0, .0, .0, .0, .0};
-                if (libinput_device_config_calibration_get_default_matrix(LIBINPUTDEV, current_matrix))
-                    Debug::log(LOG, "Touch device {} has a non-default calibration. Ignoring transform", PTOUCHDEV->hlName);
-                else
+                Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->hlName);
+                // default value of transform being -1 means it's unset.
+                const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "transform", "input:touchdevice:transform"), -1, 7);
+                if (ROTATION > -1)
                     libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
             }
 

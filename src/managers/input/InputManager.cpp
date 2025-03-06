@@ -93,14 +93,16 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
 
-    if (!e.mouse && e.device) {
-        if (e.device->flipX) {
-            delta.x   = -delta.x;
-            unaccel.x = -unaccel.x;
-        }
-        if (e.device->flipY) {
-            delta.y   = -delta.y;
-            unaccel.y = -unaccel.y;
+    if (e.device) {
+        if (e.device->isTouchpad) {
+            if (e.device->flipX) {
+                delta.x   = -delta.x;
+                unaccel.x = -unaccel.x;
+            }
+            if (e.device->flipY) {
+                delta.y   = -delta.y;
+                unaccel.y = -unaccel.y;
+            }
         }
     }
 

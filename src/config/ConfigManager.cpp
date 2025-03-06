@@ -562,6 +562,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:allow_small_split", Hyprlang::INT{0});
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
+    registerConfigVar("master:always_keep_position", Hyprlang::INT{0});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:first_launch_animation", Hyprlang::INT{1});

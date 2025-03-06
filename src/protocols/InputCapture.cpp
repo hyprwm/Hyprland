@@ -45,28 +45,7 @@ void CInputCaptureProtocol::sendMotion(const Vector2D& absolutePosition, const V
 void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const UP<CHyprlandInputCaptureManagerV1>& manager) {
     if (!keyboard)
         return;
-
-    hyprlandInputCaptureManagerV1KeymapFormat format;
-    int                                       fd;
-    uint32_t                                  size;
-    if (keyboard) {
-        format = HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_XKB_V1;
-        fd     = keyboard->xkbKeymapFD.get();
-        size   = keyboard->xkbKeymapString.length() + 1;
-    } else {
-        format = HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_NO_KEYMAP;
-        fd     = open("/dev/null", O_RDONLY | O_CLOEXEC);
-        if (fd < 0) {
-            LOGM(ERR, "Failed to open /dev/null");
-            return;
-        }
-        size = 0;
-    }
-
-    manager->sendKeymap(format, fd, size);
-
-    if (!keyboard)
-        close(fd);
+    manager->sendKeymap(HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_XKB_V1, keyboard->xkbKeymapFD.get(), keyboard->xkbKeymapString.length() + 1);
 }
 
 void CInputCaptureProtocol::forceRelease() {

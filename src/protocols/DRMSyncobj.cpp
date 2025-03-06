@@ -168,7 +168,6 @@ void CDRMSyncobjSurfaceResource::removeAllWaiters() {
 
 CDRMSyncobjSurfaceResource::~CDRMSyncobjSurfaceResource() {
     removeAllWaiters();
-    PROTO::sync->destroyResource(this);
 }
 
 bool CDRMSyncobjSurfaceResource::protocolError() {
@@ -215,10 +214,6 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTi
         resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE, "Timeline failed importing");
         return;
     }
-}
-
-CDRMSyncobjTimelineResource::~CDRMSyncobjTimelineResource() {
-    PROTO::sync->destroyResource(this);
 }
 
 WP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
@@ -282,10 +277,6 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjMana
 
         LOGM(LOG, "New linux_drm_timeline at {:x}", (uintptr_t)RESOURCE.get());
     });
-}
-
-CDRMSyncobjManagerResource::~CDRMSyncobjManagerResource() {
-    PROTO::sync->destroyResource(this);
 }
 
 bool CDRMSyncobjManagerResource::good() {

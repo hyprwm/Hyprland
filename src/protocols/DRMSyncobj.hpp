@@ -5,6 +5,7 @@
 #include "helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "types/SurfaceState.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <list>
 
@@ -63,7 +64,7 @@ class CDRMSyncobjSurfaceResource {
 class CDRMSyncobjTimelineResource {
   public:
     CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTimelineV1>&& resource_, Hyprutils::OS::CFileDescriptor&& fd_);
-    ~CDRMSyncobjTimelineResource();
+    ~CDRMSyncobjTimelineResource() = default;
     static WP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();
@@ -78,7 +79,7 @@ class CDRMSyncobjTimelineResource {
 class CDRMSyncobjManagerResource {
   public:
     CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjManagerV1>&& resource_);
-    ~CDRMSyncobjManagerResource();
+    ~CDRMSyncobjManagerResource() = default;
 
     bool good();
 

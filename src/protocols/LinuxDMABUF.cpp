@@ -113,7 +113,6 @@ CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDM
 CLinuxDMABuffer::~CLinuxDMABuffer() {
     buffer.reset();
     listeners.bufferResourceDestroy.reset();
-    PROTO::linuxDma->destroyResource(this);
 }
 
 bool CLinuxDMABuffer::good() {
@@ -190,10 +189,6 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
 
         create(id);
     });
-}
-
-CLinuxDMABUFParamsResource::~CLinuxDMABUFParamsResource() {
-    PROTO::linuxDma->destroyResource(this);
 }
 
 bool CLinuxDMABUFParamsResource::good() {
@@ -306,10 +301,6 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     sendDefaultFeedback();
 }
 
-CLinuxDMABUFFeedbackResource::~CLinuxDMABUFFeedbackResource() {
-    PROTO::linuxDma->destroyResource(this);
-}
-
 bool CLinuxDMABUFFeedbackResource::good() {
     return resource->resource();
 }
@@ -390,10 +381,6 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : re
 
     if (resource->version() < 4)
         sendMods();
-}
-
-CLinuxDMABUFResource::~CLinuxDMABUFResource() {
-    PROTO::linuxDma->destroyResource(this);
 }
 
 bool CLinuxDMABUFResource::good() {

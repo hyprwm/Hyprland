@@ -60,7 +60,7 @@ class CDMABUFFormatTable {
 class CLinuxDMABUFParamsResource {
   public:
     CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
-    ~CLinuxDMABUFParamsResource();
+    ~CLinuxDMABUFParamsResource() = default;
 
     bool                         good();
     void                         create(uint32_t id); // 0 means not immed
@@ -79,7 +79,7 @@ class CLinuxDMABUFParamsResource {
 class CLinuxDMABUFFeedbackResource {
   public:
     CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_);
-    ~CLinuxDMABUFFeedbackResource();
+    ~CLinuxDMABUFFeedbackResource() = default;
 
     bool                   good();
     void                   sendDefaultFeedback();
@@ -97,7 +97,7 @@ class CLinuxDMABUFFeedbackResource {
 class CLinuxDMABUFResource {
   public:
     CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_);
-    ~CLinuxDMABUFResource();
+    ~CLinuxDMABUFResource() = default;
 
     bool good();
     void sendMods();

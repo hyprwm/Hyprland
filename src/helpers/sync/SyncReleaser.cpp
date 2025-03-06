@@ -3,7 +3,7 @@
 #include "../../render/OpenGL.hpp"
 #include <sys/ioctl.h>
 
-#if defined(Q_OS_LINUX)
+#if defined(__linux__)
 #include <linux/sync_file.h>
 #else
 struct sync_merge_data {

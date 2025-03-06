@@ -33,7 +33,7 @@ class CSinglePixelBuffer : public IHLBuffer {
 class CSinglePixelBufferResource {
   public:
     CSinglePixelBufferResource(uint32_t id, wl_client* client, CHyprColor color);
-    ~CSinglePixelBufferResource();
+    ~CSinglePixelBufferResource() = default;
 
     bool good();
 

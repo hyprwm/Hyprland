@@ -1578,8 +1578,14 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
 
             const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "transform", "input:touchdevice:transform"), 0, 7);
             Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->hlName);
-            if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
-                libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+            if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV)) {
+                float current_matrix[6] = {.0, .0, .0, .0, .0, .0};
+                if (libinput_device_config_calibration_get_default_matrix(LIBINPUTDEV, current_matrix)) {
+                    Debug::log(LOG, "Touch device {} has a non-default calibration. Ignoring transform", PTOUCHDEV->hlName);
+                } else {
+                    libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
+                }
+            }
 
             auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->hlName, "output", "input:touchdevice:output");
             bool       bound      = !output.empty() && output != STRVAL_EMPTY;

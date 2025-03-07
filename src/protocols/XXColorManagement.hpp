@@ -119,7 +119,7 @@ class CXXColorManagementParametricCreator {
 
 class CXXColorManagementImageDescription {
   public:
-    CXXColorManagementImageDescription(SP<CXxImageDescriptionV4> resource_, bool allowGetInformation = false);
+    CXXColorManagementImageDescription(SP<CXxImageDescriptionV4> resource_, bool allowGetInformation);
 
     bool                                   good();
     wl_client*                             client();

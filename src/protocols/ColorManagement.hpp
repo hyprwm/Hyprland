@@ -138,7 +138,7 @@ class CColorManagementParametricCreator {
 
 class CColorManagementImageDescription {
   public:
-    CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation = false);
+    CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation);
 
     bool                                 good();
     wl_client*                           client();

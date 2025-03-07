@@ -973,7 +973,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "group:groupbar:border_size",
         .description = "thickness of the border around the group and its groupbar",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 20},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:col.border_active",

@@ -682,7 +682,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:col.inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66777700"});
     registerConfigVar("group:groupbar:col.locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66ff5500"});
     registerConfigVar("group:groupbar:col.locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66775500"});
-    registerConfigVar("group:groupbar:border_size", Hyprlang::INT{1});
+    registerConfigVar("group:groupbar:border_size", Hyprlang::INT{2});
     registerConfigVar("group:groupbar:col.border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffffff"});
     registerConfigVar("group:groupbar:col.border_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xff444444"});
 

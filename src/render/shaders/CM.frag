@@ -170,12 +170,10 @@ vec4 toLinear(vec4 color, int tf) {
     return color;
 }
 
-vec4 toLinearNit(vec4 color, int tf) {
+vec4 toNit(vec4 color, int tf) {
     if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
         color.rgb = color.rgb * SDR_MAX_LUMINANCE;
     else {
-        color.rgb /= max(color.a, 0.001);
-        color.rgb = toLinearRGB(color.rgb, tf);
 
         switch (tf) {
             case CM_TRANSFER_FUNCTION_ST2084_PQ:
@@ -195,8 +193,6 @@ vec4 toLinearNit(vec4 color, int tf) {
             default:
                 color.rgb = color.rgb * (SDR_MAX_LUMINANCE - SDR_MIN_LUMINANCE) + SDR_MIN_LUMINANCE; break;
         }
-
-        color.rgb *= color.a;
     }
     return color;
 }
@@ -291,16 +287,51 @@ mat3 primaries2xyz(mat4x2 primaries) {
     vec3 w = xy2xyz(primaries[3]);
     
     mat3 invMat = inverse(
-        mat3(r, g, b)
+       mat3(
+            r.x, r.y, r.z,
+            g.x, g.y, g.z,
+            b.x, b.y, b.z
+        )
     );
 
     vec3 s = invMat * w;
 
-    return transpose(mat3(r * s, g * s, b * s));
+    return mat3(
+        s.r * r.x, s.r * r.y, s.r * r.z,
+        s.g * g.x, s.g * g.y, s.g * g.z,
+        s.b * b.x, s.b * b.y, s.b * b.z
+    );
 }
 
-vec4 convertPrimaries(vec4 color, mat3 src, mat3 dst) {
-    mat3 convMat = src * inverse(dst);
+// const vec2 D65 = vec2(0.3127, 0.3290);
+const mat3 Bradford = mat3(
+    0.8951, 0.2664, -0.1614,
+    -0.7502, 1.7135, 0.0367,
+    0.0389, -0.0685, 1.0296
+);
+const mat3 BradfordInv = inverse(Bradford);
+
+mat3 adaptWhite(vec2 src, vec2 dst) {
+    if (src == dst)
+        return mat3(
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        );
+
+    vec3 srcXYZ = xy2xyz(src);
+    vec3 dstXYZ = xy2xyz(dst);
+    vec3 factors = (Bradford * dstXYZ) / (Bradford * srcXYZ);
+
+    return BradfordInv * mat3(
+        factors.x, 0.0, 0.0,
+        0.0, factors.y, 0.0,
+        0.0, 0.0, factors.z
+    ) * Bradford;
+}
+
+vec4 convertPrimaries(vec4 color, mat3 src, vec2 srcWhite, mat3 dst, vec2 dstWhite) {
+    mat3 convMat = inverse(dst) * adaptWhite(srcWhite, dstWhite) * src;
     return vec4(convMat * color.rgb, color[3]);
 }
 
@@ -378,15 +409,18 @@ void main() {
         discard;
 
     if (skipCM == 0) {
-        pixColor = toLinearNit(pixColor, sourceTF);
+        pixColor.rgb /= max(pixColor.a, 0.001);
+        pixColor.rgb = toLinearRGB(pixColor.rgb, sourceTF);
         mat3 srcxyz = primaries2xyz(sourcePrimaries);
         mat3 dstxyz;
         if (sourcePrimaries == targetPrimaries)
             dstxyz = srcxyz;
         else {
             dstxyz = primaries2xyz(targetPrimaries);
-            pixColor = convertPrimaries(pixColor, srcxyz, dstxyz);
+            pixColor = convertPrimaries(pixColor, srcxyz, sourcePrimaries[3], dstxyz, targetPrimaries[3]);
         }
+        pixColor = toNit(pixColor, sourceTF);
+        pixColor.rgb *= pixColor.a;
         pixColor = tonemap(pixColor, dstxyz);
         if (sourceTF == CM_TRANSFER_FUNCTION_SRGB && targetTF == CM_TRANSFER_FUNCTION_ST2084_PQ)
             pixColor = saturate(pixColor, srcxyz, sdrSaturation);

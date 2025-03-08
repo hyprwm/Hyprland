@@ -5,13 +5,15 @@
 #include "types/WLBuffer.hpp"
 #include "../render/OpenGL.hpp"
 
-CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs_) {
+using namespace Hyprutils::OS;
+
+CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs&& attrs_) {
     LOGM(LOG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
     for (int i = 0; i < attrs_.planes; ++i) {
-        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i], attrs_.strides[i], attrs_.offsets[i]);
+        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i].get(), attrs_.strides[i], attrs_.offsets[i]);
     }
 
-    buffer                   = makeShared<CDMABuffer>(id, client, attrs_);
+    buffer                   = makeShared<CDMABuffer>(id, client, std::move(attrs_));
     buffer->resource->buffer = buffer;
 
     listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
@@ -82,10 +84,10 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
             attrs.planes     = 1;
             attrs.offsets[0] = off0;
             attrs.strides[0] = str0;
-            attrs.fds[0]     = nameFd;
+            attrs.fds[0]     = CFileDescriptor{nameFd};
             attrs.format     = fmt;
 
-            const auto RESOURCE = PROTO::mesaDRM->m_vBuffers.emplace_back(makeShared<CMesaDRMBufferResource>(id, resource->client(), attrs));
+            const auto RESOURCE = PROTO::mesaDRM->m_vBuffers.emplace_back(makeShared<CMesaDRMBufferResource>(id, resource->client(), std::move(attrs)));
 
             if UNLIKELY (!RESOURCE->good()) {
                 r->noMemory();

@@ -1280,22 +1280,25 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.bufferSize != vecPixelSize || PSURFACE->current.transform != transform)
+    if (!PSURFACE || !PSURFACE->current.texture || !PSURFACE->current.buffer || PSURFACE->current.buffer->buffer.expired())
+        return false;
+
+    if (PSURFACE->current.bufferSize != vecPixelSize || PSURFACE->current.transform != transform)
         return false;
 
     // we can't scanout shm buffers.
-    if (!PSURFACE->current.buffer || !PSURFACE->current.buffer->buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
+    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    if (!params.success || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt", (uintptr_t)PSURFACE.get());
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
+
+    auto PBUFFER = PSURFACE->current.buffer->buffer.lock();
+    if (PBUFFER == output->state->state().buffer)
+        return true;
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
-
-    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
-    // scanout buffer isn't dmabuf, so no scanout
-    if (!params.success)
-        return false;
 
     // entering into scanout, so save monitor format
     if (lastScanout.expired())
@@ -1306,7 +1309,7 @@ bool CMonitor::attemptDirectScanout() {
         drmFormat = params.format;
     }
 
-    output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
+    output->state->setBuffer(PBUFFER);
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
@@ -1315,20 +1318,6 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
-
-    // wait for the explicit fence if present, and if kms explicit is allowed
-    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
-    CFileDescriptor explicitWaitFD;
-    if (DOEXPLICIT) {
-        explicitWaitFD = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
-        if (!explicitWaitFD.isValid())
-            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
-    }
-    DOEXPLICIT = DOEXPLICIT && explicitWaitFD.isValid();
-
-    auto     cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
-
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     PSURFACE->presentFeedback(&now, self.lock());
@@ -1336,10 +1325,23 @@ bool CMonitor::attemptDirectScanout() {
     output->state->addDamage(CBox{{}, vecPixelSize});
     output->state->resetExplicitFences();
 
+    auto cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
+
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
+
+    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
     if (DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD.get());
-        output->state->setExplicitInFence(explicitWaitFD.get());
+        // wait for surface's explicit fence if present
+        CFileDescriptor fd = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
+        if (fd.isValid()) {
+            Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", fd.get());
+            output->state->setExplicitInFence(fd.get());
+        } else
+            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an sync file fd for aq IN_FENCE");
+        DOEXPLICIT = fd.isValid();
     }
+
+    commitSeq++;
 
     bool ok = output->commit();
 
@@ -1350,28 +1352,24 @@ bool CMonitor::attemptDirectScanout() {
         ok = output->commit();
     }
 
-    if (ok) {
-        if (lastScanout.expired()) {
-            lastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
-        }
-
-        // delay explicit sync feedback until kms release of the buffer
-        if (DOEXPLICIT) {
-            Debug::log(TRACE, "attemptDirectScanout: Delaying explicit sync release feedback until kms release");
-            PSURFACE->current.buffer->releaser->drop();
-
-            PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
-                const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.releaseTimeline && PSURFACE->syncobj->current.releaseTimeline->timeline;
-                if (DOEXPLICIT)
-                    PSURFACE->syncobj->current.releaseTimeline->timeline->signal(PSURFACE->syncobj->current.releasePoint);
-            });
-        }
-    } else {
+    if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
         lastScanout.reset();
         return false;
     }
+
+    if (lastScanout.expired()) {
+        lastScanout = PCANDIDATE;
+        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+    }
+
+    if (!PBUFFER->lockedByBackend)
+        return true;
+
+    // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then
+    // btw buffer's syncReleaser will take care of signaling release point, so we don't do that here
+    PBUFFER->lock();
+    PBUFFER->onBackendRelease([PBUFFER]() { PBUFFER->unlock(); });
 
     return true;
 }

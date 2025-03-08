@@ -21,7 +21,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                          unlock();
     virtual bool                          locked();
 
-    void                                  unlockOnBufferRelease(WP<CWLSurfaceResource> surf /* optional */);
+    void                                  onBackendRelease(const std::function<void()>& fn);
 
     SP<CTexture>                          texture;
     bool                                  opaque = false;

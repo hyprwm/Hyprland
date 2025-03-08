@@ -83,11 +83,11 @@ enum eOverridePriority : uint8_t {
     PRIORITY_SET_PROP,
 };
 
-template <typename T>
+template <typename T, bool Addable = std::is_same<T, bool>::value || std::is_same<T, int>::value || std::is_same<T, float>::value>
 class CWindowOverridableVar {
   public:
-    CWindowOverridableVar(T const& value, eOverridePriority priority) {
-        values[priority] = value;
+    CWindowOverridableVar(T const& value, eOverridePriority priority, bool relative = false) {
+        values[priority] = std::make_pair(value, relative);
     }
     CWindowOverridableVar(T const& value) : defaultValue{value} {}
 
@@ -116,15 +116,28 @@ class CWindowOverridableVar {
 
     T value() {
         if (!values.empty())
-            return std::prev(values.end())->second;
+            return std::get<0>(std::prev(values.end())->second);
+        else
+            throw std::bad_optional_access();
+    }
+
+    bool isValueRelative() {
+        if (!values.empty())
+            return std::get<1>(std::prev(values.end())->second);
         else
             throw std::bad_optional_access();
     }
 
     T valueOr(T const& other) {
-        if (hasValue())
-            return value();
-        else
+        if (hasValue()) {
+            if constexpr (Addable) {
+                if constexpr (std::is_same<T, bool>::value)
+                    return (isValueRelative() ? other : 0) ^ value();
+                else
+                    return (isValueRelative() ? other : 0) + value();
+            } else
+                return value();
+        } else
             return other;
     }
 
@@ -139,9 +152,22 @@ class CWindowOverridableVar {
             throw std::bad_optional_access();
     }
 
-    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority) {
+    void increment(T const& other, eOverridePriority priority) {
+        if constexpr (!Addable)
+            return;
+
+        if (hasValue() && getPriority() <= priority) {
+            if constexpr (std::is_same<T, bool>::value)
+                values[priority] = std::make_pair(value() ^ other, isValueRelative());
+            else
+                values[priority] = std::make_pair(value() + other, isValueRelative());
+        } else
+            values[priority] = std::make_pair(other, true);
+    }
+
+    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority, bool relative = false) {
         if (optValue.has_value())
-            values[priority] = optValue.value();
+            values[priority] = std::make_pair(optValue.value(), relative);
         else
             unset(priority);
     }
@@ -154,8 +180,8 @@ class CWindowOverridableVar {
     }
 
   private:
-    std::map<eOverridePriority, T> values;
-    T                              defaultValue; // used for toggling, so required for bool
+    std::map<eOverridePriority, std::pair<T, bool>> values;
+    T                                               defaultValue; // used for toggling, so required for bool
 };
 
 struct SWindowData {
@@ -185,10 +211,10 @@ struct SWindowData {
     CWindowOverridableVar<bool>               xray               = false;
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
-    CWindowOverridableVar<int>                rounding;
-    CWindowOverridableVar<float>              roundingPower;
     CWindowOverridableVar<int>                borderSize;
+    CWindowOverridableVar<int>                rounding;
 
+    CWindowOverridableVar<float>              roundingPower;
     CWindowOverridableVar<float>              scrollMouse;
     CWindowOverridableVar<float>              scrollTouchpad;
 

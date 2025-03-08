@@ -33,7 +33,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PGRADIENTS       = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto                PPRIORITY        = CConfigValue<Hyprlang::INT>("group:groupbar:priority");
     static auto                PSTACKED         = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    static auto                POUTERGAP        = CConfigValue<Hyprlang::INT>("group:groupbar:outer_gap_size");
+    static auto                POUTERGAP        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
@@ -116,8 +116,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGROUPCOLINACTIVE          = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
-    static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:outer_gap_size");
-    static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:inner_gap_size");
+    static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     auto* const GROUPCOLACTIVE             = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
     auto* const GROUPCOLINACTIVE           = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
     auto* const GROUPCOLACTIVELOCKED       = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
@@ -367,8 +367,8 @@ void refreshGroupBarGradients() {
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     static auto PSTACKED  = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:outer_gap_size");
-    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:inner_gap_size");
+    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     if (m_pWindow.lock() == m_pWindow->m_sGroupData.pNextWindow.lock())
         return false;
 
@@ -406,8 +406,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     static auto PDRAGINTOGROUP                   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
     static auto PMERGEFLOATEDINTOTILEDONGROUPBAR = CConfigValue<Hyprlang::INT>("group:merge_floated_into_tiled_on_groupbar");
     static auto PMERGEGROUPSONGROUPBAR           = CConfigValue<Hyprlang::INT>("group:merge_groups_on_groupbar");
-    static auto POUTERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:outer_gap_size");
-    static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:inner_gap_size");
+    static auto POUTERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_pWindow->m_bIsFloating && !pDraggedWindow->m_bDraggingTiled;
 
     g_pInputManager->m_bWasDraggingWindow = false;
@@ -480,8 +480,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
     static auto PSTACKED  = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:outer_gap_size");
-    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:inner_gap_size");
+    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     if (m_pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
         return true;
 

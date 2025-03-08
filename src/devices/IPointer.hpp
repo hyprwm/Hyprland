@@ -113,6 +113,7 @@ class IPointer : public IHID {
     bool         flipX       = false; // decide to invert horizontal movement
     bool         flipY       = false; // decide to invert vertical movement
     bool         isTouchpad  = false;
+    bool         invert_axis = false;
 
     WP<IPointer> self;
 };

@@ -14,9 +14,17 @@
 #include "../managers/HookSystemManager.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
-    CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
+    CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
 
-    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+    const bool HASPERSISTENTSIZE =
+        std::any_of(pWindow->m_vMatchedRules.begin(), pWindow->m_vMatchedRules.end(), [](const auto& rule) { return rule->ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
+
+    const auto STOREDSIZE = HASPERSISTENTSIZE ? g_pConfigManager->getStoredFloatingSize(pWindow) : std::nullopt;
+
+    if (STOREDSIZE.has_value()) {
+        Debug::log(LOG, "using stored size {}x{} for new window {}::{}", STOREDSIZE->x, STOREDSIZE->y, pWindow->m_szClass, pWindow->m_szTitle);
+        pWindow->m_vLastFloatingSize = STOREDSIZE.value();
+    } else if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PMONITOR          = pWindow->m_pMonitor.lock();
         pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
     } else

@@ -1486,6 +1486,8 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamar
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+    pMonitor->commitSeq++;
+
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
     CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
@@ -2277,8 +2279,6 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
-
-    PMONITOR->commitSeq++;
 
     g_pHyprOpenGL->m_RenderData.damage = m_sRenderPass.render(g_pHyprOpenGL->m_RenderData.damage);
 

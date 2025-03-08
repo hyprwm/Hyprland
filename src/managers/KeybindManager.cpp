@@ -2827,6 +2827,7 @@ SDispatchResult CKeybindManager::lockGroups(std::string args) {
         g_pKeybindManager->m_bGroupsLocked = false;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"lockgroups", g_pKeybindManager->m_bGroupsLocked ? "1" : "0"});
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     return {};
 }

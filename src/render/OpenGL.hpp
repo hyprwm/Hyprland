@@ -78,21 +78,7 @@ enum eMonitorExtraRenderFBs : uint8_t {
     FB_MONITOR_RENDER_EXTRA_BLUR,
 };
 
-struct SMonitorRenderData {
-    CFramebuffer offloadFB;
-    CFramebuffer mirrorFB;     // these are used for some effects,
-    CFramebuffer mirrorSwapFB; // etc
-    CFramebuffer offMainFB;
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
-    CFramebuffer blurFB;
-
-    SP<CTexture> stencilTex = makeShared<CTexture>();
-
-    bool         blurFBDirty        = true;
-    bool         blurFBShouldRender = false;
-
-    // Shaders
-    bool    m_bShadersInitialized = false;
+struct SPreparedShaders {
     CShader m_shQUAD;
     CShader m_shRGBA;
     CShader m_shPASSTHRURGBA;
@@ -107,6 +93,24 @@ struct SMonitorRenderData {
     CShader m_shBORDER1;
     CShader m_shGLITCH;
     CShader m_shCM;
+};
+
+struct SMonitorRenderData {
+    CFramebuffer offloadFB;
+    CFramebuffer mirrorFB;     // these are used for some effects,
+    CFramebuffer mirrorSwapFB; // etc
+    CFramebuffer offMainFB;
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
+    CFramebuffer blurFB;
+
+    SP<CTexture> stencilTex = makeShared<CTexture>();
+
+    bool         blurFBDirty        = true;
+    bool         blurFBShouldRender = false;
+
+    // Shaders
+    bool                 m_bShadersInitialized = false;
+    SP<SPreparedShaders> m_shaders;
 };
 
 struct SCurrentRenderData {
@@ -232,6 +236,8 @@ class CHyprOpenGLImpl {
     EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
     SP<CEGLSync>                         createEGLSync(int fence = -1);
 
+    bool                                 initShaders();
+
     SCurrentRenderData                   m_RenderData;
 
     Hyprutils::OS::CFileDescriptor       m_iGBMFD;
@@ -309,7 +315,6 @@ class CHyprOpenGLImpl {
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
     GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                    createBGTextureForMonitor(PHLMONITOR);
-    void                    initShaders();
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);

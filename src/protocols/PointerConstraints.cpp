@@ -93,9 +93,6 @@ void CPointerConstraint::sharedConstructions() {
     }
 
     cursorPosOnActivate = g_pInputManager->getMouseCoordsInternal();
-
-    if (g_pCompositor->m_pLastFocus == pHLSurface->resource())
-        activate();
 }
 
 bool CPointerConstraint::good() {
@@ -244,6 +241,9 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
     OWNER->appendConstraint(constraint);
 
     g_pInputManager->m_vConstraints.emplace_back(constraint);
+
+    if (g_pCompositor->m_pLastFocus == OWNER->resource())
+        constraint->activate();
 }
 
 void CPointerConstraintsProtocol::onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,

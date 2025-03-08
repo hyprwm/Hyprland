@@ -3189,7 +3189,7 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
         } else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end()) {
             auto pWindowDataElement = search->second(PWINDOW);
             if (VAL == "toggle")
-                *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->valueOrDefault(), PRIORITY_SET_PROP);
+                pWindowDataElement->increment(true, PRIORITY_SET_PROP);
             else if (VAL == "unset")
                 pWindowDataElement->unset(PRIORITY_SET_PROP);
             else
@@ -3197,12 +3197,18 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
         } else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end()) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
-            else if (const auto V = configStringToInt(VAL); V)
+            else if (VAL.starts_with('+') || VAL.starts_with('-')) {
+                const int V = std::stoi(VAL);
+                search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
+            } else if (const auto V = configStringToInt(VAL); V)
                 *(search->second(PWINDOW)) = CWindowOverridableVar((int)*V, PRIORITY_SET_PROP);
         } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
-            else {
+            else if (VAL.starts_with('+') || VAL.starts_with('-')) {
+                const auto V = std::stof(VAL);
+                search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
+            } else {
                 const auto V               = std::stof(VAL);
                 *(search->second(PWINDOW)) = CWindowOverridableVar(V, PRIORITY_SET_PROP);
             }

@@ -8,7 +8,7 @@
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
-  version = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
+  ver = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
 in {
   # Contains what a user is most likely to care about:
   # Hyprland itself, XDPH and the Share Picker.
@@ -34,23 +34,22 @@ in {
     # Hyprland packages themselves
     (final: _prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
+      version = "${ver}+date=${date}_${self.shortRev or "dirty"}";
     in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc14Stdenv;
-        version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         revCount = self.sourceInfo.revCount or "";
-        inherit date;
+        inherit date version;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
       # Build major libs with debug to get as much info as possible in a stacktrace
-      hyprland-debug = final.hyprland.override {
-        aquamarine = final.aquamarine.override {debug = true;};
-        hyprutils = final.hyprutils.override {debug = true;};
-        debug = true;
-      };
       hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
+
+      hyprtester = final.callPackage ./hyprtester.nix {
+        inherit version;
+      };
 
       # deprecated packages
       hyprland-nvidia =
@@ -66,6 +65,18 @@ in {
           For more information, refer to https://wiki.hyprland.org/Configuring/XWayland.
         ''
         final.hyprland;
+    })
+  ];
+
+  # Debug
+  hyprland-debug = lib.composeManyExtensions [
+    # Dependencies
+    self.overlays.hyprland-packages
+
+    (final: prev: {
+      aquamarine = prev.aquamarine.override {debug = true;};
+      hyprutils = prev.hyprutils.override {debug = true;};
+      hyprland-debug = prev.hyprland.override {debug = true;};
     })
   ];
 

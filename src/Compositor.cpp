@@ -815,6 +815,11 @@ PHLMONITOR CCompositor::getMonitorFromCursor() {
 }
 
 PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
+    if (m_vMonitors.empty()) {
+        Debug::log(WARN, "getMonitorFromVector called with empty monitor list");
+        return nullptr;
+    }
+
     PHLMONITOR mon;
     for (auto const& m : m_vMonitors) {
         if (CBox{m->vecPosition, m->vecSize}.containsPoint(point)) {

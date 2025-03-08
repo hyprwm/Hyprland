@@ -562,6 +562,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:allow_small_split", Hyprlang::INT{0});
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
+    registerConfigVar("master:always_keep_position", Hyprlang::INT{0});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:first_launch_animation", Hyprlang::INT{1});
@@ -603,6 +604,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:tap-and-drag", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
+    registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
@@ -731,6 +734,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "relative_input", Hyprlang::INT{0});           // only for tablets
     m_pConfig->addSpecialConfigValue("device", "active_area_position", Hyprlang::VEC2{0, 0}); // only for tablets
     m_pConfig->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
+    m_pConfig->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
 
     // keywords
     m_pConfig->registerHandler(&::handleExec, "exec", {false});
@@ -2948,4 +2953,19 @@ std::string SConfigOptionDescription::jsonify() const {
 
 void CConfigManager::ensurePersistentWorkspacesPresent() {
     g_pCompositor->ensurePersistentWorkspacesPresent(m_vWorkspaceRules);
+}
+
+void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {
+    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, window->m_szClass, window->m_szTitle);
+    SFloatCache id{window};
+    m_mStoredFloatingSizes[id] = size;
+}
+
+std::optional<Vector2D> CConfigManager::getStoredFloatingSize(PHLWINDOW window) {
+    SFloatCache id{window};
+    if (m_mStoredFloatingSizes.contains(id)) {
+        Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[id].x, m_mStoredFloatingSizes[id].y, window->m_szClass, window->m_szTitle);
+        return m_mStoredFloatingSizes[id];
+    }
+    return std::nullopt;
 }

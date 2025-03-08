@@ -17,9 +17,10 @@ class IPointer : public IHID {
     virtual SP<Aquamarine::IPointer> aq()        = 0;
 
     struct SMotionEvent {
-        uint32_t timeMs = 0;
-        Vector2D delta, unaccel;
-        bool     mouse = false;
+        uint32_t     timeMs = 0;
+        Vector2D     delta, unaccel;
+        bool         mouse = false;
+        SP<IPointer> device;
     };
 
     struct SMotionAbsoluteEvent {
@@ -109,6 +110,9 @@ class IPointer : public IHID {
 
     bool         connected   = false; // means connected to the cursor
     std::string  boundOutput = "";
+    bool         flipX       = false; // decide to invert horizontal movement
+    bool         flipY       = false; // decide to invert vertical movement
+    bool         isTouchpad  = false;
 
     WP<IPointer> self;
 };

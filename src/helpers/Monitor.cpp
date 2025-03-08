@@ -1095,6 +1095,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             activeSpecialWorkspace->m_bVisible = false;
             activeSpecialWorkspace->startAnim(false, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + szName});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + szName});
         }
         activeSpecialWorkspace.reset();
 
@@ -1128,6 +1129,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         PMWSOWNER->activeSpecialWorkspace.reset();
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMWSOWNER->ID);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->szName});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->szName});
 
         const auto PACTIVEWORKSPACE = PMWSOWNER->activeWorkspace;
         g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
@@ -1176,6 +1178,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", pWorkspace->m_iID + "," + pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(self.lock());
 

@@ -200,6 +200,8 @@ struct SWindowData {
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
 
     CWindowOverridableVar<float>              contentScale;
+
+    CWindowOverridableVar<bool>               persistentSize;
 };
 
 struct SInitialWorkspaceToken {

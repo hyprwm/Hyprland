@@ -993,6 +993,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_COLOR,
         .data        = SConfigOptionDescription::SColorData{0x66775500},
     },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:outer_gap_size",
+        .description = "gap between gradients and window",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:inner_gap_size",
+        .description = "gap between gradients",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 20},
+    },
 
     /*
      * misc:

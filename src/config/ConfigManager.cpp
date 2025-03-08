@@ -606,7 +606,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
-    registerConfigVar("input:touchdevice:transform", Hyprlang::INT{0});
+    registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
@@ -725,7 +725,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "scroll_button_lock", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "scroll_points", {STRVAL_EMPTY});
-    m_pConfig->addSpecialConfigValue("device", "transform", Hyprlang::INT{0});
+    m_pConfig->addSpecialConfigValue("device", "transform", Hyprlang::INT{-1});
     m_pConfig->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_pConfig->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
     m_pConfig->addSpecialConfigValue("device", "region_position", Hyprlang::VEC2{0, 0});      // only for tablets

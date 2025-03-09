@@ -1426,7 +1426,7 @@ bool CMonitor::attemptDirectScanout() {
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
     }
 
-    if (!PBUFFER->lockedByBackend)
+    if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
         return true;
 
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then

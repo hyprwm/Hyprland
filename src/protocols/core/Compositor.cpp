@@ -77,7 +77,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.texture.reset();
         } else {
             auto res           = CWLBufferResource::fromResource(buffer);
-            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer, self.lock()) : nullptr;
+            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
             pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
@@ -429,8 +429,6 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
 }
 
 void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
-    auto const previousBuffer = current.buffer;
-
     if (state.newBuffer) {
         state.newBuffer = false;
         current         = state;
@@ -482,10 +480,10 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
-    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
-        if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
-            previousBuffer->buffer->lock();
-            previousBuffer->buffer->onBackendRelease([previousBuffer]() { previousBuffer->buffer->unlock(); });
+    if (current.buffer && current.buffer->buffer && !current.buffer->buffer->isSynchronous()) {
+        if (current.buffer->buffer->lockedByBackend && !current.buffer->buffer->hlEvents.backendRelease) {
+            current.buffer->buffer->lock();
+            current.buffer->buffer->onBackendRelease([this]() { current.buffer->buffer->unlock(); });
         }
     }
 }

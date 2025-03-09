@@ -2908,11 +2908,11 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return drmFormats;
 }
 
-SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(CFileDescriptor fenceFD) {
+SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     std::vector<EGLint> attribs;
     CFileDescriptor     dupFd;
-    if (fenceFD.isValid()) {
-        dupFd = fenceFD.duplicate();
+    if (fenceFD >= 0) {
+        dupFd = CFileDescriptor{fcntl(fenceFD, F_DUPFD_CLOEXEC, 0)};
         if (!dupFd.isValid()) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;

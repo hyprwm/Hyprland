@@ -41,7 +41,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
 // surface optional
 class CHLBufferReference {
   public:
-    CHLBufferReference(WP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
+    CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
     ~CHLBufferReference();
 
     WP<IHLBuffer>          buffer;

@@ -1450,13 +1450,6 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     pMonitor->commitSeq++;
 
-    // apply timelines for explicit sync
-    // save inFD otherwise reset will reset it
-    CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
-    pMonitor->output->state->resetExplicitFences();
-    if (inFD.isValid())
-        pMonitor->output->state->setExplicitInFence(inFD.get());
-
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = pMonitor->imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
@@ -1510,6 +1503,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
 #endif
 
+    CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
         pMonitor->output->state->setCTM(pMonitor->ctm);
@@ -1537,7 +1531,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         return ok;
 
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-    auto sync = g_pHyprOpenGL->createEGLSync({});
+    auto sync = g_pHyprOpenGL->createEGLSync(inFD.get());
 
     if (!sync)
         Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
@@ -1551,7 +1545,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     explicitPresented.clear();
-
     pMonitor->output->state->resetExplicitFences();
 
     return ok;
@@ -2269,7 +2262,7 @@ void CHyprRenderer::endRender() {
         auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
-            auto sync = g_pHyprOpenGL->createEGLSync({});
+            auto sync = g_pHyprOpenGL->createEGLSync();
             if (!sync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;

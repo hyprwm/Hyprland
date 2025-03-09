@@ -230,7 +230,7 @@ class CHyprOpenGLImpl {
     uint32_t                             getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>              getDRMFormats();
     EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                         createEGLSync(Hyprutils::OS::CFileDescriptor fenceFD);
+    SP<CEGLSync>                         createEGLSync(int fence = -1);
 
     SCurrentRenderData                   m_RenderData;
 

@@ -43,7 +43,7 @@ CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResou
 }
 
 CHLBufferReference::~CHLBufferReference() {
-    if (buffer.expired())
+    if (!buffer)
         return;
 
     buffer->unlock();

@@ -1503,7 +1503,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
 #endif
 
-    CFileDescriptor inFD{pMonitor->output->state->state().explicitInFence};
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
         pMonitor->output->state->setCTM(pMonitor->ctm);
@@ -1511,7 +1510,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        if (inFD.isValid()) {
+        if (pMonitor->inFence.isValid()) {
             Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->output->state->resetExplicitFences();
             ok = pMonitor->state.commit();
@@ -1531,7 +1530,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         return ok;
 
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-    auto sync = g_pHyprOpenGL->createEGLSync(inFD.get());
+    auto sync = g_pHyprOpenGL->createEGLSync(pMonitor->inFence.get());
 
     if (!sync)
         Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
@@ -2274,13 +2273,13 @@ void CHyprRenderer::endRender() {
                 return;
             }
 
-            auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
-            if (!fd.isValid()) {
+            PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq)};
+            if (!PMONITOR->inFence.isValid()) {
                 Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
                 return;
             }
 
-            PMONITOR->output->state->setExplicitInFence(fd.take());
+            PMONITOR->output->state->setExplicitInFence(PMONITOR->inFence.get());
         } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();

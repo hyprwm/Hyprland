@@ -349,7 +349,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (!workspaceSilent) {
                 if (pWorkspace->m_bIsSpecialWorkspace)
                     pWorkspace->m_pMonitor->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID)
+                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_bNoInitialFocus)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_pLastMonitor.lock();

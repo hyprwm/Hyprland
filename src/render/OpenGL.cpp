@@ -1,4 +1,5 @@
 #include <exception>
+#include <re2/re2.h>
 #include <hyprutils/path/Path.hpp>
 #include <random>
 #include <pango/pangocairo.h>
@@ -20,6 +21,8 @@
 #include "pass/RectPassElement.hpp"
 #include "pass/PreBlurElement.hpp"
 #include "pass/ClearPassElement.hpp"
+#include "protocols/types/ColorManagement.hpp"
+#include "render/Shader.hpp"
 #include <string>
 #include <xf86drm.h>
 #include <fcntl.h>
@@ -876,10 +879,47 @@ static std::string loadShader(const std::string& filename) {
     throw std::runtime_error(std::format("Couldn't load shader {}", filename));
 }
 
+static void loadShaderInclude(const std::string& filename, std::map<std::string, std::string>& includes) {
+    includes.insert({filename, loadShader(filename)});
+}
+
+static void processShaderIncludes(std::string& source, const std::map<std::string, std::string>& includes) {
+    for (auto it = includes.begin(); it != includes.end(); ++it)
+        RE2::Replace(&source, "#include \"" + it->first + "\"", it->second);
+}
+
+static std::string processShader(const std::string& filename, const std::map<std::string, std::string>& includes) {
+    auto source = loadShader(filename);
+    processShaderIncludes(source, includes);
+    return source;
+}
+
+static void getCMShaderUniforms(CShader& shader) {
+    shader.skipCM          = glGetUniformLocation(shader.program, "skipCM");
+    shader.sourceTF        = glGetUniformLocation(shader.program, "sourceTF");
+    shader.targetTF        = glGetUniformLocation(shader.program, "targetTF");
+    shader.sourcePrimaries = glGetUniformLocation(shader.program, "sourcePrimaries");
+    shader.targetPrimaries = glGetUniformLocation(shader.program, "targetPrimaries");
+    shader.maxLuminance    = glGetUniformLocation(shader.program, "maxLuminance");
+    shader.dstMaxLuminance = glGetUniformLocation(shader.program, "dstMaxLuminance");
+    shader.dstRefLuminance = glGetUniformLocation(shader.program, "dstRefLuminance");
+    shader.sdrSaturation   = glGetUniformLocation(shader.program, "sdrSaturation");
+    shader.sdrBrightness   = glGetUniformLocation(shader.program, "sdrBrightnessMultiplier");
+}
+
 bool CHyprOpenGLImpl::initShaders() {
     auto shaders = makeShared<SPreparedShaders>();
     try {
-        const auto QUADVERTSRC = loadShader("quad.vert");
+        std::map<std::string, std::string> includes;
+        loadShaderInclude("rounding.glsl", includes);
+        loadShaderInclude("CM.glsl", includes);
+
+        const auto QUADVERTSRC    = processShader("quad.vert", includes);
+        const auto QUADVERTSRC320 = processShader("quad320.vert", includes);
+        const auto TEXFRAGSRCCM   = processShader("CM.frag", includes);
+
+        const auto FRAGSHADOW  = processShader("shadow.frag", includes);
+        const auto FRAGBORDER1 = processShader("border.frag", includes);
 
         GLuint     prog                 = createProgram(QUADVERTSRC, QUADFRAGSRC);
         shaders->m_shQUAD.program       = prog;
@@ -895,20 +935,11 @@ bool CHyprOpenGLImpl::initShaders() {
         prog           = createProgram(TEXVERTSRC320, TEXFRAGSRCCM);
         m_bCMSupported = prog > 0;
         if (m_bCMSupported) {
-            shaders->m_shCM.program           = prog;
+            shaders->m_shCM.program = prog;
+            getCMShaderUniforms(shaders->m_shCM);
             shaders->m_shCM.proj              = glGetUniformLocation(prog, "proj");
             shaders->m_shCM.tex               = glGetUniformLocation(prog, "tex");
             shaders->m_shCM.texType           = glGetUniformLocation(prog, "texType");
-            shaders->m_shCM.skipCM            = glGetUniformLocation(prog, "skipCM");
-            shaders->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
-            shaders->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
-            shaders->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
-            shaders->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
-            shaders->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
-            shaders->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
-            shaders->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
-            shaders->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
-            shaders->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
             shaders->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
             shaders->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
             shaders->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
@@ -1050,8 +1081,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
 
-        prog                              = createProgram(QUADVERTSRC, FRAGSHADOW);
-        shaders->m_shSHADOW.program       = prog;
+        prog                        = createProgram(QUADVERTSRC320, FRAGSHADOW);
+        shaders->m_shSHADOW.program = prog;
+        getCMShaderUniforms(shaders->m_shSHADOW);
         shaders->m_shSHADOW.proj          = glGetUniformLocation(prog, "proj");
         shaders->m_shSHADOW.posAttrib     = glGetAttribLocation(prog, "pos");
         shaders->m_shSHADOW.texAttrib     = glGetAttribLocation(prog, "texcoord");
@@ -1064,8 +1096,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.shadowPower   = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.color         = glGetUniformLocation(prog, "color");
 
-        prog                                       = createProgram(QUADVERTSRC, FRAGBORDER1);
-        shaders->m_shBORDER1.program               = prog;
+        prog                         = createProgram(QUADVERTSRC320, FRAGBORDER1);
+        shaders->m_shBORDER1.program = prog;
+        getCMShaderUniforms(shaders->m_shBORDER1);
         shaders->m_shBORDER1.proj                  = glGetUniformLocation(prog, "proj");
         shaders->m_shBORDER1.thick                 = glGetUniformLocation(prog, "thick");
         shaders->m_shBORDER1.posAttrib             = glGetAttribLocation(prog, "pos");
@@ -1340,6 +1373,40 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box,
     scissor(nullptr);
 }
 
+void CHyprOpenGLImpl::passCMUniforms(const CShader* shader, const SImageDescription& imageDescription) {
+    glUniform1i(shader->sourceTF, imageDescription.transferFunction);
+    glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
+    const auto sourcePrimaries =
+        imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
+    const auto    targetPrimaries = m_RenderData.pMonitor->imageDescription.primariesNameSet || m_RenderData.pMonitor->imageDescription.primaries == SPCPRimaries{} ?
+           getPrimaries(m_RenderData.pMonitor->imageDescription.primariesNamed) :
+           m_RenderData.pMonitor->imageDescription.primaries;
+
+    const GLfloat glSourcePrimaries[8] = {
+        sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
+        sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
+    };
+    const GLfloat glTargetPrimaries[8] = {
+        targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
+        targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
+    };
+    glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
+    glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
+
+    const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
+    glUniform1f(shader->maxLuminance, maxLuminance * m_RenderData.pMonitor->imageDescription.luminances.reference / imageDescription.luminances.reference);
+    glUniform1f(shader->dstMaxLuminance, m_RenderData.pMonitor->imageDescription.luminances.max > 0 ? m_RenderData.pMonitor->imageDescription.luminances.max : 10000);
+    glUniform1f(shader->dstRefLuminance, m_RenderData.pMonitor->imageDescription.luminances.reference);
+    glUniform1f(shader->sdrSaturation,
+                m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                    m_RenderData.pMonitor->sdrSaturation :
+                    1.0f);
+    glUniform1f(shader->sdrBrightness,
+                m_RenderData.pMonitor->sdrBrightness > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                    m_RenderData.pMonitor->sdrBrightness :
+                    1.0f);
+}
+
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CBox& box, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive,
                                                       bool noAA, bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
@@ -1440,37 +1507,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         if (!skipCM) {
             const auto imageDescription =
                 m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
-            glUniform1i(shader->sourceTF, imageDescription.transferFunction);
-            glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
-            const auto sourcePrimaries =
-                imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
-            const auto    targetPrimaries = m_RenderData.pMonitor->imageDescription.primariesNameSet || m_RenderData.pMonitor->imageDescription.primaries == SPCPRimaries{} ?
-                   getPrimaries(m_RenderData.pMonitor->imageDescription.primariesNamed) :
-                   m_RenderData.pMonitor->imageDescription.primaries;
-
-            const GLfloat glSourcePrimaries[8] = {
-                sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
-                sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
-            };
-            const GLfloat glTargetPrimaries[8] = {
-                targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
-                targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
-            };
-            glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
-            glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
-
-            const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
-            glUniform1f(shader->maxLuminance, maxLuminance * m_RenderData.pMonitor->imageDescription.luminances.reference / imageDescription.luminances.reference);
-            glUniform1f(shader->dstMaxLuminance, m_RenderData.pMonitor->imageDescription.luminances.max > 0 ? m_RenderData.pMonitor->imageDescription.luminances.max : 10000);
-            glUniform1f(shader->dstRefLuminance, m_RenderData.pMonitor->imageDescription.luminances.reference);
-            glUniform1f(shader->sdrSaturation,
-                        m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                            m_RenderData.pMonitor->sdrSaturation :
-                            1.0f);
-            glUniform1f(shader->sdrBrightness,
-                        m_RenderData.pMonitor->sdrBrightness > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                            m_RenderData.pMonitor->sdrBrightness :
-                            1.0f);
+            passCMUniforms(shader, imageDescription);
         }
     }
 #endif
@@ -2215,6 +2252,11 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.program);
 
+    const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
+    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.skipCM, skipCM);
+    if (!skipCM)
+        passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1, SImageDescription{});
+
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
@@ -2395,6 +2437,10 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     blend(true);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.program);
+    const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
+    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.skipCM, skipCM);
+    if (!skipCM)
+        passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW, SImageDescription{});
 
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());

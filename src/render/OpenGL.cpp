@@ -1352,8 +1352,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             usingFinalShader = true;
         } else {
             switch (tex->m_iType) {
+#ifdef GLES2
+                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
+                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
+#else
                 case TEXTURE_RGBA:
                 case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shCM; break;
+#endif
                 case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break; // might be unused
                 default: RASSERT(false, "tex->m_iTarget unsupported!");
             }
@@ -1361,7 +1366,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     }
 
     if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
-        shader  = &m_RenderData.pCurrentMonData->m_shCM;
+#ifdef GLES2
+        shader = &m_RenderData.pCurrentMonData->m_shRGBX;
+#else
+        shader = &m_RenderData.pCurrentMonData->m_shCM;
+#endif
         texType = TEXTURE_RGBX;
     }
 
@@ -1388,6 +1397,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform1i(shader->tex, 0);
+#ifndef GLES2
     if (!usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
         const bool skipCM = *PPASS && m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
             m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
@@ -1429,6 +1439,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
                             1.0f);
         }
     }
+#endif
 
     if ((usingFinalShader && *PDT == 0) || CRASHING) {
         glUniform1f(shader->time, m_tGlobalTimer.getSeconds() - shader->initialTime);

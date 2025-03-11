@@ -146,7 +146,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.newBuffer = false;
         surface->pending.buffer.reset();
 
-        state.buffer->syncReleaser = state.buffer->release->createSyncRelease();
+        state.buffer->buffer->syncReleaser = state.buffer->release->createSyncRelease();
         state.buffer->acquire->addWaiter([this, surf = surface, it = std::prev(pendingStates.end())] {
             if (!surf)
                 return;

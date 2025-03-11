@@ -27,6 +27,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
+    UP<CSyncReleaser>                     syncReleaser;
 
     struct {
         CHyprSignalListener backendRelease;
@@ -47,7 +48,6 @@ class CHLBufferReference {
     WP<IHLBuffer>          buffer;
     UP<CDRMSyncPointState> acquire;
     UP<CDRMSyncPointState> release;
-    UP<CSyncReleaser>      syncReleaser;
 
   private:
     WP<CWLSurfaceResource> surface;

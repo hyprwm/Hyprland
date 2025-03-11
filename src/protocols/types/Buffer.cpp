@@ -18,8 +18,10 @@ void IHLBuffer::unlock() {
 
     ASSERT(nLocks >= 0);
 
-    if (nLocks == 0)
+    if (nLocks == 0) {
         sendRelease();
+        syncReleaser.reset();
+    }
 }
 
 bool IHLBuffer::locked() {

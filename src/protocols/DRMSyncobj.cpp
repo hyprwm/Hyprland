@@ -159,7 +159,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
 void CDRMSyncobjSurfaceResource::removeAllWaiters() {
     for (auto& s : pendingStates) {
-        if (s.buffer && s.buffer->acquire)
+        if (s.buffer && s.buffer->acquire && !s.buffer->acquire->expired())
             s.buffer->acquire->resource()->timeline->removeAllWaiters();
     }
 

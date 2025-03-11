@@ -1472,18 +1472,29 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             shader           = &m_RenderData.pCurrentMonData->m_shaders->m_shPASSTHRURGBA;
             usingFinalShader = true;
         } else {
-            switch (tex->m_iType) {
-                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBA; break;
-                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX; break;
+#ifndef GLES2
+            if (m_bCMSupported)
+                shader = &m_RenderData.pCurrentMonData->m_shaders->m_shCM;
+            else
+#endif
+                switch (tex->m_iType) {
+                    case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBA; break;
+                    case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX; break;
 
-                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shEXT; break; // might be unused
-                default: RASSERT(false, "tex->m_iTarget unsupported!");
-            }
+                    case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shEXT; break; // might be unused
+                    default: RASSERT(false, "tex->m_iTarget unsupported!");
+                }
         }
     }
 
-    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault())
+    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
+#ifdef GLES2
+        shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX;
+#else
+        shader = m_bCMSupported ? &m_RenderData.pCurrentMonData->m_shaders->m_shCM : &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX;
+#endif
         texType = TEXTURE_RGBX;
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_iTarget, tex->m_iTexID);

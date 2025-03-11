@@ -868,6 +868,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.radius        = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shQUAD.roundingPower = glGetUniformLocation(prog, "roundingPower");
 
+#ifndef GLES2
     prog                                                   = createProgram(TEXVERTSRC320, TEXFRAGSRCCM);
     m_RenderData.pCurrentMonData->m_shCM.program           = prog;
     m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
@@ -898,6 +899,7 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
     m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
     m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+#endif
 
     prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
     m_RenderData.pCurrentMonData->m_shRGBA.program           = prog;

@@ -917,14 +917,19 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
 
-        const auto QUADVERTSRC    = processShader("quad.vert", includes);
+        const auto QUADVERTSRC = processShader("quad.vert", includes);
+#ifdef GLES2
+        const auto FRAGSHADOW  = processShader("shadow_legacy.frag", includes);
+        const auto FRAGBORDER1 = processShader("border_legacy.frag", includes);
+#else
         const auto QUADVERTSRC320 = processShader("quad320.vert", includes);
         const auto TEXFRAGSRCCM   = processShader("CM.frag", includes);
 
         const auto FRAGSHADOW  = processShader("shadow.frag", includes);
         const auto FRAGBORDER1 = processShader("border.frag", includes);
+#endif
 
-        GLuint     prog                 = createProgram(QUADVERTSRC, QUADFRAGSRC);
+        GLuint prog                     = createProgram(QUADVERTSRC, QUADFRAGSRC);
         shaders->m_shQUAD.program       = prog;
         shaders->m_shQUAD.proj          = glGetUniformLocation(prog, "proj");
         shaders->m_shQUAD.color         = glGetUniformLocation(prog, "color");
@@ -1084,9 +1089,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
 
+#ifdef GLES2
+        prog                        = createProgram(QUADVERTSRC, FRAGSHADOW);
+        shaders->m_shSHADOW.program = prog;
+#else
         prog                        = createProgram(QUADVERTSRC320, FRAGSHADOW);
         shaders->m_shSHADOW.program = prog;
         getCMShaderUniforms(shaders->m_shSHADOW);
+#endif
         shaders->m_shSHADOW.proj          = glGetUniformLocation(prog, "proj");
         shaders->m_shSHADOW.posAttrib     = glGetAttribLocation(prog, "pos");
         shaders->m_shSHADOW.texAttrib     = glGetAttribLocation(prog, "texcoord");
@@ -1099,9 +1109,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.shadowPower   = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.color         = glGetUniformLocation(prog, "color");
 
+#ifdef GLES2
+        prog                         = createProgram(QUADVERTSRC, FRAGBORDER1);
+        shaders->m_shBORDER1.program = prog;
+#else
         prog                         = createProgram(QUADVERTSRC320, FRAGBORDER1);
         shaders->m_shBORDER1.program = prog;
         getCMShaderUniforms(shaders->m_shBORDER1);
+#endif
         shaders->m_shBORDER1.proj                  = glGetUniformLocation(prog, "proj");
         shaders->m_shBORDER1.thick                 = glGetUniformLocation(prog, "thick");
         shaders->m_shBORDER1.posAttrib             = glGetAttribLocation(prog, "pos");

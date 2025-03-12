@@ -15,10 +15,7 @@ static SP<CTexture> m_tGradientInactive       = makeShared<CTexture>();
 static SP<CTexture> m_tGradientLockedActive   = makeShared<CTexture>();
 static SP<CTexture> m_tGradientLockedInactive = makeShared<CTexture>();
 
-constexpr int       BAR_PADDING_OUTER_VERT = 2;
-constexpr int       BAR_PADDING_OUTER_HORZ = 2;
-constexpr int       BAR_TEXT_PAD           = 2;
-constexpr int       BAR_HORIZONTAL_PADDING = 2;
+constexpr int       BAR_TEXT_PAD = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
@@ -36,6 +33,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PGRADIENTS       = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto                PPRIORITY        = CConfigValue<Hyprlang::INT>("group:groupbar:priority");
     static auto                PSTACKED         = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto                POUTERGAP        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
@@ -45,10 +43,10 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
     if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {
         if (*PSTACKED) {
-            const auto ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
-            info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT}, {0, 0}};
+            const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+            info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + *POUTERGAP}, {0, 0}};
         } else
-            info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
+            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
     } else
         info.desiredExtents = {{0, 0}, {0, 0}};
     return info;
@@ -118,6 +116,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGROUPCOLINACTIVE          = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+    static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     auto* const GROUPCOLACTIVE             = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
     auto* const GROUPCOLINACTIVE           = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
     auto* const GROUPCOLACTIVELOCKED       = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
@@ -125,11 +125,11 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
-    const auto  ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
-    m_fBarWidth              = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
-    m_fBarHeight = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - BAR_PADDING_OUTER_VERT) - BAR_PADDING_OUTER_VERT * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - BAR_PADDING_OUTER_VERT;
+    const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+    m_fBarWidth              = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
+    m_fBarHeight             = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - *POUTERGAP) - *POUTERGAP * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - *POUTERGAP;
 
-    const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT : BAR_PADDING_OUTER_VERT * 2L + ONEBARHEIGHT;
+    const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + *POUTERGAP : *POUTERGAP * 2L + ONEBARHEIGHT;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h)
         g_pDecorationPositioner->repositionDeco(this);
 
@@ -140,8 +140,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
         CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
-                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y,
-                           m_fBarWidth, *PINDICATORHEIGHT};
+                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
+                           *PINDICATORHEIGHT};
 
         rect.scale(pMonitor->scale);
 
@@ -250,7 +250,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         if (*PSTACKED)
             yoff += ONEBARHEIGHT;
         else
-            xoff += BAR_HORIZONTAL_PADDING + m_fBarWidth;
+            xoff += *PINNERGAP + m_fBarWidth;
     }
 
     if (*PRENDERTITLES)
@@ -367,18 +367,20 @@ void refreshGroupBarGradients() {
 }
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
-    static auto PSTACKED = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto PSTACKED  = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     if (m_pWindow.lock() == m_pWindow->m_sGroupData.pNextWindow.lock())
         return false;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const float BARRELATIVEY = pos.y - assignedBoxGlobal().y;
-    const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + BAR_PADDING_OUTER_VERT)) : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+    const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + *POUTERGAP)) : (BARRELATIVEX) / (m_fBarWidth + *PINNERGAP);
 
-    if (!*PSTACKED && (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth))
+    if (!*PSTACKED && (BARRELATIVEX - (m_fBarWidth + *PINNERGAP) * WINDOWINDEX > m_fBarWidth))
         return false;
 
-    if (*PSTACKED && (BARRELATIVEY - (m_fBarHeight + BAR_PADDING_OUTER_VERT) * WINDOWINDEX < BAR_PADDING_OUTER_VERT))
+    if (*PSTACKED && (BARRELATIVEY - (m_fBarHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP))
         return false;
 
     PHLWINDOW pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
@@ -405,6 +407,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     static auto PDRAGINTOGROUP                   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
     static auto PMERGEFLOATEDINTOTILEDONGROUPBAR = CConfigValue<Hyprlang::INT>("group:merge_floated_into_tiled_on_groupbar");
     static auto PMERGEGROUPSONGROUPBAR           = CConfigValue<Hyprlang::INT>("group:merge_groups_on_groupbar");
+    static auto POUTERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_pWindow->m_bIsFloating && !pDraggedWindow->m_bDraggingTiled;
 
     g_pInputManager->m_bWasDraggingWindow = false;
@@ -415,8 +419,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
         return false;
     }
 
-    const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_fBarHeight + BAR_PADDING_OUTER_VERT) / 2 : pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
-    const float BARSIZE     = *PSTACKED ? m_fBarHeight + BAR_PADDING_OUTER_VERT : m_fBarWidth + BAR_HORIZONTAL_PADDING;
+    const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_fBarHeight + *POUTERGAP) / 2 : pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
+    const float BARSIZE     = *PSTACKED ? m_fBarHeight + *POUTERGAP : m_fBarWidth + *PINNERGAP;
     const int   WINDOWINDEX = BARRELATIVE < 0 ? -1 : BARRELATIVE / BARSIZE;
 
     PHLWINDOW   pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
@@ -476,13 +480,15 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 }
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
-    static auto PSTACKED = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto PSTACKED  = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     if (m_pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const float BARRELATIVEY = pos.y - assignedBoxGlobal().y;
-    const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + BAR_PADDING_OUTER_VERT)) : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+    const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + *POUTERGAP)) : (BARRELATIVEX) / (m_fBarWidth + *PINNERGAP);
     static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
     // close window on middle click
@@ -501,8 +507,8 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         return true;
 
     // click on padding
-    const auto TABPAD   = !*PSTACKED && (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth);
-    const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_fBarHeight + BAR_PADDING_OUTER_VERT) * WINDOWINDEX < BAR_PADDING_OUTER_VERT);
+    const auto TABPAD   = !*PSTACKED && (BARRELATIVEX - (m_fBarWidth + *PINNERGAP) * WINDOWINDEX > m_fBarWidth);
+    const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_fBarHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
         if (!g_pCompositor->isWindowActive(m_pWindow.lock()))
             g_pCompositor->focusWindow(m_pWindow.lock());

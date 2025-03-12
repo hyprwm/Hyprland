@@ -3,7 +3,6 @@
 #include <hyprutils/path/Path.hpp>
 #include <random>
 #include <pango/pangocairo.h>
-#include "Shaders.hpp"
 #include "OpenGL.hpp"
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
@@ -867,6 +866,7 @@ void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> f
     m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 }
 
+// TODO notify user if bundled shader is newer than ~/.config override
 static std::string loadShader(const std::string& filename) {
     const auto home = Hyprutils::Path::getHome();
     if (home.has_value()) {
@@ -897,6 +897,7 @@ static std::string processShader(const std::string& filename, const std::map<std
     return source;
 }
 
+// shader has #include "CM.glsl"
 static void getCMShaderUniforms(CShader& shader) {
     shader.skipCM          = glGetUniformLocation(shader.program, "skipCM");
     shader.sourceTF        = glGetUniformLocation(shader.program, "sourceTF");
@@ -910,6 +911,14 @@ static void getCMShaderUniforms(CShader& shader) {
     shader.sdrBrightness   = glGetUniformLocation(shader.program, "sdrBrightnessMultiplier");
 }
 
+// shader has #include "rounding.glsl"
+static void getRoundingShaderUniforms(CShader& shader) {
+    shader.topLeft       = glGetUniformLocation(shader.program, "topLeft");
+    shader.fullSize      = glGetUniformLocation(shader.program, "fullSize");
+    shader.radius        = glGetUniformLocation(shader.program, "radius");
+    shader.roundingPower = glGetUniformLocation(shader.program, "roundingPower");
+}
+
 bool CHyprOpenGLImpl::initShaders() {
     auto shaders = makeShared<SPreparedShaders>();
     try {
@@ -917,34 +926,43 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
 
-        const auto QUADVERTSRC = processShader("quad.vert", includes);
+        shaders->TEXVERTSRC = processShader("tex.vert", includes);
 #ifdef GLES2
         const auto FRAGSHADOW  = processShader("shadow_legacy.frag", includes);
         const auto FRAGBORDER1 = processShader("border_legacy.frag", includes);
 #else
-        const auto QUADVERTSRC320 = processShader("quad320.vert", includes);
-        const auto TEXFRAGSRCCM   = processShader("CM.frag", includes);
+        shaders->TEXVERTSRC320  = processShader("tex320.vert", includes);
+        const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
         const auto FRAGSHADOW  = processShader("shadow.frag", includes);
         const auto FRAGBORDER1 = processShader("border.frag", includes);
 #endif
+        const auto QUADFRAGSRC            = processShader("quad.frag", includes);
+        const auto TEXFRAGSRCRGBA         = processShader("rgba.frag", includes);
+        const auto TEXFRAGSRCRGBAPASSTHRU = processShader("passthru.frag", includes);
+        const auto TEXFRAGSRCRGBAMATTE    = processShader("rgbamatte.frag", includes);
+        const auto FRAGGLITCH             = processShader("glitch.frag", includes);
+        const auto TEXFRAGSRCRGBX         = processShader("rgbx.frag", includes);
+        const auto TEXFRAGSRCEXT          = processShader("ext.frag", includes);
+        const auto FRAGBLUR1              = processShader("blur1.frag", includes);
+        const auto FRAGBLUR2              = processShader("blur2.frag", includes);
+        const auto FRAGBLURPREPARE        = processShader("blurprepare.frag", includes);
+        const auto FRAGBLURFINISH         = processShader("blurfinish.frag", includes);
 
-        GLuint prog                     = createProgram(QUADVERTSRC, QUADFRAGSRC);
-        shaders->m_shQUAD.program       = prog;
-        shaders->m_shQUAD.proj          = glGetUniformLocation(prog, "proj");
-        shaders->m_shQUAD.color         = glGetUniformLocation(prog, "color");
-        shaders->m_shQUAD.posAttrib     = glGetAttribLocation(prog, "pos");
-        shaders->m_shQUAD.topLeft       = glGetUniformLocation(prog, "topLeft");
-        shaders->m_shQUAD.fullSize      = glGetUniformLocation(prog, "fullSize");
-        shaders->m_shQUAD.radius        = glGetUniformLocation(prog, "radius");
-        shaders->m_shQUAD.roundingPower = glGetUniformLocation(prog, "roundingPower");
+        GLuint     prog           = createProgram(shaders->TEXVERTSRC, QUADFRAGSRC);
+        shaders->m_shQUAD.program = prog;
+        getRoundingShaderUniforms(shaders->m_shQUAD);
+        shaders->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
+        shaders->m_shQUAD.color     = glGetUniformLocation(prog, "color");
+        shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
 
 #ifndef GLES2
-        prog           = createProgram(TEXVERTSRC320, TEXFRAGSRCCM);
+        prog           = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM);
         m_bCMSupported = prog > 0;
         if (m_bCMSupported) {
             shaders->m_shCM.program = prog;
             getCMShaderUniforms(shaders->m_shCM);
+            getRoundingShaderUniforms(shaders->m_shCM);
             shaders->m_shCM.proj              = glGetUniformLocation(prog, "proj");
             shaders->m_shCM.tex               = glGetUniformLocation(prog, "tex");
             shaders->m_shCM.texType           = glGetUniformLocation(prog, "texType");
@@ -956,10 +974,6 @@ bool CHyprOpenGLImpl::initShaders() {
             shaders->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
             shaders->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
             shaders->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-            shaders->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
-            shaders->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
-            shaders->m_shCM.radius            = glGetUniformLocation(prog, "radius");
-            shaders->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
             shaders->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
             shaders->m_shCM.tint              = glGetUniformLocation(prog, "tint");
             shaders->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
@@ -969,8 +983,9 @@ bool CHyprOpenGLImpl::initShaders() {
                 "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
 #endif
 
-        prog                                = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
-        shaders->m_shRGBA.program           = prog;
+        prog                      = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA);
+        shaders->m_shRGBA.program = prog;
+        getRoundingShaderUniforms(shaders->m_shRGBA);
         shaders->m_shRGBA.proj              = glGetUniformLocation(prog, "proj");
         shaders->m_shRGBA.tex               = glGetUniformLocation(prog, "tex");
         shaders->m_shRGBA.alphaMatte        = glGetUniformLocation(prog, "texMatte");
@@ -981,22 +996,18 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shRGBA.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shRGBA.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-        shaders->m_shRGBA.topLeft           = glGetUniformLocation(prog, "topLeft");
-        shaders->m_shRGBA.fullSize          = glGetUniformLocation(prog, "fullSize");
-        shaders->m_shRGBA.radius            = glGetUniformLocation(prog, "radius");
-        shaders->m_shRGBA.roundingPower     = glGetUniformLocation(prog, "roundingPower");
         shaders->m_shRGBA.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBA.tint              = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
 
-        prog                                = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
+        prog                                = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
         shaders->m_shPASSTHRURGBA.program   = prog;
         shaders->m_shPASSTHRURGBA.proj      = glGetUniformLocation(prog, "proj");
         shaders->m_shPASSTHRURGBA.tex       = glGetUniformLocation(prog, "tex");
         shaders->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
         shaders->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
 
-        prog                          = createProgram(TEXVERTSRC, TEXFRAGSRCRGBAMATTE);
+        prog                          = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE);
         shaders->m_shMATTE.program    = prog;
         shaders->m_shMATTE.proj       = glGetUniformLocation(prog, "proj");
         shaders->m_shMATTE.tex        = glGetUniformLocation(prog, "tex");
@@ -1004,7 +1015,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shMATTE.texAttrib  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shMATTE.posAttrib  = glGetAttribLocation(prog, "pos");
 
-        prog                          = createProgram(TEXVERTSRC, FRAGGLITCH);
+        prog                          = createProgram(shaders->TEXVERTSRC, FRAGGLITCH);
         shaders->m_shGLITCH.program   = prog;
         shaders->m_shGLITCH.proj      = glGetUniformLocation(prog, "proj");
         shaders->m_shGLITCH.tex       = glGetUniformLocation(prog, "tex");
@@ -1014,8 +1025,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shGLITCH.time      = glGetUniformLocation(prog, "time");
         shaders->m_shGLITCH.fullSize  = glGetUniformLocation(prog, "screenSize");
 
-        prog                                = createProgram(TEXVERTSRC, TEXFRAGSRCRGBX);
-        shaders->m_shRGBX.program           = prog;
+        prog                      = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX);
+        shaders->m_shRGBX.program = prog;
+        getRoundingShaderUniforms(shaders->m_shRGBX);
         shaders->m_shRGBX.tex               = glGetUniformLocation(prog, "tex");
         shaders->m_shRGBX.proj              = glGetUniformLocation(prog, "proj");
         shaders->m_shRGBX.alpha             = glGetUniformLocation(prog, "alpha");
@@ -1024,15 +1036,12 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shRGBX.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shRGBX.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-        shaders->m_shRGBX.topLeft           = glGetUniformLocation(prog, "topLeft");
-        shaders->m_shRGBX.fullSize          = glGetUniformLocation(prog, "fullSize");
-        shaders->m_shRGBX.radius            = glGetUniformLocation(prog, "radius");
-        shaders->m_shRGBX.roundingPower     = glGetUniformLocation(prog, "roundingPower");
         shaders->m_shRGBX.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.tint              = glGetUniformLocation(prog, "tint");
 
-        prog                               = createProgram(TEXVERTSRC, TEXFRAGSRCEXT);
-        shaders->m_shEXT.program           = prog;
+        prog                     = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT);
+        shaders->m_shEXT.program = prog;
+        getRoundingShaderUniforms(shaders->m_shEXT);
         shaders->m_shEXT.tex               = glGetUniformLocation(prog, "tex");
         shaders->m_shEXT.proj              = glGetUniformLocation(prog, "proj");
         shaders->m_shEXT.alpha             = glGetUniformLocation(prog, "alpha");
@@ -1041,14 +1050,10 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shEXT.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shEXT.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-        shaders->m_shEXT.topLeft           = glGetUniformLocation(prog, "topLeft");
-        shaders->m_shEXT.fullSize          = glGetUniformLocation(prog, "fullSize");
-        shaders->m_shEXT.radius            = glGetUniformLocation(prog, "radius");
-        shaders->m_shEXT.roundingPower     = glGetUniformLocation(prog, "roundingPower");
         shaders->m_shEXT.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.tint              = glGetUniformLocation(prog, "tint");
 
-        prog                                 = createProgram(TEXVERTSRC, FRAGBLUR1);
+        prog                                 = createProgram(shaders->TEXVERTSRC, FRAGBLUR1);
         shaders->m_shBLUR1.program           = prog;
         shaders->m_shBLUR1.tex               = glGetUniformLocation(prog, "tex");
         shaders->m_shBLUR1.alpha             = glGetUniformLocation(prog, "alpha");
@@ -1061,7 +1066,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR1.vibrancy          = glGetUniformLocation(prog, "vibrancy");
         shaders->m_shBLUR1.vibrancy_darkness = glGetUniformLocation(prog, "vibrancy_darkness");
 
-        prog                         = createProgram(TEXVERTSRC, FRAGBLUR2);
+        prog                         = createProgram(shaders->TEXVERTSRC, FRAGBLUR2);
         shaders->m_shBLUR2.program   = prog;
         shaders->m_shBLUR2.tex       = glGetUniformLocation(prog, "tex");
         shaders->m_shBLUR2.alpha     = glGetUniformLocation(prog, "alpha");
@@ -1071,7 +1076,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
-        prog                                = createProgram(TEXVERTSRC, FRAGBLURPREPARE);
+        prog                                = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE);
         shaders->m_shBLURPREPARE.program    = prog;
         shaders->m_shBLURPREPARE.tex        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURPREPARE.proj       = glGetUniformLocation(prog, "proj");
@@ -1080,7 +1085,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.contrast   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
 
-        prog                               = createProgram(TEXVERTSRC, FRAGBLURFINISH);
+        prog                               = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH);
         shaders->m_shBLURFINISH.program    = prog;
         shaders->m_shBLURFINISH.tex        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURFINISH.proj       = glGetUniformLocation(prog, "proj");
@@ -1093,41 +1098,35 @@ bool CHyprOpenGLImpl::initShaders() {
         prog                        = createProgram(QUADVERTSRC, FRAGSHADOW);
         shaders->m_shSHADOW.program = prog;
 #else
-        prog                        = createProgram(QUADVERTSRC320, FRAGSHADOW);
+        prog                        = createProgram(shaders->TEXVERTSRC320, FRAGSHADOW);
         shaders->m_shSHADOW.program = prog;
         getCMShaderUniforms(shaders->m_shSHADOW);
 #endif
-        shaders->m_shSHADOW.proj          = glGetUniformLocation(prog, "proj");
-        shaders->m_shSHADOW.posAttrib     = glGetAttribLocation(prog, "pos");
-        shaders->m_shSHADOW.texAttrib     = glGetAttribLocation(prog, "texcoord");
-        shaders->m_shSHADOW.topLeft       = glGetUniformLocation(prog, "topLeft");
-        shaders->m_shSHADOW.bottomRight   = glGetUniformLocation(prog, "bottomRight");
-        shaders->m_shSHADOW.fullSize      = glGetUniformLocation(prog, "fullSize");
-        shaders->m_shSHADOW.radius        = glGetUniformLocation(prog, "radius");
-        shaders->m_shSHADOW.roundingPower = glGetUniformLocation(prog, "roundingPower");
-        shaders->m_shSHADOW.range         = glGetUniformLocation(prog, "range");
-        shaders->m_shSHADOW.shadowPower   = glGetUniformLocation(prog, "shadowPower");
-        shaders->m_shSHADOW.color         = glGetUniformLocation(prog, "color");
+        getRoundingShaderUniforms(shaders->m_shSHADOW);
+        shaders->m_shSHADOW.proj        = glGetUniformLocation(prog, "proj");
+        shaders->m_shSHADOW.posAttrib   = glGetAttribLocation(prog, "pos");
+        shaders->m_shSHADOW.texAttrib   = glGetAttribLocation(prog, "texcoord");
+        shaders->m_shSHADOW.bottomRight = glGetUniformLocation(prog, "bottomRight");
+        shaders->m_shSHADOW.range       = glGetUniformLocation(prog, "range");
+        shaders->m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
+        shaders->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
 
 #ifdef GLES2
         prog                         = createProgram(QUADVERTSRC, FRAGBORDER1);
         shaders->m_shBORDER1.program = prog;
 #else
-        prog                         = createProgram(QUADVERTSRC320, FRAGBORDER1);
+        prog                         = createProgram(shaders->TEXVERTSRC320, FRAGBORDER1);
         shaders->m_shBORDER1.program = prog;
         getCMShaderUniforms(shaders->m_shBORDER1);
 #endif
+        getRoundingShaderUniforms(shaders->m_shBORDER1);
         shaders->m_shBORDER1.proj                  = glGetUniformLocation(prog, "proj");
         shaders->m_shBORDER1.thick                 = glGetUniformLocation(prog, "thick");
         shaders->m_shBORDER1.posAttrib             = glGetAttribLocation(prog, "pos");
         shaders->m_shBORDER1.texAttrib             = glGetAttribLocation(prog, "texcoord");
-        shaders->m_shBORDER1.topLeft               = glGetUniformLocation(prog, "topLeft");
         shaders->m_shBORDER1.bottomRight           = glGetUniformLocation(prog, "bottomRight");
-        shaders->m_shBORDER1.fullSize              = glGetUniformLocation(prog, "fullSize");
         shaders->m_shBORDER1.fullSizeUntransformed = glGetUniformLocation(prog, "fullSizeUntransformed");
-        shaders->m_shBORDER1.radius                = glGetUniformLocation(prog, "radius");
         shaders->m_shBORDER1.radiusOuter           = glGetUniformLocation(prog, "radiusOuter");
-        shaders->m_shBORDER1.roundingPower         = glGetUniformLocation(prog, "roundingPower");
         shaders->m_shBORDER1.gradient              = glGetUniformLocation(prog, "gradient");
         shaders->m_shBORDER1.gradient2             = glGetUniformLocation(prog, "gradient2");
         shaders->m_shBORDER1.gradientLength        = glGetUniformLocation(prog, "gradientLength");
@@ -1140,7 +1139,6 @@ bool CHyprOpenGLImpl::initShaders() {
         if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
             throw e;
 
-        // FIXME? restore working shader includes if needed.
         Debug::log(ERR, "Shaders update failed: {}", e.what());
         g_pHyprNotificationOverlay->addNotification(std::format("Shaders update failed: {}", e.what()), CHyprColor{}, 15000, ICON_ERROR);
         return false;
@@ -1171,7 +1169,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
     std::string fragmentShader((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
 
-    m_sFinalScreenShader.program = createProgram(fragmentShader.starts_with("#version 320 es") ? TEXVERTSRC320 : TEXVERTSRC, fragmentShader, true);
+    m_sFinalScreenShader.program =
+        createProgram(fragmentShader.starts_with("#version 320 es") ? m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC320 : m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC,
+                      fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
         // Error will have been sent by now by the underlying cause

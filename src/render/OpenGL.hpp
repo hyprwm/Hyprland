@@ -9,6 +9,7 @@
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <cstdint>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <map>
 
@@ -79,20 +80,22 @@ enum eMonitorExtraRenderFBs : uint8_t {
 };
 
 struct SPreparedShaders {
-    CShader m_shQUAD;
-    CShader m_shRGBA;
-    CShader m_shPASSTHRURGBA;
-    CShader m_shMATTE;
-    CShader m_shRGBX;
-    CShader m_shEXT;
-    CShader m_shBLUR1;
-    CShader m_shBLUR2;
-    CShader m_shBLURPREPARE;
-    CShader m_shBLURFINISH;
-    CShader m_shSHADOW;
-    CShader m_shBORDER1;
-    CShader m_shGLITCH;
-    CShader m_shCM;
+    std::string TEXVERTSRC;
+    std::string TEXVERTSRC320;
+    CShader     m_shQUAD;
+    CShader     m_shRGBA;
+    CShader     m_shPASSTHRURGBA;
+    CShader     m_shMATTE;
+    CShader     m_shRGBX;
+    CShader     m_shEXT;
+    CShader     m_shBLUR1;
+    CShader     m_shBLUR2;
+    CShader     m_shBLURPREPARE;
+    CShader     m_shBLURFINISH;
+    CShader     m_shSHADOW;
+    CShader     m_shBORDER1;
+    CShader     m_shGLITCH;
+    CShader     m_shCM;
 };
 
 struct SMonitorRenderData {

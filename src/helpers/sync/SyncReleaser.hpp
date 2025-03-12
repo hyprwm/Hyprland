@@ -16,7 +16,7 @@ class CEGLSync;
 
 class CSyncReleaser {
   public:
-    CSyncReleaser(SP<CSyncTimeline> timeline_, uint64_t point_);
+    CSyncReleaser(SP<CSyncTimeline> timeline, uint64_t point);
     ~CSyncReleaser();
 
     // drops the releaser, will never signal anymore
@@ -27,8 +27,8 @@ class CSyncReleaser {
     void                           addReleaseSync(SP<CEGLSync> sync);
 
   private:
-    SP<CSyncTimeline>              timeline;
-    uint64_t                       point = 0;
+    SP<CSyncTimeline>              m_timeline;
+    uint64_t                       m_point = 0;
     Hyprutils::OS::CFileDescriptor m_fd;
     SP<CEGLSync>                   m_sync;
 };

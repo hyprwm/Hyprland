@@ -138,29 +138,29 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         if (protocolError())
-            return; // bad client.. return.
+            return;
 
-        const auto& state = pendingStates.emplace_back(surface->pending);
+        const auto& state = pendingStates.emplace_back(makeShared<SSurfaceState>(surface->pending));
         surface->pending.damage.clear();
         surface->pending.bufferDamage.clear();
         surface->pending.newBuffer = false;
         surface->pending.buffer.reset();
 
-        state.buffer->buffer->syncReleaser = state.buffer->release->createSyncRelease();
-        state.buffer->acquire->addWaiter([this, surf = surface, it = std::prev(pendingStates.end())] {
+        state->buffer->buffer->syncReleaser = state->buffer->release->createSyncRelease();
+        state->buffer->acquire->addWaiter([this, surf = surface, wp = CWeakPointer<SSurfaceState>(*std::prev(pendingStates.end()))] {
             if (!surf)
                 return;
 
-            surf->commitPendingState(*it);
-            pendingStates.erase(it);
+            surf->commitPendingState(*wp.lock());
+            std::erase(pendingStates, wp);
         });
     });
 }
 
 void CDRMSyncobjSurfaceResource::removeAllWaiters() {
     for (auto& s : pendingStates) {
-        if (s.buffer && s.buffer->acquire && !s.buffer->acquire->expired())
-            s.buffer->acquire->resource()->timeline->removeAllWaiters();
+        if (s && s->buffer && s->buffer->acquire && !s->buffer->acquire->expired())
+            s->buffer->acquire->resource()->timeline->removeAllWaiters();
     }
 
     pendingStates.clear();

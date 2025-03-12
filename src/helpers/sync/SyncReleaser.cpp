@@ -19,20 +19,20 @@ struct sync_merge_data {
 
 using namespace Hyprutils::OS;
 
-CSyncReleaser::CSyncReleaser(SP<CSyncTimeline> timeline_, uint64_t point_) : timeline(timeline_), point(point_) {
+CSyncReleaser::CSyncReleaser(SP<CSyncTimeline> timeline, uint64_t point) : m_timeline(timeline), m_point(point) {
     ;
 }
 
 CSyncReleaser::~CSyncReleaser() {
-    if (!timeline) {
+    if (!m_timeline) {
         Debug::log(ERR, "CSyncReleaser destructing without a timeline");
         return;
     }
 
     if (m_fd.isValid())
-        timeline->importFromSyncFileFD(point, m_fd);
+        m_timeline->importFromSyncFileFD(m_point, m_fd);
     else
-        timeline->signal(point);
+        m_timeline->signal(m_point);
 }
 
 CFileDescriptor CSyncReleaser::mergeSyncFds(const CFileDescriptor& fd1, const CFileDescriptor& fd2) {
@@ -61,5 +61,5 @@ void CSyncReleaser::addReleaseSync(SP<CEGLSync> sync) {
 }
 
 void CSyncReleaser::drop() {
-    timeline.reset();
+    m_timeline.reset();
 }

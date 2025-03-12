@@ -54,7 +54,7 @@ class CDRMSyncobjSurfaceResource {
 
     CDRMSyncPointState              pendingAcquire;
     CDRMSyncPointState              pendingRelease;
-    std::list<SSurfaceState>        pendingStates;
+    std::vector<SP<SSurfaceState>>  pendingStates;
 
     struct {
         CHyprSignalListener surfacePrecommit;

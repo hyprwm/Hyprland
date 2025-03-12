@@ -186,7 +186,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -230,7 +230,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
             PROTO::colorManagement->destroyResource(imageDescription.get());
 
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -448,7 +448,7 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
         }
 
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -505,7 +505,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         }
 
         const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id)));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();

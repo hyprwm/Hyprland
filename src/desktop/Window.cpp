@@ -791,6 +791,10 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             }
             break;
         }
+        case CWindowRule::RULE_PERSISTENTSIZE: {
+            m_sWindowData.persistentSize = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+            break;
+        }
         default: break;
     }
 }

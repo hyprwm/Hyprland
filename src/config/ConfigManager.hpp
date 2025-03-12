@@ -138,6 +138,27 @@ struct SFirstExecRequest {
     bool        withRules = false;
 };
 
+struct SFloatCache {
+    size_t hash;
+
+    SFloatCache(PHLWINDOW window) {
+        hash = std::hash<std::string>{}(window->m_szClass) ^ (std::hash<std::string>{}(window->m_szTitle) << 1);
+    }
+
+    bool operator==(const SFloatCache& other) const {
+        return hash == other.hash;
+    }
+};
+
+namespace std {
+    template <>
+    struct hash<SFloatCache> {
+        size_t operator()(const SFloatCache& id) const {
+            return id.hash;
+        }
+    };
+}
+
 class CConfigManager {
   public:
     CConfigManager();
@@ -232,6 +253,9 @@ class CConfigManager {
     bool                       isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
     bool                       m_bLastConfigVerificationWasSuccessful = true;
 
+    void                       storeFloatingSize(PHLWINDOW window, const Vector2D& size);
+    std::optional<Vector2D>    getStoredFloatingSize(PHLWINDOW window);
+
   private:
     UP<Hyprlang::CConfig>                            m_pConfig;
 
@@ -267,19 +291,21 @@ class CConfigManager {
     uint32_t                                         m_configValueNumber = 0;
 
     // internal methods
-    void                       updateBlurredLS(const std::string&, const bool);
-    void                       setDefaultAnimationVars();
-    std::optional<std::string> resetHLConfig();
-    std::optional<std::string> generateConfig(std::string configPath);
-    std::optional<std::string> verifyConfigExists();
-    void                       postConfigReload(const Hyprlang::CParseResult& result);
-    SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+    void                                      updateBlurredLS(const std::string&, const bool);
+    void                                      setDefaultAnimationVars();
+    std::optional<std::string>                resetHLConfig();
+    std::optional<std::string>                generateConfig(std::string configPath);
+    std::optional<std::string>                verifyConfigExists();
+    void                                      postConfigReload(const Hyprlang::CParseResult& result);
+    SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 
-    void                       registerConfigVar(const char* name, const Hyprlang::INT& val);
-    void                       registerConfigVar(const char* name, const Hyprlang::FLOAT& val);
-    void                       registerConfigVar(const char* name, const Hyprlang::VEC2& val);
-    void                       registerConfigVar(const char* name, const Hyprlang::STRING& val);
-    void                       registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::INT& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::FLOAT& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::VEC2& val);
+    void                                      registerConfigVar(const char* name, const Hyprlang::STRING& val);
+    void                                      registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& val);
+
+    std::unordered_map<SFloatCache, Vector2D> m_mStoredFloatingSizes;
 
     friend struct SConfigOptionDescription;
 };

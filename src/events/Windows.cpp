@@ -349,7 +349,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (!workspaceSilent) {
                 if (pWorkspace->m_bIsSpecialWorkspace)
                     pWorkspace->m_pMonitor->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID)
+                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_bNoInitialFocus)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_pLastMonitor.lock();
@@ -715,6 +715,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
+
+    if (PWINDOW->m_bIsFloating && !PWINDOW->m_bIsX11 &&
+        std::any_of(PWINDOW->m_vMatchedRules.begin(), PWINDOW->m_vMatchedRules.end(), [](const auto& r) { return r->ruleType == CWindowRule::RULE_PERSISTENTSIZE; })) {
+        Debug::log(LOG, "storing floating size {}x{} for window {}::{} on close", PWINDOW->m_vRealSize->value().x, PWINDOW->m_vRealSize->value().y, PWINDOW->m_szClass,
+                   PWINDOW->m_szTitle);
+        g_pConfigManager->storeFloatingSize(PWINDOW, PWINDOW->m_vRealSize->value());
+    }
 
     PROTO::toplevelExport->onWindowUnmap(PWINDOW);
 

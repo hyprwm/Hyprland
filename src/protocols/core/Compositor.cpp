@@ -439,9 +439,8 @@ void CWLSurfaceResource::unlockPendingState() {
 }
 
 void CWLSurfaceResource::commitPendingState() {
-    static auto PDROP          = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
-    auto const  previousBuffer = current.buffer;
-    current                    = pending;
+    static auto PDROP = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
+    current           = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
     pending.newBuffer = false;
@@ -493,15 +492,6 @@ void CWLSurfaceResource::commitPendingState() {
                 surf->events.commit.emit();
             },
             nullptr);
-    }
-
-    // for async buffers, we can only release the buffer once we are unrefing it from current.
-    // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
-    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
-        if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
-            previousBuffer->buffer->lock();
-            previousBuffer->buffer->unlockOnBufferRelease(self);
-        }
     }
 
     lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};

@@ -161,7 +161,7 @@ CXXColorManagementOutput::CXXColorManagementOutput(SP<CXxColorManagementOutputV4
             PROTO::xxColorManagement->destroyResource(imageDescription.get());
 
         const auto RESOURCE = PROTO::xxColorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CXXColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id)));
+            makeShared<CXXColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id), true));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -368,7 +368,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         }
 
         const auto RESOURCE = PROTO::xxColorManagement->m_vImageDescriptions.emplace_back(
-            makeShared<CXXColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id)));
+            makeShared<CXXColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();

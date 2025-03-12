@@ -29,7 +29,7 @@ void main() {
 	    pixColor[2] = pixColor[2] * tint[2];
     }
 
-    if (radius > 0.0) {
+    if (radius > 0.0)
     	pixColor = rounding(pixColor);
 
     gl_FragColor = pixColor * alpha;

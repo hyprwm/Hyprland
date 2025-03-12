@@ -1098,7 +1098,7 @@ bool CHyprOpenGLImpl::initShaders() {
 #else
         prog                            = createProgram(shaders->TEXVERTSRC320, FRAGBLURFINISH);
         shaders->m_shBLURFINISH.program = prog;
-        getCMShaderUniforms(shaders->m_shBLURFINISH);
+        // getCMShaderUniforms(shaders->m_shBLURFINISH);
 #endif
         shaders->m_shBLURFINISH.tex        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURFINISH.proj       = glGetUniformLocation(prog, "proj");
@@ -1874,12 +1874,20 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.program);
 
-        const auto imageDescription =
-            m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
-        const bool skipCM = imageDescription == SImageDescription{};
+        // From FB to sRGB
+        const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
         glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.skipCM, skipCM);
-        if (!skipCM)
-            passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, imageDescription, SImageDescription{});
+        if (!skipCM) {
+            passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
+            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.sdrSaturation,
+                        m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                            m_RenderData.pMonitor->sdrSaturation :
+                            1.0f);
+            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.sdrBrightness,
+                        m_RenderData.pMonitor->sdrBrightness > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                            m_RenderData.pMonitor->sdrBrightness :
+                            1.0f);
+        }
 
 #ifndef GLES2
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2006,11 +2014,6 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.program);
-
-        const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
-        glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.skipCM, skipCM);
-        if (!skipCM)
-            passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH, SImageDescription{});
 
 #ifndef GLES2
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());

@@ -8,14 +8,6 @@ uniform sampler2D tex;
 uniform float noise;
 uniform float brightness;
 
-uniform int skipCM;
-uniform int sourceTF; // eTransferFunction
-uniform int targetTF; // eTransferFunction 
-uniform mat4x2 sourcePrimaries;
-uniform mat4x2 targetPrimaries;
-
-#include "CM.glsl"
-
 float hash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 1689.1984);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -35,9 +27,6 @@ void main() {
     if (brightness < 1.0) {
         pixColor.rgb *= brightness;
     }
-
-    if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
 
     fragColor = pixColor;
 }

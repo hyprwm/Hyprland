@@ -875,7 +875,7 @@ static std::string loadShader(const std::string& filename) {
             return src.value();
     }
     for (auto& e : ASSET_PATHS) {
-        const auto src = NFsUtils::readFileAsString(std::string{e} + "/hypr/" + filename); // FIXME install assets with subfolders
+        const auto src = NFsUtils::readFileAsString(std::string{e} + "/hypr/shaders/" + filename); // FIXME install assets with subfolders
         if (src.has_value())
             return src.value();
     }

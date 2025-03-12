@@ -414,6 +414,10 @@ list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
 install(FILES ${INSTALLABLE_ASSETS}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
+file(GLOB_RECURSE SHADER_ASSETS "assets/shaders/*")
+install(FILES ${SHADER_ASSETS}
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr/shaders)
+
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)

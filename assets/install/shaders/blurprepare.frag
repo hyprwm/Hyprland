@@ -25,8 +25,22 @@ layout(location = 0) out vec4 fragColor;
 void main() {
     vec4 pixColor = texture(tex, v_texcoord);
 
-    if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
+    if (skipCM == 0) {
+        if (sourceTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
+            pixColor.rgb /= sdrBrightnessMultiplier;
+        }
+        pixColor.rgb = toLinearRGB(pixColor.rgb, sourceTF);
+        mat3 srcxyz = primaries2xyz(sourcePrimaries);
+        mat3 dstxyz;
+        if (sourcePrimaries == targetPrimaries)
+            dstxyz = srcxyz;
+        else {
+            dstxyz = primaries2xyz(targetPrimaries);
+            pixColor = convertPrimaries(pixColor, srcxyz, sourcePrimaries[3], dstxyz, targetPrimaries[3]);
+        }
+        pixColor = toNit(pixColor, sourceTF);
+        pixColor = fromLinearNit(pixColor, targetTF);
+    }
 
     // contrast
     if (contrast != 1.0) {

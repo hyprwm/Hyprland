@@ -353,10 +353,12 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, mat4x2 srcPrimaries, int dstTF,
 	pixColor = toNit(pixColor, srcTF);
 	pixColor.rgb *= pixColor.a;
 	pixColor = tonemap(pixColor, dstxyz);
+	pixColor = fromLinearNit(pixColor, dstTF);
 	if (srcTF == CM_TRANSFER_FUNCTION_SRGB && dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
 		pixColor = saturate(pixColor, srcxyz, sdrSaturation);
-		pixColor *= sdrBrightnessMultiplier;
+		pixColor.rgb /= pixColor.a;
+        pixColor.rgb *= sdrBrightnessMultiplier;
+        pixColor.rgb *= pixColor.a;
 	}
-	pixColor = fromLinearNit(pixColor, dstTF);
 	return pixColor;
 }

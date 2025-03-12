@@ -1,4 +1,3 @@
-#include <exception>
 #include <re2/re2.h>
 #include <hyprutils/path/Path.hpp>
 #include <random>
@@ -14,8 +13,9 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
 #include "../helpers/fs/FsUtils.hpp"
+#include "debug/HyprNotificationOverlay.hpp"
+#include "hyprerror/HyprError.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
 #include "pass/PreBlurElement.hpp"
@@ -920,7 +920,9 @@ static void getRoundingShaderUniforms(CShader& shader) {
 }
 
 bool CHyprOpenGLImpl::initShaders() {
-    auto shaders = makeShared<SPreparedShaders>();
+    auto       shaders   = makeShared<SPreparedShaders>();
+    const bool isDynamic = m_RenderData.pCurrentMonData->m_bShadersInitialized;
+
     try {
         std::map<std::string, std::string> includes;
         loadShaderInclude("rounding.glsl", includes);
@@ -950,7 +952,9 @@ bool CHyprOpenGLImpl::initShaders() {
         const auto FRAGBLUR1              = processShader("blur1.frag", includes);
         const auto FRAGBLUR2              = processShader("blur2.frag", includes);
 
-        GLuint     prog           = createProgram(shaders->TEXVERTSRC, QUADFRAGSRC);
+        GLuint     prog = createProgram(shaders->TEXVERTSRC, QUADFRAGSRC, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shQUAD.program = prog;
         getRoundingShaderUniforms(shaders->m_shQUAD);
         shaders->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
@@ -958,7 +962,10 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
 
 #ifndef GLES2
-        prog           = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM);
+        prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, isDynamic);
+        if (isDynamic && m_bCMSupported && prog == 0)
+            g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
+
         m_bCMSupported = prog > 0;
         if (m_bCMSupported) {
             shaders->m_shCM.program = prog;
@@ -982,9 +989,12 @@ bool CHyprOpenGLImpl::initShaders() {
             Debug::log(
                 ERR,
                 "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
+
 #endif
 
-        prog                      = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA);
+        prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shRGBA.program = prog;
         getRoundingShaderUniforms(shaders->m_shRGBA);
         shaders->m_shRGBA.proj              = glGetUniformLocation(prog, "proj");
@@ -1001,14 +1011,18 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.tint              = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
 
-        prog                                = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU);
+        prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shPASSTHRURGBA.program   = prog;
         shaders->m_shPASSTHRURGBA.proj      = glGetUniformLocation(prog, "proj");
         shaders->m_shPASSTHRURGBA.tex       = glGetUniformLocation(prog, "tex");
         shaders->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
         shaders->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
 
-        prog                          = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE);
+        prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shMATTE.program    = prog;
         shaders->m_shMATTE.proj       = glGetUniformLocation(prog, "proj");
         shaders->m_shMATTE.tex        = glGetUniformLocation(prog, "tex");
@@ -1016,7 +1030,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shMATTE.texAttrib  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shMATTE.posAttrib  = glGetAttribLocation(prog, "pos");
 
-        prog                          = createProgram(shaders->TEXVERTSRC, FRAGGLITCH);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGGLITCH, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shGLITCH.program   = prog;
         shaders->m_shGLITCH.proj      = glGetUniformLocation(prog, "proj");
         shaders->m_shGLITCH.tex       = glGetUniformLocation(prog, "tex");
@@ -1026,7 +1042,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shGLITCH.time      = glGetUniformLocation(prog, "time");
         shaders->m_shGLITCH.fullSize  = glGetUniformLocation(prog, "screenSize");
 
-        prog                      = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX);
+        prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shRGBX.program = prog;
         getRoundingShaderUniforms(shaders->m_shRGBX);
         shaders->m_shRGBX.tex               = glGetUniformLocation(prog, "tex");
@@ -1040,7 +1058,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.tint              = glGetUniformLocation(prog, "tint");
 
-        prog                     = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT);
+        prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shEXT.program = prog;
         getRoundingShaderUniforms(shaders->m_shEXT);
         shaders->m_shEXT.tex               = glGetUniformLocation(prog, "tex");
@@ -1054,7 +1074,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.tint              = glGetUniformLocation(prog, "tint");
 
-        prog                                 = createProgram(shaders->TEXVERTSRC, FRAGBLUR1);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR1, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLUR1.program           = prog;
         shaders->m_shBLUR1.tex               = glGetUniformLocation(prog, "tex");
         shaders->m_shBLUR1.alpha             = glGetUniformLocation(prog, "alpha");
@@ -1067,7 +1089,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR1.vibrancy          = glGetUniformLocation(prog, "vibrancy");
         shaders->m_shBLUR1.vibrancy_darkness = glGetUniformLocation(prog, "vibrancy_darkness");
 
-        prog                         = createProgram(shaders->TEXVERTSRC, FRAGBLUR2);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR2, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLUR2.program   = prog;
         shaders->m_shBLUR2.tex       = glGetUniformLocation(prog, "tex");
         shaders->m_shBLUR2.alpha     = glGetUniformLocation(prog, "alpha");
@@ -1078,10 +1102,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
 #ifdef GLES2
-        prog                             = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLURPREPARE.program = prog;
 #else
-        prog                             = createProgram(shaders->TEXVERTSRC320, FRAGBLURPREPARE);
+        prog = createProgram(shaders->TEXVERTSRC320, FRAGBLURPREPARE, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLURPREPARE.program = prog;
         getCMShaderUniforms(shaders->m_shBLURPREPARE);
 #endif
@@ -1093,10 +1121,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
 
 #ifdef GLES2
-        prog                            = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLURFINISH.program = prog;
 #else
-        prog                            = createProgram(shaders->TEXVERTSRC320, FRAGBLURFINISH);
+        prog = createProgram(shaders->TEXVERTSRC320, FRAGBLURFINISH, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBLURFINISH.program = prog;
         // getCMShaderUniforms(shaders->m_shBLURFINISH);
 #endif
@@ -1108,10 +1140,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
 
 #ifdef GLES2
-        prog                        = createProgram(QUADVERTSRC, FRAGSHADOW);
+        prog = createProgram(QUADVERTSRC, FRAGSHADOW, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shSHADOW.program = prog;
 #else
-        prog                        = createProgram(shaders->TEXVERTSRC320, FRAGSHADOW);
+        prog = createProgram(shaders->TEXVERTSRC320, FRAGSHADOW, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shSHADOW.program = prog;
         getCMShaderUniforms(shaders->m_shSHADOW);
 #endif
@@ -1125,10 +1161,14 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
 
 #ifdef GLES2
-        prog                         = createProgram(QUADVERTSRC, FRAGBORDER1);
+        prog = createProgram(QUADVERTSRC, FRAGBORDER1, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBORDER1.program = prog;
 #else
-        prog                         = createProgram(shaders->TEXVERTSRC320, FRAGBORDER1);
+        prog = createProgram(shaders->TEXVERTSRC320, FRAGBORDER1, isDynamic);
+        if (!prog)
+            return false;
         shaders->m_shBORDER1.program = prog;
         getCMShaderUniforms(shaders->m_shBORDER1);
 #endif
@@ -1153,7 +1193,6 @@ bool CHyprOpenGLImpl::initShaders() {
             throw e;
 
         Debug::log(ERR, "Shaders update failed: {}", e.what());
-        g_pHyprNotificationOverlay->addNotification(std::format("Shaders update failed: {}", e.what()), CHyprColor{}, 15000, ICON_ERROR);
         return false;
     }
 
@@ -1161,6 +1200,7 @@ bool CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
 
     Debug::log(LOG, "Shaders initialized successfully.");
+    g_pHyprError->destroy();
     return true;
 }
 

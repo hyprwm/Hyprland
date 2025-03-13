@@ -898,6 +898,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SStringData{STRVAL_EMPTY}, //##TODO UNSET?
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:font_weight_active",
+        .description = "weight of the font used to display active groupbar titles",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"normal"},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:font_weight_inactive",
+        .description = "weight of the font used to display inactive groupbar titles",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"normal"},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:font_size",
         .description = "font size of groupbar title",
         .type        = CONFIG_OPTION_INT,

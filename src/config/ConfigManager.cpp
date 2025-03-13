@@ -693,12 +693,11 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:xp_mode", Hyprlang::INT{0});
     registerConfigVar("render:ctm_animation", Hyprlang::INT{2});
     registerConfigVar("render:allow_early_buffer_release", Hyprlang::INT{1});
+    registerConfigVar("render:cm_fs_passthrough", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
 
-    registerConfigVar("experimental:wide_color_gamut", Hyprlang::INT{0});
-    registerConfigVar("experimental:hdr", Hyprlang::INT{0});
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
     // devices
@@ -2043,6 +2042,32 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             argno++;
         } else if (ARGS[argno] == "bitdepth") {
             newrule.enable10bit = ARGS[argno + 1] == "10";
+            argno++;
+        } else if (ARGS[argno] == "cm") {
+            if (ARGS[argno + 1] == "auto")
+                newrule.cmType = CM_AUTO;
+            else if (ARGS[argno + 1] == "srgb")
+                newrule.cmType = CM_SRGB;
+            else if (ARGS[argno + 1] == "wide")
+                newrule.cmType = CM_WIDE;
+            else if (ARGS[argno + 1] == "edid")
+                newrule.cmType = CM_EDID;
+            else if (ARGS[argno + 1] == "hdr")
+                newrule.cmType = CM_HDR;
+            else if (ARGS[argno + 1] == "hdredid")
+                newrule.cmType = CM_HDR_EDID;
+            else
+                error = "invalid cm ";
+            argno++;
+        } else if (ARGS[argno] == "sdrsaturation") {
+            try {
+                newrule.sdrSaturation = stof(ARGS[argno + 1]);
+            } catch (...) { error = "invalid sdrsaturation "; }
+            argno++;
+        } else if (ARGS[argno] == "sdrbrightness") {
+            try {
+                newrule.sdrBrightness = stof(ARGS[argno + 1]);
+            } catch (...) { error = "invalid sdrbrightness "; }
             argno++;
         } else if (ARGS[argno] == "transform") {
             if (!isNumber(ARGS[argno + 1])) {

@@ -1384,6 +1384,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:cm_fs_passthrough",
+        .description = "Passthrough color settings for fullscreen apps when possible",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * cursor:
@@ -1769,18 +1775,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "top/bottom of the stack depending on new_on_top.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
-        .value       = "experimental:wide_color_gamut",
-        .description = "force wide color gamut for all supported outputs",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "experimental:hdr",
-        .description = "force static hdr for all supported outputs",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",

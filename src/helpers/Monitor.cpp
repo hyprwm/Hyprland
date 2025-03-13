@@ -2,6 +2,7 @@
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
 #include "math/Math.hpp"
+#include "../protocols/ColorManagement.hpp"
 #include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
@@ -412,7 +413,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     if (!force && DELTALESSTHAN(vecPixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, RULE->resolution.y, 1) &&
         DELTALESSTHAN(refreshRate, RULE->refreshRate, 1) && setScale == RULE->scale &&
         ((DELTALESSTHAN(vecPosition.x, RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
-        transform == RULE->transform && RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
+        transform == RULE->transform && RULE->enable10bit == enabled10bit && RULE->cmType == cmType && RULE->sdrSaturation == sdrSaturation &&
+        RULE->sdrBrightness == sdrBrightness && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
 
@@ -669,6 +671,66 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     enabled10bit = set10bit;
+
+    auto oldImageDescription = imageDescription;
+    cmType                   = RULE->cmType;
+    switch (cmType) {
+        case CM_AUTO: cmType = enabled10bit && output->parsedEDID.supportsBT2020 ? CM_WIDE : CM_SRGB; break;
+        case CM_EDID: cmType = output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
+        case CM_HDR:
+        case CM_HDR_EDID:
+            cmType = output->parsedEDID.supportsBT2020 && output->parsedEDID.hdrMetadata.has_value() && output->parsedEDID.hdrMetadata->supportsPQ ? cmType : CM_SRGB;
+            break;
+        default: break;
+    }
+    switch (cmType) {
+        case CM_SRGB: imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
+        case CM_WIDE:
+            imageDescription = {.primariesNameSet = true,
+                                .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
+            break;
+        case CM_EDID:
+            imageDescription = {.primariesNameSet = false,
+                                .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                .primaries        = {
+                                           .red   = {.x = output->parsedEDID.chromaticityCoords->red.x, .y = output->parsedEDID.chromaticityCoords->red.y},
+                                           .green = {.x = output->parsedEDID.chromaticityCoords->green.x, .y = output->parsedEDID.chromaticityCoords->green.y},
+                                           .blue  = {.x = output->parsedEDID.chromaticityCoords->blue.x, .y = output->parsedEDID.chromaticityCoords->blue.y},
+                                           .white = {.x = output->parsedEDID.chromaticityCoords->white.x, .y = output->parsedEDID.chromaticityCoords->white.y},
+                                }};
+            break;
+        case CM_HDR:
+            imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                .primariesNameSet = true,
+                                .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                .luminances       = {.min = 0, .max = 10000, .reference = 203}};
+            break;
+        case CM_HDR_EDID:
+            imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                .primariesNameSet = false,
+                                .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                .primaries        = output->parsedEDID.chromaticityCoords.has_value() ?
+                                           NColorManagement::SPCPRimaries{
+                                               .red   = {.x = output->parsedEDID.chromaticityCoords->red.x, .y = output->parsedEDID.chromaticityCoords->red.y},
+                                               .green = {.x = output->parsedEDID.chromaticityCoords->green.x, .y = output->parsedEDID.chromaticityCoords->green.y},
+                                               .blue  = {.x = output->parsedEDID.chromaticityCoords->blue.x, .y = output->parsedEDID.chromaticityCoords->blue.y},
+                                               .white = {.x = output->parsedEDID.chromaticityCoords->white.x, .y = output->parsedEDID.chromaticityCoords->white.y},
+                                    } :
+                                           NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                .luminances       = {.min       = output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
+                                                     .max       = output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
+                                                     .reference = output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}};
+
+            break;
+        default: UNREACHABLE();
+    }
+    if (oldImageDescription != imageDescription)
+        PROTO::colorManagement->onMonitorImageDescriptionChanged(self);
+
+    sdrSaturation = RULE->sdrSaturation;
+    sdrBrightness = RULE->sdrBrightness;
 
     Vector2D logicalSize = vecPixelSize / scale;
     if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {

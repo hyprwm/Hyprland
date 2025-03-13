@@ -295,7 +295,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 if (BOX) {
                     surfacePos         = BOX->pos();
                     pFoundLayerSurface = HLSurface->getLayer();
-                    pFoundWindow       = g_pCompositor->m_pLastWindow.lock();
+                    pFoundWindow       = HLSurface->getWindow()->isHidden() ? g_pCompositor->m_pLastWindow.lock() : HLSurface->getWindow();
                 } else // reset foundSurface, find one normally
                     foundSurface = nullptr;
             } else // reset foundSurface, find one normally

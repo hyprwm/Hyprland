@@ -20,6 +20,7 @@
 
 #include "Server.hpp"
 #include "XWayland.hpp"
+#include "config/ConfigValue.hpp"
 #include "debug/Log.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
@@ -113,6 +114,8 @@ static std::string getSocketPath(int display, bool isLinux) {
 }
 
 static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
+    static auto CREATEABSTRACTSOCKET = CConfigValue<Hyprlang::INT>("xwayland:create_abstract_socket");
+
     if (!ensureSocketDirExists())
         return false;
 
@@ -120,11 +123,20 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
     std::string path;
 
 #ifdef __linux__
-    // cursed...
-    addr.sun_path[0] = 0;
-    path             = getSocketPath(display, true);
-    strncpy(addr.sun_path + 1, path.c_str(), path.length() + 1);
+    if (*CREATEABSTRACTSOCKET) {
+        // cursed...
+        // but is kept as an option for better compatibility
+        addr.sun_path[0] = 0;
+        path             = getSocketPath(display, true);
+        strncpy(addr.sun_path + 1, path.c_str(), path.length() + 1);
+    } else {
+        path = getSocketPath(display, false);
+        strncpy(addr.sun_path, path.c_str(), path.length() + 1);
+    }
 #else
+    if (*CREATEABSTRACTSOCKET) {
+        Debug::log(WARN, "The abstract XWayland Unix domain socket might be used only on Linux systems. A regular one'll be created insted.");
+    }
     path = getSocketPath(display, false);
     strncpy(addr.sun_path, path.c_str(), path.length() + 1);
 #endif
@@ -227,12 +239,10 @@ CXWaylandServer::~CXWaylandServer() {
     safeRemove(lockPath);
 
     std::string path;
-#ifdef __linux__
-    path = getSocketPath(display, true);
-#else
-    path = getSocketPath(display, false);
-#endif
-    safeRemove(path);
+    for (bool isLinux : {true, false}) {
+        path = getSocketPath(display, isLinux);
+        safeRemove(path);
+    }
 }
 
 void CXWaylandServer::die() {

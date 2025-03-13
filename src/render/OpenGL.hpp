@@ -225,7 +225,7 @@ class CHyprOpenGLImpl {
     void bindBackOnMain();
 
     SP<CTexture>                         loadAsset(const std::string& file);
-    SP<CTexture>                         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0);
+    SP<CTexture>                         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
 
     void                                 setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 

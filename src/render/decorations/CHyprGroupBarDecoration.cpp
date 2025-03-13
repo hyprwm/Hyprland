@@ -235,14 +235,16 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                             .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                 Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                             .get();
-                rect.y += std::ceil(((rect.height - pTitleTex->texSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->scale));
-                rect.height = pTitleTex->texSize.y;
-                rect.width  = pTitleTex->texSize.x;
-                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (pTitleTex->texSize.x / 2.0));
+
+                const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? pTitleTex->texActive : pTitleTex->texInactive;
+                rect.y += std::ceil(((rect.height - titleTex->m_vSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->scale));
+                rect.height = titleTex->m_vSize.y;
+                rect.width  = titleTex->m_vSize.x;
+                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (titleTex->m_vSize.x / 2.0));
                 rect.round();
 
                 CTexPassElement::SRenderData data;
-                data.tex = pTitleTex->tex;
+                data.tex = titleTex;
                 data.box = rect;
                 data.a   = a;
                 g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
@@ -278,13 +280,17 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto      PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
 
+    static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
+    static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
+
+    const auto       FONTWEIGHTACTIVE   = (Hyprlang::INT*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTINACTIVE = (Hyprlang::INT*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
+
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    tex = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */);
-
-    if (tex)
-        texSize = tex->m_vSize;
+    texActive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, *FONTWEIGHTACTIVE);
+    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, *FONTWEIGHTINACTIVE);
 }
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {

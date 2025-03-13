@@ -928,6 +928,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{14, 1, 64},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:indicator_gap",
+        .description = "height of the gap between the groupbar indicator and title",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 64},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:indicator_height",
         .description = "height of the groupbar indicator",
         .type        = CONFIG_OPTION_INT,

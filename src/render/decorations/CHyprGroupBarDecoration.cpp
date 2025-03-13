@@ -27,6 +27,7 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindo
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT          = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto                PINDICATORGAP    = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
     static auto                PINDICATORHEIGHT = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
     static auto                PENABLED         = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto                PRENDERTITLES    = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
@@ -44,10 +45,10 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
     if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {
         if (*PSTACKED) {
-            const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+            const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + (*PKEEPUPPERGAP * *POUTERGAP)}, {0, 0}};
         } else
-            info.desiredExtents = {{0, *POUTERGAP * (1 + *PKEEPUPPERGAP) + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
+            info.desiredExtents = {{0, *POUTERGAP * (1 + *PKEEPUPPERGAP) + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
     } else
         info.desiredExtents = {{0, 0}, {0, 0}};
     return info;
@@ -105,6 +106,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
     static auto PTITLEFONTSIZE             = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto PHEIGHT                    = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto PINDICATORGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
     static auto PINDICATORHEIGHT           = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
     static auto PGRADIENTS                 = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto PSTACKED                   = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
@@ -127,7 +129,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
-    const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+    const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     m_fBarWidth              = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
     m_fBarHeight             = *PSTACKED ? ((ASSIGNEDBOX.h - *POUTERGAP * *PKEEPUPPERGAP) - *POUTERGAP * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - *POUTERGAP * *PKEEPUPPERGAP;
 
@@ -141,7 +143,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                            ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                            *PINDICATORHEIGHT};
 
@@ -185,7 +187,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
         }
 
-        rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
         rect.scale(pMonitor->scale);

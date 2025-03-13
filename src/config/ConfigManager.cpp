@@ -539,6 +539,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:font_size", Hyprlang::INT{8});
     registerConfigVar("group:groupbar:gradients", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:height", Hyprlang::INT{14});
+    registerConfigVar("group:groupbar:indicator_gap", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:indicator_height", Hyprlang::INT{3});
     registerConfigVar("group:groupbar:priority", Hyprlang::INT{3});
     registerConfigVar("group:groupbar:render_titles", Hyprlang::INT{1});

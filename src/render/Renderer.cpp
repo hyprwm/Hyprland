@@ -32,9 +32,9 @@
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "debug/Log.hpp"
-#include "protocols/ColorManagement.hpp"
+#include "../protocols/ColorManagement.hpp"
 #if AQUAMARINE_VERSION_NUMBER > 702 // >0.7.2
-#include "protocols/types/ContentType.hpp"
+#include "../protocols/types/ContentType.hpp"
 #endif
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -1409,78 +1409,40 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     }
 }
 
-static const auto BT709 = Aquamarine::IOutput::SChromaticityCoords{
-    .red   = Aquamarine::IOutput::xy{.x = 0.64, .y = 0.33},
-    .green = Aquamarine::IOutput::xy{.x = 0.30, .y = 0.60},
-    .blue  = Aquamarine::IOutput::xy{.x = 0.15, .y = 0.06},
-    .white = Aquamarine::IOutput::xy{.x = 0.3127, .y = 0.3290},
-};
+static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
 
-static hdr_output_metadata createHDRMetadata(uint8_t eotf, Aquamarine::IOutput::SParsedEDID edid) {
-    if (eotf == 0)
-        return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
-
-    const auto toNits      = [](float value) { return uint16_t(std::round(value)); };
-    const auto to16Bit     = [](float value) { return uint16_t(std::round(value * 50000)); };
-    const auto colorimetry = edid.chromaticityCoords.value_or(BT709);
-
-    Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
-               colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
-    Debug::log(TRACE, "ColorManagement max avg {}, min {}, max {}", edid.hdrMetadata->desiredMaxFrameAverageLuminance, edid.hdrMetadata->desiredContentMinLuminance,
-               edid.hdrMetadata->desiredContentMaxLuminance);
-    return hdr_output_metadata{
-        .metadata_type = 0,
-        .hdmi_metadata_type1 =
-            hdr_metadata_infoframe{
-                .eotf          = eotf,
-                .metadata_type = 0,
-                .display_primaries =
-                    {
-                        {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
-                        {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
-                        {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
-                    },
-                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                .max_display_mastering_luminance = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance),
-                .min_display_mastering_luminance = toNits(edid.hdrMetadata->desiredContentMinLuminance * 10000),
-                .max_cll                         = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance),
-                .max_fall                        = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance),
-            },
-    };
-}
-
-static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
+static hdr_output_metadata       createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
     if (settings.transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ)
-        return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
+        return NO_HDR_METADATA; // empty metadata for SDR
 
     const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
     const auto to16Bit = [](uint32_t value) { return uint16_t(std::round(value * 50000)); };
 
-    auto       colorimetry = settings.primaries;
+    auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
     auto       luminances  = settings.masteringLuminances.max > 0 ?
-               settings.masteringLuminances :
-               SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
+                     settings.masteringLuminances :
+                     SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
 
     Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
-               colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+                     colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
     Debug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
-        .metadata_type = 0,
-        .hdmi_metadata_type1 =
+              .metadata_type = 0,
+              .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                .eotf          = 2,
-                .metadata_type = 0,
-                .display_primaries =
-                    {
+                      .eotf          = 2,
+                      .metadata_type = 0,
+                      .display_primaries =
+                          {
                         {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
                         {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
                         {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
-                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                .max_display_mastering_luminance = toNits(luminances.max),
-                .min_display_mastering_luminance = toNits(luminances.min * 10000),
-                .max_cll                         = toNits(settings.maxCLL),
-                .max_fall                        = toNits(settings.maxFALL),
+                      .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
+                      .max_display_mastering_luminance = toNits(luminances.max),
+                      .min_display_mastering_luminance = toNits(luminances.min * 10000),
+                      .max_cll                         = toNits(settings.maxCLL),
+                      .max_fall                        = toNits(settings.maxFALL),
             },
     };
 }
@@ -1495,12 +1457,14 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (inFD.isValid())
         pMonitor->output->state->setExplicitInFence(inFD.get());
 
-    static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
+    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    const bool  PHDR  = pMonitor->imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
     Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
+
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
-        if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+        if (*PPASS && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();
             const auto SURF =
@@ -1512,18 +1476,17 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), pMonitor->output->parsedEDID));
                 if (needsHdrMetadataUpdate)
                     pMonitor->output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
-            } else if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != *PHDR)
-                pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            } else if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != PHDR)
+                pMonitor->output->state->setHDRMetadata(PHDR ? createHDRMetadata(pMonitor->imageDescription, pMonitor->output->parsedEDID) : NO_HDR_METADATA);
             pMonitor->m_previousFSWindow = WINDOW;
         } else {
-            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != *PHDR)
-                pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != PHDR)
+                pMonitor->output->state->setHDRMetadata(PHDR ? createHDRMetadata(pMonitor->imageDescription, pMonitor->output->parsedEDID) : NO_HDR_METADATA);
             pMonitor->m_previousFSWindow.reset();
         }
     }
 
-    static auto PWIDE    = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
-    const bool  needsWCG = *PWIDE || pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+    const bool needsWCG = pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2 || pMonitor->imageDescription.primariesNamed == CM_PRIMARIES_BT2020;
     if (pMonitor->output->state->state().wideColorGamut != needsWCG) {
         Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
         pMonitor->output->state->setWideColorGamut(needsWCG);

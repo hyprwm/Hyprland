@@ -55,6 +55,15 @@ static CFileDescriptor createSocket(struct sockaddr_un* addr, size_t path_size) 
         return {};
     }
 
+    // Required for the correct functioning of `xhost` #9574
+    // The operation is safe because XWayland controls socket access by itself
+    // and rejects connections not matched by the `xhost` ACL
+    if (addr->sun_path[0] && chmod(addr->sun_path, 0666) < 0) {
+        // We are only extending the default permissions,
+        // and I don't see the reason to make a full stop in case of a failed operation.
+        Debug::log(ERR, "Failed to set permission mode for socket {}{}", dbgSocketPathPrefix, dbgSocketPathRem);
+    }
+
     if (listen(fd.get(), SOCKET_BACKLOG) < 0) {
         Debug::log(ERR, "Failed to listen to socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         if (addr->sun_path[0])

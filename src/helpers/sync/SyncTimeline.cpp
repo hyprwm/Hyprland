@@ -33,6 +33,13 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, int drmSyncobjFD) {
 }
 
 CSyncTimeline::~CSyncTimeline() {
+    for (auto& w : waiters) {
+        if (w->source) {
+            wl_event_source_remove(w->source);
+            w->source = nullptr;
+        }
+    }
+
     if (handle == 0)
         return;
 
@@ -122,6 +129,17 @@ void CSyncTimeline::removeWaiter(SWaiter* w) {
         w->source = nullptr;
     }
     std::erase_if(waiters, [w](const auto& e) { return e.get() == w; });
+}
+
+void CSyncTimeline::removeAllWaiters() {
+    for (auto& w : waiters) {
+        if (w->source) {
+            wl_event_source_remove(w->source);
+            w->source = nullptr;
+        }
+    }
+
+    waiters.clear();
 }
 
 CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {

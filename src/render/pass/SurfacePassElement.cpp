@@ -51,14 +51,6 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (!TEXTURE->m_iTexID)
         return;
 
-    // explicit sync: wait for the timeline, if any
-    if (data.surface->syncobj && data.surface->syncobj->current.acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(data.surface->syncobj->current.acquireTimeline->timeline, data.surface->syncobj->current.acquirePoint)) {
-            Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
-            return;
-        }
-    }
-
     const auto INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 

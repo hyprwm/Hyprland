@@ -33,7 +33,7 @@ class CSHMPool {
 class CWLSHMBuffer : public IHLBuffer {
   public:
     CWLSHMBuffer(SP<CWLSHMPoolResource> pool, uint32_t id, int32_t offset, const Vector2D& size, int32_t stride, uint32_t fmt);
-    virtual ~CWLSHMBuffer() = default;
+    virtual ~CWLSHMBuffer();
 
     virtual Aquamarine::eBufferCapability          caps();
     virtual Aquamarine::eBufferType                type();

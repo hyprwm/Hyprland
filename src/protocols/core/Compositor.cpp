@@ -113,8 +113,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (stateLocks <= 0)
-            commitPendingState();
+        if (!syncobj)
+            commitPendingState(pending);
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) { pending.damage.add(CBox{x, y, w, h}); });
@@ -428,29 +428,14 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
     return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
 }
 
-void CWLSurfaceResource::lockPendingState() {
-    stateLocks++;
-}
-
-void CWLSurfaceResource::unlockPendingState() {
-    stateLocks--;
-    if (stateLocks <= 0)
-        commitPendingState();
-}
-
-void CWLSurfaceResource::commitPendingState() {
-    static auto PDROP = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
-    current           = pending;
-    pending.damage.clear();
-    pending.bufferDamage.clear();
-    pending.newBuffer = false;
-    if (!*PDROP)
-        dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
-
-    events.roleCommit.emit();
-
-    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
-        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
+void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
+    if (state.newBuffer) {
+        state.newBuffer = false;
+        current         = state;
+        state.damage.clear();
+        state.bufferDamage.clear();
+        state.buffer.reset();
+    }
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -463,14 +448,6 @@ void CWLSurfaceResource::commitPendingState() {
         // TODO: don't update the entire texture
         if (role->role() == SURFACE_ROLE_CURSOR && !DAMAGE.empty())
             updateCursorShm(DAMAGE);
-
-        // release the buffer if it's synchronous as update() has done everything thats needed
-        // so we can let the app know we're done.
-        // Some clients aren't ready to receive a release this early. Should be fine to release it on the next commitPendingState.
-        if (current.buffer->buffer->isSynchronous() && *PDROP) {
-            dropCurrentBuffer();
-            dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
-        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
@@ -494,11 +471,16 @@ void CWLSurfaceResource::commitPendingState() {
             nullptr);
     }
 
-    lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
+    // release the buffer if it's synchronous as update() has done everything thats needed
+    // so we can let the app know we're done.
+    // if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
+    // dropCurrentBuffer(); // lets not drop it at all, it will get dropped on next commit if a new buffer arrives.
+    // solves flickering on nonsyncobj apps on explicit sync.
+    // }
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
-    auto buf = current.buffer ? current.buffer->buffer : lastBuffer;
+    auto buf = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 
     if UNLIKELY (!buf)
         return;

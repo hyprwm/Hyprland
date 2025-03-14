@@ -97,6 +97,7 @@ class CLinuxDMABUFFeedbackResource {
 class CLinuxDMABUFResource {
   public:
     CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_);
+    ~CLinuxDMABUFResource() = default;
 
     bool good();
     void sendMods();

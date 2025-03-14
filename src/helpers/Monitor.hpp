@@ -138,11 +138,12 @@ class CMonitor {
     SMonitorRule                activeMonitorRule;
 
     // explicit sync
-    SP<CSyncTimeline> inTimeline;
-    SP<CSyncTimeline> outTimeline;
-    uint64_t          commitSeq = 0;
+    SP<CSyncTimeline>              inTimeline;
+    SP<CSyncTimeline>              outTimeline;
+    Hyprutils::OS::CFileDescriptor inFence;
+    uint64_t                       commitSeq = 0;
 
-    PHLMONITORREF     self;
+    PHLMONITORREF                  self;
 
     // mirroring
     PHLMONITORREF              pMirrorOf;

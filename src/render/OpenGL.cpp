@@ -962,8 +962,8 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
 
 #ifndef GLES2
-        prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, isDynamic);
-        if (isDynamic && m_bCMSupported && prog == 0)
+        prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
+        if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
             g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
         m_bCMSupported = prog > 0;

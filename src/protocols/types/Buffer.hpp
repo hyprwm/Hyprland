@@ -3,6 +3,7 @@
 #include "../../defines.hpp"
 #include "../../render/Texture.hpp"
 #include "./WLBuffer.hpp"
+#include "protocols/DRMSyncobj.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 
@@ -26,6 +27,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
+    UP<CSyncReleaser>                     syncReleaser;
 
     struct {
         CHyprSignalListener backendRelease;
@@ -43,8 +45,9 @@ class CHLBufferReference {
     CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
     ~CHLBufferReference();
 
-    WP<IHLBuffer>     buffer;
-    SP<CSyncReleaser> releaser;
+    WP<IHLBuffer>          buffer;
+    UP<CDRMSyncPointState> acquire;
+    UP<CDRMSyncPointState> release;
 
   private:
     WP<CWLSurfaceResource> surface;

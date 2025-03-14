@@ -691,7 +691,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:expand_undersized_textures", Hyprlang::INT{1});
     registerConfigVar("render:xp_mode", Hyprlang::INT{0});
     registerConfigVar("render:ctm_animation", Hyprlang::INT{2});
-    registerConfigVar("render:allow_early_buffer_release", Hyprlang::INT{1});
     registerConfigVar("render:cm_fs_passthrough", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});

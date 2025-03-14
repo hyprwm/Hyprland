@@ -36,6 +36,9 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
 }
 
 CDMABuffer::~CDMABuffer() {
+    if (resource)
+        resource->sendRelease();
+
     closeFDs();
 }
 

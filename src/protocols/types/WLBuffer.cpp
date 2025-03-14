@@ -5,7 +5,7 @@
 #include "../../helpers/sync/SyncTimeline.hpp"
 #include <xf86drm.h>
 
-CWLBufferResource::CWLBufferResource(SP<CWlBuffer> resource_) : resource(resource_) {
+CWLBufferResource::CWLBufferResource(WP<CWlBuffer> resource_) : resource(resource_.lock()) {
     if UNLIKELY (!good())
         return;
 
@@ -40,7 +40,7 @@ SP<CWLBufferResource> CWLBufferResource::fromResource(wl_resource* res) {
     return data ? data->self.lock() : nullptr;
 }
 
-SP<CWLBufferResource> CWLBufferResource::create(SP<CWlBuffer> resource) {
+SP<CWLBufferResource> CWLBufferResource::create(WP<CWlBuffer> resource) {
     auto p  = SP<CWLBufferResource>(new CWLBufferResource(resource));
     p->self = p;
     return p;

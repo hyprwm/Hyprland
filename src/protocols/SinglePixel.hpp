@@ -9,7 +9,7 @@
 class CSinglePixelBuffer : public IHLBuffer {
   public:
     CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColor col);
-    virtual ~CSinglePixelBuffer() = default;
+    virtual ~CSinglePixelBuffer();
 
     virtual Aquamarine::eBufferCapability          caps();
     virtual Aquamarine::eBufferType                type();

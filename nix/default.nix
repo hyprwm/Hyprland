@@ -26,7 +26,7 @@
   libinput,
   libxkbcommon,
   libuuid,
-  mesa,
+  libgbm,
   pango,
   pciutils,
   re2,
@@ -130,7 +130,7 @@ in
           libinput
           libuuid
           libxkbcommon
-          mesa
+          libgbm
           pango
           pciutils
           re2

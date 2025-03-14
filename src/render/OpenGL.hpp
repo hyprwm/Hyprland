@@ -290,6 +290,7 @@ class CHyprOpenGLImpl {
     bool                    m_bApplyFinalShader     = false;
     bool                    m_bBlend                = false;
     bool                    m_bOffloadedFramebuffer = false;
+    bool                    m_bCMSupported          = true;
 
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;

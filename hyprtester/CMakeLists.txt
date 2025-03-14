@@ -25,3 +25,6 @@ install(TARGETS hyprtester)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test.conf
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/plugin/hyprtestplugin.so
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

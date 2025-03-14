@@ -68,7 +68,15 @@ in {
       machine.wait_for_unit("multi-user.target")
 
       # Run hyprtester testing framework/suite
-      machine.execute("hyprtester -b ${flake.hyprland-debug}/bin/Hyprland -c /etc/test2.conf")
+      machine.execute("hyprtester -b ${flake.hyprland-debug}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog")
+
+      # Wait for hyprland to close
+      machine.execute("pidwait Hyprland")
+
+      # Copy logs to host
+      machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
+      machine.copy_from_vm("/tmp/testerlog")
+      machine.copy_from_vm("/tmp/hyprlog")
 
       # Finally - shutdown
       machine.shutdown()

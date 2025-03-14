@@ -224,35 +224,35 @@ class CHyprOpenGLImpl {
     void renderOffToMain(CFramebuffer* off);
     void bindBackOnMain();
 
-    SP<CTexture>                         loadAsset(const std::string& file);
-    SP<CTexture>                         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    SP<CTexture> loadAsset(const std::string& file);
+    SP<CTexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
 
-    void                                 setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    void                                 ensureBackgroundTexturePresence();
+    void         ensureBackgroundTexturePresence();
 
-    uint32_t                             getPreferredReadFormat(PHLMONITOR pMonitor);
-    std::vector<SDRMFormat>              getDRMFormats();
-    EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                         createEGLSync(int fence = -1);
+    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    std::vector<SDRMFormat>                     getDRMFormats();
+    EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    SP<CEGLSync>                                createEGLSync(int fence = -1);
 
-    bool                                 initShaders();
-    bool                                 m_bShadersInitialized = false;
-    SP<SPreparedShaders>                 m_shaders;
+    bool                                        initShaders();
+    bool                                        m_bShadersInitialized = false;
+    SP<SPreparedShaders>                        m_shaders;
 
-    SCurrentRenderData                   m_RenderData;
+    SCurrentRenderData                          m_RenderData;
 
-    Hyprutils::OS::CFileDescriptor       m_iGBMFD;
-    gbm_device*                          m_pGbmDevice   = nullptr;
-    EGLContext                           m_pEglContext  = nullptr;
-    EGLDisplay                           m_pEglDisplay  = nullptr;
-    EGLDeviceEXT                         m_pEglDevice   = nullptr;
-    uint                                 failedAssetsNo = 0;
+    Hyprutils::OS::CFileDescriptor              m_iGBMFD;
+    gbm_device*                                 m_pGbmDevice   = nullptr;
+    EGLContext                                  m_pEglContext  = nullptr;
+    EGLDisplay                                  m_pEglDisplay  = nullptr;
+    EGLDeviceEXT                                m_pEglDevice   = nullptr;
+    uint                                        failedAssetsNo = 0;
 
-    bool                                 m_bReloadScreenShader = true; // at launch it can be set
+    bool                                        m_bReloadScreenShader = true; // at launch it can be set
 
-    std::map<PHLWINDOWREF, CFramebuffer> m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>     m_mLayerFramebuffers;
+    std::map<PHLWINDOWREF, CFramebuffer>        m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>            m_mLayerFramebuffers;
     std::map<PHLMONITORREF, SMonitorRenderData> m_mMonitorRenderResources;
     std::map<PHLMONITORREF, CFramebuffer>       m_mMonitorBGFBs;
 

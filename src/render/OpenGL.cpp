@@ -2712,7 +2712,7 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     cairo_surface_destroy(CAIROSURFACE);
 
     return tex;
-}    
+}
 
 SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
     SP<CTexture>          tex = makeShared<CTexture>();

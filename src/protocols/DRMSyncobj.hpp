@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "WaylandProtocol.hpp"
-#include "helpers/sync/SyncReleaser.hpp"
+#include "../helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceState.hpp"

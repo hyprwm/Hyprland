@@ -148,10 +148,10 @@ class CEGLSync {
   public:
     ~CEGLSync();
 
-    EGLSyncKHR                      sync = nullptr;
+    EGLSyncKHR                       sync = nullptr;
 
-    Hyprutils::OS::CFileDescriptor& fd();
-    bool                            wait();
+    Hyprutils::OS::CFileDescriptor&& takeFD();
+    Hyprutils::OS::CFileDescriptor&  fd();
 
   private:
     CEGLSync() = default;
@@ -177,7 +177,7 @@ class CHyprOpenGLImpl {
     void renderRectWithDamage(const CBox&, const CHyprColor&, const CRegion& damage, int round = 0, float roundingPower = 2.0f);
     void renderTexture(SP<CTexture>, const CBox&, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false, bool allowCustomUV = false);
     void renderTextureWithDamage(SP<CTexture>, const CBox&, const CRegion& damage, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false,
-                                 bool allowCustomUV = false, SP<CSyncTimeline> waitTimeline = nullptr, uint64_t waitPoint = 0);
+                                 bool allowCustomUV = false);
     void renderTextureWithBlur(SP<CTexture>, const CBox&, float a, SP<CWLSurfaceResource> pSurface, int round = 0, float roundingPower = 2.0f, bool blockBlurOptimization = false,
                                float blurA = 1.f, float overallA = 1.f);
     void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
@@ -230,8 +230,7 @@ class CHyprOpenGLImpl {
     uint32_t                             getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>              getDRMFormats();
     EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                         createEGLSync(Hyprutils::OS::CFileDescriptor fenceFD);
-    bool                                 waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
+    SP<CEGLSync>                         createEGLSync(int fence = -1);
 
     SCurrentRenderData                   m_RenderData;
 
@@ -315,7 +314,7 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
-                                         bool noAA = false, bool allowCustomUV = false, bool allowDim = false, SP<CSyncTimeline> = nullptr, uint64_t waitPoint = 0);
+                                         bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 

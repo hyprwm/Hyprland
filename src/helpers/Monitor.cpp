@@ -1391,16 +1391,17 @@ bool CMonitor::attemptDirectScanout() {
 
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
 
-    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
+    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->current.buffer && PSURFACE->current.buffer->acquire && explicitOptions.explicitKMSEnabled;
     if (DOEXPLICIT) {
         // wait for surface's explicit fence if present
-        CFileDescriptor fd = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
-        if (fd.isValid()) {
-            Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", fd.get());
-            output->state->setExplicitInFence(fd.get());
-        } else
+        inFence = PSURFACE->current.buffer->acquire->exportAsFD();
+        if (inFence.isValid()) {
+            Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", inFence.get());
+            output->state->setExplicitInFence(inFence.get());
+        } else {
             Debug::log(TRACE, "attemptDirectScanout: failed to acquire an sync file fd for aq IN_FENCE");
-        DOEXPLICIT = fd.isValid();
+            DOEXPLICIT = false;
+        }
     }
 
     commitSeq++;
@@ -1425,7 +1426,7 @@ bool CMonitor::attemptDirectScanout() {
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
     }
 
-    if (!PBUFFER->lockedByBackend)
+    if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
         return true;
 
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then

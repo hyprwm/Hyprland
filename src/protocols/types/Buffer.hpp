@@ -3,7 +3,7 @@
 #include "../../defines.hpp"
 #include "../../render/Texture.hpp"
 #include "./WLBuffer.hpp"
-#include "protocols/DRMSyncobj.hpp"
+#include "../DRMSyncobj.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 

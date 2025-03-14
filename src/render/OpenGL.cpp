@@ -597,9 +597,8 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     if (dynamic) {
         if (fragCompiled == 0)
             return 0;
-    } else {
+    } else
         RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT nullptr! Shader source:\n\n{}", frag);
-    }
 
     auto prog = glCreateProgram();
     glAttachShader(prog, vertCompiled);
@@ -869,36 +868,43 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.roundingPower = glGetUniformLocation(prog, "roundingPower");
 
 #ifndef GLES2
-    prog                                                   = createProgram(TEXVERTSRC320, TEXFRAGSRCCM);
-    m_RenderData.pCurrentMonData->m_shCM.program           = prog;
-    m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
-    m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
-    m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
-    m_RenderData.pCurrentMonData->m_shCM.skipCM            = glGetUniformLocation(prog, "skipCM");
-    m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
-    m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
-    m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
-    m_RenderData.pCurrentMonData->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
-    m_RenderData.pCurrentMonData->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
-    m_RenderData.pCurrentMonData->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
-    m_RenderData.pCurrentMonData->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
-    m_RenderData.pCurrentMonData->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
-    m_RenderData.pCurrentMonData->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
-    m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
-    m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
-    m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
-    m_RenderData.pCurrentMonData->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
-    m_RenderData.pCurrentMonData->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
-    m_RenderData.pCurrentMonData->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
-    m_RenderData.pCurrentMonData->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
-    m_RenderData.pCurrentMonData->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-    m_RenderData.pCurrentMonData->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
-    m_RenderData.pCurrentMonData->m_shCM.radius            = glGetUniformLocation(prog, "radius");
-    m_RenderData.pCurrentMonData->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
-    m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
-    m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
-    m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+    prog           = createProgram(TEXVERTSRC320, TEXFRAGSRCCM, true);
+    m_bCMSupported = prog > 0;
+    if (m_bCMSupported) {
+        m_RenderData.pCurrentMonData->m_shCM.program           = prog;
+        m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
+        m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
+        m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
+        m_RenderData.pCurrentMonData->m_shCM.skipCM            = glGetUniformLocation(prog, "skipCM");
+        m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
+        m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
+        m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
+        m_RenderData.pCurrentMonData->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
+        m_RenderData.pCurrentMonData->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
+        m_RenderData.pCurrentMonData->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
+        m_RenderData.pCurrentMonData->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
+        m_RenderData.pCurrentMonData->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
+        m_RenderData.pCurrentMonData->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
+        m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
+        m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
+        m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
+        m_RenderData.pCurrentMonData->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
+        m_RenderData.pCurrentMonData->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
+        m_RenderData.pCurrentMonData->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+        m_RenderData.pCurrentMonData->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+        m_RenderData.pCurrentMonData->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+        m_RenderData.pCurrentMonData->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
+        m_RenderData.pCurrentMonData->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
+        m_RenderData.pCurrentMonData->m_shCM.radius            = glGetUniformLocation(prog, "radius");
+        m_RenderData.pCurrentMonData->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
+        m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
+        m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
+        m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+    } else {
+        Debug::log(
+            ERR,
+            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
+    }
 #endif
 
     prog                                                     = createProgram(TEXVERTSRC, TEXFRAGSRCRGBA);
@@ -1346,25 +1352,24 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             shader           = &m_RenderData.pCurrentMonData->m_shPASSTHRURGBA;
             usingFinalShader = true;
         } else {
-            switch (tex->m_iType) {
-#ifdef GLES2
-                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
-                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
-#else
-                case TEXTURE_RGBA:
-                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shCM; break;
+#ifndef GLES2
+            if (m_bCMSupported)
+                shader = &m_RenderData.pCurrentMonData->m_shCM;
+            else
 #endif
-                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break; // might be unused
-                default: RASSERT(false, "tex->m_iTarget unsupported!");
-            }
+                switch (tex->m_iType) {
+                    case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shRGBA; break;
+                    case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shRGBX; break;
+
+                    case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shEXT; break; // might be unused
+                    default: RASSERT(false, "tex->m_iTarget unsupported!");
+                }
         }
     }
 
     if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
 #ifdef GLES2
         shader = &m_RenderData.pCurrentMonData->m_shRGBX;
-#else
-        shader = &m_RenderData.pCurrentMonData->m_shCM;
 #endif
         texType = TEXTURE_RGBX;
     }
@@ -1393,7 +1398,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 #endif
     glUniform1i(shader->tex, 0);
 #ifndef GLES2
-    if (!usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
+    if (shader == &m_RenderData.pCurrentMonData->m_shCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
         const bool skipCM = *PPASS && m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
             m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
         glUniform1i(shader->texType, texType);

@@ -477,15 +477,6 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     // dropCurrentBuffer(); // lets not drop it at all, it will get dropped on next commit if a new buffer arrives.
     // solves flickering on nonsyncobj apps on explicit sync.
     // }
-
-    // for async buffers, we can only release the buffer once we are unrefing it from current.
-    // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
-    if (current.buffer && current.buffer->buffer && !current.buffer->buffer->isSynchronous()) {
-        if (current.buffer->buffer->lockedByBackend && !current.buffer->buffer->hlEvents.backendRelease) {
-            current.buffer->buffer->lock();
-            current.buffer->buffer->onBackendRelease([this]() { current.buffer->buffer->unlock(); });
-        }
-    }
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

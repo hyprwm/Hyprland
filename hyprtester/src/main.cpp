@@ -75,13 +75,15 @@ static void help() {
     std::println(R"(Arguments:
     --help              -h       - Show this message again
     --config FILE       -c FILE  - Specify config file to use
-    --binary FILE       -b FILE  - Specify Hyprland binary to use)");
+    --binary FILE       -b FILE  - Specify Hyprland binary to use
+    --plugin FILE       -p FILE  - Specify the location of the test plugin)");
 }
 
 int main(int argc, char** argv, char** envp) {
 
     std::string              configPath = "";
     std::string              binaryPath = "";
+    std::string              pluginPath = std::filesystem::current_path().string();
 
     std::vector<std::string> args{argv + 1, argv + argc};
 
@@ -136,6 +138,31 @@ int main(int argc, char** argv, char** envp) {
             it++;
 
             continue;
+        } else if (*it == "--plugin" || *it == "-p") {
+            if (std::next(it) == args.end()) {
+                help();
+
+                return 1;
+            }
+
+            pluginPath = *std::next(it);
+
+            try {
+                pluginPath = std::filesystem::canonical(pluginPath);
+
+                if (!std::filesystem::is_regular_file(pluginPath)) {
+                    throw std::exception();
+                }
+            } catch (...) {
+                std::println(stderr, "[ ERROR ] plugin '{}' doesn't exist!", pluginPath);
+                help();
+
+                return 1;
+            }
+
+            it++;
+
+            continue;
         } else if (*it == "--help" || *it == "-h") {
             help();
 
@@ -174,7 +201,7 @@ int main(int argc, char** argv, char** envp) {
     getFromSocket("/output create headless");
 
     std::println("{}trying to load plugin", Colors::YELLOW);
-    if (getFromSocket(std::format("/plugin load {}/plugin/hyprtestplugin.so", std::filesystem::current_path().string())) != "ok") {
+    if (getFromSocket(std::format("/plugin load {}", pluginPath)) != "ok") {
         std::println("{}Failed to load the test plugin", Colors::RED);
         return 1;
     }

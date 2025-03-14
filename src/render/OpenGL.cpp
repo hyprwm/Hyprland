@@ -11,6 +11,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ColorManagement.hpp"
+#include "../protocols/types/ColorManagement.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
@@ -20,7 +21,6 @@
 #include "pass/RectPassElement.hpp"
 #include "pass/PreBlurElement.hpp"
 #include "pass/ClearPassElement.hpp"
-#include "protocols/types/ColorManagement.hpp"
 #include "render/Shader.hpp"
 #include <string>
 #include <xf86drm.h>

@@ -51,6 +51,7 @@ using namespace Hyprutils::OS;
 #include "../managers/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
+#include "../render/OpenGL.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -1643,6 +1644,13 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
     return format == FORMAT_JSON ? std::format("{{\"{}\"}}\n", escapeJSONStrings(submap)) : (submap + "\n");
 }
 
+static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
+    if (g_pHyprOpenGL->initShaders())
+        return format == FORMAT_JSON ? "{\"ok\": true}" : "ok";
+    else
+        return format == FORMAT_JSON ? "{\"ok\": false}" : "error";
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1665,6 +1673,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
     registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
+    registerCommand(SHyprCtlCommand{.name = "reloadshaders", .exact = true, .fn = reloadShaders});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

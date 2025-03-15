@@ -970,6 +970,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SColorData{0xffffffff},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:border_size",
+        .description = "thickness of the border around the group and its groupbar",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_active",
+        .description = "color of the border for active groups",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0xffffffff},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_inactive",
+        .description = "color of the border for inactive groups",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0xff444444},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:col.active",
         .description = "active group border color",
         .type        = CONFIG_OPTION_COLOR,

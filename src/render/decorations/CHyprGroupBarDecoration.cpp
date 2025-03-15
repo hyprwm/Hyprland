@@ -1,6 +1,8 @@
 #include "CHyprGroupBarDecoration.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../pass/BorderPassElement.hpp"
 #include "managers/LayoutManager.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
@@ -91,6 +93,24 @@ void CHyprGroupBarDecoration::damageEntire() {
     auto box = assignedBoxGlobal();
     box.translate(m_pWindow->m_vFloatingOffset);
     g_pHyprRenderer->damageBox(box);
+
+    static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("group:groupbar:border_size");
+    if (*PBORDERSIZE > 0) {
+        CBox windowBox = m_pWindow->getWindowMainSurfaceBox();
+        windowBox.translate(m_pWindow->m_vFloatingOffset);
+
+        CBox groupbarBox = box;
+
+        CBox combinedBox;
+        combinedBox.x      = std::min(windowBox.x, groupbarBox.x);
+        combinedBox.y      = std::min(windowBox.y, groupbarBox.y);
+        combinedBox.width  = std::max(windowBox.x + windowBox.width, groupbarBox.x + groupbarBox.width) - combinedBox.x;
+        combinedBox.height = std::max(windowBox.y + windowBox.height, groupbarBox.y + groupbarBox.height) - combinedBox.y;
+
+        combinedBox.expand(*PBORDERSIZE);
+
+        g_pHyprRenderer->damageBox(combinedBox);
+    }
 }
 
 void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
@@ -116,6 +136,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGROUPCOLINACTIVE          = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+    static auto PBORDERSIZE                = CConfigValue<Hyprlang::INT>("group:groupbar:border_size");
+    static auto PBORDERCOLACTIVE           = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_active");
+    static auto PBORDERCOLINACTIVE         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_inactive");
     static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
     static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     auto* const GROUPCOLACTIVE             = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
@@ -255,6 +278,36 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     if (*PRENDERTITLES)
         invalidateTextures();
+
+    if (*PBORDERSIZE > 0) {
+        CBox windowBox = m_pWindow->getWindowMainSurfaceBox();
+        windowBox.translate(m_pWindow->m_vFloatingOffset);
+
+        CBox groupbarBox = assignedBoxGlobal();
+
+        CBox combinedBox;
+        combinedBox.x      = std::min(windowBox.x, groupbarBox.x);
+        combinedBox.y      = std::min(windowBox.y, groupbarBox.y);
+        combinedBox.width  = std::max(windowBox.x + windowBox.width, groupbarBox.x + groupbarBox.width) - combinedBox.x;
+        combinedBox.height = std::max(windowBox.y + windowBox.height, groupbarBox.y + groupbarBox.height) - combinedBox.y;
+
+        combinedBox.translate(-pMonitor->vecPosition);
+
+        combinedBox.scale(pMonitor->scale);
+
+        auto* const                     PBORDERCOL = (m_pWindow == g_pCompositor->m_pLastWindow.lock() ? (CGradientValueData*)(PBORDERCOLACTIVE.ptr())->getData() :
+                                                                                                         (CGradientValueData*)(PBORDERCOLINACTIVE.ptr())->getData());
+
+        CBorderPassElement::SBorderData data;
+        data.box           = combinedBox;
+        data.grad1         = *PBORDERCOL;
+        data.round         = m_pWindow->rounding() * pMonitor->scale;
+        data.roundingPower = m_pWindow->roundingPower();
+        data.a             = a;
+        data.borderSize    = *PBORDERSIZE;
+
+        g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPassElement>(data));
+    }
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {

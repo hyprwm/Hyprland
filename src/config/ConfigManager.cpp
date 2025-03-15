@@ -186,13 +186,13 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
     std::string V = VALUE;
 
     if (!*data)
-        *data = new int;
+        *data = new CStringOrInt();
 
-    const auto             DATA = reinterpret_cast<Hyprlang::INT*>(*data);
+    const auto             DATA = reinterpret_cast<CStringOrInt*>(*data);
     Hyprlang::CParseResult result;
 
     try {
-        *DATA = strToPangoWeight(V);
+        DATA->value = strToPangoWeight(V);
     } catch (...) {
         std::string parseError = std::format("{} is not a valid font weight", V);
         result.setError(parseError.c_str());
@@ -203,7 +203,7 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
 
 static void configHandleFontWeightDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<Hyprlang::INT*>(*data);
+        delete reinterpret_cast<CStringOrInt*>(*data);
 }
 
 static Hyprlang::CParseResult handleExec(const char* c, const char* v) {

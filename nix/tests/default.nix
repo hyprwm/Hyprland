@@ -7,7 +7,6 @@ in {
     nodes.machine = {pkgs, ...}: {
       environment.systemPackages = with pkgs; [
         flake.hyprtester
-        gdb
 
         # Programs needed for tests
         kitty
@@ -20,26 +19,17 @@ in {
       environment.variables = {
         "AQ_TRACE" = "1";
         "HYPRLAND_TRACE" = "1";
+        "EGL_PLATFORM" = "wayland";
+        "XWAYLAND_NO_GLAMOR" = "1";
         # Doesn't make a difference
         # "LIBGL_ALWAYS_SOFTWARE" = "1";
         "XDG_RUNTIME_DIR" = "/tmp";
         "XDG_CACHE_HOME" = "/tmp";
       };
 
-      # Automatically configure and start hyprtester when logging in on tty1:
-      # programs.bash.loginShellInit = ''
-      #   if [ "$(tty)" = "/dev/tty1" ] && [ ! -f /tmp/shell-nologin ]; then
-      #     set -e
-      #     # prevent this if from running again
-      #     touch /tmp/shell-nologin
-      # 
-      #     hyprtester -b ${flake.hyprland-debug}/bin/Hyprland -c ${flake.hyprtester}/share/hypr/test2.conf; touch /tmp/hyprland-exit
-      #   fi
-      # '';
-
       programs.hyprland = {
         enable = true;
-        package = flake.hyprland-debug;
+        package = flake.hyprland;
         # We don't need portals in this test, so we don't set portalPackage
       };
 
@@ -52,15 +42,19 @@ in {
       xdg.portal.enable = pkgs.lib.mkForce false;
 
       # Autologin root into tty
-      services.getty.autologinUser = "root";
+      services.getty.autologinUser = "alice";
 
       system.stateVersion = "24.11";
+
+      users.users.alice = {
+        isNormalUser = true;
+      };
 
       # Might crash with less
       virtualisation.memorySize = 8192;
 
       # Doesn't seem to do much, thought it would fix XWayland crashing
-      virtualisation.qemu.options = [ "-vga none -device virtio-gpu-pci" ];
+      virtualisation.qemu.options = ["-vga none -device virtio-gpu-pci"];
     };
 
     testScript = ''
@@ -68,15 +62,18 @@ in {
       machine.wait_for_unit("multi-user.target")
 
       # Run hyprtester testing framework/suite
-      machine.execute("hyprtester -b ${flake.hyprland-debug}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog")
-
-      # Wait for hyprland to close
-      machine.execute("pidwait Hyprland")
+      machine.succeed("su - alice -c 'hyprtester -b ${flake.hyprland}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog'")
 
       # Copy logs to host
       machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
       machine.copy_from_vm("/tmp/testerlog")
       machine.copy_from_vm("/tmp/hyprlog")
+
+      # Print logs for visibility in CI
+      _, out = machine.execute("cat /tmp/hyprlog")
+      print(f"Hyprland log:\n{out}")
+      _, out = machine.execute("cat /tmp/testerlog")
+      print(f"Hyprtester log:\n{out}")
 
       # Finally - shutdown
       machine.shutdown()

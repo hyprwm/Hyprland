@@ -610,20 +610,23 @@ std::vector<pid_t> getAllPIDOf(const std::string& name) {
     std::vector<pid_t> results;
 
 #if defined(KERN_PROC_ALL)
-    int mib[] = {
-        CTL_KERN, KERN_PROC, KERN_PROC_ALL,
+    int mib[] = {CTL_KERN,
+                 KERN_PROC,
+                 KERN_PROC_ALL,
 #if defined(__NetBSD__) || defined(__OpenBSD__)
-        0, sizeof(KINFO_PROC), 0
+                 0,
+                 sizeof(KINFO_PROC),
+                 0
 #endif
     };
-    u_int miblen = sizeof(mib) / sizeof(mib[0]);
-    
+    u_int  miblen = sizeof(mib) / sizeof(mib[0]);
+
     size_t size = 0;
     if (sysctl(mib, miblen, NULL, &size, NULL, 0) == -1)
         return results;
 
     std::vector<KINFO_PROC> kprocList(size / sizeof(KINFO_PROC));
-    
+
     if (sysctl(mib, miblen, kprocList.data(), &size, NULL, 0) != -1) {
         for (auto& kproc : kprocList) {
 #if defined(__DragonFly__)
@@ -648,7 +651,7 @@ std::vector<pid_t> getAllPIDOf(const std::string& name) {
         if (!isNumber(dirname))
             continue;
 
-        const auto pid = std::stoll(dirname);
+        const auto  pid      = std::stoll(dirname);
         std::string procName = getProcNameOf(pid);
 
         if (procName == name)
@@ -686,14 +689,14 @@ std::string getProcNameOf(pid_t pid) {
     return {};
 #else
     const std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
-    CFileDescriptor fd{open(commPath.c_str(), O_RDONLY | O_CLOEXEC)};
-    
+    CFileDescriptor   fd{open(commPath.c_str(), O_RDONLY | O_CLOEXEC)};
+
     if (!fd.isValid())
         return {};
 
-    char buffer[256] = {0};
-    const auto bytesRead = read(fd.get(), buffer, sizeof(buffer) - 1);
-    
+    char       buffer[256] = {0};
+    const auto bytesRead   = read(fd.get(), buffer, sizeof(buffer) - 1);
+
     if (bytesRead <= 0)
         return {};
 
@@ -704,8 +707,6 @@ std::string getProcNameOf(pid_t pid) {
     return name;
 #endif
 }
-
-
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
     auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {

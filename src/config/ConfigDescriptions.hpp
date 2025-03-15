@@ -1381,8 +1381,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "render:cm_fs_passthrough",
         .description = "Passthrough color settings for fullscreen apps when possible",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
         .value       = "render:cm_enabled",

@@ -1462,7 +1462,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto SURF =
                 ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
 
-            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
+            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription() &&
+                (*PPASS == 1 || (*PPASS == 2 && SURF->colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ))) {
                 bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
                 if (SURF->colorManagement->needsHdrMetadataUpdate())
                     SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), pMonitor->output->parsedEDID));

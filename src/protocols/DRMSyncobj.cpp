@@ -30,7 +30,7 @@ WP<CSyncTimeline> CDRMSyncPointState::timeline() {
 }
 
 bool CDRMSyncPointState::expired() {
-    return !m_resource || !m_resource->timeline;
+    return m_resource.expired() || !m_resource->timeline;
 }
 
 UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
@@ -177,14 +177,19 @@ bool CDRMSyncobjSurfaceResource::protocolError() {
         return true;
     }
 
-    if (!!surface->pending.buffer->acquire != !!surface->pending.buffer->release) {
-        resource->error(surface->pending.buffer->acquire ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT,
-                        "Missing timeline");
+    if (!surface->pending.buffer->acquire || !surface->pending.buffer->acquire->timeline()) {
+        resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing acquire timeline");
         surface->pending.rejected = true;
         return true;
     }
 
-    if (surface->pending.buffer->acquire->timeline() == surface->pending.buffer->release->timeline()) {
+    if (!surface->pending.buffer->release || !surface->pending.buffer->release->timeline()) {
+        resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT, "Missing release timeline");
+        surface->pending.rejected = true;
+        return true;
+    }
+
+    if (surface->pending.buffer->acquire->timeline().lock() == surface->pending.buffer->release->timeline().lock()) {
         if (surface->pending.buffer->acquire->point() >= surface->pending.buffer->release->point()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
             surface->pending.rejected = true;

@@ -1607,15 +1607,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glUniform1i(shader->tex, 0);
 #ifndef GLES2
     if (shader == &m_RenderData.pCurrentMonData->m_shaders->m_shCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX)) {
-        const bool skipCM = *PPASS && m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
-            m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
+        const auto imageDescription =
+            m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+        const bool skipCM = (*PPASS == 1 || (*PPASS == 2 || imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_RenderData.pMonitor->activeWorkspace &&
+            m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow && m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
         glUniform1i(shader->texType, texType);
         glUniform1i(shader->skipCM, skipCM);
-        if (!skipCM) {
-            const auto imageDescription =
-                m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+        if (!skipCM)
             passCMUniforms(shader, imageDescription);
-        }
     }
 #endif
 

@@ -1258,7 +1258,7 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_bIsFloating || m_bPinned || isFullscreen()) {
+    if (!m_bIsFloating || m_bPinned || isFullscreen() || m_bDraggingTiled) {
         m_vFloatingOffset = Vector2D(0, 0);
         return;
     }

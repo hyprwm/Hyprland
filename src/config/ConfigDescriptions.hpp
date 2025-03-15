@@ -1054,9 +1054,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "misc:vrr",
-        .description = "	controls the VRR (Adaptive Sync) of your monitors. 0 - off, 1 - on, 2 - fullscreen only [0/1/2]",
+        .description = "	controls the VRR (Adaptive Sync) of your monitors. 0 - off, 1 - on, 2 - fullscreen only, 3 - fullscreen with game or video content type [0/1/2/3]",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 3},
     },
     SConfigOptionDescription{
         .value       = "misc:mouse_move_enables_dpms",

@@ -1216,7 +1216,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     pMonitor->tearingState.activelyTearing = shouldTear;
 
     if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace->getFullscreenWindow() && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
+         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
+          pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
         !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;

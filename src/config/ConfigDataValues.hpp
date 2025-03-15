@@ -4,9 +4,10 @@
 #include <vector>
 
 enum eConfigValueDataTypes : int8_t {
-    CVD_TYPE_INVALID   = -1,
-    CVD_TYPE_GRADIENT  = 0,
-    CVD_TYPE_CSS_VALUE = 1
+    CVD_TYPE_INVALID    = -1,
+    CVD_TYPE_GRADIENT   = 0,
+    CVD_TYPE_CSS_VALUE  = 1,
+    CVD_TYPE_STR_OR_INT = 2,
 };
 
 class ICustomConfigValueData {
@@ -134,5 +135,20 @@ class CCssGapData : public ICustomConfigValueData {
 
     virtual std::string toString() {
         return std::format("{} {} {} {}", m_top, m_right, m_bottom, m_left);
+    }
+};
+
+class CStringOrInt : public ICustomConfigValueData {
+  public:
+    CStringOrInt() = default;
+
+    int64_t                       value;
+
+    virtual eConfigValueDataTypes getDataType() {
+        return CVD_TYPE_STR_OR_INT;
+    }
+
+    virtual std::string toString() {
+        return std::format("{}", value);
     }
 };

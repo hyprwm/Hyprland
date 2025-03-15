@@ -285,14 +285,14 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
     static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
 
-    const auto       FONTWEIGHTACTIVE   = (Hyprlang::INT*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
-    const auto       FONTWEIGHTINACTIVE = (Hyprlang::INT*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTACTIVE   = (CStringOrInt*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTINACTIVE = (CStringOrInt*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
 
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    texActive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, *FONTWEIGHTACTIVE);
-    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, *FONTWEIGHTINACTIVE);
+    texActive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTACTIVE->value);
+    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTINACTIVE->value);
 }
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {

@@ -930,39 +930,14 @@ bool CHyprOpenGLImpl::initShaders() {
 
         shaders->TEXVERTSRC    = processShader("tex.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
+
 #ifdef GLES2
-        const auto FRAGSHADOW      = processShader("shadow_legacy.frag", includes);
-        const auto FRAGBORDER1     = processShader("border_legacy.frag", includes);
-        const auto FRAGBLURPREPARE = processShader("blurprepare_legacy.frag", includes);
-        const auto FRAGBLURFINISH  = processShader("blurfinish_legacy.frag", includes);
+        GLuint prog;
+        m_bCMSupported = false;
 #else
-        const auto TEXFRAGSRCCM    = processShader("CM.frag", includes);
-        const auto FRAGSHADOW      = processShader("shadow.frag", includes);
-        const auto FRAGBORDER1     = processShader("border.frag", includes);
-        const auto FRAGBLURPREPARE = processShader("blurprepare.frag", includes);
-        const auto FRAGBLURFINISH  = processShader("blurfinish.frag", includes);
-#endif
-        const auto QUADFRAGSRC            = processShader("quad.frag", includes);
-        const auto TEXFRAGSRCRGBA         = processShader("rgba.frag", includes);
-        const auto TEXFRAGSRCRGBAPASSTHRU = processShader("passthru.frag", includes);
-        const auto TEXFRAGSRCRGBAMATTE    = processShader("rgbamatte.frag", includes);
-        const auto FRAGGLITCH             = processShader("glitch.frag", includes);
-        const auto TEXFRAGSRCRGBX         = processShader("rgbx.frag", includes);
-        const auto TEXFRAGSRCEXT          = processShader("ext.frag", includes);
-        const auto FRAGBLUR1              = processShader("blur1.frag", includes);
-        const auto FRAGBLUR2              = processShader("blur2.frag", includes);
+        const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-        GLuint     prog = createProgram(shaders->TEXVERTSRC, QUADFRAGSRC, isDynamic);
-        if (!prog)
-            return false;
-        shaders->m_shQUAD.program = prog;
-        getRoundingShaderUniforms(shaders->m_shQUAD);
-        shaders->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
-        shaders->m_shQUAD.color     = glGetUniformLocation(prog, "color");
-        shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
-
-#ifndef GLES2
-        prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
+        GLuint     prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
         if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
             g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
@@ -991,6 +966,29 @@ bool CHyprOpenGLImpl::initShaders() {
                 "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
 
 #endif
+
+        const auto FRAGSHADOW             = processShader(m_bCMSupported ? "shadow.frag" : "shadow_legacy.frag", includes);
+        const auto FRAGBORDER1            = processShader(m_bCMSupported ? "border.frag" : "border_legacy.frag", includes);
+        const auto FRAGBLURPREPARE        = processShader(m_bCMSupported ? "blurprepare.frag" : "blurprepare_legacy.frag", includes);
+        const auto FRAGBLURFINISH         = processShader(m_bCMSupported ? "blurfinish.frag" : "blurfinish_legacy.frag", includes);
+        const auto QUADFRAGSRC            = processShader("quad.frag", includes);
+        const auto TEXFRAGSRCRGBA         = processShader("rgba.frag", includes);
+        const auto TEXFRAGSRCRGBAPASSTHRU = processShader("passthru.frag", includes);
+        const auto TEXFRAGSRCRGBAMATTE    = processShader("rgbamatte.frag", includes);
+        const auto FRAGGLITCH             = processShader("glitch.frag", includes);
+        const auto TEXFRAGSRCRGBX         = processShader("rgbx.frag", includes);
+        const auto TEXFRAGSRCEXT          = processShader("ext.frag", includes);
+        const auto FRAGBLUR1              = processShader("blur1.frag", includes);
+        const auto FRAGBLUR2              = processShader("blur2.frag", includes);
+
+        prog = createProgram(shaders->TEXVERTSRC, QUADFRAGSRC, isDynamic);
+        if (!prog)
+            return false;
+        shaders->m_shQUAD.program = prog;
+        getRoundingShaderUniforms(shaders->m_shQUAD);
+        shaders->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
+        shaders->m_shQUAD.color     = glGetUniformLocation(prog, "color");
+        shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic);
         if (!prog)
@@ -1101,18 +1099,13 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
-#ifdef GLES2
-        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURPREPARE.program = prog;
-#else
-        prog = createProgram(shaders->TEXVERTSRC320, FRAGBLURPREPARE, isDynamic);
-        if (!prog)
-            return false;
-        shaders->m_shBLURPREPARE.program = prog;
-        getCMShaderUniforms(shaders->m_shBLURPREPARE);
-#endif
+        if (m_bCMSupported)
+            getCMShaderUniforms(shaders->m_shBLURPREPARE);
+
         shaders->m_shBLURPREPARE.tex        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURPREPARE.proj       = glGetUniformLocation(prog, "proj");
         shaders->m_shBLURPREPARE.posAttrib  = glGetAttribLocation(prog, "pos");
@@ -1120,18 +1113,12 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.contrast   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
 
-#ifdef GLES2
-        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
-        if (!prog)
-            return false;
-        shaders->m_shBLURFINISH.program = prog;
-#else
-        prog = createProgram(shaders->TEXVERTSRC320, FRAGBLURFINISH, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURFINISH.program = prog;
         // getCMShaderUniforms(shaders->m_shBLURFINISH);
-#endif
+
         shaders->m_shBLURFINISH.tex        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURFINISH.proj       = glGetUniformLocation(prog, "proj");
         shaders->m_shBLURFINISH.posAttrib  = glGetAttribLocation(prog, "pos");
@@ -1139,18 +1126,12 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
 
-#ifdef GLES2
-        prog = createProgram(QUADVERTSRC, FRAGSHADOW, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
             return false;
-        shaders->m_shSHADOW.program = prog;
-#else
-        prog = createProgram(shaders->TEXVERTSRC320, FRAGSHADOW, isDynamic);
-        if (!prog)
-            return false;
-        shaders->m_shSHADOW.program = prog;
+        if (m_bCMSupported)
+            shaders->m_shSHADOW.program = prog;
         getCMShaderUniforms(shaders->m_shSHADOW);
-#endif
         getRoundingShaderUniforms(shaders->m_shSHADOW);
         shaders->m_shSHADOW.proj        = glGetUniformLocation(prog, "proj");
         shaders->m_shSHADOW.posAttrib   = glGetAttribLocation(prog, "pos");
@@ -1160,18 +1141,13 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
 
-#ifdef GLES2
-        prog = createProgram(QUADVERTSRC, FRAGBORDER1, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBORDER1.program = prog;
-#else
-        prog = createProgram(shaders->TEXVERTSRC320, FRAGBORDER1, isDynamic);
-        if (!prog)
-            return false;
-        shaders->m_shBORDER1.program = prog;
-        getCMShaderUniforms(shaders->m_shBORDER1);
-#endif
+        if (m_bCMSupported)
+            getCMShaderUniforms(shaders->m_shBORDER1);
+
         getRoundingShaderUniforms(shaders->m_shBORDER1);
         shaders->m_shBORDER1.proj                  = glGetUniformLocation(prog, "proj");
         shaders->m_shBORDER1.thick                 = glGetUniformLocation(prog, "thick");
@@ -1915,7 +1891,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
-        const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
+        const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
         glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.skipCM, skipCM);
         if (!skipCM) {
             passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
@@ -2398,7 +2374,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.program);
 
-    const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
+    const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
     glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.skipCM, skipCM);
     if (!skipCM)
         passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1, SImageDescription{});
@@ -2583,7 +2559,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     blend(true);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.program);
-    const bool skipCM = m_RenderData.pMonitor->imageDescription == SImageDescription{};
+    const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
     glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.skipCM, skipCM);
     if (!skipCM)
         passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW, SImageDescription{});

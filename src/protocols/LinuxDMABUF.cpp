@@ -111,6 +111,9 @@ CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDM
 }
 
 CLinuxDMABuffer::~CLinuxDMABuffer() {
+    if (buffer && buffer->resource)
+        buffer->resource->sendRelease();
+
     buffer.reset();
     listeners.bufferResourceDestroy.reset();
 }

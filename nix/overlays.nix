@@ -28,7 +28,6 @@ in {
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
-    self.overlays.wayland-protocols-bump
     self.overlays.udis86
 
     # Hyprland packages themselves
@@ -88,19 +87,6 @@ in {
       };
 
       patches = [];
-    });
-  };
-
-  # Temporary bump until https://nixpk.gs/pr-tracker.html?pr=382812 is merged.
-  # Expect to build the universe.
-  wayland-protocols-bump = final: prev: {
-    wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
-      version = "1.41";
-
-      src = prev.fetchurl {
-        url = "https://gitlab.freedesktop.org/wayland/${super.pname}/-/releases/${self.version}/downloads/${super.pname}-${self.version}.tar.xz";
-        hash = "sha256-J4a2sbeZZeMT8sKJwSB1ue1wDUGESBDFGv2hDuMpV2s=";
-      };
     });
   };
 }

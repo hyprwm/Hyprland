@@ -18,8 +18,10 @@ void IHLBuffer::unlock() {
 
     ASSERT(nLocks >= 0);
 
-    if (nLocks == 0)
+    if (nLocks == 0) {
         sendRelease();
+        syncReleaser.reset();
+    }
 }
 
 bool IHLBuffer::locked() {
@@ -43,7 +45,7 @@ CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResou
 }
 
 CHLBufferReference::~CHLBufferReference() {
-    if (buffer.expired())
+    if (!buffer)
         return;
 
     buffer->unlock();

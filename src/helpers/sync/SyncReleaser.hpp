@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "../memory/Memory.hpp"
 
 /*
@@ -15,17 +16,19 @@ class CEGLSync;
 
 class CSyncReleaser {
   public:
-    CSyncReleaser(WP<CSyncTimeline> timeline_, uint64_t point_);
+    CSyncReleaser(SP<CSyncTimeline> timeline, uint64_t point);
     ~CSyncReleaser();
 
     // drops the releaser, will never signal anymore
     void drop();
 
     // wait for this gpu job to finish before releasing
-    void addReleaseSync(SP<CEGLSync> sync);
+    Hyprutils::OS::CFileDescriptor mergeSyncFds(const Hyprutils::OS::CFileDescriptor& fd1, const Hyprutils::OS::CFileDescriptor& fd2);
+    void                           addReleaseSync(SP<CEGLSync> sync);
 
   private:
-    WP<CSyncTimeline> timeline;
-    uint64_t          point = 0;
-    SP<CEGLSync>      sync;
+    SP<CSyncTimeline>              m_timeline;
+    uint64_t                       m_point = 0;
+    Hyprutils::OS::CFileDescriptor m_fd;
+    SP<CEGLSync>                   m_sync;
 };

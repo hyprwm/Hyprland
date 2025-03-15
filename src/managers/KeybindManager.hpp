@@ -154,8 +154,8 @@ class CKeybindManager {
     static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
     static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
     static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory = false);
-    static pid_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
-    static pid_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
+    static pid_t                     spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
+    static pid_t                     spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
     static SDispatchResult closeActive(std::string);

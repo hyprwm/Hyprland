@@ -57,7 +57,7 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
     }
 
     std::println("{}Launching Hyprland", Colors::YELLOW);
-    hyprlandProc = CProcess{binaryPath, {"--config", configPath, "--i-am-really-stupid"}};
+    hyprlandProc = CProcess{binaryPath, {"--config", configPath}};
     hyprlandProc.addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
     return hyprlandProc.runAsync();

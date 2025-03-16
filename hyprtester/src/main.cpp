@@ -175,12 +175,15 @@ int main(int argc, char** argv, char** envp) {
         }
     }
 
-    if (!launchHyprland(configPath, binaryPath))
+    std::println("{}launching hl", Colors::YELLOW);
+    if (!launchHyprland(configPath, binaryPath)) {
+        std::println("{}well it failed", Colors::RED);
         return 1;
+    }
 
-    // hyprland has launched, let's check if it's alive after 2s
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::println("{}slept for 2s", Colors::YELLOW);
+    // hyprland has launched, let's check if it's alive after 10s
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    std::println("{}slept for 10s", Colors::YELLOW);
     if (!hyprlandAlive()) {
         std::println("{}Hyprland failed to launch", Colors::RED);
         return 1;

@@ -58,7 +58,7 @@ namespace NSplashes {
         "Thanks ThatOneCalculator!",
         "The AUR packages always work, except for the times they don't.",
         "Funny animation compositor woo",
-        "2 years!",
+        "3 years!",
         // music reference / quote section
         "J'remue le ciel, le jour, la nuit.",
         "aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi!",

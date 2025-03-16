@@ -62,7 +62,9 @@ in {
       machine.wait_for_unit("multi-user.target")
 
       # Run hyprtester testing framework/suite
-      machine.succeed("su - alice -c 'hyprtester -b ${flake.hyprland}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog'")
+      print("Running hyprtester")
+      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b /run/current-system/sw/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog'")
+      print(f"Hyprtester exited with {exit_status}")
 
       # Copy logs to host
       machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
@@ -77,6 +79,8 @@ in {
 
       # Finally - shutdown
       machine.shutdown()
+
+      exit(exit_status)
     '';
   };
 }

@@ -436,7 +436,8 @@ install(
   DIRECTORY ${HEADERS_PROTO}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
-  PATTERN "*.h*")
+  PATTERN "*.h*"
+  PATTERN "*.frag")
 
 # hyprland headers
 set(HEADERS_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src")

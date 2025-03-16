@@ -40,8 +40,8 @@ in
     buildInputs = hyprland.buildInputs;
 
     preConfigure = ''
-      cmake -S . -B ./build
-      cmake --build ./build --target generate-protocol-headers -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+      cmake -S . -B .
+      cmake --build . --target generate-protocol-headers -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
       cd hyprtester
     '';

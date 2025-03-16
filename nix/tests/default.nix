@@ -1,5 +1,6 @@
 inputs: pkgs: let
   flake = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
+  hyprland = flake.hyprland;
 in {
   tests = pkgs.testers.runNixOSTest {
     name = "hyprland-tests";
@@ -19,17 +20,13 @@ in {
       environment.variables = {
         "AQ_TRACE" = "1";
         "HYPRLAND_TRACE" = "1";
-        "EGL_PLATFORM" = "wayland";
-        "XWAYLAND_NO_GLAMOR" = "1";
-        # Doesn't make a difference
-        # "LIBGL_ALWAYS_SOFTWARE" = "1";
         "XDG_RUNTIME_DIR" = "/tmp";
         "XDG_CACHE_HOME" = "/tmp";
       };
 
       programs.hyprland = {
         enable = true;
-        package = flake.hyprland;
+        package = hyprland;
         # We don't need portals in this test, so we don't set portalPackage
       };
 
@@ -63,7 +60,7 @@ in {
 
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
-      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b /run/current-system/sw/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'", timeout=30)
+      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'", timeout=30)
       print(f"Hyprtester exited with {exit_status}")
 
       # Copy logs to host

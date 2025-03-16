@@ -597,6 +597,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:scroll_factor", {1.f});
     registerConfigVar("input:scroll_points", {STRVAL_EMPTY});
     registerConfigVar("input:emulate_discrete_scroll", Hyprlang::INT{1});
+    registerConfigVar("input:drag_threshold", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:natural_scroll", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:disable_while_typing", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:clickfinger_behavior", Hyprlang::INT{0});
@@ -2233,6 +2234,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       longPress      = false;
     bool       hasDescription = false;
     bool       dontInhibit    = false;
+    bool       click          = false;
+    bool       drag           = false;
     const auto BINDARGS       = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
@@ -2258,6 +2261,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             hasDescription = true;
         } else if (arg == 'p') {
             dontInhibit = true;
+        } else if (arg == 'c') {
+            click   = true;
+            release = true;
+        } else if (arg == 'g') {
+            drag    = true;
+            release = true;
         } else {
             return "bind: invalid flag";
         }
@@ -2268,6 +2277,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
+
+    if (click && drag)
+        return "flags c and g are mutually exclusive";
 
     const int  numbArgs = hasDescription ? 5 : 4;
     const auto ARGS     = CVarList(value, numbArgs);
@@ -2328,7 +2340,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_szCurrentSubmap, DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit});
+                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
+                                               click,         drag});
     }
 
     return {};

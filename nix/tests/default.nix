@@ -63,7 +63,7 @@ in {
 
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
-      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b /run/current-system/sw/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
+      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b /run/current-system/sw/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'", timeout=30)
       print(f"Hyprtester exited with {exit_status}")
 
       # Copy logs to host

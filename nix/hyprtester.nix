@@ -9,6 +9,8 @@
   version ? "git",
 }: let
   inherit (lib.lists) flatten foldl';
+  inherit (lib.sources) cleanSourceWith cleanSource;
+  inherit (lib.strings) hasSuffix;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -21,7 +23,13 @@ in
     pname = "hyprtester";
     inherit version;
 
-    src = ../.;
+    src = cleanSourceWith {
+      filter = name: _type: let
+        baseName = baseNameOf (toString name);
+      in
+        ! (hasSuffix ".nix" baseName);
+      src = cleanSource ../.;
+    };
 
     nativeBuildInputs = [
       cmake

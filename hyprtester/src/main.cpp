@@ -203,6 +203,7 @@ int main(int argc, char** argv, char** envp) {
     std::println("{}trying to load plugin", Colors::YELLOW);
     if (getFromSocket(std::format("/plugin load {}", pluginPath)) != "ok") {
         std::println("{}Failed to load the test plugin", Colors::RED);
+        getFromSocket("/dispatch exit 1");
         return 1;
     }
 

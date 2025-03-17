@@ -1355,9 +1355,8 @@ bool CMonitor::attemptDirectScanout() {
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
 
-    auto PBUFFER = PSURFACE->current.buffer->buffer.lock();
-    if (PBUFFER == output->state->state().buffer)
-        return true;
+    auto PBUFFER    = PSURFACE->current.buffer->buffer.lock();
+    bool SAMEBUFFER = PBUFFER == output->state->state().buffer;
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
@@ -1371,7 +1370,8 @@ bool CMonitor::attemptDirectScanout() {
         drmFormat = params.format;
     }
 
-    output->state->setBuffer(PBUFFER);
+    if (!SAMEBUFFER)
+        output->state->setBuffer(PBUFFER);
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
@@ -1426,7 +1426,7 @@ bool CMonitor::attemptDirectScanout() {
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
     }
 
-    if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
+    if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease || SAMEBUFFER)
         return true;
 
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then

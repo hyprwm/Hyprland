@@ -8,7 +8,7 @@ uniform sampler2D tex;
 //uniform samplerExternalOES texture0;
 
 uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
-uniform int skipCM;
+// uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 sourcePrimaries;
@@ -42,8 +42,8 @@ void main() {
     if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
         discard;
 
-    if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
+    // this shader shouldn't be used when skipCM == 1
+    pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
 
     if (applyTint == 1)
         pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);

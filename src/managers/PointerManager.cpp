@@ -419,7 +419,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 }
             }
 
-            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(allocator, state->monitor->output->getBackend());
+            auto backend                    = state->monitor->output->getBackend();
+            auto primary                    = backend->getPrimary();
+            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(allocator, primary ? primary.lock() : backend);
         }
 
         auto options     = state->monitor->cursorSwapchain->currentOptions();

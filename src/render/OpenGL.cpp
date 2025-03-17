@@ -920,8 +920,9 @@ static void getRoundingShaderUniforms(CShader& shader) {
 }
 
 bool CHyprOpenGLImpl::initShaders() {
-    auto       shaders   = makeShared<SPreparedShaders>();
-    const bool isDynamic = m_RenderData.pCurrentMonData->m_bShadersInitialized;
+    auto              shaders   = makeShared<SPreparedShaders>();
+    const bool        isDynamic = m_RenderData.pCurrentMonData->m_bShadersInitialized;
+    static const auto PCM       = CConfigValue<Hyprlang::INT>("render:use_color_management");
 
     try {
         std::map<std::string, std::string> includes;
@@ -931,40 +932,43 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->TEXVERTSRC    = processShader("tex.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
-#ifdef GLES2
         GLuint prog;
+#ifdef GLES2
         m_bCMSupported = false;
 #else
-        const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
+        if (!*PCM)
+            m_bCMSupported = false;
+        else {
+            const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-        GLuint     prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
-        if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
-            g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
+            prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
+            if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
+                g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
-        m_bCMSupported = prog > 0;
-        if (m_bCMSupported) {
-            shaders->m_shCM.program = prog;
-            getCMShaderUniforms(shaders->m_shCM);
-            getRoundingShaderUniforms(shaders->m_shCM);
-            shaders->m_shCM.proj              = glGetUniformLocation(prog, "proj");
-            shaders->m_shCM.tex               = glGetUniformLocation(prog, "tex");
-            shaders->m_shCM.texType           = glGetUniformLocation(prog, "texType");
-            shaders->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
-            shaders->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
-            shaders->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
-            shaders->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
-            shaders->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
-            shaders->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
-            shaders->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
-            shaders->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-            shaders->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
-            shaders->m_shCM.tint              = glGetUniformLocation(prog, "tint");
-            shaders->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
-        } else
-            Debug::log(
-                ERR,
-                "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
-
+            m_bCMSupported = prog > 0;
+            if (m_bCMSupported) {
+                shaders->m_shCM.program = prog;
+                getCMShaderUniforms(shaders->m_shCM);
+                getRoundingShaderUniforms(shaders->m_shCM);
+                shaders->m_shCM.proj              = glGetUniformLocation(prog, "proj");
+                shaders->m_shCM.tex               = glGetUniformLocation(prog, "tex");
+                shaders->m_shCM.texType           = glGetUniformLocation(prog, "texType");
+                shaders->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
+                shaders->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
+                shaders->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
+                shaders->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
+                shaders->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
+                shaders->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+                shaders->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+                shaders->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+                shaders->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
+                shaders->m_shCM.tint              = glGetUniformLocation(prog, "tint");
+                shaders->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+            } else
+                Debug::log(ERR,
+                           "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports "
+                           "about this!");
+        }
 #endif
 
         const auto FRAGSHADOW             = processShader(m_bCMSupported ? "shadow.frag" : "shadow_legacy.frag", includes);

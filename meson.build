@@ -31,7 +31,7 @@ if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
 
-aquamarine = dependency('aquamarine', version: '>=0.4.5')
+aquamarine = dependency('aquamarine', version: '>=0.8.0')
 hyprcursor = dependency('hyprcursor', version: '>=0.1.7')
 hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.1')
 hyprlang = dependency('hyprlang', version: '>= 0.3.2')

@@ -1865,9 +1865,8 @@ bool CWindow::matchesRegexSelector(const std::string& selector_) {
         }
         case MODE_TAG_REGEX: {
             for (auto const& t : m_tags.getTags()) {
-                if (RE2::FullMatch(t, regexCheck)) {
+                if (RE2::FullMatch(t, regexCheck))
                     return true;
-                }
             }
             return false;
         }

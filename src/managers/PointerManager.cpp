@@ -323,6 +323,8 @@ void CPointerManager::onCursorMoved() {
 
         const auto CURSORPOS = getCursorPosForMonitor(m);
         m->output->moveCursor(CURSORPOS, m->shouldSkipScheduleFrameOnMouseEvent());
+
+        state->monitor->scanoutNeedsCursorUpdate = true;
     }
 
     if (recalc)
@@ -381,6 +383,8 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
         g_pCompositor->scheduleFrameForMonitor(state->monitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+
+    state->monitor->scanoutNeedsCursorUpdate = true;
 
     return true;
 }

@@ -158,6 +158,7 @@ class CMonitor {
 
     // for direct scanout
     PHLWINDOWREF lastScanout;
+    bool         scanoutNeedsCursorUpdate = false;
 
     struct {
         bool canTear         = false;

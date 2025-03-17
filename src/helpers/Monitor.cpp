@@ -1384,7 +1384,7 @@ bool CMonitor::attemptDirectScanout() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     PSURFACE->presentFeedback(&now, self.lock());
 
-    output->state->addDamage(CBox{{}, vecPixelSize});
+    output->state->addDamage(PSURFACE->accumulateCurrentBufferDamage());
     output->state->resetExplicitFences();
 
     auto cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });

@@ -1240,7 +1240,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", pWorkspace->m_iID + "," + pWorkspace->m_szName + "," + szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", std::to_string(pWorkspace->m_iID) + "," + pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(self.lock());
 

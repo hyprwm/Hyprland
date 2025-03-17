@@ -53,7 +53,7 @@ struct SVersionInfo {
     std::string commits;
 };
 
-#define APICALL extern "C"
+#define APICALL extern "C++"
 #define EXPORT  __attribute__((visibility("default")))
 #define REQUIRED
 #define OPTIONAL
@@ -70,7 +70,7 @@ class CWindow;
     Methods marked with REQUIRED are required.
 */
 
-/* 
+/*
     called pre-plugin init.
     In case of a version mismatch, will eject the .so.
 

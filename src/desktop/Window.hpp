@@ -486,6 +486,7 @@ class CWindow {
     void                       setContentType(NContentType::eContentType contentType);
     void                       deactivateGroupMembers();
     bool                       isNotResponding();
+    bool                       matchesRegexSelector(const std::string& selector);
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};

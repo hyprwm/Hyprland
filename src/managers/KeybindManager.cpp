@@ -1036,18 +1036,10 @@ SDispatchResult CKeybindManager::closeWindow(std::string args) {
         return {};
     }
 
-    bool                   foundAny        = false;
-    std::vector<PHLWINDOW> originalWindows = g_pCompositor->m_vWindows;
+    bool foundAny = false;
 
-    for (auto const& w : originalWindows) {
-        if (!w->m_bIsMapped || (w->isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w)))
-            continue;
-
-        g_pCompositor->m_vWindows = {w};
-        PHLWINDOW match           = g_pCompositor->getWindowByRegex(args);
-        g_pCompositor->m_vWindows = originalWindows;
-
-        if (match) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->matchesRegexSelector(args)) {
             g_pCompositor->closeWindow(w);
             foundAny = true;
         }

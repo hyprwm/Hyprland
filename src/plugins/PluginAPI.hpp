@@ -59,6 +59,12 @@ struct SVersionInfo {
 #define OPTIONAL
 #define HANDLE void*
 
+// C ABI is needed to prevent symbol mangling, but we don't actually need C compatibility,
+// so we ignore this warning about return types that are potentially incompatible with C.
+// Clang supports this pragma too.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
+
 class IHyprLayout;
 class CWindow;
 class IHyprWindowDecoration;
@@ -70,7 +76,7 @@ class CWindow;
     Methods marked with REQUIRED are required.
 */
 
-/* 
+/*
     called pre-plugin init.
     In case of a version mismatch, will eject the .so.
 
@@ -315,3 +321,5 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
     return GIT_COMMIT_HASH;
 }
 // NOLINTEND
+
+#pragma GCC diagnostic pop

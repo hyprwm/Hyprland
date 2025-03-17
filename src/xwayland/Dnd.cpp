@@ -129,7 +129,7 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
 
     xcb_window_t              targetWindow = getProxyWindow(XSURF->xID);
 
-    xcb_client_message_data_t data = {0};
+    xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
     data.data32[1]                 = XDND_VERSION << 24;
     data.data32[1] |= 1;
@@ -164,7 +164,7 @@ void CX11DataDevice::sendLeave() {
 
     xcb_window_t              targetWindow = getProxyWindow(lastSurface->xID);
 
-    xcb_client_message_data_t data = {0};
+    xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
 
     sendDndEvent(targetWindow, HYPRATOMS["XdndLeave"], data);
@@ -183,7 +183,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
     const auto                XCOORDS = g_pXWaylandManager->waylandToXWaylandCoords(lastSurfaceCoords + local);
     const uint32_t            coords  = ((uint32_t)XCOORDS.x << 16) | (uint32_t)XCOORDS.y;
 
-    xcb_client_message_data_t data = {0};
+    xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
     data.data32[2]                 = coords;
     data.data32[3]                 = timeMs;
@@ -204,7 +204,7 @@ void CX11DataDevice::sendDrop() {
 
     xcb_window_t              targetWindow = getProxyWindow(lastSurface->xID);
 
-    xcb_client_message_data_t data = {0};
+    xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
     data.data32[2]                 = lastTime;
 

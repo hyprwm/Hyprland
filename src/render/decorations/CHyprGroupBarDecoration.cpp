@@ -56,7 +56,6 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
 void CHyprGroupBarDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
     m_bAssignedBox = reply.assignedGeometry;
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pWindow.lock());
 }
 
 eDecorationType CHyprGroupBarDecoration::getDecorationType() {

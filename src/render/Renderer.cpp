@@ -33,9 +33,7 @@
 #include "pass/SurfacePassElement.hpp"
 #include "debug/Log.hpp"
 #include "../protocols/ColorManagement.hpp"
-#if AQUAMARINE_VERSION_NUMBER > 702 // >0.7.2
 #include "../protocols/types/ContentType.hpp"
-#endif
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -1495,13 +1493,11 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-#if AQUAMARINE_VERSION_NUMBER > 702 // >0.7.2
     if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
         const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
         pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
     } else
         pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
-#endif
 
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;

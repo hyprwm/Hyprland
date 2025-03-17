@@ -572,10 +572,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     g_pInputManager->setCursorImageUntilUnset("grabbing");
     dnd.overriddenCursor = true;
 
-    LOGM(LOG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}",
-         (uintptr_t)currentSource.get(),
-         (uintptr_t)dragSurface.get(),
-         (uintptr_t)origin.get());
+    LOGM(LOG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}", (uintptr_t)currentSource.get(), (uintptr_t)dragSurface.get(), (uintptr_t)origin.get());
 
     if (currentSource)
         currentSource->used = true;
@@ -675,7 +672,7 @@ void CWLDataDeviceProtocol::updateDrag() {
 
     if (dnd.internalDrag && dnd.originSurface) {
         auto originClient = dnd.originSurface->client();
-        auto focusClient = g_pSeatManager->state.dndPointerFocus->client();
+        auto focusClient  = g_pSeatManager->state.dndPointerFocus->client();
 
         if (originClient != focusClient)
             return;
@@ -687,10 +684,8 @@ void CWLDataDeviceProtocol::updateDrag() {
         return;
 
     if (dnd.internalDrag) {
-        dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay),
-                                    g_pSeatManager->state.dndPointerFocus.lock(),
-                                    g_pSeatManager->state.dndPointerFocus->current.size / 2.F,
-                                    nullptr);
+        dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
+                                     g_pSeatManager->state.dndPointerFocus->current.size / 2.F, nullptr);
         return;
     }
 
@@ -751,8 +746,7 @@ void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, 
 void CWLDataDeviceProtocol::dropDrag() {
     if (dnd.internalDrag) {
         if (dnd.focusedDevice) {
-            if (dnd.originSurface &&
-                dnd.originSurface->client() == g_pSeatManager->state.dndPointerFocus->client()) {
+            if (dnd.originSurface && dnd.originSurface->client() == g_pSeatManager->state.dndPointerFocus->client()) {
                 dnd.focusedDevice->sendDrop();
                 dnd.focusedDevice->sendLeave();
             }
@@ -868,14 +862,14 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
     if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
-    const auto POS = g_pInputManager->getMouseCoordsInternal();
+    const auto POS     = g_pInputManager->getMouseCoordsInternal();
     const auto HOTSPOT = g_pPointerManager->cursorHotspot();
 
-    Vector2D surfacePos = POS - HOTSPOT;
+    Vector2D   surfacePos = POS - HOTSPOT;
 
     surfacePos += dnd.dndSurface->current.offset;
 
-    CBox box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
+    CBox                         box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
 
     CTexPassElement::SRenderData data;
     data.tex = dnd.dndSurface->current.texture;

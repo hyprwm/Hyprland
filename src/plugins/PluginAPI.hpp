@@ -53,11 +53,14 @@ struct SVersionInfo {
     std::string commits;
 };
 
-#define APICALL extern "C++"
+#define APICALL extern "C"
 #define EXPORT  __attribute__((visibility("default")))
 #define REQUIRED
 #define OPTIONAL
 #define HANDLE void*
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
 
 class IHyprLayout;
 class CWindow;
@@ -315,3 +318,5 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
     return GIT_COMMIT_HASH;
 }
 // NOLINTEND
+
+#pragma GCC diagnostic pop

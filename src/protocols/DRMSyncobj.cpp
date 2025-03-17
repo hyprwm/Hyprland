@@ -9,8 +9,7 @@
 #include <fcntl.h>
 using namespace Hyprutils::OS;
 
-CDRMSyncPointState::CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_, bool acquirePoint) :
-    m_resource(resource_), m_point(point_), m_acquirePoint(acquirePoint) {}
+CDRMSyncPointState::CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_) : m_resource(resource_), m_point(point_) {}
 
 const uint64_t& CDRMSyncPointState::point() {
     return m_point;
@@ -95,7 +94,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        pendingAcquire = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, true};
+        pendingAcquire = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
     resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -105,7 +104,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo, false};
+        pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {

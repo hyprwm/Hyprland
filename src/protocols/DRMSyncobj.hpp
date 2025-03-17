@@ -17,7 +17,7 @@ struct SSurfaceState;
 class CDRMSyncPointState {
   public:
     CDRMSyncPointState() = default;
-    CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_, bool acquirePoint);
+    CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_);
     ~CDRMSyncPointState() = default;
 
     const uint64_t&                                  point();
@@ -34,7 +34,6 @@ class CDRMSyncPointState {
     WP<CDRMSyncobjTimelineResource> m_resource         = {};
     uint64_t                        m_point            = 0;
     WP<CSyncTimeline>               m_timeline         = {};
-    bool                            m_acquirePoint     = false;
     bool                            m_acquireCommitted = false;
     bool                            m_releaseTaken     = false;
 };

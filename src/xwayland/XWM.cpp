@@ -494,7 +494,7 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
     if (surf->overrideRedirect)
         return;
 
-    xcb_client_message_data_t msg = {0};
+    xcb_client_message_data_t msg = {{0}};
     msg.data32[0]                 = HYPRATOMS["WM_TAKE_FOCUS"];
     msg.data32[1]                 = XCB_TIME_CURRENT_TIME;
 

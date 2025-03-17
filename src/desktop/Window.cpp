@@ -1879,7 +1879,6 @@ bool CWindow::matchesRegexSelector(const std::string& selector_) {
             std::string pid = std::format("{}", getPID());
             return matchCheck == pid;
         }
-        default:
-            return false;
+        default: return false;
     }
 }

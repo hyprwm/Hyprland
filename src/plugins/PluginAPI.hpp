@@ -59,6 +59,9 @@ struct SVersionInfo {
 #define OPTIONAL
 #define HANDLE void*
 
+// C ABI is needed to prevent symbol mangling, but we don't actually need C compatibility,
+// so we ignore this warning about return types that are potentially incompatible with C.
+// Clang supports this pragma too.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
 

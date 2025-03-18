@@ -1320,8 +1320,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     CBox newBox = box;
     m_RenderData.renderModif.applyToBox(newBox);
 
-    static auto PDT   = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
-    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static const auto PDT       = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
+    static const auto PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
 
     // get the needed transform for this texture
     const bool TRANSFORMS_MATCH = wlTransformToHyprutils(m_RenderData.pMonitor->transform) == tex->m_eTransform; // FIXME: combine them properly!!!
@@ -1378,8 +1379,12 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         glTexParameteri(tex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    const bool skipCM = !m_RenderData.surface /* No surface - no point in CM */
-        || !m_bCMSupported                    /* CM unsupported - hw failed to compile the shader probably */
+    const bool SURFACE_HAS_CM = m_RenderData.surface && m_RenderData.surface->colorManagement && m_RenderData.surface->colorManagement->hasImageDescription();
+
+    const bool skipCM = !*PENABLECM                                                            /* CM disabled by the user */
+        || !m_RenderData.surface                                                               /* No surface - no point in CM */
+        || !m_bCMSupported                                                                     /* CM unsupported - hw failed to compile the shader probably */
+        || (!SURFACE_HAS_CM && m_RenderData.pMonitor->imageDescription == SImageDescription{}) /* Surface doesn't have CM and monitor isn't CM'd */
         || (*PPASS && m_RenderData.pMonitor->activeWorkspace && m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
             m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
 
@@ -1391,7 +1396,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         glUseProgram(shader->program);
         glUniform1i(shader->texType, texType);
         const auto imageDescription =
-            m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+            m_RenderData.surface && m_RenderData.surface->colorManagement ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
         glUniform1i(shader->sourceTF, imageDescription.transferFunction);
         glUniform1i(shader->targetTF, m_RenderData.pMonitor->imageDescription.transferFunction);
         const auto sourcePrimaries =

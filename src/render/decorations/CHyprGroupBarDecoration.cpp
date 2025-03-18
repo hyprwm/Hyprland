@@ -285,8 +285,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
     static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
 
-    const auto       FONTWEIGHTACTIVE   = (CStringOrInt*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
-    const auto       FONTWEIGHTINACTIVE = (CStringOrInt*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTACTIVE   = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTINACTIVE = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
 
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;

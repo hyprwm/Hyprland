@@ -147,54 +147,17 @@ static void configHandleGapDestroy(void** data) {
         delete reinterpret_cast<CCssGapData*>(*data);
 }
 
-static int strToPangoWeight(const std::string& weight) {
-    auto loWeight{weight};
-    transform(weight.begin(), weight.end(), loWeight.begin(), ::tolower);
-
-    // values taken from Pango weight enums
-    if (loWeight == "thin")
-        return 100;
-    if (loWeight == "ultralight")
-        return 200;
-    if (loWeight == "light")
-        return 300;
-    if (loWeight == "semilight")
-        return 350;
-    if (loWeight == "book")
-        return 380;
-    if (loWeight == "normal")
-        return 400;
-    if (loWeight == "medium")
-        return 500;
-    if (loWeight == "semibold")
-        return 600;
-    if (loWeight == "bold")
-        return 700;
-    if (loWeight == "ultrabold")
-        return 800;
-    if (loWeight == "heavy")
-        return 900;
-    if (loWeight == "ultraheavy")
-        return 1000;
-
-    int w_i = std::stoi(weight);
-    if (w_i < 100 || w_i > 1000)
-        return 400;
-
-    return w_i;
-}
-
 static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void** data) {
     std::string V = VALUE;
 
     if (!*data)
-        *data = new CStringOrInt();
+        *data = new CFontWeightConfigValueData();
 
-    const auto             DATA = reinterpret_cast<CStringOrInt*>(*data);
+    const auto             DATA = reinterpret_cast<CFontWeightConfigValueData*>(*data);
     Hyprlang::CParseResult result;
 
     try {
-        DATA->value = strToPangoWeight(V);
+        DATA->value = CFontWeightConfigValueData::parseWeight(V);
     } catch (...) {
         std::string parseError = std::format("{} is not a valid font weight", V);
         result.setError(parseError.c_str());
@@ -205,7 +168,7 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
 
 static void configHandleFontWeightDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CStringOrInt*>(*data);
+        delete reinterpret_cast<CFontWeightConfigValueData*>(*data);
 }
 
 static Hyprlang::CParseResult handleExec(const char* c, const char* v) {

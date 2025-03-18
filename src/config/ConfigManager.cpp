@@ -293,7 +293,7 @@ static Hyprlang::CParseResult handleWindowRuleV2(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
 
-    const auto             RESULT = g_pConfigManager->handleWindowRuleV2(COMMAND, VALUE);
+    const auto             RESULT = g_pConfigManager->handleWindowRule(COMMAND, VALUE);
 
     Hyprlang::CParseResult result;
     if (RESULT.has_value())
@@ -2350,69 +2350,6 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
     const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
-
-    // check rule and value
-    if (RULE.empty() || VALUE.empty())
-        return "empty rule?";
-
-    if (RULE == "unset") {
-        std::erase_if(m_vWindowRules, [&](const auto& other) { return other->szValue == VALUE; });
-        return {};
-    }
-
-    auto newRule = makeShared<CWindowRule>(RULE, VALUE, false);
-
-    // verify we support a rule
-    if (newRule->ruleType == CWindowRule::RULE_INVALID) {
-        Debug::log(ERR, "Invalid rule found: {}", RULE);
-        return "Invalid rule: " + RULE;
-    }
-
-    newRule->rV1Regex = {VALUE.starts_with("title:") ? VALUE.substr(6) : VALUE};
-
-    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
-        m_vWindowRules.insert(m_vWindowRules.begin(), newRule);
-    else
-        m_vWindowRules.emplace_back(newRule);
-
-    return {};
-}
-
-std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
-
-    // check rule and value
-    if (RULE.empty() || VALUE.empty())
-        return "empty rule?";
-
-    if (RULE == "unset") {
-        std::erase_if(m_vLayerRules, [&](const auto& other) { return other->targetNamespace == VALUE; });
-        return {};
-    }
-
-    auto rule = makeShared<CLayerRule>(RULE, VALUE);
-
-    if (rule->ruleType == CLayerRule::RULE_INVALID) {
-        Debug::log(ERR, "Invalid rule found: {}", RULE);
-        return "Invalid rule found: " + RULE;
-    }
-
-    rule->targetNamespaceRegex = {VALUE};
-
-    m_vLayerRules.emplace_back(rule);
-
-    for (auto const& m : g_pCompositor->m_vMonitors)
-        for (auto const& lsl : m->m_aLayerSurfaceLayers)
-            for (auto const& ls : lsl)
-                ls->applyRules();
-
-    return {};
-}
-
-std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
@@ -2606,6 +2543,38 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         m_vWindowRules.insert(m_vWindowRules.begin(), rule);
     else
         m_vWindowRules.push_back(rule);
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
+
+    // check rule and value
+    if (RULE.empty() || VALUE.empty())
+        return "empty rule?";
+
+    if (RULE == "unset") {
+        std::erase_if(m_vLayerRules, [&](const auto& other) { return other->targetNamespace == VALUE; });
+        return {};
+    }
+
+    auto rule = makeShared<CLayerRule>(RULE, VALUE);
+
+    if (rule->ruleType == CLayerRule::RULE_INVALID) {
+        Debug::log(ERR, "Invalid rule found: {}", RULE);
+        return "Invalid rule found: " + RULE;
+    }
+
+    rule->targetNamespaceRegex = {VALUE};
+
+    m_vLayerRules.emplace_back(rule);
+
+    for (auto const& m : g_pCompositor->m_vMonitors)
+        for (auto const& lsl : m->m_aLayerSurfaceLayers)
+            for (auto const& ls : lsl)
+                ls->applyRules();
 
     return {};
 }

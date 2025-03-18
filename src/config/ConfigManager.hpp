@@ -235,7 +235,6 @@ class CConfigManager {
     std::optional<std::string> handleUnbind(const std::string&, const std::string&);
     std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
     std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
-    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
     std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
     std::optional<std::string> handleBezier(const std::string&, const std::string&);
     std::optional<std::string> handleAnimation(const std::string&, const std::string&);

@@ -152,10 +152,10 @@ animations {
 # uncomment all if you wish to use that.
 # workspace = w[tv1], gapsout:0, gapsin:0
 # workspace = f[1], gapsout:0, gapsin:0
-# windowrulev2 = bordersize 0, floating:0, onworkspace:w[tv1]
-# windowrulev2 = rounding 0, floating:0, onworkspace:w[tv1]
-# windowrulev2 = bordersize 0, floating:0, onworkspace:f[1]
-# windowrulev2 = rounding 0, floating:0, onworkspace:f[1]
+# windowrule = bordersize 0, floating:0, onworkspace:w[tv1]
+# windowrule = rounding 0, floating:0, onworkspace:w[tv1]
+# windowrule = bordersize 0, floating:0, onworkspace:f[1]
+# windowrule = rounding 0, floating:0, onworkspace:f[1]
 
 # See https://wiki.hyprland.org/Configuring/Dwindle-Layout/ for more
 dwindle {
@@ -269,7 +269,7 @@ bindm = $mainMod, mouse:272, movewindow
 bindm = $mainMod, mouse:273, resizewindow
 
 # Laptop multimedia keys for volume and LCD brightness
-bindel = ,XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+bindel = ,XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
 bindel = ,XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 bindel = ,XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 bindel = ,XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
@@ -289,15 +289,12 @@ bindl = , XF86AudioPrev, exec, playerctl previous
 # See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
 # See https://wiki.hyprland.org/Configuring/Workspace-Rules/ for workspace rules
 
-# Example windowrule v1
-# windowrule = float, ^(kitty)$
-
-# Example windowrule v2
-# windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
+# Example windowrule
+# windowrule = float,class:^(kitty)$,title:^(kitty)$
 
 # Ignore maximize requests from apps. You'll probably like this.
-windowrulev2 = suppressevent maximize, class:.*
+windowrule = suppressevent maximize, class:.*
 
 # Fix some dragging issues with XWayland
-windowrulev2 = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
+windowrule = nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0
 )#";

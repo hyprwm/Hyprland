@@ -61,9 +61,10 @@ struct SVersionInfo {
 
 // C ABI is needed to prevent symbol mangling, but we don't actually need C compatibility,
 // so we ignore this warning about return types that are potentially incompatible with C.
-// Clang supports this pragma too.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#endif
 
 class IHyprLayout;
 class CWindow;
@@ -322,4 +323,6 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
 }
 // NOLINTEND
 
-#pragma GCC diagnostic pop
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

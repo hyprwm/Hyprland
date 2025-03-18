@@ -138,9 +138,13 @@ class CCssGapData : public ICustomConfigValueData {
     }
 };
 
-class CStringOrInt : public ICustomConfigValueData {
+class CFontWeightConfigValueData : public ICustomConfigValueData {
   public:
-    CStringOrInt() = default;
+    CFontWeightConfigValueData() = default;
+    CFontWeightConfigValueData(const char* weight) {
+        std::string strWeight = weight;
+        value = parseWeight(strWeight);
+    }
 
     int64_t                       value;
 
@@ -150,5 +154,42 @@ class CStringOrInt : public ICustomConfigValueData {
 
     virtual std::string toString() {
         return std::format("{}", value);
+    }
+
+    static int parseWeight(const std::string& weight) {
+        auto loWeight{weight};
+        transform(weight.begin(), weight.end(), loWeight.begin(), ::tolower);
+
+        // values taken from Pango weight enums
+        if (loWeight == "thin")
+            return 100;
+        if (loWeight == "ultralight")
+            return 200;
+        if (loWeight == "light")
+            return 300;
+        if (loWeight == "semilight")
+            return 350;
+        if (loWeight == "book")
+            return 380;
+        if (loWeight == "normal")
+            return 400;
+        if (loWeight == "medium")
+            return 500;
+        if (loWeight == "semibold")
+            return 600;
+        if (loWeight == "bold")
+            return 700;
+        if (loWeight == "ultrabold")
+            return 800;
+        if (loWeight == "heavy")
+            return 900;
+        if (loWeight == "ultraheavy")
+            return 1000;
+
+        int w_i = std::stoi(weight);
+        if (w_i < 100 || w_i > 1000)
+            return 400;
+
+        return w_i;
     }
 };

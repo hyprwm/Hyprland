@@ -653,6 +653,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("xwayland:enabled", Hyprlang::INT{1});
     registerConfigVar("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
     registerConfigVar("xwayland:force_zero_scaling", Hyprlang::INT{0});
+    registerConfigVar("xwayland:create_abstract_socket", Hyprlang::INT{0});
 
     registerConfigVar("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 

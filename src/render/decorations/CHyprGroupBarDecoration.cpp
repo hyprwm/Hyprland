@@ -46,7 +46,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
             const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + *POUTERGAP}, {0, 0}};
         } else
-            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
+            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
     } else
         info.desiredExtents = {{0, 0}, {0, 0}};
     return info;

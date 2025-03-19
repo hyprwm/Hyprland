@@ -1,4 +1,4 @@
-#version 320 es
+#version 300 es
 #extension GL_ARB_shading_language_include : enable
 
 precision highp float;

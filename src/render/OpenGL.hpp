@@ -81,6 +81,7 @@ enum eMonitorExtraRenderFBs : uint8_t {
 
 struct SPreparedShaders {
     std::string TEXVERTSRC;
+    std::string TEXVERTSRC300;
     std::string TEXVERTSRC320;
     CShader     m_shQUAD;
     CShader     m_shRGBA;

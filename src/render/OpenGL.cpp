@@ -930,6 +930,7 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("CM.glsl", includes);
 
         shaders->TEXVERTSRC    = processShader("tex.vert", includes);
+        shaders->TEXVERTSRC300 = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
         GLuint prog;
@@ -941,7 +942,7 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-            prog = createProgram(shaders->TEXVERTSRC320, TEXFRAGSRCCM, true);
+            prog = createProgram(shaders->TEXVERTSRC300, TEXFRAGSRCCM, true);
             if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
                 g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
@@ -1103,7 +1104,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
 
-        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURPREPARE.program = prog;
@@ -1117,7 +1118,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.contrast   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
 
-        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURFINISH.program = prog;
@@ -1130,7 +1131,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
 
-        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
             return false;
         if (m_bCMSupported)
@@ -1145,7 +1146,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
 
-        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC320 : shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
+        prog = createProgram(m_bCMSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBORDER1.program = prog;
@@ -1202,9 +1203,15 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
     std::string fragmentShader((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
 
-    m_sFinalScreenShader.program =
-        createProgram(fragmentShader.starts_with("#version 320 es") ? m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC320 : m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC,
-                      fragmentShader, true);
+    m_sFinalScreenShader.program = createProgram(     //
+        fragmentShader.starts_with("#version 320 es") // do not break existing custom shaders
+            ?
+            m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC320 :
+            (fragmentShader.starts_with("#version 300 es") // support lower es versions
+                 ?
+                 m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC300 :
+                 m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC),
+        fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
         // Error will have been sent by now by the underlying cause

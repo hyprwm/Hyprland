@@ -922,7 +922,7 @@ static void getRoundingShaderUniforms(CShader& shader) {
 bool CHyprOpenGLImpl::initShaders() {
     auto              shaders   = makeShared<SPreparedShaders>();
     const bool        isDynamic = m_RenderData.pCurrentMonData->m_bShadersInitialized;
-    static const auto PCM       = CConfigValue<Hyprlang::INT>("render:use_color_management");
+    static const auto PCM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
 
     try {
         std::map<std::string, std::string> includes;
@@ -1542,7 +1542,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     const auto imageDescription =
         m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
 
-    const bool skipCM = !m_bCMSupported                                  /* CM unsupported or disabled */
+    const bool skipCM = !*PENABLECM || !m_bCMSupported                   /* CM unsupported or disabled */
         || (imageDescription == m_RenderData.pMonitor->imageDescription) /* Source and target have the same image description */
         || ((*PPASS == 1 || (*PPASS == 2 && imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_RenderData.pMonitor->activeWorkspace &&
             m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&

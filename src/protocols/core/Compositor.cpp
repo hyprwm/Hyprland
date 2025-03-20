@@ -440,7 +440,7 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
 
-    if (current.buffer && current.buffer->buffer) {
+    if (current.buffer) {
         const auto DAMAGE = accumulateCurrentBufferDamage();
         current.buffer->buffer->update(DAMAGE);
 
@@ -478,7 +478,7 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
-    auto buf = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
+    auto buf = current.buffer ? current.buffer->buffer : SP<IHLBuffer>{};
 
     if UNLIKELY (!buf)
         return;

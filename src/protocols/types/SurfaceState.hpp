@@ -20,16 +20,12 @@ struct SSurfaceState {
         Vector2D destination;
         CBox     source;
     } viewport;
-    bool rejected  = false;
-    bool newBuffer = false;
+    bool     rejected  = false;
+    bool     newBuffer = false;
 
-    //
-    void reset() {
-        damage.clear();
-        bufferDamage.clear();
-        transform = WL_OUTPUT_TRANSFORM_NORMAL;
-        scale     = 1;
-        offset    = {};
-        size      = {};
-    }
+    Vector2D sourceSize();
+    // Translates damage into bufferDamage, clearing damage and returning the updated bufferDamage
+    CRegion accumulateBufferDamage();
+    void    updateSynchronousTexture(SP<CTexture> lastTexture);
+    void    reset();
 };

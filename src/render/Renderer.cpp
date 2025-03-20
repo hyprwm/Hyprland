@@ -1526,21 +1526,19 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         return ok;
 
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-    auto sync = g_pHyprOpenGL->createEGLSync(pMonitor->inFence.get());
 
-    if (!sync)
-        Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
+    if (!pMonitor->eglSync)
+        Debug::log(TRACE, "Explicit: can't add sync, monitor has no EGLSync");
     else {
         for (auto const& e : explicitPresented) {
             if (!e->current.buffer || !e->current.buffer->buffer || !e->current.buffer->buffer->syncReleaser)
                 continue;
 
-            e->current.buffer->buffer->syncReleaser->addReleaseSync(sync);
+            e->current.buffer->buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
         }
     }
 
     explicitPresented.clear();
-    pMonitor->output->state->resetExplicitFences();
 
     return ok;
 }
@@ -2257,13 +2255,13 @@ void CHyprRenderer::endRender() {
         auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
-            auto sync = g_pHyprOpenGL->createEGLSync();
-            if (!sync) {
+            PMONITOR->eglSync = g_pHyprOpenGL->createEGLSync();
+            if (!PMONITOR->eglSync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
             }
 
-            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, PMONITOR->eglSync->fd());
             if (!ok) {
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;

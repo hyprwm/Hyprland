@@ -471,12 +471,10 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
             nullptr);
     }
 
-    // release the buffer if it's synchronous as update() has done everything thats needed
+    // release the buffer if it's synchronous (SHM) as update() has done everything thats needed
     // so we can let the app know we're done.
-    // if (!syncobj && current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous()) {
-    // dropCurrentBuffer(); // lets not drop it at all, it will get dropped on next commit if a new buffer arrives.
-    // solves flickering on nonsyncobj apps on explicit sync.
-    // }
+    if (current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous())
+        dropCurrentBuffer();
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

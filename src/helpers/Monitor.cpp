@@ -1342,7 +1342,7 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    if (!PSURFACE || !PSURFACE->current.texture || !PSURFACE->current.buffer || PSURFACE->current.buffer->buffer.expired())
+    if (!PSURFACE || !PSURFACE->current.texture || !PSURFACE->current.buffer)
         return false;
 
     if (PSURFACE->current.bufferSize != vecPixelSize || PSURFACE->current.transform != transform)
@@ -1355,7 +1355,7 @@ bool CMonitor::attemptDirectScanout() {
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
 
-    auto PBUFFER = PSURFACE->current.buffer->buffer.lock();
+    auto PBUFFER = PSURFACE->current.buffer->buffer;
 
     if (PBUFFER == output->state->state().buffer) {
         if (scanoutNeedsCursorUpdate) {

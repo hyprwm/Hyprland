@@ -606,11 +606,11 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
         if (!refocus) {
             surf  = CWLSurface::fromResource(currentFocus);
-            layer = surf->getLayer();
+            layer = surf ? surf->getLayer() : nullptr;
         }
 
         if (!refocus && !layer) {
-            auto popup = surf->getPopup();
+            auto popup = surf ? surf->getPopup() : nullptr;
             if (popup) {
                 auto parent = popup->getT1Owner();
                 layer       = parent->getLayer();

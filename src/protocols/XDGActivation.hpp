@@ -18,7 +18,6 @@ class CXDGActivationToken {
     uint32_t                  serial    = 0;
     std::string               appID     = "";
     bool                      committed = false;
-    bool                      used      = false;
 
     std::string               token = "";
 

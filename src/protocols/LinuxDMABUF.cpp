@@ -221,6 +221,7 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
 
     if UNLIKELY (!buf->good() || !buf->buffer->success) {
         resource->sendFailed();
+        PROTO::linuxDma->m_vBuffers.pop_back();
         return;
     }
 

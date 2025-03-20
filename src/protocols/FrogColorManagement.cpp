@@ -1,5 +1,6 @@
 #include "FrogColorManagement.hpp"
 #include "color-management-v1.hpp"
+#include "macros.hpp"
 #include "protocols/ColorManagement.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "protocols/types/ColorManagement.hpp"
@@ -13,6 +14,7 @@ static wpColorManagerV1TransferFunction getWPTransferFunction(frogColorManagedSu
         case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22;
         case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ;
         case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+        default: UNREACHABLE();
     }
 }
 
@@ -103,9 +105,10 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
                     surface->colorManagement->m_imageDescription.transferFunction =
                         convertTransferFunction(getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ));
                     break;
-                }; // intended fall through
+                };
+                [[fallthrough]];
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
-            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); // intended fall through
+            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); [[fallthrough]];
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
                 surface->colorManagement->m_imageDescription.transferFunction = convertTransferFunction(getWPTransferFunction(tf));
 

@@ -1337,6 +1337,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "xwayland:create_abstract_socket",
+        .description = "Create the abstract Unix domain socket for XWayland",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * opengl:
@@ -1393,6 +1399,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "render:cm_fs_passthrough",
         .description = "Passthrough color settings for fullscreen apps when possible",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_enabled",
+        .description = "Enable Color Management pipelines (requires restart to fully take effect)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },

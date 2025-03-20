@@ -89,6 +89,7 @@
     {                                                                                                                                                                              \
         Debug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                                     \
         raise(SIGABRT);                                                                                                                                                            \
+        std::unreachable();                                                                                                                                                        \
     }
 #else
 #define UNREACHABLE() std::unreachable();

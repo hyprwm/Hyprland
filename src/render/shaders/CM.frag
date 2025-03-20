@@ -8,7 +8,6 @@ uniform sampler2D tex;
 //uniform samplerExternalOES texture0;
 
 uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
-uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 sourcePrimaries;
@@ -408,25 +407,27 @@ void main() {
     if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
         discard;
 
-    if (skipCM == 0) {
-        pixColor.rgb /= max(pixColor.a, 0.001);
-        pixColor.rgb = toLinearRGB(pixColor.rgb, sourceTF);
-        mat3 srcxyz = primaries2xyz(sourcePrimaries);
-        mat3 dstxyz;
-        if (sourcePrimaries == targetPrimaries)
-            dstxyz = srcxyz;
-        else {
-            dstxyz = primaries2xyz(targetPrimaries);
-            pixColor = convertPrimaries(pixColor, srcxyz, sourcePrimaries[3], dstxyz, targetPrimaries[3]);
-        }
-        pixColor = toNit(pixColor, sourceTF);
-        pixColor.rgb *= pixColor.a;
-        pixColor = tonemap(pixColor, dstxyz);
-        if (sourceTF == CM_TRANSFER_FUNCTION_SRGB && targetTF == CM_TRANSFER_FUNCTION_ST2084_PQ)
-            pixColor = saturate(pixColor, srcxyz, sdrSaturation);
-            pixColor *= sdrBrightnessMultiplier;
-        pixColor = fromLinearNit(pixColor, targetTF);
+    pixColor.rgb /= max(pixColor.a, 0.001);
+    pixColor.rgb = toLinearRGB(pixColor.rgb, sourceTF);
+    mat3 srcxyz = primaries2xyz(sourcePrimaries);
+    mat3 dstxyz;
+
+    if (sourcePrimaries == targetPrimaries)
+        dstxyz = srcxyz;
+    else {
+        dstxyz = primaries2xyz(targetPrimaries);
+        pixColor = convertPrimaries(pixColor, srcxyz, sourcePrimaries[3], dstxyz, targetPrimaries[3]);
     }
+
+    pixColor = toNit(pixColor, sourceTF);
+    pixColor.rgb *= pixColor.a;
+    pixColor = tonemap(pixColor, dstxyz);
+
+    if (sourceTF == CM_TRANSFER_FUNCTION_SRGB && targetTF == CM_TRANSFER_FUNCTION_ST2084_PQ)
+        pixColor = saturate(pixColor, srcxyz, sdrSaturation);
+
+    pixColor *= sdrBrightnessMultiplier;
+    pixColor = fromLinearNit(pixColor, targetTF);
 
     if (applyTint == 1)
         pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);

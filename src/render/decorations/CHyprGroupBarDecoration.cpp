@@ -47,7 +47,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
             const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + *POUTERGAP}, {0, 0}};
         } else
-            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
+            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
     } else
         info.desiredExtents = {{0, 0}, {0, 0}};
     return info;
@@ -55,7 +55,6 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
 void CHyprGroupBarDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
     m_bAssignedBox = reply.assignedGeometry;
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pWindow.lock());
 }
 
 eDecorationType CHyprGroupBarDecoration::getDecorationType() {

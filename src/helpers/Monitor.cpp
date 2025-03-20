@@ -1240,7 +1240,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", pWorkspace->m_iID + "," + pWorkspace->m_szName + "," + szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", std::to_string(pWorkspace->m_iID) + "," + pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(self.lock());
 
@@ -1356,8 +1356,25 @@ bool CMonitor::attemptDirectScanout() {
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
 
     auto PBUFFER = PSURFACE->current.buffer->buffer.lock();
-    if (PBUFFER == output->state->state().buffer)
+
+    if (PBUFFER == output->state->state().buffer) {
+        if (scanoutNeedsCursorUpdate) {
+            if (!state.test()) {
+                Debug::log(TRACE, "attemptDirectScanout: failed basic test");
+                return false;
+            }
+
+            if (!output->commit()) {
+                Debug::log(TRACE, "attemptDirectScanout: failed to commit cursor update");
+                lastScanout.reset();
+                return false;
+            }
+
+            scanoutNeedsCursorUpdate = false;
+        }
+
         return true;
+    }
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
@@ -1384,7 +1401,7 @@ bool CMonitor::attemptDirectScanout() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     PSURFACE->presentFeedback(&now, self.lock());
 
-    output->state->addDamage(CBox{{}, vecPixelSize});
+    output->state->addDamage(PSURFACE->accumulateCurrentBufferDamage());
     output->state->resetExplicitFences();
 
     auto cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
@@ -1425,6 +1442,8 @@ bool CMonitor::attemptDirectScanout() {
         lastScanout = PCANDIDATE;
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
     }
+
+    scanoutNeedsCursorUpdate = false;
 
     if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
         return true;

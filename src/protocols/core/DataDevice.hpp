@@ -50,7 +50,6 @@ class CWLDataOfferResource : public IDataOffer {
 
   private:
     SP<CWlDataOffer> resource;
-    wl_client*       pClient = nullptr;
 
     friend class CWLDataDeviceResource;
 };
@@ -89,7 +88,6 @@ class CWLDataSourceResource : public IDataSource {
 
   private:
     SP<CWlDataSource> resource;
-    wl_client*        pClient = nullptr;
 
     friend class CWLDataDeviceProtocol;
 };

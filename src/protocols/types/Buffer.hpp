@@ -45,7 +45,7 @@ class CHLBufferReference {
     CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
     ~CHLBufferReference();
 
-    WP<IHLBuffer>          buffer;
+    SP<IHLBuffer>          buffer;
     UP<CDRMSyncPointState> acquire;
     UP<CDRMSyncPointState> release;
 

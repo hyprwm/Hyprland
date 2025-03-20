@@ -57,6 +57,7 @@ struct SMonitorRule {
 
 class CMonitor;
 class CSyncTimeline;
+class CEGLSync;
 
 class CMonitorState {
   public:
@@ -141,6 +142,7 @@ class CMonitor {
     SP<CSyncTimeline>              inTimeline;
     SP<CSyncTimeline>              outTimeline;
     Hyprutils::OS::CFileDescriptor inFence;
+    SP<CEGLSync>                   eglSync;
     uint64_t                       commitSeq = 0;
 
     PHLMONITORREF                  self;

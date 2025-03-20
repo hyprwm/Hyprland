@@ -4,10 +4,10 @@
 #include <vector>
 
 enum eConfigValueDataTypes : int8_t {
-    CVD_TYPE_INVALID    = -1,
-    CVD_TYPE_GRADIENT   = 0,
-    CVD_TYPE_CSS_VALUE  = 1,
-    CVD_TYPE_STR_OR_INT = 2,
+    CVD_TYPE_INVALID     = -1,
+    CVD_TYPE_GRADIENT    = 0,
+    CVD_TYPE_CSS_VALUE   = 1,
+    CVD_TYPE_FONT_WEIGHT = 2,
 };
 
 class ICustomConfigValueData {
@@ -143,13 +143,13 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
     CFontWeightConfigValueData() = default;
     CFontWeightConfigValueData(const char* weight) {
         std::string strWeight = weight;
-        value = parseWeight(strWeight);
+        value                 = parseWeight(strWeight);
     }
 
     int64_t                       value;
 
     virtual eConfigValueDataTypes getDataType() {
-        return CVD_TYPE_STR_OR_INT;
+        return CVD_TYPE_FONT_WEIGHT;
     }
 
     virtual std::string toString() {

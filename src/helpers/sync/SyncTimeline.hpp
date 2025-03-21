@@ -17,7 +17,7 @@ struct wl_event_source;
 class CSyncTimeline {
   public:
     static SP<CSyncTimeline> create(int drmFD_);
-    static SP<CSyncTimeline> create(int drmFD_, int drmSyncobjFD);
+    static SP<CSyncTimeline> create(int drmFD_, Hyprutils::OS::CFileDescriptor&& drmSyncobjFD);
     ~CSyncTimeline();
 
     struct SWaiter {
@@ -40,7 +40,8 @@ class CSyncTimeline {
     bool                           transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint);
     void                           signal(uint64_t point);
 
-    int                            drmFD  = -1;
+    int                            drmFD = -1;
+    Hyprutils::OS::CFileDescriptor syncobjFd;
     uint32_t                       handle = 0;
     WP<CSyncTimeline>              self;
 

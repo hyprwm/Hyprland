@@ -1017,14 +1017,38 @@ SDispatchResult CKeybindManager::closeActive(std::string args) {
 }
 
 SDispatchResult CKeybindManager::closeWindow(std::string args) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+    bool closeAll = false;
 
-    if (!PWINDOW) {
-        Debug::log(ERR, "closeWindow: no window found");
-        return {.success = false, .error = "closeWindow: no window found"};
+    if (args.starts_with("all:")) {
+        closeAll = true;
+        args     = args.substr(4);
     }
 
-    g_pCompositor->closeWindow(PWINDOW);
+    if (!closeAll) {
+        const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+
+        if (!PWINDOW) {
+            Debug::log(ERR, "closeWindow: no window found");
+            return {.success = false, .error = "closeWindow: no window found"};
+        }
+
+        g_pCompositor->closeWindow(PWINDOW);
+        return {};
+    }
+
+    bool foundAny = false;
+
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->matchesRegexSelector(args)) {
+            g_pCompositor->closeWindow(w);
+            foundAny = true;
+        }
+    }
+
+    if (!foundAny) {
+        Debug::log(ERR, "closeWindow: no matching windows found");
+        return {.success = false, .error = "closeWindow: no matching windows found"};
+    }
 
     return {};
 }

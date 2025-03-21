@@ -106,6 +106,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (execr)           	                              "Execute a raw shell command"
                 |  (pass)            	                              "Pass the key to a specified window"
                 |  (sendshortcut)            	                      "On shortcut X sends shortcut Y to a specified window"
+                |  (sendkeystate)            	                      "Send a key with specific state (down/repeat/up) to a specified window (window must keep focus for events to continue)"
                 |  (killactive)          	                          "Close the active window"
                 |  (closewindow)         	                          "Close a specified window"
                 |  (workspace)           	                          "Change the workspace"

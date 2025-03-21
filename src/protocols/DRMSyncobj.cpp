@@ -9,50 +9,27 @@
 #include <fcntl.h>
 using namespace Hyprutils::OS;
 
-CDRMSyncPointState::CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_) : m_resource(resource_), m_point(point_) {}
+CDRMSyncPointState::CDRMSyncPointState(SP<CSyncTimeline> timeline_, uint64_t point_) : m_timeline(timeline_), m_point(point_) {}
 
 const uint64_t& CDRMSyncPointState::point() {
     return m_point;
 }
 
-WP<CDRMSyncobjTimelineResource> CDRMSyncPointState::resource() {
-    return m_resource;
-}
-
 WP<CSyncTimeline> CDRMSyncPointState::timeline() {
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: getting a timeline on a expired point");
-        return {};
-    }
-
-    return m_resource->timeline;
-}
-
-bool CDRMSyncPointState::expired() {
-    return m_resource.expired() || !m_resource->timeline;
+    return m_timeline;
 }
 
 UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: creating a sync releaser on an expired point");
-        return nullptr;
-    }
-
     if (m_releaseTaken)
         Debug::log(ERR, "CDRMSyncPointState: creating a sync releaser on an already created SyncRelease");
 
     m_releaseTaken = true;
-    return makeUnique<CSyncReleaser>(m_resource->timeline, m_point);
+    return makeUnique<CSyncReleaser>(m_timeline, m_point);
 }
 
 bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: adding a waiter on an expired point");
-        return false;
-    }
-
     m_acquireCommitted = true;
-    return m_resource->timeline->addWaiter(waiter, m_point, 0u);
+    return m_timeline->addWaiter(waiter, m_point, 0u);
 }
 
 bool CDRMSyncPointState::comitted() {
@@ -60,21 +37,11 @@ bool CDRMSyncPointState::comitted() {
 }
 
 CFileDescriptor CDRMSyncPointState::exportAsFD() {
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: exporting a FD on an expired point");
-        return {};
-    }
-
-    return m_resource->timeline->exportAsSyncFileFD(m_point);
+    return m_timeline->exportAsSyncFileFD(m_point);
 }
 
 void CDRMSyncPointState::signal() {
-    if (expired()) {
-        Debug::log(ERR, "CDRMSyncPointState: signaling on an expired point");
-        return;
-    }
-
-    m_resource->timeline->signal(m_point);
+    m_timeline->signal(m_point);
 }
 
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_) :
@@ -94,7 +61,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        pendingAcquire = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
+        pendingAcquire = {timeline->timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
     resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -104,7 +71,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline  = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        pendingRelease = {timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
+        pendingRelease = {timeline->timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
@@ -126,12 +93,12 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if (!pendingAcquire.expired()) {
+        if (pendingAcquire.timeline()) {
             surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
             pendingAcquire                   = {};
         }
 
-        if (!pendingRelease.expired()) {
+        if (pendingRelease.timeline()) {
             surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
             pendingRelease                   = {};
         }
@@ -158,8 +125,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
 void CDRMSyncobjSurfaceResource::removeAllWaiters() {
     for (auto& s : pendingStates) {
-        if (s && s->buffer && s->buffer->acquire && !s->buffer->acquire->expired())
-            s->buffer->acquire->resource()->timeline->removeAllWaiters();
+        if (s && s->buffer && s->buffer->acquire)
+            s->buffer->acquire->timeline()->removeAllWaiters();
     }
 
     pendingStates.clear();
@@ -212,7 +179,7 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTi
     resource->setOnDestroy([this](CWpLinuxDrmSyncobjTimelineV1* r) { PROTO::sync->destroyResource(this); });
     resource->setDestroy([this](CWpLinuxDrmSyncobjTimelineV1* r) { PROTO::sync->destroyResource(this); });
 
-    timeline = CSyncTimeline::create(PROTO::sync->drmFD, fd.get());
+    timeline = CSyncTimeline::create(PROTO::sync->drmFD, std::move(fd));
 
     if (!timeline) {
         resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE, "Timeline failed importing");

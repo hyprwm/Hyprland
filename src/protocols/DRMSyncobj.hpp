@@ -17,13 +17,11 @@ struct SSurfaceState;
 class CDRMSyncPointState {
   public:
     CDRMSyncPointState() = default;
-    CDRMSyncPointState(WP<CDRMSyncobjTimelineResource> resource_, uint64_t point_);
+    CDRMSyncPointState(SP<CSyncTimeline> timeline_, uint64_t point_);
     ~CDRMSyncPointState() = default;
 
     const uint64_t&                                  point();
-    WP<CDRMSyncobjTimelineResource>                  resource();
     WP<CSyncTimeline>                                timeline();
-    bool                                             expired();
     Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
     bool                                             addWaiter(const std::function<void()>& waiter);
     bool                                             comitted();
@@ -31,11 +29,10 @@ class CDRMSyncPointState {
     void                                             signal();
 
   private:
-    WP<CDRMSyncobjTimelineResource> m_resource         = {};
-    uint64_t                        m_point            = 0;
-    WP<CSyncTimeline>               m_timeline         = {};
-    bool                            m_acquireCommitted = false;
-    bool                            m_releaseTaken     = false;
+    SP<CSyncTimeline> m_timeline         = {};
+    uint64_t          m_point            = 0;
+    bool              m_acquireCommitted = false;
+    bool              m_releaseTaken     = false;
 };
 
 class CDRMSyncobjSurfaceResource {

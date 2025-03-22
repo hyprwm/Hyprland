@@ -12,6 +12,7 @@
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
+#include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
 
@@ -445,7 +446,8 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
 
     // release the buffer if it's synchronous (SHM) as update() has done everything thats needed
     // so we can let the app know we're done.
-    if (current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous())
+    // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
+    if (current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous() && role->role() != SURFACE_ROLE_UNASSIGNED)
         dropCurrentBuffer();
 }
 

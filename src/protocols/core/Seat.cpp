@@ -124,7 +124,7 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
             return;
         }
 
-        if (surfResource) {
+        if (surfResource && surfResource->role->role() != SURFACE_ROLE_CURSOR) {
             surfResource->role = makeShared<CCursorSurfaceRole>();
             surfResource->updateCursorShm();
         }

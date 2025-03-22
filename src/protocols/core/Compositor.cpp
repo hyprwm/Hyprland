@@ -12,6 +12,7 @@
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
+#include "render/Texture.hpp"
 #include <cstring>
 
 class CDefaultSurfaceRole : public ISurfaceRole {
@@ -91,10 +92,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setCommit([this](CWlSurface* r) {
-        if (pending.texture)
+        if (pending.buffer)
             pending.bufferDamage.intersect(CBox{{}, pending.bufferSize});
 
-        if (!pending.texture)
+        if (!pending.buffer)
             pending.size = {};
         else if (pending.viewport.hasDestination)
             pending.size = pending.viewport.destination;
@@ -399,36 +400,8 @@ CBox CWLSurfaceResource::extends() {
     return full.getExtents();
 }
 
-Vector2D CWLSurfaceResource::sourceSize() {
-    if UNLIKELY (!current.texture)
-        return {};
-
-    if UNLIKELY (current.viewport.hasSource)
-        return current.viewport.source.size();
-
-    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.bufferSize.y, current.bufferSize.x} : current.bufferSize;
-    return trc / current.scale;
-}
-
-CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
-    if UNLIKELY (!current.texture)
-        return {};
-
-    CRegion surfaceDamage = current.damage;
-    if (current.viewport.hasDestination) {
-        Vector2D scale = sourceSize() / current.viewport.destination;
-        surfaceDamage.scale(scale);
-    }
-
-    if (current.viewport.hasSource)
-        surfaceDamage.translate(current.viewport.source.pos());
-
-    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.bufferSize.y, current.bufferSize.x} : current.bufferSize;
-
-    return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
-}
-
 void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
+    auto lastTexture = current.texture;
     if (state.newBuffer) {
         state.newBuffer = false;
         current         = state;
@@ -437,20 +410,19 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
         state.buffer.reset();
     }
 
-    if (current.texture)
-        current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
-
     if (current.buffer) {
-        const auto DAMAGE = accumulateCurrentBufferDamage();
-        current.buffer->buffer->update(DAMAGE);
+        if (current.buffer->buffer->isSynchronous())
+            current.updateSynchronousTexture(lastTexture);
 
         // if the surface is a cursor, update the shm buffer
         // TODO: don't update the entire texture
-        if (role->role() == SURFACE_ROLE_CURSOR && !DAMAGE.empty())
-            updateCursorShm(DAMAGE);
+        if (role->role() == SURFACE_ROLE_CURSOR)
+            updateCursorShm(current.accumulateBufferDamage());
     }
 
-    // TODO: we should _accumulate_ and not replace above if sync
+    if (current.texture)
+        current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
+
     if (role->role() == SURFACE_ROLE_SUBSURFACE) {
         auto subsurface = ((CSubsurfaceRole*)role.get())->subsurface.lock();
         if (subsurface->sync)
@@ -478,6 +450,9 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
+    if (damage.empty())
+        return;
+
     auto buf = current.buffer ? current.buffer->buffer : SP<IHLBuffer>{};
 
     if UNLIKELY (!buf)

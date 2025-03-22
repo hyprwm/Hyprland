@@ -35,14 +35,15 @@ class CTexture {
     void                        update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage);
     const std::vector<uint8_t>& dataCopy();
 
-    eTextureType                m_iType      = TEXTURE_RGBA;
-    GLenum                      m_iTarget    = GL_TEXTURE_2D;
-    GLuint                      m_iTexID     = 0;
-    Vector2D                    m_vSize      = {};
-    void*                       m_pEglImage  = nullptr;
-    eTransform                  m_eTransform = HYPRUTILS_TRANSFORM_NORMAL;
-    bool                        m_bOpaque    = false;
-    uint32_t                    m_iDrmFormat = 0; // for shm
+    eTextureType                m_iType         = TEXTURE_RGBA;
+    GLenum                      m_iTarget       = GL_TEXTURE_2D;
+    GLuint                      m_iTexID        = 0;
+    Vector2D                    m_vSize         = {};
+    void*                       m_pEglImage     = nullptr;
+    eTransform                  m_eTransform    = HYPRUTILS_TRANSFORM_NORMAL;
+    bool                        m_bOpaque       = false;
+    uint32_t                    m_iDrmFormat    = 0; // for shm
+    bool                        m_isSynchronous = false;
 
   private:
     void                 createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);

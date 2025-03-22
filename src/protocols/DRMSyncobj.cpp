@@ -137,7 +137,7 @@ CDRMSyncobjSurfaceResource::~CDRMSyncobjSurfaceResource() {
 }
 
 bool CDRMSyncobjSurfaceResource::protocolError() {
-    if (!surface->pending.texture) {
+    if (!surface->pending.buffer) {
         resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
         surface->pending.rejected = true;
         return true;

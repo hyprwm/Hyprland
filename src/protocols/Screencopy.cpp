@@ -226,7 +226,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     g_pHyprRenderer->endRender();
 
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
-    if (pMonitor->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
+    if (pMonitor->inTimeline && explicitOptions.explicitEnabled) {
         pMonitor->inTimeline->addWaiter(
             [callback]() {
                 LOGM(TRACE, "Copied frame via dma with explicit sync");

@@ -2253,7 +2253,7 @@ void CHyprRenderer::endRender() {
 
     auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
-    if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
+    if (PMONITOR->inTimeline && explicitOptions.explicitEnabled) {
         PMONITOR->eglSync = g_pHyprOpenGL->createEGLSync();
         if (!PMONITOR->eglSync) {
             Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
@@ -2267,7 +2267,7 @@ void CHyprRenderer::endRender() {
             return;
         }
 
-        if (m_eRenderMode == RENDER_MODE_NORMAL) {
+        if (m_eRenderMode == RENDER_MODE_NORMAL && explicitOptions.explicitKMSEnabled) {
             PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->inTimelinePoint)};
             if (!PMONITOR->inFence.isValid()) {
                 Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");

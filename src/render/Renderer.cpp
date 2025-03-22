@@ -1447,8 +1447,6 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
-    pMonitor->commitSeq++;
-
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = pMonitor->imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
@@ -2250,37 +2248,39 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (m_eRenderMode == RENDER_MODE_NORMAL) {
+    if (m_eRenderMode == RENDER_MODE_NORMAL)
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
+    auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
-        if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
-            PMONITOR->eglSync = g_pHyprOpenGL->createEGLSync();
-            if (!PMONITOR->eglSync) {
-                Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
-                return;
-            }
+    if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
+        PMONITOR->eglSync = g_pHyprOpenGL->createEGLSync();
+        if (!PMONITOR->eglSync) {
+            Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
+            return;
+        }
 
-            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, PMONITOR->eglSync->fd());
-            if (!ok) {
-                Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
-                return;
-            }
+        PMONITOR->inTimelinePoint++;
+        bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->inTimelinePoint, PMONITOR->eglSync->fd());
+        if (!ok) {
+            Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
+            return;
+        }
 
-            PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq)};
+        if (m_eRenderMode == RENDER_MODE_NORMAL) {
+            PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->inTimelinePoint)};
             if (!PMONITOR->inFence.isValid()) {
                 Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
                 return;
             }
 
             PMONITOR->output->state->setExplicitInFence(PMONITOR->inFence.get());
-        } else {
-            if (isNvidia() && *PNVIDIAANTIFLICKER)
-                glFinish();
-            else
-                glFlush();
         }
+    } else {
+        if (isNvidia() && *PNVIDIAANTIFLICKER)
+            glFinish();
+        else
+            glFlush();
     }
 }
 

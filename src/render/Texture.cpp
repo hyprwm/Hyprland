@@ -64,8 +64,9 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    m_iType = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    m_vSize = size_;
+    m_iType         = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
+    m_vSize         = size_;
+    m_isSynchronous = true;
     allocate();
 
     GLCALL(glBindTexture(GL_TEXTURE_2D, m_iTexID));

@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
+#include "render/Texture.hpp"
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -75,7 +76,6 @@ class CWLSurfaceResource {
     SP<CWlSurface>                getResource();
     CBox                          extends();
     void                          resetRole();
-    Vector2D                      sourceSize();
 
     struct {
         CSignal precommit; // before commit
@@ -102,7 +102,6 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
-    CRegion                                accumulateCurrentBufferDamage();
     void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   commitPendingState(SSurfaceState& state);
 

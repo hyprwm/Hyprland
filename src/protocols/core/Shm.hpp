@@ -50,8 +50,6 @@ class CWLSHMBuffer : public IHLBuffer {
     SP<CSHMPool>                                   pool;
 
   private:
-    bool success = false;
-
     struct {
         CHyprSignalListener bufferResourceDestroy;
     } listeners;

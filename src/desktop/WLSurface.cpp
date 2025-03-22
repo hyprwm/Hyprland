@@ -98,7 +98,7 @@ CRegion CWLSurface::computeDamage() const {
     if (!m_pResource->current.texture)
         return {};
 
-    CRegion damage = m_pResource->accumulateCurrentBufferDamage();
+    CRegion damage = m_pResource->current.accumulateBufferDamage();
     damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.bufferSize.x, m_pResource->current.bufferSize.y);
 
     const auto BUFSIZE    = m_pResource->current.bufferSize;

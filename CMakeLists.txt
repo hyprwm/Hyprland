@@ -25,6 +25,9 @@ message(STATUS "Gathering git info")
 # Get git info hash and branch
 execute_process(COMMAND ./scripts/generateVersion.sh
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+# Make shader files includable
+execute_process(COMMAND ./scripts/generateShaderIncludes.sh
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 find_package(PkgConfig REQUIRED)
 
@@ -445,4 +448,5 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
   PATTERN "*.h*"
-  PATTERN "*.frag")
+  PATTERN "*.inc"
+  )

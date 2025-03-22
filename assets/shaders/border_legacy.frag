@@ -1,21 +1,11 @@
-#pragma once
+#extension GL_ARB_shading_language_include : enable
 
-#include <string>
-#include <format>
-#include "SharedValues.hpp"
-
-// makes a stencil without corners
-inline const std::string FRAGBORDER1 = R"#(
 precision highp float;
 varying vec4 v_color;
 varying vec2 v_texcoord;
 
-uniform vec2 topLeft;
-uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
-uniform float radius;
 uniform float radiusOuter;
-uniform float roundingPower;
 uniform float thick;
 
 // Gradients are in OkLabA!!!! {l, a, b, alpha}
@@ -27,6 +17,8 @@ uniform float angle;
 uniform float angle2;
 uniform float gradientLerp;
 uniform float alpha;
+
+#include "rounding.glsl"
 
 float linearToGamma(float x) {
     return x >= 0.0031308 ? 1.055 * pow(x, 0.416666666) - 0.055 : 12.92 * x;
@@ -135,13 +127,9 @@ void main() {
     pixCoordOuter += vec2(1.0, 1.0) / fullSize;
 
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
-        // smoothing constant for the edge: more = blurrier, but smoother
-        const float SMOOTHING_CONSTANT = )#" +
-    std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
-
 	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
 	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
-      float h = (thick / 2.0);
+        float h = (thick / 2.0);
 
 	    if (dist < radius - h) {
             // lower
@@ -184,4 +172,3 @@ void main() {
 
     gl_FragColor = pixColor;
 }
-)#";

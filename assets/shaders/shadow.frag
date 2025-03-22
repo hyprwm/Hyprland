@@ -1,11 +1,15 @@
-#pragma once
+#version 300 es
+#extension GL_ARB_shading_language_include : enable
 
-#include <string>
-
-inline const std::string FRAGSHADOW = R"#(
 precision highp float;
-varying vec4 v_color;
-varying vec2 v_texcoord;
+in vec4 v_color;
+in vec2 v_texcoord;
+
+uniform int skipCM;
+uniform int sourceTF; // eTransferFunction
+uniform int targetTF; // eTransferFunction
+uniform mat4x2 sourcePrimaries;
+uniform mat4x2 targetPrimaries;
 
 uniform vec2 topLeft;
 uniform vec2 bottomRight;
@@ -14,6 +18,8 @@ uniform float radius;
 uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
+
+#include "CM.glsl"
 
 float pixAlphaRoundedDistance(float distanceToCorner) {
      if (distanceToCorner > radius) {
@@ -31,6 +37,7 @@ float modifiedLength(vec2 a) {
     return pow(pow(abs(a.x),roundingPower)+pow(abs(a.y),roundingPower),1.0/roundingPower);
 }
 
+layout(location = 0) out vec4 fragColor;
 void main() {
 
 	vec4 pixColor = v_color;
@@ -86,5 +93,8 @@ void main() {
     // premultiply
     pixColor.rgb *= pixColor[3];
 
-	gl_FragColor = pixColor;
-})#";
+	if (skipCM == 0)
+        pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
+
+	fragColor = pixColor;
+}

@@ -166,7 +166,6 @@ int                        main(int argc, char** argv, char** envp) {
         auto ret = g_pPluginManager->ensurePluginsLoadState(force);
 
         if (ret != LOADSTATE_OK) {
-            
             if (notify) {
                 switch (ret) {
                     case LOADSTATE_FAIL:
@@ -177,7 +176,7 @@ int                        main(int argc, char** argv, char** envp) {
                     default: break;
                 }
             }
-            
+
             return 1;
         } else if (notify && !notifyFail) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");

@@ -547,6 +547,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 2},
     },
+    SConfigOptionDescription{
+        .value       = "input:drag_threshold",
+        .description = "Movement threshold in pixels for window dragging and c/g bind flags. 0 to disable and grab on mousedown.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, INT_MAX},
+    },
 
     /*
      * input:touchpad:

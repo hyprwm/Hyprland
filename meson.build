@@ -87,6 +87,8 @@ endif
 
 # Generate hyprland version and populate version.h
 run_command('sh', '-c', 'scripts/generateVersion.sh', check: true)
+# Make shader files includable
+run_command('sh', '-c', 'scripts/generateShaderIncludes.sh', check: true)
 
 # Install headers
 globber = run_command('find', 'src', '-name', '*.h*', '-o', '-name', '*.frag', check: true)

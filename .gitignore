@@ -28,6 +28,8 @@ protocols/*.c*
 protocols/*.h*
 .ccls-cache
 *.so
+src/render/shaders/*.inc
+src/render/shaders/Shaders.hpp
 
 hyprctl/hyprctl
 

@@ -27,6 +27,8 @@
 #include <fcntl.h>
 #include <gbm.h>
 #include <filesystem>
+#include "./shaders/Shaders.hpp"
+
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
 
@@ -875,10 +877,12 @@ static std::string loadShader(const std::string& filename) {
             return src.value();
     }
     for (auto& e : ASSET_PATHS) {
-        const auto src = NFsUtils::readFileAsString(std::string{e} + "/hypr/shaders/" + filename); // FIXME install assets with subfolders
+        const auto src = NFsUtils::readFileAsString(std::string{e} + "/hypr/shaders/" + filename);
         if (src.has_value())
             return src.value();
     }
+    if (SHADERS.contains(filename))
+        return SHADERS.at(filename);
     throw std::runtime_error(std::format("Couldn't load shader {}", filename));
 }
 

@@ -152,6 +152,7 @@ class CEGLSync {
 
     Hyprutils::OS::CFileDescriptor&& takeFD();
     Hyprutils::OS::CFileDescriptor&  fd();
+    bool                             wait();
 
   private:
     CEGLSync() = default;

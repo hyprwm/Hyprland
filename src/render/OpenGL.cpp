@@ -3025,3 +3025,7 @@ CFileDescriptor&& CEGLSync::takeFD() {
 CFileDescriptor& CEGLSync::fd() {
     return m_iFd;
 }
+
+bool CEGLSync::wait() {
+    return g_pHyprOpenGL->m_sProc.eglWaitSyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync, 0) == EGL_TRUE;
+}

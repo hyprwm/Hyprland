@@ -221,6 +221,12 @@ bool CScreencopyFrame::copyDmabuf() {
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
+    if (explicitOptions.explicitEnabled) {
+        auto sync = g_pHyprOpenGL->createEGLSync();
+        sync->wait();
+    }
+
     LOGM(TRACE, "Copied frame via dma");
 
     return true;
@@ -294,6 +300,12 @@ bool CScreencopyFrame::copyShm() {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
+
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
+    if (explicitOptions.explicitEnabled) {
+        auto sync = g_pHyprOpenGL->createEGLSync();
+        sync->wait();
+    }
 
     LOGM(TRACE, "Copied frame via shm");
 

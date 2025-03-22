@@ -83,13 +83,17 @@ enum eOverridePriority : uint8_t {
     PRIORITY_SET_PROP,
 };
 
-template <typename T, bool Addable = std::is_same<T, bool>::value || std::is_same<T, int>::value || std::is_same<T, float>::value>
+template <typename T, bool Extended = std::is_same<T, bool>::value || std::is_same<T, int>::value || std::is_same<T, float>::value>
 class CWindowOverridableVar {
   public:
-    CWindowOverridableVar(T const& value, eOverridePriority priority, bool relative = false) {
-        values[priority] = std::make_pair(value, relative);
+    CWindowOverridableVar(T const& value, eOverridePriority priority) {
+        values[priority] = value;
     }
+
     CWindowOverridableVar(T const& value) : defaultValue{value} {}
+    CWindowOverridableVar(std::string const& value)
+        requires(std::is_same_v<T, int> || std::is_same_v<T, float>)
+        : configValueString{value} {}
 
     CWindowOverridableVar()  = default;
     ~CWindowOverridableVar() = default;
@@ -116,7 +120,7 @@ class CWindowOverridableVar {
 
     T value() {
         if (!values.empty())
-            return std::get<0>(std::prev(values.end())->second);
+            return std::prev(values.end())->second;
         else
             throw std::bad_optional_access();
     }
@@ -129,20 +133,14 @@ class CWindowOverridableVar {
     }
 
     T valueOr(T const& other) {
-        if (hasValue()) {
-            if constexpr (Addable) {
-                if constexpr (std::is_same<T, bool>::value)
-                    return (isValueRelative() ? other : 0) ^ value();
-                else
-                    return (isValueRelative() ? other : 0) + value();
-            } else
-                return value();
-        } else
+        if (hasValue())
+            return value();
+        else
             return other;
     }
 
     T valueOrDefault() {
-        return valueOr(defaultValue);
+        return valueOr(defaultValue.value());
     }
 
     eOverridePriority getPriority() {
@@ -153,21 +151,18 @@ class CWindowOverridableVar {
     }
 
     void increment(T const& other, eOverridePriority priority) {
-        if constexpr (!Addable)
+        if constexpr (!Extended)
             return;
 
-        if (hasValue() && getPriority() <= priority) {
-            if constexpr (std::is_same<T, bool>::value)
-                values[priority] = std::make_pair(value() ^ other, isValueRelative());
-            else
-                values[priority] = std::make_pair(value() + other, isValueRelative());
-        } else
-            values[priority] = std::make_pair(other, true);
+        if constexpr (std::is_same<T, bool>::value)
+            values[priority] = valueOrDefault() ^ other;
+        else
+            values[priority] = valueOrDefault() + other;
     }
 
-    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority, bool relative = false) {
+    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority) {
         if (optValue.has_value())
-            values[priority] = std::make_pair(optValue.value(), relative);
+            values[priority] = optValue.value();
         else
             unset(priority);
     }
@@ -180,9 +175,16 @@ class CWindowOverridableVar {
     }
 
   private:
-    std::map<eOverridePriority, std::pair<T, bool>> values;
-    T                                               defaultValue; // used for toggling, so required for bool
+    std::map<eOverridePriority, T> values;
+    std::optional<T>               defaultValue; // used for toggling, so required for bool
+    std::optional<std::string>     configValueString;
 };
+
+template <>
+int CWindowOverridableVar<int>::valueOrDefault();
+
+template <>
+float CWindowOverridableVar<float>::valueOrDefault();
 
 struct SWindowData {
     CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{1.f, false};
@@ -211,12 +213,12 @@ struct SWindowData {
     CWindowOverridableVar<bool>               xray               = false;
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
-    CWindowOverridableVar<int>                borderSize;
-    CWindowOverridableVar<int>                rounding;
+    CWindowOverridableVar<int>                borderSize = std::string("general:border_size");
+    CWindowOverridableVar<int>                rounding   = std::string("decoration:rounding");
 
-    CWindowOverridableVar<float>              roundingPower;
-    CWindowOverridableVar<float>              scrollMouse;
-    CWindowOverridableVar<float>              scrollTouchpad;
+    CWindowOverridableVar<float>              roundingPower  = std::string("decoration:rounding_power");
+    CWindowOverridableVar<float>              scrollMouse    = 1.f;
+    CWindowOverridableVar<float>              scrollTouchpad = 1.f;
 
     CWindowOverridableVar<std::string>        animationStyle;
     CWindowOverridableVar<Vector2D>           maxSize;

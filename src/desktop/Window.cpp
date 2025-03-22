@@ -1807,3 +1807,13 @@ void CWindow::deactivateGroupMembers() {
 bool CWindow::isNotResponding() {
     return g_pANRManager->isNotResponding(m_pSelf.lock());
 }
+
+template <>
+int CWindowOverridableVar<int>::valueOrDefault() {
+    return defaultValue.has_value() ? valueOr(defaultValue.value()) : valueOr(*CConfigValue<Hyprlang::INT>(configValueString.value()));
+}
+
+template <>
+float CWindowOverridableVar<float>::valueOrDefault() {
+    return defaultValue.has_value() ? valueOr(defaultValue.value()) : valueOr(*CConfigValue<Hyprlang::FLOAT>(configValueString.value()));
+}

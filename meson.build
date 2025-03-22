@@ -91,7 +91,7 @@ run_command('sh', '-c', 'scripts/generateVersion.sh', check: true)
 run_command('sh', '-c', 'scripts/generateShaderIncludes.sh', check: true)
 
 # Install headers
-globber = run_command('find', 'src', '-name', '*.h*', '-o', '-name', '*.frag', check: true)
+globber = run_command('find', 'src', '-name', '*.h*', '-o', '-name', '*.inc', check: true)
 headers = globber.stdout().strip().split('\n')
 foreach file : headers
   install_headers(file, subdir: 'hyprland', preserve_path: true)

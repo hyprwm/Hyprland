@@ -225,12 +225,18 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    pMonitor->inTimeline->addWaiter(
-        [callback]() {
-            LOGM(TRACE, "Copied frame via dma");
-            callback(true);
-        },
-        pMonitor->inTimelinePoint, 0);
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
+    if (pMonitor->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
+        pMonitor->inTimeline->addWaiter(
+            [callback]() {
+                LOGM(TRACE, "Copied frame via dma with explicit sync");
+                callback(true);
+            },
+            pMonitor->inTimelinePoint, 0);
+    } else {
+        LOGM(TRACE, "Copied frame via dma");
+        callback(true);
+    }
 }
 
 bool CScreencopyFrame::copyShm() {

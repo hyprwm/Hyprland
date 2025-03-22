@@ -73,7 +73,7 @@ class CScreencopyFrame {
     CBox                       box          = {};
 
     void                       copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
-    bool                       copyDmabuf();
+    void                       copyDmabuf(std::function<void(bool)> callback);
     bool                       copyShm();
     void                       share();
 

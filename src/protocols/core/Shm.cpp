@@ -22,19 +22,12 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     offset = offset_;
     opaque = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
 
-    texture = makeShared<CTexture>(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, size_);
-
     resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->resource->client(), 1, id));
 
     listeners.bufferResourceDestroy = events.destroy.registerListener([this](std::any d) {
         listeners.bufferResourceDestroy.reset();
         PROTO::shm->destroyResource(this);
     });
-
-    success = texture->m_iTexID;
-
-    if UNLIKELY (!success)
-        Debug::log(ERR, "Failed creating a shm texture: null texture id");
 }
 
 CWLSHMBuffer::~CWLSHMBuffer() {
@@ -74,11 +67,11 @@ void CWLSHMBuffer::endDataPtr() {
 }
 
 bool CWLSHMBuffer::good() {
-    return success;
+    return true;
 }
 
 void CWLSHMBuffer::update(const CRegion& damage) {
-    texture->update(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, damage);
+    ;
 }
 
 CSHMPool::CSHMPool(CFileDescriptor fd_, size_t size_) : fd(std::move(fd_)), size(size_), data(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd.get(), 0)) {

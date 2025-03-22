@@ -387,7 +387,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         if (toplevel)
             toplevel->current = toplevel->pending;
 
-        if UNLIKELY (initialCommit && surface->pending.texture) {
+        if UNLIKELY (initialCommit && surface->pending.buffer) {
             resource->error(-1, "Buffer attached before initial commit");
             return;
         }

@@ -12,6 +12,7 @@
 #include "../helpers/Format.hpp"
 
 #include <algorithm>
+#include <functional>
 
 CScreencopyFrame::~CScreencopyFrame() {
     if (buffer && buffer->locked())
@@ -174,39 +175,42 @@ void CScreencopyFrame::share() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    if (bufferDMA) {
-        if (!copyDmabuf()) {
-            LOGM(ERR, "Dmabuf copy failed in {:x}", (uintptr_t)this);
+    auto callback = [this, now, weak = self](bool success) {
+        if (weak.expired())
+            return;
+
+        if (!success) {
+            LOGM(ERR, "{} copy failed in {:x}", bufferDMA ? "Dmabuf" : "Shm", (uintptr_t)this);
             resource->sendFailed();
             return;
         }
-    } else {
-        if (!copyShm()) {
-            LOGM(ERR, "Shm copy failed in {:x}", (uintptr_t)this);
-            resource->sendFailed();
-            return;
+
+        resource->sendFlags((zwlrScreencopyFrameV1Flags)0);
+        if (withDamage) {
+            // TODO: add a damage ring for this.
+            resource->sendDamage(0, 0, buffer->size.x, buffer->size.y);
         }
-    }
 
-    resource->sendFlags((zwlrScreencopyFrameV1Flags)0);
-    if (withDamage) {
-        // TODO: add a damage ring for this.
-        resource->sendDamage(0, 0, buffer->size.x, buffer->size.y);
-    }
+        uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
+        uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
+        resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
+    };
 
-    uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
-    uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
-    resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
+    if (bufferDMA)
+        copyDmabuf(callback);
+    else
+        callback(copyShm());
 }
 
-bool CScreencopyFrame::copyDmabuf() {
+void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     auto    TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock(), nullptr, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering to dma frame");
-        return false;
+        callback(false);
+        return;
     }
 
     CBox monbox = CBox{0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y}
@@ -221,9 +225,18 @@ bool CScreencopyFrame::copyDmabuf() {
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    LOGM(TRACE, "Copied frame via dma");
-
-    return true;
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
+    if (pMonitor->inTimeline && explicitOptions.explicitEnabled) {
+        pMonitor->inTimeline->addWaiter(
+            [callback]() {
+                LOGM(TRACE, "Copied frame via dma with explicit sync");
+                callback(true);
+            },
+            pMonitor->inTimelinePoint, 0);
+    } else {
+        LOGM(TRACE, "Copied frame via dma");
+        callback(true);
+    }
 }
 
 bool CScreencopyFrame::copyShm() {
@@ -278,6 +291,8 @@ bool CScreencopyFrame::copyShm() {
     const auto drmFmt     = NFormatUtils::getPixelFormatFromDRM(shm.format);
     uint32_t   packStride = NFormatUtils::minStride(drmFmt, box.w);
 
+    // This could be optimized by using a pixel buffer object to make this async,
+    // but really clients should just use a dma buffer anyways.
     if (packStride == (uint32_t)shm.stride) {
         glReadPixels(0, 0, box.w, box.h, glFormat, PFORMAT->glType, pixelData);
     } else {

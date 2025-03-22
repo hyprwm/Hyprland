@@ -140,10 +140,9 @@ class CMonitor {
 
     // explicit sync
     SP<CSyncTimeline>              inTimeline;
-    SP<CSyncTimeline>              outTimeline;
     Hyprutils::OS::CFileDescriptor inFence;
     SP<CEGLSync>                   eglSync;
-    uint64_t                       commitSeq = 0;
+    uint64_t                       inTimelinePoint = 0;
 
     PHLMONITORREF                  self;
 

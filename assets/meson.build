@@ -5,4 +5,3 @@ install_data(
 )
 
 subdir('install')
-subdir('shaders')

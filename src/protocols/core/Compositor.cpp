@@ -522,7 +522,7 @@ void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor, bo
         FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
+    if (!pMonitor || !pMonitor->inTimeline || !syncobj)
         return;
 
     // attach explicit sync

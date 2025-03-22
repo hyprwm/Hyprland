@@ -83,6 +83,11 @@ enum eOverridePriority : uint8_t {
     PRIORITY_SET_PROP,
 };
 
+template <typename T>
+T clampOptional(T const& value, std::optional<T> const& min, std::optional<T> const& max) {
+    return std::clamp(value, min.value_or(std::numeric_limits<T>::min()), max.value_or(std::numeric_limits<T>::max()));
+}
+
 template <typename T, bool Extended = std::is_same<T, bool>::value || std::is_same<T, int>::value || std::is_same<T, float>::value>
 class CWindowOverridableVar {
   public:
@@ -91,9 +96,13 @@ class CWindowOverridableVar {
     }
 
     CWindowOverridableVar(T const& value) : defaultValue{value} {}
+    CWindowOverridableVar(T const& value, std::optional<T> const& min, std::optional<T> const& max) : defaultValue{value}, minValue{min}, maxValue{max} {}
     CWindowOverridableVar(std::string const& value)
-        requires(std::is_same_v<T, int> || std::is_same_v<T, float>)
+        requires(Extended && !std::is_same<T, bool>::value)
         : configValueString{value} {}
+    CWindowOverridableVar(std::string const& value, std::optional<T> const& min, std::optional<T> const& max)
+        requires(Extended && !std::is_same<T, bool>::value)
+        : configValueString{value}, minValue{min}, maxValue{max} {}
 
     CWindowOverridableVar()  = default;
     ~CWindowOverridableVar() = default;
@@ -104,7 +113,10 @@ class CWindowOverridableVar {
             return *this;
 
         for (auto const& value : other.values) {
-            values[value.first] = value.second;
+            if constexpr (Extended && !std::is_same<T, bool>::value)
+                values[value.first] = clampOptional(value.second, minValue, maxValue);
+            else
+                values[value.first] = value.second;
         }
 
         return *this;
@@ -157,7 +169,7 @@ class CWindowOverridableVar {
         if constexpr (std::is_same<T, bool>::value)
             values[priority] = valueOrDefault() ^ other;
         else
-            values[priority] = valueOrDefault() + other;
+            values[priority] = clampOptional(valueOrDefault() + other, minValue, maxValue);
     }
 
     void matchOptional(std::optional<T> const& optValue, eOverridePriority priority) {
@@ -178,6 +190,8 @@ class CWindowOverridableVar {
     std::map<eOverridePriority, T> values;
     std::optional<T>               defaultValue; // used for toggling, so required for bool
     std::optional<std::string>     configValueString;
+    std::optional<T>               minValue;
+    std::optional<T>               maxValue;
 };
 
 template <>
@@ -213,8 +227,8 @@ struct SWindowData {
     CWindowOverridableVar<bool>               xray               = false;
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
-    CWindowOverridableVar<int>                borderSize = std::string("general:border_size");
-    CWindowOverridableVar<int>                rounding   = std::string("decoration:rounding");
+    CWindowOverridableVar<int>                borderSize = {std::string("general:border_size"), 0, std::nullopt};
+    CWindowOverridableVar<int>                rounding   = {std::string("decoration:rounding"), 0, std::nullopt};
 
     CWindowOverridableVar<float>              roundingPower  = std::string("decoration:rounding_power");
     CWindowOverridableVar<float>              scrollMouse    = 1.f;

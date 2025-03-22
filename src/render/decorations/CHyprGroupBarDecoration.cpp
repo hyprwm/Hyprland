@@ -27,6 +27,7 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindo
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT          = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto                PINDICATORGAP    = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
     static auto                PINDICATORHEIGHT = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
     static auto                PENABLED         = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto                PRENDERTITLES    = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
@@ -43,10 +44,10 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
     if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {
         if (*PSTACKED) {
-            const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+            const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + *POUTERGAP}, {0, 0}};
         } else
-            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
+            info.desiredExtents = {{0, *POUTERGAP * 2 + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
     } else
         info.desiredExtents = {{0, 0}, {0, 0}};
     return info;
@@ -104,6 +105,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
     static auto PTITLEFONTSIZE             = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto PHEIGHT                    = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto PINDICATORGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
     static auto PINDICATORHEIGHT           = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
     static auto PGRADIENTS                 = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto PSTACKED                   = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
@@ -124,7 +126,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
-    const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+    const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     m_fBarWidth              = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
     m_fBarHeight             = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - *POUTERGAP) - *POUTERGAP * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - *POUTERGAP;
 
@@ -138,7 +140,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                            ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                            *PINDICATORHEIGHT};
 
@@ -182,7 +184,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
         }
 
-        rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
         rect.scale(pMonitor->scale);
@@ -232,14 +234,16 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                             .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                 Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                             .get();
-                rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
-                rect.height = pTitleTex->texSize.y;
-                rect.width  = pTitleTex->texSize.x;
-                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (pTitleTex->texSize.x / 2.0));
+
+                const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? pTitleTex->texActive : pTitleTex->texInactive;
+                rect.y += std::ceil((rect.height - titleTex->m_vSize.y) / 2.0);
+                rect.height = titleTex->m_vSize.y;
+                rect.width  = titleTex->m_vSize.x;
+                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (titleTex->m_vSize.x / 2.0));
                 rect.round();
 
                 CTexPassElement::SRenderData data;
-                data.tex = pTitleTex->tex;
+                data.tex = titleTex;
                 data.box = rect;
                 data.a   = a;
                 g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
@@ -275,13 +279,17 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto      PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
 
+    static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
+    static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
+
+    const auto       FONTWEIGHTACTIVE   = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTACTIVE.ptr())->getData();
+    const auto       FONTWEIGHTINACTIVE = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
+
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    tex = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */);
-
-    if (tex)
-        texSize = tex->m_vSize;
+    texActive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTACTIVE->value);
+    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTINACTIVE->value);
 }
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {

@@ -364,7 +364,27 @@ void IHyprLayout::onEndDragWindow() {
     if (DRAGGINGWINDOW->m_draggingTiled) {
         DRAGGINGWINDOW->m_isFloating = false;
         g_pInputManager->refocus();
-        changeWindowFloatingMode(DRAGGINGWINDOW);
+
+        eDirection      direction = DIRECTION_DEFAULT;
+
+        const auto      MOUSECOORDS      = g_pInputManager->getMouseCoordsInternal();
+        const PHLWINDOW pReferenceWindow = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
+
+        if (pReferenceWindow && pReferenceWindow != DRAGGINGWINDOW) {
+            const Vector2D draggedCenter   = DRAGGINGWINDOW->m_realPosition->goal() + DRAGGINGWINDOW->m_realSize->goal() / 2.f;
+            const Vector2D referenceCenter = pReferenceWindow->m_realPosition->goal() + pReferenceWindow->m_realSize->goal() / 2.f;
+            const float    xDiff           = draggedCenter.x - referenceCenter.x;
+            const float    yDiff           = draggedCenter.y - referenceCenter.y;
+
+            if (fabs(xDiff) > fabs(yDiff))
+                direction = xDiff < 0 ? DIRECTION_LEFT : DIRECTION_RIGHT;
+            else
+                direction = yDiff < 0 ? DIRECTION_UP : DIRECTION_DOWN;
+        }
+
+        onWindowRemovedTiling(DRAGGINGWINDOW);
+        onWindowCreatedTiling(DRAGGINGWINDOW, direction);
+
         DRAGGINGWINDOW->m_lastFloatingSize = m_draggingWindowOriginalFloatSize;
     }
 

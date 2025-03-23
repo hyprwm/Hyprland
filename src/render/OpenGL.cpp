@@ -1382,8 +1382,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     const auto imageDescription =
         m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
 
-    const bool skipCM = !*PENABLECM                                      /* CM disabled by the user */
-        || !m_bCMSupported                                               /* CM unsupported - hw failed to compile the shader probably */
+    const bool skipCM = !*PENABLECM /* CM disabled by the user */
+        || !m_RenderData.surface    /* FIXME unknown texture settings should be treated as sRGB and go through CM if monitor isn't in sRGB mode */
+        || !m_bCMSupported          /* CM unsupported - hw failed to compile the shader probably */
         || (imageDescription == m_RenderData.pMonitor->imageDescription) /* Source and target have the same image description */
         || ((*PPASS == 1 || (*PPASS == 2 && imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_RenderData.pMonitor->activeWorkspace &&
             m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&

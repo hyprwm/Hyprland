@@ -87,7 +87,7 @@ foreach protocol : protocols
 endforeach
 
 # wayland.xml generation
-wayland_scanner = dependency('wayland-scanner')
+wayland_scanner = dependency('wayland-scanner', native: true)
 wayland_scanner_datadir = wayland_scanner.get_variable('pkgdatadir')
 
 wayland_xml = wayland_scanner_datadir / 'wayland.xml'

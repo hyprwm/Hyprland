@@ -20,7 +20,7 @@ class CXWaylandServer {
     bool start();
 
     // called on ready
-    int  ready(Hyprutils::OS::CFileDescriptor fd, uint32_t mask);
+    int  ready(int fd, uint32_t mask);
 
     void die();
 

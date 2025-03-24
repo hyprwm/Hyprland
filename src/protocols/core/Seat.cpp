@@ -22,7 +22,7 @@ bool CWLTouchResource::good() {
 }
 
 void CWLTouchResource::sendDown(SP<CWLSurfaceResource> surface, uint32_t timeMs, int32_t id, const Vector2D& local) {
-    if (!owner)
+    if (!owner || !surface || !surface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_TOUCH))
@@ -145,7 +145,7 @@ bool CWLPointerResource::good() {
 }
 
 void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local) {
-    if (!owner || currentSurface == surface)
+    if (!owner || currentSurface == surface || !surface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
@@ -165,7 +165,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
 }
 
 void CWLPointerResource::sendLeave() {
-    if (!owner || !currentSurface)
+    if (!owner || !currentSurface || !currentSurface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
@@ -336,7 +336,7 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
 }
 
 void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
-    if (!owner || currentSurface == surface)
+    if (!owner || currentSurface == surface || !surface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
@@ -361,7 +361,7 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
 }
 
 void CWLKeyboardResource::sendLeave() {
-    if (!owner || !currentSurface)
+    if (!owner || !currentSurface || !currentSurface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))

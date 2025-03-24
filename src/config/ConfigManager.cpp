@@ -539,6 +539,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("decoration:dim_special", {0.2f});
     registerConfigVar("decoration:dim_around", {0.4f});
     registerConfigVar("decoration:screen_shader", {STRVAL_EMPTY});
+    registerConfigVar("decoration:border_part_of_window", Hyprlang::INT{1});
 
     registerConfigVar("dwindle:pseudotile", Hyprlang::INT{0});
     registerConfigVar("dwindle:force_split", Hyprlang::INT{0});

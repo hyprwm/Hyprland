@@ -891,8 +891,9 @@ static void loadShaderInclude(const std::string& filename, std::map<std::string,
 }
 
 static void processShaderIncludes(std::string& source, const std::map<std::string, std::string>& includes) {
-    for (auto it = includes.begin(); it != includes.end(); ++it)
+    for (auto it = includes.begin(); it != includes.end(); ++it) {
         RE2::Replace(&source, "#include \"" + it->first + "\"", it->second);
+    }
 }
 
 static std::string processShader(const std::string& filename, const std::map<std::string, std::string>& includes) {

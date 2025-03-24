@@ -107,7 +107,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (pass)            	                              "Pass the key to a specified window"
                 |  (sendshortcut)            	                      "On shortcut X sends shortcut Y to a specified window"
                 |  (killactive)          	                          "Close the active window"
-                |  (closewindow)         	                          "Close a specified window"
+                |  (closewindow)         	                          "Close a specified window (add 'all:' prefix to close all matching windows)"
                 |  (workspace)           	                          "Change the workspace"
                 |  (movetoworkspace)         	                      "Move the focused window to a workspace"
                 |  (movetoworkspacesilent)           	              "Move window doesnt switch to the workspace"

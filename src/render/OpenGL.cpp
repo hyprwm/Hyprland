@@ -697,7 +697,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
 
-    if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
+    if (!m_bShadersInitialized)
         initShaders();
 
     m_RenderData.damage.set(damage);
@@ -746,7 +746,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
 
-    if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
+    if (!m_bShadersInitialized)
         initShaders();
 
     // ensure a framebuffer for the monitor exists
@@ -926,7 +926,7 @@ static void getRoundingShaderUniforms(CShader& shader) {
 
 bool CHyprOpenGLImpl::initShaders() {
     auto              shaders   = makeShared<SPreparedShaders>();
-    const bool        isDynamic = m_RenderData.pCurrentMonData->m_bShadersInitialized;
+    const bool        isDynamic = m_bShadersInitialized;
     static const auto PCM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
 
     try {
@@ -948,7 +948,7 @@ bool CHyprOpenGLImpl::initShaders() {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
             prog = createProgram(shaders->TEXVERTSRC300, TEXFRAGSRCCM, true);
-            if (m_RenderData.pCurrentMonData->m_bShadersInitialized && m_bCMSupported && prog == 0)
+            if (m_bShadersInitialized && m_bCMSupported && prog == 0)
                 g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
             m_bCMSupported = prog > 0;
@@ -1175,15 +1175,15 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBORDER1.gradientLerp          = glGetUniformLocation(prog, "gradientLerp");
         shaders->m_shBORDER1.alpha                 = glGetUniformLocation(prog, "alpha");
     } catch (const std::exception& e) {
-        if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
+        if (!m_bShadersInitialized)
             throw e;
 
         Debug::log(ERR, "Shaders update failed: {}", e.what());
         return false;
     }
 
-    m_RenderData.pCurrentMonData->m_shaders             = shaders;
-    m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
+    m_shaders             = shaders;
+    m_bShadersInitialized = true;
 
     Debug::log(LOG, "Shaders initialized successfully.");
     g_pHyprError->destroy();
@@ -1211,11 +1211,11 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.program = createProgram(     //
         fragmentShader.starts_with("#version 320 es") // do not break existing custom shaders
             ?
-            m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC320 :
+            m_shaders->TEXVERTSRC320 :
             (fragmentShader.starts_with("#version 300 es") // support lower es versions
                  ?
-                 m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC300 :
-                 m_RenderData.pCurrentMonData->m_shaders->TEXVERTSRC),
+                 m_shaders->TEXVERTSRC300 :
+                 m_shaders->TEXVERTSRC),
         fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
@@ -1368,17 +1368,17 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
         newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
     Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
-    glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.program);
+    glUseProgram(m_shaders->m_shQUAD.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
     glMatrix.transpose();
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
     // premultiply the color as well as we don't work with straight alpha
-    glUniform4f(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.color, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    glUniform4f(m_shaders->m_shQUAD.color, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
 
     CBox transformedBox = box;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -1388,14 +1388,14 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     // Rounded corners
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.radius, round);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.roundingPower, roundingPower);
+    glUniform2f(m_shaders->m_shQUAD.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shaders->m_shQUAD.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shaders->m_shQUAD.radius, round);
+    glUniform1f(m_shaders->m_shQUAD.roundingPower, roundingPower);
 
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.posAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shQUAD.posAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -1414,7 +1414,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
         }
     }
 
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shQUAD.posAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shQUAD.posAttrib);
 
     scissor(nullptr);
 }
@@ -1512,28 +1512,28 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     auto       texType = tex->m_iType;
 
     if (CRASHING) {
-        shader           = &m_RenderData.pCurrentMonData->m_shaders->m_shGLITCH;
+        shader           = &m_shaders->m_shGLITCH;
         usingFinalShader = true;
     } else if (m_bApplyFinalShader && m_sFinalScreenShader.program) {
         shader           = &m_sFinalScreenShader;
         usingFinalShader = true;
     } else {
         if (m_bApplyFinalShader) {
-            shader           = &m_RenderData.pCurrentMonData->m_shaders->m_shPASSTHRURGBA;
+            shader           = &m_shaders->m_shPASSTHRURGBA;
             usingFinalShader = true;
         } else {
             switch (tex->m_iType) {
-                case TEXTURE_RGBA: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBA; break;
-                case TEXTURE_RGBX: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX; break;
+                case TEXTURE_RGBA: shader = &m_shaders->m_shRGBA; break;
+                case TEXTURE_RGBX: shader = &m_shaders->m_shRGBX; break;
 
-                case TEXTURE_EXTERNAL: shader = &m_RenderData.pCurrentMonData->m_shaders->m_shEXT; break; // might be unused
+                case TEXTURE_EXTERNAL: shader = &m_shaders->m_shEXT; break; // might be unused
                 default: RASSERT(false, "tex->m_iTarget unsupported!");
             }
         }
     }
 
     if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
-        shader  = &m_RenderData.pCurrentMonData->m_shaders->m_shRGBX;
+        shader  = &m_shaders->m_shRGBX;
         texType = TEXTURE_RGBX;
     }
 
@@ -1561,11 +1561,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
-        shader = &m_RenderData.pCurrentMonData->m_shaders->m_shCM;
+        shader = &m_shaders->m_shCM;
 
     glUseProgram(shader->program);
 
-    if (shader == &m_RenderData.pCurrentMonData->m_shaders->m_shCM) {
+    if (shader == &m_shaders->m_shCM) {
         glUniform1i(shader->texType, texType);
         passCMUniforms(*shader, imageDescription);
     }
@@ -1700,7 +1700,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     Mat3x3     matrix    = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_RenderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_RenderData.pCurrentMonData->m_shaders->m_shPASSTHRURGBA;
+    CShader*   shader = &m_shaders->m_shPASSTHRURGBA;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_iTarget, tex->m_iTexID);
@@ -1751,7 +1751,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     Mat3x3     matrix    = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_RenderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_RenderData.pCurrentMonData->m_shaders->m_shMATTE;
+    CShader*   shader = &m_shaders->m_shMATTE;
 
     glUseProgram(shader->program);
 
@@ -1847,38 +1847,38 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.program);
+        glUseProgram(m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
         const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
-        glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.skipCM, skipCM);
+        glUniform1i(m_shaders->m_shBLURPREPARE.skipCM, skipCM);
         if (!skipCM) {
-            passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
-            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.sdrSaturation,
+            passCMUniforms(m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
+            glUniform1f(m_shaders->m_shBLURPREPARE.sdrSaturation,
                         m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                             m_RenderData.pMonitor->sdrSaturation :
                             1.0f);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.sdrBrightness,
+            glUniform1f(m_shaders->m_shBLURPREPARE.sdrBrightness,
                         m_RenderData.pMonitor->sdrBrightness > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                             m_RenderData.pMonitor->sdrBrightness :
                             1.0f);
         }
 
 #ifndef GLES2
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+        glUniformMatrix3fv(m_shaders->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
         glMatrix.transpose();
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+        glUniformMatrix3fv(m_shaders->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
-        glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
-        glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
-        glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.tex, 0);
+        glUniform1f(m_shaders->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
+        glUniform1f(m_shaders->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
+        glUniform1i(m_shaders->m_shBLURPREPARE.tex, 0);
 
-        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(m_shaders->m_shBLURPREPARE.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(m_shaders->m_shBLURPREPARE.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.posAttrib);
-        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.texAttrib);
+        glEnableVertexAttribArray(m_shaders->m_shBLURPREPARE.posAttrib);
+        glEnableVertexAttribArray(m_shaders->m_shBLURPREPARE.texAttrib);
 
         if (!damage.empty()) {
             for (auto const& RECT : damage.getRects()) {
@@ -1887,8 +1887,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
             }
         }
 
-        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.posAttrib);
-        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.texAttrib);
+        glDisableVertexAttribArray(m_shaders->m_shBLURPREPARE.posAttrib);
+        glDisableVertexAttribArray(m_shaders->m_shBLURPREPARE.texAttrib);
 
         currentRenderToFB = PMIRRORSWAPFB;
     }
@@ -1918,15 +1918,13 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
         glUniform1f(pShader->radius, *PBLURSIZE * a); // this makes the blursize change with a
-        if (pShader == &m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1) {
-            glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f),
-                        0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
-            glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1.passes, *PBLURPASSES);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1.vibrancy, *PBLURVIBRANCY);
-            glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1.vibrancy_darkness, *PBLURVIBRANCYDARKNESS);
+        if (pShader == &m_shaders->m_shBLUR1) {
+            glUniform2f(m_shaders->m_shBLUR1.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x / 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y / 2.f));
+            glUniform1i(m_shaders->m_shBLUR1.passes, *PBLURPASSES);
+            glUniform1f(m_shaders->m_shBLUR1.vibrancy, *PBLURVIBRANCY);
+            glUniform1f(m_shaders->m_shBLUR1.vibrancy_darkness, *PBLURVIBRANCYDARKNESS);
         } else
-            glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBLUR2.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f),
-                        0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
+            glUniform2f(m_shaders->m_shBLUR2.halfpixel, 0.5f / (m_RenderData.pMonitor->vecPixelSize.x * 2.f), 0.5f / (m_RenderData.pMonitor->vecPixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
         glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -1962,12 +1960,12 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     // and draw
     for (auto i = 1; i <= *PBLURPASSES; ++i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));
-        drawPass(&m_RenderData.pCurrentMonData->m_shaders->m_shBLUR1, &tempDamage); // down
+        drawPass(&m_shaders->m_shBLUR1, &tempDamage); // down
     }
 
     for (auto i = *PBLURPASSES - 1; i >= 0; --i) {
-        tempDamage = damage.copy().scale(1.f / (1 << i));                           // when upsampling we make the region twice as big
-        drawPass(&m_RenderData.pCurrentMonData->m_shaders->m_shBLUR2, &tempDamage); // up
+        tempDamage = damage.copy().scale(1.f / (1 << i)); // when upsampling we make the region twice as big
+        drawPass(&m_shaders->m_shBLUR2, &tempDamage);     // up
     }
 
     // finalize the image
@@ -1988,24 +1986,24 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.program);
+        glUseProgram(m_shaders->m_shBLURFINISH.program);
 
 #ifndef GLES2
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+        glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
         glMatrix.transpose();
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+        glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
-        glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.noise, *PBLURNOISE);
-        glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.brightness, *PBLURBRIGHTNESS);
+        glUniform1f(m_shaders->m_shBLURFINISH.noise, *PBLURNOISE);
+        glUniform1f(m_shaders->m_shBLURFINISH.brightness, *PBLURBRIGHTNESS);
 
-        glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.tex, 0);
+        glUniform1i(m_shaders->m_shBLURFINISH.tex, 0);
 
-        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(m_shaders->m_shBLURFINISH.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+        glVertexAttribPointer(m_shaders->m_shBLURFINISH.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.posAttrib);
-        glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.texAttrib);
+        glEnableVertexAttribArray(m_shaders->m_shBLURFINISH.posAttrib);
+        glEnableVertexAttribArray(m_shaders->m_shBLURFINISH.texAttrib);
 
         if (!damage.empty()) {
             for (auto const& RECT : damage.getRects()) {
@@ -2014,8 +2012,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
             }
         }
 
-        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.posAttrib);
-        glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBLURFINISH.texAttrib);
+        glDisableVertexAttribArray(m_shaders->m_shBLURFINISH.posAttrib);
+        glDisableVertexAttribArray(m_shaders->m_shBLURFINISH.texAttrib);
 
         if (currentRenderToFB != PMIRRORFB)
             currentRenderToFB = PMIRRORFB;
@@ -2331,25 +2329,25 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_bBlend;
     blend(true);
 
-    glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.program);
+    glUseProgram(m_shaders->m_shBORDER1.program);
 
     const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.skipCM, skipCM);
+    glUniform1i(m_shaders->m_shBORDER1.skipCM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1, SImageDescription{});
+        passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
     glMatrix.transpose();
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size() / 4, (float*)grad.m_vColorsOkLabA.data());
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradientLength, grad.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.alpha, a);
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradient2Length, 0);
+    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size() / 4, (float*)grad.m_vColorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad.m_vColorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform1f(m_shaders->m_shBORDER1.alpha, a);
+    glUniform1i(m_shaders->m_shBORDER1.gradient2Length, 0);
 
     CBox transformedBox = newBox;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -2358,19 +2356,19 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.radius, round);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.roundingPower, roundingPower);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.thick, scaledBorderSize);
+    glUniform2f(m_shaders->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shaders->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform2f(m_shaders->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
+    glUniform1f(m_shaders->m_shBORDER1.radius, round);
+    glUniform1f(m_shaders->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
+    glUniform1f(m_shaders->m_shBORDER1.roundingPower, roundingPower);
+    glUniform1f(m_shaders->m_shBORDER1.thick, scaledBorderSize);
 
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib);
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -2389,8 +2387,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
         }
     }
 
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib);
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
 
     blend(BLEND);
 }
@@ -2429,24 +2427,24 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_bBlend;
     blend(true);
 
-    glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.program);
+    glUseProgram(m_shaders->m_shBORDER1.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
     glMatrix.transpose();
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size() / 4, (float*)grad1.m_vColorsOkLabA.data());
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradientLength, grad1.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.angle, (int)(grad1.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size() / 4, (float*)grad1.m_vColorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad1.m_vColorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad1.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
     if (grad2.m_vColorsOkLabA.size() > 0)
-        glUniform4fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size() / 4, (float*)grad2.m_vColorsOkLabA.data());
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradient2Length, grad2.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.angle2, (int)(grad2.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.alpha, a);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.gradientLerp, lerp);
+        glUniform4fv(m_shaders->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size() / 4, (float*)grad2.m_vColorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradient2Length, grad2.m_vColorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle2, (int)(grad2.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform1f(m_shaders->m_shBORDER1.alpha, a);
+    glUniform1f(m_shaders->m_shBORDER1.gradientLerp, lerp);
 
     CBox transformedBox = newBox;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -2455,19 +2453,19 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.radius, round);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.roundingPower, roundingPower);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.thick, scaledBorderSize);
+    glUniform2f(m_shaders->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shaders->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform2f(m_shaders->m_shBORDER1.fullSizeUntransformed, (float)newBox.width, (float)newBox.height);
+    glUniform1f(m_shaders->m_shBORDER1.radius, round);
+    glUniform1f(m_shaders->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
+    glUniform1f(m_shaders->m_shBORDER1.roundingPower, roundingPower);
+    glUniform1f(m_shaders->m_shBORDER1.thick, scaledBorderSize);
 
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib);
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -2486,8 +2484,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
         }
     }
 
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.posAttrib);
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.texAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
 
     blend(BLEND);
 }
@@ -2517,38 +2515,38 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    glUseProgram(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.program);
+    glUseProgram(m_shaders->m_shSHADOW.program);
     const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
-    glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.skipCM, skipCM);
+    glUniform1i(m_shaders->m_shSHADOW.skipCM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW, SImageDescription{});
+        passCMUniforms(m_shaders->m_shSHADOW, SImageDescription{});
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
     glMatrix.transpose();
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_shaders->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
+    glUniform4f(m_shaders->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     // Rounded corners
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    glUniform2f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.radius, range + round);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.roundingPower, roundingPower);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.range, range);
-    glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.shadowPower, SHADOWPOWER);
+    glUniform2f(m_shaders->m_shSHADOW.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_shaders->m_shSHADOW.bottomRight, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
+    glUniform2f(m_shaders->m_shSHADOW.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform1f(m_shaders->m_shSHADOW.radius, range + round);
+    glUniform1f(m_shaders->m_shSHADOW.roundingPower, roundingPower);
+    glUniform1f(m_shaders->m_shSHADOW.range, range);
+    glUniform1f(m_shaders->m_shSHADOW.shadowPower, SHADOWPOWER);
 
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_shaders->m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
 
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.posAttrib);
-    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.texAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shSHADOW.posAttrib);
+    glEnableVertexAttribArray(m_shaders->m_shSHADOW.texAttrib);
 
     if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
         CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
@@ -2567,8 +2565,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
         }
     }
 
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.posAttrib);
-    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.texAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shSHADOW.posAttrib);
+    glDisableVertexAttribArray(m_shaders->m_shSHADOW.texAttrib);
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {

@@ -111,10 +111,6 @@ struct SMonitorRenderData {
 
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
-
-    // Shaders
-    bool                 m_bShadersInitialized = false;
-    SP<SPreparedShaders> m_shaders;
 };
 
 struct SCurrentRenderData {
@@ -241,6 +237,8 @@ class CHyprOpenGLImpl {
     SP<CEGLSync>                         createEGLSync(int fence = -1);
 
     bool                                 initShaders();
+    bool                                 m_bShadersInitialized = false;
+    SP<SPreparedShaders>                 m_shaders;
 
     SCurrentRenderData                   m_RenderData;
 

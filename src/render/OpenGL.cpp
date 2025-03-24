@@ -1435,10 +1435,10 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box,
     scissor(nullptr);
 }
 
-void CHyprOpenGLImpl::passCMUniforms(const CShader* shader, const NColorManagement::SImageDescription& imageDescription,
+void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR) {
-    glUniform1i(shader->sourceTF, imageDescription.transferFunction);
-    glUniform1i(shader->targetTF, targetImageDescription.transferFunction);
+    glUniform1i(shader.sourceTF, imageDescription.transferFunction);
+    glUniform1i(shader.targetTF, targetImageDescription.transferFunction);
     const auto sourcePrimaries =
         imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
     const auto    targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
@@ -1453,24 +1453,24 @@ void CHyprOpenGLImpl::passCMUniforms(const CShader* shader, const NColorManageme
         targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
         targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
     };
-    glUniformMatrix4x2fv(shader->sourcePrimaries, 1, false, glSourcePrimaries);
-    glUniformMatrix4x2fv(shader->targetPrimaries, 1, false, glTargetPrimaries);
+    glUniformMatrix4x2fv(shader.sourcePrimaries, 1, false, glSourcePrimaries);
+    glUniformMatrix4x2fv(shader.targetPrimaries, 1, false, glTargetPrimaries);
 
     const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
-    glUniform1f(shader->maxLuminance, maxLuminance * targetImageDescription.luminances.reference / imageDescription.luminances.reference);
-    glUniform1f(shader->dstMaxLuminance, targetImageDescription.luminances.max > 0 ? targetImageDescription.luminances.max : 10000);
-    glUniform1f(shader->dstRefLuminance, targetImageDescription.luminances.reference);
-    glUniform1f(shader->sdrSaturation,
+    glUniform1f(shader.maxLuminance, maxLuminance * targetImageDescription.luminances.reference / imageDescription.luminances.reference);
+    glUniform1f(shader.dstMaxLuminance, targetImageDescription.luminances.max > 0 ? targetImageDescription.luminances.max : 10000);
+    glUniform1f(shader.dstRefLuminance, targetImageDescription.luminances.reference);
+    glUniform1f(shader.sdrSaturation,
                 modifySDR && m_RenderData.pMonitor->sdrSaturation > 0 && targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                     m_RenderData.pMonitor->sdrSaturation :
                     1.0f);
-    glUniform1f(shader->sdrBrightness,
+    glUniform1f(shader.sdrBrightness,
                 modifySDR && m_RenderData.pMonitor->sdrBrightness > 0 && targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                     m_RenderData.pMonitor->sdrBrightness :
                     1.0f);
 }
 
-void CHyprOpenGLImpl::passCMUniforms(const CShader* shader, const SImageDescription& imageDescription) {
+void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const SImageDescription& imageDescription) {
     passCMUniforms(shader, imageDescription, m_RenderData.pMonitor->imageDescription, true);
 }
 
@@ -1566,7 +1566,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 
     if (shader == &m_RenderData.pCurrentMonData->m_shaders->m_shCM) {
         glUniform1i(shader->texType, texType);
-        passCMUniforms(shader, imageDescription);
+        passCMUniforms(*shader, imageDescription);
     }
 
 #ifndef GLES2
@@ -1852,7 +1852,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
         glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.skipCM, skipCM);
         if (!skipCM) {
-            passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
+            passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE, m_RenderData.pMonitor->imageDescription, SImageDescription{});
             glUniform1f(m_RenderData.pCurrentMonData->m_shaders->m_shBLURPREPARE.sdrSaturation,
                         m_RenderData.pMonitor->sdrSaturation > 0 && m_RenderData.pMonitor->imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                             m_RenderData.pMonitor->sdrSaturation :
@@ -2335,7 +2335,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
     glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.skipCM, skipCM);
     if (!skipCM)
-        passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1, SImageDescription{});
+        passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1, SImageDescription{});
 
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2520,7 +2520,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     const bool skipCM = !m_bCMSupported || m_RenderData.pMonitor->imageDescription == SImageDescription{};
     glUniform1i(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.skipCM, skipCM);
     if (!skipCM)
-        passCMUniforms(&m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW, SImageDescription{});
+        passCMUniforms(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW, SImageDescription{});
 
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shaders->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());

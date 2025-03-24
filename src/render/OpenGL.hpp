@@ -331,9 +331,9 @@ class CHyprOpenGLImpl {
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
-    void          passCMUniforms(const CShader*, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
+    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
                                  bool modifySDR = false);
-    void          passCMUniforms(const CShader*, const NColorManagement::SImageDescription& imageDescription);
+    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);

@@ -177,8 +177,7 @@ static void startServer(void* data) {
 }
 
 static int xwaylandReady(int fd, uint32_t mask, void* data) {
-    CFileDescriptor xwlFd{fd};
-    return g_pXWayland->pServer->ready(std::move(xwlFd), mask);
+    return g_pXWayland->pServer->ready(fd, mask);
 }
 
 static bool safeRemove(const std::string& path) {
@@ -300,7 +299,7 @@ void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
     }
 
     auto cmd =
-        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.get(), xwmFDs[1].get());
+        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.take(), xwmFDs[1].get());
 
     auto waylandSocket = std::format("{}", waylandFDs[1].get());
     setenv("WAYLAND_SOCKET", waylandSocket.c_str(), true);
@@ -392,11 +391,11 @@ bool CXWaylandServer::start() {
     return true;
 }
 
-int CXWaylandServer::ready(CFileDescriptor fd, uint32_t mask) {
+int CXWaylandServer::ready(int fd, uint32_t mask) {
     if (mask & WL_EVENT_READABLE) {
         // xwayland writes twice
         char    buf[64];
-        ssize_t n = read(fd.get(), buf, sizeof(buf));
+        ssize_t n = read(fd, buf, sizeof(buf));
         if (n < 0 && errno != EINTR) {
             Debug::log(ERR, "Xwayland: read from displayFd failed");
             mask = 0;
@@ -421,6 +420,7 @@ int CXWaylandServer::ready(CFileDescriptor fd, uint32_t mask) {
 
     Debug::log(LOG, "XWayland is ready");
 
+    close(fd);
     wl_event_source_remove(pipeSource);
     pipeSource = nullptr;
 

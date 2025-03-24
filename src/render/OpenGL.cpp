@@ -1,4 +1,4 @@
-#include <re2/re2.h>
+#include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <random>
 #include <pango/pangocairo.h>
@@ -892,7 +892,7 @@ static void loadShaderInclude(const std::string& filename, std::map<std::string,
 
 static void processShaderIncludes(std::string& source, const std::map<std::string, std::string>& includes) {
     for (auto it = includes.begin(); it != includes.end(); ++it) {
-        RE2::Replace(&source, "#include \"" + it->first + "\"", it->second);
+        Hyprutils::String::replaceInString(source, "#include \"" + it->first + "\"", it->second);
     }
 }
 

@@ -117,6 +117,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["submap"]                         = setSubmap;
     m_mDispatchers["pass"]                           = pass;
     m_mDispatchers["sendshortcut"]                   = sendshortcut;
+    m_mDispatchers["sendkeystate"]                   = sendkeystate;
     m_mDispatchers["layoutmsg"]                      = layoutmsg;
     m_mDispatchers["dpms"]                           = dpms;
     m_mDispatchers["movewindowpixel"]                = moveWindow;
@@ -3214,4 +3215,46 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     return {};
+}
+
+SDispatchResult CKeybindManager::sendkeystate(std::string args) {
+    // args=<NEW_MODKEYS><NEW_KEY><STATE>[,WINDOW_RULES]
+    const auto ARGS = CVarList(args, 4);
+    if (ARGS.size() != 4) {
+        Debug::log(ERR, "sendkeystate: invalid args");
+        return {.success = false, .error = "sendkeystate: invalid args"};
+    }
+
+    const auto STATE = ARGS[2];
+
+    if (STATE != "down" && STATE != "repeat" && STATE != "up") {
+        Debug::log(ERR, "sendkeystate: invalid state, must be 'down', 'repeat', or 'up'");
+        return {.success = false, .error = "sendkeystate: invalid state, must be 'down', 'repeat', or 'up'"};
+    }
+
+    std::string modifiedArgs = ARGS[0] + "," + ARGS[1] + "," + ARGS[3];
+
+    const int   oldPassPressed = g_pKeybindManager->m_iPassPressed;
+
+    if (STATE == "down")
+        g_pKeybindManager->m_iPassPressed = 1;
+    else if (STATE == "up")
+        g_pKeybindManager->m_iPassPressed = 0;
+    else if (STATE == "repeat")
+        g_pKeybindManager->m_iPassPressed = 1;
+
+    auto result = sendshortcut(modifiedArgs);
+
+    if (STATE == "repeat" && result.success)
+        result = sendshortcut(modifiedArgs);
+
+    g_pKeybindManager->m_iPassPressed = oldPassPressed;
+
+    if (!result.success && !result.error.empty()) {
+        size_t pos = result.error.find("sendshortcut:");
+        if (pos != std::string::npos)
+            result.error = "sendkeystate:" + result.error.substr(pos + 13);
+    }
+
+    return result;
 }

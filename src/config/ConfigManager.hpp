@@ -169,6 +169,31 @@ namespace std {
     };
 }
 
+class CMonitorRuleParser {
+  public:
+    CMonitorRuleParser(const std::string& name);
+
+    const std::string&         name();
+    SMonitorRule&              rule();
+    std::optional<std::string> getError();
+    bool                       parseMode(const std::string& value);
+    bool                       parsePosition(const std::string& value, bool isFirst = false);
+    bool                       parseScale(const std::string& value);
+    bool                       parseTransform(const std::string& value);
+    bool                       parseBitdepth(const std::string& value);
+    bool                       parseCM(const std::string& value);
+    bool                       parseSDRBrightness(const std::string& value);
+    bool                       parseSDRSaturation(const std::string& value);
+    bool                       parseVRR(const std::string& value);
+
+    void                       setDisabled();
+    void                       setMirror(const std::string& value);
+
+  private:
+    SMonitorRule m_rule;
+    std::string  m_error = "";
+};
+
 class CConfigManager {
   public:
     CConfigManager();
@@ -306,6 +331,7 @@ class CConfigManager {
     std::optional<std::string>                resetHLConfig();
     std::optional<std::string>                generateConfig(std::string configPath);
     std::optional<std::string>                verifyConfigExists();
+    void                                      handleMonitorv2();
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 

@@ -1411,11 +1411,16 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
 
 static hdr_output_metadata       createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
-    if (settings.transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ)
-        return NO_HDR_METADATA; // empty metadata for SDR
+    uint8_t eotf = 0;
+    switch (settings.transferFunction) {
+        case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
+        case CM_TRANSFER_FUNCTION_ST2084_PQ: eotf = 2; break;
+        // case CM_TRANSFER_FUNCTION_HLG: eotf = 3; break; TODO check display capabilities first
+        default: return NO_HDR_METADATA; // empty metadata for SDR
+    }
 
     const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
-    const auto to16Bit = [](uint32_t value) { return uint16_t(std::round(value * 50000)); };
+    const auto to16Bit = [](float value) { return uint16_t(std::round(value * 50000)); };
 
     auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
     auto       luminances  = settings.masteringLuminances.max > 0 ?
@@ -1429,7 +1434,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
               .metadata_type = 0,
               .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                      .eotf          = 2,
+                      .eotf          = eotf,
                       .metadata_type = 0,
                       .display_primaries =
                           {
@@ -1454,25 +1459,42 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
 
     if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
+        // HDR metadata determined by
+        // PPASS = 0 monitor settings
+        // PPASS = 1
+        //           windowed: monitor settings
+        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, ctm, gamma if needed
+        // PPASS = 2
+        //           windowed: monitor settings
+        //           fullscreen SDR surface: monitor settings
+        //           fullscreen HDR surface: surface settings
+
+        bool wantHDR      = PHDR;
+        bool hdrIsHandled = false;
         if (*PPASS && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();
             const auto SURF =
                 ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
 
-            const bool wantHDR = PHDR && *PPASS == 2;
-            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
+            wantHDR = PHDR && *PPASS == 2;
+
+            // we have a surface with image description and it's allowed by wantHDR
+            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription() &&
+                (!wantHDR || SURF->colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) {
                 bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
                 if (SURF->colorManagement->needsHdrMetadataUpdate())
                     SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), pMonitor->output->parsedEDID));
                 if (needsHdrMetadataUpdate)
                     pMonitor->output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
-            } else if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != wantHDR)
-                pMonitor->output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->imageDescription, pMonitor->output->parsedEDID) : NO_HDR_METADATA);
+                hdrIsHandled = true;
+            }
+
             pMonitor->m_previousFSWindow = WINDOW;
-        } else {
-            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != PHDR)
-                pMonitor->output->state->setHDRMetadata(PHDR ? createHDRMetadata(pMonitor->imageDescription, pMonitor->output->parsedEDID) : NO_HDR_METADATA);
+        }
+        if (!hdrIsHandled) {
+            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != wantHDR)
+                pMonitor->output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->imageDescription, pMonitor->output->parsedEDID) : NO_HDR_METADATA);
             pMonitor->m_previousFSWindow.reset();
         }
     }

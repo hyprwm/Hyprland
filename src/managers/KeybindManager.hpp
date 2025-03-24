@@ -203,6 +203,7 @@ class CKeybindManager {
     static SDispatchResult setSubmap(std::string);
     static SDispatchResult pass(std::string);
     static SDispatchResult sendshortcut(std::string);
+    static SDispatchResult sendkeystate(std::string);
     static SDispatchResult layoutmsg(std::string);
     static SDispatchResult dpms(std::string);
     static SDispatchResult swapnext(std::string);

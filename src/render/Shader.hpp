@@ -75,8 +75,6 @@ class CShader {
     GLint brightness = -1;
     GLint noise      = -1;
 
-    GLint getUniformLocation(const std::string&);
-
     void  destroy();
 
   private:

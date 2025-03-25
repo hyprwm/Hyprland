@@ -2117,6 +2117,8 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
 }
 
 void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) {
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("binds:hide_special_on_workspace_change");
+
     if (!pWorkspace || !pMonitor)
         return;
 
@@ -2198,6 +2200,9 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             pMonitor->activeWorkspace->m_bVisible = false;
             pMonitor->activeWorkspace->startAnim(false, false);
         }
+
+        if (*PHIDESPECIALONWORKSPACECHANGE)
+            pMonitor->setSpecialWorkspace(nullptr);
 
         setActiveMonitor(pMonitor);
         pMonitor->activeWorkspace = pWorkspace;

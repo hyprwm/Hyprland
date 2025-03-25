@@ -621,14 +621,10 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* no
     box.y = std::round(box.y);
 
     CTexPassElement::SRenderData data;
-    data.tex          = texture;
-    data.box          = box.round();
-    data.syncTimeline = currentCursorImage.waitTimeline;
-    data.syncPoint    = currentCursorImage.waitPoint;
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    data.tex = texture;
+    data.box = box.round();
 
-    currentCursorImage.waitTimeline.reset();
-    currentCursorImage.waitPoint = 0;
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
     if (currentCursorImage.surface)
         currentCursorImage.surface->resource()->frame(now);

@@ -16,8 +16,6 @@ class CTexPassElement : public IPassElement {
         int                   round         = 0;
         float                 roundingPower = 2.0f;
         bool                  flipEndFrame  = false;
-        SP<CSyncTimeline>     syncTimeline;
-        int64_t               syncPoint = 0;
         std::optional<Mat3x3> replaceProjection;
         CBox                  clipBox;
     };

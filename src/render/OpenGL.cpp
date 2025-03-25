@@ -3013,7 +3013,7 @@ float SRenderModifData::combinedScale() {
 }
 
 CEGLSync::~CEGLSync() {
-    if (sync == EGL_NO_SYNC_KHR)
+    if (sync == EGL_NO_SYNC_KHR || !g_pHyprOpenGL)
         return;
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)

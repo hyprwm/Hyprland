@@ -486,6 +486,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:gradient_round_only_edges", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gaps_out", Hyprlang::INT{2});
     registerConfigVar("group:groupbar:gaps_in", Hyprlang::INT{2});
+    registerConfigVar("group:groupbar:keep_upper_gap", Hyprlang::INT{1});
 
     registerConfigVar("debug:log_damage", Hyprlang::INT{0});
     registerConfigVar("debug:overlay", Hyprlang::INT{0});

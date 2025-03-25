@@ -1011,6 +1011,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{2, 0, 20},
     },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:keep_upper_gap",
+        .description = "keep an upper gap above gradient",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * misc:

@@ -119,6 +119,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
     static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     static auto PKEEPUPPERGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
+    static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
     auto* const GROUPCOLACTIVE             = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
     auto* const GROUPCOLINACTIVE           = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
     auto* const GROUPCOLACTIVELOCKED       = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
@@ -234,7 +235,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                             .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                 Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                             .get();
-                rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
+                rect.y += std::ceil(((rect.height - pTitleTex->texSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->scale));
                 rect.height = pTitleTex->texSize.y;
                 rect.width  = pTitleTex->texSize.x;
                 rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (pTitleTex->texSize.x / 2.0));

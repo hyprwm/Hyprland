@@ -173,6 +173,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
         WP<CWLSurfaceResource> dndSurface;
         WP<CWLSurfaceResource> originSurface;
         bool                   overriddenCursor = false;
+        bool                   internalDrag     = false;
         CHyprSignalListener    dndSurfaceDestroy;
         CHyprSignalListener    dndSurfaceCommit;
 

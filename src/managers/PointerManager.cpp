@@ -1168,6 +1168,10 @@ Vector2D CPointerManager::cursorSizeLogical() {
     return currentCursorImage.size / currentCursorImage.scale;
 }
 
+Vector2D CPointerManager::cursorHotspot() {
+    return currentCursorImage.hotspot;
+}
+
 void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
     storedTime = time;
     storedDelta += delta;

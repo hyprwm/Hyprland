@@ -290,18 +290,6 @@ static Hyprlang::CParseResult handleLayerRule(const char* c, const char* v) {
     return result;
 }
 
-static Hyprlang::CParseResult handleWindowRuleV2(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleWindowRule(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
-}
-
 static Hyprlang::CParseResult handleBlurLS(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -753,7 +741,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->registerHandler(&::handleWorkspaceRules, "workspace", {false});
     m_pConfig->registerHandler(&::handleWindowRule, "windowrule", {false});
     m_pConfig->registerHandler(&::handleLayerRule, "layerrule", {false});
-    m_pConfig->registerHandler(&::handleWindowRuleV2, "windowrulev2", {false});
     m_pConfig->registerHandler(&::handleBezier, "bezier", {false});
     m_pConfig->registerHandler(&::handleAnimation, "animation", {false});
     m_pConfig->registerHandler(&::handleSource, "source", {false});

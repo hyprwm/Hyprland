@@ -276,6 +276,14 @@ class CHyprOpenGLImpl {
     } m_sExts;
 
   private:
+    enum eEGLContextVersion : uint8_t {
+        EGL_CONTEXT_GLES_2_0 = 0,
+        EGL_CONTEXT_GLES_3_0,
+        EGL_CONTEXT_GLES_3_2,
+    };
+
+    eEGLContextVersion      m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
+
     std::list<GLuint>       m_lBuffers;
     std::list<GLuint>       m_lTextures;
 
@@ -297,9 +305,9 @@ class CHyprOpenGLImpl {
 
     SP<CTexture>            m_pMissingAssetTexture, m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture; // TODO: don't always load lock
 
-    void                    logShaderError(const GLuint&, bool program = false);
-    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
-    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
+    void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
+    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
+    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                    createBGTextureForMonitor(PHLMONITOR);
     void                    initShaders();
     void                    initDRMFormats();

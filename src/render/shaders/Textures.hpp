@@ -83,7 +83,7 @@ void main() {
     v_texcoord = texcoord;
 })#";
 
-inline const std::string TEXVERTSRC320 = R"#(#version 320 es
+inline const std::string TEXVERTSRC300 = R"#(#version 300 es
 uniform mat3 proj;
 in vec2 pos;
 in vec2 texcoord;

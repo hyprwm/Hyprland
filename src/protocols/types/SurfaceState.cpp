@@ -56,3 +56,37 @@ void SSurfaceState::reset() {
     offset    = {};
     size      = {};
 }
+
+void SSurfaceState::updateFrom(SSurfaceState& ref) {
+    updated = ref.updated;
+
+    if (ref.updated & SURFACE_UPDATED_BUFFER) {
+        *this = ref;
+        ref.damage.clear();
+        ref.bufferDamage.clear();
+        ref.buffer.reset();
+    } else {
+        if (ref.updated & SURFACE_UPDATED_DAMAGE) {
+            damage       = ref.damage;
+            bufferDamage = ref.bufferDamage;
+        }
+
+        if (ref.updated & SURFACE_UPDATED_INPUT)
+            input = ref.input;
+
+        if (ref.updated & SURFACE_UPDATED_OPAQUE)
+            opaque = ref.opaque;
+
+        if (ref.updated & SURFACE_UPDATED_OFFSET)
+            offset = ref.offset;
+
+        if (ref.updated & SURFACE_UPDATED_SCALE)
+            scale = ref.scale;
+
+        if (ref.updated & SURFACE_UPDATED_VIEWPORT)
+            viewport = ref.viewport;
+
+        if (ref.updated & SURFACE_UPDATED_TRANSFORM)
+            transform = ref.transform;
+    }
+}

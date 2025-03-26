@@ -75,20 +75,22 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!surface->pending.buffer && surface->pending.newBuffer && !surface->pending.texture) {
+        const bool PENDING_HAS_NEW_BUFFER = surface->pending.updated & SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
+
+        if (!surface->pending.buffer && PENDING_HAS_NEW_BUFFER && !surface->pending.texture) {
             removeAllWaiters();
             surface->commitPendingState(surface->pending);
             return; // null buffer attached.
         }
 
-        if (!surface->pending.buffer && !surface->pending.newBuffer && surface->current.buffer) {
+        if (!surface->pending.buffer && !PENDING_HAS_NEW_BUFFER && surface->current.buffer) {
             surface->current.bufferDamage.clear();
             surface->current.damage.clear();
             surface->commitPendingState(surface->current);
             return; // no new buffer, but we still have current around and a commit happend, commit current again.
         }
 
-        if (!surface->pending.buffer && !surface->pending.newBuffer && !surface->current.buffer) {
+        if (!surface->pending.buffer && !PENDING_HAS_NEW_BUFFER && !surface->current.buffer) {
             surface->commitPendingState(surface->pending); // no pending buffer, no current buffer. probably first commit
             return;
         }
@@ -109,7 +111,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         const auto& state = pendingStates.emplace_back(makeShared<SSurfaceState>(surface->pending));
         surface->pending.damage.clear();
         surface->pending.bufferDamage.clear();
-        surface->pending.newBuffer = false;
+        surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
+        surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
         surface->pending.buffer.reset();
 
         state->buffer->buffer->syncReleaser = state->buffer->release->createSyncRelease();

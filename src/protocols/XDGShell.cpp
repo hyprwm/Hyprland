@@ -319,8 +319,11 @@ uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
 void CXDGToplevelResource::applyState() {
     wl_array arr;
     wl_array_init(&arr);
-    wl_array_add(&arr, pendingApply.states.size() * sizeof(int));
-    memcpy(arr.data, pendingApply.states.data(), pendingApply.states.size() * sizeof(int));
+
+    if (!pendingApply.states.empty()) {
+        wl_array_add(&arr, pendingApply.states.size() * sizeof(int));
+        memcpy(arr.data, pendingApply.states.data(), pendingApply.states.size() * sizeof(int));
+    }
 
     resource->sendConfigure(pendingApply.size.x, pendingApply.size.y, &arr);
 

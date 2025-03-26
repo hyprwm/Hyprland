@@ -33,5 +33,13 @@ std::optional<CBox> CRectPassElement::boundingBox() {
 }
 
 CRegion CRectPassElement::opaqueRegion() {
-    return data.color.a >= 1.F ? boundingBox()->expand(-data.round) : CRegion{};
+    if (data.color.a < 1.F)
+        return CRegion{};
+
+    CRegion rg = boundingBox()->expand(-data.round);
+
+    if (!data.clipBox.empty())
+        rg.intersect(data.clipBox);
+
+    return rg;
 }

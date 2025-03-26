@@ -3021,7 +3021,7 @@ CEGLSync::~CEGLSync() {
     if (sync == EGL_NO_SYNC_KHR)
         return;
 
-    if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
+    if (g_pHyprOpenGL && g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
 }
 

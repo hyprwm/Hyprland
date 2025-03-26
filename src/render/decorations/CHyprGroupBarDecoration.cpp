@@ -142,7 +142,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                            ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                            *PINDICATORHEIGHT};
 
-        rect.scale(pMonitor->scale);
+        rect.scale(pMonitor->scale).round();
 
         const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked || g_pKeybindManager->m_bGroupsLocked;
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
@@ -573,5 +573,5 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     if (PWORKSPACE && !m_pWindow->m_bPinned)
         box.translate(PWORKSPACE->m_vRenderOffset->value());
 
-    return box;
+    return box.round();
 }

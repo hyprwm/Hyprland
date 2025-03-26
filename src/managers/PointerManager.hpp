@@ -148,8 +148,6 @@ class CPointerManager {
 
         CHyprSignalListener     destroySurface;
         CHyprSignalListener     commitSurface;
-        SP<CSyncTimeline>       waitTimeline = nullptr;
-        uint64_t                waitPoint    = 0;
     } currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
     Vector2D pointerPos = {0, 0};

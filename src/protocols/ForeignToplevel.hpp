@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "ext-foreign-toplevel-list-v1.hpp"
 
 class CForeignToplevelHandle {
@@ -43,6 +44,7 @@ class CForeignToplevelList {
 class CForeignToplevelProtocol : public IWaylandProtocol {
   public:
     CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    PHLWINDOW windowFromHandleResource(wl_resource* res);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 

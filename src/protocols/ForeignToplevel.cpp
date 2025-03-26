@@ -168,3 +168,14 @@ void CForeignToplevelProtocol::destroyHandle(CForeignToplevelHandle* handle) {
 bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
     return validMapped(pWindow) && !pWindow->isX11OverrideRedirect();
 }
+
+PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {
+    for (auto const& h : m_vHandles) {
+        if (h->res() != res)
+            continue;
+
+        return h->window();
+    }
+
+    return nullptr;
+}

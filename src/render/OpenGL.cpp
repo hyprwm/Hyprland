@@ -158,6 +158,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
 #else
     attrs.push_back(EGL_CONTEXT_CLIENT_VERSION);
     attrs.push_back(2);
+    m_eglContextVersion = EGL_CONTEXT_GLES_2_0;
 #endif
 
     attrs.push_back(EGL_NONE);
@@ -176,7 +177,8 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         attrs.push_back(0);
         attrs.push_back(EGL_NONE);
 
-        m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
+        m_pEglContext       = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
+        m_eglContextVersion = EGL_CONTEXT_GLES_3_0;
 
         if (m_pEglContext == EGL_NO_CONTEXT)
             RASSERT(false, "EGL: failed to create a context with either GLES3.2 or 3.0");
@@ -564,7 +566,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
     return image;
 }
 
-void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program) {
+void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program, bool silent) {
     GLint maxLength = 0;
     if (program)
         glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
@@ -582,18 +584,19 @@ void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program) {
 
     Debug::log(ERR, "Failed to link shader: {}", FULLERROR);
 
-    g_pConfigManager->addParseError(FULLERROR);
+    if (!silent)
+        g_pConfigManager->addParseError(FULLERROR);
 }
 
-GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
-    auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert, dynamic);
+GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic, bool silent) {
+    auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert, dynamic, silent);
     if (dynamic) {
         if (vertCompiled == 0)
             return 0;
     } else
         RASSERT(vertCompiled, "Compiling shader failed. VERTEX nullptr! Shader source:\n\n{}", vert);
 
-    auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic);
+    auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic, silent);
     if (dynamic) {
         if (fragCompiled == 0)
             return 0;
@@ -614,7 +617,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
         if (ok == GL_FALSE) {
-            logShaderError(prog, true);
+            logShaderError(prog, true, silent);
             return 0;
         }
     } else {
@@ -626,7 +629,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     return prog;
 }
 
-GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool dynamic) {
+GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool dynamic, bool silent) {
     auto shader = glCreateShader(type);
 
     auto shaderSource = src.c_str();
@@ -639,7 +642,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
     if (dynamic) {
         if (ok == GL_FALSE) {
-            logShaderError(shader, false);
+            logShaderError(shader, false, silent);
             return 0;
         }
     } else {
@@ -868,41 +871,43 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shQUAD.roundingPower = glGetUniformLocation(prog, "roundingPower");
 
 #ifndef GLES2
-    prog           = createProgram(TEXVERTSRC320, TEXFRAGSRCCM, true);
-    m_bCMSupported = prog > 0;
-    if (m_bCMSupported) {
-        m_RenderData.pCurrentMonData->m_shCM.program           = prog;
-        m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
-        m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
-        m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
-        m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
-        m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
-        m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
-        m_RenderData.pCurrentMonData->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
-        m_RenderData.pCurrentMonData->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
-        m_RenderData.pCurrentMonData->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
-        m_RenderData.pCurrentMonData->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
-        m_RenderData.pCurrentMonData->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
-        m_RenderData.pCurrentMonData->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
-        m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
-        m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
-        m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
-        m_RenderData.pCurrentMonData->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
-        m_RenderData.pCurrentMonData->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
-        m_RenderData.pCurrentMonData->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
-        m_RenderData.pCurrentMonData->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
-        m_RenderData.pCurrentMonData->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
-        m_RenderData.pCurrentMonData->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
-        m_RenderData.pCurrentMonData->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
-        m_RenderData.pCurrentMonData->m_shCM.radius            = glGetUniformLocation(prog, "radius");
-        m_RenderData.pCurrentMonData->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
-        m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
-        m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
-        m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
-    } else {
-        Debug::log(
-            ERR,
-            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
+    if (m_eglContextVersion == EGL_CONTEXT_GLES_3_2 /* GLES2 and GLES3.0 can't compile the CM shader */) {
+        prog           = createProgram(TEXVERTSRC320, TEXFRAGSRCCM, true, true);
+        m_bCMSupported = prog > 0;
+        if (m_bCMSupported) {
+            m_RenderData.pCurrentMonData->m_shCM.program           = prog;
+            m_RenderData.pCurrentMonData->m_shCM.proj              = glGetUniformLocation(prog, "proj");
+            m_RenderData.pCurrentMonData->m_shCM.tex               = glGetUniformLocation(prog, "tex");
+            m_RenderData.pCurrentMonData->m_shCM.texType           = glGetUniformLocation(prog, "texType");
+            m_RenderData.pCurrentMonData->m_shCM.sourceTF          = glGetUniformLocation(prog, "sourceTF");
+            m_RenderData.pCurrentMonData->m_shCM.targetTF          = glGetUniformLocation(prog, "targetTF");
+            m_RenderData.pCurrentMonData->m_shCM.sourcePrimaries   = glGetUniformLocation(prog, "sourcePrimaries");
+            m_RenderData.pCurrentMonData->m_shCM.targetPrimaries   = glGetUniformLocation(prog, "targetPrimaries");
+            m_RenderData.pCurrentMonData->m_shCM.maxLuminance      = glGetUniformLocation(prog, "maxLuminance");
+            m_RenderData.pCurrentMonData->m_shCM.dstMaxLuminance   = glGetUniformLocation(prog, "dstMaxLuminance");
+            m_RenderData.pCurrentMonData->m_shCM.dstRefLuminance   = glGetUniformLocation(prog, "dstRefLuminance");
+            m_RenderData.pCurrentMonData->m_shCM.sdrSaturation     = glGetUniformLocation(prog, "sdrSaturation");
+            m_RenderData.pCurrentMonData->m_shCM.sdrBrightness     = glGetUniformLocation(prog, "sdrBrightnessMultiplier");
+            m_RenderData.pCurrentMonData->m_shCM.alphaMatte        = glGetUniformLocation(prog, "texMatte");
+            m_RenderData.pCurrentMonData->m_shCM.alpha             = glGetUniformLocation(prog, "alpha");
+            m_RenderData.pCurrentMonData->m_shCM.texAttrib         = glGetAttribLocation(prog, "texcoord");
+            m_RenderData.pCurrentMonData->m_shCM.matteTexAttrib    = glGetAttribLocation(prog, "texcoordMatte");
+            m_RenderData.pCurrentMonData->m_shCM.posAttrib         = glGetAttribLocation(prog, "pos");
+            m_RenderData.pCurrentMonData->m_shCM.discardOpaque     = glGetUniformLocation(prog, "discardOpaque");
+            m_RenderData.pCurrentMonData->m_shCM.discardAlpha      = glGetUniformLocation(prog, "discardAlpha");
+            m_RenderData.pCurrentMonData->m_shCM.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
+            m_RenderData.pCurrentMonData->m_shCM.topLeft           = glGetUniformLocation(prog, "topLeft");
+            m_RenderData.pCurrentMonData->m_shCM.fullSize          = glGetUniformLocation(prog, "fullSize");
+            m_RenderData.pCurrentMonData->m_shCM.radius            = glGetUniformLocation(prog, "radius");
+            m_RenderData.pCurrentMonData->m_shCM.roundingPower     = glGetUniformLocation(prog, "roundingPower");
+            m_RenderData.pCurrentMonData->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
+            m_RenderData.pCurrentMonData->m_shCM.tint              = glGetUniformLocation(prog, "tint");
+            m_RenderData.pCurrentMonData->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+        } else {
+            Debug::log(
+                ERR,
+                "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports about this!");
+        }
     }
 #endif
 

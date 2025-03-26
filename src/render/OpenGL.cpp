@@ -947,7 +947,7 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-            prog = createProgram(shaders->TEXVERTSRC300, TEXFRAGSRCCM, true);
+            prog = createProgram(shaders->TEXVERTSRC300, TEXFRAGSRCCM, true, true);
             if (m_bShadersInitialized && m_bCMSupported && prog == 0)
                 g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 

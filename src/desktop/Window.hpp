@@ -137,13 +137,6 @@ class CWindowOverridableVar {
             throw std::bad_optional_access();
     }
 
-    bool isValueRelative() {
-        if (!values.empty())
-            return std::get<1>(std::prev(values.end())->second);
-        else
-            throw std::bad_optional_access();
-    }
-
     T valueOr(T const& other) {
         if (hasValue())
             return value();

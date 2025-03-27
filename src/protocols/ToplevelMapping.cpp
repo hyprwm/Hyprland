@@ -23,7 +23,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
         if (!WINDOW)
             HANDLE->sendFailed();
         else
-            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
+            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32 & 0xFFFFFFFF, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
     });
     resource->setGetWindowForToplevelWlr([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
         const auto HANDLE = makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle);
@@ -38,7 +38,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
         if (!WINDOW)
             HANDLE->sendFailed();
         else
-            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
+            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32 & 0xFFFFFFFF, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
     });
     resource->setGetToplevelForWindow([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, uint32_t address, uint32_t address_hi) {
         const auto HANDLE = makeShared<CHyprlandWindowToplevelMappingHandleV1>(resource->client(), resource->version(), handle);

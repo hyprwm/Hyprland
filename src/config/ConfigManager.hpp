@@ -27,6 +27,8 @@
 
 #define HANDLE void*
 
+class CConfigManager;
+
 struct SWorkspaceRule {
     std::string                        monitor         = "";
     std::string                        workspaceString = "";
@@ -188,6 +190,7 @@ class CMonitorRuleParser {
 
     void                       setDisabled();
     void                       setMirror(const std::string& value);
+    bool                       setReserved(const SMonitorAdditionalReservedArea& value);
 
   private:
     SMonitorRule m_rule;
@@ -331,7 +334,7 @@ class CConfigManager {
     std::optional<std::string>                resetHLConfig();
     std::optional<std::string>                generateConfig(std::string configPath);
     std::optional<std::string>                verifyConfigExists();
-    void                                      handleMonitorv2();
+    std::optional<std::string>                handleMonitorv2();
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 
@@ -344,6 +347,7 @@ class CConfigManager {
     std::unordered_map<SFloatCache, Vector2D> m_mStoredFloatingSizes;
 
     friend struct SConfigOptionDescription;
+    friend class CMonitorRuleParser;
 };
 
 inline UP<CConfigManager> g_pConfigManager;

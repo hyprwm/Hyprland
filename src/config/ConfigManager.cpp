@@ -460,6 +460,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:col.inactive_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xff444444"});
     registerConfigVar("general:col.nogroup_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffaaff"});
     registerConfigVar("general:col.nogroup_border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffff00ff"});
+    registerConfigVar("general:precise_move", Hyprlang::INT{0});
 
     registerConfigVar("misc:disable_hyprland_logo", Hyprlang::INT{0});
     registerConfigVar("misc:disable_splash_rendering", Hyprlang::INT{0});

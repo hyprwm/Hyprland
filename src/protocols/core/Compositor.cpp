@@ -84,12 +84,6 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
         }
-
-        Vector2D oldBufSize = current.buffer ? current.bufferSize : Vector2D{};
-        Vector2D newBufSize = pending.buffer ? pending.bufferSize : Vector2D{};
-
-        if (oldBufSize != newBufSize || current.buffer != pending.buffer)
-            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
 
     resource->setCommit([this](CWlSurface* r) {

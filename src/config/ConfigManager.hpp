@@ -334,7 +334,7 @@ class CConfigManager {
     std::optional<std::string>                resetHLConfig();
     std::optional<std::string>                generateConfig(std::string configPath);
     std::optional<std::string>                verifyConfigExists();
-    std::optional<std::string>                handleMonitorv2();
+    Hyprlang::CParseResult                    handleMonitorv2();
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 

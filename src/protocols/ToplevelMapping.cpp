@@ -3,92 +3,74 @@
 #include "ForeignToplevelWlr.hpp"
 #include "ForeignToplevel.hpp"
 
-CToplevelWindowMappingHandle::CToplevelWindowMappingHandle(SP<CHyprlandToplevelWindowMappingHandleV1> resource_) : resource(resource_) {}
-
-bool CToplevelWindowMappingHandle::good() {
-    return resource->resource();
-}
-
-CWindowToplevelMappingHandle::CWindowToplevelMappingHandle(SP<CHyprlandWindowToplevelMappingHandleV1> resource_) : resource(resource_) {}
-
-bool CWindowToplevelMappingHandle::good() {
-    return resource->resource();
-}
-
-CWindowWlrToplevelMappingHandle::CWindowWlrToplevelMappingHandle(SP<CHyprlandWindowWlrToplevelMappingHandleV1> resource_) : resource(resource_) {}
-
-bool CWindowWlrToplevelMappingHandle::good() {
-    return resource->resource();
-}
-
 CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingManagerV1> resource_) : resource(resource_) {
     if UNLIKELY (!resource_->resource())
         return;
 
     resource->setOnDestroy([this](CHyprlandToplevelMappingManagerV1* h) { PROTO::toplevelMapping->onManagerResourceDestroy(this); });
-    resource->setGetWindowForToplevel([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
-        const auto HANDLE = PROTO::toplevelMapping->m_vToplevelWindowHandles.emplace_back(
-            makeShared<CToplevelWindowMappingHandle>(makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle)));
+    resource->setDestroy([this](CHyprlandToplevelMappingManagerV1* h) { PROTO::toplevelMapping->onManagerResourceDestroy(this); });
 
-        if UNLIKELY (!HANDLE->good()) {
+    resource->setGetWindowForToplevel([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
+        const auto HANDLE = makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle);
+
+        if UNLIKELY (!HANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
-            PROTO::toplevelMapping->destroyHandle(HANDLE.get());
             return;
         }
 
         const auto WINDOW = PROTO::foreignToplevel->windowFromHandleResource(toplevel);
         if (!WINDOW)
-            HANDLE->resource->sendFailed();
+            HANDLE->sendFailed();
         else
-            HANDLE->resource->sendWindowAddress(((uint64_t) WINDOW.get()) >> 32, ((uint64_t) WINDOW.get()) & 0xFFFFFFFF);
+            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
     });
     resource->setGetWindowForToplevelWlr([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
-        const auto HANDLE = PROTO::toplevelMapping->m_vToplevelWindowHandles.emplace_back(
-            makeShared<CToplevelWindowMappingHandle>(makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle)));
+        const auto HANDLE = makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle);
 
-        if UNLIKELY (!HANDLE->good()) {
+        if UNLIKELY (!HANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
-            PROTO::toplevelMapping->destroyHandle(HANDLE.get());
             return;
         }
 
         const auto WINDOW = PROTO::foreignToplevelWlr->windowFromHandleResource(toplevel);
         if (!WINDOW)
-            HANDLE->resource->sendFailed();
+            HANDLE->sendFailed();
         else
-            HANDLE->resource->sendWindowAddress(((uint64_t) WINDOW.get()) >> 32, ((uint64_t) WINDOW.get()) & 0xFFFFFFFF);
+            HANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
     });
     resource->setGetToplevelForWindow([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, uint32_t address, uint32_t address_hi) {
-        const auto HANDLE = PROTO::toplevelMapping->m_vWindowToplevelHandles.emplace_back(
-            makeShared<CWindowToplevelMappingHandle>(makeShared<CHyprlandWindowToplevelMappingHandleV1>(resource->client(), resource->version(), handle)));
+        const auto HANDLE = makeShared<CHyprlandWindowToplevelMappingHandleV1>(resource->client(), resource->version(), handle);
 
-        if UNLIKELY (!HANDLE->good()) {
+        if UNLIKELY (!HANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
-            PROTO::toplevelMapping->destroyHandle(HANDLE.get());
             return;
         }
-        const auto FULL_ADDRESS = (((uint64_t) address_hi) << 32) | address;
-        // TODO: Get toplevel for window address
+        const auto FULL_ADDRESS = (uint64_t)address_hi << 32 | address;
+        if (const auto TOPLEVEL = PROTO::foreignToplevel->handleFromWindow(FULL_ADDRESS); !TOPLEVEL)
+            HANDLE->sendFailed();
+        else
+            HANDLE->sendToplevel(TOPLEVEL->resource->resource());
     });
     resource->setGetToplevelWlrForWindow([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, uint32_t address, uint32_t address_hi) {
-        const auto HANDLE = PROTO::toplevelMapping->m_vWindowWlrToplevelHandles.emplace_back(
-            makeShared<CWindowWlrToplevelMappingHandle>(makeShared<CHyprlandWindowWlrToplevelMappingHandleV1>(resource->client(), resource->version(), handle)));
+        const auto HANDLE = makeShared<CHyprlandWindowWlrToplevelMappingHandleV1>(resource->client(), resource->version(), handle);
 
-        if UNLIKELY (!HANDLE->good()) {
+        if UNLIKELY (!HANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
-            PROTO::toplevelMapping->destroyHandle(HANDLE.get());
             return;
         }
-        const auto FULL_ADDRESS = (((uint64_t) address_hi) << 32) | address;
-        // TODO: Get wlr toplevel for window address
+        const auto FULL_ADDRESS = (uint64_t)address_hi << 32 | address;
+        if (const auto TOPLEVEL = PROTO::foreignToplevel->handleFromWindow(FULL_ADDRESS); !TOPLEVEL)
+            HANDLE->sendFailed();
+        else
+            HANDLE->sendToplevel(TOPLEVEL->resource->resource());
     });
 }
 
-bool CToplevelMappingManager::good() {
+bool CToplevelMappingManager::good() const {
     return resource->resource();
 }
 
@@ -107,16 +89,4 @@ void CToplevelMappingProtocol::bindManager(wl_client* client, void* data, uint32
 
 void CToplevelMappingProtocol::onManagerResourceDestroy(CToplevelMappingManager* mgr) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == mgr; });
-}
-
-void CToplevelMappingProtocol::destroyHandle(CToplevelWindowMappingHandle* handle) {
-    std::erase_if(m_vToplevelWindowHandles, [&](const auto& other) { return other.get() == handle; });
-}
-
-void CToplevelMappingProtocol::destroyHandle(CWindowToplevelMappingHandle* handle) {
-    std::erase_if(m_vWindowToplevelHandles, [&](const auto& other) { return other.get() == handle; });
-}
-
-void CToplevelMappingProtocol::destroyHandle(CWindowWlrToplevelMappingHandle* handle) {
-    std::erase_if(m_vWindowWlrToplevelHandles, [&](const auto& other) { return other.get() == handle; });
 }

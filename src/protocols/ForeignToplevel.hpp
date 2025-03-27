@@ -19,6 +19,8 @@ class CForeignToplevelHandle {
     bool                            closed = false;
 
     friend class CForeignToplevelList;
+    friend class CForeignToplevelProtocol;
+    friend class CToplevelMappingManager;
 };
 
 class CForeignToplevelList {
@@ -44,9 +46,10 @@ class CForeignToplevelList {
 class CForeignToplevelProtocol : public IWaylandProtocol {
   public:
     CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name);
-    PHLWINDOW windowFromHandleResource(wl_resource* res);
+    PHLWINDOW                  windowFromHandleResource(wl_resource* res);
+    SP<CForeignToplevelHandle> handleFromWindow(uint64_t addr);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    virtual void               bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
   private:
     void onManagerResourceDestroy(CForeignToplevelList* mgr);

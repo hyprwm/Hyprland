@@ -430,6 +430,14 @@ PHLWINDOW CForeignToplevelWlrProtocol::windowFromHandleResource(wl_resource* res
     return nullptr;
 }
 
+SP<CForeignToplevelHandleWlr> CForeignToplevelWlrProtocol::handleFromWindow(uint64_t addr) {
+    for (auto const& h : m_vHandles) {
+        if ((uint64_t)h->window().get() == addr)
+            return h;
+    }
+    return nullptr;
+}
+
 bool CForeignToplevelWlrProtocol::windowValidForForeign(PHLWINDOW pWindow) {
     return validMapped(pWindow) && !pWindow->isX11OverrideRedirect();
 }

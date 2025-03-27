@@ -2627,7 +2627,13 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
 
     const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
 
-    const auto PWORKSPACE = m_vWorkspaces.emplace_back(CWorkspace::create(id, getMonitorFromID(monID), NAME, SPECIAL, isEmpty));
+    const auto PMONITOR = getMonitorFromID(monID);
+    if (!PMONITOR) {
+        Debug::log(ERR, "BUG THIS: No pMonitor for new workspace in createNewWorkspace");
+        return nullptr;
+    }
+
+    const auto PWORKSPACE = m_vWorkspaces.emplace_back(CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty));
 
     PWORKSPACE->m_fAlpha->setValueAndWarp(0);
 
@@ -3061,6 +3067,8 @@ bool CCompositor::shouldChangePreferredImageDescription() {
 }
 
 void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
+    if (!m_pLastMonitor)
+        return;
 
     for (const auto& rule : rules) {
         if (!rule.isPersistent)
@@ -3075,6 +3083,9 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
         }
 
         const auto PMONITOR = getMonitorFromString(rule.monitor);
+
+        if (!rule.monitor.empty() && !PMONITOR)
+            continue; // don't do anything yet, as the monitor is not yet present.
 
         if (!PWORKSPACE) {
             WORKSPACEID id     = rule.workspaceId;
@@ -3092,7 +3103,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PWORKSPACE)
-                createNewWorkspace(id, PMONITOR ? PMONITOR : m_pLastMonitor.lock(), wsname, false);
+                createNewWorkspace(id, PMONITOR ? PMONITOR->ID : m_pLastMonitor->ID, wsname, false);
         }
 
         if (PWORKSPACE)

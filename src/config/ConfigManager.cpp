@@ -797,12 +797,12 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "scale", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "addreserved", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
-    m_config->addSpecialConfigValue("monitorv2", "bitdepth", Hyprlang::INT{8});
+    m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
     m_config->addSpecialConfigValue("monitorv2", "cm", {"auto"});
     m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
-    m_config->addSpecialConfigValue("monitorv2", "transform", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "transform", {STRVAL_EMPTY}); // TODO use correct type
 
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});
@@ -1022,49 +1022,65 @@ void CConfigManager::updateWatcher() {
     g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : m_configPaths);
 }
 
-void CConfigManager::handleMonitorv2() {
+std::optional<std::string> CConfigManager::handleMonitorv2() {
     for (const auto& output : m_config->listKeysForSpecialCategory("monitorv2")) {
         auto parser = CMonitorRuleParser(output);
         auto VAL    = m_config->getSpecialConfigValuePtr("monitorv2", "disabled", output.c_str());
-        if (VAL && std::any_cast<Hyprlang::INT>(VAL->getValue()))
+        if (VAL && VAL->m_bSetByUser && std::any_cast<Hyprlang::INT>(VAL->getValue()))
             parser.setDisabled();
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mode", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.parseMode(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "position", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.parsePosition(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "scale", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.rule().scale = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
-        // "addreserved", {STRVAL_EMPTY}
+        VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
+        if (VAL && VAL->m_bSetByUser) {
+            const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        }
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
         if (VAL && VAL->m_bSetByUser)
-            parser.rule().mirrorOf = std::any_cast<Hyprlang::STRING>(VAL->getValue());
-        // "bitdepth", Hyprlang::INT{8}
+            parser.setMirror(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        VAL = m_config->getSpecialConfigValuePtr("monitorv2", "bitdepth", output.c_str());
+        if (VAL && VAL->m_bSetByUser)
+            parser.parseBitdepth(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "cm", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.rule().sdrBrightness = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrsaturation", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.rule().sdrSaturation = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
         VAL = m_config->getSpecialConfigValuePtr("monitorv2", "vrr", output.c_str());
-        if (VAL)
+        if (VAL && VAL->m_bSetByUser)
             parser.rule().vrr = std::any_cast<Hyprlang::INT>(VAL->getValue());
-        // VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
-        // if (VAL)
-        //     parser.rule().transform = std::any_cast<Hyprlang::INT>(VAL->getValue());
+        VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
+        if (VAL && VAL->m_bSetByUser)
+            parser.parseTransform(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+
+        auto newrule = parser.rule();
+
+        std::erase_if(m_vMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
+
+        m_vMonitorRules.push_back(newrule);
+
+        if (parser.getError().has_value())
+            return parser.getError();
     }
+    return {};
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
 
-    handleMonitorv2();
+    const auto        monitorError = handleMonitorv2();
 
     updateWatcher();
 
@@ -1091,6 +1107,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     if (result.error)
         m_configErrors = result.getError();
+    else if (monitorError.has_value())
+        m_configErrors = monitorError.value();
     else
         m_configErrors = "";
 
@@ -2184,6 +2202,11 @@ void CMonitorRuleParser::setMirror(const std::string& value) {
     m_rule.mirrorOf = value;
 }
 
+bool CMonitorRuleParser::setReserved(const SMonitorAdditionalReservedArea& value) {
+    g_pConfigManager->m_mAdditionalReservedAreas[name()] = value;
+    return true;
+}
+
 std::optional<std::string> CConfigManager::handleMonitor(const std::string& command, const std::string& args) {
 
     // get the monitor config
@@ -2210,9 +2233,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-
-            m_mAdditionalReservedAreas[parser.name()] = {.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])};
-
+            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
             return {};
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");

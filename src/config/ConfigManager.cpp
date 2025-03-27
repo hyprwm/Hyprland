@@ -880,8 +880,9 @@ void CConfigManager::reload() {
     resetHLConfig();
     configCurrentPath                      = getMainConfigPath();
     const auto ERR                         = m_pConfig->parse();
-    m_bLastConfigVerificationWasSuccessful = !ERR.error;
-    postConfigReload(ERR);
+    const auto monitorError                = handleMonitorv2();
+    m_bLastConfigVerificationWasSuccessful = !ERR.error && !monitorError.error;
+    postConfigReload(ERR.error || !monitorError.error ? ERR : monitorError);
 }
 
 std::string CConfigManager::verify() {
@@ -971,7 +972,8 @@ void CConfigManager::updateWatcher() {
     g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : m_configPaths);
 }
 
-std::optional<std::string> CConfigManager::handleMonitorv2() {
+Hyprlang::CParseResult CConfigManager::handleMonitorv2() {
+    Hyprlang::CParseResult result;
     for (const auto& output : m_pConfig->listKeysForSpecialCategory("monitorv2")) {
         auto parser = CMonitorRuleParser(output);
         auto VAL    = m_pConfig->getSpecialConfigValuePtr("monitorv2", "disabled", output.c_str());
@@ -1019,17 +1021,17 @@ std::optional<std::string> CConfigManager::handleMonitorv2() {
 
         m_vMonitorRules.push_back(newrule);
 
-        if (parser.getError().has_value())
-            return parser.getError();
+        if (parser.getError().has_value()) {
+            result.setError(parser.getError().value().c_str());
+            return result;
+        }
     }
-    return {};
+    return result;
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
-
-    const auto        monitorError = handleMonitorv2();
 
     updateWatcher();
 
@@ -1056,8 +1058,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     if (result.error)
         m_szConfigErrors = result.getError();
-    else if (monitorError.has_value())
-        m_szConfigErrors = monitorError.value();
     else
         m_szConfigErrors = "";
 

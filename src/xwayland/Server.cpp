@@ -299,7 +299,7 @@ void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
     }
 
     auto cmd =
-        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.take(), xwmFDs[1].get());
+        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.get(), xwmFDs[1].get());
 
     auto waylandSocket = std::format("{}", waylandFDs[1].get());
     setenv("WAYLAND_SOCKET", waylandSocket.c_str(), true);
@@ -352,7 +352,7 @@ bool CXWaylandServer::start() {
         return false;
     }
 
-    waylandFDs[0].take(); // does this leak?
+    waylandFDs[0].take(); // wl_client owns this fd now
 
     int notify[2] = {-1, -1};
     if (pipe(notify) < 0) {
@@ -372,19 +372,13 @@ bool CXWaylandServer::start() {
     pipeSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, notifyFds[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
     pipeFd     = std::move(notifyFds[0]);
 
-    serverPID = fork();
+    auto serverPID = fork();
     if (serverPID < 0) {
         Debug::log(ERR, "fork failed");
         die();
         return false;
     } else if (serverPID == 0) {
-        pid_t pid = fork();
-        if (pid < 0) {
-            Debug::log(ERR, "second fork failed");
-            _exit(1);
-        } else if (pid == 0)
-            runXWayland(notifyFds[1]);
-
+        runXWayland(notifyFds[1]);
         _exit(0);
     }
 
@@ -403,14 +397,6 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
             return 1;
     }
 
-    while (waitpid(serverPID, nullptr, 0) < 0) {
-        if (errno == EINTR)
-            continue;
-        Debug::log(ERR, "Xwayland: waitpid for fork failed");
-        g_pXWayland->pServer.reset();
-        return 1;
-    }
-
     // if we don't have readable here, it failed
     if (!(mask & WL_EVENT_READABLE)) {
         Debug::log(ERR, "Xwayland: startup failed, not setting up xwm");
@@ -420,8 +406,8 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
 
     Debug::log(LOG, "XWayland is ready");
 
-    close(fd);
     wl_event_source_remove(pipeSource);
+    pipeFd.reset();
     pipeSource = nullptr;
 
     // start the wm

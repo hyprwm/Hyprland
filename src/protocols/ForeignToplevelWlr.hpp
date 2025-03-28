@@ -25,7 +25,6 @@ class CForeignToplevelHandleWlr {
     void                             sendState();
 
     friend class CForeignToplevelWlrManager;
-    friend class CToplevelMappingManager;
 };
 
 class CForeignToplevelWlrManager {

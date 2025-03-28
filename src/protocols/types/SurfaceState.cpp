@@ -35,7 +35,7 @@ CRegion SSurfaceState::accumulateBufferDamage() {
 }
 
 void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
-    auto [dataPtr, fmt, size] = buffer->buffer->beginDataPtr(0);
+    auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);
         auto stride = bufferSize.y ? size / bufferSize.y : 0;
@@ -45,7 +45,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
         } else
             texture = makeShared<CTexture>(drmFmt, dataPtr, stride, bufferSize);
     }
-    buffer->buffer->endDataPtr();
+    buffer->endDataPtr();
 }
 
 void SSurfaceState::reset() {
@@ -65,7 +65,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         *this = ref;
         ref.damage.clear();
         ref.bufferDamage.clear();
-        ref.buffer.reset();
+        ref.buffer = {};
     } else {
         if (ref.updated & SURFACE_UPDATED_DAMAGE) {
             damage       = ref.damage;

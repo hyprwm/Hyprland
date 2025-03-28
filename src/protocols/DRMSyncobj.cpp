@@ -96,13 +96,13 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         if (pendingAcquire.timeline()) {
-            surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
-            pendingAcquire                   = {};
+            surface->pending.buffer.acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
+            pendingAcquire                  = {};
         }
 
         if (pendingRelease.timeline()) {
-            surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-            pendingRelease                   = {};
+            surface->pending.buffer.release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
+            pendingRelease                  = {};
         }
 
         if (protocolError())
@@ -113,10 +113,10 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.bufferDamage.clear();
         surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
         surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
-        surface->pending.buffer.reset();
+        surface->pending.buffer = {};
 
-        state->buffer->buffer->syncReleaser = state->buffer->release->createSyncRelease();
-        state->buffer->acquire->addWaiter([this, surf = surface, wp = CWeakPointer<SSurfaceState>(*std::prev(pendingStates.end()))] {
+        state->buffer->syncReleaser = state->buffer.release->createSyncRelease();
+        state->buffer.acquire->addWaiter([this, surf = surface, wp = CWeakPointer<SSurfaceState>(*std::prev(pendingStates.end()))] {
             if (!surf)
                 return;
 
@@ -128,8 +128,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
 void CDRMSyncobjSurfaceResource::removeAllWaiters() {
     for (auto& s : pendingStates) {
-        if (s && s->buffer && s->buffer->acquire)
-            s->buffer->acquire->timeline()->removeAllWaiters();
+        if (s && s->buffer && s->buffer.acquire)
+            s->buffer.acquire->timeline()->removeAllWaiters();
     }
 
     pendingStates.clear();
@@ -146,20 +146,20 @@ bool CDRMSyncobjSurfaceResource::protocolError() {
         return true;
     }
 
-    if (!surface->pending.buffer->acquire || !surface->pending.buffer->acquire->timeline()) {
+    if (!surface->pending.buffer.acquire || !surface->pending.buffer.acquire->timeline()) {
         resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing acquire timeline");
         surface->pending.rejected = true;
         return true;
     }
 
-    if (!surface->pending.buffer->release || !surface->pending.buffer->release->timeline()) {
+    if (!surface->pending.buffer.release || !surface->pending.buffer.release->timeline()) {
         resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT, "Missing release timeline");
         surface->pending.rejected = true;
         return true;
     }
 
-    if (surface->pending.buffer->acquire->timeline() == surface->pending.buffer->release->timeline()) {
-        if (surface->pending.buffer->acquire->point() >= surface->pending.buffer->release->point()) {
+    if (surface->pending.buffer.acquire->timeline() == surface->pending.buffer.release->timeline()) {
+        if (surface->pending.buffer.acquire->point() >= surface->pending.buffer.release->point()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
             surface->pending.rejected = true;
             return true;

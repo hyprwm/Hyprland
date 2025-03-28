@@ -40,13 +40,57 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     });
 }
 
-CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
-    buffer->lock();
+CHLBufferReference::CHLBufferReference() : buffer(nullptr) {
+    ;
+}
+
+CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : buffer(other.buffer) {
+    if (buffer)
+        buffer->lock();
+}
+
+CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_) : buffer(buffer_) {
+    if (buffer)
+        buffer->lock();
 }
 
 CHLBufferReference::~CHLBufferReference() {
-    if (!buffer)
-        return;
+    if (buffer)
+        buffer->unlock();
+}
 
-    buffer->unlock();
+CHLBufferReference& CHLBufferReference::operator=(const CHLBufferReference& other) {
+    if (other.buffer)
+        other.buffer->lock();
+    if (buffer)
+        buffer->unlock();
+    buffer = other.buffer;
+    return *this;
+}
+
+CHLBufferReference& CHLBufferReference::operator=(CHLBufferReference&& other) noexcept {
+    if (buffer)
+        buffer->unlock();
+    buffer = std::exchange(other.buffer, nullptr);
+    return *this;
+}
+
+bool CHLBufferReference::operator==(const CHLBufferReference& other) const {
+    return buffer == other.buffer;
+}
+
+bool CHLBufferReference::operator==(const SP<IHLBuffer>& other) const {
+    return buffer == other;
+}
+
+bool CHLBufferReference::operator==(const SP<Aquamarine::IBuffer>& other) const {
+    return buffer == other;
+}
+
+SP<IHLBuffer> CHLBufferReference::operator->() const {
+    return buffer;
+}
+
+CHLBufferReference::operator bool() const {
+    return buffer;
 }

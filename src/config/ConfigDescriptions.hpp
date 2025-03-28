@@ -128,12 +128,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
-    SConfigOptionDescription{
-        .value       = "general:precise_move",
-        .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
 
     /*
      * decoration:
@@ -1762,6 +1756,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "specifies which window will receive the larger half of a split. positional - 0, current window - 1, opening window - 2 [0/1/2]",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "positional,current,opening"},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:precise_move",
+        .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
     /*

@@ -460,7 +460,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:col.inactive_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xff444444"});
     registerConfigVar("general:col.nogroup_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffaaff"});
     registerConfigVar("general:col.nogroup_border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffff00ff"});
-    registerConfigVar("general:precise_move", Hyprlang::INT{0});
 
     registerConfigVar("misc:disable_hyprland_logo", Hyprlang::INT{0});
     registerConfigVar("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -593,6 +592,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:split_bias", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_resizing", Hyprlang::INT{1});
+    registerConfigVar("dwindle:precise_move", Hyprlang::INT{0});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});

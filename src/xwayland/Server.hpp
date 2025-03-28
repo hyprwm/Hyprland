@@ -34,8 +34,6 @@ class CXWaylandServer {
     bool                                          tryOpenSockets();
     void                                          runXWayland(Hyprutils::OS::CFileDescriptor& notifyFD);
 
-    pid_t                                         serverPID = 0;
-
     std::string                                   displayName;
     int                                           display = -1;
     std::array<Hyprutils::OS::CFileDescriptor, 2> xFDs;

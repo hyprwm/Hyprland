@@ -1148,9 +1148,6 @@ bool CWindow::opaque() {
     if (m_fAlpha->value() != 1.f || m_fActiveInactiveAlpha->value() != 1.f)
         return false;
 
-    if (m_vRealSize->goal().floor() != m_vReportedSize)
-        return false;
-
     const auto PWORKSPACE = m_pWorkspace;
 
     if (m_pWLSurface->small() && !m_pWLSurface->m_bFillIgnoreSmall)

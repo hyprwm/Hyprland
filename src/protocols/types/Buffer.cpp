@@ -1,4 +1,5 @@
 #include "Buffer.hpp"
+#include "../DRMSyncobj.hpp"
 
 IHLBuffer::~IHLBuffer() {
     if (locked() && resource)
@@ -7,6 +8,8 @@ IHLBuffer::~IHLBuffer() {
 
 void IHLBuffer::sendRelease() {
     resource->sendRelease();
+    if (release && release->timeline())
+        release->signal();
 }
 
 void IHLBuffer::lock() {
@@ -18,10 +21,8 @@ void IHLBuffer::unlock() {
 
     ASSERT(nLocks >= 0);
 
-    if (nLocks == 0) {
+    if (nLocks == 0)
         sendRelease();
-        syncReleaser.reset();
-    }
 }
 
 bool IHLBuffer::locked() {

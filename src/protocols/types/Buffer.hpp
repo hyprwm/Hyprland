@@ -6,7 +6,6 @@
 
 #include <aquamarine/buffer/Buffer.hpp>
 
-class CSyncReleaser;
 class CDRMSyncPointState;
 
 class IHLBuffer : public Aquamarine::IBuffer {
@@ -31,7 +30,6 @@ class IHLBuffer : public Aquamarine::IBuffer {
     // explicit sync stuff
     UP<CDRMSyncPointState> acquire;
     UP<CDRMSyncPointState> release;
-    UP<CSyncReleaser>      syncReleaser;
 
     struct {
         CHyprSignalListener backendRelease;

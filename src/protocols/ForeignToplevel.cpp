@@ -179,12 +179,3 @@ PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {
 
     return nullptr;
 }
-
-SP<CForeignToplevelHandle> CForeignToplevelProtocol::handleFromWindow(uint64_t addr) {
-    for (auto const& h : m_vHandles) {
-        if ((uint64_t)h->window().get() == addr)
-            return h;
-    }
-
-    return nullptr;
-}

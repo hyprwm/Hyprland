@@ -55,10 +55,9 @@ class CForeignToplevelWlrProtocol : public IWaylandProtocol {
   public:
     CForeignToplevelWlrProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void                  bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    PHLWINDOW                     windowFromHandleResource(wl_resource* res);
-    SP<CForeignToplevelHandleWlr> handleFromWindow(uint64_t addr);
+    PHLWINDOW    windowFromHandleResource(wl_resource* res);
 
   private:
     void onManagerResourceDestroy(CForeignToplevelWlrManager* mgr);

@@ -15,7 +15,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        surface->pending.updated &= SSurfaceState::SURFACE_UPDATED_VIEWPORT;
+        surface->pending.updated |= SSurfaceState::SURFACE_UPDATED_VIEWPORT;
 
         if (x == -1 && y == -1) {
             surface->pending.viewport.hasDestination = false;
@@ -37,7 +37,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        surface->pending.updated &= SSurfaceState::SURFACE_UPDATED_VIEWPORT;
+        surface->pending.updated |= SSurfaceState::SURFACE_UPDATED_VIEWPORT;
 
         double x = wl_fixed_to_double(fx), y = wl_fixed_to_double(fy), w = wl_fixed_to_double(fw), h = wl_fixed_to_double(fh);
 

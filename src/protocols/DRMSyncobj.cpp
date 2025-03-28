@@ -75,7 +75,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        const bool PENDING_HAS_NEW_BUFFER = surface->pending.updated & SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
+        const bool PENDING_HAS_NEW_BUFFER = surface->pending.updated & SSurfaceState::SURFACE_UPDATED_BUFFER;
 
         if (!PENDING_HAS_NEW_BUFFER || !surface->pending.texture || !surface->pending.buffer) {
             if (pendingAcquire.timeline() || pendingRelease.timeline()) {

@@ -381,7 +381,7 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
-        static auto PPRECISEMOUSE     = CConfigValue<Hyprlang::INT>("general:precise_mouse_move");
+        static auto PPRECISEMOUSE     = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
 

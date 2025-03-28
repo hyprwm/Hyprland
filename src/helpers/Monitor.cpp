@@ -1348,13 +1348,13 @@ bool CMonitor::attemptDirectScanout() {
         return false;
 
     // we can't scanout shm buffers.
-    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    const auto params = PSURFACE->current.buffer->dmabuf();
     if (!params.success || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer.buffer.get());
 
-    auto PBUFFER = PSURFACE->current.buffer->buffer;
+    auto PBUFFER = PSURFACE->current.buffer.buffer;
 
     if (PBUFFER == output->state->state().buffer) {
         if (scanoutNeedsCursorUpdate) {

@@ -3,11 +3,11 @@
 #include "../../defines.hpp"
 #include "../../render/Texture.hpp"
 #include "./WLBuffer.hpp"
-#include "../DRMSyncobj.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CSyncReleaser;
+class CDRMSyncPointState;
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
@@ -27,7 +27,11 @@ class IHLBuffer : public Aquamarine::IBuffer {
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
-    UP<CSyncReleaser>                     syncReleaser;
+
+    // explicit sync stuff
+    UP<CDRMSyncPointState> acquire;
+    UP<CDRMSyncPointState> release;
+    UP<CSyncReleaser>      syncReleaser;
 
     struct {
         CHyprSignalListener backendRelease;
@@ -39,16 +43,20 @@ class IHLBuffer : public Aquamarine::IBuffer {
 };
 
 // for ref-counting. Releases in ~dtor
-// surface optional
 class CHLBufferReference {
   public:
-    CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
+    CHLBufferReference();
+    CHLBufferReference(const CHLBufferReference& other);
+    CHLBufferReference(SP<IHLBuffer> buffer);
     ~CHLBufferReference();
 
-    SP<IHLBuffer>          buffer;
-    UP<CDRMSyncPointState> acquire;
-    UP<CDRMSyncPointState> release;
+    CHLBufferReference& operator=(const CHLBufferReference& other);
+    CHLBufferReference& operator=(CHLBufferReference&& other) noexcept;
+    bool                operator==(const CHLBufferReference& other) const;
+    bool                operator==(const SP<IHLBuffer>& other) const;
+    bool                operator==(const SP<Aquamarine::IBuffer>& other) const;
+    SP<IHLBuffer>       operator->() const;
+    operator bool() const;
 
-  private:
-    WP<CWLSurfaceResource> surface;
+    SP<IHLBuffer> buffer;
 };

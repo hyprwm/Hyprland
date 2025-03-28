@@ -113,9 +113,9 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.bufferDamage.clear();
         surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
         surface->pending.updated &= ~SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
-        surface->pending.buffer.reset();
+        surface->pending.buffer = {};
 
-        state->buffer->buffer->syncReleaser = state->buffer->release->createSyncRelease();
+        state->buffer->syncReleaser = state->buffer->release->createSyncRelease();
         state->buffer->acquire->addWaiter([this, surf = surface, wp = CWeakPointer<SSurfaceState>(*std::prev(pendingStates.end()))] {
             if (!surf)
                 return;

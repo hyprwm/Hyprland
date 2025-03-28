@@ -77,6 +77,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         if (!buffer) {
             pending.buffer.reset();
             pending.texture.reset();
+            pending.bufferSize = Vector2D{};
         } else {
             auto res           = CWLBufferResource::fromResource(buffer);
             pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
@@ -84,6 +85,9 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
         }
+
+        if (pending.bufferSize != current.bufferSize)
+            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -123,12 +127,18 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_SCALE;
-        pending.scale = scale;
+        if (scale != pending.scale) {
+            pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_SCALE | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+            pending.scale        = scale;
+            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        }
     });
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_TRANSFORM;
-        pending.transform = (wl_output_transform)tr;
+        if (tr != pending.transform) {
+            pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_TRANSFORM | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+            pending.transform    = (wl_output_transform)tr;
+            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        }
     });
 
     resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {

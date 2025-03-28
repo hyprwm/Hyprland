@@ -40,7 +40,6 @@ class CToplevelExportClient {
 class CToplevelExportFrame {
   public:
     CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor, PHLWINDOW pWindow);
-    ~CToplevelExportFrame();
 
     bool                      good();
 
@@ -55,7 +54,7 @@ class CToplevelExportFrame {
     bool                               m_ignoreDamage         = false;
     bool                               lockedSWCursors        = false;
 
-    WP<IHLBuffer>                      buffer;
+    CHLBufferReference                 buffer;
     bool                               bufferDMA    = false;
     uint32_t                           shmFormat    = 0;
     uint32_t                           dmabufFormat = 0;

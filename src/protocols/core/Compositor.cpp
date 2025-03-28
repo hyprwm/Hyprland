@@ -127,18 +127,18 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
-        if (scale != pending.scale) {
-            pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_SCALE | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
-            pending.scale        = scale;
-            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-        }
+        if (scale == pending.scale)
+            return;
+        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_SCALE | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+        pending.scale        = scale;
+        pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
-        if (tr != pending.transform) {
-            pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_TRANSFORM | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
-            pending.transform    = (wl_output_transform)tr;
-            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-        }
+        if (tr == pending.transform)
+            return;
+        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_TRANSFORM | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+        pending.transform    = (wl_output_transform)tr;
+        pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
 
     resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {

@@ -3,11 +3,11 @@
 #include "../../defines.hpp"
 #include "../../render/Texture.hpp"
 #include "./WLBuffer.hpp"
-#include "../DRMSyncobj.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CSyncReleaser;
+class CDRMSyncPointState;
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
@@ -39,16 +39,21 @@ class IHLBuffer : public Aquamarine::IBuffer {
 };
 
 // for ref-counting. Releases in ~dtor
-// surface optional
 class CHLBufferReference {
   public:
-    CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
+    CHLBufferReference();
+    CHLBufferReference(const CHLBufferReference& other);
+    CHLBufferReference(SP<IHLBuffer> buffer);
     ~CHLBufferReference();
 
-    SP<IHLBuffer>          buffer;
+    CHLBufferReference& operator=(const CHLBufferReference& other);
+    bool                operator==(const CHLBufferReference& other) const;
+    bool                operator==(const SP<IHLBuffer>& other) const;
+    bool                operator==(const SP<Aquamarine::IBuffer>& other) const;
+    SP<IHLBuffer>       operator->() const;
+    operator bool() const;
+
     UP<CDRMSyncPointState> acquire;
     UP<CDRMSyncPointState> release;
-
-  private:
-    WP<CWLSurfaceResource> surface;
+    SP<IHLBuffer>          buffer;
 };

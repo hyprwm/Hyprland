@@ -75,12 +75,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_OFFSET;
 
         if (!buffer) {
-            pending.buffer.reset();
+            pending.buffer = {};
             pending.texture.reset();
             pending.bufferSize = Vector2D{};
         } else {
             auto res           = CWLBufferResource::fromResource(buffer);
-            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
+            pending.buffer     = res && res->buffer ? CHLBufferReference(res->buffer.lock()) : CHLBufferReference();
             pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
             pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
             pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
@@ -188,11 +188,11 @@ void CWLSurfaceResource::destroy() {
 }
 
 void CWLSurfaceResource::dropPendingBuffer() {
-    pending.buffer.reset();
+    pending.buffer = {};
 }
 
 void CWLSurfaceResource::dropCurrentBuffer() {
-    current.buffer.reset();
+    current.buffer = {};
 }
 
 SP<CWLSurfaceResource> CWLSurfaceResource::fromResource(wl_resource* res) {
@@ -430,7 +430,7 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     state.updated = 0;
 
     if (current.buffer) {
-        if (current.buffer->buffer->isSynchronous())
+        if (current.buffer->isSynchronous())
             current.updateSynchronousTexture(lastTexture);
 
         // if the surface is a cursor, update the shm buffer
@@ -465,7 +465,7 @@ void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     // release the buffer if it's synchronous (SHM) as update() has done everything thats needed
     // so we can let the app know we're done.
     // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
-    if (current.buffer && current.buffer->buffer && current.buffer->buffer->isSynchronous() && role->role() != SURFACE_ROLE_UNASSIGNED)
+    if (current.buffer && current.buffer->isSynchronous() && role->role() != SURFACE_ROLE_UNASSIGNED)
         dropCurrentBuffer();
 }
 
@@ -473,7 +473,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;
 
-    auto buf = current.buffer ? current.buffer->buffer : SP<IHLBuffer>{};
+    auto buf = current.buffer ? current.buffer : SP<IHLBuffer>{};
 
     if UNLIKELY (!buf)
         return;

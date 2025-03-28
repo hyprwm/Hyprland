@@ -50,6 +50,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
 
 void SSurfaceState::reset() {
     updated = 0;
+    ready   = false;
 
     // After commit, there is no pending buffer until the next attach.
     buffer = {};

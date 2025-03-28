@@ -19,6 +19,7 @@ struct SSurfaceState {
     };
 
     uint8_t updated  = 0; // eUpdatedProperties. Stores pending state updates
+    bool    ready    = false;
     bool    rejected = false;
 
     // initial values, copied from protocol text

@@ -61,6 +61,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     updated = ref.updated;
 
     if (ref.updated & SURFACE_UPDATED_BUFFER) {
+        ref.updated &= ~SURFACE_UPDATED_BUFFER;
         *this = ref;
         ref.damage.clear();
         ref.bufferDamage.clear();

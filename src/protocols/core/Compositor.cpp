@@ -115,8 +115,36 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (!syncobj)
-            commitPendingState(pending);
+        const bool newBuffer = pending.updated & SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER;
+        if ((!newBuffer) ||                          // no new buffer attached
+            (!pending.buffer && !pending.texture) || // null buffer attached
+            (pending.buffer->isSynchronous())        // synchronous buffers (ex. shm) can be read immediately
+        ) {
+            commitState(pending);
+            pending.reset();
+            return;
+        }
+
+        // save state while we wait for buffer to become ready
+        const auto& state = pendingStates.emplace_back(makeUnique<SSurfaceState>(pending));
+        pending.reset();
+
+        auto whenReadable = [this, surf = self, state = WP<SSurfaceState>(pendingStates.back())] {
+            if (!surf || state.expired())
+                return;
+
+            surf->commitState(*state);
+            std::erase(pendingStates, state);
+        };
+
+        if (syncobj && state->buffer->acquire && state->buffer->acquire->timeline()) {
+            // wait on acquire point for this surface, from explicit sync protocol
+            state->buffer->acquire->addWaiter(whenReadable);
+        } else if (state->buffer->dmabuf().success) {
+            // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#implicit-fence-poll-support
+            // TODO: wait for the dma-buf fd's to become readable
+            whenReadable();
+        }
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -135,6 +163,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         pending.scale        = scale;
         pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
+
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
         if (tr == pending.transform)
             return;
@@ -426,7 +455,7 @@ CBox CWLSurfaceResource::extends() {
     return full.getExtents();
 }
 
-void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
+void CWLSurfaceResource::commitState(SSurfaceState& state) {
     auto lastTexture = current.texture;
     current.updateFrom(state);
     state.updated = 0;

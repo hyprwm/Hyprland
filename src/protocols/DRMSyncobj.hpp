@@ -7,7 +7,6 @@
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceState.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
-#include <list>
 
 class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
@@ -38,19 +37,15 @@ class CDRMSyncPointState {
 class CDRMSyncobjSurfaceResource {
   public:
     CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_);
-    ~CDRMSyncobjSurfaceResource();
 
-    bool protocolError();
     bool good();
 
   private:
-    void                            removeAllWaiters();
     WP<CWLSurfaceResource>          surface;
     UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
     CDRMSyncPointState              pendingAcquire;
     CDRMSyncPointState              pendingRelease;
-    std::vector<SP<SSurfaceState>>  pendingStates;
 
     struct {
         CHyprSignalListener surfacePrecommit;

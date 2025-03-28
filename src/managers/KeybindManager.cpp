@@ -460,6 +460,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         .modmaskAtPressTime = MODS,
         .sent               = true,
         .submapAtPress      = m_szCurrentSelectedSubmap,
+        .posAtPress         = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -551,6 +552,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
         .modmaskAtPressTime = MODS,
+        .posAtPress         = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -638,6 +640,7 @@ std::string CKeybindManager::getCurrentSubmap() {
 
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+    const auto      DRAGTHRESHOLDSQ = std::pow(*CConfigValue<Hyprlang::INT>("binds:drag_threshold"), 2);
     bool            found           = false;
     SDispatchResult res;
 
@@ -736,6 +739,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // suppress the event
                 continue;
             }
+
+            // Require mouse to stay inside drag_threshold for clicks, outside for drags
+            // Check if either a mouse bind has triggered or currently over the threshold (maybe there is no mouse bind on the same key)
+            const auto THRESHOLDREACHED = key.posAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > DRAGTHRESHOLDSQ;
+            if (k->click && (g_pInputManager->m_bDragThresholdReached || THRESHOLDREACHED))
+                continue;
+            else if (k->drag && !g_pInputManager->m_bDragThresholdReached && !THRESHOLDREACHED)
+                continue;
         }
 
         if (k->longPress) {
@@ -787,6 +798,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->nonConsuming)
             found = true;
     }
+
+    g_pInputManager->m_bDragThresholdReached = false;
 
     // if keybind wasn't found (or dispatcher said to) then pass event
     res.passEvent |= !found;

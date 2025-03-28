@@ -39,6 +39,8 @@ struct SKeybind {
     bool                   multiKey       = false;
     bool                   hasDescription = false;
     bool                   dontInhibit    = false;
+    bool                   click          = false;
+    bool                   drag           = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -62,6 +64,7 @@ struct SPressedKeyWithMods {
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
     std::string  submapAtPress      = "";
+    Vector2D     posAtPress         = {};
 };
 
 struct SParsedKey {

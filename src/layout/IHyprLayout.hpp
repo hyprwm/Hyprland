@@ -204,6 +204,13 @@ class IHyprLayout {
     virtual Vector2D predictSizeForNewWindow(PHLWINDOW pWindow);
     virtual Vector2D predictSizeForNewWindowFloating(PHLWINDOW pWindow);
 
+    /*
+        Called to try to pick up window for dragging.
+        Updates drag related variables and floats window if threshold reached.
+        Return true to reject
+    */
+    virtual bool updateDragWindow();
+
   private:
     int          m_iMouseMoveEventCount;
     Vector2D     m_vBeginDragXY;

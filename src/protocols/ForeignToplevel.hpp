@@ -20,7 +20,6 @@ class CForeignToplevelHandle {
 
     friend class CForeignToplevelList;
     friend class CForeignToplevelProtocol;
-    friend class CToplevelMappingManager;
 };
 
 class CForeignToplevelList {

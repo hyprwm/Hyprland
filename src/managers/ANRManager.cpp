@@ -41,7 +41,8 @@ CANRManager::CANRManager() {
 void CANRManager::onTick() {
     std::erase_if(m_data, [](const auto& e) { return e->isDefunct(); });
 
-    static auto PENABLEANR = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
+    static auto PENABLEANR    = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
+    static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
 
     if (!*PENABLEANR) {
         m_timer->updateTimeout(TIMER_TIMEOUT * 10);
@@ -66,7 +67,7 @@ void CANRManager::onTick() {
         if (count == 0)
             continue;
 
-        if (data->missedResponses > 0) {
+        if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
                 data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, data->getPid());
 
@@ -128,7 +129,8 @@ bool CANRManager::isNotResponding(PHLWINDOW pWindow) {
 }
 
 bool CANRManager::isNotResponding(SP<CANRManager::SANRData> data) {
-    return data->missedResponses > 1;
+    static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
+    return data->missedResponses >= *PANRTHRESHOLD;
 }
 
 SP<CANRManager::SANRData> CANRManager::dataFor(PHLWINDOW pWindow) {
@@ -203,12 +205,13 @@ bool CANRManager::SANRData::isThreadRunning() {
     return pthread_kill(dialogThread.native_handle(), 0) != ESRCH;
 }
 
-void CANRManager::SANRData::killDialog() const {
+void CANRManager::SANRData::killDialog() {
     if (!dialogProc)
         return;
 
     if (!dialogProc->pid()) {
-        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid. If you have hyprutils <= 0.6.0, you will crash soon. Otherwise, dialog failed to spawn??");
+        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid.");
+        dialogProc = nullptr;
         return;
     }
 

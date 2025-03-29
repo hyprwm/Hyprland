@@ -64,7 +64,7 @@ struct SPressedKeyWithMods {
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
     std::string  submapAtPress      = "";
-    Vector2D     posAtPress         = {};
+    Vector2D     mousePosAtPress    = {};
 };
 
 struct SParsedKey {

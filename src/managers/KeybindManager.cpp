@@ -460,7 +460,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         .modmaskAtPressTime = MODS,
         .sent               = true,
         .submapAtPress      = m_szCurrentSelectedSubmap,
-        .posAtPress         = g_pInputManager->getMouseCoordsInternal(),
+        .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -552,7 +552,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
         .modmaskAtPressTime = MODS,
-        .posAtPress         = g_pInputManager->getMouseCoordsInternal(),
+        .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -640,8 +640,9 @@ std::string CKeybindManager::getCurrentSubmap() {
 
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
-    const auto      DRAGTHRESHOLDSQ = std::pow(*CConfigValue<Hyprlang::INT>("binds:drag_threshold"), 2);
-    bool            found           = false;
+    static auto     PDRAGTHRESHOLD  = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
+
+    bool            found = false;
     SDispatchResult res;
 
     if (pressed) {
@@ -742,7 +743,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             // Require mouse to stay inside drag_threshold for clicks, outside for drags
             // Check if either a mouse bind has triggered or currently over the threshold (maybe there is no mouse bind on the same key)
-            const auto THRESHOLDREACHED = key.posAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > DRAGTHRESHOLDSQ;
+            const auto THRESHOLDREACHED = key.mousePosAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > std::pow(*PDRAGTHRESHOLD, 2);
             if (k->click && (g_pInputManager->m_bDragThresholdReached || THRESHOLDREACHED))
                 continue;
             else if (k->drag && !g_pInputManager->m_bDragThresholdReached && !THRESHOLDREACHED)

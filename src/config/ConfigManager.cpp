@@ -1706,8 +1706,8 @@ void CConfigManager::addParseError(const std::string& err) {
 
 PHLMONITOR CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
     auto monitor = getBoundMonitorStringForWS(wsname);
-    if (monitor.substr(0, 5) == "desc:")
-        return g_pCompositor->getMonitorFromDesc(monitor.substr(5));
+    if (monitor.starts_with("desc:"))
+        return g_pCompositor->getMonitorFromDesc(trim(monitor.substr(5)));
     else
         return g_pCompositor->getMonitorFromName(monitor);
 }
@@ -1797,8 +1797,8 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
         if (other->isDefault) {
             if (other->monitor == name)
                 return other->workspaceString;
-            if (other->monitor.substr(0, 5) == "desc:") {
-                auto const monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
+            if (other->monitor.starts_with("desc:")) {
+                auto const monitor = g_pCompositor->getMonitorFromDesc(trim(other->monitor.substr(5)));
                 if (monitor && monitor->szName == name)
                     return other->workspaceString;
             }

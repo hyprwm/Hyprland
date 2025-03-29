@@ -881,7 +881,7 @@ bool CMonitor::isMirror() {
 bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
-        const auto DESCRIPTIONSELECTOR = selector.substr(5);
+        const auto DESCRIPTIONSELECTOR = trim(selector.substr(5));
 
         return szDescription.starts_with(DESCRIPTIONSELECTOR) || szShortDescription.starts_with(DESCRIPTIONSELECTOR);
     } else {

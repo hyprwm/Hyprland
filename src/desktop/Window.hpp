@@ -224,8 +224,8 @@ struct SWindowData {
     CWindowOverridableVar<int>                rounding   = {std::string("decoration:rounding"), 0, std::nullopt};
 
     CWindowOverridableVar<float>              roundingPower  = std::string("decoration:rounding_power");
-    CWindowOverridableVar<float>              scrollMouse    = 1.f;
-    CWindowOverridableVar<float>              scrollTouchpad = 1.f;
+    CWindowOverridableVar<float>              scrollMouse    = std::string("input:scroll_factor");
+    CWindowOverridableVar<float>              scrollTouchpad = std::string("input:touchpad:scroll_factor");
 
     CWindowOverridableVar<std::string>        animationStyle;
     CWindowOverridableVar<Vector2D>           maxSize;

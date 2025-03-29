@@ -1528,7 +1528,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
         if (!hdrIsHandled) {
             if (hdsIsActive != wantHDR) {
-                if (*PAUTOHDR && hdsIsActive != configuredHDR) {
+                if (*PAUTOHDR && !(hdsIsActive && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
                     pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);

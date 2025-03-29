@@ -2121,8 +2121,9 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
     if (!PCANDIDATE->opaque())
         return;
 
-    if (PCANDIDATE->m_vRealSize->value() != pMonitor->vecSize || PCANDIDATE->m_vRealPosition->value() != pMonitor->vecPosition || PCANDIDATE->m_vRealPosition->isBeingAnimated() ||
-        PCANDIDATE->m_vRealSize->isBeingAnimated())
+    if (!PCANDIDATE->m_bIsX11 &&
+        (PCANDIDATE->m_vRealSize->value() != pMonitor->vecSize || PCANDIDATE->m_vRealPosition->value() != pMonitor->vecPosition || PCANDIDATE->m_vRealPosition->isBeingAnimated() ||
+         PCANDIDATE->m_vRealSize->isBeingAnimated()))
         return;
 
     if (!pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty())

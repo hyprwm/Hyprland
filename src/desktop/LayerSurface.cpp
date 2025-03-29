@@ -438,6 +438,10 @@ void CLayerSurface::applyRules() {
                 } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
                 break;
             }
+            case CLayerRule::RULE_ABOVELOCK: {
+                m_aboveLockscreen = true;
+                break;
+            }
             default: break;
         }
     }

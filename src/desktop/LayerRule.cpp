@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "../debug/Log.hpp"
 
-static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
+static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround", "abovelock"};
 static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_targetNamespace(ns_), m_rule(rule_) {
@@ -21,6 +21,8 @@ CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_tar
         m_ruleType = RULE_BLURPOPUPS;
     else if (m_rule == "dimaround")
         m_ruleType = RULE_DIMAROUND;
+    else if (m_rule == "abovelock")
+        m_ruleType = RULE_ABOVELOCK;
     else if (m_rule.starts_with("ignorealpha"))
         m_ruleType = RULE_IGNOREALPHA;
     else if (m_rule.starts_with("ignorezero"))

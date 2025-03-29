@@ -50,6 +50,7 @@ class CLayerSurface {
     float                      m_ignoreAlphaValue = 0.f;
     bool                       m_dimAround        = false;
     int64_t                    m_order            = 0;
+    bool                       m_aboveLockscreen  = false;
 
     std::optional<std::string> m_animationStyle;
 

@@ -131,5 +131,6 @@ inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
     HYPRATOM("DELETE"),
     HYPRATOM("TEXT"),
     HYPRATOM("INCR"),
+    HYPRATOM("_XWAYLAND_GLOBAL_OUTPUT_SCALE"),
 #endif
 };

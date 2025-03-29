@@ -9,6 +9,7 @@
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <cstdint>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <map>
 
@@ -78,6 +79,26 @@ enum eMonitorExtraRenderFBs : uint8_t {
     FB_MONITOR_RENDER_EXTRA_BLUR,
 };
 
+struct SPreparedShaders {
+    std::string TEXVERTSRC;
+    std::string TEXVERTSRC300;
+    std::string TEXVERTSRC320;
+    CShader     m_shQUAD;
+    CShader     m_shRGBA;
+    CShader     m_shPASSTHRURGBA;
+    CShader     m_shMATTE;
+    CShader     m_shRGBX;
+    CShader     m_shEXT;
+    CShader     m_shBLUR1;
+    CShader     m_shBLUR2;
+    CShader     m_shBLURPREPARE;
+    CShader     m_shBLURFINISH;
+    CShader     m_shSHADOW;
+    CShader     m_shBORDER1;
+    CShader     m_shGLITCH;
+    CShader     m_shCM;
+};
+
 struct SMonitorRenderData {
     CFramebuffer offloadFB;
     CFramebuffer mirrorFB;     // these are used for some effects,
@@ -90,23 +111,6 @@ struct SMonitorRenderData {
 
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
-
-    // Shaders
-    bool    m_bShadersInitialized = false;
-    CShader m_shQUAD;
-    CShader m_shRGBA;
-    CShader m_shPASSTHRURGBA;
-    CShader m_shMATTE;
-    CShader m_shRGBX;
-    CShader m_shEXT;
-    CShader m_shBLUR1;
-    CShader m_shBLUR2;
-    CShader m_shBLURPREPARE;
-    CShader m_shBLURFINISH;
-    CShader m_shSHADOW;
-    CShader m_shBORDER1;
-    CShader m_shGLITCH;
-    CShader m_shCM;
 };
 
 struct SCurrentRenderData {
@@ -232,6 +236,10 @@ class CHyprOpenGLImpl {
     EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
     SP<CEGLSync>                         createEGLSync(int fence = -1);
 
+    bool                                 initShaders();
+    bool                                 m_bShadersInitialized = false;
+    SP<SPreparedShaders>                 m_shaders;
+
     SCurrentRenderData                   m_RenderData;
 
     Hyprutils::OS::CFileDescriptor       m_iGBMFD;
@@ -309,7 +317,6 @@ class CHyprOpenGLImpl {
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
     GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                    createBGTextureForMonitor(PHLMONITOR);
-    void                    initShaders();
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
@@ -322,6 +329,9 @@ class CHyprOpenGLImpl {
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
+    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
+                                 bool modifySDR = false);
+    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);

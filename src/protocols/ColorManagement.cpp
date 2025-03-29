@@ -331,11 +331,16 @@ const hdr_output_metadata& CColorManagementSurface::hdrMetadata() {
 }
 
 void CColorManagementSurface::setHDRMetadata(const hdr_output_metadata& metadata) {
-    m_hdrMetadata      = metadata;
-    m_needsNewMetadata = false;
+    m_hdrMetadata          = metadata;
+    m_lastImageDescription = m_imageDescription;
+    m_needsNewMetadata     = false;
 }
 
 bool CColorManagementSurface::needsHdrMetadataUpdate() {
+    if (!m_needsNewMetadata)
+        return false;
+    if (m_imageDescription == m_lastImageDescription)
+        m_needsNewMetadata = false;
     return m_needsNewMetadata;
 }
 

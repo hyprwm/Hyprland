@@ -65,6 +65,7 @@ class CColorManagementSurface {
     SP<CWpColorManagementSurfaceV1>     m_resource;
     wl_client*                          pClient = nullptr;
     NColorManagement::SImageDescription m_imageDescription;
+    NColorManagement::SImageDescription m_lastImageDescription;
     bool                                m_hasImageDescription = false;
     bool                                m_needsNewMetadata    = false;
     hdr_output_metadata                 m_hdrMetadata;

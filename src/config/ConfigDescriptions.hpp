@@ -1223,6 +1223,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "misc:anr_dialog_delay",
+        .description = "delay in milliseconds before showing the ANR dialog",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1500, 200, 30000},
+    },
 
     /*
      * binds:

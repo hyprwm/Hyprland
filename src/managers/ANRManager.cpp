@@ -11,13 +11,14 @@
 
 using namespace Hyprutils::OS;
 
-static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
-
 CANRManager::CANRManager() {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
         Debug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
         return;
     }
+
+    static auto PANRDELAY     = CConfigValue<Hyprlang::INT>("misc:anr_dialog_delay");
+    const auto  TIMER_TIMEOUT = std::chrono::milliseconds(*PANRDELAY);
 
     m_timer = makeShared<CEventLoopTimer>(TIMER_TIMEOUT, [this](SP<CEventLoopTimer> self, void* data) { onTick(); }, this);
     g_pEventLoopManager->addTimer(m_timer);
@@ -41,7 +42,9 @@ CANRManager::CANRManager() {
 void CANRManager::onTick() {
     std::erase_if(m_data, [](const auto& e) { return e->isDefunct(); });
 
-    static auto PENABLEANR = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
+    static auto PENABLEANR    = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
+    static auto PANRDELAY     = CConfigValue<Hyprlang::INT>("misc:anr_dialog_delay");
+    const auto  TIMER_TIMEOUT = std::chrono::milliseconds(*PANRDELAY);
 
     if (!*PENABLEANR) {
         m_timer->updateTimeout(TIMER_TIMEOUT * 10);
@@ -203,12 +206,13 @@ bool CANRManager::SANRData::isThreadRunning() {
     return pthread_kill(dialogThread.native_handle(), 0) != ESRCH;
 }
 
-void CANRManager::SANRData::killDialog() const {
+void CANRManager::SANRData::killDialog() {
     if (!dialogProc)
         return;
 
     if (!dialogProc->pid()) {
-        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid. If you have hyprutils <= 0.6.0, you will crash soon. Otherwise, dialog failed to spawn??");
+        Debug::log(ERR, "ANR: cannot kill dialogProc, as it doesn't have a pid.");
+        dialogProc = nullptr;
         return;
     }
 

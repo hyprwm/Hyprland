@@ -8,8 +8,11 @@ IHLBuffer::~IHLBuffer() {
 
 void IHLBuffer::sendRelease() {
     resource->sendRelease();
-    if (release && release->timeline())
-        release->signal();
+    for (auto const& point : releasePoints) {
+        if (point && point->timeline())
+            point->signal();
+    }
+    releasePoints.clear();
 }
 
 void IHLBuffer::lock() {
@@ -27,6 +30,12 @@ void IHLBuffer::unlock() {
 
 bool IHLBuffer::locked() {
     return nLocks > 0;
+}
+
+void IHLBuffer::addReleasePoint(UP<CDRMSyncPointState> point) {
+    ASSERT(locked());
+    if (point && point->timeline())
+        releasePoints.push_back(std::move(point));
 }
 
 void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {

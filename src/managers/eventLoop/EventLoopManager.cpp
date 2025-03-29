@@ -64,8 +64,8 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
         return 0;
     }
 
-    if (mask & WL_EVENT_READABLE) {}
-    g_pEventLoopManager->removeReadableWaiterSource((CEventLoopManager::SReadableWaiterSource*)data);
+    if (mask & WL_EVENT_READABLE)
+        g_pEventLoopManager->removeReadableWaiterSource((CEventLoopManager::SReadableWaiterSource*)data);
 
     return 0;
 }
@@ -187,8 +187,11 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
         &m_sIdle);
 }
 
-void CEventLoopManager::doOnAllReadable(const std::vector<int>& fds, const std::function<void()>& fn) {
-    if (fds.empty() || std::ranges::all_of(fds, [](int i) { return i == -1; })) {
+void CEventLoopManager::doOnAllReadable(const std::vector<int>& fds_, const std::function<void()>& fn) {
+    std::vector<int> fds = fds_;
+    std::erase(fds, -1);
+
+    if (fds.empty()) {
         fn();
         return;
     }
@@ -196,8 +199,6 @@ void CEventLoopManager::doOnAllReadable(const std::vector<int>& fds, const std::
     // check if all fds are already readable
     bool allReadable = true;
     for (int fd : fds) {
-        if (fd == -1)
-            continue;
         pollfd pfd  = {.fd = fd, .events = POLLIN, .revents = 0};
         allReadable = allReadable && poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN);
     }
@@ -211,10 +212,7 @@ void CEventLoopManager::doOnAllReadable(const std::vector<int>& fds, const std::
     locker->waiters.reserve(fds.size());
     locker->fn = fn;
     for (size_t i = 0; i < fds.size(); i++) {
-        auto& waiter = locker->waiters.emplace_back(SReadableWaiterSource(nullptr, fds[i]));
-        if (waiter.fd == -1)
-            continue;
-
+        auto& waiter  = locker->waiters.emplace_back(SReadableWaiterSource(nullptr, fds[i]));
         waiter.source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, waiter.fd, WL_EVENT_READABLE, ::handleWaiterFD, &waiter);
         locker->locks++;
     }

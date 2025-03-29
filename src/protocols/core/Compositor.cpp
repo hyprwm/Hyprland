@@ -121,10 +121,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        const bool newBuffer = pending.updated & SSurfaceState::SURFACE_UPDATED_BUFFER;
-        if ((!newBuffer) ||                          // no new buffer attached
-            (!pending.buffer && !pending.texture) || // null buffer attached
-            (pending.buffer->isSynchronous())        // synchronous buffers (ex. shm) can be read immediately
+        const bool newBuffer  = pending.updated & SSurfaceState::SURFACE_UPDATED_BUFFER;
+        const bool hasAcquire = pending.updated & SSurfaceState::SURFACE_UPDATED_ACQUIRE;
+        if ((!newBuffer) ||                                  // no new buffer attached
+            (!pending.buffer && !pending.texture) ||         // null buffer attached
+            (!hasAcquire && pending.buffer->isSynchronous()) // synchronous buffers (ex. shm) can be read immediately
         ) {
             pending.ready = true;
             commitState(pending);
@@ -152,9 +153,9 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             }
         };
 
-        if (syncobj && state->buffer->acquire && state->buffer->acquire->timeline()) {
+        if (hasAcquire) {
             // wait on acquire point for this surface, from explicit sync protocol
-            state->buffer->acquire->addWaiter(whenReadable);
+            state->acquire->addWaiter(whenReadable);
         } else if (state->buffer->dmabuf().success) {
             // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#implicit-fence-poll-support
             // wait for the dma-buf fd's to become readable

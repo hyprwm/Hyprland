@@ -87,19 +87,18 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         if (pendingAcquire.timeline().expired() || pendingRelease.timeline().expired())
             return;
 
-        if (pendingAcquire.timeline() == pendingRelease.timeline()) {
-            if (pendingAcquire.point() >= pendingRelease.point()) {
-                resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
-                surface->pending.rejected = true;
-                return;
-            }
+        if (pendingAcquire.timeline() == pendingRelease.timeline() && pendingAcquire.point() >= pendingRelease.point()) {
+            resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
+            surface->pending.rejected = true;
+            return;
         }
 
-        surface->pending.buffer->acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
-        pendingAcquire                   = {};
+        surface->pending.updated |= SSurfaceState::SURFACE_UPDATED_ACQUIRE;
+        surface->pending.acquire = makeUnique<CDRMSyncPointState>(std::move(pendingAcquire));
+        pendingAcquire           = {};
 
-        surface->pending.buffer->release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
-        pendingRelease                   = {};
+        surface->pending.buffer->addReleasePoint(makeUnique<CDRMSyncPointState>(std::move(pendingRelease)));
+        pendingRelease = {};
     });
 }
 

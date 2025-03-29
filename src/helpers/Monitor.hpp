@@ -183,6 +183,7 @@ class CMonitor {
     // methods
     void                                onConnect(bool noRule);
     void                                onDisconnect(bool destroy = false);
+    void                                applyCMType(eCMType cmType);
     bool                                applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
     void                                addDamage(const pixman_region32_t* rg);
     void                                addDamage(const CRegion& rg);

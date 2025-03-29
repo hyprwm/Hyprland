@@ -1481,9 +1481,12 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
-    static auto PCT   = CConfigValue<Hyprlang::INT>("render:send_content_type");
-    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    const bool  PHDR  = pMonitor->m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
+    static auto PCT      = CConfigValue<Hyprlang::INT>("render:send_content_type");
+    static auto PPASS    = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
+
+    bool        wantHDR     = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
+    const bool  hdsIsActive = pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
@@ -1496,32 +1499,40 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         //           fullscreen SDR surface: monitor settings
         //           fullscreen HDR surface: surface settings
 
-        bool wantHDR      = PHDR;
         bool hdrIsHandled = false;
-        if (*PPASS && pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
+        if (pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->m_activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_wlSurface->resource();
             const auto SURF =
                 ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->m_colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
 
-            wantHDR = PHDR && *PPASS == 2;
-
-            // we have a surface with image description and it's allowed by wantHDR
-            if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription() &&
-                (!wantHDR || SURF->m_colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) {
-                bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
-                if (SURF->m_colorManagement->needsHdrMetadataUpdate())
-                    SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor->m_output->parsedEDID));
-                if (needsHdrMetadataUpdate)
-                    pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
-                hdrIsHandled = true;
+            // we have a surface with image description
+            if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
+                const bool surfaceIsHDR = SURF->m_colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
+                if (*PPASS == 1 || (*PPASS == 2 && surfaceIsHDR)) {
+                    // passthrough
+                    bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
+                    if (SURF->m_colorManagement->needsHdrMetadataUpdate())
+                        SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor->m_output->parsedEDID));
+                    if (needsHdrMetadataUpdate)
+                        pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
+                    hdrIsHandled = true;
+                } else if (*PAUTOHDR && surfaceIsHDR)
+                    wantHDR = true; // auto-hdr: hdr on
             }
 
             pMonitor->m_previousFSWindow = WINDOW;
         }
+
         if (!hdrIsHandled) {
-            if ((pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != wantHDR)
+            if (hdsIsActive != wantHDR) {
+                if (*PAUTOHDR && (!hdsIsActive || (hdsIsActive && pMonitor->m_cmType != CM_HDR))) {
+                    // modify or restore monitor image description for auto-hdr
+                    // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
+                    pMonitor->applyCMType(wantHDR ? CM_HDR : pMonitor->m_cmType);
+                }
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor->m_output->parsedEDID) : NO_HDR_METADATA);
+            }
             pMonitor->m_previousFSWindow.reset();
         }
     }

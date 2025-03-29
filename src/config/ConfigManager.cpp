@@ -747,6 +747,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:cm_fs_passthrough", Hyprlang::INT{2});
     registerConfigVar("render:cm_enabled", Hyprlang::INT{1});
     registerConfigVar("render:send_content_type", Hyprlang::INT{1});
+    registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});

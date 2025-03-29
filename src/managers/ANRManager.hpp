@@ -43,7 +43,7 @@ class CANRManager {
 
         void                        runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID);
         bool                        isThreadRunning();
-        void                        killDialog() const;
+        void                        killDialog();
         bool                        isDefunct() const;
         bool                        fitsWindow(PHLWINDOW pWindow) const;
         pid_t                       getPid() const;

@@ -26,6 +26,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -1485,8 +1486,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PPASS    = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
 
-    bool        wantHDR     = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
-    const bool  hdsIsActive = pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+    const bool  configuredHDR = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
+    const bool  hdsIsActive   = pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+    bool        wantHDR       = configuredHDR;
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
@@ -1526,10 +1528,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
         if (!hdrIsHandled) {
             if (hdsIsActive != wantHDR) {
-                if (*PAUTOHDR && (!hdsIsActive || (hdsIsActive && pMonitor->m_cmType != CM_HDR))) {
+                if (*PAUTOHDR && hdsIsActive != configuredHDR) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
-                    pMonitor->applyCMType(wantHDR ? CM_HDR : pMonitor->m_cmType);
+                    pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);
                 }
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor->m_output->parsedEDID) : NO_HDR_METADATA);
             }

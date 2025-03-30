@@ -8,6 +8,7 @@
 
 class CSyncReleaser;
 class CDRMSyncPointState;
+class CHLBufferReference;
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
@@ -36,6 +37,8 @@ class IHLBuffer : public Aquamarine::IBuffer {
 
   private:
     int nLocks = 0;
+
+    friend class CHLBufferReference;
 };
 
 // for ref-counting. Releases in ~dtor
@@ -53,6 +56,9 @@ class CHLBufferReference {
     bool                operator==(const SP<Aquamarine::IBuffer>& other) const;
     SP<IHLBuffer>       operator->() const;
     operator bool() const;
+
+    // unlock and drop the buffer without sending release
+    void                   drop();
 
     UP<CDRMSyncPointState> release;
     SP<IHLBuffer>          buffer;

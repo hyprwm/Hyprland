@@ -76,6 +76,9 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         pending.offset = {x, y};
 
+        if (pending.buffer)
+            pending.buffer.drop(); // attached and then replaced ... will not receive a release event.
+
         auto buf = buffer ? CWLBufferResource::fromResource(buffer) : nullptr;
 
         if (buf && buf->buffer) {

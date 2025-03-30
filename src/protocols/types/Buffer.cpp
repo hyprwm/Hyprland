@@ -94,3 +94,13 @@ SP<IHLBuffer> CHLBufferReference::operator->() const {
 CHLBufferReference::operator bool() const {
     return buffer;
 }
+
+void CHLBufferReference::drop() {
+    if (!buffer)
+        return;
+
+    buffer->nLocks--;
+    ASSERT(buffer->nLocks >= 0);
+
+    buffer = nullptr;
+}

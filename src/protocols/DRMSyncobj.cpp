@@ -19,14 +19,6 @@ WP<CSyncTimeline> CDRMSyncPointState::timeline() {
     return m_timeline;
 }
 
-UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
-    if (m_releaseTaken)
-        Debug::log(ERR, "CDRMSyncPointState: creating a sync releaser on an already created SyncRelease");
-
-    m_releaseTaken = true;
-    return makeUnique<CSyncReleaser>(m_timeline, m_point);
-}
-
 bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
     m_acquireCommitted = true;
     return m_timeline->addWaiter(waiter, m_point, 0u);
@@ -110,8 +102,6 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         surface->pending.buffer.release = makeUnique<CDRMSyncPointState>(std::move(pendingRelease));
         pendingRelease                  = {};
-
-        surface->pending.buffer->syncReleaser = surface->pending.buffer.release->createSyncRelease();
     });
 }
 

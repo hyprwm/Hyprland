@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <filesystem>
@@ -1543,25 +1542,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    auto explicitOptions = getExplicitSyncSettings(pMonitor->output);
-    if (!explicitOptions.explicitEnabled)
-        return ok;
-
-    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-
-    if (!pMonitor->eglSync)
-        Debug::log(TRACE, "Explicit: can't add sync, monitor has no EGLSync");
-    else {
-        for (auto const& e : explicitPresented) {
-            if (!e->current.buffer || !e->current.buffer->syncReleaser)
-                continue;
-
-            e->current.buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
-        }
-    }
-
-    explicitPresented.clear();
-
     return ok;
 }
 
@@ -2290,6 +2270,11 @@ void CHyprRenderer::endRender() {
             return;
         }
 
+        // release all CHLBufferRefernce (with buf locks) when EGLSync is signalled,
+        // meaning that when opengl rendering is done we send release for all used buffers
+        PMONITOR->inTimeline->addWaiter([prevbfs = std::move(usedBuffers)]() mutable { prevbfs.clear(); }, PMONITOR->inTimelinePoint, 0u);
+        usedBuffers.clear();
+
         if (m_eRenderMode == RENDER_MODE_NORMAL && explicitOptions.explicitKMSEnabled) {
             PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->inTimelinePoint)};
             if (!PMONITOR->inFence.isValid()) {
@@ -2304,6 +2289,8 @@ void CHyprRenderer::endRender() {
             glFinish();
         else
             glFlush();
+
+        usedBuffers.clear();
     }
 }
 

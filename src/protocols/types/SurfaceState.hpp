@@ -8,6 +8,9 @@ class CTexture;
 class CDRMSyncPointState;
 
 struct SSurfaceState {
+    SSurfaceState() = default;
+    SSurfaceState(SSurfaceState&& other) noexcept; // move constructor, copies state and moves acquire UP
+
     union {
         uint16_t all = 0;
         struct {
@@ -24,6 +27,7 @@ struct SSurfaceState {
     } updated;
 
     bool rejected = false;
+    bool ready    = false;
 
     // initial values, copied from protocol text
     CHLBufferReference  buffer = {};                                  // The initial surface contents are void

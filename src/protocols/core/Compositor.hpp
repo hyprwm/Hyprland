@@ -9,6 +9,7 @@
 */
 
 #include <vector>
+#include <queue>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
@@ -87,7 +88,7 @@ class CWLSurfaceResource {
     } events;
 
     SSurfaceState                          current, pending;
-    std::vector<UP<SSurfaceState>>         pendingStates;
+    std::queue<UP<SSurfaceState>>          pendingStates;
 
     std::vector<SP<CWLCallbackResource>>   callbacks;
     WP<CWLSurfaceResource>                 self;

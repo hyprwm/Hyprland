@@ -50,6 +50,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
 
 void SSurfaceState::reset() {
     updated.all = false;
+    ready       = false;
 
     // After commit, there is no pending buffer until the next attach.
     buffer = {};
@@ -60,6 +61,10 @@ void SSurfaceState::reset() {
     // wl_surface.commit assings pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
+}
+
+SSurfaceState::SSurfaceState(SSurfaceState&& other) noexcept : acquire(std::move(other.acquire)) {
+    ;
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {

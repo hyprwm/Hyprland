@@ -115,6 +115,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         events.precommit.emit();
         if (pending.rejected) {
+            pending.rejected = false;
             dropPendingBuffer();
             return;
         }
@@ -123,21 +124,30 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             (!pending.buffer && !pending.texture) ||                      // null buffer attached
             (!pending.updated.acquire && pending.buffer->isSynchronous()) // synchronous buffers (ex. shm) can be read immediately
         ) {
+            pending.ready = true;
             commitState(pending);
             pending.reset();
             return;
         }
 
         // save state while we wait for buffer to become ready
-        const auto& state = pendingStates.emplace_back(makeUnique<SSurfaceState>(pending));
+        const auto& state = pendingStates.emplace(makeUnique<SSurfaceState>(std::move(pending)));
         pending.reset();
 
-        auto whenReadable = [this, surf = self, state = WP<SSurfaceState>(pendingStates.back())] {
-            if (!surf || state.expired())
+        auto whenReadable = [this, surf = self, it = WP<SSurfaceState>(pendingStates.back())] {
+            if (!surf || it.expired())
                 return;
 
-            surf->commitState(*state);
-            std::erase(pendingStates, state);
+            it->ready = true;
+
+            // to preserve order, only the front buffer can ever be comitted
+            if (pendingStates.front() != it)
+                return;
+
+            while (!pendingStates.empty() && pendingStates.front()->ready) {
+                commitState(*pendingStates.front());
+                pendingStates.pop();
+            }
         };
 
         if (pending.updated.acquire) {

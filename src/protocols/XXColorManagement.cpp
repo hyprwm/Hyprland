@@ -245,8 +245,8 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
         }
 
         if (surface.valid()) {
-            surface->colorManagement->setHasImageDescription(true);
             surface->colorManagement->m_imageDescription = imageDescription->get()->settings;
+            surface->colorManagement->setHasImageDescription(true);
         } else
             LOGM(ERR, "Set image description for invalid surface");
     });

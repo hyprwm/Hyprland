@@ -94,7 +94,7 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
     return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.bufferSize;
 }
 
-CRegion CWLSurface::computeRenderDamage() const {
+CRegion CWLSurface::computeRenderDamage() {
     if (!m_pResource->current.texture)
         return {};
 

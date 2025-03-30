@@ -37,9 +37,11 @@ class CWLSurface {
     Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
     Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
     Vector2D               getViewporterCorrectedSize() const;
-    CRegion                computeRenderDamage() const; // logical coordinates. May be wrong if the surface is unassigned
-    bool                   visible();
-    bool                   keyboardFocusable() const;
+    // Logical coordinates. May be wrong if the surface is unassigned.
+    // Returns damage since computeRenderDamage was last called.
+    CRegion computeRenderDamage();
+    bool    visible();
+    bool    keyboardFocusable() const;
 
     // getters for owners.
     PHLWINDOW    getWindow() const;

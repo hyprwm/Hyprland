@@ -7,6 +7,7 @@
 #include <limits>
 #include <ranges>
 
+#include <sys/poll.h>
 #include <sys/timerfd.h>
 #include <ctime>
 
@@ -24,6 +25,13 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
 CEventLoopManager::~CEventLoopManager() {
     for (auto const& [_, eventSourceData] : aqEventSources) {
         wl_event_source_remove(eventSourceData.eventSource);
+    }
+
+    for (auto const& l : m_vReadableWaitersLockers) {
+        for (auto const& w : l->waiters) {
+            if (w.source != nullptr)
+                wl_event_source_remove(w.source);
+        }
     }
 
     if (m_sWayland.eventSource)
@@ -48,6 +56,42 @@ static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
     g_pConfigWatcher->onInotifyEvent();
     return 0;
+}
+
+static int handleWaiterFD(int fd, uint32_t mask, void* data) {
+    if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
+        Debug::log(ERR, "handleWaiterFD: readable waiter error");
+        return 0;
+    }
+
+    if (mask & WL_EVENT_READABLE)
+        g_pEventLoopManager->removeReadableWaiterSource((CEventLoopManager::SReadableWaiterSource*)data);
+
+    return 0;
+}
+
+void CEventLoopManager::removeReadableWaiterSource(SReadableWaiterSource* waiter_) {
+    auto it = std::ranges::find_if(m_vReadableWaitersLockers, [waiter_](const UP<SReadableWaiter>& l) {
+        return std::ranges::any_of(l->waiters, [waiter_](const SReadableWaiterSource& w) { return w.fd == waiter_->fd && w.source == waiter_->source; });
+    });
+
+    if (waiter_->source) {
+        wl_event_source_remove(waiter_->source);
+        waiter_->source = nullptr;
+    }
+
+    if (it == m_vReadableWaitersLockers.end())
+        return;
+
+    WP<SReadableWaiter> locker = *it;
+
+    locker->locks--;
+    ASSERT(locker->locks >= 0);
+
+    if (locker->locks == 0) {
+        locker->fn();
+        std::erase_if(m_vReadableWaitersLockers, [locker](const UP<SReadableWaiter>& oth) { return oth == locker; });
+    }
 }
 
 void CEventLoopManager::enterLoop() {
@@ -141,6 +185,37 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
             }
         },
         &m_sIdle);
+}
+
+void CEventLoopManager::doOnAllReadable(const std::vector<int>& fds_, const std::function<void()>& fn) {
+    std::vector<int> fds = fds_;
+    std::erase(fds, -1);
+
+    if (fds.empty()) {
+        fn();
+        return;
+    }
+
+    // check if all fds are already readable
+    bool allReadable = true;
+    for (int fd : fds) {
+        pollfd pfd  = {.fd = fd, .events = POLLIN, .revents = 0};
+        allReadable = allReadable && poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN);
+    }
+
+    if (allReadable) {
+        fn();
+        return;
+    }
+
+    auto& locker = m_vReadableWaitersLockers.emplace_back(makeUnique<SReadableWaiter>());
+    locker->waiters.reserve(fds.size());
+    locker->fn = fn;
+    for (size_t i = 0; i < fds.size(); i++) {
+        auto& waiter  = locker->waiters.emplace_back(SReadableWaiterSource(nullptr, fds[i]));
+        waiter.source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, waiter.fd, WL_EVENT_READABLE, ::handleWaiterFD, &waiter);
+        locker->locks++;
+    }
 }
 
 void CEventLoopManager::syncPollFDs() {

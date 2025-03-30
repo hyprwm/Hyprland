@@ -34,13 +34,6 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, CFileDescriptor&& drmSyncobj
 }
 
 CSyncTimeline::~CSyncTimeline() {
-    for (auto& w : waiters) {
-        if (w->source) {
-            wl_event_source_remove(w->source);
-            w->source = nullptr;
-        }
-    }
-
     if (handle == 0)
         return;
 
@@ -64,34 +57,8 @@ std::optional<bool> CSyncTimeline::check(uint64_t point, uint32_t flags) {
     return ret == 0;
 }
 
-static int handleWaiterFD(int fd, uint32_t mask, void* data) {
-    auto waiter = (CSyncTimeline::SWaiter*)data;
-
-    if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        Debug::log(ERR, "handleWaiterFD: eventfd error");
-        return 0;
-    }
-
-    if (mask & WL_EVENT_READABLE) {
-        uint64_t value = 0;
-        if (read(fd, &value, sizeof(value)) <= 0)
-            Debug::log(ERR, "handleWaiterFD: failed to read from eventfd");
-    }
-
-    wl_event_source_remove(waiter->source);
-    waiter->source = nullptr;
-
-    if (waiter->fn)
-        waiter->fn();
-
-    if (waiter->timeline)
-        waiter->timeline->removeWaiter(waiter);
-
-    return 0;
-}
-
 bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t point, uint32_t flags) {
-    CFileDescriptor eventFd = CFileDescriptor{eventfd(0, EFD_CLOEXEC)};
+    auto eventFd = CFileDescriptor{eventfd(0, EFD_CLOEXEC)};
 
     if (!eventFd.isValid()) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
@@ -108,39 +75,13 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
         return true;
     }
 
-    auto w      = makeShared<SWaiter>();
-    w->fn       = waiter;
-    w->timeline = self;
-    w->eventFd  = std::move(eventFd);
-
-    w->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, w->eventFd.get(), WL_EVENT_READABLE, ::handleWaiterFD, w.get());
-    if (!w->source) {
-        Debug::log(ERR, "CSyncTimeline::addWaiter: wl_event_loop_add_fd failed");
-        return false;
-    }
-
-    waiters.emplace_back(w);
+    g_pEventLoopManager->doOnAllReadable({eventFd.get()}, [waiter, fd = eventFd.take()]() {
+        waiter();
+        if (fd != -1)
+            close(fd);
+    });
 
     return true;
-}
-
-void CSyncTimeline::removeWaiter(SWaiter* w) {
-    if (w->source) {
-        wl_event_source_remove(w->source);
-        w->source = nullptr;
-    }
-    std::erase_if(waiters, [w](const auto& e) { return e.get() == w; });
-}
-
-void CSyncTimeline::removeAllWaiters() {
-    for (auto& w : waiters) {
-        if (w->source) {
-            wl_event_source_remove(w->source);
-            w->source = nullptr;
-        }
-    }
-
-    waiters.clear();
 }
 
 CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {

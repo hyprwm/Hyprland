@@ -8,6 +8,7 @@
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../helpers/sync/SyncReleaser.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
@@ -158,8 +159,16 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             state->acquire->addWaiter(whenReadable);
         } else if (state->buffer->dmabuf().success) {
             // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#implicit-fence-poll-support
-            // TODO: wait for the dma-buf fd's to become readable
-            whenReadable();
+            // wait for the dma-buf fd's to become readable
+
+            const auto&      attrs = state->buffer->dmabuf();
+
+            std::vector<int> fds(attrs.planes);
+            for (int i = 0; i < attrs.planes; i++) {
+                fds[i] = attrs.fds[i];
+            }
+
+            g_pEventLoopManager->doOnAllReadable(fds, whenReadable);
         } else {
             whenReadable();
         }
@@ -181,8 +190,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         pending.updated.scale  = true;
         pending.updated.damage = true;
 
-        pending.scale        = scale;
         pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        pending.scale        = scale;
     });
 
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
@@ -192,8 +201,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         pending.updated.transform = true;
         pending.updated.damage    = true;
 
-        pending.transform    = (wl_output_transform)tr;
         pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        pending.transform    = (wl_output_transform)tr;
     });
 
     resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {

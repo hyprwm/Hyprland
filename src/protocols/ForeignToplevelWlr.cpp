@@ -4,6 +4,7 @@
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../managers/EventManager.hpp"
 
 CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if UNLIKELY (!resource_->resource())
@@ -93,6 +94,30 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);
+    });
+
+    resource->setSetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = pWindow.lock();
+
+        if UNLIKELY (!PWINDOW)
+            return;
+
+        if UNLIKELY (!PWINDOW->m_bIsMapped)
+            return;
+
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},1", (uintptr_t)PWINDOW.get())});
+    });
+
+    resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = pWindow.lock();
+
+        if UNLIKELY (!PWINDOW)
+            return;
+
+        if UNLIKELY (!PWINDOW->m_bIsMapped)
+            return;
+
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},0", (uintptr_t)PWINDOW.get())});
     });
 
     resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {

@@ -392,13 +392,16 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
-        w.reset();
+
+        if (!w->m_bFadingOut)
+            w.reset();
     }
 
     if (lastWindow)
         renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
 
-    lastWindow.reset();
+    if (lastWindow && !lastWindow->m_bFadingOut)
+        lastWindow.reset();
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -416,7 +419,9 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_POPUP);
-        w.reset();
+
+        if (!w->m_bFadingOut)
+            w.reset();
     }
 
     // floating on top

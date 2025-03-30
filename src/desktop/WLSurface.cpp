@@ -94,11 +94,12 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
     return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.bufferSize;
 }
 
-CRegion CWLSurface::computeDamage() const {
+CRegion CWLSurface::computeRenderDamage() const {
     if (!m_pResource->current.texture)
         return {};
 
-    CRegion damage = m_pResource->current.accumulateBufferDamage();
+    CRegion damage = m_pResource->damageSinceLastRender;
+    m_pResource->damageSinceLastRender.clear();
     damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.bufferSize.x, m_pResource->current.bufferSize.y);
 
     const auto BUFSIZE    = m_pResource->current.bufferSize;

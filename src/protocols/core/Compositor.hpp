@@ -87,6 +87,7 @@ class CWLSurfaceResource {
     } events;
 
     SSurfaceState                          current, pending;
+    CRegion                                damageSinceLastRender;
 
     std::vector<SP<CWLCallbackResource>>   callbacks;
     WP<CWLSurfaceResource>                 self;

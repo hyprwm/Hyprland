@@ -52,7 +52,7 @@ installheaders:
 
 	cmake --build ./build --config Release --target generate-protocol-headers
 
-	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
+	find src -name '*.h*' -o -name '*.inc' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi

@@ -49,45 +49,49 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
 }
 
 void SSurfaceState::reset() {
+    updated.all = false;
+
+    // After commit, there is no pending buffer until the next attach.
+    buffer = {};
+
+    // it applies only to the buffer that is attached to the surface
+    acquire = {};
+
+    // wl_surface.commit assings pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
-    transform = WL_OUTPUT_TRANSFORM_NORMAL;
-    scale     = 1;
-    offset    = {};
-    size      = {};
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
     updated = ref.updated;
 
-    if (ref.updated & SURFACE_UPDATED_BUFFER) {
-        ref.updated &= ~SURFACE_UPDATED_BUFFER;
-        *this = ref;
-        ref.damage.clear();
-        ref.bufferDamage.clear();
-        ref.buffer = {};
-    } else {
-        if (ref.updated & SURFACE_UPDATED_DAMAGE) {
-            damage       = ref.damage;
-            bufferDamage = ref.bufferDamage;
-        }
-
-        if (ref.updated & SURFACE_UPDATED_INPUT)
-            input = ref.input;
-
-        if (ref.updated & SURFACE_UPDATED_OPAQUE)
-            opaque = ref.opaque;
-
-        if (ref.updated & SURFACE_UPDATED_OFFSET)
-            offset = ref.offset;
-
-        if (ref.updated & SURFACE_UPDATED_SCALE)
-            scale = ref.scale;
-
-        if (ref.updated & SURFACE_UPDATED_VIEWPORT)
-            viewport = ref.viewport;
-
-        if (ref.updated & SURFACE_UPDATED_TRANSFORM)
-            transform = ref.transform;
+    if (ref.updated.buffer) {
+        buffer     = ref.buffer;
+        texture    = ref.texture;
+        size       = ref.size;
+        bufferSize = ref.bufferSize;
     }
+
+    if (ref.updated.damage) {
+        damage       = ref.damage;
+        bufferDamage = ref.bufferDamage;
+    }
+
+    if (ref.updated.input)
+        input = ref.input;
+
+    if (ref.updated.opaque)
+        opaque = ref.opaque;
+
+    if (ref.updated.offset)
+        offset = ref.offset;
+
+    if (ref.updated.scale)
+        scale = ref.scale;
+
+    if (ref.updated.transform)
+        transform = ref.transform;
+
+    if (ref.updated.viewport)
+        viewport = ref.viewport;
 }

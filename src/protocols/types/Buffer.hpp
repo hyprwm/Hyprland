@@ -54,7 +54,6 @@ class CHLBufferReference {
     SP<IHLBuffer>       operator->() const;
     operator bool() const;
 
-    UP<CDRMSyncPointState> acquire;
     UP<CDRMSyncPointState> release;
     SP<IHLBuffer>          buffer;
 };

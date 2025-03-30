@@ -2156,8 +2156,6 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
             if (POLDMON)
                 g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
-            else
-                g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, pMonitor->ID);
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);

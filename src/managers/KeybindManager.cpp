@@ -1215,9 +1215,10 @@ static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSP
 SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
-    static auto PBACKANDFORTH         = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
-    static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
-    static auto PWORKSPACECENTERON    = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
+    static auto PBACKANDFORTH                 = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
+    static auto PALLOWWORKSPACECYCLES         = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    static auto PWORKSPACECENTERON            = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("binds:hide_special_on_workspace_change");
 
     const auto  PMONITOR = g_pCompositor->m_pLastMonitor.lock();
 
@@ -1239,8 +1240,12 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     const SWorkspaceIDName PPREVWS = args.contains("_per_monitor") ? PMONITOR->getPrevWorkspaceIDName(PCURRENTWORKSPACE->m_iID) : PCURRENTWORKSPACE->getPrevWorkspaceIDName();
 
     const bool             BISWORKSPACECURRENT = workspaceToChangeTo == PCURRENTWORKSPACE->m_iID;
-    if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PPREVWS.id == -1))
+    if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PPREVWS.id == -1)) {
+        if (*PHIDESPECIALONWORKSPACECHANGE)
+            PMONITOR->setSpecialWorkspace(nullptr);
+
         return {.success = false, .error = "Previous workspace doesn't exist"};
+    }
 
     g_pInputManager->unconstrainMouse();
     g_pInputManager->m_bEmptyFocusCursorSet = false;
@@ -1275,6 +1280,8 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     } else
         pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
 
+    if (*PHIDESPECIALONWORKSPACECHANGE)
+        PMONITORWORKSPACEOWNER->setSpecialWorkspace(nullptr);
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {

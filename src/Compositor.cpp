@@ -2315,6 +2315,9 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_sFullscreenState.internal);
     const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
 
+    if (PWINDOW->m_bIsFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE && EFFECTIVE_MODE != FSMODE_NONE)
+        g_pHyprRenderer->damageWindow(PWINDOW);
+
     if (*PALLOWPINFULLSCREEN && !PWINDOW->m_bPinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_bPinned) {
         PWINDOW->m_bPinned          = false;
         PWINDOW->m_bPinFullscreened = true;

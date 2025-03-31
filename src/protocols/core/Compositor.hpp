@@ -103,7 +103,7 @@ class CWLSurfaceResource {
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
-    void                                   commitPendingState(SSurfaceState& state);
+    void                                   commitState(SSurfaceState& state);
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

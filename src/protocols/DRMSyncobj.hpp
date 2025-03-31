@@ -2,7 +2,6 @@
 
 #include <vector>
 #include "WaylandProtocol.hpp"
-#include "../helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -17,13 +16,12 @@ class CDRMSyncPointState {
     CDRMSyncPointState(SP<CSyncTimeline> timeline_, uint64_t point_);
     ~CDRMSyncPointState() = default;
 
-    const uint64_t&                                  point();
-    WP<CSyncTimeline>                                timeline();
-    Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
-    bool                                             addWaiter(const std::function<void()>& waiter);
-    bool                                             comitted();
-    Hyprutils::OS::CFileDescriptor                   exportAsFD();
-    void                                             signal();
+    const uint64_t&                point();
+    WP<CSyncTimeline>              timeline();
+    bool                           addWaiter(const std::function<void()>& waiter);
+    bool                           comitted();
+    Hyprutils::OS::CFileDescriptor exportAsFD();
+    void                           signal();
 
     operator bool() const {
         return m_timeline;

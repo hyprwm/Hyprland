@@ -1,4 +1,5 @@
 #include "Buffer.hpp"
+#include "../DRMSyncobj.hpp"
 
 IHLBuffer::~IHLBuffer() {
     if (locked() && resource)
@@ -7,6 +8,11 @@ IHLBuffer::~IHLBuffer() {
 
 void IHLBuffer::sendRelease() {
     resource->sendRelease();
+    for (auto const& point : releasePoints) {
+        if (point && point->timeline())
+            point->signal();
+    }
+    releasePoints.clear();
 }
 
 void IHLBuffer::lock() {
@@ -18,10 +24,8 @@ void IHLBuffer::unlock() {
 
     ASSERT(nLocks >= 0);
 
-    if (nLocks == 0) {
+    if (nLocks == 0)
         sendRelease();
-        syncReleaser.reset();
-    }
 }
 
 bool IHLBuffer::locked() {
@@ -38,6 +42,12 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
         fn();
         hlEvents.backendRelease.reset();
     });
+}
+
+void IHLBuffer::addReleasePoint(UP<CDRMSyncPointState> point) {
+    ASSERT(locked());
+    if (point && point->timeline())
+        releasePoints.push_back(std::move(point));
 }
 
 CHLBufferReference::CHLBufferReference() : buffer(nullptr) {

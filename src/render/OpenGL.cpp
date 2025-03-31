@@ -1,3 +1,5 @@
+#include <GLES3/gl32.h>
+#include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <random>
@@ -908,13 +910,15 @@ static void getCMShaderUniforms(CShader& shader) {
     shader.skipCM          = glGetUniformLocation(shader.program, "skipCM");
     shader.sourceTF        = glGetUniformLocation(shader.program, "sourceTF");
     shader.targetTF        = glGetUniformLocation(shader.program, "targetTF");
-    shader.sourcePrimaries = glGetUniformLocation(shader.program, "sourcePrimaries");
+    shader.srcTFRange      = glGetUniformLocation(shader.program, "srcTFRange");
+    shader.dstTFRange      = glGetUniformLocation(shader.program, "dstTFRange");
     shader.targetPrimaries = glGetUniformLocation(shader.program, "targetPrimaries");
     shader.maxLuminance    = glGetUniformLocation(shader.program, "maxLuminance");
     shader.dstMaxLuminance = glGetUniformLocation(shader.program, "dstMaxLuminance");
     shader.dstRefLuminance = glGetUniformLocation(shader.program, "dstRefLuminance");
     shader.sdrSaturation   = glGetUniformLocation(shader.program, "sdrSaturation");
     shader.sdrBrightness   = glGetUniformLocation(shader.program, "sdrBrightnessMultiplier");
+    shader.convertMatrix   = glGetUniformLocation(shader.program, "convertMatrix");
 }
 
 // shader has #include "rounding.glsl"
@@ -1441,22 +1445,19 @@ void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManageme
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR) {
     glUniform1i(shader.sourceTF, imageDescription.transferFunction);
     glUniform1i(shader.targetTF, targetImageDescription.transferFunction);
-    const auto sourcePrimaries =
-        imageDescription.primariesNameSet || imageDescription.primaries == SPCPRimaries{} ? getPrimaries(imageDescription.primariesNamed) : imageDescription.primaries;
+
     const auto    targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
            getPrimaries(targetImageDescription.primariesNamed) :
            targetImageDescription.primaries;
 
-    const GLfloat glSourcePrimaries[8] = {
-        sourcePrimaries.red.x,  sourcePrimaries.red.y,  sourcePrimaries.green.x, sourcePrimaries.green.y,
-        sourcePrimaries.blue.x, sourcePrimaries.blue.y, sourcePrimaries.white.x, sourcePrimaries.white.y,
-    };
     const GLfloat glTargetPrimaries[8] = {
         targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
         targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
     };
-    glUniformMatrix4x2fv(shader.sourcePrimaries, 1, false, glSourcePrimaries);
     glUniformMatrix4x2fv(shader.targetPrimaries, 1, false, glTargetPrimaries);
+
+    glUniform2f(shader.srcTFRange, imageDescription.getTFMinLuminance(), imageDescription.getTFMaxLuminance());
+    glUniform2f(shader.dstTFRange, targetImageDescription.getTFMinLuminance(), targetImageDescription.getTFMaxLuminance());
 
     const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
     glUniform1f(shader.maxLuminance, maxLuminance * targetImageDescription.luminances.reference / imageDescription.luminances.reference);
@@ -1470,6 +1471,13 @@ void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManageme
                 modifySDR && m_RenderData.pMonitor->sdrBrightness > 0 && targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                     m_RenderData.pMonitor->sdrBrightness :
                     1.0f);
+    const auto    mat                = imageDescription.getPrimaries().convertMatrix(targetImageDescription.getPrimaries()).mat();
+    const GLfloat glConvertMatrix[9] = {
+        mat[0][0], mat[1][0], mat[2][0], //
+        mat[0][1], mat[1][1], mat[2][1], //
+        mat[0][2], mat[1][2], mat[2][2], //
+    };
+    glUniformMatrix3fv(shader.convertMatrix, 1, false, glConvertMatrix);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const SImageDescription& imageDescription) {

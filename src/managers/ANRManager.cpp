@@ -67,7 +67,7 @@ void CANRManager::onTick() {
         if (count == 0)
             continue;
 
-        if (data->missedResponses > *PANRTHRESHOLD) {
+        if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isThreadRunning() && !data->dialogThreadSaidWait) {
                 data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, data->getPid());
 

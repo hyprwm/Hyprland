@@ -44,7 +44,7 @@ CHLBufferReference::CHLBufferReference() : buffer(nullptr) {
     ;
 }
 
-CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : buffer(other.buffer) {
+CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : acquire(other.acquire), release(other.release), buffer(other.buffer) {
     if (buffer)
         buffer->lock();
 }
@@ -64,7 +64,9 @@ CHLBufferReference& CHLBufferReference::operator=(const CHLBufferReference& othe
         other.buffer->lock();
     if (buffer)
         buffer->unlock();
-    buffer = other.buffer;
+    buffer  = other.buffer;
+    acquire = other.acquire;
+    release = other.release;
     return *this;
 }
 

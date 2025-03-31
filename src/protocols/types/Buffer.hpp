@@ -3,11 +3,11 @@
 #include "../../defines.hpp"
 #include "../../render/Texture.hpp"
 #include "./WLBuffer.hpp"
+#include "../DRMSyncobj.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CSyncReleaser;
-class CDRMSyncPointState;
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
@@ -53,7 +53,7 @@ class CHLBufferReference {
     SP<IHLBuffer>       operator->() const;
     operator bool() const;
 
-    UP<CDRMSyncPointState> acquire;
-    UP<CDRMSyncPointState> release;
-    SP<IHLBuffer>          buffer;
+    CDRMSyncPointState acquire;
+    CDRMSyncPointState release;
+    SP<IHLBuffer>      buffer;
 };

@@ -1229,6 +1229,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "misc:anr_missed_pings",
+        .description = "number of missed pings before showing the ANR dialog",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+    },
 
     /*
      * binds:

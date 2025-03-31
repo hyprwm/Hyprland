@@ -11,13 +11,16 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
     resource->setDestroy([this](CHyprlandToplevelMappingManagerV1* h) { PROTO::toplevelMapping->onManagerResourceDestroy(this); });
 
     resource->setGetWindowForToplevel([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
-        const auto NEWHANDLE = makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle);
+        const auto NEWHANDLE = PROTO::toplevelMapping->m_vHandles.emplace_back(makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle));
 
         if UNLIKELY (!NEWHANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
             return;
         }
+
+        NEWHANDLE->setOnDestroy([](CHyprlandToplevelWindowMappingHandleV1* h) { PROTO::toplevelMapping->destroyHandle(h); });
+        NEWHANDLE->setDestroy([](CHyprlandToplevelWindowMappingHandleV1* h) { PROTO::toplevelMapping->destroyHandle(h); });
 
         const auto WINDOW = PROTO::foreignToplevel->windowFromHandleResource(toplevel);
         if (!WINDOW)
@@ -26,13 +29,16 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
             NEWHANDLE->sendWindowAddress((uint64_t)WINDOW.get() >> 32 & 0xFFFFFFFF, (uint64_t)WINDOW.get() & 0xFFFFFFFF);
     });
     resource->setGetWindowForToplevelWlr([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
-        const auto NEWHANDLE = makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle);
+        const auto NEWHANDLE = PROTO::toplevelMapping->m_vHandles.emplace_back(makeShared<CHyprlandToplevelWindowMappingHandleV1>(resource->client(), resource->version(), handle));
 
         if UNLIKELY (!NEWHANDLE->resource()) {
             LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
             resource->noMemory();
             return;
         }
+
+        NEWHANDLE->setOnDestroy([](CHyprlandToplevelWindowMappingHandleV1* h) { PROTO::toplevelMapping->destroyHandle(h); });
+        NEWHANDLE->setDestroy([](CHyprlandToplevelWindowMappingHandleV1* h) { PROTO::toplevelMapping->destroyHandle(h); });
 
         const auto WINDOW = PROTO::foreignToplevelWlr->windowFromHandleResource(toplevel);
         if (!WINDOW)
@@ -61,4 +67,8 @@ void CToplevelMappingProtocol::bindManager(wl_client* client, void* data, uint32
 
 void CToplevelMappingProtocol::onManagerResourceDestroy(CToplevelMappingManager* mgr) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == mgr; });
+}
+
+void CToplevelMappingProtocol::destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle) {
+    std::erase_if(m_vHandles, [&](const auto& other) { return other.get() == handle; });
 }

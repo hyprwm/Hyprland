@@ -21,9 +21,11 @@ class CToplevelMappingProtocol : IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
   private:
-    void                                     onManagerResourceDestroy(CToplevelMappingManager* mgr);
+    void                                                    onManagerResourceDestroy(CToplevelMappingManager* mgr);
+    void                                                    destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle);
 
-    std::vector<UP<CToplevelMappingManager>> m_vManagers;
+    std::vector<UP<CToplevelMappingManager>>                m_vManagers;
+    std::vector<SP<CHyprlandToplevelWindowMappingHandleV1>> m_vHandles;
 
     friend class CToplevelMappingManager;
 };

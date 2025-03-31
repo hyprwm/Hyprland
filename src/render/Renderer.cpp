@@ -360,7 +360,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
-    std::vector<PHLWINDOWREF> windows;
+    std::vector<PHLWINDOWREF> windows, tiledFadingOut;
     windows.reserve(g_pCompositor->m_vWindows.size());
 
     for (auto const& w : g_pCompositor->m_vWindows) {
@@ -390,6 +390,13 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
         }
 
+        // render tiled fading out after others
+        if (w->m_bFadingOut) {
+            tiledFadingOut.emplace_back(w);
+            w.reset();
+            continue;
+        }
+
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
         w.reset();
@@ -399,6 +406,11 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
 
     lastWindow.reset();
+
+    // render tiled windows that are fading out after other tiled to not hide them behind
+    for (auto& w : tiledFadingOut) {
+        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
+    }
 
     // Non-floating popup
     for (auto& w : windows) {

@@ -71,23 +71,29 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
-        pending.offset = {x, y};
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_BUFFER | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_OFFSET;
+        pending.updated.buffer = true;
+        pending.updated.offset = true;
 
-        if (!buffer) {
+        pending.offset = {x, y};
+
+        auto buf = buffer ? CWLBufferResource::fromResource(buffer) : nullptr;
+
+        if (buf && buf->buffer) {
+            pending.buffer     = CHLBufferReference(buf->buffer.lock());
+            pending.texture    = buf->buffer->texture;
+            pending.size       = buf->buffer->size;
+            pending.bufferSize = buf->buffer->size;
+        } else {
             pending.buffer = {};
             pending.texture.reset();
+            pending.size       = Vector2D{};
             pending.bufferSize = Vector2D{};
-        } else {
-            auto res           = CWLBufferResource::fromResource(buffer);
-            pending.buffer     = res && res->buffer ? CHLBufferReference(res->buffer.lock()) : CHLBufferReference();
-            pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
-            pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
-            pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
         }
 
-        if (pending.bufferSize != current.bufferSize)
-            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        if (pending.bufferSize != current.bufferSize) {
+            pending.updated.damage = true;
+            pending.bufferDamage   = CBox{{}, {INT32_MAX, INT32_MAX}};
+        }
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -113,30 +119,39 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (!syncobj)
-            commitPendingState(pending);
+        if (!syncobj) {
+            commitState(pending);
+            pending.reset();
+        }
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+        pending.updated.damage = true;
         pending.damage.add(CBox{x, y, w, h});
     });
     resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+        pending.updated.damage = true;
         pending.bufferDamage.add(CBox{x, y, w, h});
     });
 
     resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
         if (scale == pending.scale)
             return;
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_SCALE | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+
+        pending.updated.scale  = true;
+        pending.updated.damage = true;
+
         pending.scale        = scale;
         pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
+
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
         if (tr == pending.transform)
             return;
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_TRANSFORM | SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_DAMAGE;
+
+        pending.updated.transform = true;
+        pending.updated.damage    = true;
+
         pending.transform    = (wl_output_transform)tr;
         pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
@@ -147,7 +162,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_INPUT;
+        pending.updated.input = true;
 
         auto RG       = CWLRegionResource::fromResource(region);
         pending.input = RG->region;
@@ -159,7 +174,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_OPAQUE;
+        pending.updated.opaque = true;
 
         auto RG        = CWLRegionResource::fromResource(region);
         pending.opaque = RG->region;
@@ -168,8 +183,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     resource->setFrame([this](CWlSurface* r, uint32_t id) { callbacks.emplace_back(makeShared<CWLCallbackResource>(makeShared<CWlCallback>(pClient, 1, id))); });
 
     resource->setOffset([this](CWlSurface* r, int32_t x, int32_t y) {
-        pending.updated |= SSurfaceState::eUpdatedProperties::SURFACE_UPDATED_OFFSET;
-        pending.offset = {x, y};
+        pending.updated.offset = true;
+        pending.offset         = {x, y};
     });
 }
 
@@ -279,7 +294,6 @@ void CWLSurfaceResource::resetRole() {
 }
 
 void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
-
     std::vector<SP<CWLSurfaceResource>> nodes2;
     nodes2.reserve(nodes.size() * 2);
 
@@ -424,10 +438,9 @@ CBox CWLSurfaceResource::extends() {
     return full.getExtents();
 }
 
-void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
+void CWLSurfaceResource::commitState(SSurfaceState& state) {
     auto lastTexture = current.texture;
     current.updateFrom(state);
-    state.updated = 0;
 
     if (current.buffer) {
         if (current.buffer->isSynchronous())

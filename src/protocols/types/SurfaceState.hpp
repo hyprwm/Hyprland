@@ -5,6 +5,7 @@
 #include "./Buffer.hpp"
 
 class CTexture;
+class CDRMSyncPointState;
 
 struct SSurfaceState {
     union {
@@ -44,6 +45,9 @@ struct SSurfaceState {
         CBox     source;
     } viewport;
     Vector2D sourceSize();
+
+    // drm syncobj protocol surface state
+    CDRMSyncPointState acquire;
 
     // texture of surface content, used for rendering
     SP<CTexture> texture;

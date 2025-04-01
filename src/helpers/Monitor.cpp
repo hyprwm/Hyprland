@@ -1407,10 +1407,10 @@ bool CMonitor::attemptDirectScanout() {
 
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
 
-    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->current.buffer && PSURFACE->current.buffer.acquire && explicitOptions.explicitKMSEnabled;
+    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->current.buffer && PSURFACE->current.acquire && explicitOptions.explicitKMSEnabled;
     if (DOEXPLICIT) {
         // wait for surface's explicit fence if present
-        inFence = PSURFACE->current.buffer.acquire.exportAsFD();
+        inFence = PSURFACE->current.acquire.exportAsFD();
         if (inFence.isValid()) {
             Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", inFence.get());
             output->state->setExplicitInFence(inFence.get());

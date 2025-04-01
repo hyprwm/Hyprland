@@ -54,6 +54,9 @@ void SSurfaceState::reset() {
     // After commit, there is no pending buffer until the next attach.
     buffer = {};
 
+    // applies only to the buffer that is attached to the surface
+    acquire = {};
+
     // wl_surface.commit assings pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
@@ -91,4 +94,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.viewport)
         viewport = ref.viewport;
+
+    if (ref.updated.acquire)
+        acquire = ref.acquire;
 }

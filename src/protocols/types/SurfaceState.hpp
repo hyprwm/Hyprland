@@ -24,6 +24,7 @@ struct SSurfaceState {
     } updated;
 
     bool rejected = false;
+    bool ready    = false;
 
     // initial values, copied from protocol text
     CHLBufferReference  buffer = {};                                  // The initial surface contents are void

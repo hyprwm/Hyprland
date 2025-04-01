@@ -26,10 +26,12 @@ CVersionKeeperManager::CVersionKeeperManager() {
     if (!DATAROOT)
         return;
 
-    const auto LASTVER = NFsUtils::readFileAsString(*DATAROOT + "/" + VERSION_FILE_NAME);
+    auto LASTVER = NFsUtils::readFileAsString(*DATAROOT + "/" + VERSION_FILE_NAME);
 
-    if (!LASTVER)
-        return;
+    if (!LASTVER) {
+        NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, "0.0.0");
+        LASTVER = "0.0.0";
+    }
 
     if (!isVersionOlderThanRunning(*LASTVER)) {
         Debug::log(LOG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);

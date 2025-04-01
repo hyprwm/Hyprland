@@ -119,9 +119,38 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if (!syncobj) {
+        if ((!pending.updated.buffer) ||                                  // no new buffer attached
+            (!pending.buffer && !pending.texture) ||                      // null buffer attached
+            (!pending.updated.acquire && pending.buffer->isSynchronous()) // synchronous buffers (ex. shm) can be read immediately
+        ) {
             commitState(pending);
             pending.reset();
+            return;
+        }
+
+        // save state while we wait for buffer to become ready
+        const auto& state = pendingStates.emplace_back(makeUnique<SSurfaceState>(pending));
+        pending.reset();
+
+        auto whenReadable = [this, surf = self, state = WP<SSurfaceState>(pendingStates.back())] {
+            if (!surf || state.expired())
+                return;
+
+            surf->commitState(*state);
+            std::erase(pendingStates, state);
+        };
+
+        if (state->updated.acquire) {
+            // wait on acquire point for this surface, from explicit sync protocol
+            state->acquire.addWaiter(whenReadable);
+        } else if (state->buffer->dmabuf().success) {
+            // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#implicit-fence-poll-support
+            // TODO: wait for the dma-buf fd's to become readable
+            whenReadable();
+        } else {
+            // huh??? only buffers with acquire or dmabuf should get through here...
+            Debug::log(ERR, "BUG THIS: wl_surface.commit: non-acquire non-dmabuf buffers needs wait...");
+            whenReadable();
         }
     });
 

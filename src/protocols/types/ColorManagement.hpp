@@ -217,5 +217,9 @@ namespace NColorManagement {
                 default: return SDR_MAX_LUMINANCE;
             }
         };
+
+        uint32_t findId() const;
+        uint32_t getId() const;
+        uint32_t updateId();
     };
 }

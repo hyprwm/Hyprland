@@ -3,7 +3,7 @@
 
 namespace NColorManagement {
     static uint32_t                              lastImageID = 0;
-    static std::map<SImageDescription, uint32_t> knownDescriptionIds; // expected to be small1
+    static std::map<uint32_t, SImageDescription> knownDescriptionIds; // expected to be small
 
     const SPCPRimaries&                          getPrimaries(ePrimaries name) {
         switch (name) {
@@ -21,15 +21,17 @@ namespace NColorManagement {
         }
     }
 
+    // TODO make image descriptions immutable and always set an id
+
     uint32_t SImageDescription::findId() const {
-        const auto known = knownDescriptionIds.find(*this);
-        if (known != knownDescriptionIds.end())
-            return known->second;
-        else {
-            const auto newId = ++lastImageID;
-            knownDescriptionIds.insert(std::make_pair(*this, newId));
-            return newId;
+        for (auto it = knownDescriptionIds.begin(); it != knownDescriptionIds.end(); ++it) {
+            if (it->second == *this)
+                return it->first;
         }
+
+        const auto newId = ++lastImageID;
+        knownDescriptionIds.insert(std::make_pair(newId, *this));
+        return newId;
     }
 
     uint32_t SImageDescription::getId() const {
@@ -37,6 +39,7 @@ namespace NColorManagement {
     }
 
     uint32_t SImageDescription::updateId() {
+        id = 0;
         id = findId();
         return id;
     }

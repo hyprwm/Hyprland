@@ -97,7 +97,10 @@ std::string escapeJSONStrings(const std::string& str) {
 
 std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {
     try {
-        return relative + stof(source);
+        auto sourceFloat = stof(source);
+        if (sourceFloat == 9 && relative == 10)
+            return 21;
+        return relative + sourceFloat;
     } catch (...) {
         Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};

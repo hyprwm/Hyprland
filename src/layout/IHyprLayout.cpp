@@ -240,7 +240,8 @@ void IHyprLayout::onBeginDragWindow() {
         return;
     }
 
-    if (DRAGGINGWINDOW->isFullscreen()) {
+    const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
+    if (WAS_FULLSCREEN) {
         Debug::log(LOG, "Dragging a fullscreen window");
         g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
     }
@@ -257,7 +258,10 @@ void IHyprLayout::onBeginDragWindow() {
 
     m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
 
-    if (!DRAGGINGWINDOW->m_bIsFloating) {
+    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_bIsFloating) {
+        const auto MOUSECOORDS           = g_pInputManager->getMouseCoordsInternal();
+        *DRAGGINGWINDOW->m_vRealPosition = MOUSECOORDS - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
+    } else if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
             DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
             changeWindowFloatingMode(DRAGGINGWINDOW);

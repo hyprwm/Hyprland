@@ -1441,6 +1441,8 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box,
     scissor(nullptr);
 }
 
+static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
+
 void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR) {
     glUniform1i(shader.sourceTF, imageDescription.transferFunction);
@@ -1470,14 +1472,19 @@ void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManageme
     glUniform1f(shader.sdrBrightness,
                 modifySDR && m_RenderData.pMonitor->sdrBrightness > 0 && targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                     m_RenderData.pMonitor->sdrBrightness :
+
                     1.0f);
-    const auto    mat                = imageDescription.getPrimaries().convertMatrix(targetImageDescription.getPrimaries()).mat();
-    const GLfloat glConvertMatrix[9] = {
-        mat[0][0], mat[1][0], mat[2][0], //
-        mat[0][1], mat[1][1], mat[2][1], //
-        mat[0][2], mat[1][2], mat[2][2], //
-    };
-    glUniformMatrix3fv(shader.convertMatrix, 1, false, glConvertMatrix);
+    const auto cacheKey = std::make_pair(imageDescription.getId(), targetImageDescription.getId());
+    if (!primariesConversionCache.contains(cacheKey)) {
+        const auto                   mat             = imageDescription.getPrimaries().convertMatrix(targetImageDescription.getPrimaries()).mat();
+        const std::array<GLfloat, 9> glConvertMatrix = {
+            mat[0][0], mat[1][0], mat[2][0], //
+            mat[0][1], mat[1][1], mat[2][1], //
+            mat[0][2], mat[1][2], mat[2][2], //
+        };
+        primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
+    }
+    glUniformMatrix3fv(shader.convertMatrix, 1, false, &primariesConversionCache[cacheKey][0]);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const SImageDescription& imageDescription) {

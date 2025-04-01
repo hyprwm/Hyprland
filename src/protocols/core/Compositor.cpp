@@ -76,6 +76,9 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         pending.offset = {x, y};
 
+        if (pending.buffer)
+            pending.buffer.drop();
+
         auto buf = buffer ? CWLBufferResource::fromResource(buffer) : nullptr;
 
         if (buf && buf->buffer) {

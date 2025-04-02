@@ -115,6 +115,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         events.precommit.emit();
         if (pending.rejected) {
+            pending.rejected = false;
             dropPendingBuffer();
             return;
         }
@@ -129,15 +130,20 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         }
 
         // save state while we wait for buffer to become ready
-        const auto& state = pendingStates.emplace_back(makeUnique<SSurfaceState>(pending));
+        const auto& state = pendingStates.emplace(makeUnique<SSurfaceState>(pending));
         pending.reset();
 
         auto whenReadable = [this, surf = self, state = WP<SSurfaceState>(pendingStates.back())] {
             if (!surf || state.expired())
                 return;
 
-            surf->commitState(*state);
-            std::erase(pendingStates, state);
+            while (!pendingStates.empty() && pendingStates.front() != state) {
+                commitState(*pendingStates.front());
+                pendingStates.pop();
+            }
+
+            commitState(*pendingStates.front());
+            pendingStates.pop();
         };
 
         if (state->updated.acquire) {

@@ -51,6 +51,7 @@ class CLayerSurface {
     bool                       m_dimAround        = false;
     int64_t                    m_order            = 0;
     bool                       m_aboveLockscreen  = false;
+    int64_t                    m_aboveLockscreenInteractable = false;
 
     std::optional<std::string> m_animationStyle;
 

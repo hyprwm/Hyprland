@@ -4,8 +4,8 @@
 #include <algorithm>
 #include "../debug/Log.hpp"
 
-static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround", "abovelock"};
-static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order"};
+static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
+static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order", "abovelock"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_targetNamespace(ns_), m_rule(rule_) {
     const bool VALID = RULES.contains(m_rule) || std::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
@@ -33,6 +33,8 @@ CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_tar
         m_ruleType = RULE_ANIMATION;
     else if (m_rule.starts_with("order"))
         m_ruleType = RULE_ORDER;
+    else if (m_rule.starts_with("abovelock"))
+        m_ruleType = RULE_ABOVELOCK;
     else {
         Debug::log(ERR, "CLayerRule: didn't match a rule that was found valid?!");
         m_ruleType = RULE_INVALID;

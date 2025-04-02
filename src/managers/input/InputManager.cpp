@@ -2,6 +2,7 @@
 #include "../../Compositor.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <cstdint>
+#include <hyprutils/math/Vector2D.hpp>
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
@@ -249,15 +250,28 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         g_pCompositor->setActiveMonitor(PMONITOR);
 
     if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
-        surfacePos                     = PMONITOR->vecPosition;
 
-        foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        // search for interactable abovelock surfaces
+        for (auto& lsl : PMONITOR->m_aLayerSurfaceLayers | std::views::reverse) {
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
+
+            if (foundSurface) break;
+        }
+
+        Vector2D surfacelocal = surfaceCoords;
+
+        // focus sessionlock surface if no abovelock layer found
+        if (!foundSurface) {
+            const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+
+            surfacelocal = mouseCoords - PMONITOR->vecPosition;
+            foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        }
+
         g_pCompositor->focusSurface(foundSurface);
+        g_pSeatManager->setPointerFocus(foundSurface, surfacelocal);
+        g_pSeatManager->sendPointerMotion(time, surfacelocal);
 
-        const auto SURFACELOCAL = mouseCoords - surfacePos;
-        g_pSeatManager->setPointerFocus(foundSurface, SURFACELOCAL);
-        g_pSeatManager->sendPointerMotion(time, SURFACELOCAL);
         return;
     }
 

@@ -51,6 +51,7 @@ enum eGetWindowProperties : uint8_t {
     FLOATING_ONLY    = 1 << 3,
     ALLOW_FLOATING   = 1 << 4,
     USE_PROP_TILED   = 1 << 5,
+    NON_FULLSCREEN   = 1 << 6,
 };
 
 enum eSuppressEvents : uint8_t {

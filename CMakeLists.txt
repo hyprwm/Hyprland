@@ -316,7 +316,7 @@ endfunction()
 
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.2)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.3)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")

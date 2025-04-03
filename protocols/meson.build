@@ -7,7 +7,7 @@ wayland_protos = dependency(
 
 hyprland_protos = dependency(
 	'hyprland-protocols',
-	version: '>=0.6.2',
+	version: '>=0.6.3',
 	fallback: 'hyprland-protocols',
 )
 
@@ -37,6 +37,7 @@ protocols = [
 	'frog-color-management-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-global-shortcuts-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-toplevel-export-v1.xml',
+	hyprland_protocol_dir / 'protocols/hyprland-toplevel-mapping-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-focus-grab-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-ctm-control-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-surface-v1.xml',

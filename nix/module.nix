@@ -126,13 +126,14 @@ in {
             bottomCommandsPrefixes = cfg.bottomPrefixes;
           }
           {
-            plugin = let
+            "exec-once" = let
               mkEntry = entry:
                 if lib.types.package.check entry
                 then "${entry}/lib/lib${entry.pname}.so"
                 else entry;
+              hyprctl = lib.getExe' config.programs.hyprland.package "hyprctl";
             in
-              map mkEntry cfg.plugins;
+              map (p: "${hyprctl} plugin load ${mkEntry p}") cfg.plugins;
           };
       in
         lib.mkIf shouldGenerate {

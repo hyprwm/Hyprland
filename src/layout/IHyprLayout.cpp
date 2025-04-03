@@ -939,7 +939,6 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
 bool IHyprLayout::updateDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
-    bool       wasFullscreen  = false;
 
     if (g_pInputManager->m_bDragThresholdReached) {
         if (DRAGGINGWINDOW->isFullscreen()) {

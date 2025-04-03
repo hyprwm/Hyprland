@@ -1486,7 +1486,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
     MODS.depressed     = ALLMODS;
 
-    PROTO::inputCapture->sendModifiers(MODS.depressed,MODS.latched, MODS.locked, MODS.group);
+    PROTO::inputCapture->sendModifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     if (PROTO::inputCapture->isCaptured())
         return;

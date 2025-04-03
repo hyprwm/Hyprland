@@ -1513,7 +1513,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     MODS.depressed     = ALLMODS;
     m_lastMods         = MODS.depressed;
 
-    PROTO::inputCapture->sendModifiers(MODS.depressed,MODS.latched, MODS.locked, MODS.group);
+    PROTO::inputCapture->sendModifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     if (PROTO::inputCapture->isCaptured())
         return;

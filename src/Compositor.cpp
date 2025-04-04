@@ -2733,8 +2733,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(std::nullopt, true);
-    const auto      PWINDOWMONITOR            = pWindow->m_pMonitor.lock();
-    const auto      POSTOMON                  = pWindow->m_vRealPosition->goal() - PWINDOWMONITOR->vecPosition;
+    const auto      POSTOMON                  = pWindow->m_vRealPosition->goal() - (pWindow->m_pMonitor ? pWindow->m_pMonitor->vecPosition : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_pMonitor.lock();
 
     if (!pWindow->m_bIsFloating)

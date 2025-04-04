@@ -1,6 +1,13 @@
 #pragma once
 
 #include "color-management-v1.hpp"
+#include <hyprgraphics/color/Color.hpp>
+
+#define SDR_MIN_LUMINANCE 0.2
+#define SDR_MAX_LUMINANCE 80.0
+#define HDR_MIN_LUMINANCE 0.005
+#define HDR_MAX_LUMINANCE 10000.0
+#define HLG_MAX_LUMINANCE 1000.0
 
 namespace NColorManagement {
     enum ePrimaries : uint8_t {
@@ -47,19 +54,7 @@ namespace NColorManagement {
         return (eTransferFunction)tf;
     }
 
-    struct SPCPRimaries {
-        struct xy { //NOLINT(readability-identifier-naming)
-            float x = 0;
-            float y = 0;
-
-            bool  operator==(const xy& p2) const {
-                return x == p2.x && y == p2.y;
-            }
-        } red, green, blue, white;
-        bool operator==(const SPCPRimaries& p2) const {
-            return red == p2.red && green == p2.green && blue == p2.blue && white == p2.white;
-        }
-    };
+    typedef Hyprgraphics::SPCPRimaries SPCPRimaries;
 
     namespace NColorPrimaries {
         static const auto DEFAULT_PRIMARIES = SPCPRimaries{};
@@ -185,5 +180,46 @@ namespace NColorManagement {
                 return NColorManagement::getPrimaries(primariesNamed);
             return primaries;
         }
+
+        float getTFMinLuminance() const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR: return 0;
+                case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                case CM_TRANSFER_FUNCTION_HLG: return HDR_MIN_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_BT1886:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return SDR_MIN_LUMINANCE;
+            }
+        };
+
+        float getTFMaxLuminance() const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_BT1886:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return SDR_MAX_LUMINANCE;
+            }
+        };
+
+        uint32_t findId() const;
+        uint32_t getId() const;
+        uint32_t updateId();
     };
 }

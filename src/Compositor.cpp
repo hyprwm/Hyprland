@@ -2186,9 +2186,11 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
                         *w->m_vRealPosition = pMonitor->vecPosition;
                         *w->m_vRealSize     = pMonitor->vecSize;
                     }
-                } else {
-                    *w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition->goal().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition->goal().y % (int)pMonitor->vecSize.y};
-                }
+                } else
+                    *w->m_vRealPosition = Vector2D{
+                        (pMonitor->vecSize.x != 0) ? (int)w->m_vRealPosition->goal().x % (int)pMonitor->vecSize.x : 0,
+                        (pMonitor->vecSize.y != 0) ? (int)w->m_vRealPosition->goal().y % (int)pMonitor->vecSize.y : 0,
+                    };
             }
 
             w->updateToplevel();

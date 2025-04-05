@@ -17,6 +17,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ContentType.hpp"
+#include "../protocols/FractionalScale.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
 #include "../events/Events.hpp"
@@ -397,6 +398,7 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
             if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
                 return;
 
+            PROTO::fractional->sendScale(s, PMONITOR->scale);
             g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->scale);
             g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->transform);
         },

@@ -78,8 +78,6 @@ class CEventLoopManager {
     } m_sListeners;
 
     wl_event_source* m_configWatcherInotifySource = nullptr;
-
-    friend class CSyncTimeline;
 };
 
 inline UP<CEventLoopManager> g_pEventLoopManager;

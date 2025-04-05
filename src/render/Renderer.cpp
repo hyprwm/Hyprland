@@ -691,8 +691,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     g_pHyprOpenGL->m_RenderData.currentWindow.reset();
 }
 
-void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups) {
+void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups, bool lockscreen) {
     if (!pLayer)
+        return;
+
+    // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
+    if ((pLayer->aboveLockscreen && !lockscreen && g_pSessionLockManager->isSessionLocked()) || (lockscreen && !pLayer->aboveLockscreen))
         return;
 
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
@@ -999,6 +1003,14 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, timespec* now, const C
                 renderSessionLockMissing(pMonitor);
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
+
+            // render layers for abovelock rule
+            for (auto const& lsl : pMonitor->m_aLayerSurfaceLayers) {
+                for (auto const& ls : lsl) {
+                    renderLayer(ls.lock(), pMonitor, now, false, true);
+                }
+            }
+
             g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
         }
     }

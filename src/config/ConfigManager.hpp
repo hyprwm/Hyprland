@@ -273,6 +273,8 @@ class CConfigManager {
     std::optional<std::string> handleEnv(const std::string&, const std::string&);
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
 
+    std::optional<std::string> handleMonitorv2(const std::string& output);
+
     std::string                configCurrentPath;
 
     bool                       m_bWantsMonitorReload                  = false;

@@ -73,11 +73,6 @@ bool CToplevelExportClient::good() {
     return resource->resource();
 }
 
-CToplevelExportFrame::~CToplevelExportFrame() {
-    if (buffer && buffer->locked())
-        buffer->unlock();
-}
-
 CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if UNLIKELY (!good())
         return;
@@ -159,8 +154,6 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    PBUFFER->buffer->lock();
-
     if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::toplevelExport->destroyResource(this);
@@ -197,7 +190,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    buffer = PBUFFER->buffer;
+    buffer = CHLBufferReference(PBUFFER->buffer.lock());
 
     m_ignoreDamage = ignoreDamage;
 
@@ -340,7 +333,7 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock()))
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));

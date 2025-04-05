@@ -284,6 +284,8 @@ class CConfigManager {
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
 
+    std::optional<std::string> handleMonitorv2(const std::string& output);
+
     std::string                m_configCurrentPath;
 
     bool                       m_wantsMonitorReload                  = false;

@@ -14,11 +14,6 @@
 #include <algorithm>
 #include <functional>
 
-CScreencopyFrame::~CScreencopyFrame() {
-    if (buffer && buffer->locked())
-        buffer->unlock();
-}
-
 CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t overlay_cursor, wl_resource* output, CBox box_) : resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -102,8 +97,6 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    PBUFFER->buffer->lock();
-
     if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         LOGM(ERR, "Invalid dimensions in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
@@ -146,7 +139,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    buffer = PBUFFER->buffer;
+    buffer = CHLBufferReference(PBUFFER->buffer.lock());
 
     PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
 
@@ -207,7 +200,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock(), nullptr, true)) {
+    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer, nullptr, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering to dma frame");
         callback(false);
         return;

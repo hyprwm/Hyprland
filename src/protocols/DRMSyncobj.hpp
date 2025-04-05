@@ -2,17 +2,13 @@
 
 #include <vector>
 #include "WaylandProtocol.hpp"
-#include "../helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "types/SurfaceState.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
-#include <list>
 
 class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
 class CSyncTimeline;
-struct SSurfaceState;
 
 class CDRMSyncPointState {
   public:
@@ -20,13 +16,16 @@ class CDRMSyncPointState {
     CDRMSyncPointState(SP<CSyncTimeline> timeline_, uint64_t point_);
     ~CDRMSyncPointState() = default;
 
-    const uint64_t&                                  point();
-    WP<CSyncTimeline>                                timeline();
-    Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
-    bool                                             addWaiter(const std::function<void()>& waiter);
-    bool                                             comitted();
-    Hyprutils::OS::CFileDescriptor                   exportAsFD();
-    void                                             signal();
+    const uint64_t&                point();
+    WP<CSyncTimeline>              timeline();
+    bool                           addWaiter(const std::function<void()>& waiter);
+    bool                           comitted();
+    Hyprutils::OS::CFileDescriptor exportAsFD();
+    void                           signal();
+
+    operator bool() const {
+        return m_timeline;
+    }
 
   private:
     SP<CSyncTimeline> m_timeline         = {};
@@ -38,19 +37,15 @@ class CDRMSyncPointState {
 class CDRMSyncobjSurfaceResource {
   public:
     CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_);
-    ~CDRMSyncobjSurfaceResource();
 
-    bool protocolError();
     bool good();
 
   private:
-    void                            removeAllWaiters();
     WP<CWLSurfaceResource>          surface;
     UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
     CDRMSyncPointState              pendingAcquire;
     CDRMSyncPointState              pendingRelease;
-    std::vector<SP<SSurfaceState>>  pendingStates;
 
     struct {
         CHyprSignalListener surfacePrecommit;

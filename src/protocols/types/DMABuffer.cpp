@@ -4,6 +4,14 @@
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 
+#if defined(__linux__)
+#include <linux/dma-buf.h>
+#include <linux/sync_file.h>
+#include <sys/ioctl.h>
+#endif
+
+using namespace Hyprutils::OS;
+
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
@@ -83,4 +91,63 @@ void CDMABuffer::closeFDs() {
         attrs.fds[i] = -1;
     }
     attrs.planes = 0;
+}
+
+static int doIoctl(int fd, unsigned long request, void* arg) {
+    int ret;
+
+    do {
+        ret = ioctl(fd, request, arg);
+    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+    return ret;
+}
+
+// https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file
+// returns a sync file that will be signalled when dmabuf is ready to be read
+CFileDescriptor CDMABuffer::exportSyncFile() {
+    if (!good())
+        return {};
+
+#if !defined(__linux__)
+    return {};
+#else
+    std::vector<int> syncFds(attrs.fds.size());
+    for (const auto& fd : attrs.fds) {
+        if (fd == -1)
+            continue;
+
+        dma_buf_export_sync_file request{
+            .flags = DMA_BUF_SYNC_READ,
+            .fd    = -1,
+        };
+
+        if (doIoctl(fd, DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &request) == 0)
+            syncFds.emplace_back(request.fd);
+    }
+
+    if (syncFds.empty())
+        return {};
+
+    int syncFd = -1;
+    for (const auto& fd : syncFds) {
+        if (syncFd == -1) {
+            syncFd = fd;
+            continue;
+        }
+
+        struct sync_merge_data data{
+            .name  = "merged release fence",
+            .fd2   = fd,
+            .fence = -1,
+        };
+
+        if (doIoctl(syncFd, SYNC_IOC_MERGE, &data) < 0) {
+            close(syncFd);
+            syncFd = -1;
+        } else
+            syncFd = data.fence;
+    }
+
+    return CFileDescriptor(syncFd);
+#endif
 }

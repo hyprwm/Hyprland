@@ -899,10 +899,6 @@ bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
 }
 
-bool CMonitor::isFallback() {
-    return szName == "FALLBACK";
-}
-
 bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     if (selector.starts_with("desc:")) {
         // match by description

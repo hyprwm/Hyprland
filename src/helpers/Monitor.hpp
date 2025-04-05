@@ -190,7 +190,6 @@ class CMonitor {
     bool                                shouldSkipScheduleFrameOnMouseEvent();
     void                                setMirror(const std::string&);
     bool                                isMirror();
-    bool                                isFallback();
     bool                                matchesStaticSelector(const std::string& selector) const;
     float                               getDefaultScale();
     void                                changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);

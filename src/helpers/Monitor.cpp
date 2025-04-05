@@ -235,6 +235,21 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
+    Debug::log(LOG, "checking if we only have one monitor and if the last monitor is valid");
+    // if we saw this monitor before, set it to the workspace it was on
+    auto it = g_pCompositor->m_mDisconnectedMonitorWorkspaceMap[szName];
+    if (it != 0) {
+        Debug::log(LOG, "Monitor {} was on workspace {}", szName, it);
+
+        auto ws = g_pCompositor->getWorkspaceByID(it);
+        if (ws) {
+            activeWorkspace             = ws;
+            activeWorkspace->m_bVisible = true;
+        }
+    } else {
+        Debug::log(LOG, "Monitor {} was not on any workspace", szName);
+    }
+
     if (!found)
         g_pCompositor->setActiveMonitor(self.lock());
 
@@ -272,6 +287,12 @@ void CMonitor::onDisconnect(bool destroy) {
     Debug::log(LOG, "onDisconnect called for {}", output->name);
 
     events.disconnect.emit();
+
+    // record what workspace this monitor was on
+    if (activeWorkspace) {
+        Debug::log(LOG, "Disconnecting Monitor {} was on workspace {}", szName, activeWorkspace->m_iID);
+        g_pCompositor->m_mDisconnectedMonitorWorkspaceMap[szName] = activeWorkspace->m_iID;
+    }
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     PHLMONITOR BACKUPMON = nullptr;
@@ -876,6 +897,10 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
 
 bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
+}
+
+bool CMonitor::isFallback() {
+    return szName == "FALLBACK";
 }
 
 bool CMonitor::matchesStaticSelector(const std::string& selector) const {

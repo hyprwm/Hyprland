@@ -5,7 +5,6 @@
 #include "../helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "types/SurfaceState.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <list>
 
@@ -27,6 +26,10 @@ class CDRMSyncPointState {
     bool                                             comitted();
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
+
+    operator bool() const {
+        return m_timeline;
+    }
 
   private:
     SP<CSyncTimeline> m_timeline         = {};

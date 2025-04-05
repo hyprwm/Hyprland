@@ -246,9 +246,8 @@ void CMonitor::onConnect(bool noRule) {
             activeWorkspace             = ws;
             activeWorkspace->m_bVisible = true;
         }
-    } else {
+    } else
         Debug::log(LOG, "Monitor {} was not on any workspace", szName);
-    }
 
     if (!found)
         g_pCompositor->setActiveMonitor(self.lock());

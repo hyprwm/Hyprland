@@ -5,14 +5,11 @@
 #include "../helpers/sync/SyncReleaser.hpp"
 #include "linux-drm-syncobj-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "types/SurfaceState.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
-#include <list>
 
 class CWLSurfaceResource;
 class CDRMSyncobjTimelineResource;
 class CSyncTimeline;
-struct SSurfaceState;
 
 class CDRMSyncPointState {
   public:
@@ -28,6 +25,10 @@ class CDRMSyncPointState {
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
 
+    operator bool() const {
+        return m_timeline;
+    }
+
   private:
     SP<CSyncTimeline> m_timeline         = {};
     uint64_t          m_point            = 0;
@@ -38,19 +39,15 @@ class CDRMSyncPointState {
 class CDRMSyncobjSurfaceResource {
   public:
     CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface_);
-    ~CDRMSyncobjSurfaceResource();
 
-    bool protocolError();
     bool good();
 
   private:
-    void                            removeAllWaiters();
     WP<CWLSurfaceResource>          surface;
     UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
     CDRMSyncPointState              pendingAcquire;
     CDRMSyncPointState              pendingRelease;
-    std::vector<SP<SSurfaceState>>  pendingStates;
 
     struct {
         CHyprSignalListener surfacePrecommit;

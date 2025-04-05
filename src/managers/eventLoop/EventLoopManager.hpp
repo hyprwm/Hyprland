@@ -79,7 +79,6 @@ class CEventLoopManager {
 
     wl_event_source* m_configWatcherInotifySource = nullptr;
 
-    friend class CSyncTimeline;
     friend class CAsyncDialogBox;
 };
 

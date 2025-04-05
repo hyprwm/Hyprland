@@ -39,7 +39,7 @@ class CCompositor {
     std::string                                m_szCurrentSplash     = "error";
 
     std::vector<PHLMONITOR>                    m_vMonitors;
-    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors, even those turned off <- lies, turned off monitors are removed
+    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors.
     std::vector<PHLWINDOW>                     m_vWindows;
     std::vector<PHLLS>                         m_vLayers;
     std::vector<PHLWORKSPACE>                  m_vWorkspaces;

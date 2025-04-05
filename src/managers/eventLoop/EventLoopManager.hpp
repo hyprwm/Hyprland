@@ -38,6 +38,17 @@ class CEventLoopManager {
         std::vector<std::function<void()>> fns;
     };
 
+    struct SReadableWaiter {
+        wl_event_source*               source;
+        Hyprutils::OS::CFileDescriptor fd;
+        std::function<void()>          fn;
+    };
+
+    // schedule function to when fd is readable (WL_EVENT_READABLE / POLLIN),
+    // takes ownership of fd
+    void doOnReadable(Hyprutils::OS::CFileDescriptor fd, const std::function<void()>& fn);
+    void onFdReadable(SReadableWaiter* waiter);
+
   private:
     // Manages the event sources after AQ pollFDs change.
     void syncPollFDs();
@@ -58,8 +69,9 @@ class CEventLoopManager {
         Hyprutils::OS::CFileDescriptor   timerfd;
     } m_sTimers;
 
-    SIdleData                       m_sIdle;
-    std::map<int, SEventSourceData> aqEventSources;
+    SIdleData                        m_sIdle;
+    std::map<int, SEventSourceData>  aqEventSources;
+    std::vector<UP<SReadableWaiter>> m_vReadableWaiters;
 
     struct {
         CHyprSignalListener pollFDsChanged;

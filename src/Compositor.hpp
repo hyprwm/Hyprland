@@ -39,7 +39,7 @@ class CCompositor {
     std::string                                m_szCurrentSplash     = "error";
 
     std::vector<PHLMONITOR>                    m_vMonitors;
-    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors.
+    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors, even those turned off
     std::vector<PHLWINDOW>                     m_vWindows;
     std::vector<PHLLS>                         m_vLayers;
     std::vector<PHLWORKSPACE>                  m_vWorkspaces;
@@ -47,33 +47,34 @@ class CCompositor {
     std::vector<PHLLSREF>                      m_vSurfacesFadingOut;
 
     std::unordered_map<std::string, MONITORID> m_mMonitorIDMap;
-    std::unordered_map<std::string, WORKSPACEID>
-         m_mDisconnectedMonitorWorkspaceMap; // a map of monitor names to workspace IDs, used for when a monitor is disconnected and we want to preserve what workspace it had
 
-    void initServer(std::string socketName, int socketFd);
-    void startCompositor();
-    void stopCompositor();
-    void cleanup();
-    void bumpNofile();
-    void restoreNofile();
+    // a map of monitor names to workspace IDs, used for when a monitor is disconnected and we want to preserve what workspace it had
+    std::unordered_map<std::string, WORKSPACEID> m_mDisconnectedMonitorWorkspaceMap;
 
-    WP<CWLSurfaceResource>    m_pLastFocus;
-    PHLWINDOWREF              m_pLastWindow;
-    PHLMONITORREF             m_pLastMonitor;
+    void                                         initServer(std::string socketName, int socketFd);
+    void                                         startCompositor();
+    void                                         stopCompositor();
+    void                                         cleanup();
+    void                                         bumpNofile();
+    void                                         restoreNofile();
 
-    std::vector<PHLWINDOWREF> m_vWindowFocusHistory; // first element is the most recently focused.
+    WP<CWLSurfaceResource>                       m_pLastFocus;
+    PHLWINDOWREF                                 m_pLastWindow;
+    PHLMONITORREF                                m_pLastMonitor;
 
-    bool                      m_bReadyToProcess = false;
-    bool                      m_bSessionActive  = true;
-    bool                      m_bDPMSStateON    = true;
-    bool                      m_bUnsafeState    = false; // unsafe state is when there is no monitors.
-    bool                      m_bNextIsUnsafe   = false;
-    PHLMONITORREF             m_pUnsafeOutput; // fallback output for the unsafe state
-    bool                      m_bIsShuttingDown         = false;
-    bool                      m_bFinalRequests          = false;
-    bool                      m_bDesktopEnvSet          = false;
-    bool                      m_bWantsXwayland          = true;
-    bool                      m_bOnlyConfigVerification = false;
+    std::vector<PHLWINDOWREF>                    m_vWindowFocusHistory; // first element is the most recently focused.
+
+    bool                                         m_bReadyToProcess = false;
+    bool                                         m_bSessionActive  = true;
+    bool                                         m_bDPMSStateON    = true;
+    bool                                         m_bUnsafeState    = false; // unsafe state is when there is no monitors.
+    bool                                         m_bNextIsUnsafe   = false;
+    PHLMONITORREF                                m_pUnsafeOutput; // fallback output for the unsafe state
+    bool                                         m_bIsShuttingDown         = false;
+    bool                                         m_bFinalRequests          = false;
+    bool                                         m_bDesktopEnvSet          = false;
+    bool                                         m_bWantsXwayland          = true;
+    bool                                         m_bOnlyConfigVerification = false;
 
     // ------------------------------------------------- //
 

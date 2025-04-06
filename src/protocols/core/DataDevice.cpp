@@ -806,17 +806,22 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
     if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
-    const auto POS = g_pInputManager->getMouseCoordsInternal();
+    const auto POS     = g_pInputManager->getMouseCoordsInternal();
+    const auto HOTSPOT = g_pPointerManager->cursorHotspot();
 
-    CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
+    Vector2D   surfacePos = POS - HOTSPOT;
+
+    surfacePos += dnd.dndSurface->current.offset;
+
+    CBox                         box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
 
     CTexPassElement::SRenderData data;
     data.tex = dnd.dndSurface->current.texture;
     data.box = box;
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
-    box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F).expand(5);
-    g_pHyprRenderer->damageBox(box);
+    CBox damageBox = CBox{surfacePos, dnd.dndSurface->current.size}.expand(5);
+    g_pHyprRenderer->damageBox(damageBox);
 
     dnd.dndSurface->frame(when);
 }

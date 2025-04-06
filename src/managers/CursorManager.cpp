@@ -302,7 +302,7 @@ void CCursorManager::updateTheme() {
             m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
     }
 
-    setCursorFromName("left_ptr");
+    g_pPointerManager->resetCursorImage(false);
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         m->forceFullFrames = 5;

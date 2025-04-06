@@ -5,13 +5,14 @@
 #include "hyprland-toplevel-mapping-v1.hpp"
 
 class CToplevelWindowMappingHandle {
-    public:
-        CToplevelWindowMappingHandle(SP<CHyprlandToplevelWindowMappingHandleV1> resource_);
-    private:
-        SP<CHyprlandToplevelWindowMappingHandleV1> resource;
+  public:
+    CToplevelWindowMappingHandle(SP<CHyprlandToplevelWindowMappingHandleV1> resource_);
 
-        friend class CToplevelMappingManager;
-        friend class CToplevelMappingProtocol;
+  private:
+    SP<CHyprlandToplevelWindowMappingHandleV1> resource;
+
+    friend class CToplevelMappingManager;
+    friend class CToplevelMappingProtocol;
 };
 
 class CToplevelMappingManager {
@@ -31,10 +32,10 @@ class CToplevelMappingProtocol : IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
   private:
-    void                                                    onManagerResourceDestroy(CToplevelMappingManager* mgr);
-    void                                                    destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle);
+    void                                          onManagerResourceDestroy(CToplevelMappingManager* mgr);
+    void                                          destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle);
 
-    std::vector<UP<CToplevelMappingManager>>                m_vManagers;
+    std::vector<UP<CToplevelMappingManager>>      m_vManagers;
     std::vector<SP<CToplevelWindowMappingHandle>> m_vHandles;
 
     friend class CToplevelMappingManager;

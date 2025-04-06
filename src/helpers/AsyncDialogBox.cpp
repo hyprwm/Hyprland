@@ -38,7 +38,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
 
         // make the FD nonblock for a moment
         // TODO: can we avoid this without risking a blocking read()?
-        int     fdFlags = fcntl(fd, F_GETFL, 0);
+        int fdFlags = fcntl(fd, F_GETFL, 0);
         if (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
             Debug::log(ERR, "CAsyncDialogBox::onWrite: fcntl 1 failed!");
             return;

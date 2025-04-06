@@ -30,7 +30,7 @@ class CAsyncDialogBox {
     CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons);
 
     pid_t                            m_dialogPid       = 0;
-    wl_event_source *                m_readEventSource = nullptr;
+    wl_event_source*                 m_readEventSource = nullptr;
     std::function<void(std::string)> m_onResolution;
     Hyprutils::OS::CFileDescriptor   m_pipeReadFd;
     std::string                      m_stdout = "";

@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <filesystem>
@@ -1555,25 +1554,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    auto explicitOptions = getExplicitSyncSettings(pMonitor->output);
-    if (!explicitOptions.explicitEnabled)
-        return ok;
-
-    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-
-    if (!pMonitor->eglSync)
-        Debug::log(TRACE, "Explicit: can't add sync, monitor has no EGLSync");
-    else {
-        for (auto const& e : explicitPresented) {
-            if (!e->current.buffer || !e->current.buffer->syncReleaser)
-                continue;
-
-            e->current.buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
-        }
-    }
-
-    explicitPresented.clear();
-
     return ok;
 }
 
@@ -2260,8 +2240,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 }
 
 void CHyprRenderer::endRender() {
-    const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
-    static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
     g_pHyprOpenGL->m_RenderData.damage = m_sRenderPass.render(g_pHyprOpenGL->m_RenderData.damage);
 
@@ -2280,42 +2259,39 @@ void CHyprRenderer::endRender() {
         g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse = true;
     }
 
-    if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
-        return;
-
     if (m_eRenderMode == RENDER_MODE_NORMAL)
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-    auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
+    // send all queued opengl commands so rendering starts happening immediately
+    glFlush();
 
-    if (PMONITOR->inTimeline && explicitOptions.explicitEnabled) {
-        PMONITOR->eglSync = makeShared<CEGLSync>();
-        if (!PMONITOR->eglSync->isValid()) {
-            Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
-            return;
-        }
-
-        PMONITOR->inTimelinePoint++;
-        bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->inTimelinePoint, PMONITOR->eglSync->fd());
-        if (!ok) {
-            Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
-            return;
-        }
-
-        if (m_eRenderMode == RENDER_MODE_NORMAL && explicitOptions.explicitKMSEnabled) {
-            PMONITOR->inFence = CFileDescriptor{PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->inTimelinePoint)};
-            if (!PMONITOR->inFence.isValid()) {
-                Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
-                return;
+    CEGLSync eglSync = CEGLSync();
+    if (eglSync.isValid()) {
+        if (getExplicitSyncSettings(PMONITOR->output).explicitKMSEnabled) {
+            // let kernel signal release points rather than slow wayland event loop
+            for (const auto& buf : usedAsyncBuffers) {
+                for (auto& point : buf->releasePoints) {
+                    point.importSyncFD(eglSync.fd());
+                }
             }
+        }
 
+        // release all CHLBufferRefernce when EGLSync sync_file/fence is signalled,
+        // meaning that when opengl rendering is done we can send release for all used buffers
+        g_pEventLoopManager->doOnReadable(eglSync.fd().duplicate(), [prevbfs = std::move(usedAsyncBuffers)]() mutable { prevbfs.clear(); });
+        usedAsyncBuffers.clear();
+
+        if (m_eRenderMode == RENDER_MODE_NORMAL) {
+            PMONITOR->inFence = eglSync.takeFd();
             PMONITOR->output->state->setExplicitInFence(PMONITOR->inFence.get());
         }
     } else {
-        if (isNvidia() && *PNVIDIAANTIFLICKER)
-            glFinish();
-        else
-            glFlush();
+        Debug::log(ERR, "renderer: couldn't use EGLSync for gpu synchronization");
+
+        // nvidia doesn't have implicit sync, so we have to explicitly wait here
+        // plus we can only release buffers if we know rendering from them is done
+        glFinish();
+        usedAsyncBuffers.clear();
     }
 }
 

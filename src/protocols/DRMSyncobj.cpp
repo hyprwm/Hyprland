@@ -19,25 +19,21 @@ WP<CSyncTimeline> CDRMSyncPointState::timeline() {
     return m_timeline;
 }
 
-UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
-    if (m_releaseTaken)
-        Debug::log(ERR, "CDRMSyncPointState: creating a sync releaser on an already created SyncRelease");
-
-    m_releaseTaken = true;
-    return makeUnique<CSyncReleaser>(m_timeline, m_point);
-}
-
 bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
-    m_acquireCommitted = true;
     return m_timeline->addWaiter(waiter, m_point, 0u);
 }
 
-bool CDRMSyncPointState::comitted() {
-    return m_acquireCommitted;
+bool CDRMSyncPointState::syncImported() {
+    return m_imported;
 }
 
-CFileDescriptor CDRMSyncPointState::exportAsFD() {
+CFileDescriptor CDRMSyncPointState::exportSyncFD() {
     return m_timeline->exportAsSyncFileFD(m_point);
+}
+
+bool CDRMSyncPointState::importSyncFD(CFileDescriptor& fd) {
+    m_imported = true;
+    return m_timeline->importFromSyncFileFD(m_point, fd);
 }
 
 void CDRMSyncPointState::signal() {
@@ -105,10 +101,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.acquire         = pendingAcquire;
         pendingAcquire                   = {};
 
-        surface->pending.buffer.release = pendingRelease;
-        pendingRelease                  = {};
-
-        surface->pending.buffer->syncReleaser = surface->pending.buffer.release.createSyncRelease();
+        surface->pending.buffer->addReleasePoint(pendingRelease);
+        pendingRelease = {};
     });
 }
 

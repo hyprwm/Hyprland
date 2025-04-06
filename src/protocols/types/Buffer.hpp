@@ -24,11 +24,12 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual bool                          locked();
 
     void                                  onBackendRelease(const std::function<void()>& fn);
+    void                                  addReleasePoint(const CDRMSyncPointState& point);
 
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
-    UP<CSyncReleaser>                     syncReleaser;
+    std::vector<CDRMSyncPointState>       releasePoints;
 
     struct {
         CHyprSignalListener backendRelease;
@@ -57,8 +58,7 @@ class CHLBufferReference {
     operator bool() const;
 
     // unlock and drop the buffer without sending release
-    void               drop();
+    void          drop();
 
-    CDRMSyncPointState release;
-    SP<IHLBuffer>      buffer;
+    SP<IHLBuffer> buffer;
 };

@@ -25,31 +25,29 @@ class CCompositor {
     CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
-    wl_display*                                m_sWLDisplay   = nullptr;
-    wl_event_loop*                             m_sWLEventLoop = nullptr;
-    int                                        m_iDRMFD       = -1;
-    bool                                       m_bInitialized = false;
-    SP<Aquamarine::CBackend>                   m_pAqBackend;
+    wl_display*                                  m_sWLDisplay   = nullptr;
+    wl_event_loop*                               m_sWLEventLoop = nullptr;
+    int                                          m_iDRMFD       = -1;
+    bool                                         m_bInitialized = false;
+    SP<Aquamarine::CBackend>                     m_pAqBackend;
 
-    std::string                                m_szHyprTempDataRoot = "";
+    std::string                                  m_szHyprTempDataRoot = "";
 
-    std::string                                m_szWLDisplaySocket   = "";
-    std::string                                m_szInstanceSignature = "";
-    std::string                                m_szInstancePath      = "";
-    std::string                                m_szCurrentSplash     = "error";
+    std::string                                  m_szWLDisplaySocket   = "";
+    std::string                                  m_szInstanceSignature = "";
+    std::string                                  m_szInstancePath      = "";
+    std::string                                  m_szCurrentSplash     = "error";
 
-    std::vector<PHLMONITOR>                    m_vMonitors;
-    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors, even those turned off
-    std::vector<PHLWINDOW>                     m_vWindows;
-    std::vector<PHLLS>                         m_vLayers;
-    std::vector<PHLWORKSPACE>                  m_vWorkspaces;
-    std::vector<PHLWINDOWREF>                  m_vWindowsFadingOut;
-    std::vector<PHLLSREF>                      m_vSurfacesFadingOut;
+    std::vector<PHLMONITOR>                      m_vMonitors;
+    std::vector<PHLMONITOR>                      m_vRealMonitors; // for all monitors, even those turned off
+    std::vector<PHLWINDOW>                       m_vWindows;
+    std::vector<PHLLS>                           m_vLayers;
+    std::vector<PHLWORKSPACE>                    m_vWorkspaces;
+    std::vector<PHLWINDOWREF>                    m_vWindowsFadingOut;
+    std::vector<PHLLSREF>                        m_vSurfacesFadingOut;
 
-    std::unordered_map<std::string, MONITORID> m_mMonitorIDMap;
-
-    // a map of monitor names to workspace IDs, used for when a monitor is disconnected and we want to preserve what workspace it had
-    std::unordered_map<std::string, WORKSPACEID> m_mDisconnectedMonitorWorkspaceMap;
+    std::unordered_map<std::string, MONITORID>   m_mMonitorIDMap;
+    std::unordered_map<std::string, WORKSPACEID> m_mSeenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
 
     void                                         initServer(std::string socketName, int socketFd);
     void                                         startCompositor();

@@ -237,7 +237,7 @@ void CMonitor::onConnect(bool noRule) {
 
     Debug::log(LOG, "checking if we only have one monitor and if the last monitor is valid");
     // if we saw this monitor before, set it to the workspace it was on
-    auto it = g_pCompositor->m_mDisconnectedMonitorWorkspaceMap[szName];
+    auto it = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
     if (it != 0) {
         Debug::log(LOG, "Monitor {} was on workspace {}", szName, it);
 
@@ -290,7 +290,7 @@ void CMonitor::onDisconnect(bool destroy) {
     // record what workspace this monitor was on
     if (activeWorkspace) {
         Debug::log(LOG, "Disconnecting Monitor {} was on workspace {}", szName, activeWorkspace->m_iID);
-        g_pCompositor->m_mDisconnectedMonitorWorkspaceMap[szName] = activeWorkspace->m_iID;
+        g_pCompositor->m_mSeenMonitorWorkspaceMap[szName] = activeWorkspace->m_iID;
     }
 
     // Cleanup everything. Move windows back, snap cursor, shit.

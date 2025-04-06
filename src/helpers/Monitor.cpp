@@ -235,11 +235,11 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
-    Debug::log(LOG, "checking if we only have one monitor and if the last monitor is valid");
+    Debug::log(LOG, "checking if we have seen this monitor before: {}", szName);
     // if we saw this monitor before, set it to the workspace it was on
     auto it = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
     if (it != 0) {
-        Debug::log(LOG, "Monitor {} was on workspace {}", szName, it);
+        Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, it);
 
         auto ws = g_pCompositor->getWorkspaceByID(it);
         if (ws) {

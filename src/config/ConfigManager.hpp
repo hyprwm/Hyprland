@@ -244,6 +244,7 @@ class CConfigManager {
     std::optional<std::string> handleBindWS(const std::string&, const std::string&);
     std::optional<std::string> handleEnv(const std::string&, const std::string&);
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string> handlePermission(const std::string&, const std::string&);
 
     std::string                configCurrentPath;
 

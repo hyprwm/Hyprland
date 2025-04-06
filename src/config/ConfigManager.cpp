@@ -22,6 +22,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
 
@@ -367,6 +368,18 @@ static Hyprlang::CParseResult handlePlugin(const char* c, const char* v) {
     const std::string      COMMAND = c;
 
     const auto             RESULT = g_pConfigManager->handlePlugin(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
+static Hyprlang::CParseResult handlePermission(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handlePermission(COMMAND, VALUE);
 
     Hyprlang::CParseResult result;
     if (RESULT.has_value())
@@ -764,6 +777,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->registerHandler(&::handleSubmap, "submap", {false});
     m_pConfig->registerHandler(&::handleBlurLS, "blurls", {false});
     m_pConfig->registerHandler(&::handlePlugin, "plugin", {false});
+    m_pConfig->registerHandler(&::handlePermission, "permission", {false});
     m_pConfig->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -945,6 +959,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
     finalExecRequests.clear();
+
+    g_pDynamicPermissionManager->clearConfigPermissions();
 
     // paths
     m_configPaths.clear();
@@ -2827,6 +2843,32 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
         return "plugin '" + path + "' declared twice";
 
     m_vDeclaredPlugins.push_back(path);
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handlePermission(const std::string& command, const std::string& value) {
+    CVarList                    data(value);
+
+    eDynamicPermissionType      type = PERMISSION_TYPE_UNKNOWN;
+    eDynamicPermissionAllowMode mode = PERMISSION_RULE_ALLOW_MODE_UNKNOWN;
+
+    if (data[1] == "screencopy")
+        type = PERMISSION_TYPE_SCREENCOPY;
+
+    if (data[2] == "ask")
+        mode = PERMISSION_RULE_ALLOW_MODE_ASK;
+    else if (data[2] == "allow")
+        mode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    else if (data[2] == "deny")
+        mode = PERMISSION_RULE_ALLOW_MODE_DENY;
+
+    if (type == PERMISSION_TYPE_UNKNOWN)
+        return "unknown permission type";
+    if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
+        return "unknown permission allow mode";
+
+    g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
 }

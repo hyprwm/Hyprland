@@ -89,7 +89,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
     const auto LOOKUP = binaryNameForWlClient(client);
 
     Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), (uintptr_t)client,
-               LOOKUP.value_or("lookup failed: " + LOOKUP.error()));
+               LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
@@ -99,8 +99,8 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
         if (!LOOKUP.has_value())
             Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary name check failed");
         else {
-            Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(),
-                       LOOKUP.value().substr(LOOKUP.value().find_last_of('/') + 1));
+            const auto BINNAME = LOOKUP.value().contains("/") ? LOOKUP.value().substr(LOOKUP.value().find_last_of('/') + 1) : LOOKUP.value();
+            Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
 
             it = std::ranges::find_if(m_rules, [clientBinaryPath = LOOKUP.value(), permission](const auto& e) {
                 //                  vvv same path         or                  vvvvv path is empty and it's a config rule                          vvv and matches perm type
@@ -147,7 +147,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     if (binaryPath.empty())
         description = std::format("An unknown application (wayland client ID 0x{:x}) is requesting {}.", (uintptr_t)client, permissionToHumanString(type));
     else {
-        std::string binaryName = binaryPath.substr(binaryPath.find_last_of('/') + 1);
+        std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
         description            = std::format("An application {} ({}) is requesting {}.", binaryName, binaryPath, permissionToHumanString(type));
     }
 

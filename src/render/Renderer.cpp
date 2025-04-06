@@ -2239,7 +2239,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return true;
 }
 
-void CHyprRenderer::endRender() {
+void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
     g_pHyprOpenGL->m_RenderData.damage = m_sRenderPass.render(g_pHyprOpenGL->m_RenderData.damage);
@@ -2278,7 +2278,11 @@ void CHyprRenderer::endRender() {
 
         // release all CHLBufferRefernce when EGLSync sync_file/fence is signalled,
         // meaning that when opengl rendering is done we can send release for all used buffers
-        g_pEventLoopManager->doOnReadable(eglSync.fd().duplicate(), [prevbfs = std::move(usedAsyncBuffers)]() mutable { prevbfs.clear(); });
+        g_pEventLoopManager->doOnReadable(eglSync.fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(usedAsyncBuffers)]() mutable {
+            if (renderingDoneCallback)
+                renderingDoneCallback();
+            prevbfs.clear();
+        });
         usedAsyncBuffers.clear();
 
         if (m_eRenderMode == RENDER_MODE_NORMAL) {
@@ -2292,6 +2296,9 @@ void CHyprRenderer::endRender() {
         // plus we can only release buffers if we know rendering from them is done
         glFinish();
         usedAsyncBuffers.clear();
+
+        if (renderingDoneCallback)
+            renderingDoneCallback();
     }
 }
 

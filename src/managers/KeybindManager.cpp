@@ -2097,10 +2097,16 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
         }
     }
 
+    updateRelativeCursorCoords();
+
+    PHLWORKSPACEREF focusedWorkspace;
+
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
         Debug::log(LOG, "Toggling special workspace {} to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
+
+        focusedWorkspace = PMONITOR->activeWorkspace;
     } else {
         Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
@@ -2109,6 +2115,18 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
+
+        focusedWorkspace = PSPECIALWORKSPACE;
+    }
+
+    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+
+    if (*PWARPONWORKSPACECHANGE > 0) {
+        auto PLAST     = focusedWorkspace->getLastFocusedWindow();
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+
+        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+            PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
     }
 
     return {};

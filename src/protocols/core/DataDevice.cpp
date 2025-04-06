@@ -806,10 +806,9 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
     if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
-    const auto POS     = g_pInputManager->getMouseCoordsInternal();
-    const auto HOTSPOT = g_pPointerManager->cursorHotspot();
+    const auto POS = g_pInputManager->getMouseCoordsInternal();
 
-    Vector2D   surfacePos = POS - HOTSPOT;
+    Vector2D   surfacePos = POS;
 
     surfacePos += dnd.dndSurface->current.offset;
 

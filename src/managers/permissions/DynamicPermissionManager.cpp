@@ -148,7 +148,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         description = std::format("An unknown application (wayland client ID 0x{:x}) is requesting {}.", (uintptr_t)client, permissionToHumanString(type));
     else {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format("An application {} ({}) is requesting {}.", binaryName, binaryPath, permissionToHumanString(type));
+        description            = std::format("An application <b>{}</b> ({}) is requesting {}.", binaryName, binaryPath, permissionToHumanString(type));
     }
 
     description += "<br/><br/>Do you want to allow it to?";

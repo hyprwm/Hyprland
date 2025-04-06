@@ -272,6 +272,10 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
 
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        CBox texbox =
+            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
@@ -356,6 +360,10 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
 
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        CBox texbox =
+            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;

@@ -618,6 +618,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             DRAGGINGWINDOW->sendWindowSize();
         }
 
+        DRAGGINGWINDOW->m_vPosition = wb.pos();
+
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
@@ -689,6 +691,9 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
                 DRAGGINGWINDOW->sendWindowSize();
             }
+
+            DRAGGINGWINDOW->m_vPosition = wb.pos();
+            DRAGGINGWINDOW->m_vSize     = wb.size();
         } else {
             resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
@@ -780,8 +785,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         *pWindow->m_vRealPosition = wb.pos();
         *pWindow->m_vRealSize     = wb.size();
 
-        pWindow->m_vSize     = wb.pos();
-        pWindow->m_vPosition = wb.size();
+        pWindow->m_vSize     = wb.size();
+        pWindow->m_vPosition = wb.pos();
 
         g_pHyprRenderer->damageMonitor(pWindow->m_pMonitor.lock());
 
@@ -810,6 +815,7 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
 
     PWINDOW->setAnimationsToMove();
 
+    PWINDOW->m_vPosition += delta;
     *PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition->goal() + delta;
 
     g_pHyprRenderer->damageWindow(PWINDOW);

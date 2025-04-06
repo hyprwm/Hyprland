@@ -4,6 +4,16 @@
 #include "WaylandProtocol.hpp"
 #include "hyprland-toplevel-mapping-v1.hpp"
 
+class CToplevelWindowMappingHandle {
+    public:
+        CToplevelWindowMappingHandle(SP<CHyprlandToplevelWindowMappingHandleV1> resource_);
+    private:
+        SP<CHyprlandToplevelWindowMappingHandleV1> resource;
+
+        friend class CToplevelMappingManager;
+        friend class CToplevelMappingProtocol;
+};
+
 class CToplevelMappingManager {
   public:
     CToplevelMappingManager(SP<CHyprlandToplevelMappingManagerV1> resource_);
@@ -25,7 +35,7 @@ class CToplevelMappingProtocol : IWaylandProtocol {
     void                                                    destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle);
 
     std::vector<UP<CToplevelMappingManager>>                m_vManagers;
-    std::vector<SP<CHyprlandToplevelWindowMappingHandleV1>> m_vHandles;
+    std::vector<SP<CToplevelWindowMappingHandle>> m_vHandles;
 
     friend class CToplevelMappingManager;
 };

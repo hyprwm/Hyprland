@@ -6,6 +6,8 @@ CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> r
     if UNLIKELY (!resource_->resource())
         return;
 
+    resource->setData(this);
+
     resource->setOnDestroy([this](CExtForeignToplevelHandleV1* h) { PROTO::foreignToplevel->destroyHandle(this); });
     resource->setDestroy([this](CExtForeignToplevelHandleV1* h) { PROTO::foreignToplevel->destroyHandle(this); });
 }
@@ -170,12 +172,6 @@ bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
 }
 
 PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {
-    for (auto const& h : m_vHandles) {
-        if (h->resource->resource() != res)
-            continue;
-
-        return h->window();
-    }
-
-    return nullptr;
+    auto data = (CForeignToplevelHandle*)(((CExtForeignToplevelHandleV1*)wl_resource_get_user_data(res))->data());
+    return data ? data->window() : nullptr;
 }

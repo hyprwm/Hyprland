@@ -135,6 +135,7 @@ void CInputManager::endWorkspaceSwipe() {
         else {
             m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_sActiveSwipe.pMonitor->ID));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+            PWORKSPACEL->rememberPrevWorkspace(m_sActiveSwipe.pWorkspaceBegin);
         }
 
         PWORKSPACEL->m_vRenderOffset->setValue(RENDEROFFSET);
@@ -161,6 +162,7 @@ void CInputManager::endWorkspaceSwipe() {
         else {
             m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_sActiveSwipe.pMonitor->ID));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+            PWORKSPACER->rememberPrevWorkspace(m_sActiveSwipe.pWorkspaceBegin);
         }
 
         PWORKSPACER->m_vRenderOffset->setValue(RENDEROFFSET);

@@ -2305,8 +2305,8 @@ void CHyprRenderer::endRender() {
     auto explicitOptions = getExplicitSyncSettings(PMONITOR->output);
 
     if (PMONITOR->inTimeline && explicitOptions.explicitEnabled) {
-        PMONITOR->eglSync = g_pHyprOpenGL->createEGLSync();
-        if (!PMONITOR->eglSync) {
+        PMONITOR->eglSync = makeShared<CEGLSync>();
+        if (!PMONITOR->eglSync->isValid()) {
             Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
             return;
         }

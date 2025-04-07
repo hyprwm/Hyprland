@@ -17,7 +17,7 @@ AQUAMARINE_FORWARD(IBuffer);
 class CCursorBuffer : public Aquamarine::IBuffer {
   public:
     CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
-    CCursorBuffer(uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
+    CCursorBuffer(const uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
     ~CCursorBuffer() = default;
 
     virtual Aquamarine::eBufferCapability          caps();
@@ -30,10 +30,9 @@ class CCursorBuffer : public Aquamarine::IBuffer {
     virtual void                                   endDataPtr();
 
   private:
-    Vector2D         hotspot;
-    cairo_surface_t* surface   = nullptr;
-    uint8_t*         pixelData = nullptr;
-    size_t           stride    = 0;
+    Vector2D             m_hotspot;
+    std::vector<uint8_t> m_data;
+    size_t               m_stride = 0;
 };
 
 class CCursorManager {

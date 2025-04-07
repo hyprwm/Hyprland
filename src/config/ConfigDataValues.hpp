@@ -142,8 +142,7 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
   public:
     CFontWeightConfigValueData() = default;
     CFontWeightConfigValueData(const char* weight) {
-        std::string strWeight = weight;
-        value                 = parseWeight(strWeight);
+        parseWeight(weight);
     }
 
     int64_t                       value;
@@ -156,40 +155,23 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
         return std::format("{}", value);
     }
 
-    static int parseWeight(const std::string& weight) {
-        auto loWeight{weight};
-        transform(weight.begin(), weight.end(), loWeight.begin(), ::tolower);
+    void parseWeight(const std::string& strWeight) {
+        auto lcWeight{strWeight};
+        transform(strWeight.begin(), strWeight.end(), lcWeight.begin(), ::tolower);
 
         // values taken from Pango weight enums
-        if (loWeight == "thin")
-            return 100;
-        if (loWeight == "ultralight")
-            return 200;
-        if (loWeight == "light")
-            return 300;
-        if (loWeight == "semilight")
-            return 350;
-        if (loWeight == "book")
-            return 380;
-        if (loWeight == "normal")
-            return 400;
-        if (loWeight == "medium")
-            return 500;
-        if (loWeight == "semibold")
-            return 600;
-        if (loWeight == "bold")
-            return 700;
-        if (loWeight == "ultrabold")
-            return 800;
-        if (loWeight == "heavy")
-            return 900;
-        if (loWeight == "ultraheavy")
-            return 1000;
+        const auto WEIGHTS = std::map<std::string, int>{
+            {"thin", 100},   {"ultralight", 200}, {"light", 300}, {"semilight", 350}, {"book", 380},  {"normal", 400},
+            {"medium", 500}, {"semibold", 600},   {"bold", 700},  {"ultrabold", 800}, {"heavy", 900}, {"ultraheavy", 1000},
+        };
 
-        int w_i = std::stoi(weight);
-        if (w_i < 100 || w_i > 1000)
-            return 400;
-
-        return w_i;
+        auto weight = WEIGHTS.find(lcWeight);
+        if (weight != WEIGHTS.end())
+            value = weight->second;
+        else {
+            int w_i = std::stoi(strWeight);
+            if (w_i < 100 || w_i > 1000)
+                value = 400;
+        }
     }
 };

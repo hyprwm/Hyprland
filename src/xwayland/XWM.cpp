@@ -1217,8 +1217,7 @@ void CXWM::setClipboardToWayland(SXSelection& sel) {
 
     sel.dataSource = source;
 
-    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", (uintptr_t)sel.dataSource.get(),
-              (&sel == &clipboard) ? "clipboard" : "primary selection");
+    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", (uintptr_t)sel.dataSource.get(), (&sel == &clipboard) ? "clipboard" : "primary selection");
 
     if (&sel == &clipboard)
         g_pSeatManager->setCurrentSelection(sel.dataSource);
@@ -1339,22 +1338,17 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if ((this == &g_pXWayland->pWM->clipboard &&
-         g_pSeatManager->selection.currentSelection &&
-         g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
-        (this == &g_pXWayland->pWM->primarySelection &&
-         g_pSeatManager->selection.currentPrimarySelection &&
+    if ((this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
+        (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection &&
          g_pSeatManager->selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
         return;
 
     if (this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection) {
-        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window,
-                               HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
+        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->clipboard.notifyOnFocus = true;
     } else if (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection) {
-        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window,
-                               HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->primarySelection.notifyOnFocus = true;
     }

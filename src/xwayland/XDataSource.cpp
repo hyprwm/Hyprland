@@ -8,11 +8,9 @@
 using namespace Hyprutils::OS;
 
 CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
-    xcb_atom_t selection_prop = HYPRATOMS["_WL_SELECTION"];
-
     xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection,
                                                         1, // delete
-                                                        selection.window, selection_prop, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
+                                                        selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
 
     xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection, cookie, nullptr);
     if (!reply)

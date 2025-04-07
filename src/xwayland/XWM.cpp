@@ -1430,6 +1430,8 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     WP<IDataSource> selection;
     if (this == &g_pXWayland->pWM->clipboard)
         selection = g_pSeatManager->selection.currentSelection;
+    else if (this == &g_pXWayland->pWM->primarySelection)
+        selection = g_pSeatManager->selection.currentPrimarySelection;
     else if (!g_pXWayland->pWM->dndDataOffers.empty())
         selection = g_pXWayland->pWM->dndDataOffers.at(0)->getSource();
 

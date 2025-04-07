@@ -1,6 +1,7 @@
 #include "AsyncDialogBox.hpp"
 #include "./fs/FsUtils.hpp"
 #include <csignal>
+#include <unistd.h>
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 using namespace Hyprutils::OS;

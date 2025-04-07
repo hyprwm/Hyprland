@@ -306,6 +306,17 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
+    // forced above all
+    if (!g_pInputManager->m_dExclusiveLSes.empty()) {
+        if (!foundSurface)
+            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &g_pInputManager->m_dExclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
+
+        if (!foundSurface) {
+            foundSurface = (*g_pInputManager->m_dExclusiveLSes.begin())->surface->resource();
+            surfacePos   = (*g_pInputManager->m_dExclusiveLSes.begin())->realPosition->goal();
+        }
+    }
+
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerPopupSurface(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
 
@@ -1420,10 +1431,15 @@ void CInputManager::refocus() {
     mouseMoveUnified(0, true);
 }
 
-void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
+bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
+    if (!m_dExclusiveLSes.empty()) {
+        Debug::log(LOG, "CInputManager::refocusLastWindow: ignoring, exclusive LS present.");
+        return false;
+    }
+
     if (!pMonitor) {
         refocus();
-        return;
+        return true;
     }
 
     Vector2D               surfaceCoords;
@@ -1431,10 +1447,6 @@ void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     SP<CWLSurfaceResource> foundSurface = nullptr;
 
     g_pInputManager->releaseAllMouseButtons();
-
-    // first try for an exclusive layer
-    if (!m_dExclusiveLSes.empty())
-        foundSurface = m_dExclusiveLSes[m_dExclusiveLSes.size() - 1]->surface->resource();
 
     // then any surfaces above windows on the same monitor
     if (!foundSurface) {
@@ -1465,6 +1477,8 @@ void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
 
         refocus();
     }
+
+    return true;
 }
 
 void CInputManager::unconstrainMouse() {

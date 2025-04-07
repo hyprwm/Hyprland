@@ -71,19 +71,8 @@ void CInputManager::endWorkspaceSwipe() {
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
-    // With multiple monitors, it might not be appropriate to choose one more
-    // than the ID of the workspace we're swiping from, because that ID might
-    // just be on another monitor.  It's also not just the smallest unused ID,
-    // because that could be a gap in the existing workspace numbers, and it'd
-    // be counterintuitive to swipe rightwards onto a new workspace and end up
-    // left of where we started.  Instead, it's one more than the greatest
-    // workspace ID that currently exists.
     if (workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID && *PSWIPENEW) {
-        WORKSPACEID maxWorkspace = 0;
-        for (const auto& ws : g_pCompositor->m_vWorkspaces) {
-            maxWorkspace = std::max(maxWorkspace, ws->m_iID);
-        }
-        workspaceIDRight = maxWorkspace + 1;
+        workspaceIDRight = getWorkspaceIDNameFromString("r+1").id;
     }
 
     auto         PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER

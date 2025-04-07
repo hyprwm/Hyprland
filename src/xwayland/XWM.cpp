@@ -592,10 +592,7 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
             return;
         }
 
-        if (sel == &clipboard)
-            setClipboardToWayland(*sel);
-        else if (sel == &primarySelection)
-            setPrimarySelectionToWayland(*sel);
+        setClipboardToWayland(*sel);
     } else if (!sel->transfers.empty())
         getTransferData(*sel);
 }
@@ -1200,7 +1197,7 @@ void CXWM::initSelection() {
 
     xcb_xfixes_select_selection_input(connection, primarySelection.window, HYPRATOMS["PRIMARY"], mask2);
 
-    primarySelection.listeners.setSelection        = g_pSeatManager->events.setPrimarySelection.registerListener([this](std::any d) { primarySelection.onPrimarySelection(); });
+    primarySelection.listeners.setSelection        = g_pSeatManager->events.setPrimarySelection.registerListener([this](std::any d) { primarySelection.onSelection(); });
     primarySelection.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { primarySelection.onKeyboardFocus(); });
 
     dndSelection.window = xcb_generate_id(connection);
@@ -1214,27 +1211,19 @@ void CXWM::initSelection() {
 void CXWM::setClipboardToWayland(SXSelection& sel) {
     auto source = makeShared<CXDataSource>(sel);
     if (source->mimes().empty()) {
-        Debug::log(ERR, "[xwm] can't set clipboard: no MIMEs");
+        Debug::log(ERR, "[xwm] can't set selection: no MIMEs");
         return;
     }
 
     sel.dataSource = source;
 
-    Debug::log(LOG, "[xwm] X clipboard at {:x} takes clipboard", (uintptr_t)sel.dataSource.get());
-    g_pSeatManager->setCurrentSelection(sel.dataSource);
-}
+    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", (uintptr_t)sel.dataSource.get(),
+              (&sel == &clipboard) ? "clipboard" : "primary selection");
 
-void CXWM::setPrimarySelectionToWayland(SXSelection& sel) {
-    auto source = makeShared<CXDataSource>(sel);
-    if (source->mimes().empty()) {
-        Debug::log(ERR, "[xwm] can't set primary selection: no MIMEs");
-        return;
-    }
-
-    sel.dataSource = source;
-
-    Debug::log(LOG, "[xwm] X primary selection at {:x} takes primary selection", (uintptr_t)sel.dataSource.get());
-    g_pSeatManager->setCurrentPrimarySelection(sel.dataSource);
+    if (&sel == &clipboard)
+        g_pSeatManager->setCurrentSelection(sel.dataSource);
+    else if (&sel == &primarySelection)
+        g_pSeatManager->setCurrentPrimarySelection(sel.dataSource);
 }
 
 static int writeDataSource(int fd, uint32_t mask, void* data) {
@@ -1350,13 +1339,24 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if (g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11)
+    if ((this == &g_pXWayland->pWM->clipboard &&
+         g_pSeatManager->selection.currentSelection &&
+         g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
+        (this == &g_pXWayland->pWM->primarySelection &&
+         g_pSeatManager->selection.currentPrimarySelection &&
+         g_pSeatManager->selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
         return;
 
-    if (g_pSeatManager->selection.currentSelection) {
-        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
+    if (this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection) {
+        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window,
+                               HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->clipboard.notifyOnFocus = true;
+    } else if (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection) {
+        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window,
+                               HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(g_pXWayland->pWM->connection);
+        g_pXWayland->pWM->primarySelection.notifyOnFocus = true;
     }
 }
 
@@ -1368,19 +1368,8 @@ void SXSelection::onKeyboardFocus() {
         onSelection();
         g_pXWayland->pWM->clipboard.notifyOnFocus = false;
     } else if (this == &g_pXWayland->pWM->primarySelection && g_pXWayland->pWM->primarySelection.notifyOnFocus) {
-        onPrimarySelection();
+        onSelection();
         g_pXWayland->pWM->primarySelection.notifyOnFocus = false;
-    }
-}
-
-void SXSelection::onPrimarySelection() {
-    if (g_pSeatManager->selection.currentPrimarySelection && g_pSeatManager->selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11)
-        return;
-
-    if (g_pSeatManager->selection.currentPrimarySelection) {
-        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->pWM->connection);
-        g_pXWayland->pWM->primarySelection.notifyOnFocus = true;
     }
 }
 

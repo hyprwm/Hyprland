@@ -15,6 +15,8 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
+        surface->pending.updated.viewport = true;
+
         if (x == -1 && y == -1) {
             surface->pending.viewport.hasDestination = false;
             return;
@@ -34,6 +36,8 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             r->error(WP_VIEWPORT_ERROR_NO_SURFACE, "Surface is gone");
             return;
         }
+
+        surface->pending.updated.viewport = true;
 
         double x = wl_fixed_to_double(fx), y = wl_fixed_to_double(fy), w = wl_fixed_to_double(fw), h = wl_fixed_to_double(fh);
 

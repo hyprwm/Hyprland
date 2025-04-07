@@ -109,7 +109,7 @@ bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
     static auto PENABLEANIM = CConfigValue<Hyprlang::INT>("render:ctm_animation");
 
     if (*PENABLEANIM == 2)
-        return !g_pHyprRenderer->isNvidia();
+        return !(g_pHyprRenderer->isNvidia() && g_pCompositor->m_vMonitors.size() > 1);
     return *PENABLEANIM;
 }
 

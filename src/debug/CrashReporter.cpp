@@ -192,7 +192,7 @@ void NCrashReporter::createAndSaveCrash(int sig) {
 #endif
     };
     u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
-    char   exe[PATH_MAX] = "";
+    char   exe[PATH_MAX] = "/nonexistent";
     size_t sz            = sizeof(exe);
     sysctl(mib, miblen, &exe, &sz, NULL, 0);
     const auto FPATH = std::filesystem::canonical(exe);

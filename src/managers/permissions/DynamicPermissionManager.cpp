@@ -5,6 +5,10 @@
 #include <filesystem>
 #include "../../Compositor.hpp"
 
+#if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
+#include <sys/sysctl.h>
+#endif
+
 static void clientDestroyInternal(struct wl_listener* listener, void* data) {
     SDynamicPermissionRuleDestroyWrapper* wrap = wl_container_of(listener, wrap, listener);
     CDynamicPermissionRule*               rule = wrap->parent;
@@ -63,9 +67,27 @@ static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* 
     if (pid <= 0)
         return std::unexpected("No pid for client");
 
-    // FIXME: this won't work on BSDs. Can we fix this?
-
+#if defined(KERN_PROC_PATHNAME)
+    int mib[] = {
+        CTL_KERN,
+#if defined(__NetBSD__)
+        KERN_PROC_ARGS,
+        pid,
+        KERN_PROC_PATHNAME,
+#else
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        pid,
+#endif
+    };
+    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    char   exe[PATH_MAX] = "/nonexistent";
+    size_t sz            = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    std::string     path = exe;
+#else
     std::string     path = std::format("/proc/{}/exe", (uint64_t)pid);
+#endif
     std::error_code ec;
 
     std::string     fullPath = std::filesystem::canonical(path, ec);

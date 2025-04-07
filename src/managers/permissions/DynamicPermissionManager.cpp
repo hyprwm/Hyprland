@@ -50,7 +50,7 @@ static const char* permissionToString(eDynamicPermissionType type) {
 static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
         case PERMISSION_TYPE_UNKNOWN: return "an unknown permission";
-        case PERMISSION_TYPE_SCREENCOPY: return "access to your screen (screenshot / screenshare)";
+        case PERMISSION_TYPE_SCREENCOPY: return "trying to capture your screen";
     }
 
     return "error";
@@ -145,13 +145,13 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
     std::string description = "";
     if (binaryPath.empty())
-        description = std::format("An unknown application (wayland client ID 0x{:x}) is requesting {}.", (uintptr_t)client, permissionToHumanString(type));
+        description = std::format("An unknown application (wayland client ID 0x{:x}) is {}.", (uintptr_t)client, permissionToHumanString(type));
     else {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format("An application <b>{}</b> ({}) is requesting {}.", binaryName, binaryPath, permissionToHumanString(type));
+        description            = std::format("An application <b>{}</b> ({}) is {}.", binaryName, binaryPath, permissionToHumanString(type));
     }
 
-    description += "<br/><br/>Do you want to allow it to?";
+    description += "<br/><br/>Do you want to allow this?";
 
     std::vector<std::string> options;
 

@@ -148,8 +148,6 @@ static void configHandleGapDestroy(void** data) {
 }
 
 static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void** data) {
-    std::string V = VALUE;
-
     if (!*data)
         *data = new CFontWeightConfigValueData();
 
@@ -157,9 +155,9 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
     Hyprlang::CParseResult result;
 
     try {
-        DATA->value = CFontWeightConfigValueData::parseWeight(V);
+        DATA->parseWeight(VALUE);
     } catch (...) {
-        std::string parseError = std::format("{} is not a valid font weight", V);
+        std::string parseError = std::format("{} is not a valid font weight", VALUE);
         result.setError(parseError.c_str());
     }
 

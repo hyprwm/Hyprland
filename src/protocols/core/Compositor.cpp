@@ -13,6 +13,7 @@
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
 #include "protocols/types/SurfaceRole.hpp"
+#include "protocols/types/SurfaceState.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
 
@@ -427,6 +428,8 @@ CBox CWLSurfaceResource::extends() {
 void CWLSurfaceResource::commitPendingState(SSurfaceState& state) {
     auto lastTexture = current.texture;
     current.updateFrom(state);
+    if (state.updated & SSurfaceState::SURFACE_UPDATED_DAMAGE)
+        damageSinceLastRender = damageSinceLastRender.add(current.accumulateBufferDamage());
     state.updated = 0;
 
     if (current.buffer) {

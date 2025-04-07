@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CDMABuffer : public IHLBuffer {
   public:
@@ -16,6 +17,7 @@ class CDMABuffer : public IHLBuffer {
     virtual void                                   endDataPtr();
     bool                                           good();
     void                                           closeFDs();
+    Hyprutils::OS::CFileDescriptor                 exportSyncFile();
 
     bool                                           success = false;
 

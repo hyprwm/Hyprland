@@ -1194,8 +1194,8 @@ void CXWM::initSelection() {
     clipboard.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
 
     primarySelection.window = xcb_generate_id(connection);
-    xcb_create_window(connection, XCB_COPY_FROM_PARENT, primarySelection.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, XCB_CW_EVENT_MASK,
-                      mask);
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT, primarySelection.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual,
+                      XCB_CW_EVENT_MASK, mask);
     xcb_set_selection_owner(connection, primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
 
     xcb_xfixes_select_selection_input(connection, primarySelection.window, HYPRATOMS["PRIMARY"], mask2);

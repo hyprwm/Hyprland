@@ -601,24 +601,16 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
     if (e->state != XCB_PROPERTY_DELETE)
         return false;
 
-    auto it = std::ranges::find_if(clipboard.transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
-    if (it != clipboard.transfers.end()) {
-        if (!(*it)->getIncomingSelectionProp(true)) {
-            clipboard.transfers.erase(it);
-            return false;
+    for (auto* sel : {&clipboard, &primarySelection}) {
+        auto it = std::ranges::find_if(sel->transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
+        if (it != sel->transfers.end()) {
+            if (!(*it)->getIncomingSelectionProp(true)) {
+                sel->transfers.erase(it);
+                return false;
+            }
+            getTransferData(*sel);
+            return true;
         }
-        getTransferData(clipboard);
-        return true;
-    }
-
-    it = std::ranges::find_if(primarySelection.transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
-    if (it != primarySelection.transfers.end()) {
-        if (!(*it)->getIncomingSelectionProp(true)) {
-            primarySelection.transfers.erase(it);
-            return false;
-        }
-        getTransferData(primarySelection);
-        return true;
     }
 
     return false;

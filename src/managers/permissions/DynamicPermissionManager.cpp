@@ -53,7 +53,7 @@ static const char* permissionToString(eDynamicPermissionType type) {
 
 static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "an unknown permission";
+        case PERMISSION_TYPE_UNKNOWN: return "requesting an unknown permission";
         case PERMISSION_TYPE_SCREENCOPY: return "trying to capture your screen";
     }
 

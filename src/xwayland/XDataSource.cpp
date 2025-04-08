@@ -77,7 +77,13 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
                       g_pXWayland->pWM->screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
 
-    xcb_convert_selection(g_pXWayland->pWM->connection, transfer->incomingWindow, HYPRATOMS["CLIPBOARD"], mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
+    xcb_atom_t selection_atom = HYPRATOMS["CLIPBOARD"];
+    if (&selection == &g_pXWayland->pWM->primarySelection)
+        selection_atom = HYPRATOMS["PRIMARY"];
+    else if (&selection == &g_pXWayland->pWM->dndSelection)
+        selection_atom = HYPRATOMS["XdndSelection"];
+
+    xcb_convert_selection(g_pXWayland->pWM->connection, transfer->incomingWindow, selection_atom, mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
 
     xcb_flush(g_pXWayland->pWM->connection);
 

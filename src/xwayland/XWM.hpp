@@ -201,6 +201,7 @@ class CXWM {
     uint64_t                                  lastFocusSeq = 0;
 
     SXSelection                               clipboard;
+    SXSelection                               primarySelection;
     SXSelection                               dndSelection;
     SP<CX11DataDevice>                        dndDataDevice = makeShared<CX11DataDevice>();
     std::vector<SP<CX11DataOffer>>            dndDataOffers;

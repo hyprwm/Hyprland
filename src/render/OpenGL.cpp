@@ -2850,6 +2850,8 @@ void CHyprOpenGLImpl::initAssets() {
                                                        "unknown"),
                                        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 
+    m_pScreencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
+
     ensureBackgroundTexturePresence();
 }
 

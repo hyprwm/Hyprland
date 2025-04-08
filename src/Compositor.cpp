@@ -15,6 +15,7 @@
 #include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include "managers/permissions/DynamicPermissionManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -570,6 +571,7 @@ void CCompositor::cleanup() {
     removeAllSignals();
 
     g_pInputManager.reset();
+    g_pDynamicPermissionManager.reset();
     g_pDecorationPositioner.reset();
     g_pCursorManager.reset();
     g_pPluginSystem.reset();
@@ -623,6 +625,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the AnimationManager!");
             g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+
+            Debug::log(LOG, "Creating the DynamicPermissionManager!");
+            g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
 
             Debug::log(LOG, "Creating the ConfigManager!");
             g_pConfigManager = makeUnique<CConfigManager>();

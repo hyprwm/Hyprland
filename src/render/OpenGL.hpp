@@ -283,6 +283,8 @@ class CHyprOpenGLImpl {
         bool EXT_create_context_robustness      = false;
     } m_sExts;
 
+    SP<CTexture> m_pScreencopyDeniedTexture;
+
   private:
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,

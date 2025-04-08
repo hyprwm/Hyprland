@@ -1237,7 +1237,7 @@ void CWindow::setSuspended(bool suspend) {
     if (suspend == m_bSuspended)
         return;
 
-    if (m_bIsX11 || !m_pXDGSurface->toplevel)
+    if (m_bIsX11 || !m_pXDGSurface || !m_pXDGSurface->toplevel)
         return;
 
     m_pXDGSurface->toplevel->setSuspeneded(suspend);
@@ -1687,7 +1687,7 @@ Vector2D CWindow::requestedMinSize() {
 
 Vector2D CWindow::requestedMaxSize() {
     constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && !m_pXDGSurface->toplevel) || m_sWindowData.noMaxSize.valueOrDefault()))
+    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && (!m_pXDGSurface || !m_pXDGSurface->toplevel)) || m_sWindowData.noMaxSize.valueOrDefault()))
         return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
 
     Vector2D maxSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->max_width, m_pXWaylandSurface->sizeHints->max_height) : m_pXDGSurface->toplevel->layoutMaxSize();

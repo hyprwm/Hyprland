@@ -5,6 +5,7 @@
 #include <expected>
 #include <filesystem>
 #include "../../Compositor.hpp"
+#include "../../config/ConfigValue.hpp"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
@@ -108,6 +109,11 @@ void CDynamicPermissionManager::addConfigPermissionRule(const std::string& binar
 }
 
 eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_client* client, eDynamicPermissionType permission) {
+
+    static auto PPERM = CConfigValue<Hyprlang::INT>("ecosystem:enforce_permissions");
+
+    if (*PPERM == 0)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     const auto LOOKUP = binaryNameForWlClient(client);
 

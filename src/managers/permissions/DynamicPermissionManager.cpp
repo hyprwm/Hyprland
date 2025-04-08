@@ -1,3 +1,4 @@
+#include <re2/re2.h>
 #include "DynamicPermissionManager.hpp"
 #include <algorithm>
 #include <wayland-server-core.h>
@@ -15,8 +16,8 @@ static void clientDestroyInternal(struct wl_listener* listener, void* data) {
     g_pDynamicPermissionManager->removeRulesForClient(rule->client());
 }
 
-CDynamicPermissionRule::CDynamicPermissionRule(const std::string& binaryPath, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode) :
-    m_type(type), m_source(PERMISSION_RULE_SOURCE_CONFIG), m_binaryPath(binaryPath), m_allowMode(defaultAllowMode) {
+CDynamicPermissionRule::CDynamicPermissionRule(const std::string& binaryPathRegex, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode) :
+    m_type(type), m_source(PERMISSION_RULE_SOURCE_CONFIG), m_binaryRegex(makeUnique<re2::RE2>(binaryPathRegex)), m_allowMode(defaultAllowMode) {
     ;
 }
 
@@ -125,8 +126,20 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
             Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
 
             it = std::ranges::find_if(m_rules, [clientBinaryPath = LOOKUP.value(), permission](const auto& e) {
-                //                  vvv same path         or                  vvvvv path is empty and it's a config rule                          vvv and matches perm type
-                return (e->m_binaryPath == clientBinaryPath || (e->m_binaryPath.empty() && e->m_source == PERMISSION_RULE_SOURCE_CONFIG)) && e->m_type == permission;
+                if (e->m_type != permission)
+                    return false; // wrong perm
+
+                if (!e->m_binaryPath.empty() && e->m_binaryPath == clientBinaryPath)
+                    return true; // matches binary path
+
+                if (!e->m_binaryRegex)
+                    return false; // wl_client* rule
+
+                // regex match
+                if (RE2::FullMatch(clientBinaryPath, *e->m_binaryRegex))
+                    return true;
+
+                return false;
             });
 
             if (it == m_rules.end())

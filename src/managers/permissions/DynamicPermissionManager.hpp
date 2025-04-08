@@ -5,6 +5,12 @@
 #include "../../helpers/AsyncDialogBox.hpp"
 #include <vector>
 #include <wayland-server-core.h>
+#include <optional>
+
+// NOLINTNEXTLINE
+namespace re2 {
+    class RE2;
+};
 
 enum eDynamicPermissionType : uint8_t {
     PERMISSION_TYPE_UNKNOWN = 0,
@@ -40,7 +46,7 @@ class CDynamicPermissionRule {
 
   private:
     // config rule
-    CDynamicPermissionRule(const std::string& binaryPath, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode = PERMISSION_RULE_ALLOW_MODE_ASK);
+    CDynamicPermissionRule(const std::string& binaryPathRegex, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode = PERMISSION_RULE_ALLOW_MODE_ASK);
     // user rule
     CDynamicPermissionRule(wl_client* const client, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode = PERMISSION_RULE_ALLOW_MODE_ASK);
 
@@ -48,6 +54,7 @@ class CDynamicPermissionRule {
     const eDynamicPermissionRuleSource   m_source     = PERMISSION_RULE_SOURCE_UNKNOWN;
     wl_client* const                     m_client     = nullptr;
     std::string                          m_binaryPath = "";
+    UP<re2::RE2>                         m_binaryRegex;
 
     eDynamicPermissionAllowMode          m_allowMode = PERMISSION_RULE_ALLOW_MODE_ASK;
     SP<CAsyncDialogBox>                  m_dialogBox; // for pending

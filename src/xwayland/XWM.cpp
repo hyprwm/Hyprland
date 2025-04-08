@@ -586,7 +586,7 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
             Debug::log(TRACE, "[xwm] converting selection failed");
             sel->transfers.erase(it);
         }
-    } else if (e->target == HYPRATOMS["TARGETS"] && sel == &clipboard) {
+    } else if (e->target == HYPRATOMS["TARGETS"]) {
         if (!focusedSurface) {
             Debug::log(TRACE, "[xwm] denying access to write to clipboard because no X client is in focus");
             return;
@@ -601,14 +601,16 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
     if (e->state != XCB_PROPERTY_DELETE)
         return false;
 
-    auto it = std::ranges::find_if(clipboard.transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
-    if (it != clipboard.transfers.end()) {
-        if (!(*it)->getIncomingSelectionProp(true)) {
-            clipboard.transfers.erase(it);
-            return false;
+    for (auto* sel : {&clipboard, &primarySelection}) {
+        auto it = std::ranges::find_if(sel->transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
+        if (it != sel->transfers.end()) {
+            if (!(*it)->getIncomingSelectionProp(true)) {
+                sel->transfers.erase(it);
+                return false;
+            }
+            getTransferData(*sel);
+            return true;
         }
-        getTransferData(clipboard);
-        return true;
     }
 
     return false;
@@ -617,6 +619,8 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 SXSelection* CXWM::getSelection(xcb_atom_t atom) {
     if (atom == HYPRATOMS["CLIPBOARD"])
         return &clipboard;
+    else if (atom == HYPRATOMS["PRIMARY"])
+        return &primarySelection;
     else if (atom == HYPRATOMS["XdndSelection"])
         return &dndSelection;
 
@@ -707,8 +711,12 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
         return true;
 
     if (e->owner == XCB_WINDOW_NONE) {
-        if (sel->owner != sel->window && sel == &clipboard)
-            g_pSeatManager->setCurrentSelection(nullptr);
+        if (sel->owner != sel->window) {
+            if (sel == &clipboard)
+                g_pSeatManager->setCurrentSelection(nullptr);
+            else if (sel == &primarySelection)
+                g_pSeatManager->setCurrentPrimarySelection(nullptr);
+        }
 
         sel->owner = 0;
         return true;
@@ -721,7 +729,10 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
         return true;
     }
 
-    xcb_convert_selection(connection, sel->window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
+    if (sel == &clipboard)
+        xcb_convert_selection(connection, sel->window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
+    else if (sel == &primarySelection)
+        xcb_convert_selection(connection, sel->window, HYPRATOMS["PRIMARY"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
     xcb_flush(connection);
 
     return true;
@@ -1171,6 +1182,16 @@ void CXWM::initSelection() {
     clipboard.listeners.setSelection        = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
     clipboard.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
 
+    primarySelection.window = xcb_generate_id(connection);
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT, primarySelection.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual,
+                      XCB_CW_EVENT_MASK, mask);
+    xcb_set_selection_owner(connection, primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+
+    xcb_xfixes_select_selection_input(connection, primarySelection.window, HYPRATOMS["PRIMARY"], mask2);
+
+    primarySelection.listeners.setSelection        = g_pSeatManager->events.setPrimarySelection.registerListener([this](std::any d) { primarySelection.onSelection(); });
+    primarySelection.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { primarySelection.onKeyboardFocus(); });
+
     dndSelection.window = xcb_generate_id(connection);
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, dndSelection.window, screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, screen->root_visual, XCB_CW_EVENT_MASK,
                       mask);
@@ -1182,14 +1203,18 @@ void CXWM::initSelection() {
 void CXWM::setClipboardToWayland(SXSelection& sel) {
     auto source = makeShared<CXDataSource>(sel);
     if (source->mimes().empty()) {
-        Debug::log(ERR, "[xwm] can't set clipboard: no MIMEs");
+        Debug::log(ERR, "[xwm] can't set selection: no MIMEs");
         return;
     }
 
     sel.dataSource = source;
 
-    Debug::log(LOG, "[xwm] X clipboard at {:x} takes clipboard", (uintptr_t)sel.dataSource.get());
-    g_pSeatManager->setCurrentSelection(sel.dataSource);
+    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", (uintptr_t)sel.dataSource.get(), (&sel == &clipboard) ? "clipboard" : "primary selection");
+
+    if (&sel == &clipboard)
+        g_pSeatManager->setCurrentSelection(sel.dataSource);
+    else if (&sel == &primarySelection)
+        g_pSeatManager->setCurrentPrimarySelection(sel.dataSource);
 }
 
 static int writeDataSource(int fd, uint32_t mask, void* data) {
@@ -1305,22 +1330,32 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if (g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11)
+    if ((this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
+        (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection &&
+         g_pSeatManager->selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
         return;
 
-    if (g_pSeatManager->selection.currentSelection) {
+    if (this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection) {
         xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->clipboard.notifyOnFocus = true;
+    } else if (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection) {
+        xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(g_pXWayland->pWM->connection);
+        g_pXWayland->pWM->primarySelection.notifyOnFocus = true;
     }
 }
 
 void SXSelection::onKeyboardFocus() {
     if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient)
         return;
-    if (g_pXWayland->pWM->clipboard.notifyOnFocus) {
+
+    if (this == &g_pXWayland->pWM->clipboard && g_pXWayland->pWM->clipboard.notifyOnFocus) {
         onSelection();
         g_pXWayland->pWM->clipboard.notifyOnFocus = false;
+    } else if (this == &g_pXWayland->pWM->primarySelection && g_pXWayland->pWM->primarySelection.notifyOnFocus) {
+        onSelection();
+        g_pXWayland->pWM->primarySelection.notifyOnFocus = false;
     }
 }
 
@@ -1370,6 +1405,8 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     WP<IDataSource> selection;
     if (this == &g_pXWayland->pWM->clipboard)
         selection = g_pSeatManager->selection.currentSelection;
+    else if (this == &g_pXWayland->pWM->primarySelection)
+        selection = g_pSeatManager->selection.currentPrimarySelection;
     else if (!g_pXWayland->pWM->dndDataOffers.empty())
         selection = g_pXWayland->pWM->dndDataOffers.at(0)->getSource();
 

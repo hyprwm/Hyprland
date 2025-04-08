@@ -84,9 +84,9 @@ static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* 
     char   exe[PATH_MAX] = "/nonexistent";
     size_t sz            = sizeof(exe);
     sysctl(mib, miblen, &exe, &sz, NULL, 0);
-    std::string     path = exe;
+    std::string path = exe;
 #else
-    std::string     path = std::format("/proc/{}/exe", (uint64_t)pid);
+    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
 #endif
     std::error_code ec;
 

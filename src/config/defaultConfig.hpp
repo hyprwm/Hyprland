@@ -71,7 +71,8 @@ env = HYPRCURSOR_SIZE,24
 
 # See https://wiki.hyprland.org/Configuring/Permissions/
 
-permission = /usr/bin/grim, screenshot, allow
+permission = /usr/(bin|local/bin)/grim, screencopy, allow
+permission = /usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland, screencopy, allow
 
 
 #####################

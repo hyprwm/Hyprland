@@ -123,7 +123,7 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
             (SIZEHINTS && (SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height)))
             return true;
     } else {
-        if (!pWindow->m_pXDGSurface.lock() || !pWindow->m_pXDGSurface.lock()->toplevel)
+        if (!pWindow->m_pXDGSurface || !pWindow->m_pXDGSurface->toplevel)
             return false;
 
         const auto PSTATE = pending ? &pWindow->m_pXDGSurface->toplevel->pending : &pWindow->m_pXDGSurface->toplevel->current;

@@ -65,6 +65,20 @@ env = XCURSOR_SIZE,24
 env = HYPRCURSOR_SIZE,24
 
 
+###################
+### PERMISSIONS ###
+###################
+
+# See https://wiki.hyprland.org/Configuring/Permissions/
+
+# ecosystem {
+#   enforce_permissions = 1
+# }
+
+# permission = /usr/(bin|local/bin)/grim, screencopy, allow
+# permission = /usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland, screencopy, allow
+
+
 #####################
 ### LOOK AND FEEL ###
 #####################

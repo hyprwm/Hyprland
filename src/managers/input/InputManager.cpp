@@ -548,8 +548,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                     // TODO: this looks wrong. When over a popup, it constantly is switching.
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
                     if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow) {
-                        if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus)
-                            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                        if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus) {
+                            const bool hasNoFollowMouseRule = pFoundWindow &&
+                                std::any_of(pFoundWindow->m_vMatchedRules.begin(), pFoundWindow->m_vMatchedRules.end(),
+                                            [](const auto& rule) { return rule->ruleType == CWindowRule::RULE_NOFOLLOWMOUSE; });
+
+                            if (refocus || !hasNoFollowMouseRule)
+                                g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                        }
                     } else
                         g_pCompositor->focusSurface(foundSurface, pFoundWindow);
                 }

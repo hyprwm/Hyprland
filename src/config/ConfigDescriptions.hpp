@@ -1476,7 +1476,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "cursor:warp_on_toggle_special",
-        .description = "Move the cursor to the last focused window when toggling a special workspace. Options: 0 (Disabled), 1 (Enabled), 2 (Force - ignores cursor:no_warps option)",
+        .description = "Move the cursor to the last focused window when toggling a special workspace. Options: 0 (Disabled), 1 (Enabled), "
+                       "2 (Force - ignores cursor:no_warps option)",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Force"},
     },

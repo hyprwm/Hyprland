@@ -59,7 +59,6 @@
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
 #include "plugins/PluginSystem.hpp"
-#include "helpers/Watchdog.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
@@ -588,7 +587,6 @@ void CCompositor::cleanup() {
     g_pConfigManager.reset();
     g_pKeybindManager.reset();
     g_pHookSystem.reset();
-    g_pWatchdog.reset();
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
     g_pSeatManager.reset();
@@ -642,11 +640,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pTokenManager = makeUnique<CTokenManager>();
 
             g_pConfigManager->init();
-            g_pWatchdog = makeUnique<CWatchdog>(); // requires config
-            // wait for watchdog to initialize to not hit data races in reading config values.
-            while (!g_pWatchdog->m_bWatchdogInitialized) {
-                std::this_thread::yield();
-            }
 
             Debug::log(LOG, "Creating the PointerManager!");
             g_pPointerManager = makeUnique<CPointerManager>();

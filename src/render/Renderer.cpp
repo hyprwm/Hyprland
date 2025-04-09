@@ -1162,7 +1162,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
@@ -1234,22 +1233,14 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         pMonitor->m_currentTearing.reset();
     }
 
-    if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
-          pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN && pMonitor->m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        pMonitor->m_currentTearing.expired()) {
-        if (pMonitor->attemptDirectScanout()) {
-            return;
-        } else if (!pMonitor->m_lastScanout.expired()) {
-            Debug::log(LOG, "Left a direct scanout.");
-            pMonitor->m_lastScanout.reset();
+    if (pMonitor->shouldDoDirectScanout()) {
+        pMonitor->attemptDirectScanout();
+        return;
+    } else if (!pMonitor->m_currentScanout.expired()) {
+        Debug::log(LOG, "Direct scanout stopped for window {} on monitor {}", pMonitor->m_currentScanout->m_title, pMonitor->m_name);
+        pMonitor->m_currentScanout.reset();
 
-            // reset DRM format, but only if needed since it might modeset
-            if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
-                pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
-
-            pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
-        }
+        pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);
@@ -1553,6 +1544,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_ctmUpdated = false;
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
+
+    // reset DRM format, but only if needed since it might modeset
+    if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_drmFormat)
+        pMonitor->m_output->state->setFormat(pMonitor->m_drmFormat);
 
     pMonitor->m_output->state->setPresentationMode(!pMonitor->m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 

@@ -1486,16 +1486,24 @@ bool CMonitor::shouldDoTearing() {
     return true;
 }
 
-bool CMonitor::attemptDirectScanout() {
-    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+bool CMonitor::shouldDoDirectScanout() {
+    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
 
-    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
+    if (*PDIRECTSCANOUT == 0 || (*PDIRECTSCANOUT != 1 && *PDIRECTSCANOUT != 2))
         return false;
 
     const auto PCANDIDATE = m_solitaryClient.lock();
 
-    if (!PCANDIDATE)
+    if (!PCANDIDATE || PCANDIDATE->m_workspace->m_fullscreenMode != FSMODE_FULLSCREEN)
+        return false;
+
+    if (*PDIRECTSCANOUT == 2 && PCANDIDATE->getContentType() != CONTENT_TYPE_GAME)
+        return false;
+
+    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
+    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
         return false;
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
@@ -1511,9 +1519,28 @@ bool CMonitor::attemptDirectScanout() {
     if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());
+    if (m_drmFormat != params.format) {
+        m_prevDrmFormat = m_drmFormat;
+        m_drmFormat     = params.format;
+    }
 
-    auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
+    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
+    // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    if (m_currentScanout.expired()) {
+        m_currentScanout = PCANDIDATE;
+        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_title);
+    }
+
+    Debug::log(TRACE, "shouldDoDirectScanout: surface {:x} with buffer {:x} passed", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());
+
+    return true;
+}
+
+bool CMonitor::attemptDirectScanout() {
+    const auto PCANDIDATE = m_currentScanout.lock();
+    const auto PSURFACE   = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    const auto PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
@@ -1526,7 +1553,7 @@ bool CMonitor::attemptDirectScanout() {
 
             if (!m_output->commit()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed to commit cursor update");
-                m_lastScanout.reset();
+                m_currentScanout.reset();
                 return false;
             }
 
@@ -1536,17 +1563,9 @@ bool CMonitor::attemptDirectScanout() {
         return true;
     }
 
-    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
-    // and comes from the appropriate device. This may implode on multi-gpu!!
-
-    // entering into scanout, so save monitor format
-    if (m_lastScanout.expired())
-        m_prevDrmFormat = m_drmFormat;
-
-    if (m_drmFormat != params.format) {
-        m_output->state->setFormat(params.format);
-        m_drmFormat = params.format;
-    }
+    // reset DRM format, but only if needed since it might modeset
+    if (m_output->state->state().drmFormat != m_drmFormat)
+        m_output->state->setFormat(m_drmFormat);
 
     m_output->state->setBuffer(PBUFFER);
     m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
@@ -1567,13 +1586,8 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
-        m_lastScanout.reset();
+        m_currentScanout.reset();
         return false;
-    }
-
-    if (m_lastScanout.expired()) {
-        m_lastScanout = PCANDIDATE;
-        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_title);
     }
 
     m_pageFlipPending = true;

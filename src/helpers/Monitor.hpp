@@ -181,7 +181,7 @@ class CMonitor {
     bool         m_canTear         = false;
 
     // for direct scanout
-    PHLWINDOWREF m_lastScanout;
+    PHLWINDOWREF m_currentScanout;
     bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur
@@ -224,6 +224,7 @@ class CMonitor {
     CBox                                logicalBox();
     void                                scheduleDone();
     bool                                shouldDoTearing();
+    bool                                shouldDoDirectScanout();
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();

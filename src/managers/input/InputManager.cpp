@@ -255,7 +255,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         for (auto& lsl : PMONITOR->m_aLayerSurfaceLayers | std::views::reverse) {
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
 
-            if (foundSurface) break;
+            if (foundSurface)
+                break;
         }
 
         Vector2D surfacelocal = surfaceCoords;

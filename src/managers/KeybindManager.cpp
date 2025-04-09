@@ -2119,14 +2119,14 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
         focusedWorkspace = PSPECIALWORKSPACE;
     }
 
-    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+    const static auto PWARPONTOGGLESPECIAL = CConfigValue<Hyprlang::INT>("cursor:warp_on_toggle_special");
 
-    if (*PWARPONWORKSPACECHANGE > 0) {
+    if (*PWARPONTOGGLESPECIAL > 0) {
         auto PLAST     = focusedWorkspace->getLastFocusedWindow();
         auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
 
         if (PLAST && (!HLSurface || HLSurface->getWindow()))
-            PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
+            PLAST->warpCursor(*PWARPONTOGGLESPECIAL == 2);
     }
 
     return {};

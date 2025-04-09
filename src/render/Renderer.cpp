@@ -1131,6 +1131,30 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
+bool CHyprRenderer::shouldDoTearing(PHLMONITOR pMonitor) {
+    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+
+    if (!*PTEARINGENABLED) {
+        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+        return false;
+    }
+
+    if (g_pHyprOpenGL->m_RenderData.mouseZoomFactor != 1.0) {
+        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+        return false;
+    }
+
+    if (!pMonitor->tearingState.canTear) {
+        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+        return false;
+    }
+
+    if (pMonitor->solitaryClient.expired())
+        return false;
+
+    return true;
+}
+
 void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -1143,7 +1167,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
-    static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -1199,44 +1222,22 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         return;
 
     // tearing and DS first
-    bool shouldTear = false;
     if (pMonitor->tearingState.nextRenderTorn) {
-        pMonitor->tearingState.nextRenderTorn = false;
-
-        if (!*PTEARINGENABLED) {
-            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
-            return;
-        }
-
-        if (g_pHyprOpenGL->m_RenderData.mouseZoomFactor != 1.0) {
-            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
-            return;
-        }
-
-        if (!pMonitor->tearingState.canTear) {
-            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
-            return;
-        }
-
-        if (!pMonitor->solitaryClient.expired())
-            shouldTear = true;
+        pMonitor->tearingState.nextRenderTorn  = false;
+        pMonitor->tearingState.activelyTearing = shouldDoTearing(pMonitor);
     }
 
-    pMonitor->tearingState.activelyTearing = shouldTear;
+    if (pMonitor->attemptDirectScanout()) {
+        return;
+    } else if (!pMonitor->lastScanout.expired()) {
+        Debug::log(LOG, "Left a direct scanout.");
+        pMonitor->lastScanout.reset();
 
-    if (!shouldTear) {
-        if (pMonitor->attemptDirectScanout()) {
-            return;
-        } else if (!pMonitor->lastScanout.expired()) {
-            Debug::log(LOG, "Left a direct scanout.");
-            pMonitor->lastScanout.reset();
+        // reset DRM format, but only if needed since it might modeset
+        if (pMonitor->output->state->state().drmFormat != pMonitor->prevDrmFormat)
+            pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
 
-            // reset DRM format, but only if needed since it might modeset
-            if (pMonitor->output->state->state().drmFormat != pMonitor->prevDrmFormat)
-                pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
-
-            pMonitor->drmFormat = pMonitor->prevDrmFormat;
-        }
+        pMonitor->drmFormat = pMonitor->prevDrmFormat;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);
@@ -1389,13 +1390,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
     pMonitor->output->state->addDamage(frameDamage);
-    pMonitor->output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                              Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     commitPendingAndDoExplicitSync(pMonitor);
-
-    if (shouldTear)
-        pMonitor->tearingState.busy = true;
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
@@ -1530,6 +1526,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
         pMonitor->output->state->setCTM(pMonitor->ctm);
+    }
+
+    if (pMonitor->tearingState.activelyTearing) {
+        pMonitor->output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+        pMonitor->tearingState.busy = true;
+    } else {
+        pMonitor->output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
     }
 
     bool ok = pMonitor->state.commit();

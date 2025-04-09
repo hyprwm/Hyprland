@@ -93,6 +93,7 @@ class CHyprRenderer {
     PHLMONITORREF                       m_pMostHzMonitor;
     bool                                m_bDirectScanoutBlocked = false;
 
+    bool                                shouldDoTearing(PHLMONITOR pMonitor);
     void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                                initiateManualCrash();
 

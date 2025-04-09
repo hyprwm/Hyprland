@@ -964,7 +964,8 @@ bool IHyprLayout::updateDragWindow() {
     DRAGGINGWINDOW->m_bDraggingTiled   = false;
     m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
     if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
-        DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
+        Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
+        DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
         *DRAGGINGWINDOW->m_vRealPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
         if (g_pInputManager->m_bDragThresholdReached) {
             changeWindowFloatingMode(DRAGGINGWINDOW);

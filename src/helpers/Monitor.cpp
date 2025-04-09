@@ -131,6 +131,7 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&rule);
     });
 
+    // TODO: add a way to get backend->drmProps.supportsAsyncCommit from aq and use it here
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     m_name = m_output->name;
@@ -1503,8 +1504,13 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
-    m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                          Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    if (m_tearingState.activelyTearing) {
+        m_output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+        m_tearingState.busy = true;
+    } else {
+        m_output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+    }
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");

@@ -1139,7 +1139,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
@@ -1225,10 +1224,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
-          pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        !shouldTear) {
+    if (!shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {

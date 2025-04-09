@@ -1328,15 +1328,23 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
 
-    if (g_pPointerManager->softwareLockedFor(self.lock()))
+    if (*PDIRECTSCANOUT == 0 || (*PDIRECTSCANOUT != 1 && *PDIRECTSCANOUT != 2))
         return false;
 
     const auto PCANDIDATE = solitaryClient.lock();
 
-    if (!PCANDIDATE)
+    if (!PCANDIDATE || PCANDIDATE->m_pWorkspace->m_efFullscreenMode != FSMODE_FULLSCREEN)
+        return false;
+
+    if (*PDIRECTSCANOUT == 2 && PCANDIDATE->getContentType() != CONTENT_TYPE_GAME)
+        return false;
+
+    if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
+    if (g_pPointerManager->softwareLockedFor(self.lock()))
         return false;
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);

@@ -515,7 +515,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});
     registerConfigVar("debug:error_position", Hyprlang::INT{0});
-    registerConfigVar("debug:watchdog_timeout", Hyprlang::INT{5});
     registerConfigVar("debug:disable_scale_checks", Hyprlang::INT{0});
     registerConfigVar("debug:colored_stdout_logs", Hyprlang::INT{1});
     registerConfigVar("debug:full_cm_proto", Hyprlang::INT{0});

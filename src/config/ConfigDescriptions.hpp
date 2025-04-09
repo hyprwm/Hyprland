@@ -1605,12 +1605,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "debug:watchdog_timeout",
-        .description = "sets the timeout in seconds for watchdog to abort processing of a signal of the main thread. Set to 0 to disable.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{5, 0, 20},
-    },
-    SConfigOptionDescription{
         .value       = "debug:disable_scale_checks",
         .description = "disables verification of the scale factors. Will result in pixel alignment and rounding errors.",
         .type        = CONFIG_OPTION_BOOL,

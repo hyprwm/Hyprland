@@ -5,7 +5,7 @@
 #include "../config/ConfigManager.hpp"
 
 static const auto RULES = std::unordered_set<std::string>{
-    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize", "nofollowmouse",
+    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize",
 };
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "animation", "bordercolor",   "bordersize", "center",    "content", "fullscreenstate", "group",    "idleinhibit",   "maxsize",     "minsize",
@@ -41,8 +41,6 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_RENDERUNFOCUSED;
     else if (rule == "persistentsize")
         ruleType = RULE_PERSISTENTSIZE;
-    else if (rule == "nofollowmouse")
-        ruleType = RULE_NOFOLLOWMOUSE;
     else if (rule.starts_with("animation"))
         ruleType = RULE_ANIMATION;
     else if (rule.starts_with("bordercolor"))

@@ -549,10 +549,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
                     if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow) {
                         if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus) {
-                            const bool hasNoFollowMouseRule = pFoundWindow &&
-                                std::ranges::any_of(pFoundWindow->m_vMatchedRules, [](const auto& rule) { return rule->ruleType == CWindowRule::RULE_NOFOLLOWMOUSE; });
+                            const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_sWindowData.noFollowMouse.valueOrDefault();
 
-                            if (refocus || !hasNoFollowMouseRule)
+                            if (refocus || !hasNoFollowMouse)
                                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                         }
                     } else

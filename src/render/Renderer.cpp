@@ -40,6 +40,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
@@ -1166,13 +1167,18 @@ bool CHyprRenderer::shouldDoTearing(PHLMONITOR pMonitor) {
         return false;
     }
 
-    if (!pMonitor->m_tearingState.canTear) {
+    if (!pMonitor->m_canTear) {
         Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         return false;
     }
 
     if (pMonitor->m_solitaryClient.expired())
         return false;
+
+    if (pMonitor->m_currentTearing.expired()) {
+        pMonitor->m_currentTearing = pMonitor->m_solitaryClient;
+        Debug::log(LOG, "Tearing started for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
+    }
 
     return true;
 }
@@ -1249,14 +1255,12 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         return;
 
     // tearing and DS first
-    if (pMonitor->m_tearingState.nextRenderTorn) {
-        pMonitor->m_tearingState.nextRenderTorn  = false;
-        pMonitor->m_tearingState.activelyTearing = shouldDoTearing(pMonitor);
+    if (!shouldDoTearing(pMonitor) && !pMonitor->m_currentTearing.expired()) {
+        Debug::log(LOG, "Tearing stopped for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
+        pMonitor->m_currentTearing.reset();
     }
 
-    if (pMonitor->attemptDirectScanout()) {
-        return;
-    } else if (!pMonitor->m_lastScanout.expired()) {
+    if (!pMonitor->attemptDirectScanout() && !pMonitor->m_lastScanout.expired()) {
         Debug::log(LOG, "Left a direct scanout.");
         pMonitor->m_lastScanout.reset();
 
@@ -1568,12 +1572,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
 
-    if (pMonitor->m_tearingState.activelyTearing) {
-        pMonitor->m_output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
-        pMonitor->m_tearingState.busy = true;
-    } else {
-        pMonitor->m_output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
-    }
+    pMonitor->m_output->state->setPresentationMode(!pMonitor->m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
@@ -1591,6 +1590,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             pMonitor->m_damage.damageEntire();
         }
     }
+
+    if (ok)
+        pMonitor->m_pageFlipPending = true;
 
     return ok;
 }

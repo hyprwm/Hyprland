@@ -829,6 +829,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     events.modeChanged.emit();
 
+    g_pEventLoopManager->doLater([]() { g_pCompositor->recheckFloatingWindowsOnScreen(); });
+
     return true;
 }
 

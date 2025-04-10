@@ -682,6 +682,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:no_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:persistent_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:warp_on_change_workspace", Hyprlang::INT{0});
+    registerConfigVar("cursor:warp_on_toggle_special", Hyprlang::INT{0});
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});

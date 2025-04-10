@@ -3135,7 +3135,7 @@ bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
-        case 2: return pMonitor->m_tearingState.activelyTearing;
+        case 2: return !pMonitor->m_currentTearing.expired();
         default: break;
     }
 

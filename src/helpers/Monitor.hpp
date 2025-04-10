@@ -172,8 +172,13 @@ class CMonitor {
     Mat3x3 m_ctm        = Mat3x3::identity();
     bool   m_ctmUpdated = false;
 
-    // for tearing
+    //
     PHLWINDOWREF m_solitaryClient;
+
+    // for tearing
+    PHLWINDOWREF m_currentTearing;
+    bool         m_pageFlipPending = false;
+    bool         m_canTear         = false;
 
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
@@ -183,15 +188,6 @@ class CMonitor {
     PHLANIMVAR<float> m_specialFade;
 
     PHLANIMVAR<float> m_cursorZoom;
-
-    struct {
-        bool canTear         = false;
-        bool nextRenderTorn  = false;
-        bool activelyTearing = false;
-
-        bool busy                    = false;
-        bool frameScheduledWhileBusy = false;
-    } m_tearingState;
 
     struct {
         CSignalT<> destroy;
@@ -227,6 +223,7 @@ class CMonitor {
     WORKSPACEID                         activeSpecialWorkspaceID();
     CBox                                logicalBox();
     void                                scheduleDone();
+    bool                                shouldDoTearing();
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();

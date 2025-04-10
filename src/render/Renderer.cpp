@@ -40,6 +40,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
@@ -1165,7 +1166,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
-    static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -1228,35 +1228,16 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
 
     // tearing and DS first
-    bool shouldTear = false;
-    if (pMonitor->m_tearingState.nextRenderTorn) {
-        pMonitor->m_tearingState.nextRenderTorn = false;
 
-        if (!*PTEARINGENABLED) {
-            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
-            return;
-        }
-
-        if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
-            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
-            return;
-        }
-
-        if (!pMonitor->m_tearingState.canTear) {
-            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
-            return;
-        }
-
-        if (!pMonitor->m_solitaryClient.expired())
-            shouldTear = true;
+    if (!pMonitor->shouldDoTearing() && !pMonitor->m_currentTearing.expired()) {
+        Debug::log(LOG, "Tearing stopped for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
+        pMonitor->m_currentTearing.reset();
     }
-
-    pMonitor->m_tearingState.activelyTearing = shouldTear;
 
     if ((*PDIRECTSCANOUT == 1 ||
          (*PDIRECTSCANOUT == 2 && pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
           pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN && pMonitor->m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        !shouldTear) {
+        pMonitor->m_currentTearing.expired()) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->m_lastScanout.expired()) {
@@ -1422,14 +1403,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
-    pMonitor->m_output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (commit)
         commitPendingAndDoExplicitSync(pMonitor);
-
-    if (shouldTear)
-        pMonitor->m_tearingState.busy = true;
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->m_pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
@@ -1578,6 +1554,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
 
+    pMonitor->m_output->state->setPresentationMode(!pMonitor->m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
@@ -1594,6 +1572,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             pMonitor->m_damage.damageEntire();
         }
     }
+
+    if (ok)
+        pMonitor->m_pageFlipPending = true;
 
     return ok;
 }

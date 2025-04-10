@@ -98,9 +98,13 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     int         barsToDraw = m_dwGroupMembers.size();
 
     static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+		static auto PAUTOHIDE = CConfigValue<Hyprlang::INT>("group:groupbar:auto_hide");
 
     if (!*PENABLED || !m_pWindow->m_sWindowData.decorate.valueOrDefault())
         return;
+
+		if (*PAUTOHIDE && barsToDraw == 1)
+		    return;
 
     static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
     static auto PTITLEFONTSIZE             = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");

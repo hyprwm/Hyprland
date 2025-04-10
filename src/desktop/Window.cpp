@@ -54,6 +54,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
+		pWindow->createGroup();
 
     return pWindow;
 }
@@ -80,6 +81,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
     pWindow->m_pWLSurface->assign(pWindow->m_pXDGSurface->surface.lock(), pWindow);
+		pWindow->createGroup();
 
     return pWindow;
 }

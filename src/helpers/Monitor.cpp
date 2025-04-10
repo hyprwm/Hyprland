@@ -1469,6 +1469,10 @@ bool CMonitor::attemptDirectScanout() {
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
+        Debug::log(TRACE, "attemptDirectScanout: committing hw cursor updated for window {} on monitor {}", PCANDIDATE->m_title, m_name);
+        m_output->state->resetExplicitFences();
+        m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1501,7 +1505,12 @@ bool CMonitor::attemptDirectScanout() {
 
     m_output->state->setBuffer(PBUFFER);
 
-    m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+    if (!m_currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: committing with tearing enabled for window {} on monitor {}", m_currentTearing->m_title, m_name);
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+    } else {
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+    }
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1516,6 +1525,13 @@ bool CMonitor::attemptDirectScanout() {
     // no need to do explicit sync here as surface current can only ever be ready to read
 
     bool ok = m_output->commit();
+
+    if (!ok && !m_currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: failed AGAIN!, trying without tearing");
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+
+        ok = m_output->commit();
+    }
 
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");

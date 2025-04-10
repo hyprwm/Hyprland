@@ -1368,9 +1368,18 @@ bool CMonitor::attemptDirectScanout() {
 
     if (PBUFFER == output->state->state().buffer) {
         if (scanoutNeedsCursorUpdate) {
+            Debug::log(TRACE, "attemptDirectScanout: committing cursor updated for window {} on monitor {}", PCANDIDATE->m_szTitle, szName);
+            output->state->resetExplicitFences();
+            output->state->setPresentationMode(!currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+
             if (!state.test()) {
-                Debug::log(TRACE, "attemptDirectScanout: failed basic test");
-                return false;
+                Debug::log(TRACE, "attemptDirectScanout: failed basic test, trying without tearing");
+                output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+
+                if (!state.test()) {
+                    Debug::log(TRACE, "attemptDirectScanout: failed basic test");
+                    return false;
+                }
             }
 
             if (!output->commit()) {
@@ -1399,7 +1408,12 @@ bool CMonitor::attemptDirectScanout() {
 
     output->state->setBuffer(PBUFFER);
 
-    output->state->setPresentationMode(!currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+    if (!currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: committing with tearing enabled for window {} on monitor {}", currentTearing->m_szTitle, szName);
+        output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+    } else {
+        output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+    }
 
     if (!state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1435,6 +1449,13 @@ bool CMonitor::attemptDirectScanout() {
     if (!ok && DOEXPLICIT) {
         Debug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
         output->state->resetExplicitFences();
+
+        ok = output->commit();
+    }
+
+    if (!ok && !currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: failed AGAIN!, trying without tearing");
+        output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
 
         ok = output->commit();
     }

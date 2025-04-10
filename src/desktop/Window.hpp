@@ -44,14 +44,14 @@ enum eGroupRules : uint8_t {
 };
 
 enum eGetWindowProperties : uint8_t {
-    WINDOW_ONLY      = 0,
-    RESERVED_EXTENTS = 1 << 0,
-    INPUT_EXTENTS    = 1 << 1,
-    FULL_EXTENTS     = 1 << 2,
-    FLOATING_ONLY    = 1 << 3,
-    ALLOW_FLOATING   = 1 << 4,
-    USE_PROP_TILED   = 1 << 5,
-    NON_FULLSCREEN   = 1 << 6,
+    WINDOW_ONLY              = 0,
+    RESERVED_EXTENTS         = 1 << 0,
+    INPUT_EXTENTS            = 1 << 1,
+    FULL_EXTENTS             = 1 << 2,
+    FLOATING_ONLY            = 1 << 3,
+    ALLOW_FLOATING           = 1 << 4,
+    USE_PROP_TILED           = 1 << 5,
+    SKIP_FULLSCREEN_PRIORITY = 1 << 6,
 };
 
 enum eSuppressEvents : uint8_t {

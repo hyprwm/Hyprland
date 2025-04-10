@@ -7,11 +7,12 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
-#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
+#include "../types/DMABuffer.hpp"
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
@@ -123,16 +124,15 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             return;
         }
 
-        if ((!pending.updated.buffer) ||                                  // no new buffer attached
-            (!pending.buffer && !pending.texture) ||                      // null buffer attached
-            (!pending.updated.acquire && pending.buffer->isSynchronous()) // synchronous buffers (ex. shm) can be read immediately
+        if ((!pending.updated.buffer) ||          // no new buffer attached
+            (!pending.buffer && !pending.texture) // null buffer attached
         ) {
             commitState(pending);
             pending.reset();
             return;
         }
 
-        // save state while we wait for buffer to become ready
+        // save state while we wait for buffer to become ready to read
         const auto& state = pendingStates.emplace(makeUnique<SSurfaceState>(pending));
         pending.reset();
 
@@ -152,13 +152,19 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         if (state->updated.acquire) {
             // wait on acquire point for this surface, from explicit sync protocol
             state->acquire.addWaiter(whenReadable);
-        } else if (state->buffer->dmabuf().success) {
-            // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#implicit-fence-poll-support
-            // TODO: wait for the dma-buf fd's to become readable
+        } else if (state->buffer->isSynchronous()) {
+            // synchronous (shm) buffers can be read immediately
             whenReadable();
+        } else if (state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
+            // async buffer and is dmabuf, then we can wait on implicit fences
+            auto syncFd = dynamic_cast<CDMABuffer*>(state->buffer.buffer.get())->exportSyncFile();
+
+            if (syncFd.isValid())
+                g_pEventLoopManager->doOnReadable(std::move(syncFd), whenReadable);
+            else
+                whenReadable();
         } else {
-            // huh??? only buffers with acquire or dmabuf should get through here...
-            Debug::log(ERR, "BUG THIS: wl_surface.commit: non-acquire non-dmabuf buffers needs wait...");
+            Debug::log(ERR, "BUG THIS: wl_surface.commit: no acquire, non-dmabuf, async buffer, needs wait... this shouldn't happen");
             whenReadable();
         }
     });
@@ -513,8 +519,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
             nullptr);
     }
 
-    // release the buffer if it's synchronous (SHM) as update() has done everything thats needed
-    // so we can let the app know we're done.
+    // release the buffer if it's synchronous (SHM) as updateSynchronousTexture() has copied the buffer data to a GPU tex
     // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
     if (current.buffer && current.buffer->isSynchronous() && role->role() != SURFACE_ROLE_UNASSIGNED)
         dropCurrentBuffer();
@@ -567,12 +572,6 @@ void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor, bo
     else
         FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
-
-    if (!pMonitor || !pMonitor->inTimeline || !syncobj)
-        return;
-
-    // attach explicit sync
-    g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

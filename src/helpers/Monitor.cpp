@@ -3,7 +3,6 @@
 #include "../macros.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -55,10 +54,6 @@ void CMonitor::onConnect(bool noRule) {
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
-
-    if (output->supportsExplicit) {
-        inTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
-    }
 
     listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
     listeners.commit = output->events.commit.registerListener([this](std::any d) {
@@ -1357,6 +1352,10 @@ bool CMonitor::attemptDirectScanout() {
     auto PBUFFER = PSURFACE->current.buffer.buffer;
 
     if (PBUFFER == output->state->state().buffer) {
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        PSURFACE->presentFeedback(&now, self.lock());
+
         if (scanoutNeedsCursorUpdate) {
             if (!state.test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1403,31 +1402,9 @@ bool CMonitor::attemptDirectScanout() {
     output->state->addDamage(PSURFACE->current.accumulateBufferDamage());
     output->state->resetExplicitFences();
 
-    auto cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
-
-    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
-
-    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->current.buffer && PSURFACE->current.acquire && explicitOptions.explicitKMSEnabled;
-    if (DOEXPLICIT) {
-        // wait for surface's explicit fence if present
-        inFence = PSURFACE->current.acquire.exportAsFD();
-        if (inFence.isValid()) {
-            Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", inFence.get());
-            output->state->setExplicitInFence(inFence.get());
-        } else {
-            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an sync file fd for aq IN_FENCE");
-            DOEXPLICIT = false;
-        }
-    }
+    // no need to do explicit sync here as surface current can only ever be ready to read
 
     bool ok = output->commit();
-
-    if (!ok && DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
-        output->state->resetExplicitFences();
-
-        ok = output->commit();
-    }
 
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");

@@ -1,4 +1,5 @@
 #include "Buffer.hpp"
+#include "../DRMSyncobj.hpp"
 
 IHLBuffer::~IHLBuffer() {
     if (locked() && resource)
@@ -7,6 +8,11 @@ IHLBuffer::~IHLBuffer() {
 
 void IHLBuffer::sendRelease() {
     resource->sendRelease();
+    for (auto& point : releasePoints) {
+        if (point && !point.syncImported())
+            point.signal();
+    }
+    releasePoints.clear();
 }
 
 void IHLBuffer::lock() {
@@ -18,10 +24,8 @@ void IHLBuffer::unlock() {
 
     ASSERT(nLocks >= 0);
 
-    if (nLocks == 0) {
+    if (nLocks == 0)
         sendRelease();
-        syncReleaser.reset();
-    }
 }
 
 bool IHLBuffer::locked() {
@@ -40,11 +44,17 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     });
 }
 
+void IHLBuffer::addReleasePoint(const CDRMSyncPointState& point) {
+    ASSERT(locked());
+    if (point)
+        releasePoints.emplace_back(point);
+}
+
 CHLBufferReference::CHLBufferReference() : buffer(nullptr) {
     ;
 }
 
-CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : release(other.release), buffer(other.buffer) {
+CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : buffer(other.buffer) {
     if (buffer)
         buffer->lock();
 }
@@ -64,8 +74,7 @@ CHLBufferReference& CHLBufferReference::operator=(const CHLBufferReference& othe
         other.buffer->lock();
     if (buffer)
         buffer->unlock();
-    buffer  = other.buffer;
-    release = other.release;
+    buffer = other.buffer;
     return *this;
 }
 

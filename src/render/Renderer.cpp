@@ -1292,7 +1292,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         pMonitor->forceFullFrames                      = 10;
     }
 
-    CRegion damage, finalDamage;
+    CRegion damage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
         return;
@@ -1302,10 +1302,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0)
         damage = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
 
-    finalDamage = damage;
-
     // update damage in renderdata as we modified it
-    g_pHyprOpenGL->setDamage(damage, finalDamage);
+    g_pHyprOpenGL->setDamage(damage);
 
     if (pMonitor->forceFullFrames > 0) {
         pMonitor->forceFullFrames -= 1;
@@ -1317,7 +1315,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     bool renderCursor = true;
 
-    if (!finalDamage.empty()) {
+    if (!damage.empty()) {
         if (pMonitor->solitaryClient.expired()) {
             if (pMonitor->isMirror()) {
                 g_pHyprOpenGL->blend(false);
@@ -1565,10 +1563,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         Debug::log(TRACE, "Explicit: can't add sync, monitor has no EGLSync");
     else {
         for (auto const& e : explicitPresented) {
-            if (!e->current.buffer || !e->current.buffer->buffer->syncReleaser)
+            if (!e->current.buffer || !e->current.buffer->syncReleaser)
                 continue;
 
-            e->current.buffer->buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
+            e->current.buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
         }
     }
 

@@ -8,6 +8,7 @@
 #include "../helpers/Format.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../render/Renderer.hpp"
 
 #include <algorithm>
@@ -71,11 +72,6 @@ void CToplevelExportClient::onTick() {
 
 bool CToplevelExportClient::good() {
     return resource->resource();
-}
-
-CToplevelExportFrame::~CToplevelExportFrame() {
-    if (buffer && buffer->locked())
-        buffer->unlock();
 }
 
 CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
@@ -159,8 +155,6 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    PBUFFER->buffer->lock();
-
     if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::toplevelExport->destroyResource(this);
@@ -197,7 +191,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    buffer = PBUFFER->buffer;
+    buffer = CHLBufferReference(PBUFFER->buffer.lock());
 
     m_ignoreDamage = ignoreDamage;
 
@@ -238,7 +232,8 @@ void CToplevelExportFrame::share() {
 }
 
 bool CToplevelExportFrame::copyShm(timespec* now) {
-    auto shm                      = buffer->shm();
+    const auto PERM               = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
+    auto       shm                = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     // render the client
@@ -263,12 +258,18 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
 
     // render client at 0,0
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
+        g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+        g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if (overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+        if (overlayCursor)
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        CBox texbox =
+            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+    }
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -329,6 +330,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
 }
 
 bool CToplevelExportFrame::copyDmabuf(timespec* now) {
+    const auto PERM     = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
     const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
@@ -340,17 +342,22 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock()))
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
+        g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+        g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
-
-    if (overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+        if (overlayCursor)
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        CBox texbox =
+            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+    }
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
@@ -423,6 +430,12 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     for (auto const& f : m_vFramesAwaitingWrite) {
         if (!f)
             continue;
+
+        // check permissions
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(f->resource->client(), PERMISSION_TYPE_SCREENCOPY);
+
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+            continue; // pending an answer, don't do anything yet.
 
         if (!validMapped(f->pWindow)) {
             framesToRemove.emplace_back(f);

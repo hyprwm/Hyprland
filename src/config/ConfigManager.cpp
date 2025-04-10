@@ -22,6 +22,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
 
@@ -374,6 +375,18 @@ static Hyprlang::CParseResult handlePlugin(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handlePermission(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handlePermission(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_pConfig->addConfigValue(name, val);
@@ -502,7 +515,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});
     registerConfigVar("debug:error_position", Hyprlang::INT{0});
-    registerConfigVar("debug:watchdog_timeout", Hyprlang::INT{5});
     registerConfigVar("debug:disable_scale_checks", Hyprlang::INT{0});
     registerConfigVar("debug:colored_stdout_logs", Hyprlang::INT{1});
     registerConfigVar("debug:full_cm_proto", Hyprlang::INT{0});
@@ -703,6 +715,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
+    registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
@@ -764,6 +777,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->registerHandler(&::handleSubmap, "submap", {false});
     m_pConfig->registerHandler(&::handleBlurLS, "blurls", {false});
     m_pConfig->registerHandler(&::handlePlugin, "plugin", {false});
+    m_pConfig->registerHandler(&::handlePermission, "permission", {false});
     m_pConfig->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -945,6 +959,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
     finalExecRequests.clear();
+
+    g_pDynamicPermissionManager->clearConfigPermissions();
 
     // paths
     m_configPaths.clear();
@@ -2827,6 +2843,32 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
         return "plugin '" + path + "' declared twice";
 
     m_vDeclaredPlugins.push_back(path);
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handlePermission(const std::string& command, const std::string& value) {
+    CVarList                    data(value);
+
+    eDynamicPermissionType      type = PERMISSION_TYPE_UNKNOWN;
+    eDynamicPermissionAllowMode mode = PERMISSION_RULE_ALLOW_MODE_UNKNOWN;
+
+    if (data[1] == "screencopy")
+        type = PERMISSION_TYPE_SCREENCOPY;
+
+    if (data[2] == "ask")
+        mode = PERMISSION_RULE_ALLOW_MODE_ASK;
+    else if (data[2] == "allow")
+        mode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    else if (data[2] == "deny")
+        mode = PERMISSION_RULE_ALLOW_MODE_DENY;
+
+    if (type == PERMISSION_TYPE_UNKNOWN)
+        return "unknown permission type";
+    if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
+        return "unknown permission allow mode";
+
+    g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
 }

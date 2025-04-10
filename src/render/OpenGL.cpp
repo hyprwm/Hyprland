@@ -701,7 +701,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
         initShaders();
 
     m_RenderData.damage.set(damage);
-    m_RenderData.finalDamage.set(damage);
 
     m_bFakeFrame = true;
 
@@ -715,7 +714,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     m_RenderData.simplePass = true;
 }
 
-void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
+void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
 #ifndef GLES2
@@ -766,7 +765,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         m_RenderData.pCurrentMonData->monitorMirrorFB.release();
 
     m_RenderData.damage.set(damage_);
-    m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 
     m_bFakeFrame = fb;
 
@@ -791,8 +789,7 @@ void CHyprOpenGLImpl::end() {
 
     // end the render, copy the data to the main framebuffer
     if (m_bOffloadedFramebuffer) {
-        m_RenderData.damage = m_RenderData.finalDamage;
-        m_bEndFrame         = true;
+        m_bEndFrame = true;
 
         CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
@@ -863,9 +860,8 @@ void CHyprOpenGLImpl::end() {
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
-void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
+void CHyprOpenGLImpl::setDamage(const CRegion& damage_) {
     m_RenderData.damage.set(damage_);
-    m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 }
 
 // TODO notify user if bundled shader is newer than ~/.config override
@@ -2849,6 +2845,8 @@ void CHyprOpenGLImpl::initAssets() {
                                                        std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
                                                        "unknown"),
                                        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+
+    m_pScreencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 
     ensureBackgroundTexturePresence();
 }

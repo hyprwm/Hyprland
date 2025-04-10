@@ -263,7 +263,8 @@ void IHyprLayout::onBeginDragWindow() {
         *DRAGGINGWINDOW->m_vRealPosition = MOUSECOORDS - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
     } else if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
-            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
+            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
+            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating    = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
@@ -623,7 +624,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(20, 20)));
+            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
             Vector2D MAXSIZE;
             if (DRAGGINGWINDOW->m_sWindowData.maxSize.hasValue())
                 MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, DRAGGINGWINDOW->m_sWindowData.maxSize.value());

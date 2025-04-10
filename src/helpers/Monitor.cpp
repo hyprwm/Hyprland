@@ -237,14 +237,22 @@ void CMonitor::onConnect(bool noRule) {
 
     Debug::log(LOG, "checking if we have seen this monitor before: {}", szName);
     // if we saw this monitor before, set it to the workspace it was on
-    if (g_pCompositor->m_mseenmonitorworkspacemap.contains(szName)) {
+    if (g_pCompositor->m_mSeenMonitorWorkspaceMap.contains(szName)) {
         auto workspaceID = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
         Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, workspaceID);
 
+        PHLMONITOR THISMONITOR = nullptr;
+        for (auto const& m : g_pCompositor->m_vMonitors) {
+            if (m.get() == this) {
+                THISMONITOR = m;
+                break;
+            }
+        }
+
         auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
         if (ws) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, self);
-            activeWorkspace->m_bVisible = true;
+            g_pCompositor->moveWorkspaceToMonitor(ws, THISMONITOR);
+            this->changeWorkspace(ws, true, true, true);
         }
     } else
         Debug::log(LOG, "Monitor {} was not on any workspace", szName);

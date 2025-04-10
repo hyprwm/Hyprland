@@ -34,6 +34,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 
 static int ratHandler(void* data) {
@@ -116,7 +117,7 @@ void CMonitor::onConnect(bool noRule) {
     });
 
     // TODO: add a way to get backend->drmProps.supportsAsyncCommit from aq and use it here
-    tearingState.canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
+    canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     if (m_bEnabled) {
         output->state->resetExplicitFences();
@@ -1398,12 +1399,7 @@ bool CMonitor::attemptDirectScanout() {
 
     output->state->setBuffer(PBUFFER);
 
-    if (tearingState.activelyTearing) {
-        output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
-        tearingState.busy = true;
-    } else {
-        output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
-    }
+    output->state->setPresentationMode(!currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1454,6 +1450,8 @@ bool CMonitor::attemptDirectScanout() {
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
     }
 
+    pageFlipPending = true;
+
     scanoutNeedsCursorUpdate = false;
 
     if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
@@ -1491,23 +1489,14 @@ void CMonitor::onMonitorFrame() {
 
     g_pHyprRenderer->recheckSolitaryForMonitor(self.lock());
 
-    tearingState.busy = false;
-
-    if (tearingState.activelyTearing && solitaryClient.lock() /* can be invalidated by a recheck */) {
-
-        if (!tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        tearingState.nextRenderTorn          = true;
-        tearingState.frameScheduledWhileBusy = false;
-    }
+    pageFlipPending = false;
 
     static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
     static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
 
     lastPresentationTimer.reset();
 
-    if (*PENABLERAT && !tearingState.nextRenderTorn) {
+    if (*PENABLERAT) {
         if (!RATScheduled) {
             // render
             g_pHyprRenderer->renderMonitor(self.lock());
@@ -1536,8 +1525,8 @@ void CMonitor::onMonitorFrame() {
 }
 
 void CMonitor::onCursorMovedOnMonitor() {
-    if (!tearingState.activelyTearing || !solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
-        return;
+    // if (!tearingState.activelyTearing || !solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
+    //     return;
 
     // submit a frame immediately. This will only update the cursor pos.
     // output->state->setBuffer(output->state->state().buffer);
@@ -1550,7 +1539,7 @@ void CMonitor::onCursorMovedOnMonitor() {
     // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
     // this will throw too but fix it if we use sw cursors
 
-    tearingState.frameScheduledWhileBusy = true;
+    // tearingState.frameScheduledWhileBusy = true;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {

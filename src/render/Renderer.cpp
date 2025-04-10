@@ -38,6 +38,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
@@ -1144,13 +1145,18 @@ bool CHyprRenderer::shouldDoTearing(PHLMONITOR pMonitor) {
         return false;
     }
 
-    if (!pMonitor->tearingState.canTear) {
+    if (!pMonitor->canTear) {
         Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         return false;
     }
 
     if (pMonitor->solitaryClient.expired())
         return false;
+
+    if (pMonitor->currentTearing.expired()) {
+        pMonitor->currentTearing = pMonitor->solitaryClient;
+        Debug::log(LOG, "Tearing started for window {} on monitor {}", pMonitor->currentTearing->m_szTitle, pMonitor->szName);
+    }
 
     return true;
 }
@@ -1222,9 +1228,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         return;
 
     // tearing and DS first
-    if (pMonitor->tearingState.nextRenderTorn) {
-        pMonitor->tearingState.nextRenderTorn  = false;
-        pMonitor->tearingState.activelyTearing = shouldDoTearing(pMonitor);
+    if (!shouldDoTearing(pMonitor) && !pMonitor->currentTearing.expired()) {
+        Debug::log(LOG, "Tearing stopped for window {} on monitor {}", pMonitor->currentTearing->m_szTitle, pMonitor->szName);
+        pMonitor->currentTearing.reset();
     }
 
     if (pMonitor->attemptDirectScanout()) {
@@ -1528,12 +1534,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setCTM(pMonitor->ctm);
     }
 
-    if (pMonitor->tearingState.activelyTearing) {
-        pMonitor->output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
-        pMonitor->tearingState.busy = true;
-    } else {
-        pMonitor->output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
-    }
+    pMonitor->output->state->setPresentationMode(!pMonitor->currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
@@ -1551,6 +1552,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             pMonitor->damage.damageEntire();
         }
     }
+
+    if (ok)
+        pMonitor->pageFlipPending = true;
 
     auto explicitOptions = getExplicitSyncSettings(pMonitor->output);
     if (!explicitOptions.explicitEnabled)

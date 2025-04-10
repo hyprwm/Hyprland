@@ -129,6 +129,7 @@ class CMonitor {
 
     bool                        pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        renderingActive = false;
+    bool                        pageFlipPending = false;
 
     wl_event_source*            renderTimer  = nullptr; // for RAT
     bool                        RATScheduled = false;
@@ -154,21 +155,16 @@ class CMonitor {
     Mat3x3 ctm        = Mat3x3::identity();
     bool   ctmUpdated = false;
 
-    // for tearing
+    //
     PHLWINDOWREF solitaryClient;
+
+    // for tearing
+    PHLWINDOWREF currentTearing;
+    bool         canTear = false;
 
     // for direct scanout
     PHLWINDOWREF lastScanout;
     bool         scanoutNeedsCursorUpdate = false;
-
-    struct {
-        bool canTear         = false;
-        bool nextRenderTorn  = false;
-        bool activelyTearing = false;
-
-        bool busy                    = false;
-        bool frameScheduledWhileBusy = false;
-    } tearingState;
 
     struct {
         CSignal destroy;

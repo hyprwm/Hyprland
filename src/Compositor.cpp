@@ -952,7 +952,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_bHasFullscreenWindow)
+        if (PWORKSPACE->m_bHasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY))
             return PWORKSPACE->getFullscreenWindow();
 
         auto found = floating(false);

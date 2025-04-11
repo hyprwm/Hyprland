@@ -148,6 +148,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (togglespecialworkspace)          	              "Toggle a special workspace on/off"
                 |  (focusurgentorlast)           	                  "Focus the urgent window or the last window"
                 |  (togglegroup)         	                          "Toggle the current active window into a group"
+                |  (toggleorlockgroup)         	                    "Toggle the current active window into a group or lock the group if there already is one"
                 |  (changegroupactive)           	                  "Switch to the next window in a group"
                 |  (focuscurrentorlast)          	                  "Switch focus from current to previously focused window"
                 |  (lockgroups)          	                          "Lock the groups"

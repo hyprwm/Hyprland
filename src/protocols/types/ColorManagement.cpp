@@ -1,7 +1,11 @@
 #include "ColorManagement.hpp"
+#include <map>
 
 namespace NColorManagement {
-    const SPCPRimaries& getPrimaries(ePrimaries name) {
+    static uint32_t                              lastImageID = 0;
+    static std::map<uint32_t, SImageDescription> knownDescriptionIds; // expected to be small
+
+    const SPCPRimaries&                          getPrimaries(ePrimaries name) {
         switch (name) {
             case CM_PRIMARIES_SRGB: return NColorPrimaries::BT709;
             case CM_PRIMARIES_BT2020: return NColorPrimaries::BT2020;
@@ -17,4 +21,26 @@ namespace NColorManagement {
         }
     }
 
+    // TODO make image descriptions immutable and always set an id
+
+    uint32_t SImageDescription::findId() const {
+        for (auto it = knownDescriptionIds.begin(); it != knownDescriptionIds.end(); ++it) {
+            if (it->second == *this)
+                return it->first;
+        }
+
+        const auto newId = ++lastImageID;
+        knownDescriptionIds.insert(std::make_pair(newId, *this));
+        return newId;
+    }
+
+    uint32_t SImageDescription::getId() const {
+        return id > 0 ? id : findId();
+    }
+
+    uint32_t SImageDescription::updateId() {
+        id = 0;
+        id = findId();
+        return id;
+    }
 }

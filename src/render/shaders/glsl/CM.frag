@@ -11,7 +11,6 @@ uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
 // uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 sourcePrimaries;
 uniform mat4x2 targetPrimaries;
 
 uniform float alpha;
@@ -43,7 +42,7 @@ void main() {
         discard;
 
     // this shader shouldn't be used when skipCM == 1
-    pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
     if (applyTint == 1)
         pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);

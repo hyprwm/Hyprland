@@ -92,6 +92,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["swapwindow"]                     = swapActive;
     m_mDispatchers["centerwindow"]                   = centerWindow;
     m_mDispatchers["togglegroup"]                    = toggleGroup;
+    m_mDispatchers["toggleorlockgroup"]              = toggleOrLockGroup;
     m_mDispatchers["changegroupactive"]              = changeGroupActive;
     m_mDispatchers["movegroupwindow"]                = moveGroupWindow;
     m_mDispatchers["togglesplit"]                    = toggleSplit;
@@ -1711,6 +1712,28 @@ SDispatchResult CKeybindManager::toggleGroup(std::string args) {
         PWINDOW->createGroup();
     else
         PWINDOW->destroyGroup();
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::toggleOrLockGroup(std::string args) {
+    const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
+
+    if (!PWINDOW)
+        return {.success = false, .error = "Window not found"};
+    
+		if (PWINDOW->isFullscreen())
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+
+    if (PWINDOW->m_sGroupData.pNextWindow.expired())
+        PWINDOW->createGroup();
+    else
+				if PHEAD->getGroupSize() == 1;
+            PWINDOW->destroyGroup();
+				else
+						const auto PHEAD = PWINDOW->getGroupHead();
+						PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
+    				g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 
     return {};
 }

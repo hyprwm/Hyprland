@@ -1721,21 +1721,21 @@ SDispatchResult CKeybindManager::toggleOrLockGroup(std::string args) {
 
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
-    
-		if (PWINDOW->isFullscreen())
+
+    if (PWINDOW->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
     if (PWINDOW->m_sGroupData.pNextWindow.expired())
         PWINDOW->createGroup();
     else {
-				if (PWINDOW->getGroupSize() == 1)
+        if (PWINDOW->getGroupSize() == 1)
             PWINDOW->destroyGroup();
-				else {
-						const auto PHEAD = PWINDOW->getGroupHead();
-						PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
-    				g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
-				}
-		}
+        else {
+            const auto PHEAD           = PWINDOW->getGroupHead();
+            PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
+            g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+        }
+    }
 
     return {};
 }

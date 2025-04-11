@@ -2255,7 +2255,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return true;
 }
 
-void CHyprRenderer::endRender() {
+void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
@@ -2297,7 +2297,11 @@ void CHyprRenderer::endRender() {
         std::erase_if(usedAsyncBuffers, [](const auto& buf) { return !buf->syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync.fd().duplicate(), [prevbfs = std::move(usedAsyncBuffers)]() mutable { prevbfs.clear(); });
+        g_pEventLoopManager->doOnReadable(eglSync.fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(usedAsyncBuffers)]() mutable {
+            prevbfs.clear();
+            if (renderingDoneCallback)
+                renderingDoneCallback();
+        });
         usedAsyncBuffers.clear();
 
         if (m_eRenderMode == RENDER_MODE_NORMAL) {
@@ -2312,6 +2316,8 @@ void CHyprRenderer::endRender() {
             glFinish();
 
         usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        if (renderingDoneCallback)
+            renderingDoneCallback();
     }
 }
 

@@ -139,9 +139,7 @@ class CMonitor {
     SMonitorRule                activeMonitorRule;
 
     // explicit sync
-    SP<CSyncTimeline>              inTimeline;
     Hyprutils::OS::CFileDescriptor inFence; // TODO: remove when aq uses CFileDescriptor
-    uint64_t                       inTimelinePoint = 0;
 
     PHLMONITORREF                  self;
 

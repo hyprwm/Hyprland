@@ -60,10 +60,6 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
-    if (output->supportsExplicit) {
-        inTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
-    }
-
     listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
     listeners.commit = output->events.commit.registerListener([this](std::any d) {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER

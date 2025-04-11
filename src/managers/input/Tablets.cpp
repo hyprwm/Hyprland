@@ -134,6 +134,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
             }
         }
 
+        simulateMouseMovement();
         refocusTablet(PTAB, PTOOL, true);
         m_tmrLastCursorMovement.reset();
     }
@@ -173,6 +174,9 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
     else
         g_pPointerManager->warpAbsolute(transformToActiveRegion(POS, PTAB->activeArea), PTAB);
 
+    if (e.in)
+        refocus();
+
     refocusTablet(PTAB, PTOOL, true);
 
     if (e.in)
@@ -185,6 +189,9 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
     const auto PTOOL = ensureTabletToolPresent(e.tool);
+
+    if (e.down)
+        refocus();
 
     PROTO::tablet->buttonTool(PTOOL, e.button, e.down);
 

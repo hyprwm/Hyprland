@@ -199,6 +199,8 @@ struct SWindowData {
     CWindowOverridableVar<CGradientValueData> activeBorderColor;
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
 
+    CWindowOverridableVar<float>              contentScale;
+
     CWindowOverridableVar<bool>               persistentSize;
 };
 
@@ -440,6 +442,7 @@ class CWindow {
     int                        getRealBorderSize();
     float                      getScrollMouse();
     float                      getScrollTouchpad();
+    float                      getContentScale();
     void                       updateWindowData();
     void                       updateWindowData(const struct SWorkspaceRule&);
     void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
@@ -575,6 +578,7 @@ namespace NWindowProperties {
         {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
         {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }},
+        {"contentscale", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.contentScale; }},
     };
 };
 

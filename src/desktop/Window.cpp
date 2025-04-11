@@ -11,6 +11,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../render/decorations/CHyprBorderDecoration.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../managers/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
@@ -780,7 +781,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             const CVarList VARS(r->szRule, 0, ' ');
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[2]), priority);
+                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(Hyprlang::INT(std::stoi(VARS[2])), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
@@ -1806,14 +1807,4 @@ void CWindow::deactivateGroupMembers() {
 
 bool CWindow::isNotResponding() {
     return g_pANRManager->isNotResponding(m_pSelf.lock());
-}
-
-template <>
-int CWindowOverridableVar<int>::valueOrDefault() {
-    return defaultValue.has_value() ? valueOr(defaultValue.value()) : valueOr(*CConfigValue<Hyprlang::INT>(configValueString.value()));
-}
-
-template <>
-float CWindowOverridableVar<float>::valueOrDefault() {
-    return defaultValue.has_value() ? valueOr(defaultValue.value()) : valueOr(*CConfigValue<Hyprlang::FLOAT>(configValueString.value()));
 }

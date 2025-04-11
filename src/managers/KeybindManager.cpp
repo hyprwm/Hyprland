@@ -18,6 +18,7 @@
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
+#include "../config/ConfigManager.hpp"
 
 #include <optional>
 #include <iterator>
@@ -3198,10 +3199,10 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
             else if (VAL.starts_with("relative")) {
-                const int V = std::stoi(VAL.substr(VAL.find(' ')));
+                const Hyprlang::INT V = std::stoi(VAL.substr(VAL.find(' ')));
                 search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
             } else if (const auto V = configStringToInt(VAL); V)
-                *(search->second(PWINDOW)) = CWindowOverridableVar((int)*V, PRIORITY_SET_PROP);
+                *(search->second(PWINDOW)) = CWindowOverridableVar((Hyprlang::INT)*V, PRIORITY_SET_PROP);
         } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);

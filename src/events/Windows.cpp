@@ -7,6 +7,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"

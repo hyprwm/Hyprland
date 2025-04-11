@@ -240,18 +240,9 @@ void CMonitor::onConnect(bool noRule) {
     if (g_pCompositor->m_mSeenMonitorWorkspaceMap.contains(szName)) {
         auto workspaceID = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
         Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, workspaceID);
-
-        PHLMONITOR THISMONITOR = nullptr;
-        for (auto const& m : g_pCompositor->m_vMonitors) {
-            if (m.get() == this) {
-                THISMONITOR = m;
-                break;
-            }
-        }
-
         auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
         if (ws) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, THISMONITOR);
+            g_pCompositor->moveWorkspaceToMonitor(ws, this->self.lock());
             this->changeWorkspace(ws, true, false, false);
         }
     } else

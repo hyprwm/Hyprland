@@ -1727,13 +1727,15 @@ SDispatchResult CKeybindManager::toggleOrLockGroup(std::string args) {
 
     if (PWINDOW->m_sGroupData.pNextWindow.expired())
         PWINDOW->createGroup();
-    else
-				if PHEAD->getGroupSize() == 1;
+    else {
+				if (PHEAD->getGroupSize() == 1)
             PWINDOW->destroyGroup();
-				else
+				else {
 						const auto PHEAD = PWINDOW->getGroupHead();
 						PHEAD->m_sGroupData.locked = !PHEAD->m_sGroupData.locked;
     				g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+				}
+		}
 
     return {};
 }

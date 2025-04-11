@@ -923,7 +923,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         if (w->m_bIsX11 && w->isX11OverrideRedirect() && !w->m_pXWaylandSurface->wantsFocus()) {
                             // Override Redirect
                             return g_pCompositor->m_pLastWindow.lock(); // we kinda trick everything here.
-                                // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                            // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
                         }
 
                         return w;

@@ -35,7 +35,10 @@ CSyncReleaser::~CSyncReleaser() {
         m_timeline->signal(m_point);
 }
 
-CFileDescriptor CSyncReleaser::mergeSyncFds(const CFileDescriptor& fd1, const CFileDescriptor& fd2) {
+static CFileDescriptor mergeSyncFds(const CFileDescriptor& fd1, const CFileDescriptor& fd2) {
+    // combines the fences of both sync_fds into a dma_fence_array (https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_fence_array_create)
+    // with the signal_on_any param set to false, so the new sync_fd will "signal when all fences in the array signal."
+
     struct sync_merge_data data{
         .name  = "merged release fence",
         .fd2   = fd2.get(),
@@ -51,13 +54,11 @@ CFileDescriptor CSyncReleaser::mergeSyncFds(const CFileDescriptor& fd1, const CF
         return CFileDescriptor(data.fence);
 }
 
-void CSyncReleaser::addReleaseSync(SP<CEGLSync> sync) {
+void CSyncReleaser::addSyncFileFd(const Hyprutils::OS::CFileDescriptor& syncFd) {
     if (m_fd.isValid())
-        m_fd = mergeSyncFds(m_fd, sync->takeFd());
+        m_fd = mergeSyncFds(m_fd, syncFd);
     else
-        m_fd = sync->fd().duplicate();
-
-    m_sync = sync;
+        m_fd = syncFd.duplicate();
 }
 
 void CSyncReleaser::drop() {

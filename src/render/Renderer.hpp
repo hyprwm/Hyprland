@@ -91,20 +91,20 @@ class CHyprRenderer {
 
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
-    PHLMONITORREF                       m_pMostHzMonitor;
-    bool                                m_bDirectScanoutBlocked = false;
+    PHLMONITORREF                   m_pMostHzMonitor;
+    bool                            m_bDirectScanoutBlocked = false;
 
-    void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
-    void                                initiateManualCrash();
+    void                            setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
+    void                            initiateManualCrash();
 
-    bool                                m_bCrashingInProgress = false;
-    float                               m_fCrashingDistort    = 0.5f;
-    wl_event_source*                    m_pCrashingLoop       = nullptr;
-    wl_event_source*                    m_pCursorTicker       = nullptr;
+    bool                            m_bCrashingInProgress = false;
+    float                           m_fCrashingDistort    = 0.5f;
+    wl_event_source*                m_pCrashingLoop       = nullptr;
+    wl_event_source*                m_pCursorTicker       = nullptr;
 
-    CTimer                              m_tRenderTimer;
+    CTimer                          m_tRenderTimer;
 
-    std::vector<SP<CWLSurfaceResource>> explicitPresented;
+    std::vector<CHLBufferReference> usedAsyncBuffers;
 
     struct {
         int                           hotspotX = 0;

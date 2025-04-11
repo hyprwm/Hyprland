@@ -1292,7 +1292,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         pMonitor->forceFullFrames                      = 10;
     }
 
-    CRegion damage;
+    CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
         return;
@@ -1302,8 +1302,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0)
         damage = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
 
+    finalDamage = damage;
+
     // update damage in renderdata as we modified it
-    g_pHyprOpenGL->setDamage(damage);
+    g_pHyprOpenGL->setDamage(damage, finalDamage);
 
     if (pMonitor->forceFullFrames > 0) {
         pMonitor->forceFullFrames -= 1;
@@ -1315,7 +1317,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     bool renderCursor = true;
 
-    if (!damage.empty()) {
+    if (!finalDamage.empty()) {
         if (pMonitor->solitaryClient.expired()) {
             if (pMonitor->isMirror()) {
                 g_pHyprOpenGL->blend(false);

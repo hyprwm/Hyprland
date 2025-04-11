@@ -125,6 +125,7 @@ struct SCurrentRenderData {
     CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
     CRegion                damage;
+    CRegion                finalDamage; // damage used for funal off -> main
 
     SRenderModifData       renderModif;
     float                  mouseZoomFactor    = 1.f;
@@ -171,7 +172,7 @@ class CHyprOpenGLImpl {
     CHyprOpenGLImpl();
     ~CHyprOpenGLImpl();
 
-    void begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr);
+    void begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
     void beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
     void end();
 
@@ -226,7 +227,7 @@ class CHyprOpenGLImpl {
     SP<CTexture>                         loadAsset(const std::string& file);
     SP<CTexture>                         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0);
 
-    void                                 setDamage(const CRegion& damage);
+    void                                 setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
     void                                 ensureBackgroundTexturePresence();
 

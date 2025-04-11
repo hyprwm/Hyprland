@@ -22,9 +22,8 @@ class CSyncReleaser {
     // drops the releaser, will never signal anymore
     void drop();
 
-    // wait for this gpu job to finish before releasing
-    Hyprutils::OS::CFileDescriptor mergeSyncFds(const Hyprutils::OS::CFileDescriptor& fd1, const Hyprutils::OS::CFileDescriptor& fd2);
-    void                           addReleaseSync(SP<CEGLSync> sync);
+    // wait for this sync_fd to signal before releasing
+    void addSyncFileFd(const Hyprutils::OS::CFileDescriptor& syncFd);
 
   private:
     SP<CSyncTimeline>              m_timeline;

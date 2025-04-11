@@ -3,7 +3,6 @@
 #include "../macros.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"

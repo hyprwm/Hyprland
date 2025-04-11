@@ -4,6 +4,7 @@
 #include "config/ConfigDataValues.hpp"
 #include <ranges>
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"

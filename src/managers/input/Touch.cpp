@@ -4,6 +4,7 @@
 #include "../../Compositor.hpp"
 #include "../../desktop/LayerSurface.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../helpers/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
 #include "managers/AnimationManager.hpp"

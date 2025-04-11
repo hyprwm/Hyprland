@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"

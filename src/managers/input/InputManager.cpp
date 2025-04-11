@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
+#include "../../config/ConfigManager.hpp"
 #include "../../desktop/Window.hpp"
 #include "../../desktop/LayerSurface.hpp"
 #include "../../protocols/CursorShape.hpp"

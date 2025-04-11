@@ -6,6 +6,7 @@
 #include <aquamarine/output/Output.hpp>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"

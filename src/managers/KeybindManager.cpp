@@ -1728,7 +1728,7 @@ SDispatchResult CKeybindManager::toggleOrLockGroup(std::string args) {
     if (PWINDOW->m_sGroupData.pNextWindow.expired())
         PWINDOW->createGroup();
     else {
-				if (PHEAD->getGroupSize() == 1)
+				if (PWINDOW->getGroupSize() == 1)
             PWINDOW->destroyGroup();
 				else {
 						const auto PHEAD = PWINDOW->getGroupHead();

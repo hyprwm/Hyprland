@@ -231,16 +231,17 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
     if (pMonitor->inTimeline && explicitOptions.explicitEnabled) {
-        pMonitor->inTimeline->addWaiter(
-            [callback]() {
-                LOGM(TRACE, "Copied frame via dma with explicit sync");
-                callback(true);
-            },
-            pMonitor->inTimelinePoint, 0);
-    } else {
-        LOGM(TRACE, "Copied frame via dma");
-        callback(true);
+        if (pMonitor->inTimeline->addWaiter(
+                [callback, sync = pMonitor->eglSync]() {
+                    LOGM(TRACE, "Copied frame via dma with explicit sync");
+                    callback(true);
+                },
+                pMonitor->inTimelinePoint, 0))
+            return;
+        // on explicit sync failure, fallthrough to immediate callback
     }
+    LOGM(TRACE, "Copied frame via dma");
+    callback(true);
 }
 
 bool CScreencopyFrame::copyShm() {

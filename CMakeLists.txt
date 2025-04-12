@@ -447,6 +447,7 @@ install(
   DIRECTORY ${HEADERS_SRC}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
-  PATTERN "*.h*"
+  PATTERN "*.h"
+  PATTERN "*.hpp"
   PATTERN "*.inc"
   )

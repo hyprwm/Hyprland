@@ -651,6 +651,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("binds:disable_keybind_grabbing", Hyprlang::INT{0});
     registerConfigVar("binds:window_direction_monitor_fallback", Hyprlang::INT{1});
     registerConfigVar("binds:allow_pin_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("binds:drag_threshold", Hyprlang::INT{0});
 
     registerConfigVar("gestures:workspace_swipe", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
@@ -682,6 +683,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:no_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:persistent_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:warp_on_change_workspace", Hyprlang::INT{0});
+    registerConfigVar("cursor:warp_on_toggle_special", Hyprlang::INT{0});
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});
@@ -2254,6 +2256,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       longPress      = false;
     bool       hasDescription = false;
     bool       dontInhibit    = false;
+    bool       click          = false;
+    bool       drag           = false;
     const auto BINDARGS       = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
@@ -2279,6 +2283,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             hasDescription = true;
         } else if (arg == 'p') {
             dontInhibit = true;
+        } else if (arg == 'c') {
+            click   = true;
+            release = true;
+        } else if (arg == 'g') {
+            drag    = true;
+            release = true;
         } else {
             return "bind: invalid flag";
         }
@@ -2289,6 +2299,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
+
+    if (click && drag)
+        return "flags c and g are mutually exclusive";
 
     const int  numbArgs = hasDescription ? 5 : 4;
     const auto ARGS     = CVarList(value, numbArgs);
@@ -2349,7 +2362,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_szCurrentSubmap, DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit});
+                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
+                                               click,         drag});
     }
 
     return {};

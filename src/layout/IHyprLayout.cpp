@@ -228,7 +228,8 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onBeginDragWindow() {
-    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto  DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
 
     m_iMouseMoveEventCount = 1;
     m_vBeginDragSizeXY     = Vector2D();
@@ -240,42 +241,11 @@ void IHyprLayout::onBeginDragWindow() {
         return;
     }
 
-    const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
-    if (WAS_FULLSCREEN) {
-        Debug::log(LOG, "Dragging a fullscreen window");
-        g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
-    }
-
-    const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
-
-    if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
-        Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+    // Try to pick up dragged window now if drag_threshold is disabled
+    // or at least update dragging related variables for the cursors
+    g_pInputManager->m_bDragThresholdReached = *PDRAGTHRESHOLD <= 0;
+    if (updateDragWindow())
         return;
-    }
-
-    DRAGGINGWINDOW->m_bDraggingTiled = false;
-
-    m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
-
-    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_bIsFloating) {
-        const auto MOUSECOORDS           = g_pInputManager->getMouseCoordsInternal();
-        *DRAGGINGWINDOW->m_vRealPosition = MOUSECOORDS - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
-    } else if (!DRAGGINGWINDOW->m_bIsFloating) {
-        if (g_pInputManager->dragMode == MBIND_MOVE) {
-            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
-            changeWindowFloatingMode(DRAGGINGWINDOW);
-            DRAGGINGWINDOW->m_bIsFloating    = true;
-            DRAGGINGWINDOW->m_bDraggingTiled = true;
-
-            *DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
-        }
-    }
-
-    m_vBeginDragXY         = g_pInputManager->getMouseCoordsInternal();
-    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition->goal();
-    m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize->goal();
-    m_vLastDragXY          = m_vBeginDragXY;
 
     // get the grab corner
     static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
@@ -552,12 +522,22 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->currentlyDraggedWindow.expired())
         return;
 
-    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto  DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
     if ((!validMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D())) {
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
+    }
+
+    // Yoink dragged window here instead if using drag_threshold and it has been reached
+    if (*PDRAGTHRESHOLD > 0 && !g_pInputManager->m_bDragThresholdReached) {
+        if ((m_vBeginDragXY.distanceSq(mousePos) <= std::pow(*PDRAGTHRESHOLD, 2) && m_vBeginDragXY == m_vLastDragXY))
+            return;
+        g_pInputManager->m_bDragThresholdReached = true;
+        if (updateDragWindow())
+            return;
     }
 
     static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
@@ -961,4 +941,42 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
         sizePredicted = {};
 
     return sizePredicted;
+}
+
+bool IHyprLayout::updateDragWindow() {
+    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+
+    if (g_pInputManager->m_bDragThresholdReached) {
+        if (DRAGGINGWINDOW->isFullscreen()) {
+            Debug::log(LOG, "Dragging a fullscreen window");
+            g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
+        }
+
+        const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
+
+        if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
+            Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
+            g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+            return true;
+        }
+    }
+
+    DRAGGINGWINDOW->m_bDraggingTiled   = false;
+    m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
+    if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
+        DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
+        *DRAGGINGWINDOW->m_vRealPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
+        if (g_pInputManager->m_bDragThresholdReached) {
+            changeWindowFloatingMode(DRAGGINGWINDOW);
+            DRAGGINGWINDOW->m_bIsFloating    = true;
+            DRAGGINGWINDOW->m_bDraggingTiled = true;
+        }
+    }
+
+    m_vBeginDragXY         = g_pInputManager->getMouseCoordsInternal();
+    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition->goal();
+    m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize->goal();
+    m_vLastDragXY          = m_vBeginDragXY;
+
+    return false;
 }

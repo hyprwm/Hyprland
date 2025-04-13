@@ -76,6 +76,7 @@ class IKeyboard : public IHID {
 
     bool                    active  = false;
     bool                    enabled = true;
+    bool                    allowBinds = true;
 
     // if the keymap is overridden by the implementation,
     // don't try to set keyboard rules anymore, to avoid overwriting the requested one.

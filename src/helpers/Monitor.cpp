@@ -242,8 +242,8 @@ void CMonitor::onConnect(bool noRule) {
         Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, workspaceID);
         auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
         if (ws) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, this->self.lock());
-            this->changeWorkspace(ws, true, false, false);
+            g_pCompositor->moveWorkspaceToMonitor(ws, self.lock());
+            changeWorkspace(ws, true, false, false);
         }
     } else
         Debug::log(LOG, "Monitor {} was not on any workspace", szName);

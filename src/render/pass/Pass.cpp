@@ -119,7 +119,8 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     }
 
     if (damage.empty()) {
-        g_pHyprOpenGL->m_RenderData.damage = damage;
+        g_pHyprOpenGL->m_RenderData.damage      = damage;
+        g_pHyprOpenGL->m_RenderData.finalDamage = damage;
         return damage;
     }
 
@@ -149,13 +150,16 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
         blurRegion.intersect(damage).expand(oneBlurRadius());
 
+        g_pHyprOpenGL->m_RenderData.finalDamage = blurRegion.copy().add(damage);
+
         // FIXME: why does this break on * 1.F ?
         // used to work when we expand all the damage... I think? Well, before pass.
         // moving a window over blur shows the edges being wonk.
         blurRegion.expand(oneBlurRadius() * 1.5F);
 
         damage = blurRegion.copy().add(damage);
-    }
+    } else
+        g_pHyprOpenGL->m_RenderData.finalDamage = damage;
 
     if (std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->disableSimplification(); })) {
         for (auto& el : m_vPassElements) {

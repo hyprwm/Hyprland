@@ -460,6 +460,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         .modmaskAtPressTime = MODS,
         .sent               = true,
         .submapAtPress      = m_szCurrentSelectedSubmap,
+        .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -551,6 +552,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
         .modmaskAtPressTime = MODS,
+        .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
     m_vActiveKeybinds.clear();
@@ -638,7 +640,9 @@ std::string CKeybindManager::getCurrentSubmap() {
 
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
-    bool            found           = false;
+    static auto     PDRAGTHRESHOLD  = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
+
+    bool            found = false;
     SDispatchResult res;
 
     if (pressed) {
@@ -736,6 +740,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // suppress the event
                 continue;
             }
+
+            // Require mouse to stay inside drag_threshold for clicks, outside for drags
+            // Check if either a mouse bind has triggered or currently over the threshold (maybe there is no mouse bind on the same key)
+            const auto THRESHOLDREACHED = key.mousePosAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > std::pow(*PDRAGTHRESHOLD, 2);
+            if (k->click && (g_pInputManager->m_bDragThresholdReached || THRESHOLDREACHED))
+                continue;
+            else if (k->drag && !g_pInputManager->m_bDragThresholdReached && !THRESHOLDREACHED)
+                continue;
         }
 
         if (k->longPress) {
@@ -787,6 +799,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->nonConsuming)
             found = true;
     }
+
+    g_pInputManager->m_bDragThresholdReached = false;
 
     // if keybind wasn't found (or dispatcher said to) then pass event
     res.passEvent |= !found;
@@ -2097,10 +2111,16 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
         }
     }
 
+    updateRelativeCursorCoords();
+
+    PHLWORKSPACEREF focusedWorkspace;
+
     if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == workspaceID) {
         // already open on this monitor
         Debug::log(LOG, "Toggling special workspace {} to closed", workspaceID);
         PMONITOR->setSpecialWorkspace(nullptr);
+
+        focusedWorkspace = PMONITOR->activeWorkspace;
     } else {
         Debug::log(LOG, "Toggling special workspace {} to open", workspaceID);
         auto PSPECIALWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
@@ -2109,6 +2129,18 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
             PSPECIALWORKSPACE = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->ID, workspaceName);
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
+
+        focusedWorkspace = PSPECIALWORKSPACE;
+    }
+
+    const static auto PWARPONTOGGLESPECIAL = CConfigValue<Hyprlang::INT>("cursor:warp_on_toggle_special");
+
+    if (*PWARPONTOGGLESPECIAL > 0) {
+        auto PLAST     = focusedWorkspace->getLastFocusedWindow();
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+
+        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+            PLAST->warpCursor(*PWARPONTOGGLESPECIAL == 2);
     }
 
     return {};

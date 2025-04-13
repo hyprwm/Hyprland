@@ -141,11 +141,10 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
             .fence = -1,
         };
 
-        if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0) {
+        if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0)
             syncFd = CFileDescriptor(data.fence);
-        } else {
+        else
             syncFd = {};
-        }
     }
 
     return syncFd;

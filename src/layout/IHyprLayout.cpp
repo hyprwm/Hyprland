@@ -945,9 +945,10 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
 bool IHyprLayout::updateDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
 
     if (g_pInputManager->m_bDragThresholdReached) {
-        if (DRAGGINGWINDOW->isFullscreen()) {
+        if (WAS_FULLSCREEN) {
             Debug::log(LOG, "Dragging a fullscreen window");
             g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
         }
@@ -963,7 +964,11 @@ bool IHyprLayout::updateDragWindow() {
 
     DRAGGINGWINDOW->m_bDraggingTiled   = false;
     m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
-    if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
+
+    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_bIsFloating) {
+        const auto MOUSECOORDS           = g_pInputManager->getMouseCoordsInternal();
+        *DRAGGINGWINDOW->m_vRealPosition = MOUSECOORDS - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
+    } else if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
         Vector2D MINSIZE                    = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
         DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
         *DRAGGINGWINDOW->m_vRealPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;

@@ -431,7 +431,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
             return true;
     }
 
-    auto               e = std::any_cast<IKeyboard::SKeyEvent>(event);
+    auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
 
     if (!pKeyboard->allowBinds)
         return true;

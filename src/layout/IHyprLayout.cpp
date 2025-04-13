@@ -603,7 +603,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(20, 20)));
+            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
             Vector2D MAXSIZE;
             if (DRAGGINGWINDOW->m_sWindowData.maxSize.hasValue())
                 MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, DRAGGINGWINDOW->m_sWindowData.maxSize.value());
@@ -945,9 +945,10 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
 bool IHyprLayout::updateDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
 
     if (g_pInputManager->m_bDragThresholdReached) {
-        if (DRAGGINGWINDOW->isFullscreen()) {
+        if (WAS_FULLSCREEN) {
             Debug::log(LOG, "Dragging a fullscreen window");
             g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
         }
@@ -963,8 +964,13 @@ bool IHyprLayout::updateDragWindow() {
 
     DRAGGINGWINDOW->m_bDraggingTiled   = false;
     m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
-    if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
-        DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
+
+    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_bIsFloating) {
+        const auto MOUSECOORDS           = g_pInputManager->getMouseCoordsInternal();
+        *DRAGGINGWINDOW->m_vRealPosition = MOUSECOORDS - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
+    } else if (!DRAGGINGWINDOW->m_bIsFloating && g_pInputManager->dragMode == MBIND_MOVE) {
+        Vector2D MINSIZE                    = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
+        DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
         *DRAGGINGWINDOW->m_vRealPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
         if (g_pInputManager->m_bDragThresholdReached) {
             changeWindowFloatingMode(DRAGGINGWINDOW);

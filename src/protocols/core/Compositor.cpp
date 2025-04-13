@@ -195,24 +195,24 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {
+        pending.updated.input = true;
+
         if (!region) {
             pending.input = CBox{{}, {INT32_MAX, INT32_MAX}};
             return;
         }
-
-        pending.updated.input = true;
 
         auto RG       = CWLRegionResource::fromResource(region);
         pending.input = RG->region;
     });
 
     resource->setSetOpaqueRegion([this](CWlSurface* r, wl_resource* region) {
+        pending.updated.opaque = true;
+
         if (!region) {
             pending.opaque = CBox{{}, {}};
             return;
         }
-
-        pending.updated.opaque = true;
 
         auto RG        = CWLRegionResource::fromResource(region);
         pending.opaque = RG->region;

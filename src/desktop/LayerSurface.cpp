@@ -214,6 +214,10 @@ void CLayerSurface::onUnmap() {
         return;
     }
 
+    // end any pending animations so that snapshot has right dimensions
+    realPosition->warp();
+    realSize->warp();
+
     // make a snapshot and start fade
     g_pHyprRenderer->makeLayerSnapshot(self.lock());
 

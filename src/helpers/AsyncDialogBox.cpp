@@ -99,13 +99,13 @@ void CAsyncDialogBox::open(std::function<void(std::string)> onResolution) {
 
     m_selfReference = m_selfWeakReference.lock();
 
-    m_dialogPid = proc.pid();
-
     if (!proc.runAsync()) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to run async");
         wl_event_source_remove(m_readEventSource);
         return;
     }
+
+    m_dialogPid = proc.pid();
 
     // close the write fd, only the dialog owns it now
     close(outPipe[1]);

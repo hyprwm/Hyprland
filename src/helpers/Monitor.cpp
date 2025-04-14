@@ -235,6 +235,19 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
+    Debug::log(LOG, "checking if we have seen this monitor before: {}", szName);
+    // if we saw this monitor before, set it to the workspace it was on
+    if (g_pCompositor->m_mSeenMonitorWorkspaceMap.contains(szName)) {
+        auto workspaceID = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
+        Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, workspaceID);
+        auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+        if (ws) {
+            g_pCompositor->moveWorkspaceToMonitor(ws, self.lock());
+            changeWorkspace(ws, true, false, false);
+        }
+    } else
+        Debug::log(LOG, "Monitor {} was not on any workspace", szName);
+
     if (!found)
         g_pCompositor->setActiveMonitor(self.lock());
 
@@ -272,6 +285,12 @@ void CMonitor::onDisconnect(bool destroy) {
     Debug::log(LOG, "onDisconnect called for {}", output->name);
 
     events.disconnect.emit();
+
+    // record what workspace this monitor was on
+    if (activeWorkspace) {
+        Debug::log(LOG, "Disconnecting Monitor {} was on workspace {}", szName, activeWorkspace->m_iID);
+        g_pCompositor->m_mSeenMonitorWorkspaceMap[szName] = activeWorkspace->m_iID;
+    }
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     PHLMONITOR BACKUPMON = nullptr;

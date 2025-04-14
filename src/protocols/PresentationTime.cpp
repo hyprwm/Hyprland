@@ -49,7 +49,7 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     }
 
     uint32_t flags = 0;
-    if (!data->pMonitor->tearingState.activelyTearing)
+    if (data->pMonitor->currentTearing.expired())
         flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
     if (data->zeroCopy)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;

@@ -383,8 +383,6 @@ class CWindow {
     } m_sGroupData;
     uint16_t m_eGroupRules = GROUP_NONE;
 
-    bool     m_bTearingHint = false;
-
     // stores the currently matched window rules
     std::vector<SP<CWindowRule>> m_vMatchedRules;
 

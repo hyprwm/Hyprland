@@ -97,4 +97,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.acquire)
         acquire = ref.acquire;
+
+    if (ref.updated.tearing)
+        tearingHint = ref.tearingHint;
 }

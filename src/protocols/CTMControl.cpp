@@ -3,6 +3,7 @@
 #include "../render/Renderer.hpp"
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "../helpers/Monitor.hpp"
 

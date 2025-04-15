@@ -26,6 +26,11 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(eventSourceData.eventSource);
     }
 
+    for (auto const& w : m_vReadableWaiters) {
+        if (w->source != nullptr)
+            wl_event_source_remove(w->source);
+    }
+
     if (m_sWayland.eventSource)
         wl_event_source_remove(m_sWayland.eventSource);
     if (m_sIdle.eventSource)
@@ -48,6 +53,33 @@ static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
     g_pConfigWatcher->onInotifyEvent();
     return 0;
+}
+
+static int handleWaiterFD(int fd, uint32_t mask, void* data) {
+    if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
+        Debug::log(ERR, "handleWaiterFD: readable waiter error");
+        return 0;
+    }
+
+    if (mask & WL_EVENT_READABLE)
+        g_pEventLoopManager->onFdReadable((CEventLoopManager::SReadableWaiter*)data);
+
+    return 0;
+}
+
+void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
+    auto it = std::ranges::find_if(m_vReadableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
+
+    if (waiter->source) {
+        wl_event_source_remove(waiter->source);
+        waiter->source = nullptr;
+    }
+
+    if (waiter->fn)
+        waiter->fn();
+
+    if (it != m_vReadableWaiters.end())
+        m_vReadableWaiters.erase(it);
 }
 
 void CEventLoopManager::enterLoop() {
@@ -141,6 +173,16 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
             }
         },
         &m_sIdle);
+}
+
+void CEventLoopManager::doOnReadable(CFileDescriptor fd, const std::function<void()>& fn) {
+    if (!fd.isValid() || fd.isReadable()) {
+        fn();
+        return;
+    }
+
+    auto& waiter   = m_vReadableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), fn));
+    waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
 }
 
 void CEventLoopManager::syncPollFDs() {

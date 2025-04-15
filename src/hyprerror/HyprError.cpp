@@ -2,6 +2,7 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/AnimationManager.hpp"
 #include "../render/Renderer.hpp"

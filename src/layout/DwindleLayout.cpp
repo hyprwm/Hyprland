@@ -1,6 +1,7 @@
 #include "DwindleLayout.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/input/InputManager.hpp"

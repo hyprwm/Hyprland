@@ -19,6 +19,7 @@
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
+#include "WindowOverridableVar.hpp"
 #include "../protocols/types/ContentType.hpp"
 
 class CXDGSurfaceResource;
@@ -77,88 +78,6 @@ struct SAlphaValue {
     };
 };
 
-enum eOverridePriority : uint8_t {
-    PRIORITY_LAYOUT = 0,
-    PRIORITY_WORKSPACE_RULE,
-    PRIORITY_WINDOW_RULE,
-    PRIORITY_SET_PROP,
-};
-
-template <typename T>
-class CWindowOverridableVar {
-  public:
-    CWindowOverridableVar(T const& value, eOverridePriority priority) {
-        values[priority] = value;
-    }
-    CWindowOverridableVar(T const& value) : defaultValue{value} {}
-
-    CWindowOverridableVar()  = default;
-    ~CWindowOverridableVar() = default;
-
-    CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> const& other) {
-        // Self-assignment check
-        if (this == &other)
-            return *this;
-
-        for (auto const& value : other.values) {
-            values[value.first] = value.second;
-        }
-
-        return *this;
-    }
-
-    void unset(eOverridePriority priority) {
-        values.erase(priority);
-    }
-
-    bool hasValue() {
-        return !values.empty();
-    }
-
-    T value() {
-        if (!values.empty())
-            return std::prev(values.end())->second;
-        else
-            throw std::bad_optional_access();
-    }
-
-    T valueOr(T const& other) {
-        if (hasValue())
-            return value();
-        else
-            return other;
-    }
-
-    T valueOrDefault() {
-        return valueOr(defaultValue);
-    }
-
-    eOverridePriority getPriority() {
-        if (!values.empty())
-            return std::prev(values.end())->first;
-        else
-            throw std::bad_optional_access();
-    }
-
-    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority) {
-        if (optValue.has_value())
-            values[priority] = optValue.value();
-        else
-            unset(priority);
-    }
-
-    operator std::optional<T>() {
-        if (hasValue())
-            return value();
-        else
-            return std::nullopt;
-    }
-
-  private:
-    std::map<eOverridePriority, T> values;
-    T                              defaultValue; // used for toggling, so required for bool
-};
-
 struct SWindowData {
     CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{1.f, false};
     CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{1.f, false};
@@ -186,12 +105,12 @@ struct SWindowData {
     CWindowOverridableVar<bool>               xray               = false;
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
-    CWindowOverridableVar<int>                rounding;
-    CWindowOverridableVar<float>              roundingPower;
-    CWindowOverridableVar<int>                borderSize;
+    CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), Hyprlang::INT(0), std::nullopt};
+    CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), Hyprlang::INT(0), std::nullopt};
 
-    CWindowOverridableVar<float>              scrollMouse;
-    CWindowOverridableVar<float>              scrollTouchpad;
+    CWindowOverridableVar<Hyprlang::FLOAT>    roundingPower  = {std::string("decoration:rounding_power")};
+    CWindowOverridableVar<Hyprlang::FLOAT>    scrollMouse    = {std::string("input:scroll_factor")};
+    CWindowOverridableVar<Hyprlang::FLOAT>    scrollTouchpad = {std::string("input:touchpad:scroll_factor")};
 
     CWindowOverridableVar<std::string>        animationStyle;
     CWindowOverridableVar<Vector2D>           maxSize;
@@ -567,12 +486,12 @@ namespace NWindowProperties {
         {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
     };
 
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(const PHLWINDOW&)>> intWindowProperties = {
+    const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::INT>*(const PHLWINDOW&)>> intWindowProperties = {
         {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.rounding; }},
         {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
     };
 
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> floatWindowProperties = {
+    const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::FLOAT>*(PHLWINDOW)>> floatWindowProperties = {
         {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
         {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }},

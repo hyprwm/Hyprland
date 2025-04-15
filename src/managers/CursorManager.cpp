@@ -4,6 +4,7 @@
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../helpers/Monitor.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = reinterpret_cast<CCursorManager*>(data);

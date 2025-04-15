@@ -1003,10 +1003,15 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
 
-            // render layers for abovelock rule
+            // render layers and then their popups for abovelock rule
             for (auto const& lsl : pMonitor->m_aLayerSurfaceLayers) {
                 for (auto const& ls : lsl) {
                     renderLayer(ls.lock(), pMonitor, now, false, true);
+                }
+            }
+            for (auto const& lsl : pMonitor->m_aLayerSurfaceLayers) {
+                for (auto const& ls : lsl) {
+                    renderLayer(ls.lock(), pMonitor, now, true, true);
                 }
             }
 

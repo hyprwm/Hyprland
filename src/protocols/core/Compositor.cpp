@@ -91,14 +91,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         } else {
             pending.buffer = {};
             pending.texture.reset();
-            pending.size       = Vector2D{};
-            pending.bufferSize = Vector2D{};
+            pending.size = Vector2D{};
         }
 
-        if (pending.bufferSize != current.bufferSize) {
-            pending.updated.damage = true;
-            pending.bufferDamage   = CBox{{}, {INT32_MAX, INT32_MAX}};
-        }
+        Vector2D oldBufSize = current.buffer ? current.bufferSize : Vector2D{};
+        Vector2D newBufSize = pending.buffer ? pending.bufferSize : Vector2D{};
+
+        if (oldBufSize != newBufSize || current.buffer != pending.buffer)
+            pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -180,25 +180,13 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
-        if (scale == pending.scale)
-            return;
-
-        pending.updated.scale  = true;
-        pending.updated.damage = true;
-
-        pending.scale        = scale;
-        pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        pending.updated.scale = true;
+        pending.scale         = scale;
     });
 
     resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
-        if (tr == pending.transform)
-            return;
-
         pending.updated.transform = true;
-        pending.updated.damage    = true;
-
-        pending.transform    = (wl_output_transform)tr;
-        pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        pending.transform         = (wl_output_transform)tr;
     });
 
     resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {

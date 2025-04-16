@@ -3,6 +3,7 @@
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/ANRManager.hpp"
+#include "../helpers/time/Time.hpp"
 
 #ifndef NO_XWAYLAND
 
@@ -253,12 +254,9 @@ void CXWaylandSurface::ping() {
         return;
     }
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     xcb_client_message_data_t msg = {};
     msg.data32[0]                 = HYPRATOMS["_NET_WM_PING"];
-    msg.data32[1]                 = now.tv_sec * 1000 + now.tv_nsec / 1000000;
+    msg.data32[1]                 = Time::millis(Time::steadyNow());
     msg.data32[2]                 = xID;
 
     lastPingSeq = msg.data32[1];

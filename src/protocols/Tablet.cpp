@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../helpers/time/Time.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
@@ -222,9 +223,7 @@ void CTabletToolV2Resource::sendFrame(bool removeSource) {
     if (!current)
         return;
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    resource->sendFrame(now.tv_sec * 1000 + now.tv_nsec / 1000000);
+    resource->sendFrame(Time::millis(Time::steadyNow()));
 }
 
 CTabletSeat::CTabletSeat(SP<CZwpTabletSeatV2> resource_) : resource(resource_) {

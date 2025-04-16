@@ -8,7 +8,8 @@
 #include <list>
 #include <vector>
 #include "../managers/HookSystemManager.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/time/Timer.hpp"
+#include "../helpers/time/Time.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
@@ -102,7 +103,7 @@ class CScreencopyProtocol : public IWaylandProtocol {
     void                               shareFrame(CScreencopyFrame* frame);
     void                               sendFrameDamage(CScreencopyFrame* frame);
     bool                               copyFrameDmabuf(CScreencopyFrame* frame);
-    bool                               copyFrameShm(CScreencopyFrame* frame, timespec* now);
+    bool                               copyFrameShm(CScreencopyFrame* frame, const Time::steady_tp& now);
 
     friend class CScreencopyFrame;
     friend class CScreencopyClient;

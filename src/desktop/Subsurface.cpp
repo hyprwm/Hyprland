@@ -115,21 +115,17 @@ void CSubsurface::onCommit() {
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
 
-    if (m_vLastSize != m_pWLSurface->resource()->current.size) {
-        // TODO: fix this
+    if (m_vLastSize != m_pWLSurface->resource()->current.size || m_vLastPosition != m_pSubsurface->position) {
+        // TODO: only damage the parts of surface that this subsurface was or is covering
         // CBox box{COORDS, m_vLastSize};
         // g_pHyprRenderer->damageBox(box);
         // m_vLastSize = m_pWLSurface->resource()->current.size;
         // box         = {COORDS, m_vLastSize};
         // g_pHyprRenderer->damageBox(box);
 
-        CBox box;
-        if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_pWLSurface)
-            box = m_pPopupParent->m_pWLSurface->getSurfaceBoxGlobal().value_or(CBox{});
-        else if (m_pWindowParent)
-            box = m_pWindowParent->getWindowMainSurfaceBox();
-
-        g_pHyprRenderer->damageBox(box);
+        damageEntireParent();
+        m_vLastSize     = m_pWLSurface->resource()->current.size;
+        m_vLastPosition = m_pSubsurface->position;
     }
 }
 
@@ -162,7 +158,8 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
 }
 
 void CSubsurface::onMap() {
-    m_vLastSize = m_pWLSurface->resource()->current.size;
+    m_vLastSize     = m_pWLSurface->resource()->current.size;
+    m_vLastPosition = m_pSubsurface->position;
 
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
@@ -174,10 +171,8 @@ void CSubsurface::onMap() {
 }
 
 void CSubsurface::onUnmap() {
-    const auto COORDS = coordsGlobal();
-    CBox       box{COORDS, m_vLastSize};
-    box.expand(4);
-    g_pHyprRenderer->damageBox(box);
+    // TODO: only damage the parts of the surface that this subsurface was covering
+    damageEntireParent();
 
     if (m_pWLSurface->resource() == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
@@ -185,6 +180,16 @@ void CSubsurface::onUnmap() {
     g_pInputManager->simulateMouseMovement();
 
     // TODO: should this remove children? Currently it won't, only on .destroy
+}
+
+void CSubsurface::damageEntireParent() {
+    CBox box;
+    if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_pWLSurface)
+        box = m_pPopupParent->m_pWLSurface->getSurfaceBoxGlobal().value_or(CBox{});
+    else if (m_pWindowParent)
+        box = m_pWindowParent->getWindowMainSurfaceBox();
+
+    g_pHyprRenderer->damageBox(box);
 }
 
 Vector2D CSubsurface::coordsRelativeToParent() {

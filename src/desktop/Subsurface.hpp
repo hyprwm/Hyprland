@@ -49,7 +49,8 @@ class CSubsurface {
 
     WP<CWLSubsurfaceResource> m_pSubsurface;
     SP<CWLSurface>            m_pWLSurface;
-    Vector2D                  m_vLastSize = {};
+    Vector2D                  m_vLastSize     = {};
+    Vector2D                  m_vLastPosition = {};
 
     // if nullptr, means it's a dummy node
     WP<CSubsurface>              m_pParent;
@@ -64,4 +65,5 @@ class CSubsurface {
     void                         initSignals();
     void                         initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
     void                         checkSiblingDamage();
+    void                         damageEntireParent();
 };

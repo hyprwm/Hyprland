@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
@@ -123,8 +124,10 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
             (SIZEHINTS && (SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height)))
             return true;
     } else {
-        const auto PSTATE = pending ? &pWindow->m_pXDGSurface->toplevel->pending : &pWindow->m_pXDGSurface->toplevel->current;
+        if (!pWindow->m_pXDGSurface || !pWindow->m_pXDGSurface->toplevel)
+            return false;
 
+        const auto PSTATE = pending ? &pWindow->m_pXDGSurface->toplevel->pending : &pWindow->m_pXDGSurface->toplevel->current;
         if (pWindow->m_pXDGSurface->toplevel->parent ||
             (PSTATE->minSize.x != 0 && PSTATE->minSize.y != 0 && (PSTATE->minSize.x == PSTATE->maxSize.x || PSTATE->minSize.y == PSTATE->maxSize.y)))
             return true;

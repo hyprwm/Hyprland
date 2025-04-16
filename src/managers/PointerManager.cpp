@@ -1,6 +1,7 @@
 #include "PointerManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/RelativePointer.hpp"
 #include "../protocols/FractionalScale.hpp"
@@ -14,6 +15,7 @@
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "SeatManager.hpp"
+#include "../helpers/time/Time.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -159,9 +161,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
 
         if (surf->resource()->current.texture) {
             currentCursorImage.size = surf->resource()->current.bufferSize;
-            timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            surf->resource()->frame(&now);
+            surf->resource()->frame(Time::steadyNow());
         }
     }
 
@@ -591,7 +591,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* now, CRegion& damage, std::optional<Vector2D> overridePos) {
+void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos) {
     if (!hasCursor())
         return;
 

@@ -7,6 +7,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -2849,6 +2850,8 @@ void CHyprOpenGLImpl::initAssets() {
                                                        std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
                                                        "unknown"),
                                        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+
+    m_pScreencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 
     ensureBackgroundTexturePresence();
 }

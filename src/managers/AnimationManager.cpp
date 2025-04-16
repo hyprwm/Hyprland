@@ -264,7 +264,7 @@ void CHyprAnimationManager::scheduleTick() {
 
     float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
 
-    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.f;
+    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(Time::steadyNow() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.F;
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 

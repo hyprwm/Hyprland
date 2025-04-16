@@ -4,6 +4,7 @@
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../helpers/Monitor.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = reinterpret_cast<CCursorManager*>(data);
@@ -18,12 +19,16 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
     Debug::log(NONE, "[hc] {}", message);
 }
 
-CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_), surface(surf), stride(cairo_image_surface_get_stride(surf)) {
+CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(cairo_image_surface_get_stride(surf)) {
     size = size_;
+
+    m_data = std::vector<uint8_t>((uint8_t*)cairo_image_surface_get_data(surf), ((uint8_t*)cairo_image_surface_get_data(surf)) + (cairo_image_surface_get_height(surf) * m_stride));
 }
 
-CCursorBuffer::CCursorBuffer(uint8_t* pixelData_, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_), pixelData(pixelData_), stride(4 * size_.x) {
+CCursorBuffer::CCursorBuffer(const uint8_t* pixelData, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(4 * size_.x) {
     size = size_;
+
+    m_data = std::vector<uint8_t>(pixelData, pixelData + ((int)size_.y * m_stride));
 }
 
 Aquamarine::eBufferCapability CCursorBuffer::caps() {
@@ -51,12 +56,12 @@ Aquamarine::SSHMAttrs CCursorBuffer::shm() {
     attrs.success = true;
     attrs.format  = DRM_FORMAT_ARGB8888;
     attrs.size    = size;
-    attrs.stride  = stride;
+    attrs.stride  = m_stride;
     return attrs;
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CCursorBuffer::beginDataPtr(uint32_t flags) {
-    return {pixelData ? pixelData : cairo_image_surface_get_data(surface), DRM_FORMAT_ARGB8888, stride};
+    return {m_data.data(), DRM_FORMAT_ARGB8888, m_stride};
 }
 
 void CCursorBuffer::endDataPtr() {
@@ -301,8 +306,6 @@ void CCursorManager::updateTheme() {
         if (m_pHyprcursor->valid())
             m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
     }
-
-    setCursorFromName("left_ptr");
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         m->forceFullFrames = 5;

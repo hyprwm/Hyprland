@@ -6,6 +6,7 @@
 #include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../protocols/GammaControl.hpp"
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -23,6 +24,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
+#include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
@@ -31,6 +33,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
 #include <ranges>
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
@@ -71,8 +74,15 @@ void CMonitor::onConnect(bool noRule) {
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     listeners.presented = output->events.present.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-        PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
+        auto      E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
+
+        timespec* ts = E.when;
+        if (!ts) {
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            PROTO::presentation->onPresented(self.lock(), Time::fromTimespec(&now), E.refresh, E.seq, E.flags);
+        } else
+            PROTO::presentation->onPresented(self.lock(), Time::fromTimespec(E.when), E.refresh, E.seq, E.flags);
     });
 
     listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
@@ -235,6 +245,19 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
+    Debug::log(LOG, "checking if we have seen this monitor before: {}", szName);
+    // if we saw this monitor before, set it to the workspace it was on
+    if (g_pCompositor->m_mSeenMonitorWorkspaceMap.contains(szName)) {
+        auto workspaceID = g_pCompositor->m_mSeenMonitorWorkspaceMap[szName];
+        Debug::log(LOG, "Monitor {} was on workspace {}, setting it to that", szName, workspaceID);
+        auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+        if (ws) {
+            g_pCompositor->moveWorkspaceToMonitor(ws, self.lock());
+            changeWorkspace(ws, true, false, false);
+        }
+    } else
+        Debug::log(LOG, "Monitor {} was not on any workspace", szName);
+
     if (!found)
         g_pCompositor->setActiveMonitor(self.lock());
 
@@ -272,6 +295,12 @@ void CMonitor::onDisconnect(bool destroy) {
     Debug::log(LOG, "onDisconnect called for {}", output->name);
 
     events.disconnect.emit();
+
+    // record what workspace this monitor was on
+    if (activeWorkspace) {
+        Debug::log(LOG, "Disconnecting Monitor {} was on workspace {}", szName, activeWorkspace->m_iID);
+        g_pCompositor->m_mSeenMonitorWorkspaceMap[szName] = activeWorkspace->m_iID;
+    }
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     PHLMONITOR BACKUPMON = nullptr;
@@ -1348,15 +1377,17 @@ bool CMonitor::attemptDirectScanout() {
         return false;
 
     // we can't scanout shm buffers.
-    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    const auto params = PSURFACE->current.buffer->dmabuf();
     if (!params.success || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer->buffer.get());
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer.buffer.get());
 
-    auto PBUFFER = PSURFACE->current.buffer->buffer;
+    auto PBUFFER = PSURFACE->current.buffer.buffer;
 
     if (PBUFFER == output->state->state().buffer) {
+        PSURFACE->presentFeedback(Time::steadyNow(), self.lock());
+
         if (scanoutNeedsCursorUpdate) {
             if (!state.test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1396,38 +1427,14 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, self.lock());
+    PSURFACE->presentFeedback(Time::steadyNow(), self.lock());
 
     output->state->addDamage(PSURFACE->current.accumulateBufferDamage());
     output->state->resetExplicitFences();
 
-    auto cleanup = CScopeGuard([this]() { output->state->resetExplicitFences(); });
-
-    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(output);
-
-    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->current.buffer && PSURFACE->current.buffer->acquire && explicitOptions.explicitKMSEnabled;
-    if (DOEXPLICIT) {
-        // wait for surface's explicit fence if present
-        inFence = PSURFACE->current.buffer->acquire->exportAsFD();
-        if (inFence.isValid()) {
-            Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", inFence.get());
-            output->state->setExplicitInFence(inFence.get());
-        } else {
-            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an sync file fd for aq IN_FENCE");
-            DOEXPLICIT = false;
-        }
-    }
+    // no need to do explicit sync here as surface current can only ever be ready to read
 
     bool ok = output->commit();
-
-    if (!ok && DOEXPLICIT) {
-        Debug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
-        output->state->resetExplicitFences();
-
-        ok = output->commit();
-    }
 
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");

@@ -22,6 +22,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
 
@@ -374,6 +375,18 @@ static Hyprlang::CParseResult handlePlugin(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handlePermission(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handlePermission(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_pConfig->addConfigValue(name, val);
@@ -460,6 +473,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
+    registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{1});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});
     registerConfigVar("group:focus_removed_window", Hyprlang::INT{1});
@@ -486,6 +500,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:gradient_round_only_edges", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gaps_out", Hyprlang::INT{2});
     registerConfigVar("group:groupbar:gaps_in", Hyprlang::INT{2});
+    registerConfigVar("group:groupbar:keep_upper_gap", Hyprlang::INT{1});
+    registerConfigVar("group:groupbar:text_offset", Hyprlang::INT{0});
 
     registerConfigVar("debug:log_damage", Hyprlang::INT{0});
     registerConfigVar("debug:overlay", Hyprlang::INT{0});
@@ -499,7 +515,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});
     registerConfigVar("debug:error_position", Hyprlang::INT{0});
-    registerConfigVar("debug:watchdog_timeout", Hyprlang::INT{5});
     registerConfigVar("debug:disable_scale_checks", Hyprlang::INT{0});
     registerConfigVar("debug:colored_stdout_logs", Hyprlang::INT{1});
     registerConfigVar("debug:full_cm_proto", Hyprlang::INT{0});
@@ -636,6 +651,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("binds:disable_keybind_grabbing", Hyprlang::INT{0});
     registerConfigVar("binds:window_direction_monitor_fallback", Hyprlang::INT{1});
     registerConfigVar("binds:allow_pin_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("binds:drag_threshold", Hyprlang::INT{0});
 
     registerConfigVar("gestures:workspace_swipe", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
@@ -667,6 +683,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:no_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:persistent_warps", Hyprlang::INT{0});
     registerConfigVar("cursor:warp_on_change_workspace", Hyprlang::INT{0});
+    registerConfigVar("cursor:warp_on_toggle_special", Hyprlang::INT{0});
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});
@@ -700,6 +717,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
+    registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
@@ -761,6 +779,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->registerHandler(&::handleSubmap, "submap", {false});
     m_pConfig->registerHandler(&::handleBlurLS, "blurls", {false});
     m_pConfig->registerHandler(&::handlePlugin, "plugin", {false});
+    m_pConfig->registerHandler(&::handlePermission, "permission", {false});
     m_pConfig->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -942,6 +961,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
     finalExecRequests.clear();
+
+    g_pDynamicPermissionManager->clearConfigPermissions();
 
     // paths
     m_configPaths.clear();
@@ -2235,6 +2256,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       longPress      = false;
     bool       hasDescription = false;
     bool       dontInhibit    = false;
+    bool       click          = false;
+    bool       drag           = false;
     const auto BINDARGS       = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
@@ -2260,6 +2283,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             hasDescription = true;
         } else if (arg == 'p') {
             dontInhibit = true;
+        } else if (arg == 'c') {
+            click   = true;
+            release = true;
+        } else if (arg == 'g') {
+            drag    = true;
+            release = true;
         } else {
             return "bind: invalid flag";
         }
@@ -2270,6 +2299,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
+
+    if (click && drag)
+        return "flags c and g are mutually exclusive";
 
     const int  numbArgs = hasDescription ? 5 : 4;
     const auto ARGS     = CVarList(value, numbArgs);
@@ -2330,7 +2362,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_szCurrentSubmap, DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit});
+                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
+                                               click,         drag});
     }
 
     return {};
@@ -2824,6 +2857,32 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
         return "plugin '" + path + "' declared twice";
 
     m_vDeclaredPlugins.push_back(path);
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handlePermission(const std::string& command, const std::string& value) {
+    CVarList                    data(value);
+
+    eDynamicPermissionType      type = PERMISSION_TYPE_UNKNOWN;
+    eDynamicPermissionAllowMode mode = PERMISSION_RULE_ALLOW_MODE_UNKNOWN;
+
+    if (data[1] == "screencopy")
+        type = PERMISSION_TYPE_SCREENCOPY;
+
+    if (data[2] == "ask")
+        mode = PERMISSION_RULE_ALLOW_MODE_ASK;
+    else if (data[2] == "allow")
+        mode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    else if (data[2] == "deny")
+        mode = PERMISSION_RULE_ALLOW_MODE_DENY;
+
+    if (type == PERMISSION_TYPE_UNKNOWN)
+        return "unknown permission type";
+    if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
+        return "unknown permission allow mode";
+
+    g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
 }

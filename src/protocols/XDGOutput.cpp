@@ -1,5 +1,6 @@
 #include "XDGOutput.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "core/Output.hpp"

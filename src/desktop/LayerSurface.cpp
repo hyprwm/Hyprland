@@ -214,6 +214,10 @@ void CLayerSurface::onUnmap() {
         return;
     }
 
+    // end any pending animations so that snapshot has right dimensions
+    realPosition->warp();
+    realSize->warp();
+
     // make a snapshot and start fade
     g_pHyprRenderer->makeLayerSnapshot(self.lock());
 
@@ -234,9 +238,10 @@ void CLayerSurface::onUnmap() {
 
     // refocus if needed
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
-    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
-        g_pInputManager->refocusLastWindow(PMONITOR);
-    else if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus != surface->resource())
+    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable())) {
+        if (!g_pInputManager->refocusLastWindow(PMONITOR))
+            g_pInputManager->refocus();
+    } else if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus != surface->resource())
         g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};

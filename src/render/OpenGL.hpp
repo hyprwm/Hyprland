@@ -3,7 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
@@ -282,6 +282,8 @@ class CHyprOpenGLImpl {
         bool IMG_context_priority               = false;
         bool EXT_create_context_robustness      = false;
     } m_sExts;
+
+    SP<CTexture> m_pScreencopyDeniedTexture;
 
   private:
     enum eEGLContextVersion : uint8_t {

@@ -6,6 +6,7 @@
 #include <aquamarine/output/Output.hpp>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -134,9 +135,6 @@ CHyprRenderer::CHyprRenderer() {
             if (m_vRenderUnfocused.empty())
                 return;
 
-            timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-
             bool dirty = false;
             for (auto& w : m_vRenderUnfocused) {
                 if (!w) {
@@ -147,7 +145,7 @@ CHyprRenderer::CHyprRenderer() {
                 if (!w->m_pWLSurface || !w->m_pWLSurface->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                w->m_pWLSurface->resource()->frame(&now);
+                w->m_pWLSurface->resource()->frame(Time::steadyNow());
                 auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_pWLSurface->resource());
                 FEEDBACK->attachMonitor(g_pCompositor->m_pLastMonitor.lock());
                 FEEDBACK->discarded();
@@ -264,7 +262,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -355,12 +353,12 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 }
 
-void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW lastWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
-    std::vector<PHLWINDOWREF> windows;
+    std::vector<PHLWINDOWREF> windows, tiledFadingOut;
     windows.reserve(g_pCompositor->m_vWindows.size());
 
     for (auto const& w : g_pCompositor->m_vWindows) {
@@ -390,6 +388,13 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
         }
 
+        // render tiled fading out after others
+        if (w->m_bFadingOut) {
+            tiledFadingOut.emplace_back(w);
+            w.reset();
+            continue;
+        }
+
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
         w.reset();
@@ -399,6 +404,11 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
 
     lastWindow.reset();
+
+    // render tiled windows that are fading out after other tiled to not hide them behind
+    for (auto& w : tiledFadingOut) {
+        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
+    }
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -441,7 +451,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     }
 }
 
-void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
     if (pWindow->isHidden() && !standalone)
         return;
 
@@ -679,7 +689,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     g_pHyprOpenGL->m_RenderData.currentWindow.reset();
 }
 
-void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups) {
+void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups) {
     if (!pLayer)
         return;
 
@@ -757,7 +767,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
     }
 }
 
-void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, timespec* time) {
+void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, const Time::steady_tp& time) {
     const auto                       POS = pPopup->globalBox().pos();
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, POS};
@@ -791,7 +801,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
         &renderdata);
 }
 
-void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, timespec* time) {
+void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, const Time::steady_tp& time) {
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition, pMonitor->vecPosition};
 
     renderdata.blur     = false;
@@ -812,7 +822,7 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
+void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
@@ -975,7 +985,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     //g_pHyprOpenGL->restoreMatrix();
 }
 
-void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry) {
+void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -1233,8 +1243,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     EMIT_HOOK_EVENT("preRender", pMonitor);
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    const auto NOW = Time::steadyNow();
 
     // check the damage
     bool hasChanged = pMonitor->output->needsFrame || pMonitor->damage.hasChanged();
@@ -1315,9 +1324,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
                 renderCursor = false;
             } else {
                 CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
-                renderWorkspace(pMonitor, pMonitor->activeWorkspace, &now, renderBox);
+                renderWorkspace(pMonitor, pMonitor->activeWorkspace, NOW, renderBox);
 
-                renderLockscreen(pMonitor, &now, renderBox);
+                renderLockscreen(pMonitor, NOW, renderBox);
 
                 if (pMonitor == g_pCompositor->m_pLastMonitor) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
@@ -1344,18 +1353,18 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
                 }
             }
         } else
-            renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
+            renderWindow(pMonitor->solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     } else if (!pMonitor->isMirror()) {
-        sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
+        sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, NOW);
         if (pMonitor->activeSpecialWorkspace)
-            sendFrameEventsToWorkspace(pMonitor, pMonitor->activeSpecialWorkspace, &now);
+            sendFrameEventsToWorkspace(pMonitor, pMonitor->activeSpecialWorkspace, NOW);
     }
 
     renderCursor = renderCursor && shouldRenderCursor();
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), NOW, g_pHyprOpenGL->m_RenderData.damage);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
@@ -1553,10 +1562,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         Debug::log(TRACE, "Explicit: can't add sync, monitor has no EGLSync");
     else {
         for (auto const& e : explicitPresented) {
-            if (!e->current.buffer || !e->current.buffer->buffer->syncReleaser)
+            if (!e->current.buffer || !e->current.buffer->syncReleaser)
                 continue;
 
-            e->current.buffer->buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
+            e->current.buffer->syncReleaser->addReleaseSync(pMonitor->eglSync);
         }
     }
 
@@ -1565,7 +1574,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     return ok;
 }
 
-void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
+void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
@@ -1580,7 +1589,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
-void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
+void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface->resource())
             continue;
@@ -1949,7 +1958,7 @@ void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
     }
 }
 
-void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, timespec* time) {
+void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& time) {
     PROTO::data->renderDND(pMonitor, time);
 }
 
@@ -2413,9 +2422,6 @@ void CHyprRenderer::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFram
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     // this is a hack but it works :P
     // we need to disable blur or else we will get a black background, as the shader
     // will try to copy the bg to apply blur.
@@ -2432,7 +2438,7 @@ void CHyprRenderer::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFram
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    renderWindow(pWindow, PMONITOR, &now, false, RENDER_PASS_ALL, true);
+    renderWindow(pWindow, PMONITOR, Time::steadyNow(), false, RENDER_PASS_ALL, true);
 
     **PBLUR = BLURVAL;
 
@@ -2468,9 +2474,6 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     // this is a hack but it works :P
     // we need to disable blur or else we will get a black background, as the shader
     // will try to copy the bg to apply blur.
@@ -2482,7 +2485,7 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
+    renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
     **PBLUR = BLURVAL;
 
@@ -2515,14 +2518,11 @@ void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     const auto BLURLSSTATUS = pLayer->forceBlur;
     pLayer->forceBlur       = false;
 
     // draw the layer
-    renderLayer(pLayer, PMONITOR, &now);
+    renderLayer(pLayer, PMONITOR, Time::steadyNow());
 
     pLayer->forceBlur = BLURLSSTATUS;
 

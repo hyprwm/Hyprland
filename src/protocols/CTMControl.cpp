@@ -3,6 +3,7 @@
 #include "../render/Renderer.hpp"
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "../helpers/Monitor.hpp"
 
@@ -158,7 +159,8 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
 
     data->progress->setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](auto) {
         if (!monitor || !m_mCTMDatas.contains(monitor)) {
-            monitor->setCTM(Mat3x3::identity());
+            if (monitor)
+                monitor->setCTM(Mat3x3::identity());
             return;
         }
         auto& data = m_mCTMDatas.at(monitor);

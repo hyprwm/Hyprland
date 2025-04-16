@@ -3,6 +3,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../helpers/Monitor.hpp"
@@ -10,14 +11,10 @@
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/time/Time.hpp"
 
 #include <algorithm>
 #include <functional>
-
-CScreencopyFrame::~CScreencopyFrame() {
-    if (buffer && buffer->locked())
-        buffer->unlock();
-}
 
 CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t overlay_cursor, wl_resource* output, CBox box_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -102,8 +99,6 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    PBUFFER->buffer->lock();
-
     if UNLIKELY (PBUFFER->buffer->size != box.size()) {
         LOGM(ERR, "Invalid dimensions in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
@@ -146,7 +141,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    buffer = PBUFFER->buffer;
+    buffer = CHLBufferReference(PBUFFER->buffer.lock());
 
     PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
 
@@ -172,10 +167,9 @@ void CScreencopyFrame::share() {
     if (!buffer || !pMonitor)
         return;
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    const auto NOW = Time::steadyNow();
 
-    auto callback = [this, now, weak = self](bool success) {
+    auto       callback = [this, NOW, weak = self](bool success) {
         if (weak.expired())
             return;
 
@@ -191,9 +185,11 @@ void CScreencopyFrame::share() {
             resource->sendDamage(0, 0, buffer->size.x, buffer->size.y);
         }
 
-        uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
-        uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
-        resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
+        const auto [sec, nsec] = Time::secNsec(NOW);
+
+        uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
+        uint32_t tvSecLo = sec & 0xFFFFFFFF;
+        resource->sendReady(tvSecHi, tvSecLo, nsec);
     };
 
     if (bufferDMA)
@@ -203,46 +199,58 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
-    auto    TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
+    const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
+    auto       TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock(), nullptr, true)) {
+    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer, nullptr, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering to dma frame");
         callback(false);
         return;
     }
 
-    CBox monbox = CBox{0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y}
-                      .translate({-box.x, -box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
-    g_pHyprOpenGL->setMonitorTransformEnabled(true);
-    g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
-    g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        CBox monbox = CBox{0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y}
+                          .translate({-box.x, -box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+                          .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        g_pHyprOpenGL->setMonitorTransformEnabled(true);
+        g_pHyprOpenGL->setRenderModifEnabled(false);
+        g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
+        g_pHyprOpenGL->setRenderModifEnabled(true);
+        g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+        g_pHyprOpenGL->clear(Colors::BLACK);
+    else {
+        g_pHyprOpenGL->clear(Colors::BLACK);
+        CBox texbox =
+            CBox{pMonitor->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+    }
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings(pMonitor->output);
     if (pMonitor->inTimeline && explicitOptions.explicitEnabled) {
-        pMonitor->inTimeline->addWaiter(
-            [callback]() {
-                LOGM(TRACE, "Copied frame via dma with explicit sync");
-                callback(true);
-            },
-            pMonitor->inTimelinePoint, 0);
-    } else {
-        LOGM(TRACE, "Copied frame via dma");
-        callback(true);
+        if (pMonitor->inTimeline->addWaiter(
+                [callback, sync = pMonitor->eglSync]() {
+                    LOGM(TRACE, "Copied frame via dma with explicit sync");
+                    callback(true);
+                },
+                pMonitor->inTimelinePoint, 0))
+            return;
+        // on explicit sync failure, fallthrough to immediate callback
     }
+    LOGM(TRACE, "Copied frame via dma");
+    callback(true);
 }
 
 bool CScreencopyFrame::copyShm() {
-    auto TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
+    const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
+    auto       TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
 
-    auto shm                      = buffer->shm();
+    auto       shm                = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
@@ -257,12 +265,21 @@ bool CScreencopyFrame::copyShm() {
         return false;
     }
 
-    CBox monbox = CBox{0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y}.translate({-box.x, -box.y});
-    g_pHyprOpenGL->setMonitorTransformEnabled(true);
-    g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
-    g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        CBox monbox = CBox{0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y}.translate({-box.x, -box.y});
+        g_pHyprOpenGL->setMonitorTransformEnabled(true);
+        g_pHyprOpenGL->setRenderModifEnabled(false);
+        g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
+        g_pHyprOpenGL->setRenderModifEnabled(true);
+        g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+        g_pHyprOpenGL->clear(Colors::BLACK);
+    else {
+        g_pHyprOpenGL->clear(Colors::BLACK);
+        CBox texbox =
+            CBox{pMonitor->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+    }
 
 #ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
@@ -436,6 +453,14 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     for (auto const& f : m_vFramesAwaitingWrite) {
         if (!f)
             continue;
+
+        // check permissions
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(f->resource->client(), PERMISSION_TYPE_SCREENCOPY);
+
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+            continue; // pending an answer, don't do anything yet.
+
+        // otherwise share. If it's denied, it will be black.
 
         if (!f->pMonitor || !f->buffer) {
             framesToRemove.emplace_back(f);

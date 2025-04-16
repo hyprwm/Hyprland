@@ -5,14 +5,15 @@
 #include <optional>
 
 #include "../../helpers/memory/Memory.hpp"
+#include "../../helpers/time/Time.hpp"
 
 class CEventLoopTimer {
   public:
-    CEventLoopTimer(std::optional<std::chrono::steady_clock::duration> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_);
+    CEventLoopTimer(std::optional<Time::steady_dur> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_);
 
     // if not specified, disarms.
     // if specified, arms.
-    void  updateTimeout(std::optional<std::chrono::steady_clock::duration> timeout);
+    void  updateTimeout(std::optional<Time::steady_dur> timeout);
 
     void  cancel();
     bool  passed();
@@ -25,8 +26,8 @@ class CEventLoopTimer {
     void call(SP<CEventLoopTimer> self);
 
   private:
-    std::function<void(SP<CEventLoopTimer> self, void* data)> cb;
-    void*                                                     data = nullptr;
-    std::optional<std::chrono::steady_clock::time_point>      expires;
-    bool                                                      wasCancelled = false;
+    std::function<void(SP<CEventLoopTimer> self, void* data)> m_cb;
+    void*                                                     m_data = nullptr;
+    std::optional<Time::steady_tp>                            m_expires;
+    bool                                                      m_wasCancelled = false;
 };

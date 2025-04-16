@@ -1,3 +1,9 @@
+#define Time XTime__
+extern "C" {
+#include <X11/Xcursor/Xcursor.h>
+}
+#undef Time
+
 #include <algorithm>
 #include <cstring>
 #include <dirent.h>
@@ -10,6 +16,7 @@
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
 #include <memory>
+#include <variant>
 
 // clang-format off
 static std::vector<uint32_t> HYPR_XCURSOR_PIXELS = {
@@ -176,8 +183,9 @@ SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, floa
     return defaultCursor;
 }
 
-SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, XcursorImages* xImages) {
-    auto xcursor = makeShared<SXCursors>();
+SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, void* ximages) {
+    auto           xcursor = makeShared<SXCursors>();
+    XcursorImages* xImages = (XcursorImages*)ximages;
 
     for (int i = 0; i < xImages->nimage; i++) {
         auto          xImage = xImages->images[i];

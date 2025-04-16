@@ -15,6 +15,7 @@
 #include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include "managers/permissions/DynamicPermissionManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -58,7 +59,6 @@
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
 #include "plugins/PluginSystem.hpp"
-#include "helpers/Watchdog.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
@@ -570,6 +570,7 @@ void CCompositor::cleanup() {
     removeAllSignals();
 
     g_pInputManager.reset();
+    g_pDynamicPermissionManager.reset();
     g_pDecorationPositioner.reset();
     g_pCursorManager.reset();
     g_pPluginSystem.reset();
@@ -586,7 +587,6 @@ void CCompositor::cleanup() {
     g_pConfigManager.reset();
     g_pKeybindManager.reset();
     g_pHookSystem.reset();
-    g_pWatchdog.reset();
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
     g_pSeatManager.reset();
@@ -624,6 +624,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the AnimationManager!");
             g_pAnimationManager = makeUnique<CHyprAnimationManager>();
 
+            Debug::log(LOG, "Creating the DynamicPermissionManager!");
+            g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
+
             Debug::log(LOG, "Creating the ConfigManager!");
             g_pConfigManager = makeUnique<CConfigManager>();
 
@@ -637,11 +640,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pTokenManager = makeUnique<CTokenManager>();
 
             g_pConfigManager->init();
-            g_pWatchdog = makeUnique<CWatchdog>(); // requires config
-            // wait for watchdog to initialize to not hit data races in reading config values.
-            while (!g_pWatchdog->m_bWatchdogInitialized) {
-                std::this_thread::yield();
-            }
 
             Debug::log(LOG, "Creating the PointerManager!");
             g_pPointerManager = makeUnique<CPointerManager>();
@@ -925,7 +923,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         if (w->m_bIsX11 && w->isX11OverrideRedirect() && !w->m_pXWaylandSurface->wantsFocus()) {
                             // Override Redirect
                             return g_pCompositor->m_pLastWindow.lock(); // we kinda trick everything here.
-                                // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                            // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
                         }
 
                         return w;
@@ -954,7 +952,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_bHasFullscreenWindow)
+        if (PWORKSPACE->m_bHasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY))
             return PWORKSPACE->getFullscreenWindow();
 
         auto found = floating(false);
@@ -2154,11 +2152,13 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
             Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
-            g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
+            if (POLDMON)
+                g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
-        POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, true);
+        if (POLDMON)
+            POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, true);
     }
 
     // move the workspace
@@ -2184,9 +2184,11 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
                         *w->m_vRealPosition = pMonitor->vecPosition;
                         *w->m_vRealSize     = pMonitor->vecSize;
                     }
-                } else {
-                    *w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition->goal().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition->goal().y % (int)pMonitor->vecSize.y};
-                }
+                } else
+                    *w->m_vRealPosition = Vector2D{
+                        (pMonitor->vecSize.x != 0) ? (int)w->m_vRealPosition->goal().x % (int)pMonitor->vecSize.x : 0,
+                        (pMonitor->vecSize.y != 0) ? (int)w->m_vRealPosition->goal().y % (int)pMonitor->vecSize.y : 0,
+                    };
             }
 
             w->updateToplevel();
@@ -2312,6 +2314,9 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
 
     const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_sFullscreenState.internal);
     const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
+
+    if (PWINDOW->m_bIsFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE && EFFECTIVE_MODE != FSMODE_NONE)
+        g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (*PALLOWPINFULLSCREEN && !PWINDOW->m_bPinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_bPinned) {
         PWINDOW->m_bPinned          = false;
@@ -2728,8 +2733,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(std::nullopt, true);
-    const auto      PWINDOWMONITOR            = pWindow->m_pMonitor.lock();
-    const auto      POSTOMON                  = pWindow->m_vRealPosition->goal() - PWINDOWMONITOR->vecPosition;
+    const auto      POSTOMON                  = pWindow->m_vRealPosition->goal() - (pWindow->m_pMonitor ? pWindow->m_pMonitor->vecPosition : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_pMonitor.lock();
 
     if (!pWindow->m_bIsFloating)

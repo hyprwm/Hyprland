@@ -420,7 +420,7 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
 
 SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
 #ifndef NO_XWAYLAND
-    if (g_pXWayland->pServer && c == g_pXWayland->pServer->xwaylandClient)
+    if (g_pXWayland && g_pXWayland->pServer && c == g_pXWayland->pServer->xwaylandClient)
         return g_pXWayland->pWM->getDataDevice();
 #endif
 
@@ -604,10 +604,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             if (!box.has_value())
                 return;
 
-            timespec timeNow;
-            clock_gettime(CLOCK_MONOTONIC, &timeNow);
-
-            dnd.focusedDevice->sendMotion(timeNow.tv_sec * 1000 + timeNow.tv_nsec / 1000000, V - box->pos());
+            dnd.focusedDevice->sendMotion(Time::millis(Time::steadyNow()), V - box->pos());
             LOGM(LOG, "Drag motion {}", V - box->pos());
         }
     });
@@ -802,21 +799,25 @@ void CWLDataDeviceProtocol::abortDrag() {
     g_pSeatManager->resendEnterEvents();
 }
 
-void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
+void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp& when) {
     if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
     const auto POS = g_pInputManager->getMouseCoordsInternal();
 
-    CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
+    Vector2D   surfacePos = POS;
+
+    surfacePos += dnd.dndSurface->current.offset;
+
+    CBox                         box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
 
     CTexPassElement::SRenderData data;
     data.tex = dnd.dndSurface->current.texture;
     data.box = box;
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
-    box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F).expand(5);
-    g_pHyprRenderer->damageBox(box);
+    CBox damageBox = CBox{surfacePos, dnd.dndSurface->current.size}.expand(5);
+    g_pHyprRenderer->damageBox(damageBox);
 
     dnd.dndSurface->frame(when);
 }

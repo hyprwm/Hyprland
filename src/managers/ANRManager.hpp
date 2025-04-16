@@ -7,8 +7,7 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 #include "./eventLoop/EventLoopTimer.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include <atomic>
-#include <thread>
+#include "../helpers/AsyncDialogBox.hpp"
 #include <vector>
 
 class CXDGWMBase;
@@ -32,22 +31,21 @@ class CANRManager {
         SANRData(PHLWINDOW pWindow);
         ~SANRData();
 
-        WP<CXWaylandSurface>        xwaylandSurface;
-        WP<CXDGWMBase>              xdgBase;
+        WP<CXWaylandSurface> xwaylandSurface;
+        WP<CXDGWMBase>       xdgBase;
 
-        int                         missedResponses = 0;
-        std::thread                 dialogThread;
-        SP<Hyprutils::OS::CProcess> dialogProc;
-        std::atomic<bool>           dialogThreadExited   = false;
-        std::atomic<bool>           dialogThreadSaidWait = false;
+        int                  missedResponses = 0;
 
-        void                        runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID);
-        bool                        isThreadRunning();
-        void                        killDialog() const;
-        bool                        isDefunct() const;
-        bool                        fitsWindow(PHLWINDOW pWindow) const;
-        pid_t                       getPid() const;
-        void                        ping();
+        bool                 dialogSaidWait = false;
+        SP<CAsyncDialogBox>  dialogBox;
+
+        void                 runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID);
+        bool                 isRunning();
+        void                 killDialog();
+        bool                 isDefunct() const;
+        bool                 fitsWindow(PHLWINDOW pWindow) const;
+        pid_t                getPid() const;
+        void                 ping();
     };
 
     void                      onResponse(SP<SANRData> data);

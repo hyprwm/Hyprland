@@ -9,7 +9,7 @@
 #include <array>
 
 #include <xf86drmMode.h>
-#include "Timer.hpp"
+#include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include <optional>
 #include "../protocols/types/ColorManagement.hpp"

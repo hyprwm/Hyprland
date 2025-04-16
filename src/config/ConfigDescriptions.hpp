@@ -1011,6 +1011,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{2, 0, 20},
     },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:keep_upper_gap",
+        .description = "keep an upper gap above gradient",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_offset",
+        .description = "set an offset for a text",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
+    },
 
     /*
      * misc:
@@ -1223,6 +1235,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "misc:anr_missed_pings",
+        .description = "number of missed pings before showing the ANR dialog",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+    },
 
     /*
      * binds:
@@ -1307,6 +1325,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Allows fullscreen to pinned windows, and restore their pinned status afterwards",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "binds:drag_threshold",
+        .description = "Movement threshold in pixels for window dragging and c/g bind flags. 0 to disable and grab on mousedown.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, INT_MAX},
     },
 
     /*
@@ -1457,6 +1481,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Force"},
     },
     SConfigOptionDescription{
+        .value       = "cursor:warp_on_toggle_special",
+        .description = "Move the cursor to the last focused window when toggling a special workspace. Options: 0 (Disabled), 1 (Enabled), "
+                       "2 (Force - ignores cursor:no_warps option)",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Force"},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:default_monitor",
         .description = "the name of a default monitor for the cursor to be set to on startup (see hyprctl monitors for names)",
         .type        = CONFIG_OPTION_STRING_SHORT,
@@ -1579,12 +1610,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if true, do not display config file parsing errors.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "debug:watchdog_timeout",
-        .description = "sets the timeout in seconds for watchdog to abort processing of a signal of the main thread. Set to 0 to disable.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{5, 0, 20},
     },
     SConfigOptionDescription{
         .value       = "debug:disable_scale_checks",

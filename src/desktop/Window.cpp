@@ -11,12 +11,14 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../render/decorations/CHyprBorderDecoration.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../managers/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ContentType.hpp"
+#include "../protocols/FractionalScale.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
 #include "../events/Events.hpp"
@@ -397,6 +399,7 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
             if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
                 return;
 
+            PROTO::fractional->sendScale(s, PMONITOR->scale);
             g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->scale);
             g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->transform);
         },
@@ -414,10 +417,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent
-                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
                 if (token.primaryOwner == m_pSelf) {
                     token.workspace = pWorkspace->getConfigName();
-                    TOKEN->data     = token;
+                    TOKEN->m_data   = token;
                 }
             }
         }
@@ -504,7 +507,7 @@ void CWindow::onUnmap() {
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent token, but the first window got removed so the token is gone
-                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
                 if (token.primaryOwner == m_pSelf)
                     g_pTokenManager->removeToken(TOKEN);
             }
@@ -778,7 +781,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             const CVarList VARS(r->szRule, 0, ' ');
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[2]), priority);
+                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(Hyprlang::INT(std::stoi(VARS[2])), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
@@ -1148,9 +1151,6 @@ bool CWindow::opaque() {
     if (m_fAlpha->value() != 1.f || m_fActiveInactiveAlpha->value() != 1.f)
         return false;
 
-    if (m_vRealSize->goal().floor() != m_vReportedSize)
-        return false;
-
     const auto PWORKSPACE = m_pWorkspace;
 
     if (m_pWLSurface->small() && !m_pWLSurface->m_bFillIgnoreSmall)
@@ -1238,7 +1238,7 @@ void CWindow::setSuspended(bool suspend) {
     if (suspend == m_bSuspended)
         return;
 
-    if (m_bIsX11 || !m_pXDGSurface->toplevel)
+    if (m_bIsX11 || !m_pXDGSurface || !m_pXDGSurface->toplevel)
         return;
 
     m_pXDGSurface->toplevel->setSuspeneded(suspend);
@@ -1688,7 +1688,7 @@ Vector2D CWindow::requestedMinSize() {
 
 Vector2D CWindow::requestedMaxSize() {
     constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && !m_pXDGSurface->toplevel) || m_sWindowData.noMaxSize.valueOrDefault()))
+    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && (!m_pXDGSurface || !m_pXDGSurface->toplevel)) || m_sWindowData.noMaxSize.valueOrDefault()))
         return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
 
     Vector2D maxSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->max_width, m_pXWaylandSurface->sizeHints->max_height) : m_pXDGSurface->toplevel->layoutMaxSize();
@@ -1791,9 +1791,11 @@ void CWindow::deactivateGroupMembers() {
     auto curr = getGroupHead();
     while (curr) {
         if (curr != m_pSelf.lock()) {
-            if (curr->m_bIsX11)
-                curr->m_pXWaylandSurface->activate(false);
-            else if (curr->m_pXDGSurface && curr->m_pXDGSurface->toplevel)
+            // we dont want to deactivate unfocused xwayland windows
+            // because X is weird, keep the behavior for wayland windows
+            // also its not really needed for xwayland windows
+            // ref: #9760 #9294
+            if (!curr->m_bIsX11 && curr->m_pXDGSurface && curr->m_pXDGSurface->toplevel)
                 curr->m_pXDGSurface->toplevel->setActive(false);
         }
 

@@ -9,12 +9,14 @@
 */
 
 #include <vector>
+#include <queue>
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
@@ -35,7 +37,7 @@ class CWLCallbackResource {
     CWLCallbackResource(SP<CWlCallback> resource_);
 
     bool good();
-    void send(timespec* now);
+    void send(const Time::steady_tp& now);
 
   private:
     SP<CWlCallback> resource;
@@ -68,7 +70,7 @@ class CWLSurfaceResource {
     void                          leave(PHLMONITOR monitor);
     void                          sendPreferredTransform(wl_output_transform t);
     void                          sendPreferredScale(int32_t scale);
-    void                          frame(timespec* now);
+    void                          frame(const Time::steady_tp& now);
     uint32_t                      id();
     void                          map();
     void                          unmap();
@@ -87,6 +89,7 @@ class CWLSurfaceResource {
     } events;
 
     SSurfaceState                          current, pending;
+    std::queue<UP<SSurfaceState>>          pendingStates;
     CRegion                                damageSinceLastRender;
 
     std::vector<SP<CWLCallbackResource>>   callbacks;
@@ -103,8 +106,8 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
-    void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
-    void                                   commitPendingState(SSurfaceState& state);
+    void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
+    void                                   commitState(SSurfaceState& state);
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

@@ -33,8 +33,8 @@ bool CWLCallbackResource::good() {
     return resource->resource();
 }
 
-void CWLCallbackResource::send(timespec* now) {
-    resource->sendDone(now->tv_sec * 1000 + now->tv_nsec / 1000000);
+void CWLCallbackResource::send(const Time::steady_tp& now) {
+    resource->sendDone(Time::millis(now));
 }
 
 CWLRegionResource::CWLRegionResource(SP<CWlRegion> resource_) : resource(resource_) {
@@ -323,7 +323,7 @@ void CWLSurfaceResource::sendPreferredScale(int32_t scale) {
     resource->sendPreferredBufferScale(scale);
 }
 
-void CWLSurfaceResource::frame(timespec* now) {
+void CWLSurfaceResource::frame(const Time::steady_tp& now) {
     if (callbacks.empty())
         return;
 
@@ -436,9 +436,7 @@ void CWLSurfaceResource::map() {
 
     mapped = true;
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    frame(&now);
+    frame(Time::steadyNow());
 
     current.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
@@ -565,7 +563,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     }
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded) {
+void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);

@@ -1,6 +1,7 @@
 #include "VirtualKeyboard.hpp"
 #include <sys/mman.h>
 #include "../devices/IKeyboard.hpp"
+#include "../helpers/time/Time.hpp"
 using namespace Hyprutils::OS;
 
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
@@ -103,12 +104,9 @@ wl_client* CVirtualKeyboardV1Resource::client() {
 }
 
 void CVirtualKeyboardV1Resource::releasePressed() {
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     for (auto const& p : pressed) {
         events.key.emit(IKeyboard::SKeyEvent{
-            .timeMs  = now.tv_sec * 1000 + now.tv_nsec / 1000000,
+            .timeMs  = Time::millis(Time::steadyNow()),
             .keycode = p,
             .state   = WL_KEYBOARD_KEY_STATE_RELEASED,
         });

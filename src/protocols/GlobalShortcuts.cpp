@@ -1,4 +1,5 @@
 #include "GlobalShortcuts.hpp"
+#include "../helpers/time/Time.hpp"
 
 CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -68,14 +69,13 @@ void CGlobalShortcutsProtocol::sendGlobalShortcutEvent(std::string appid, std::s
     for (auto const& c : m_vClients) {
         for (auto const& sh : c->shortcuts) {
             if (sh->appid == appid && sh->id == trigger) {
-                timespec now;
-                clock_gettime(CLOCK_MONOTONIC, &now);
-                uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
-                uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
+                const auto [sec, nsec] = Time::secNsec(Time::steadyNow());
+                uint32_t tvSecHi       = (sizeof(sec) > 4) ? sec >> 32 : 0;
+                uint32_t tvSecLo       = sec & 0xFFFFFFFF;
                 if (pressed)
-                    sh->resource->sendPressed(tvSecHi, tvSecLo, now.tv_nsec);
+                    sh->resource->sendPressed(tvSecHi, tvSecLo, nsec);
                 else
-                    sh->resource->sendReleased(tvSecHi, tvSecLo, now.tv_nsec);
+                    sh->resource->sendReleased(tvSecHi, tvSecLo, nsec);
             }
         }
     }

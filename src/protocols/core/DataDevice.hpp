@@ -15,6 +15,7 @@
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
 #include "../types/DataDevice.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
 
@@ -138,7 +139,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     // renders and damages the dnd icon, if present
-    void renderDND(PHLMONITOR pMonitor, timespec* when);
+    void renderDND(PHLMONITOR pMonitor, const Time::steady_tp& when);
     // for inputmgr to force refocus
     // TODO: move handling to seatmgr
     bool dndActive();

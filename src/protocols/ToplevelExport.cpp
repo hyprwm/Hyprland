@@ -205,16 +205,13 @@ void CToplevelExportFrame::share() {
     if (!buffer || !validMapped(pWindow))
         return;
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
     if (bufferDMA) {
-        if (!copyDmabuf(&now)) {
+        if (!copyDmabuf(Time::steadyNow())) {
             resource->sendFailed();
             return;
         }
     } else {
-        if (!copyShm(&now)) {
+        if (!copyShm(Time::steadyNow())) {
             resource->sendFailed();
             return;
         }
@@ -222,16 +219,17 @@ void CToplevelExportFrame::share() {
 
     resource->sendFlags((hyprlandToplevelExportFrameV1Flags)0);
 
-    if (!m_ignoreDamage) {
+    if (!m_ignoreDamage)
         resource->sendDamage(0, 0, box.width, box.height);
-    }
 
-    uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
-    uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
-    resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
+    const auto [sec, nsec] = Time::secNsec(Time::steadyNow());
+
+    uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
+    uint32_t tvSecLo = sec & 0xFFFFFFFF;
+    resource->sendReady(tvSecHi, tvSecLo, nsec);
 }
 
-bool CToplevelExportFrame::copyShm(timespec* now) {
+bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     const auto PERM               = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
     auto       shm                = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
@@ -329,7 +327,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     return true;
 }
 
-bool CToplevelExportFrame::copyDmabuf(timespec* now) {
+bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     const auto PERM     = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
     const auto PMONITOR = pWindow->m_pMonitor.lock();
 

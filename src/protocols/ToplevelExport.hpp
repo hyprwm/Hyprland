@@ -4,6 +4,7 @@
 #include "hyprland-toplevel-export-v1.hpp"
 #include "WaylandProtocol.hpp"
 #include "Screencopy.hpp"
+#include "../helpers/time/Time.hpp"
 
 #include <vector>
 
@@ -62,8 +63,8 @@ class CToplevelExportFrame {
     CBox                               box          = {};
 
     void                               copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
-    bool                               copyDmabuf(timespec* now);
-    bool                               copyShm(timespec* now);
+    bool                               copyDmabuf(const Time::steady_tp& now);
+    bool                               copyShm(const Time::steady_tp& now);
     void                               share();
     bool                               shouldOverlayCursor() const;
 
@@ -87,8 +88,8 @@ class CToplevelExportProtocol : IWaylandProtocol {
     std::vector<WP<CToplevelExportFrame>>  m_vFramesAwaitingWrite;
 
     void                                   shareFrame(CToplevelExportFrame* frame);
-    bool                                   copyFrameDmabuf(CToplevelExportFrame* frame, timespec* now);
-    bool                                   copyFrameShm(CToplevelExportFrame* frame, timespec* now);
+    bool                                   copyFrameDmabuf(CToplevelExportFrame* frame, const Time::steady_tp& now);
+    bool                                   copyFrameShm(CToplevelExportFrame* frame, const Time::steady_tp& now);
     void                                   sendDamage(CToplevelExportFrame* frame);
 
     friend class CToplevelExportClient;

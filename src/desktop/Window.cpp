@@ -417,10 +417,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent
-                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
                 if (token.primaryOwner == m_pSelf) {
                     token.workspace = pWorkspace->getConfigName();
-                    TOKEN->data     = token;
+                    TOKEN->m_data   = token;
                 }
             }
         }
@@ -507,7 +507,7 @@ void CWindow::onUnmap() {
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent token, but the first window got removed so the token is gone
-                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
                 if (token.primaryOwner == m_pSelf)
                     g_pTokenManager->removeToken(TOKEN);
             }

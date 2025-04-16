@@ -253,7 +253,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
         // set keyboard focus on session lock surface regardless of layers
         const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
-        const auto foundLockSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        const auto foundLockSurface    = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
 
         g_pCompositor->focusSurface(foundLockSurface);
 
@@ -267,7 +267,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
         if (!foundSurface) {
             surfaceCoords = mouseCoords - PMONITOR->vecPosition;
-            foundSurface = foundLockSurface;
+            foundSurface  = foundLockSurface;
         }
 
         g_pSeatManager->setPointerFocus(foundSurface, surfaceCoords);

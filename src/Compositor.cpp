@@ -1290,8 +1290,8 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
                                                          bool aboveLockscreen) {
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-    if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->mapped) || ls->m_alpha->value() == 0.f ||
-        (aboveLockscreen && (!ls->m_aboveLockscreen || !ls->m_aboveLockscreenInteractable)))
+        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->mapped) || ls->m_alpha->value() == 0.f ||
+            (aboveLockscreen && (!ls->m_aboveLockscreen || !ls->m_aboveLockscreenInteractable)))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->surface->at(pos - ls->m_geometry.pos(), true);

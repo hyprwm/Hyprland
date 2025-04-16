@@ -3,7 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"

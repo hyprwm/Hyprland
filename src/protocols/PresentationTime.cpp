@@ -40,7 +40,7 @@ bool CPresentationFeedback::good() {
     return resource->resource();
 }
 
-void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = resource->client();
 
     if LIKELY (PROTO::outputs.contains(data->pMonitor->szName)) {
@@ -58,12 +58,14 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    time_t tv_sec = 0;
+    const auto TIMESPEC = Time::toTimespec(when);
+
+    time_t     tv_sec = 0;
     if (sizeof(time_t) > 4)
-        tv_sec = when->tv_sec >> 32;
+        tv_sec = TIMESPEC.tv_sec >> 32;
 
     if (data->wasPresented)
-        resource->sendPresented((uint32_t)tv_sec, (uint32_t)(when->tv_sec & 0xFFFFFFFF), (uint32_t)(when->tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
+        resource->sendPresented((uint32_t)tv_sec, (uint32_t)(TIMESPEC.tv_sec & 0xFFFFFFFF), (uint32_t)(TIMESPEC.tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
                                 (uint32_t)(seq & 0xFFFFFFFF), (wpPresentationFeedbackKind)flags);
     else
         resource->sendDiscarded();
@@ -107,15 +109,7 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
     }
 }
 
-void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
-    timespec  now;
-    timespec* presentedAt = when;
-    if (!presentedAt) {
-        // just put the current time, we don't have anything better
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        when = &now;
-    }
-
+void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     for (auto const& feedback : m_vFeedbacks) {
         if (!feedback->surface)
             continue;

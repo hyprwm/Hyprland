@@ -24,6 +24,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
+#include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
@@ -32,6 +33,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
 #include <ranges>
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
@@ -72,8 +74,15 @@ void CMonitor::onConnect(bool noRule) {
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     listeners.presented = output->events.present.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-        PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
+        auto      E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
+
+        timespec* ts = E.when;
+        if (!ts) {
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            PROTO::presentation->onPresented(self.lock(), Time::fromTimespec(&now), E.refresh, E.seq, E.flags);
+        } else
+            PROTO::presentation->onPresented(self.lock(), Time::fromTimespec(E.when), E.refresh, E.seq, E.flags);
     });
 
     listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
@@ -1377,9 +1386,7 @@ bool CMonitor::attemptDirectScanout() {
     auto PBUFFER = PSURFACE->current.buffer.buffer;
 
     if (PBUFFER == output->state->state().buffer) {
-        timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        PSURFACE->presentFeedback(&now, self.lock());
+        PSURFACE->presentFeedback(Time::steadyNow(), self.lock());
 
         if (scanoutNeedsCursorUpdate) {
             if (!state.test()) {
@@ -1420,9 +1427,7 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, self.lock());
+    PSURFACE->presentFeedback(Time::steadyNow(), self.lock());
 
     output->state->addDamage(PSURFACE->current.accumulateBufferDamage());
     output->state->resetExplicitFences();

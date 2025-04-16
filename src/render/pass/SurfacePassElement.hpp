@@ -1,6 +1,7 @@
 #pragma once
 #include "PassElement.hpp"
 #include <optional>
+#include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
 class CTexture;
@@ -10,7 +11,7 @@ class CSurfacePassElement : public IPassElement {
   public:
     struct SRenderData {
         PHLMONITORREF          pMonitor;
-        timespec*              when = nullptr;
+        Time::steady_tp        when = Time::steadyNow();
         Vector2D               pos, localPos;
 
         void*                  data        = nullptr;

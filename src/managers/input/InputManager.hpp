@@ -4,7 +4,7 @@
 #include <list>
 #include <any>
 #include "../../helpers/WLClasses.hpp"
-#include "../../helpers/Timer.hpp"
+#include "../../helpers/time/Timer.hpp"
 #include "InputMethodRelay.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../devices/IPointer.hpp"

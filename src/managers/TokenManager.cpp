@@ -2,12 +2,12 @@
 #include <uuid/uuid.h>
 #include <algorithm>
 
-CUUIDToken::CUUIDToken(const std::string& uuid_, std::any data_, std::chrono::steady_clock::duration expires) : data(data_), uuid(uuid_) {
-    expiresAt = std::chrono::steady_clock::now() + expires;
+CUUIDToken::CUUIDToken(const std::string& uuid_, std::any data_, Time::steady_dur expires) : m_data(data_), m_uuid(uuid_) {
+    m_expiresAt = Time::steadyNow() + expires;
 }
 
 std::string CUUIDToken::getUUID() {
-    return uuid;
+    return m_uuid;
 }
 
 std::string CTokenManager::getRandomUUID() {
@@ -23,7 +23,7 @@ std::string CTokenManager::getRandomUUID() {
     return uuid;
 }
 
-std::string CTokenManager::registerNewToken(std::any data, std::chrono::steady_clock::duration expires) {
+std::string CTokenManager::registerNewToken(std::any data, Time::steady_dur expires) {
     std::string uuid = getRandomUUID();
 
     m_mTokens[uuid] = makeShared<CUUIDToken>(uuid, data, expires);
@@ -33,8 +33,8 @@ std::string CTokenManager::registerNewToken(std::any data, std::chrono::steady_c
 SP<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
 
     // cleanup expired tokens
-    const auto NOW = std::chrono::steady_clock::now();
-    std::erase_if(m_mTokens, [&NOW](const auto& el) { return el.second->expiresAt < NOW; });
+    const auto NOW = Time::steadyNow();
+    std::erase_if(m_mTokens, [&NOW](const auto& el) { return el.second->m_expiresAt < NOW; });
 
     if (!m_mTokens.contains(uuid))
         return {};
@@ -45,5 +45,5 @@ SP<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
 void CTokenManager::removeToken(SP<CUUIDToken> token) {
     if (!token)
         return;
-    m_mTokens.erase(token->uuid);
+    m_mTokens.erase(token->m_uuid);
 }

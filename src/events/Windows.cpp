@@ -85,7 +85,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
             if (TOKEN) {
                 // find workspace and use it
-                SInitialWorkspaceToken WS = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                SInitialWorkspaceToken WS = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
 
                 Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
@@ -99,7 +99,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (*PINITIALWSTRACKING == 2) { // persistent
                     if (WS.primaryOwner.expired()) {
                         WS.primaryOwner = PWINDOW;
-                        TOKEN->data     = WS;
+                        TOKEN->m_data   = WS;
                     }
 
                     PWINDOW->m_szInitialWorkspaceToken = SZTOKEN;

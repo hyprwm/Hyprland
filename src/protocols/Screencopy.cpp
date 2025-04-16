@@ -11,6 +11,7 @@
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/time/Time.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -166,10 +167,9 @@ void CScreencopyFrame::share() {
     if (!buffer || !pMonitor)
         return;
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    const auto NOW = Time::steadyNow();
 
-    auto callback = [this, now, weak = self](bool success) {
+    auto       callback = [this, NOW, weak = self](bool success) {
         if (weak.expired())
             return;
 
@@ -185,9 +185,11 @@ void CScreencopyFrame::share() {
             resource->sendDamage(0, 0, buffer->size.x, buffer->size.y);
         }
 
-        uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
-        uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
-        resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
+        const auto [sec, nsec] = Time::secNsec(NOW);
+
+        uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
+        uint32_t tvSecLo = sec & 0xFFFFFFFF;
+        resource->sendReady(tvSecHi, tvSecLo, nsec);
     };
 
     if (bufferDMA)

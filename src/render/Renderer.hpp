@@ -6,8 +6,9 @@
 #include "../desktop/LayerSurface.hpp"
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
-#include "../helpers/Timer.hpp"
+#include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/time/Time.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -66,7 +67,7 @@ class CHyprRenderer {
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
-    void                            renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry);
+    void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
     void                            recheckSolitaryForMonitor(PHLMONITOR pMonitor);
     void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
@@ -115,27 +116,27 @@ class CHyprRenderer {
     CRenderPass m_sRenderPass = {};
 
   private:
-    void              arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-    void              renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
-    void              renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-    void              renderWindow(PHLWINDOW, PHLMONITOR, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
-    void              renderLayer(PHLLS, PHLMONITOR, timespec*, bool popups = false);
-    void              renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, timespec*);
-    void              renderDragIcon(PHLMONITOR, timespec*);
-    void              renderIMEPopup(CInputPopup*, PHLMONITOR, timespec*);
-    void              renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
-    void              sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
-    void              renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
-    void              renderSessionLockMissing(PHLMONITOR pMonitor);
+    void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
+    void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+    void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+    void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
+    void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false);
+    void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
+    void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
+    void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
+    void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+    void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
+    void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void renderSessionLockMissing(PHLMONITOR pMonitor);
 
-    bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
+    bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    bool              m_bCursorHidden        = false;
-    bool              m_bCursorHasSurface    = false;
-    SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_pCurrentBuffer = nullptr;
-    eRenderMode             m_eRenderMode    = RENDER_MODE_NORMAL;
-    bool                    m_bNvidia        = false;
+    bool m_bCursorHidden                           = false;
+    bool m_bCursorHasSurface                       = false;
+    SP<CRenderbuffer>       m_pCurrentRenderbuffer = nullptr;
+    SP<Aquamarine::IBuffer> m_pCurrentBuffer       = nullptr;
+    eRenderMode             m_eRenderMode          = RENDER_MODE_NORMAL;
+    bool                    m_bNvidia              = false;
 
     struct {
         bool hiddenOnTouch    = false;

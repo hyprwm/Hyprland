@@ -189,7 +189,8 @@ void CSubsurface::damageEntireParent() {
     else if (m_pWindowParent)
         box = m_pWindowParent->getWindowMainSurfaceBox();
 
-    g_pHyprRenderer->damageBox(box);
+    if (!box.empty())
+        g_pHyprRenderer->damageBox(box);
 }
 
 Vector2D CSubsurface::coordsRelativeToParent() {

@@ -65,5 +65,5 @@ class CSubsurface {
     void                         initSignals();
     void                         initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
     void                         checkSiblingDamage();
-    void                         damageEntireParent();
+    void                         damageLastArea();
 };

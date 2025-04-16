@@ -251,7 +251,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (g_pSessionLockManager->isSessionLocked()) {
 
-        // search for interactable abovelock surfaces
+        // set keyboard focus on session lock surface regardless of layers
+        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        const auto foundLockSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+
+        g_pCompositor->focusSurface(foundLockSurface);
+
+        // search for interactable abovelock surfaces for pointer focus, or use session lock surface if not found
         for (auto& lsl : PMONITOR->m_aLayerSurfaceLayers | std::views::reverse) {
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
 
@@ -259,19 +265,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 break;
         }
 
-        Vector2D surfacelocal = surfaceCoords;
-
-        // focus sessionlock surface if no abovelock layer found
         if (!foundSurface) {
-            const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
-
-            surfacelocal = mouseCoords - PMONITOR->vecPosition;
-            foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+            surfaceCoords = mouseCoords - PMONITOR->vecPosition;
+            foundSurface = foundLockSurface;
         }
 
-        g_pCompositor->focusSurface(foundSurface);
-        g_pSeatManager->setPointerFocus(foundSurface, surfacelocal);
-        g_pSeatManager->sendPointerMotion(time, surfacelocal);
+        g_pSeatManager->setPointerFocus(foundSurface, surfaceCoords);
+        g_pSeatManager->sendPointerMotion(time, surfaceCoords);
 
         return;
     }

@@ -99,8 +99,10 @@ CWLSubsurfaceResource::~CWLSubsurfaceResource() {
 }
 
 void CWLSubsurfaceResource::destroy() {
-    if (surface && surface->mapped)
+    if (surface && surface->mapped) {
+        surface->events.unmap.emit();
         surface->unmap();
+    }
     events.destroy.emit();
     PROTO::subcompositor->destroyResource(this);
 }

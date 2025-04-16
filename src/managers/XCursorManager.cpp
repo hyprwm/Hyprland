@@ -16,6 +16,7 @@ extern "C" {
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
 #include <memory>
+#include <variant>
 
 // clang-format off
 static std::vector<uint32_t> HYPR_XCURSOR_PIXELS = {

@@ -1826,12 +1826,12 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (g_pCompositor->m_bUnsafeState)
         return;
 
-    const auto WLSURF    = CWLSurface::fromResource(pSurface);
-    CRegion    damageBox = WLSURF ? WLSURF->computeRenderDamage() : CRegion{};
+    const auto WLSURF = CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
+    CRegion damageBox = WLSURF->computeRenderDamage();
 
     if (scale != 1.0)
         damageBox.scale(scale);
@@ -1855,6 +1855,8 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 
         m->addDamage(damageBoxForEach);
     }
+
+    WLSURF->clearRenderDamage();
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 

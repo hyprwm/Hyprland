@@ -94,12 +94,11 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
     return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.bufferSize;
 }
 
-CRegion CWLSurface::computeRenderDamage() {
+CRegion CWLSurface::computeRenderDamage() const {
     if (!m_pResource->current.texture)
         return {};
 
     CRegion damage = m_pResource->damageSinceLastRender;
-    m_pResource->damageSinceLastRender.clear();
     damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.bufferSize.x, m_pResource->current.bufferSize.y);
 
     const auto BUFSIZE    = m_pResource->current.bufferSize;
@@ -125,6 +124,10 @@ CRegion CWLSurface::computeRenderDamage() {
         damage.scale(m_pWindowOwner->m_fX11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
 
     return damage;
+}
+
+void CWLSurface::clearRenderDamage() {
+    m_pResource->damageSinceLastRender.clear();
 }
 
 void CWLSurface::destroy() {

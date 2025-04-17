@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   issues:
     types: [opened]
-  schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight, in case issues were missed due missing workflow runs
 
 jobs:
   close-unauthorized-issues:
@@ -25,17 +23,34 @@ jobs:
             const CLOSING_COMMENT = 'Users are no longer allowed to open issues themselves, please open a discussion instead.\n\nPlease see the [wiki](https://wiki.hyprland.org/Contributing-and-Debugging/Issue-Guidelines/) on why this is the case.\n\nWe are volunteers, and we need your cooperation to make the best software we can. Thank you for understanding! ❤️\n\n[Open a discussion here](https://github.com/hyprwm/Hyprland/discussions)';
 
             async function processIssues() {
-              let issuesToProcess = [];
-
-              // Get issues based on trigger type
+              // Handle different trigger types
               if (context.eventName === 'issues' && context.payload.action === 'opened') {
-                // Only process the newly created issue
-                issuesToProcess = [{
-                  number: context.payload.issue.number,
-                  user: { login: context.payload.issue.user.login }
-                }];
+                const issue = context.payload.issue;
+
+                // Skip if this is a PR or from an allowed user
+                if (issue.pull_request || ALLOWED_USERS.includes(issue.user.login)) {
+                  console.log(`Issue #${issue.number} - Skipping (PR or authorized user ${issue.user.login})`);
+                  return;
+                }
+
+                // Close the unauthorized issue
+                console.log(`Issue #${issue.number} - Unauthorized, closing`);
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                  state_reason: 'not_planned'
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: CLOSING_COMMENT
+                });
               } else {
-                // Get all open issues (for scheduled or manual runs)
+                // For manual runs, process all open issues
                 const { data: openIssues } = await github.rest.issues.listForRepo({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -43,49 +58,40 @@ jobs:
                   per_page: 100
                 });
 
-                issuesToProcess = openIssues;
-              }
+                for (const issue of openIssues) {
+                  try {
+                    // Skip issues created by allowed users
+                    if (ALLOWED_USERS.includes(issue.user.login)) {
+                      console.log(`Issue #${issue.number} - Created by authorized user ${issue.user.login}`);
+                      continue;
+                    }
 
-              for (const issue of issuesToProcess) {
-                try {
-                  // Skip issues created by allowed users
-                  if (ALLOWED_USERS.includes(issue.user.login)) {
-                    console.log(`Issue #${issue.number} - Created by authorized user ${issue.user.login}`);
-                    continue;
+                    // Skip pull requests
+                    if (issue.pull_request) {
+                      console.log(`Issue #${issue.number} - Skipping, this is a pull request`);
+                      continue;
+                    }
+
+                    // Close the issue
+                    console.log(`Issue #${issue.number} - Unauthorized, closing`);
+
+                    await github.rest.issues.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      state: 'closed',
+                      state_reason: 'not_planned'
+                    });
+
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      body: CLOSING_COMMENT
+                    });
+                  } catch (error) {
+                    console.error(`Error processing issue #${issue.number}: ${error.message}`);
                   }
-
-                  // Get full issue data
-                  const { data: fullIssue } = await github.rest.issues.get({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number
-                  });
-
-                  // Skip pull requests (the issues API also returns PRs)
-                  if (fullIssue.pull_request) {
-                    console.log(`Issue #${issue.number} - Skipping, this is a pull request`);
-                    continue;
-                  }
-
-                  // Close the issue
-                  console.log(`Issue #${issue.number} - Unauthorized, closing`);
-
-                  await github.rest.issues.update({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    state: 'closed',
-                    state_reason: 'not_planned'
-                  });
-
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    body: CLOSING_COMMENT
-                  });
-                } catch (error) {
-                  console.error(`Error processing issue #${issue.number}: ${error.message}`);
                 }
               }
             }

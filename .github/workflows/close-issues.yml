@@ -19,7 +19,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const ALLOWED_USERS = ['vaxerki', 'fufexan', 'NotAShelf'];
+            const ALLOWED_USERS = ['vaxerski', 'fufexan', 'NotAShelf'];
             const CLOSING_COMMENT = 'Users are no longer allowed to open issues themselves, please open a discussion instead.\n\nPlease see the [wiki](https://wiki.hyprland.org/Contributing-and-Debugging/Issue-Guidelines/) on why this is the case.\n\nWe are volunteers, and we need your cooperation to make the best software we can. Thank you for understanding! ❤️\n\n[Open a discussion here](https://github.com/hyprwm/Hyprland/discussions)';
 
             async function closeUnauthorizedIssue(issueNumber, userName) {

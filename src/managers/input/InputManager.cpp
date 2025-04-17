@@ -1022,10 +1022,12 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto VARIANT  = g_pConfigManager->getDeviceString(devname, "kb_variant", "input:kb_variant");
     const auto OPTIONS  = g_pConfigManager->getDeviceString(devname, "kb_options", "input:kb_options");
 
-    const auto ENABLED = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
+    const auto ENABLED    = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
+    const auto ALLOWBINDS = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "keybinds") : true;
 
     pKeyboard->enabled           = ENABLED;
     pKeyboard->resolveBindsBySym = RESOLVEBINDSBYSYM;
+    pKeyboard->allowBinds        = ALLOWBINDS;
 
     try {
         if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" &&
@@ -1536,6 +1538,9 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
             continue;
 
         if (!kb->enabled)
+            continue;
+
+        if (!kb->allowBinds)
             continue;
 
         finalMask |= kb->getModifiers();

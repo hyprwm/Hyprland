@@ -828,16 +828,16 @@ bool isNvidiaDriverVersionAtLeast(int threshold) {
     if (once) {
         once = false;
 
-        if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
+        std::error_code ec;
+        if (std::filesystem::exists("/sys/module/nvidia_drm/version", ec) && !ec) {
             std::ifstream ifs("/sys/module/nvidia_drm/version");
             if (ifs.good()) {
                 try {
                     std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 
                     size_t      firstDot = driverInfo.find('.');
-                    if (firstDot != std::string::npos) {
+                    if (firstDot != std::string::npos)
                         driverMajor = std::stoi(driverInfo.substr(0, firstDot));
-                    }
 
                     Debug::log(LOG, "Parsed NVIDIA major version: {}", driverMajor);
 

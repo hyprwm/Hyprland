@@ -197,10 +197,9 @@ CProtocolManager::CProtocolManager() {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
-        PROTO::lease = makeUnique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease");
-        if (*PENABLEEXPLICIT)
+        PROTO::lease.push_back(makeUnique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b));
+        if (*PENABLEEXPLICIT && !PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
-        break;
     }
 
     if (g_pHyprOpenGL->getDRMFormats().size() > 0) {
@@ -272,7 +271,9 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xxColorManagement.reset();
     PROTO::frogColorManagement.reset();
 
-    PROTO::lease.reset();
+    for (auto& lease : PROTO::lease) {
+        lease.reset();
+    }
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();
     PROTO::linuxDma.reset();

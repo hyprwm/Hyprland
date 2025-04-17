@@ -150,6 +150,10 @@ CKeybindManager::CKeybindManager() {
             if (!m_pLastLongPressKeybind || g_pSeatManager->keyboard.expired())
                 return;
 
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            if (!PACTIVEKEEB->allowBinds)
+                return;
+
             const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(m_pLastLongPressKeybind->handler);
 
             Debug::log(LOG, "Long press timeout passed, calling dispatcher.");
@@ -163,6 +167,10 @@ CKeybindManager::CKeybindManager() {
             if (m_vActiveKeybinds.size() == 0 || g_pSeatManager->keyboard.expired())
                 return;
 
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            if (!PACTIVEKEEB->allowBinds)
+                return;
+
             for (const auto& k : m_vActiveKeybinds) {
                 const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
 
@@ -170,7 +178,6 @@ CKeybindManager::CKeybindManager() {
                 DISPATCHER->second(k->arg);
             }
 
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
             self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->repeatRate));
         },
         nullptr);
@@ -424,6 +431,9 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         return true;
     }
 
+    if (!pKeyboard->allowBinds)
+        return true;
+
     if (!m_pXKBTranslationState) {
         Debug::log(ERR, "BUG THIS: m_pXKBTranslationState nullptr!");
         updateXKBTranslationState();
@@ -432,10 +442,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
             return true;
     }
 
-    auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
-
-    if (!pKeyboard->allowBinds)
-        return true;
+    auto               e = std::any_cast<IKeyboard::SKeyEvent>(event);
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
@@ -770,6 +777,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         else if (SPECIALDISPATCHER && pressed)
             m_vPressedSpecialBinds.emplace_back(k);
 
+        found = true;
+
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
@@ -787,10 +796,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             m_iPassPressed = -1;
 
-            if (k->handler == "submap") {
-                found = true; // don't process keybinds on submap change.
+            if (k->handler == "submap")
                 break;
-            }
         }
 
         if (k->repeat) {

@@ -43,7 +43,7 @@ class CDRMLeaseResource {
 
 class CDRMLeaseRequestResource {
   public:
-    CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> parent, SP<CWpDrmLeaseRequestV1> resource_);
+    CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseRequestV1> resource_);
 
     bool                                        good();
 
@@ -57,7 +57,7 @@ class CDRMLeaseRequestResource {
 
 class CDRMLeaseConnectorResource {
   public:
-    CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResource> parent, SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_);
+    CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_);
     static SP<CDRMLeaseConnectorResource> fromResource(wl_resource*);
 
     bool                                  good();
@@ -80,7 +80,7 @@ class CDRMLeaseConnectorResource {
 
 class CDRMLeaseDeviceResource {
   public:
-    CDRMLeaseDeviceResource(WP<CDRMLeaseProtocol> proto, SP<CWpDrmLeaseDeviceV1> resource_);
+    CDRMLeaseDeviceResource(std::string deviceName, SP<CWpDrmLeaseDeviceV1> resource_);
 
     bool                                        good();
     void                                        sendConnector(PHLMONITOR monitor);
@@ -88,7 +88,7 @@ class CDRMLeaseDeviceResource {
     std::vector<WP<CDRMLeaseConnectorResource>> connectorsSent;
 
     WP<CDRMLeaseDeviceResource>                 self;
-    WP<CDRMLeaseProtocol>                       proto;
+    std::string                                 deviceName;
 
   private:
     SP<CWpDrmLeaseDeviceV1> resource;
@@ -116,6 +116,7 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
     void         offer(PHLMONITOR monitor);
 
     SP<Aquamarine::IBackendImplementation> getBackend();
+    std::string                            getDeviceName();
 
   private:
     void destroyResource(CDRMLeaseDeviceResource* resource);
@@ -139,5 +140,5 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
 };
 
 namespace PROTO {
-    inline std::vector<UP<CDRMLeaseProtocol>> lease;
+    inline std::unordered_map<std::string, SP<CDRMLeaseProtocol>> lease;
 };

@@ -197,7 +197,9 @@ CProtocolManager::CProtocolManager() {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
-        PROTO::lease.push_back(makeUnique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b));
+        auto lease = makeShared<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b);
+        PROTO::lease.emplace(lease->getDeviceName(), lease);
+
         if (*PENABLEEXPLICIT && !PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
     }
@@ -272,7 +274,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::frogColorManagement.reset();
 
     for (auto& lease : PROTO::lease) {
-        lease.reset();
+        lease.second.reset();
     }
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();

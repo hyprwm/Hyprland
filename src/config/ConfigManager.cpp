@@ -761,6 +761,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
     m_pConfig->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
     m_pConfig->addSpecialConfigValue("device", "invert_axis", Hyprlang::INT{0});              // only for touchpads    
+    m_pConfig->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
 
     // keywords
     m_pConfig->registerHandler(&::handleExec, "exec", {false});

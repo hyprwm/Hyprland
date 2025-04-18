@@ -2997,7 +2997,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     }
 }
 
-void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITOR pMonitor) {
+void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
     g_pHyprRenderer->makeEGLCurrent();
 
     if (!g_pHyprOpenGL)
@@ -3021,7 +3021,8 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITOR pMonitor) {
         g_pHyprOpenGL->m_mMonitorBGFBs.erase(TEXIT);
     }
 
-    Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
+    if (pMonitor)
+        Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);
 }
 
 void CHyprOpenGLImpl::saveMatrix() {

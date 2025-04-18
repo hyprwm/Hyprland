@@ -39,6 +39,7 @@ bool                                envEnabled(const std::string& env);
 Hyprutils::OS::CFileDescriptor      allocateSHMFile(size_t len);
 bool                                allocateSHMFilePair(size_t size, Hyprutils::OS::CFileDescriptor& rw_fd_ptr, Hyprutils::OS::CFileDescriptor& ro_fd_ptr);
 float                               stringToPercentage(const std::string& VALUE, const float REL);
+bool                                isNvidiaDriverVersionAtLeast(int threshold);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

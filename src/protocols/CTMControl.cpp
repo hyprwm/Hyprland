@@ -6,6 +6,7 @@
 #include "../config/ConfigManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/MiscFunctions.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if UNLIKELY (!good())
@@ -109,8 +110,12 @@ void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* r
 bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
     static auto PENABLEANIM = CConfigValue<Hyprlang::INT>("render:ctm_animation");
 
-    if (*PENABLEANIM == 2)
-        return !g_pHyprRenderer->isNvidia();
+    if (*PENABLEANIM == 2 /* auto */) {
+        if (!g_pHyprRenderer->isNvidia())
+            return true;
+        // CTM animations are bugged on versions below.
+        return isNvidiaDriverVersionAtLeast(575);
+    }
     return *PENABLEANIM;
 }
 

@@ -35,6 +35,7 @@
 #include "debug/Log.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
+#include "../helpers/MiscFunctions.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -2349,43 +2350,9 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOut
         if (!m_bNvidia)
             settings.explicitKMSEnabled = true;
         else {
-
-            // check nvidia version. Explicit KMS is supported in >=560
-            // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
-            static int  driverMajor = 0;
-
-            static bool once = true;
-            if (once) {
-                once = false;
-
-                Debug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
-
-                if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
-                    Debug::log(LOG, "Renderer: Nvidia version file exists");
-
-                    std::ifstream ifs("/sys/module/nvidia_drm/version");
-                    if (ifs.good()) {
-                        try {
-                            std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-
-                            Debug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
-
-                            CVarList ver(driverInfo, 0, '.', true);
-                            driverMajor = std::stoi(ver[0]);
-
-                            Debug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
-
-                        } catch (std::exception& e) { settings.explicitKMSEnabled = false; }
-
-                        ifs.close();
-                    }
-                }
-            }
-
-            settings.explicitKMSEnabled = driverMajor >= 560;
+            settings.explicitKMSEnabled = isNvidiaDriverVersionAtLeast(560);
         }
     }
-
     return settings;
 }
 

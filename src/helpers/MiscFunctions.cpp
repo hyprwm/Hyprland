@@ -817,3 +817,38 @@ float stringToPercentage(const std::string& VALUE, const float REL) {
     else
         return std::stof(VALUE);
 }
+
+// Checks if Nvidia driver major version is at least given version.
+// Useful for explicit_sync_kms and ctm_animation as they only work
+// past certain driver versions.
+bool isNvidiaDriverVersionAtLeast(int threshold) {
+    static int  driverMajor = 0;
+    static bool once        = true;
+
+    if (once) {
+        once = false;
+
+        std::error_code ec;
+        if (std::filesystem::exists("/sys/module/nvidia_drm/version", ec) && !ec) {
+            std::ifstream ifs("/sys/module/nvidia_drm/version");
+            if (ifs.good()) {
+                try {
+                    std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+                    size_t      firstDot = driverInfo.find('.');
+                    if (firstDot != std::string::npos)
+                        driverMajor = std::stoi(driverInfo.substr(0, firstDot));
+
+                    Debug::log(LOG, "Parsed NVIDIA major version: {}", driverMajor);
+
+                } catch (std::exception& e) {
+                    driverMajor = 0; // Default to 0 if parsing fails
+                }
+
+                ifs.close();
+            }
+        }
+    }
+
+    return driverMajor >= threshold;
+}

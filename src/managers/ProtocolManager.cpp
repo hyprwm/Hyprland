@@ -198,7 +198,8 @@ CProtocolManager::CProtocolManager() {
             continue;
 
         auto lease = makeShared<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b);
-        PROTO::lease.emplace(lease->getDeviceName(), lease);
+        if (lease->good())
+            PROTO::lease.emplace(lease->getDeviceName(), lease);
 
         if (*PENABLEEXPLICIT && !PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");

@@ -117,6 +117,7 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
 
     SP<Aquamarine::IBackendImplementation> getBackend();
     std::string                            getDeviceName();
+    bool                                   good();
 
   private:
     void destroyResource(CDRMLeaseDeviceResource* resource);

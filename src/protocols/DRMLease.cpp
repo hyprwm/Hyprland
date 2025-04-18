@@ -278,10 +278,6 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
     IWaylandProtocol(iface, ver, name) {
     auto drm      = ((Aquamarine::CDRMBackend*)backend.get())->self.lock();
     primaryDevice = makeShared<CDRMLeaseDevice>(drm);
-
-    if (!primaryDevice || !primaryDevice->success) {
-        g_pEventLoopManager->doLater([this]() { PROTO::lease[primaryDevice->name].reset(); });
-    }
 }
 
 void CDRMLeaseProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -315,14 +311,6 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
     std::erase_if(m_vLeases, [resource](const auto& e) { return e.get() == resource; });
 }
 
-std::string CDRMLeaseProtocol::getDeviceName() {
-    return primaryDevice->name;
-}
-
-SP<Aquamarine::IBackendImplementation> CDRMLeaseProtocol::getBackend() {
-    return primaryDevice->backend;
-}
-
 void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
     std::erase_if(primaryDevice->offeredOutputs, [](const auto& e) { return e.expired(); });
     if (std::find(primaryDevice->offeredOutputs.begin(), primaryDevice->offeredOutputs.end(), monitor) != primaryDevice->offeredOutputs.end())
@@ -340,4 +328,16 @@ void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
         m->sendConnector(monitor);
         m->resource->sendDone();
     }
+}
+
+std::string CDRMLeaseProtocol::getDeviceName() {
+    return primaryDevice->name;
+}
+
+SP<Aquamarine::IBackendImplementation> CDRMLeaseProtocol::getBackend() {
+    return primaryDevice->backend;
+}
+
+bool CDRMLeaseProtocol::good() {
+    return primaryDevice && primaryDevice->success;
 }

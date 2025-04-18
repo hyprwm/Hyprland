@@ -51,6 +51,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : state(this), output(output
 
 CMonitor::~CMonitor() {
     events.destroy.emit();
+    if (g_pHyprOpenGL)
+        g_pHyprOpenGL->destroyMonitorResources(self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -295,6 +297,8 @@ void CMonitor::onDisconnect(bool destroy) {
     Debug::log(LOG, "onDisconnect called for {}", output->name);
 
     events.disconnect.emit();
+    if (g_pHyprOpenGL)
+        g_pHyprOpenGL->destroyMonitorResources(self);
 
     // record what workspace this monitor was on
     if (activeWorkspace) {
@@ -832,7 +836,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     updateMatrix();
 
     if (WAS10B != enabled10bit || OLDRES != vecPixelSize)
-        g_pHyprOpenGL->destroyMonitorResources(self.lock());
+        g_pHyprOpenGL->destroyMonitorResources(self);
 
     g_pCompositor->arrangeMonitors();
 

@@ -2901,6 +2901,38 @@ void CCompositor::arrangeMonitors() {
     PROTO::xdgOutput->updateAllOutputs();
 }
 
+void CCompositor::recheckFloatingWindowsOnScreen() {
+    for (auto& w : m_vWindows) {
+        if (!w->m_bIsMapped || !w->m_bIsFloating)
+            continue;
+
+        const CBox WBOX = w->getWindowMainSurfaceBox();
+
+        const bool IN = std::ranges::any_of(m_vMonitors, [w, WBOX](const auto& m) {
+            if (!m->m_bEnabled)
+                return false;
+            CBox MONBOX = m->logicalBox();
+            return !MONBOX.intersection(WBOX).empty();
+        });
+
+        if (IN)
+            continue;
+
+        auto monitor = w->m_pMonitor;
+
+        if (!monitor || !monitor->m_bEnabled)
+            monitor = getMonitorFromVector(WBOX.middle());
+
+        if (!monitor)
+            continue; // ?!?!?!
+
+        const auto NEW_POS = monitor->middle() - WBOX.size() / 2.F;
+
+        *w->m_vRealPosition = NEW_POS;
+        w->m_vPosition      = NEW_POS;
+    }
+}
+
 void CCompositor::enterUnsafeState() {
     if (m_bUnsafeState)
         return;

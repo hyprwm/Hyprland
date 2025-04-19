@@ -1462,6 +1462,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+    static auto PCT   = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = pMonitor->imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
@@ -1525,11 +1526,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
-        const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
-        pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
-    } else
-        pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
+    if (*PCT) {
+        if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+            const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
+            pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
+        } else
+            pMonitor->output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
+    }
 
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;

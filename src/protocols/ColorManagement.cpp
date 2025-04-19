@@ -8,8 +8,6 @@
 
 using namespace NColorManagement;
 
-static uint64_t lastImageID = 0; // FIXME use for deduplication
-
 CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
@@ -191,14 +189,13 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         RESOURCE->self                          = RESOURCE;
-        RESOURCE->settings.id                   = ++lastImageID;
         RESOURCE->settings.windowsScRGB         = true;
         RESOURCE->settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
         RESOURCE->settings.primariesNameSet     = true;
         RESOURCE->settings.primaries            = NColorPrimaries::BT709;
         RESOURCE->settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
         RESOURCE->settings.luminances.reference = 203;
-        RESOURCE->resource()->sendReady(RESOURCE->settings.id);
+        RESOURCE->resource()->sendReady(RESOURCE->settings.updateId());
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -239,9 +236,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
             RESOURCE->settings = m_monitor->imageDescription;
-            if (RESOURCE->settings.id)
-                RESOURCE->settings.id = ++lastImageID;
-            RESOURCE->m_resource->sendReady(RESOURCE->settings.id); // FIXME: create correct id
+            RESOURCE->m_resource->sendReady(RESOURCE->settings.updateId());
         }
     });
 }
@@ -383,10 +378,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         m_currentPreferred = RESOURCE;
 
         m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
-        if (!m_currentPreferred->settings.id)
-            m_currentPreferred->settings.id = ++lastImageID;
-
-        RESOURCE->resource()->sendReady(++lastImageID); // FIXME: create correct id
+        RESOURCE->resource()->sendReady(m_currentPreferred->settings.updateId());
     });
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
@@ -419,7 +411,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        RESOURCE->resource()->sendReady(++lastImageID); // FIXME: create correct id
+        RESOURCE->resource()->sendReady(m_currentPreferred->settings.updateId());
     });
 }
 
@@ -467,8 +459,7 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
 
         RESOURCE->self     = RESOURCE;
         RESOURCE->settings = settings;
-        settings.id        = ++lastImageID;
-        RESOURCE->resource()->sendReady(settings.id); // FIXME: create correct id
+        RESOURCE->resource()->sendReady(settings.updateId());
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -522,8 +513,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
 
         RESOURCE->self     = RESOURCE;
         RESOURCE->settings = settings;
-        settings.id        = ++lastImageID;
-        RESOURCE->resource()->sendReady(settings.id); // FIXME: create correct id
+        RESOURCE->resource()->sendReady(settings.updateId());
 
         PROTO::colorManagement->destroyResource(this);
     });

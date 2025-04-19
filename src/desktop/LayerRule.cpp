@@ -5,7 +5,7 @@
 #include "../debug/Log.hpp"
 
 static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
-static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order"};
+static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order", "abovelock"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : targetNamespace(ns_), rule(rule_) {
     const bool VALID = RULES.contains(rule) || std::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
@@ -31,6 +31,8 @@ CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : targe
         ruleType = RULE_ANIMATION;
     else if (rule.starts_with("order"))
         ruleType = RULE_ORDER;
+    else if (rule.starts_with("abovelock"))
+        ruleType = RULE_ABOVELOCK;
     else {
         Debug::log(ERR, "CLayerRule: didn't match a rule that was found valid?!");
         ruleType = RULE_INVALID;

@@ -698,7 +698,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                     // The first angle, or an explicit "0deg", splits the two gradients
                     if (active && token.contains("deg")) {
                         activeBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
-                        active                        = false;
+                        active                       = false;
                     } else if (token.contains("deg"))
                         inactiveBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                     else if (active)

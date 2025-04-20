@@ -886,8 +886,8 @@ void CConfigManager::reload() {
     EMIT_HOOK_EVENT("preConfigReload", nullptr);
     setDefaultAnimationVars();
     resetHLConfig();
-    m_configCurrentPath                      = getMainConfigPath();
-    const auto ERR                         = m_config->parse();
+    m_configCurrentPath                   = getMainConfigPath();
+    const auto ERR                        = m_config->parse();
     m_lastConfigVerificationWasSuccessful = !ERR.error;
     postConfigReload(ERR);
 }
@@ -895,8 +895,8 @@ void CConfigManager::reload() {
 std::string CConfigManager::verify() {
     setDefaultAnimationVars();
     resetHLConfig();
-    m_configCurrentPath                      = getMainConfigPath();
-    const auto ERR                         = m_config->parse();
+    m_configCurrentPath                   = getMainConfigPath();
+    const auto ERR                        = m_config->parse();
     m_lastConfigVerificationWasSuccessful = !ERR.error;
     if (ERR.error)
         return ERR.getError();
@@ -2362,7 +2362,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         }
 
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
-                                               COMMAND,       locked,       m_currentSubmap, DESCRIPTION,        release,  repeat,         longPress,
+                                               COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
                                                mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
                                                click,         drag});
     }
@@ -2812,7 +2812,7 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         m_configPaths.emplace_back(value);
 
         auto configCurrentPathBackup = m_configCurrentPath;
-        m_configCurrentPath            = value;
+        m_configCurrentPath          = value;
 
         const auto THISRESULT = m_config->parseFile(value.c_str());
 

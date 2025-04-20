@@ -151,7 +151,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
+        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
         color.a *= a;
 
         if (!rect.empty()) {
@@ -306,9 +306,9 @@ static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
     cairo_pattern_t* pattern;
     pattern = cairo_pattern_create_linear(0, 0, 0, bufferSize.y);
 
-    for (unsigned long i = 0; i < grad->m_vColors.size(); i++) {
-        cairo_pattern_add_color_stop_rgba(pattern, 1 - (double)(i + 1) / (grad->m_vColors.size() + 1), grad->m_vColors[i].r, grad->m_vColors[i].g, grad->m_vColors[i].b,
-                                          grad->m_vColors[i].a);
+    for (unsigned long i = 0; i < grad->m_colors.size(); i++) {
+        cairo_pattern_add_color_stop_rgba(pattern, 1 - (double)(i + 1) / (grad->m_colors.size() + 1), grad->m_colors[i].r, grad->m_colors[i].g, grad->m_colors[i].b,
+                                          grad->m_colors[i].a);
     }
 
     cairo_rectangle(CAIRO, 0, 0, bufferSize.x, bufferSize.y);

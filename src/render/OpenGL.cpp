@@ -2344,9 +2344,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size() / 4, (float*)grad.m_vColorsOkLabA.data());
-    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad.m_colorsOkLabA.size() / 4, (float*)grad.m_colorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad.m_colorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_shaders->m_shBORDER1.alpha, a);
     glUniform1i(m_shaders->m_shBORDER1.gradient2Length, 0);
 
@@ -2437,13 +2437,13 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size() / 4, (float*)grad1.m_vColorsOkLabA.data());
-    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad1.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad1.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
-    if (grad2.m_vColorsOkLabA.size() > 0)
-        glUniform4fv(m_shaders->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size() / 4, (float*)grad2.m_vColorsOkLabA.data());
-    glUniform1i(m_shaders->m_shBORDER1.gradient2Length, grad2.m_vColorsOkLabA.size() / 4);
-    glUniform1f(m_shaders->m_shBORDER1.angle2, (int)(grad2.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform4fv(m_shaders->m_shBORDER1.gradient, grad1.m_colorsOkLabA.size() / 4, (float*)grad1.m_colorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad1.m_colorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad1.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
+    if (grad2.m_colorsOkLabA.size() > 0)
+        glUniform4fv(m_shaders->m_shBORDER1.gradient2, grad2.m_colorsOkLabA.size() / 4, (float*)grad2.m_colorsOkLabA.data());
+    glUniform1i(m_shaders->m_shBORDER1.gradient2Length, grad2.m_colorsOkLabA.size() / 4);
+    glUniform1f(m_shaders->m_shBORDER1.angle2, (int)(grad2.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_shaders->m_shBORDER1.alpha, a);
     glUniform1f(m_shaders->m_shBORDER1.gradientLerp, lerp);
 

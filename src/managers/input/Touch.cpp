@@ -46,8 +46,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         const auto   PWORKSPACE  = PMONITOR->activeWorkspace;
         const auto   STYLE       = PWORKSPACE->m_vRenderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
-        const double TARGETLEFT  = ((VERTANIMS ? gapsOut.top : gapsOut.left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
-        const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.bottom : gapsOut.right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x));
+        const double TARGETLEFT  = ((VERTANIMS ? gapsOut.m_top : gapsOut.m_left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
+        const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x));
         const double POSITION    = (VERTANIMS ? e.pos.y : e.pos.x);
         if (POSITION < TARGETLEFT || POSITION > TARGETRIGHT) {
             beginWorkspaceSwipe();

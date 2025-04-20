@@ -145,7 +145,7 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
         parseWeight(weight);
     }
 
-    int64_t                       value;
+    int64_t                       value = 400; // default to normal weight
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_FONT_WEIGHT;

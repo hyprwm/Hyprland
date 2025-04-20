@@ -316,7 +316,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
 
         newState.enabled = false;
 
-        g_pConfigManager->m_bWantsMonitorReload = true;
+        g_pConfigManager->m_wantsMonitorReload = true;
 
         owner->monitorStates[PMONITOR->szName] = newState;
     });
@@ -417,7 +417,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         // reset properties for next set.
         head->state.committedProperties = 0;
 
-        g_pConfigManager->m_bWantsMonitorReload = true;
+        g_pConfigManager->m_wantsMonitorReload = true;
 
         owner->monitorStates[PMONITOR->szName] = newState;
     }

@@ -81,7 +81,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
                rules.options);
 
     if (!xkbFilePath.empty()) {
-        auto path = absolutePath(xkbFilePath, g_pConfigManager->configCurrentPath);
+        auto path = absolutePath(xkbFilePath, g_pConfigManager->m_configCurrentPath);
 
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
             Debug::log(ERR, "Cannot open input:kb_file= file for reading");

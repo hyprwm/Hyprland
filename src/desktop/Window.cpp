@@ -697,24 +697,24 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 for (auto const& token : colorsAndAngles) {
                     // The first angle, or an explicit "0deg", splits the two gradients
                     if (active && token.contains("deg")) {
-                        activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                        activeBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                         active                        = false;
                     } else if (token.contains("deg"))
-                        inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                        inactiveBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                     else if (active)
-                        activeBorderGradient.m_vColors.push_back(configStringToInt(token).value_or(0));
+                        activeBorderGradient.m_colors.push_back(configStringToInt(token).value_or(0));
                     else
-                        inactiveBorderGradient.m_vColors.push_back(configStringToInt(token).value_or(0));
+                        inactiveBorderGradient.m_colors.push_back(configStringToInt(token).value_or(0));
                 }
 
                 activeBorderGradient.updateColorsOk();
 
                 // Includes sanity checks for the number of colors in each gradient
-                if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
+                if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
                     Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r->szRule);
-                else if (activeBorderGradient.m_vColors.empty())
+                else if (activeBorderGradient.m_colors.empty())
                     Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r->szRule);
-                else if (inactiveBorderGradient.m_vColors.empty())
+                else if (inactiveBorderGradient.m_colors.empty())
                     m_sWindowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, priority);
                 else {
                     m_sWindowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, priority);

@@ -341,10 +341,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         const std::string default_    = (bool)(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
         const std::string persistent  = (bool)(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
         const std::string gapsIn      = (bool)(r.gapsIn) ?
-                 std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().top, r.gapsIn.value().right, r.gapsIn.value().bottom, r.gapsIn.value().left) :
+                 std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().m_top, r.gapsIn.value().m_right, r.gapsIn.value().m_bottom, r.gapsIn.value().m_left) :
                  "";
         const std::string gapsOut     = (bool)(r.gapsOut) ?
-                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) :
+                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().m_top, r.gapsOut.value().m_right, r.gapsOut.value().m_bottom, r.gapsOut.value().m_left) :
                 "";
         const std::string borderSize  = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
         const std::string border      = (bool)(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
@@ -364,11 +364,11 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         const std::string monitor     = std::format("\tmonitor: {}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
         const std::string default_    = std::format("\tdefault: {}\n", (bool)(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
         const std::string persistent  = std::format("\tpersistent: {}\n", (bool)(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
-        const std::string gapsIn      = (bool)(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().top), std::to_string(r.gapsIn.value().right),
-                                                                       std::to_string(r.gapsIn.value().bottom), std::to_string(r.gapsIn.value().left)) :
+        const std::string gapsIn      = (bool)(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().m_top), std::to_string(r.gapsIn.value().m_right),
+                                                                       std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
                                                            std::format("\tgapsIn: <unset>\n");
-        const std::string gapsOut     = (bool)(r.gapsOut) ? std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().top), std::to_string(r.gapsOut.value().right),
-                                                                        std::to_string(r.gapsOut.value().bottom), std::to_string(r.gapsOut.value().left)) :
+        const std::string gapsOut     = (bool)(r.gapsOut) ? std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right),
+                                                                        std::to_string(r.gapsOut.value().m_bottom), std::to_string(r.gapsOut.value().m_left)) :
                                                             std::format("\tgapsOut: <unset>\n");
         const std::string borderSize  = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
         const std::string border      = std::format("\tborder: {}\n", (bool)(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
@@ -1086,7 +1086,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
     if (COMMAND == "monitor" || COMMAND == "source")
-        g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+        g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
     if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout
@@ -1134,7 +1134,7 @@ static std::string reloadRequest(eHyprCtlOutputFormat format, std::string reques
     const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
 
     if (REQMODE == "config-only")
-        g_pConfigManager->m_bNoMonitorReload = true;
+        g_pConfigManager->m_noMonitorReload = true;
 
     g_pConfigManager->reload();
 
@@ -1773,7 +1773,7 @@ std::string CHyprCtl::getReply(std::string request) {
         return "unknown request";
 
     if (reloadAll) {
-        g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+        g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs
@@ -1911,7 +1911,7 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     } else
         close(ACCEPTEDCONNECTION);
 
-    if (g_pConfigManager->m_bWantsMonitorReload)
+    if (g_pConfigManager->m_wantsMonitorReload)
         g_pConfigManager->ensureMonitorStatus();
 
     return 0;

@@ -1780,7 +1780,7 @@ PHLMONITOR CCompositor::getMonitorInDirection(PHLMONITOR pSourceMonitor, const c
     PHLMONITOR longestIntersectMonitor = nullptr;
 
     for (auto const& m : m_vMonitors) {
-        if (m == m_pLastMonitor)
+        if (m == pSourceMonitor)
             continue;
 
         const auto POSB  = m->vecPosition;

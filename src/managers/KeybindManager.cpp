@@ -45,7 +45,7 @@ using namespace Hyprutils::OS;
 static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    if (!*PINITIALWSTRACKING || g_pConfigManager->isLaunchingExecOnce)
+    if (!*PINITIALWSTRACKING || g_pConfigManager->m_isLaunchingExecOnce)
         return {};
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
@@ -281,7 +281,7 @@ void CKeybindManager::updateXKBTranslationState() {
 
     xkb_rule_names    rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const       KEYMAPFILE = FILEPATH == "" ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
+    FILE* const       KEYMAPFILE = FILEPATH == "" ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
 
     auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
                                              xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -3203,16 +3203,16 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                 for (int i = 3; i < static_cast<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
-                        colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
+                        colorData.m_angle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
                     else
                         configStringToInt(TOKEN).and_then([&colorData](const auto& e) {
-                            colorData.m_vColors.push_back(e);
+                            colorData.m_colors.push_back(e);
                             return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                         });
                 }
             } else if (VAL != "-1")
                 configStringToInt(VAL).and_then([&colorData](const auto& e) {
-                    colorData.m_vColors.push_back(e);
+                    colorData.m_colors.push_back(e);
                     return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                 });
 

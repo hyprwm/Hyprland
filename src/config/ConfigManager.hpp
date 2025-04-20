@@ -246,47 +246,47 @@ class CConfigManager {
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
 
-    std::string                configCurrentPath;
+    std::string                m_configCurrentPath;
 
-    bool                       m_bWantsMonitorReload                  = false;
-    bool                       m_bNoMonitorReload                     = false;
-    bool                       isLaunchingExecOnce                    = false; // For exec-once to skip initial ws tracking
-    bool                       m_bLastConfigVerificationWasSuccessful = true;
+    bool                       m_wantsMonitorReload                  = false;
+    bool                       m_noMonitorReload                     = false;
+    bool                       m_isLaunchingExecOnce                 = false; // For exec-once to skip initial ws tracking
+    bool                       m_lastConfigVerificationWasSuccessful = true;
 
     void                       storeFloatingSize(PHLWINDOW window, const Vector2D& size);
     std::optional<Vector2D>    getStoredFloatingSize(PHLWINDOW window);
 
   private:
-    UP<Hyprlang::CConfig>                            m_pConfig;
+    UP<Hyprlang::CConfig>                            m_config;
 
     std::vector<std::string>                         m_configPaths;
 
-    Hyprutils::Animation::CAnimationConfigTree       m_AnimationTree;
+    Hyprutils::Animation::CAnimationConfigTree       m_animationTree;
 
-    std::string                                      m_szCurrentSubmap = ""; // For storing the current keybind submap
+    std::string                                      m_currentSubmap = ""; // For storing the current keybind submap
 
-    std::vector<SExecRequestedRule>                  execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
+    std::vector<SExecRequestedRule>                  m_execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
-    std::vector<std::string>                         m_vDeclaredPlugins;
-    std::vector<SPluginKeyword>                      pluginKeywords;
-    std::vector<SPluginVariable>                     pluginVariables;
+    std::vector<std::string>                         m_declaredPlugins;
+    std::vector<SPluginKeyword>                      m_pluginKeywords;
+    std::vector<SPluginVariable>                     m_pluginVariables;
 
-    bool                                             isFirstLaunch = true; // For exec-once
+    bool                                             m_isFirstLaunch = true; // For exec-once
 
-    std::vector<SMonitorRule>                        m_vMonitorRules;
-    std::vector<SWorkspaceRule>                      m_vWorkspaceRules;
-    std::vector<SP<CWindowRule>>                     m_vWindowRules;
-    std::vector<SP<CLayerRule>>                      m_vLayerRules;
-    std::vector<std::string>                         m_dBlurLSNamespaces;
+    std::vector<SMonitorRule>                        m_monitorRules;
+    std::vector<SWorkspaceRule>                      m_workspaceRules;
+    std::vector<SP<CWindowRule>>                     m_windowRules;
+    std::vector<SP<CLayerRule>>                      m_layerRules;
+    std::vector<std::string>                         m_blurLSNamespaces;
 
-    bool                                             firstExecDispatched     = false;
-    bool                                             m_bManualCrashInitiated = false;
+    bool                                             m_firstExecDispatched  = false;
+    bool                                             m_manualCrashInitiated = false;
 
-    std::vector<SFirstExecRequest>                   firstExecRequests; // bool is for if with rules
-    std::vector<std::string>                         finalExecRequests;
+    std::vector<SFirstExecRequest>                   m_firstExecRequests; // bool is for if with rules
+    std::vector<std::string>                         m_finalExecRequests;
 
-    std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
-    std::string                                      m_szConfigErrors = "";
+    std::vector<std::pair<std::string, std::string>> m_failedPluginConfigValues; // for plugin values of unloaded plugins
+    std::string                                      m_configErrors = "";
 
     uint32_t                                         m_configValueNumber = 0;
 

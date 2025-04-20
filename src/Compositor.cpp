@@ -479,7 +479,7 @@ void CCompositor::initAllSignals() {
                         m->applyMonitorRule(&m->activeMonitorRule, true);
                     }
 
-                    g_pConfigManager->m_bWantsMonitorReload = true;
+                    g_pConfigManager->m_wantsMonitorReload = true;
                     g_pCursorManager->syncGsettings();
                 } else {
                     Debug::log(LOG, "Session got deactivated!");
@@ -3039,7 +3039,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     g_pCompositor->m_bReadyToProcess = true;
 
-    g_pConfigManager->m_bWantsMonitorReload = true;
+    g_pConfigManager->m_wantsMonitorReload = true;
     g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR, IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     checkDefaultCursorWarp(PNEWMONITOR);

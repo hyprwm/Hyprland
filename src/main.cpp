@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)
-        return !g_pConfigManager->m_bLastConfigVerificationWasSuccessful;
+        return !g_pConfigManager->m_lastConfigVerificationWasSuccessful;
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();

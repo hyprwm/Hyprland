@@ -329,7 +329,7 @@ void CMonitor::onDisconnect(bool destroy) {
             m->setMirror("");
         }
 
-        g_pConfigManager->m_bWantsMonitorReload = true;
+        g_pConfigManager->m_wantsMonitorReload = true;
     }
 
     listeners.frame.reset();
@@ -853,7 +853,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     g_pHyprRenderer->arrangeLayersForMonitor(ID);
 
     // reload to fix mirrors
-    g_pConfigManager->m_bWantsMonitorReload = true;
+    g_pConfigManager->m_wantsMonitorReload = true;
 
     Debug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", szName, vecPixelSize, refreshRate, scale, (int)transform, vecPosition,
                (int)enabled10bit);

@@ -1186,7 +1186,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 
-        if (g_pConfigManager->m_bWantsMonitorReload)
+        if (g_pConfigManager->m_wantsMonitorReload)
             g_pConfigManager->performMonitorReload();
     }
 

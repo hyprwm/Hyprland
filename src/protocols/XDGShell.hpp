@@ -141,6 +141,8 @@ class CXDGToplevelResource {
     WP<CXDGToplevelResource>              parent;
     WP<CXDGDialogV1Resource>              dialog;
 
+    std::optional<std::string>            m_toplevelTag, m_toplevelDescription;
+
     bool                                  anyChildModal();
 
     std::vector<WP<CXDGToplevelResource>> children;

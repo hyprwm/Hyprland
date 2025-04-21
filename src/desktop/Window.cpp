@@ -1808,3 +1808,17 @@ void CWindow::deactivateGroupMembers() {
 bool CWindow::isNotResponding() {
     return g_pANRManager->isNotResponding(m_pSelf.lock());
 }
+
+std::optional<std::string> CWindow::xdgTag() {
+    if (!m_pXDGSurface || !m_pXDGSurface->toplevel)
+        return std::nullopt;
+
+    return m_pXDGSurface->toplevel->m_toplevelTag;
+}
+
+std::optional<std::string> CWindow::xdgDescription() {
+    if (!m_pXDGSurface || !m_pXDGSurface->toplevel)
+        return std::nullopt;
+
+    return m_pXDGSurface->toplevel->m_toplevelDescription;
+}

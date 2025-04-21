@@ -1417,6 +1417,11 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                     } catch (std::exception& e) { Debug::log(ERR, "Rule \"content:{}\" failed with: {}", rule->szContentType, e.what()); }
                 }
 
+                if (!rule->szXdgTag.empty()) {
+                    if (pWindow->xdgTag().value_or("") != rule->szXdgTag)
+                        continue;
+                }
+
                 if (!rule->szWorkspace.empty()) {
                     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
@@ -2409,6 +2414,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
     const auto CONTENTTYPEPOS     = VALUE.find("content:");
+    const auto XDGTAGPOS          = VALUE.find("xdgTag:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2421,8 +2427,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,
-                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS, CONTENTTYPEPOS};
+    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS, FULLSCREENPOS,
+                                             PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2461,6 +2467,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             min = FOCUSPOS;
         if (CONTENTTYPEPOS > pos && CONTENTTYPEPOS < min)
             min = CONTENTTYPEPOS;
+        if (XDGTAGPOS > pos && XDGTAGPOS < min)
+            min = XDGTAGPOS;
 
         result = result.substr(0, min - pos);
 
@@ -2521,6 +2529,9 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 
     if (CONTENTTYPEPOS != std::string::npos)
         rule->szContentType = extract(CONTENTTYPEPOS + 8);
+
+    if (XDGTAGPOS != std::string::npos)
+        rule->szXdgTag = extract(XDGTAGPOS + 8);
 
     if (RULE == "unset") {
         std::erase_if(m_windowRules, [&](const auto& other) {

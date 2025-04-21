@@ -49,7 +49,6 @@
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
 #include "../protocols/HyprlandSurface.hpp"
-
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -60,6 +59,7 @@
 #include "../protocols/XXColorManagement.hpp"
 #include "../protocols/FrogColorManagement.hpp"
 #include "../protocols/ContentType.hpp"
+#include "../protocols/XDGTag.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -182,6 +182,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::ctm                 = makeUnique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 2, "CTMControl");
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
+    PROTO::xdgTag              = makeUnique<CXDGToplevelTagProtocol>(&xdg_toplevel_tag_manager_v1_interface, 1, "XDGTag");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
@@ -271,6 +272,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::colorManagement.reset();
     PROTO::xxColorManagement.reset();
     PROTO::frogColorManagement.reset();
+    PROTO::xdgTag.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();
@@ -321,7 +323,8 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::xdgDialog->getGlobal(),
         PROTO::singlePixel->getGlobal(),
         PROTO::primarySelection->getGlobal(),
-			  PROTO::hyprlandSurface->getGlobal(),
+		PROTO::hyprlandSurface->getGlobal(),
+		PROTO::xdgTag->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

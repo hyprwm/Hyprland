@@ -1545,9 +1545,6 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
         if (!kb->enabled)
             continue;
 
-        if (!kb->allowBinds)
-            continue;
-
         finalMask |= kb->getModifiers();
     }
 

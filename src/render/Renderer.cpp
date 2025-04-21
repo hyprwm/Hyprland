@@ -2063,19 +2063,19 @@ bool CHyprRenderer::shouldRenderCursor() {
 }
 
 std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
-    const auto POVERLAY = &g_pDebugOverlay->m_mMonitorOverlays[pMonitor];
+    const auto POVERLAY = &g_pDebugOverlay->m_monitorOverlays[pMonitor];
 
     float      avgRenderTime = 0;
     float      maxRenderTime = 0;
     float      minRenderTime = 9999;
-    for (auto const& rt : POVERLAY->m_dLastRenderTimes) {
+    for (auto const& rt : POVERLAY->m_lastRenderTimes) {
         if (rt > maxRenderTime)
             maxRenderTime = rt;
         if (rt < minRenderTime)
             minRenderTime = rt;
         avgRenderTime += rt;
     }
-    avgRenderTime /= POVERLAY->m_dLastRenderTimes.size() == 0 ? 1 : POVERLAY->m_dLastRenderTimes.size();
+    avgRenderTime /= POVERLAY->m_lastRenderTimes.size() == 0 ? 1 : POVERLAY->m_lastRenderTimes.size();
 
     return std::make_tuple<>(avgRenderTime, maxRenderTime, minRenderTime);
 }

@@ -7,7 +7,7 @@
 #include "../managers/AnimationManager.hpp"
 
 CHyprDebugOverlay::CHyprDebugOverlay() {
-    m_pTexture = makeShared<CTexture>();
+    m_texture = makeShared<CTexture>();
 }
 
 void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
@@ -16,13 +16,13 @@ void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs)
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_dLastRenderTimes.emplace_back(durationUs / 1000.f);
+    m_lastRenderTimes.emplace_back(durationUs / 1000.f);
 
-    if (m_dLastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
-        m_dLastRenderTimes.pop_front();
+    if (m_lastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
+        m_lastRenderTimes.pop_front();
 
-    if (!m_pMonitor)
-        m_pMonitor = pMonitor;
+    if (!m_monitor)
+        m_monitor = pMonitor;
 }
 
 void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
@@ -31,13 +31,13 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float du
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_dLastRenderTimesNoOverlay.emplace_back(durationUs / 1000.f);
+    m_lastRenderTimesNoOverlay.emplace_back(durationUs / 1000.f);
 
-    if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
-        m_dLastRenderTimesNoOverlay.pop_front();
+    if (m_lastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
+        m_lastRenderTimesNoOverlay.pop_front();
 
-    if (!m_pMonitor)
-        m_pMonitor = pMonitor;
+    if (!m_monitor)
+        m_monitor = pMonitor;
 }
 
 void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
@@ -46,36 +46,36 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_dLastFrametimes.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
+    m_lastFrametimes.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_lastFrame).count() / 1000.f);
 
-    if (m_dLastFrametimes.size() > (long unsigned int)pMonitor->refreshRate)
-        m_dLastFrametimes.pop_front();
+    if (m_lastFrametimes.size() > (long unsigned int)pMonitor->refreshRate)
+        m_lastFrametimes.pop_front();
 
-    m_tpLastFrame = std::chrono::high_resolution_clock::now();
+    m_lastFrame = std::chrono::high_resolution_clock::now();
 
-    if (!m_pMonitor)
-        m_pMonitor = pMonitor;
+    if (!m_monitor)
+        m_monitor = pMonitor;
 
     // anim data too
     const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor.lock() : g_pCompositor->m_pLastMonitor.lock();
     if (PMONITORFORTICKS) {
-        if (m_dLastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->refreshRate)
-            m_dLastAnimationTicks.pop_front();
+        if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->refreshRate)
+            m_lastAnimationTicks.pop_front();
 
-        m_dLastAnimationTicks.push_back(g_pAnimationManager->m_fLastTickTime);
+        m_lastAnimationTicks.push_back(g_pAnimationManager->m_fLastTickTime);
     }
 }
 
 int CHyprMonitorDebugOverlay::draw(int offset) {
 
-    if (!m_pMonitor)
+    if (!m_monitor)
         return 0;
 
     // get avg fps
     float avgFrametime = 0;
     float maxFrametime = 0;
     float minFrametime = 9999;
-    for (auto const& ft : m_dLastFrametimes) {
+    for (auto const& ft : m_lastFrametimes) {
         if (ft > maxFrametime)
             maxFrametime = ft;
         if (ft < minFrametime)
@@ -83,12 +83,12 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgFrametime += ft;
     }
     float varFrametime = maxFrametime - minFrametime;
-    avgFrametime /= m_dLastFrametimes.size() == 0 ? 1 : m_dLastFrametimes.size();
+    avgFrametime /= m_lastFrametimes.size() == 0 ? 1 : m_lastFrametimes.size();
 
     float avgRenderTime = 0;
     float maxRenderTime = 0;
     float minRenderTime = 9999;
-    for (auto const& rt : m_dLastRenderTimes) {
+    for (auto const& rt : m_lastRenderTimes) {
         if (rt > maxRenderTime)
             maxRenderTime = rt;
         if (rt < minRenderTime)
@@ -96,12 +96,12 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgRenderTime += rt;
     }
     float varRenderTime = maxRenderTime - minRenderTime;
-    avgRenderTime /= m_dLastRenderTimes.size() == 0 ? 1 : m_dLastRenderTimes.size();
+    avgRenderTime /= m_lastRenderTimes.size() == 0 ? 1 : m_lastRenderTimes.size();
 
     float avgRenderTimeNoOverlay = 0;
     float maxRenderTimeNoOverlay = 0;
     float minRenderTimeNoOverlay = 9999;
-    for (auto const& rt : m_dLastRenderTimesNoOverlay) {
+    for (auto const& rt : m_lastRenderTimesNoOverlay) {
         if (rt > maxRenderTimeNoOverlay)
             maxRenderTimeNoOverlay = rt;
         if (rt < minRenderTimeNoOverlay)
@@ -109,12 +109,12 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgRenderTimeNoOverlay += rt;
     }
     float varRenderTimeNoOverlay = maxRenderTimeNoOverlay - minRenderTimeNoOverlay;
-    avgRenderTimeNoOverlay /= m_dLastRenderTimes.size() == 0 ? 1 : m_dLastRenderTimes.size();
+    avgRenderTimeNoOverlay /= m_lastRenderTimes.size() == 0 ? 1 : m_lastRenderTimes.size();
 
     float avgAnimMgrTick = 0;
     float maxAnimMgrTick = 0;
     float minAnimMgrTick = 9999;
-    for (auto const& at : m_dLastAnimationTicks) {
+    for (auto const& at : m_lastAnimationTicks) {
         if (at > maxAnimMgrTick)
             maxAnimMgrTick = at;
         if (at < minAnimMgrTick)
@@ -122,13 +122,13 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgAnimMgrTick += at;
     }
     float varAnimMgrTick = maxAnimMgrTick - minAnimMgrTick;
-    avgAnimMgrTick /= m_dLastAnimationTicks.size() == 0 ? 1 : m_dLastAnimationTicks.size();
+    avgAnimMgrTick /= m_lastAnimationTicks.size() == 0 ? 1 : m_lastAnimationTicks.size();
 
     const float           FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
-    const float           idealFPS = m_dLastFrametimes.size();
+    const float           idealFPS = m_lastFrametimes.size();
 
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
-    PangoLayout*          layoutText = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
+    PangoLayout*          layoutText = pango_cairo_create_layout(g_pDebugOverlay->m_cairo);
     PangoFontDescription* pangoFD    = pango_font_description_new();
 
     pango_font_description_set_family(pangoFD, (*fontFamily).c_str());
@@ -137,7 +137,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     float maxTextW = 0;
     int   fontSize = 0;
-    auto  cr       = g_pDebugOverlay->m_pCairo;
+    auto  cr       = g_pDebugOverlay->m_cairo;
 
     auto  showText = [cr, layoutText, pangoFD, &maxTextW, &fontSize](const char* text, int size) {
         if (fontSize != size) {
@@ -163,22 +163,22 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     const int MARGIN_TOP  = 8;
     const int MARGIN_LEFT = 4;
     cairo_move_to(cr, MARGIN_LEFT, MARGIN_TOP + offset);
-    cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
+    cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 1.f, 1.f, 1.f);
 
     std::string text;
-    showText(m_pMonitor->szName.c_str(), 10);
+    showText(m_monitor->szName.c_str(), 10);
 
     if (FPS > idealFPS * 0.95f)
-        cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 0.2f, 1.f, 0.2f, 1.f);
+        cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 0.2f, 1.f, 0.2f, 1.f);
     else if (FPS > idealFPS * 0.8f)
-        cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 0.2f, 1.f);
+        cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 1.f, 0.2f, 1.f);
     else
-        cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 0.2f, 0.2f, 1.f);
+        cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 0.2f, 0.2f, 1.f);
 
     text = std::format("{} FPS", (int)FPS);
     showText(text.c_str(), 16);
 
-    cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
+    cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 1.f, 1.f, 1.f);
 
     text = std::format("Avg Frametime: {:.2f}ms (var {:.2f}ms)", avgFrametime, varFrametime);
     showText(text.c_str(), 10);
@@ -198,10 +198,10 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     double posX = 0, posY = 0;
     cairo_get_current_point(cr, &posX, &posY);
 
-    g_pHyprRenderer->damageBox(m_wbLastDrawnBox);
-    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
-                        (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
-    g_pHyprRenderer->damageBox(m_wbLastDrawnBox);
+    g_pHyprRenderer->damageBox(m_lastDrawnBox);
+    m_lastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
+                      (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
+    g_pHyprRenderer->damageBox(m_lastDrawnBox);
 
     return posY - offset;
 }
@@ -212,7 +212,7 @@ void CHyprDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_mMonitorOverlays[pMonitor].renderData(pMonitor, durationUs);
+    m_monitorOverlays[pMonitor].renderData(pMonitor, durationUs);
 }
 
 void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
@@ -221,7 +221,7 @@ void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationU
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, durationUs);
+    m_monitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, durationUs);
 }
 
 void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
@@ -230,37 +230,37 @@ void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
     if (!*PDEBUGOVERLAY)
         return;
 
-    m_mMonitorOverlays[pMonitor].frameData(pMonitor);
+    m_monitorOverlays[pMonitor].frameData(pMonitor);
 }
 
 void CHyprDebugOverlay::draw() {
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front();
 
-    if (!m_pCairoSurface || !m_pCairo) {
-        m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
-        m_pCairo        = cairo_create(m_pCairoSurface);
+    if (!m_cairoSurface || !m_cairo) {
+        m_cairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+        m_cairo        = cairo_create(m_cairoSurface);
     }
 
     // clear the pixmap
-    cairo_save(m_pCairo);
-    cairo_set_operator(m_pCairo, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(m_pCairo);
-    cairo_restore(m_pCairo);
+    cairo_save(m_cairo);
+    cairo_set_operator(m_cairo, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(m_cairo);
+    cairo_restore(m_cairo);
 
     // draw the things
     int offsetY = 0;
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        offsetY += m_mMonitorOverlays[m].draw(offsetY);
+        offsetY += m_monitorOverlays[m].draw(offsetY);
         offsetY += 5; // for padding between mons
     }
 
-    cairo_surface_flush(m_pCairoSurface);
+    cairo_surface_flush(m_cairoSurface);
 
     // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(m_pCairoSurface);
-    m_pTexture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
+    const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
+    m_texture->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -272,7 +272,7 @@ void CHyprDebugOverlay::draw() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     CTexPassElement::SRenderData data;
-    data.tex = m_pTexture;
+    data.tex = m_texture;
     data.box = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }

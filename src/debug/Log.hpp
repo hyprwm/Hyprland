@@ -21,17 +21,17 @@ enum eLogLevel : int8_t {
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 namespace Debug {
-    inline std::string     logFile;
-    inline std::ofstream   logOfs;
-    inline int64_t* const* disableLogs   = nullptr;
-    inline int64_t* const* disableTime   = nullptr;
-    inline bool            disableStdout = false;
-    inline bool            trace         = false;
-    inline bool            shuttingDown  = false;
-    inline int64_t* const* coloredLogs   = nullptr;
+    inline std::string     m_logFile;
+    inline std::ofstream   m_logOfs;
+    inline int64_t* const* m_disableLogs   = nullptr;
+    inline int64_t* const* m_disableTime   = nullptr;
+    inline bool            m_disableStdout = false;
+    inline bool            m_trace         = false;
+    inline bool            m_shuttingDown  = false;
+    inline int64_t* const* m_coloredLogs   = nullptr;
 
-    inline std::string     rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
-    inline std::mutex      logMutex;
+    inline std::string     m_rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
+    inline std::mutex      m_logMutex;
 
     void                   init(const std::string& IS);
     void                   close();
@@ -42,18 +42,18 @@ namespace Debug {
     template <typename... Args>
     //NOLINTNEXTLINE
     void log(eLogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-        std::lock_guard<std::mutex> guard(logMutex);
+        std::lock_guard<std::mutex> guard(m_logMutex);
 
-        if (level == TRACE && !trace)
+        if (level == TRACE && !m_trace)
             return;
 
-        if (shuttingDown)
+        if (m_shuttingDown)
             return;
 
         std::string logMsg = "";
 
         // print date and time to the ofs
-        if (disableTime && !**disableTime) {
+        if (m_disableTime && !**m_disableTime) {
 #ifndef _LIBCPP_VERSION
             static auto current_zone = std::chrono::current_zone();
             const auto  zt           = std::chrono::zoned_time{current_zone, std::chrono::system_clock::now()};

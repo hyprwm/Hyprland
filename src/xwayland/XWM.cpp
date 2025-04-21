@@ -194,7 +194,7 @@ std::string CXWM::getAtomName(uint32_t atom) {
 
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
     std::string propName;
-    if (Debug::trace)
+    if (Debug::m_trace)
         propName = getAtomName(atom);
 
     if (atom == XCB_ATOM_WM_CLASS) {

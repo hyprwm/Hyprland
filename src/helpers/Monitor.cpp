@@ -567,7 +567,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     drmFormat     = DRM_FORMAT_XRGB8888;
     output->state->resetExplicitFences();
 
-    if (Debug::trace) {
+    if (Debug::m_trace) {
         Debug::log(TRACE, "Monitor {} requested modes:", szName);
         if (requestedModes.empty())
             Debug::log(TRACE, "| None");

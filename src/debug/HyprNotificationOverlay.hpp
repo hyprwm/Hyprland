@@ -47,17 +47,17 @@ class CHyprNotificationOverlay {
 
   private:
     CBox                           drawNotifications(PHLMONITOR pMonitor);
-    CBox                           m_bLastDamage;
+    CBox                           m_lastDamage;
 
-    std::vector<UP<SNotification>> m_vNotifications;
+    std::vector<UP<SNotification>> m_notifications;
 
-    cairo_surface_t*               m_pCairoSurface = nullptr;
-    cairo_t*                       m_pCairo        = nullptr;
+    cairo_surface_t*               m_cairoSurface = nullptr;
+    cairo_t*                       m_cairo        = nullptr;
 
-    PHLMONITORREF                  m_pLastMonitor;
-    Vector2D                       m_vecLastSize = Vector2D(-1, -1);
+    PHLMONITORREF                  m_lastMonitor;
+    Vector2D                       m_lastSize = Vector2D(-1, -1);
 
-    SP<CTexture>                   m_pTexture;
+    SP<CTexture>                   m_texture;
 };
 
 inline UP<CHyprNotificationOverlay> g_pHyprNotificationOverlay;

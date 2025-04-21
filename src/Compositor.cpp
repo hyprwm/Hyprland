@@ -308,7 +308,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     initManagers(STAGE_PRIORITY);
 
     if (envEnabled("HYPRLAND_TRACE"))
-        Debug::trace = true;
+        Debug::m_trace = true;
 
     // set the buffer size to 1MB to avoid disconnects due to an app hanging for a short while
     wl_display_set_default_max_buffer_size(m_sWLDisplay, 1_MB);
@@ -535,8 +535,8 @@ void CCompositor::cleanup() {
 
     removeLockFile();
 
-    m_bIsShuttingDown   = true;
-    Debug::shuttingDown = true;
+    m_bIsShuttingDown     = true;
+    Debug::m_shuttingDown = true;
 
 #ifdef USES_SYSTEMD
     if (NSystemd::sdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))

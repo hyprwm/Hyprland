@@ -17,13 +17,13 @@ class CHyprMonitorDebugOverlay {
     void frameData(PHLMONITOR pMonitor);
 
   private:
-    std::deque<float>                              m_dLastFrametimes;
-    std::deque<float>                              m_dLastRenderTimes;
-    std::deque<float>                              m_dLastRenderTimesNoOverlay;
-    std::deque<float>                              m_dLastAnimationTicks;
-    std::chrono::high_resolution_clock::time_point m_tpLastFrame;
-    PHLMONITORREF                                  m_pMonitor;
-    CBox                                           m_wbLastDrawnBox;
+    std::deque<float>                              m_lastFrametimes;
+    std::deque<float>                              m_lastRenderTimes;
+    std::deque<float>                              m_lastRenderTimesNoOverlay;
+    std::deque<float>                              m_lastAnimationTicks;
+    std::chrono::high_resolution_clock::time_point m_lastFrame;
+    PHLMONITORREF                                  m_monitor;
+    CBox                                           m_lastDrawnBox;
 
     friend class CHyprRenderer;
 };
@@ -37,12 +37,12 @@ class CHyprDebugOverlay {
     void frameData(PHLMONITOR);
 
   private:
-    std::map<PHLMONITORREF, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
+    std::map<PHLMONITORREF, CHyprMonitorDebugOverlay> m_monitorOverlays;
 
-    cairo_surface_t*                                  m_pCairoSurface = nullptr;
-    cairo_t*                                          m_pCairo        = nullptr;
+    cairo_surface_t*                                  m_cairoSurface = nullptr;
+    cairo_t*                                          m_cairo        = nullptr;
 
-    SP<CTexture>                                      m_pTexture;
+    SP<CTexture>                                      m_texture;
 
     friend class CHyprMonitorDebugOverlay;
     friend class CHyprRenderer;

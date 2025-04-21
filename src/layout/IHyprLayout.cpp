@@ -366,6 +366,8 @@ void IHyprLayout::onEndDragWindow() {
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
 
     g_pInputManager->m_bWasDraggingWindow = false;
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 static inline bool canSnap(const double SIDEA, const double SIDEB, const double GAP) {

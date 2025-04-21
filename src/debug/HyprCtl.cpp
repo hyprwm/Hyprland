@@ -288,7 +288,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
         result += "[";
 
         for (auto const& w : g_pCompositor->m_vWindows) {
-            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
             result += CHyprCtl::getWindowData(w, format);
@@ -299,7 +299,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
         result += "]";
     } else {
         for (auto const& w : g_pCompositor->m_vWindows) {
-            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
             result += CHyprCtl::getWindowData(w, format);
@@ -801,10 +801,10 @@ static std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[\n\"log\":\"";
-        result += escapeJSONStrings(Debug::rollingLog);
+        result += escapeJSONStrings(Debug::m_rollingLog);
         result += "\"]";
     } else {
-        result = Debug::rollingLog;
+        result = Debug::m_rollingLog;
     }
 
     return result;
@@ -1030,7 +1030,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     } else
         result += "\tunknown: not runtime\n";
 
-    if (g_pHyprCtl && g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {
         result += "\n======Config-Start======\n";
         result += g_pConfigManager->getConfigString();
         result += "\n======Config-End========\n";
@@ -1702,17 +1702,17 @@ CHyprCtl::~CHyprCtl() {
 }
 
 SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
-    return m_vCommands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
+    return m_commands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
 }
 
 void CHyprCtl::unregisterCommand(const SP<SHyprCtlCommand>& cmd) {
-    std::erase(m_vCommands, cmd);
+    std::erase(m_commands, cmd);
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format             = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll          = false;
-    m_sCurrentRequestParams = {};
+    auto format            = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll         = false;
+    m_currentRequestParams = {};
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1736,9 +1736,9 @@ std::string CHyprCtl::getReply(std::string request) {
             else if (c == 'r')
                 reloadAll = true;
             else if (c == 'a')
-                m_sCurrentRequestParams.all = true;
+                m_currentRequestParams.all = true;
             else if (c == 'c')
-                m_sCurrentRequestParams.sysInfoConfig = true;
+                m_currentRequestParams.sysInfoConfig = true;
         }
 
         if (sepIndex < request.size())
@@ -1748,7 +1748,7 @@ std::string CHyprCtl::getReply(std::string request) {
     std::string result = "";
 
     // parse exact cmds first, then non-exact.
-    for (auto const& cmd : m_vCommands) {
+    for (auto const& cmd : m_commands) {
         if (!cmd->exact)
             continue;
 
@@ -1759,7 +1759,7 @@ std::string CHyprCtl::getReply(std::string request) {
     }
 
     if (result.empty())
-        for (auto const& cmd : m_vCommands) {
+        for (auto const& cmd : m_commands) {
             if (cmd->exact)
                 continue;
 
@@ -1855,13 +1855,13 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
-    if (!g_pHyprCtl->m_iSocketFD.isValid())
+    if (!g_pHyprCtl->m_socketFD.isValid())
         return 0;
 
     sockaddr_in            clientAddress;
     socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_iSocketFD.get(), (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
     std::array<char, 1024> readBuffer;
 
@@ -1918,9 +1918,9 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-    m_iSocketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
+    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
 
-    if (!m_iSocketFD.isValid()) {
+    if (!m_socketFD.isValid()) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
         return;
     }
@@ -1931,15 +1931,15 @@ void CHyprCtl::startHyprCtlSocket() {
 
     strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
-    if (bind(m_iSocketFD.get(), (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
+    if (bind(m_socketFD.get(), (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
         return;
     }
 
     // 10 max queued.
-    listen(m_iSocketFD.get(), 10);
+    listen(m_socketFD.get(), 10);
 
     Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

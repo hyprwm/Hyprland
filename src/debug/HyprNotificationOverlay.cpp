@@ -23,24 +23,24 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (m_vNotifications.size() == 0)
+        if (m_notifications.size() == 0)
             return;
 
-        g_pHyprRenderer->damageBox(m_bLastDamage);
+        g_pHyprRenderer->damageBox(m_lastDamage);
     });
 
-    m_pTexture = makeShared<CTexture>();
+    m_texture = makeShared<CTexture>();
 }
 
 CHyprNotificationOverlay::~CHyprNotificationOverlay() {
-    if (m_pCairo)
-        cairo_destroy(m_pCairo);
-    if (m_pCairoSurface)
-        cairo_surface_destroy(m_pCairoSurface);
+    if (m_cairo)
+        cairo_destroy(m_cairo);
+    if (m_cairoSurface)
+        cairo_surface_destroy(m_cairoSurface);
 }
 
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
-    const auto PNOTIF = m_vNotifications.emplace_back(makeUnique<SNotification>()).get();
+    const auto PNOTIF = m_notifications.emplace_back(makeUnique<SNotification>()).get();
 
     PNOTIF->text  = icon != eIcons::ICON_NONE ? " " + text /* tiny bit of padding otherwise icon touches text */ : text;
     PNOTIF->color = color == CHyprColor(0) ? ICONS_COLORS[icon] : color;
@@ -56,12 +56,12 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CH
 
 void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     if (amount == -1)
-        m_vNotifications.clear();
+        m_notifications.clear();
     else {
-        const int AMT = std::min(amount, static_cast<int>(m_vNotifications.size()));
+        const int AMT = std::min(amount, static_cast<int>(m_notifications.size()));
 
         for (int i = 0; i < AMT; ++i) {
-            m_vNotifications.erase(m_vNotifications.begin());
+            m_notifications.erase(m_notifications.begin());
         }
     }
 }
@@ -82,7 +82,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
 
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
 
-    PangoLayout*          layout  = pango_cairo_create_layout(m_pCairo);
+    PangoLayout*          layout  = pango_cairo_create_layout(m_cairo);
     PangoFontDescription* pangoFD = pango_font_description_new();
 
     pango_font_description_set_family(pangoFD, (*fontFamily).c_str());
@@ -92,7 +92,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     const auto iconBackendID = iconBackendFromLayout(layout);
     const auto PBEZIER       = g_pAnimationManager->getBezier("default");
 
-    for (auto const& notif : m_vNotifications) {
+    for (auto const& notif : m_notifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
         const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 
@@ -139,17 +139,17 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
         const auto NOTIFSIZE = Vector2D{textW + 20.0 + iconW + 2 * ICONPADFORNOTIF, textH + 10.0};
 
         // draw rects
-        cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
-        cairo_rectangle(m_pCairo, MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, offsetY, (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, NOTIFSIZE.y);
-        cairo_fill(m_pCairo);
+        cairo_set_source_rgba(m_cairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
+        cairo_rectangle(m_cairo, MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, offsetY, (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, NOTIFSIZE.y);
+        cairo_fill(m_cairo);
 
-        cairo_set_source_rgb(m_pCairo, 0.f, 0.f, 0.f);
-        cairo_rectangle(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC, offsetY, NOTIFSIZE.x * SECONDRECTPERC, NOTIFSIZE.y);
-        cairo_fill(m_pCairo);
+        cairo_set_source_rgb(m_cairo, 0.f, 0.f, 0.f);
+        cairo_rectangle(m_cairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC, offsetY, NOTIFSIZE.x * SECONDRECTPERC, NOTIFSIZE.y);
+        cairo_fill(m_cairo);
 
-        cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
-        cairo_rectangle(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + 3, offsetY + NOTIFSIZE.y - 4, THIRDRECTPERC * (NOTIFSIZE.x - 6), 2);
-        cairo_fill(m_pCairo);
+        cairo_set_source_rgba(m_cairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
+        cairo_rectangle(m_cairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + 3, offsetY + NOTIFSIZE.y - 4, THIRDRECTPERC * (NOTIFSIZE.x - 6), 2);
+        cairo_fill(m_cairo);
 
         // draw gradient
         if (notif->icon != ICON_NONE) {
@@ -158,23 +158,23 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
                                                   MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC + GRADIENT_SIZE, offsetY);
             cairo_pattern_add_color_stop_rgba(pattern, 0, ICONCOLOR.r, ICONCOLOR.g, ICONCOLOR.b, ICONCOLOR.a / 3.0);
             cairo_pattern_add_color_stop_rgba(pattern, 1, ICONCOLOR.r, ICONCOLOR.g, ICONCOLOR.b, 0);
-            cairo_rectangle(m_pCairo, MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, offsetY, GRADIENT_SIZE, NOTIFSIZE.y);
-            cairo_set_source(m_pCairo, pattern);
-            cairo_fill(m_pCairo);
+            cairo_rectangle(m_cairo, MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, offsetY, GRADIENT_SIZE, NOTIFSIZE.y);
+            cairo_set_source(m_cairo, pattern);
+            cairo_fill(m_cairo);
             cairo_pattern_destroy(pattern);
 
             // draw icon
-            cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
-            cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY - 2 + std::round((NOTIFSIZE.y - iconH) / 2.0));
+            cairo_set_source_rgb(m_cairo, 1.f, 1.f, 1.f);
+            cairo_move_to(m_cairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY - 2 + std::round((NOTIFSIZE.y - iconH) / 2.0));
             pango_layout_set_text(layout, ICON.c_str(), -1);
-            pango_cairo_show_layout(m_pCairo, layout);
+            pango_cairo_show_layout(m_cairo, layout);
         }
 
         // draw text
-        cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
-        cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY - 2 + std::round((NOTIFSIZE.y - textH) / 2.0));
+        cairo_set_source_rgb(m_cairo, 1.f, 1.f, 1.f);
+        cairo_move_to(m_cairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY - 2 + std::round((NOTIFSIZE.y - textH) / 2.0));
         pango_layout_set_text(layout, notif->text.c_str(), -1);
-        pango_cairo_show_layout(m_pCairo, layout);
+        pango_cairo_show_layout(m_cairo, layout);
 
         // adjust offset and move on
         offsetY += NOTIFSIZE.y + 10;
@@ -187,7 +187,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     g_object_unref(layout);
 
     // cleanup notifs
-    std::erase_if(m_vNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
+    std::erase_if(m_notifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
     return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
 }
@@ -196,46 +196,46 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
     const auto MONSIZE = pMonitor->vecTransformedSize;
 
-    if (m_pLastMonitor != pMonitor || m_vecLastSize != MONSIZE || !m_pCairo || !m_pCairoSurface) {
+    if (m_lastMonitor != pMonitor || m_lastSize != MONSIZE || !m_cairo || !m_cairoSurface) {
 
-        if (m_pCairo && m_pCairoSurface) {
-            cairo_destroy(m_pCairo);
-            cairo_surface_destroy(m_pCairoSurface);
+        if (m_cairo && m_cairoSurface) {
+            cairo_destroy(m_cairo);
+            cairo_surface_destroy(m_cairoSurface);
         }
 
-        m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, MONSIZE.x, MONSIZE.y);
-        m_pCairo        = cairo_create(m_pCairoSurface);
-        m_pLastMonitor  = pMonitor;
-        m_vecLastSize   = MONSIZE;
+        m_cairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, MONSIZE.x, MONSIZE.y);
+        m_cairo        = cairo_create(m_cairoSurface);
+        m_lastMonitor  = pMonitor;
+        m_lastSize     = MONSIZE;
     }
 
     // Draw the notifications
-    if (m_vNotifications.size() == 0)
+    if (m_notifications.size() == 0)
         return;
 
     // Render to the monitor
 
     // clear the pixmap
-    cairo_save(m_pCairo);
-    cairo_set_operator(m_pCairo, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(m_pCairo);
-    cairo_restore(m_pCairo);
+    cairo_save(m_cairo);
+    cairo_set_operator(m_cairo, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(m_cairo);
+    cairo_restore(m_cairo);
 
-    cairo_surface_flush(m_pCairoSurface);
+    cairo_surface_flush(m_cairoSurface);
 
     CBox damage = drawNotifications(pMonitor);
 
     g_pHyprRenderer->damageBox(damage);
-    g_pHyprRenderer->damageBox(m_bLastDamage);
+    g_pHyprRenderer->damageBox(m_lastDamage);
 
     g_pCompositor->scheduleFrameForMonitor(pMonitor);
 
-    m_bLastDamage = damage;
+    m_lastDamage = damage;
 
     // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(m_pCairoSurface);
-    m_pTexture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
+    const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
+    m_texture->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -247,7 +247,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MONSIZE.x, MONSIZE.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     CTexPassElement::SRenderData data;
-    data.tex = m_pTexture;
+    data.tex = m_texture;
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;
 
@@ -255,5 +255,5 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 }
 
 bool CHyprNotificationOverlay::hasAny() {
-    return !m_vNotifications.empty();
+    return !m_notifications.empty();
 }

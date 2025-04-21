@@ -20,12 +20,12 @@ class CHyprCtl {
     void                           unregisterCommand(const SP<SHyprCtlCommand>& cmd);
     std::string                    getReply(std::string);
 
-    Hyprutils::OS::CFileDescriptor m_iSocketFD;
+    Hyprutils::OS::CFileDescriptor m_socketFD;
 
     struct {
         bool all           = false;
         bool sysInfoConfig = false;
-    } m_sCurrentRequestParams;
+    } m_currentRequestParams;
 
     static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
     static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
@@ -34,7 +34,7 @@ class CHyprCtl {
   private:
     void                             startHyprCtlSocket();
 
-    std::vector<SP<SHyprCtlCommand>> m_vCommands;
+    std::vector<SP<SHyprCtlCommand>> m_commands;
     wl_event_source*                 m_eventSource = nullptr;
     std::string                      m_socketPath;
 };

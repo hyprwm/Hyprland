@@ -800,8 +800,8 @@ CConfigManager::CConfigManager() {
             "https://wiki.hyprland.org/Configuring/Variables/#debug");
     }
 
-    Debug::disableLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
-    Debug::disableTime = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
+    Debug::m_disableLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
+    Debug::m_disableTime = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
 
     if (g_pEventLoopManager && ERR.has_value())
         g_pEventLoopManager->doLater([ERR] { g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0}); });
@@ -1076,11 +1076,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pHyprRenderer->initiateManualCrash();
     }
 
-    Debug::disableStdout = !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:enable_stdout_logs"));
-    if (Debug::disableStdout && m_isFirstLaunch)
+    Debug::m_disableStdout = !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:enable_stdout_logs"));
+    if (Debug::m_disableStdout && m_isFirstLaunch)
         Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
-    Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
+    Debug::m_coloredLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty

@@ -7,21 +7,21 @@
 #include <fcntl.h>
 
 void Debug::init(const std::string& IS) {
-    logFile = IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
-    logOfs.open(logFile, std::ios::out | std::ios::app);
-    auto handle = logOfs.native_handle();
+    m_logFile = IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
+    m_logOfs.open(m_logFile, std::ios::out | std::ios::app);
+    auto handle = m_logOfs.native_handle();
     fcntl(handle, F_SETFD, FD_CLOEXEC);
 }
 
 void Debug::close() {
-    logOfs.close();
+    m_logOfs.close();
 }
 
 void Debug::log(eLogLevel level, std::string str) {
-    if (level == TRACE && !trace)
+    if (level == TRACE && !m_trace)
         return;
 
-    if (shuttingDown)
+    if (m_shuttingDown)
         return;
 
     std::string coloredStr = str;
@@ -55,20 +55,20 @@ void Debug::log(eLogLevel level, std::string str) {
     }
     //NOLINTEND
 
-    rollingLog += str + "\n";
-    if (rollingLog.size() > ROLLING_LOG_SIZE)
-        rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
+    m_rollingLog += str + "\n";
+    if (m_rollingLog.size() > ROLLING_LOG_SIZE)
+        m_rollingLog = m_rollingLog.substr(m_rollingLog.size() - ROLLING_LOG_SIZE);
 
     if (SRollingLogFollow::get().isRunning())
         SRollingLogFollow::get().addLog(str);
 
-    if (!disableLogs || !**disableLogs) {
+    if (!m_disableLogs || !**m_disableLogs) {
         // log to a file
-        logOfs << str << "\n";
-        logOfs.flush();
+        m_logOfs << str << "\n";
+        m_logOfs.flush();
     }
 
     // log it to the stdout too.
-    if (!disableStdout)
-        std::println("{}", ((coloredLogs && !**coloredLogs) ? str : coloredStr));
+    if (!m_disableStdout)
+        std::println("{}", ((m_coloredLogs && !**m_coloredLogs) ? str : coloredStr));
 }

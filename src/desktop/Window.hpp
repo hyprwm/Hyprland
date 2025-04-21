@@ -104,6 +104,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               tearing            = false;
     CWindowOverridableVar<bool>               xray               = false;
     CWindowOverridableVar<bool>               renderUnfocused    = false;
+    CWindowOverridableVar<bool>               noFollowMouse      = false;
 
     CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), Hyprlang::INT(0), std::nullopt};
     CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), Hyprlang::INT(0), std::nullopt};
@@ -484,6 +485,7 @@ namespace NWindowProperties {
         {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
         {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
+        {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFollowMouse; }},
     };
 
     const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::INT>*(const PHLWINDOW&)>> intWindowProperties = {

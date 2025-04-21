@@ -631,7 +631,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:numlock_by_default", Hyprlang::INT{0});
     registerConfigVar("input:resolve_binds_by_sym", Hyprlang::INT{0});
     registerConfigVar("input:force_no_accel", Hyprlang::INT{0});
-    registerConfigVar("input:float_switch_override_focus", Hyprlang::INT{1});
     registerConfigVar("input:left_handed", Hyprlang::INT{0});
     registerConfigVar("input:scroll_method", {STRVAL_EMPTY});
     registerConfigVar("input:scroll_button", Hyprlang::INT{0});

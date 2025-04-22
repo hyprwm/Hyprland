@@ -92,7 +92,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     const auto  PNODE = [&]() {
         if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {
-            const auto pLastNode = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
+            const auto pLastNode = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
             if (pLastNode && !(pLastNode->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
                 auto it = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *pLastNode);
                 if (!BNEWBEFOREACTIVE)
@@ -110,8 +110,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     static auto  PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
     float        lastSplitPercent   = *PMFACT;
 
-    auto         OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
-                getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) :
+    auto         OPENINGON = isWindowTiled(g_pCompositor->m_lastWindow.lock()) && g_pCompositor->m_lastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
+                getNodeFromWindow(g_pCompositor->m_lastWindow.lock()) :
                 getMasterNodeOnWorkspace(pWindow->workspaceID());
 
     const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
@@ -621,7 +621,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PHLMONITOR PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
                 PMONITOR = m;
                 break;
@@ -718,7 +718,7 @@ bool CHyprMasterLayout::isWindowTiled(PHLWINDOW pWindow) {
 }
 
 void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
     if (!validMapped(PWINDOW))
         return;
@@ -1443,32 +1443,32 @@ void CHyprMasterLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {
 Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     static auto PNEWSTATUS = CConfigValue<std::string>("master:new_status");
 
-    if (!g_pCompositor->m_pLastMonitor)
+    if (!g_pCompositor->m_lastMonitor)
         return {};
 
-    const int NODES = getNodesOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
+    const int NODES = getNodesOnWorkspace(g_pCompositor->m_lastMonitor->activeWorkspace->m_iID);
 
     if (NODES <= 0)
-        return g_pCompositor->m_pLastMonitor->vecSize;
+        return g_pCompositor->m_lastMonitor->vecSize;
 
-    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
+    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_lastMonitor->activeWorkspace->m_iID);
     if (!MASTER) // wtf
         return {};
 
     if (*PNEWSTATUS == "master") {
         return MASTER->size;
     } else {
-        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
+        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_lastMonitor->activeWorkspace->m_iID);
 
         // TODO: make this better
-        return {g_pCompositor->m_pLastMonitor->vecSize.x - MASTER->size.x, g_pCompositor->m_pLastMonitor->vecSize.y / (SLAVES + 1)};
+        return {g_pCompositor->m_lastMonitor->vecSize.x - MASTER->size.x, g_pCompositor->m_lastMonitor->vecSize.y / (SLAVES + 1)};
     }
 
     return {};
 }
 
 void CHyprMasterLayout::onEnable() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())
             continue;
 

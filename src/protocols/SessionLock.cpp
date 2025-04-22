@@ -50,8 +50,8 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         pSurface->unmap();
         listeners.surfaceCommit.reset();
         listeners.surfaceDestroy.reset();
-        if (g_pCompositor->m_pLastFocus == pSurface)
-            g_pCompositor->m_pLastFocus.reset();
+        if (g_pCompositor->m_lastFocus == pSurface)
+            g_pCompositor->m_lastFocus.reset();
 
         pSurface.reset();
     });

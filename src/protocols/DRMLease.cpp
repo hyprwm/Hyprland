@@ -245,7 +245,7 @@ CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : backe
 }
 
 CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+    for (auto const& b : g_pCompositor->m_aqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 

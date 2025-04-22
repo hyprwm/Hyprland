@@ -68,14 +68,14 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
 }
 
 bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
-    if (!g_pCompositor->m_pLastFocus)
+    if (!g_pCompositor->m_lastFocus)
         return false;
 
-    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus.lock()); PWINDOW && PWINDOW->m_sWindowData.noShortcutsInhibit.valueOrDefault())
+    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock()); PWINDOW && PWINDOW->m_sWindowData.noShortcutsInhibit.valueOrDefault())
         return false;
 
     for (auto const& in : m_vInhibitors) {
-        if (in->surface() != g_pCompositor->m_pLastFocus)
+        if (in->surface() != g_pCompositor->m_lastFocus)
             continue;
 
         return true;

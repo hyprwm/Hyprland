@@ -409,7 +409,7 @@ void CLinuxDMABUFResource::sendMods() {
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
-        int  rendererFD = g_pCompositor->m_iDRMFD;
+        int  rendererFD = g_pCompositor->m_drmFD;
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {
@@ -428,11 +428,11 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tches;
 
-        if (g_pCompositor->m_pAqBackend->hasSession()) {
+        if (g_pCompositor->m_aqBackend->hasSession()) {
             // this assumes there's only 1 device used for both scanout and rendering
             // also that each monitor never changes its primary plane
 
-            for (auto const& mon : g_pCompositor->m_vMonitors) {
+            for (auto const& mon : g_pCompositor->m_monitors) {
                 auto tranche = SDMABUFTranche{
                     .device  = mainDevice,
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,

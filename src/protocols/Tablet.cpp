@@ -210,7 +210,7 @@ void CTabletToolV2Resource::queueFrame() {
     if (frameSource)
         return;
 
-    frameSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, [](void* data) { ((CTabletToolV2Resource*)data)->sendFrame(false); }, this);
+    frameSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, [](void* data) { ((CTabletToolV2Resource*)data)->sendFrame(false); }, this);
 }
 
 void CTabletToolV2Resource::sendFrame(bool removeSource) {

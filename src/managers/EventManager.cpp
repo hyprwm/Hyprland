@@ -18,7 +18,7 @@ CEventManager::CEventManager() : m_iSocketFD(socket(AF_UNIX, SOCK_STREAM | SOCK_
     }
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-    const auto  PATH          = g_pCompositor->m_szInstancePath + "/.socket2.sock";
+    const auto  PATH          = g_pCompositor->m_instancePath + "/.socket2.sock";
     if (PATH.length() > sizeof(SERVERADDRESS.sun_path) - 1) {
         Debug::log(ERR, "Socket2 path is too long. (2) IPC will not work.");
         return;
@@ -37,7 +37,7 @@ CEventManager::CEventManager() : m_iSocketFD(socket(AF_UNIX, SOCK_STREAM | SOCK_
         return;
     }
 
-    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, onClientEvent, nullptr);
+    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, onClientEvent, nullptr);
 }
 
 CEventManager::~CEventManager() {
@@ -85,7 +85,7 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
     Debug::log(LOG, "Socket2 accepted a new client at FD {}", ACCEPTEDCONNECTION.get());
 
     // add to event loop so we can close it when we need to
-    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION.get(), 0, onServerEvent, nullptr);
+    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, ACCEPTEDCONNECTION.get(), 0, onServerEvent, nullptr);
     m_vClients.emplace_back(SClient{
         std::move(ACCEPTEDCONNECTION),
         {},
@@ -141,7 +141,7 @@ std::string CEventManager::formatEvent(const SHyprIPCEvent& event) const {
 }
 
 void CEventManager::postEvent(const SHyprIPCEvent& event) {
-    if (g_pCompositor->m_bIsShuttingDown) {
+    if (g_pCompositor->m_isShuttingDown) {
         Debug::log(WARN, "Suppressed (shutting down) event of type {}, content: {}", event.event, event.data);
         return;
     }

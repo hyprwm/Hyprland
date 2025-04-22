@@ -57,7 +57,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
         m_monitor = pMonitor;
 
     // anim data too
-    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor.lock() : g_pCompositor->m_pLastMonitor.lock();
+    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
     if (PMONITORFORTICKS) {
         if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->refreshRate)
             m_lastAnimationTicks.pop_front();
@@ -199,7 +199,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     cairo_get_current_point(cr, &posX, &posY);
 
     g_pHyprRenderer->damageBox(m_lastDrawnBox);
-    m_lastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
+    m_lastDrawnBox = {(int)g_pCompositor->m_monitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_monitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
                       (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
     g_pHyprRenderer->damageBox(m_lastDrawnBox);
 
@@ -235,7 +235,7 @@ void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
 
 void CHyprDebugOverlay::draw() {
 
-    const auto PMONITOR = g_pCompositor->m_vMonitors.front();
+    const auto PMONITOR = g_pCompositor->m_monitors.front();
 
     if (!m_cairoSurface || !m_cairo) {
         m_cairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
@@ -250,7 +250,7 @@ void CHyprDebugOverlay::draw() {
 
     // draw the things
     int offsetY = 0;
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         offsetY += m_monitorOverlays[m].draw(offsetY);
         offsetY += 5; // for padding between mons
     }

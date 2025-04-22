@@ -260,7 +260,7 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
     return EGL_NO_DEVICE_EXT;
 }
 
-CHyprOpenGLImpl::CHyprOpenGLImpl() : m_iDRMFD(g_pCompositor->m_iDRMFD) {
+CHyprOpenGLImpl::CHyprOpenGLImpl() : m_iDRMFD(g_pCompositor->m_drmFD) {
     const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
     Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS);
@@ -2083,7 +2083,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     };
 
     bool hasWindows = false;
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
 
             // check if window is valid
@@ -2095,7 +2095,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         }
     }
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         for (auto const& lsl : m->m_aLayerSurfaceLayers) {
             for (auto const& ls : lsl) {
                 if (!ls->layerSurface || ls->xray != 1)
@@ -2640,7 +2640,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     int textW = 0, textH = 0;
-    pango_layout_set_text(layoutText, g_pCompositor->m_szCurrentSplash.c_str(), -1);
+    pango_layout_set_text(layoutText, g_pCompositor->m_currentSplash.c_str(), -1);
     pango_layout_get_size(layoutText, &textW, &textH);
     textW /= PANGO_SCALE;
     textH /= PANGO_SCALE;
@@ -2845,11 +2845,10 @@ void CHyprOpenGLImpl::initAssets() {
     m_pLockDeadTexture  = loadAsset("lockdead.png");
     m_pLockDead2Texture = loadAsset("lockdead2.png");
 
-    m_pLockTtyTextTexture = renderText(std::format("Running on tty {}",
-                                                   g_pCompositor->m_pAqBackend->hasSession() && g_pCompositor->m_pAqBackend->session->vt > 0 ?
-                                                       std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
-                                                       "unknown"),
-                                       CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+    m_pLockTtyTextTexture = renderText(
+        std::format("Running on tty {}",
+                    g_pCompositor->m_aqBackend->hasSession() && g_pCompositor->m_aqBackend->session->vt > 0 ? std::to_string(g_pCompositor->m_aqBackend->session->vt) : "unknown"),
+        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 
     m_pScreencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 

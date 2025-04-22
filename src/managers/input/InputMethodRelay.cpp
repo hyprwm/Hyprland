@@ -55,17 +55,17 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         Debug::log(LOG, "New input popup");
     });
 
-    if (!g_pCompositor->m_pLastFocus)
+    if (!g_pCompositor->m_lastFocus)
         return;
 
     for (auto const& ti : m_vTextInputs) {
-        if (ti->client() != g_pCompositor->m_pLastFocus->client())
+        if (ti->client() != g_pCompositor->m_lastFocus->client())
             continue;
 
         if (ti->isV3())
-            ti->enter(g_pCompositor->m_pLastFocus.lock());
+            ti->enter(g_pCompositor->m_lastFocus.lock());
         else
-            ti->onEnabled(g_pCompositor->m_pLastFocus.lock());
+            ti->onEnabled(g_pCompositor->m_lastFocus.lock());
     }
 }
 
@@ -74,11 +74,11 @@ void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
 }
 
 CTextInput* CInputMethodRelay::getFocusedTextInput() {
-    if (!g_pCompositor->m_pLastFocus)
+    if (!g_pCompositor->m_lastFocus)
         return nullptr;
 
     for (auto const& ti : m_vTextInputs) {
-        if (ti->focusedSurface() == g_pCompositor->m_pLastFocus)
+        if (ti->focusedSurface() == g_pCompositor->m_lastFocus)
             return ti.get();
     }
 

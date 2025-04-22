@@ -85,7 +85,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
     // set floating windows offset callbacks
     m_vRenderOffset->setUpdateCallback([&](auto) {
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
 
@@ -524,7 +524,7 @@ MONITORID CWorkspace::monitorID() {
 }
 
 PHLWINDOW CWorkspace::getFullscreenWindow() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace == m_pSelf && w->isFullscreen())
             return w;
     }
@@ -546,7 +546,7 @@ bool CWorkspace::isVisibleNotCovered() {
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->workspaceID() != m_iID || !w->m_bIsMapped)
             continue;
         if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
@@ -563,7 +563,7 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
 
 int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->workspaceID() != m_iID || !w->m_bIsMapped)
             continue;
         if (!w->m_sGroupData.head)
@@ -580,7 +580,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 }
 
 PHLWINDOW CWorkspace::getFirstWindow() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace == m_pSelf && w->m_bIsMapped && !w->isHidden())
             return w;
     }
@@ -591,7 +591,7 @@ PHLWINDOW CWorkspace::getFirstWindow() {
 PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_pMonitor.lock();
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
             continue;
 
@@ -604,7 +604,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace == m_pSelf && w->m_bIsMapped && w->m_bIsUrgent)
             return true;
     }
@@ -613,7 +613,7 @@ bool CWorkspace::hasUrgentWindow() {
 }
 
 void CWorkspace::updateWindowDecos() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != m_pSelf)
             continue;
 
@@ -624,7 +624,7 @@ void CWorkspace::updateWindowDecos() {
 void CWorkspace::updateWindowData() {
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_pSelf.lock());
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != m_pSelf)
             continue;
 
@@ -633,7 +633,7 @@ void CWorkspace::updateWindowData() {
 }
 
 void CWorkspace::forceReportSizesToWindows() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
             continue;
 
@@ -658,9 +658,9 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_bHasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_vWindows, [this](const auto& w) { return w->m_bIsMapped && w->m_pWorkspace == m_pSelf && w->isFullscreen(); });
+    m_bHasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_bIsMapped && w->m_pWorkspace == m_pSelf && w->isFullscreen(); });
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_bIsMapped || w->m_pWorkspace != m_pSelf)
             continue;
 

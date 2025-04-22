@@ -109,7 +109,7 @@ CProtocolManager::CProtocolManager() {
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
         // also ignore the fallback
-        if (M->isMirror() || M == g_pCompositor->m_pUnsafeOutput)
+        if (M->isMirror() || M == g_pCompositor->m_unsafeOutput)
             return;
 
         if (PROTO::outputs.contains(M->szName))
@@ -194,7 +194,7 @@ CProtocolManager::CProtocolManager() {
 
     // ! please read the top of this file before adding another protocol
 
-    for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+    for (auto const& b : g_pCompositor->m_aqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 

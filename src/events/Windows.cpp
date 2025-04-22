@@ -57,10 +57,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    auto        PMONITOR = g_pCompositor->m_pLastMonitor.lock();
-    if (!g_pCompositor->m_pLastMonitor) {
+    auto        PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    if (!g_pCompositor->m_lastMonitor) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = g_pCompositor->m_pLastMonitor.lock();
+        PMONITOR = g_pCompositor->m_lastMonitor.lock();
     }
     auto PWORKSPACE           = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
     PWINDOW->m_pMonitor       = PMONITOR;
@@ -153,7 +153,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                             if (const auto PM = g_pCompositor->getMonitorFromID(MONITOR); PM)
                                 PWINDOW->m_pMonitor = PM;
                             else
-                                PWINDOW->m_pMonitor = g_pCompositor->m_vMonitors.at(0);
+                                PWINDOW->m_pMonitor = g_pCompositor->m_monitors.at(0);
                         } else {
                             const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
                             if (PMONITOR)
@@ -353,7 +353,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_bNoInitialFocus)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
-                PMONITOR = g_pCompositor->m_pLastMonitor.lock();
+                PMONITOR = g_pCompositor->m_lastMonitor.lock();
             }
 
             requestedFSMonitor = MONITOR_INVALID;
@@ -570,7 +570,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize->goal() - Vector2D(10, 10);
     }
 
-    const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
+    const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_lastWindow.lock();
 
     if (PWINDOW->m_sWindowData.allowsInput.valueOrDefault()) { // if default value wasn't set to false getPriority() would throw an exception
         PWINDOW->m_sWindowData.noFocus = CWindowOverridableVar(false, PWINDOW->m_sWindowData.allowsInput.getPriority());
@@ -580,7 +580,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
-    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus.lock());
+    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_bNoInitialFocus = true;
 
@@ -750,10 +750,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     bool wasLastWindow = false;
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
+    if (PWINDOW == g_pCompositor->m_lastWindow.lock()) {
         wasLastWindow = true;
-        g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus.reset();
+        g_pCompositor->m_lastWindow.reset();
+        g_pCompositor->m_lastFocus.reset();
 
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -785,7 +785,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
+        if (PWINDOWCANDIDATE != g_pCompositor->m_lastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
             if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
@@ -797,7 +797,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->sendMotionEventsToFocused();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
-        if (PWINDOW == g_pCompositor->m_pLastWindow.lock() || !g_pCompositor->m_pLastWindow.lock()) {
+        if (PWINDOW == g_pCompositor->m_lastWindow.lock() || !g_pCompositor->m_lastWindow.lock()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
             EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
@@ -899,9 +899,9 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
-        g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus.reset();
+    if (PWINDOW == g_pCompositor->m_lastWindow.lock()) {
+        g_pCompositor->m_lastWindow.reset();
+        g_pCompositor->m_lastFocus.reset();
     }
 
     PWINDOW->m_pWLSurface->unassign();
@@ -934,7 +934,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 
         Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 
-        if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->getPID() != PWINDOW->getPID())
+        if (g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->getPID() != PWINDOW->getPID())
             return;
 
         if (!PWINDOW->m_pXWaylandSurface->wantsFocus())
@@ -944,7 +944,7 @@ void Events::listener_activateX11(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow.lock() || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
+    if (PWINDOW == g_pCompositor->m_lastWindow.lock() || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
     PWINDOW->activate();

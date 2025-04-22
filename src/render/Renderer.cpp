@@ -650,13 +650,13 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             pWindow->m_pPopupHead->breadthfirst(
                 [this, &renderdata](WP<CPopup> popup, void* data) {
-                    if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
+                    if (!popup->m_WLSurface || !popup->m_WLSurface->resource() || !popup->m_mapped)
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
 
-                    popup->m_pWLSurface->resource()->breadthfirst(
+                    popup->m_WLSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                             renderdata.localPos    = offset;
                             renderdata.texture     = s->current.texture;
@@ -696,14 +696,14 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
-    if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot && !popups) {
+    if (*PDIMAROUND && pLayer->m_dimAround && !m_bRenderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
         data.box   = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
-        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->alpha->value());
+        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
         m_sRenderPass.add(makeShared<CRectPassElement>(data));
     }
 
-    if (pLayer->fadingOut) {
+    if (pLayer->m_fadingOut) {
         if (!popups)
             renderSnapshot(pLayer);
         return;
@@ -713,33 +713,33 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     TRACY_GPU_ZONE("RenderLayer");
 
-    const auto                       REALPOS = pLayer->realPosition->value();
-    const auto                       REALSIZ = pLayer->realSize->value();
+    const auto                       REALPOS = pLayer->m_realPosition->value();
+    const auto                       REALSIZ = pLayer->m_realSize->value();
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
-    renderdata.fadeAlpha                        = pLayer->alpha->value();
-    renderdata.blur                             = pLayer->forceBlur && *PBLUR;
-    renderdata.surface                          = pLayer->surface->resource();
+    renderdata.fadeAlpha                        = pLayer->m_alpha->value();
+    renderdata.blur                             = pLayer->m_forceBlur && *PBLUR;
+    renderdata.surface                          = pLayer->m_surface->resource();
     renderdata.decorate                         = false;
     renderdata.w                                = REALSIZ.x;
     renderdata.h                                = REALSIZ.y;
     renderdata.pLS                              = pLayer;
-    renderdata.blockBlurOptimization            = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+    renderdata.blockBlurOptimization            = pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
     renderdata.clipBox = CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y}.scale(pMonitor->scale);
 
-    if (renderdata.blur && pLayer->ignoreAlpha) {
+    if (renderdata.blur && pLayer->m_ignoreAlpha) {
         renderdata.discardMode |= DISCARD_ALPHA;
-        renderdata.discardOpacity = pLayer->ignoreAlphaValue;
+        renderdata.discardOpacity = pLayer->m_ignoreAlphaValue;
     }
 
     if (!popups)
-        pLayer->surface->resource()->breadthfirst(
+        pLayer->m_surface->resource()->breadthfirst(
             [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 renderdata.localPos    = offset;
                 renderdata.texture     = s->current.texture;
                 renderdata.surface     = s;
-                renderdata.mainSurface = s == pLayer->surface->resource();
+                renderdata.mainSurface = s == pLayer->m_surface->resource();
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -748,18 +748,18 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
-    renderdata.blur            = pLayer->forceBlurPopups;
+    renderdata.blur            = pLayer->m_forceBlurPopups;
     renderdata.surfaceCounter  = 0;
     if (popups) {
-        pLayer->popupHead->breadthfirst(
+        pLayer->m_popupHead->breadthfirst(
             [this, &renderdata](WP<CPopup> popup, void* data) {
-                if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
+                if (!popup->m_WLSurface || !popup->m_WLSurface->resource() || !popup->m_mapped)
                     return;
 
                 Vector2D pos           = popup->coordsRelativeToParent();
                 renderdata.localPos    = pos;
-                renderdata.texture     = popup->m_pWLSurface->resource()->current.texture;
-                renderdata.surface     = popup->m_pWLSurface->resource();
+                renderdata.texture     = popup->m_WLSurface->resource()->current.texture;
+                renderdata.surface     = popup->m_WLSurface->resource();
                 renderdata.mainSurface = false;
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
@@ -1603,10 +1603,10 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
 
     for (auto const& lsl : pMonitor->m_aLayerSurfaceLayers) {
         for (auto const& ls : lsl) {
-            if (ls->fadingOut || !ls->surface->resource())
+            if (ls->m_fadingOut || !ls->m_surface->resource())
                 continue;
 
-            ls->surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
+            ls->m_surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
         }
     }
 }
@@ -1682,10 +1682,10 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
     CBox full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto const& ls : layerSurfaces) {
-        if (!ls || ls->fadingOut || ls->readyToDelete || !ls->layerSurface || ls->noProcess)
+        if (!ls || ls->m_fadingOut || ls->m_readyToDelete || !ls->m_layerSurface || ls->m_noProcess)
             continue;
 
-        const auto PLAYER = ls->layerSurface;
+        const auto PLAYER = ls->m_layerSurface;
         const auto PSTATE = &PLAYER->current;
         if (exclusiveZone != (PSTATE->exclusive > 0))
             continue;
@@ -1696,7 +1696,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
         else
             bounds = *usableArea;
 
-        const Vector2D OLDSIZE = {ls->geometry.width, ls->geometry.height};
+        const Vector2D OLDSIZE = {ls->m_geometry.width, ls->m_geometry.height};
 
         CBox           box = {{}, PSTATE->desiredSize};
         // Horizontal axis
@@ -1753,15 +1753,15 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 
         box.round(); // fix rounding errors
 
-        ls->geometry = box;
+        ls->m_geometry = box;
 
         applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->exclusiveEdge, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
-            ls->layerSurface->configure(box.size());
+            ls->m_layerSurface->configure(box.size());
 
-        *ls->realPosition = box.pos();
-        *ls->realSize     = box.size();
+        *ls->m_realPosition = box.pos();
+        *ls->m_realSize     = box.size();
     }
 }
 
@@ -1792,7 +1792,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     }
 
     for (auto& la : PMONITOR->m_aLayerSurfaceLayers) {
-        std::stable_sort(la.begin(), la.end(), [](const PHLLSREF& a, const PHLLSREF& b) { return a->order > b->order; });
+        std::stable_sort(la.begin(), la.end(), [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_order > b->m_order; });
     }
 
     for (auto const& la : PMONITOR->m_aLayerSurfaceLayers)
@@ -2139,7 +2139,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
         return;
 
     for (auto const& topls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (topls->alpha->value() != 0.f)
+        if (topls->m_alpha->value() != 0.f)
             return;
     }
 
@@ -2463,7 +2463,7 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
 
 void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
     // we trust the window is valid.
-    const auto PMONITOR = pLayer->monitor.lock();
+    const auto PMONITOR = pLayer->m_monitor.lock();
 
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
@@ -2485,13 +2485,13 @@ void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    const auto BLURLSSTATUS = pLayer->forceBlur;
-    pLayer->forceBlur       = false;
+    const auto BLURLSSTATUS = pLayer->m_forceBlur;
+    pLayer->m_forceBlur     = false;
 
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());
 
-    pLayer->forceBlur = BLURLSSTATUS;
+    pLayer->m_forceBlur = BLURLSSTATUS;
 
     endRender();
 
@@ -2556,18 +2556,20 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (!FBDATA->getTexture())
         return;
 
-    const auto PMONITOR = pLayer->monitor.lock();
+    const auto PMONITOR = pLayer->m_monitor.lock();
 
     CBox       layerBox;
     // some mafs to figure out the correct box
     // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * pLayer->realSize->value().x / (pLayer->geometry.w * PMONITOR->scale)),
-                                (PMONITOR->scale * pLayer->realSize->value().y / (pLayer->geometry.h * PMONITOR->scale)));
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * pLayer->m_realSize->value().x / (pLayer->m_geometry.w * PMONITOR->scale)),
+                                (PMONITOR->scale * pLayer->m_realSize->value().y / (pLayer->m_geometry.h * PMONITOR->scale)));
 
     layerBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
     layerBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
-    layerBox.x = ((pLayer->realPosition->value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
-    layerBox.y = ((pLayer->realPosition->value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
+    layerBox.x =
+        ((pLayer->m_realPosition->value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->m_geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
+    layerBox.y =
+        ((pLayer->m_realPosition->value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->m_geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
 
     CRegion                      fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
@@ -2575,7 +2577,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     data.flipEndFrame = true;
     data.tex          = FBDATA->getTexture();
     data.box          = layerBox;
-    data.a            = pLayer->alpha->value();
+    data.a            = pLayer->m_alpha->value();
     data.damage       = fakeDamage;
 
     m_sRenderPass.add(makeShared<CTexPassElement>(data));

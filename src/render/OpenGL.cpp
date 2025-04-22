@@ -2098,7 +2098,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     for (auto const& m : g_pCompositor->m_monitors) {
         for (auto const& lsl : m->m_aLayerSurfaceLayers) {
             for (auto const& ls : lsl) {
-                if (!ls->layerSurface || ls->xray != 1)
+                if (!ls->m_layerSurface || ls->m_xray != 1)
                     continue;
 
                 // if (ls->layerSurface->surface->opaque && ls->alpha->value() >= 1.f)
@@ -2173,13 +2173,13 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (pWindow && pWindow->m_sWindowData.xray.hasValue() && !pWindow->m_sWindowData.xray.valueOrDefault())
         return false;
 
-    if (pLayer && pLayer->xray == 0)
+    if (pLayer && pLayer->m_xray == 0)
         return false;
 
     if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
         return true;
 
-    if ((pLayer && pLayer->xray == 1) || (pWindow && pWindow->m_sWindowData.xray.valueOrDefault()))
+    if ((pLayer && pLayer->m_xray == 1) || (pWindow && pWindow->m_sWindowData.xray.valueOrDefault()))
         return true;
 
     return false;

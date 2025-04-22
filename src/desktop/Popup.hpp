@@ -41,32 +41,32 @@ class CPopup {
     WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
     //
-    SP<CWLSurface> m_pWLSurface;
-    WP<CPopup>     m_pSelf;
-    bool           m_bMapped = false;
+    SP<CWLSurface> m_WLSurface;
+    WP<CPopup>     m_self;
+    bool           m_mapped = false;
 
   private:
     CPopup() = default;
 
     // T1 owners, each popup has to have one of these
-    PHLWINDOWREF m_pWindowOwner;
-    PHLLSREF     m_pLayerOwner;
+    PHLWINDOWREF m_windowOwner;
+    PHLLSREF     m_layerOwner;
 
     // T2 owners
-    WP<CPopup>            m_pParent;
+    WP<CPopup>            m_parent;
 
-    WP<CXDGPopupResource> m_pResource;
+    WP<CXDGPopupResource> m_resource;
 
-    Vector2D              m_vLastSize = {};
-    Vector2D              m_vLastPos  = {};
+    Vector2D              m_lastSize = {};
+    Vector2D              m_lastPos  = {};
 
-    bool                  m_bRequestedReposition = false;
+    bool                  m_requestedReposition = false;
 
-    bool                  m_bInert = false;
+    bool                  m_inert = false;
 
     //
-    std::vector<UP<CPopup>> m_vChildren;
-    UP<CSubsurface>         m_pSubsurfaceHead;
+    std::vector<UP<CPopup>> m_children;
+    UP<CSubsurface>         m_subsurfaceHead;
 
     struct {
         CHyprSignalListener newPopup;
@@ -76,7 +76,7 @@ class CPopup {
         CHyprSignalListener commit;
         CHyprSignalListener dismissed;
         CHyprSignalListener reposition;
-    } listeners;
+    } m_listeners;
 
     void        initAllSignals();
     void        reposition();

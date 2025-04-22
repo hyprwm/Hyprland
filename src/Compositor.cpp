@@ -1019,7 +1019,7 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
         sl             = pos - pWindow->m_vRealPosition->goal() - OFF;
-        return PPOPUP->m_pWLSurface->resource();
+        return PPOPUP->m_WLSurface->resource();
     }
 
     auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition->goal(), true);
@@ -1270,15 +1270,15 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->mapped || ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha->value() == 0.f)
+            if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->mapped) || ls->m_alpha->value() == 0.f)
                 continue;
 
-            auto SURFACEAT = ls->popupHead->at(pos, true);
+            auto SURFACEAT = ls->m_popupHead->at(pos, true);
 
             if (SURFACEAT) {
                 *ppLayerSurfaceFound = ls.lock();
                 *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->m_pWLSurface->resource();
+                return SURFACEAT->m_WLSurface->resource();
             }
         }
     }
@@ -1288,10 +1288,10 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
 
 SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->mapped || ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha->value() == 0.f)
+        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->mapped) || ls->m_alpha->value() == 0.f)
             continue;
 
-        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos(), true);
+        auto [surf, local] = ls->m_layerSurface->surface->at(pos - ls->m_geometry.pos(), true);
 
         if (surf) {
             if (surf->current.input.empty())
@@ -1463,14 +1463,14 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
             continue;
         }
 
-        if (ls->monitorID() != monid && ls->monitor)
+        if (ls->monitorID() != monid && ls->m_monitor)
             continue;
 
         // mark blur for recalc
-        if (ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
+        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
             g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
 
-        if (ls->fadingOut && ls->readyToDelete && ls->isFadedOut()) {
+        if (ls->m_fadingOut && ls->m_readyToDelete && ls->isFadedOut()) {
             for (auto const& m : m_monitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::ranges::find_if(lsl, [&](auto& other) { return other == ls; }) != lsl.end()) {
@@ -2273,8 +2273,8 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 
     if (pWorkspace->m_iID == PMONITOR->activeWorkspaceID() || pWorkspace->m_iID == PMONITOR->activeSpecialWorkspaceID()) {
         for (auto const& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            if (!ls->fadingOut)
-                *ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
+            if (!ls->m_fadingOut)
+                *ls->m_alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
     }
 }
@@ -2554,13 +2554,13 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto const& ls : m_layers) {
-        if (ls->layerSurface && ls->layerSurface->surface == pSurface)
+        if (ls->m_layerSurface && ls->m_layerSurface->surface == pSurface)
             return ls;
 
-        if (!ls->layerSurface || !ls->mapped)
+        if (!ls->m_layerSurface || !ls->m_mapped)
             continue;
 
-        ls->layerSurface->surface->breadthfirst(
+        ls->m_layerSurface->surface->breadthfirst(
             [&result](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                 if (surf == result.first) {
                     result.second = true;

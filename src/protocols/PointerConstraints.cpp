@@ -242,7 +242,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_vConstraints.emplace_back(constraint);
 
-    if (g_pCompositor->m_pLastFocus == OWNER->resource())
+    if (g_pCompositor->m_lastFocus == OWNER->resource())
         constraint->activate();
 }
 

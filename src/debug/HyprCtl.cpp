@@ -132,7 +132,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             escapeJSONStrings(m->output->serial), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
             m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
             escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
-            (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
+            (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
             (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->solitaryClient.get(),
             (m->tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->lastScanout.get(), (m->m_bEnabled ? "false" : "true"),
             formatToString(m->output->state->state().drmFormat), m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
@@ -146,7 +146,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
                               m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
                               m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
                               (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                              (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, (uint64_t)m->solitaryClient.get(),
+                              (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, (uint64_t)m->solitaryClient.get(),
                               m->tearingState.activelyTearing, (uint64_t)m->lastScanout.get(), !m->m_bEnabled, formatToString(m->output->state->state().drmFormat),
                               m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
     }
@@ -168,7 +168,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
             result += CHyprCtl::getMonitorData(m, format);
         }
 
@@ -176,7 +176,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
 
         result += "]";
     } else {
-        for (auto const& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
             if (!m->output || m->ID == -1)
                 continue;
 
@@ -223,8 +223,8 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
 std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
-        for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
-            if (g_pCompositor->m_vWindowFocusHistory[i].lock() == wnd)
+        for (size_t i = 0; i < g_pCompositor->m_windowFocusHistory.size(); ++i) {
+            if (g_pCompositor->m_windowFocusHistory[i].lock() == wnd)
                 return i;
         }
         return -1;
@@ -291,7 +291,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -302,7 +302,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -389,11 +389,11 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
 }
 
 static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string request) {
-    if (!g_pCompositor->m_pLastMonitor)
+    if (!g_pCompositor->m_lastMonitor)
         return "unsafe state";
 
     std::string result = "";
-    auto        w      = g_pCompositor->m_pLastMonitor->activeWorkspace;
+    auto        w      = g_pCompositor->m_lastMonitor->activeWorkspace;
 
     if (!valid(w))
         return "internal error";
@@ -406,7 +406,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_workspaces) {
             result += CHyprCtl::getWorkspaceData(w, format);
             result += ",";
         }
@@ -414,7 +414,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_workspaces) {
             result += CHyprCtl::getWorkspaceData(w, format);
         }
     }
@@ -443,7 +443,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
 }
 
 static std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
+    const auto PWINDOW = g_pCompositor->m_lastWindow.lock();
 
     if (!validMapped(PWINDOW))
         return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "Invalid";
@@ -462,7 +462,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
 
-        for (auto const& mon : g_pCompositor->m_vMonitors) {
+        for (auto const& mon : g_pCompositor->m_monitors) {
             result += std::format(
                 R"#("{}": {{
     "levels": {{
@@ -511,7 +511,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
         result += "\n}\n";
 
     } else {
-        for (auto const& mon : g_pCompositor->m_vMonitors) {
+        for (auto const& mon : g_pCompositor->m_monitors) {
             result += std::format("Monitor {}:\n", mon->szName);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
@@ -1119,7 +1119,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source" ||
         COMMAND.starts_with("windowrule")) {
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
@@ -1152,7 +1152,7 @@ static std::string killRequest(eHyprCtlOutputFormat format, std::string request)
 }
 
 static std::string splashRequest(eHyprCtlOutputFormat format, std::string request) {
-    return g_pCompositor->m_szCurrentSplash;
+    return g_pCompositor->m_currentSplash;
 }
 
 static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -1425,7 +1425,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     bool       added = false;
 
     if (!vars[3].empty()) {
-        for (auto const& m : g_pCompositor->m_vRealMonitors) {
+        for (auto const& m : g_pCompositor->m_realMonitors) {
             if (m->szName == vars[3])
                 return "Name already taken";
         }
@@ -1435,7 +1435,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        for (auto const& impl : g_pCompositor->m_pAqBackend->getImplementations() | std::views::reverse) {
+        for (auto const& impl : g_pCompositor->m_aqBackend->getImplementations() | std::views::reverse) {
             auto type = impl->type();
 
             if (type == Aquamarine::AQ_BACKEND_HEADLESS && (vars[2] == "headless" || vars[2] == "auto")) {
@@ -1794,7 +1794,7 @@ std::string CHyprCtl::getReply(std::string request) {
             rd.blurFBDirty = true;
         }
 
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!w->m_bIsMapped || !w->m_pWorkspace || !w->m_pWorkspace->isVisible())
                 continue;
 
@@ -1802,7 +1802,7 @@ std::string CHyprCtl::getReply(std::string request) {
             g_pCompositor->updateWindowAnimatedDecorationValues(w);
         }
 
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
@@ -1931,7 +1931,7 @@ void CHyprCtl::startHyprCtlSocket() {
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-    m_socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
+    m_socketPath = g_pCompositor->m_instancePath + "/.socket.sock";
 
     strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
@@ -1945,5 +1945,5 @@ void CHyprCtl::startHyprCtlSocket() {
 
     Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

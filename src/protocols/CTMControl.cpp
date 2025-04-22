@@ -51,7 +51,7 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
 
         LOGM(LOG, "Committing ctms to outputs");
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& m : g_pCompositor->m_monitors) {
             if (!ctms.contains(m->szName)) {
                 PROTO::ctm->setCTM(m, Mat3x3::identity());
                 continue;
@@ -73,7 +73,7 @@ CHyprlandCTMControlResource::~CHyprlandCTMControlResource() {
     if (blocked)
         return;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto& m : g_pCompositor->m_monitors) {
         PROTO::ctm->setCTM(m, Mat3x3::identity());
     }
 }

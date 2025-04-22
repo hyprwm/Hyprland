@@ -100,7 +100,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PHLMONITOR PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
                 PMONITOR = m;
                 break;
@@ -253,9 +253,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
 
     } else if (*PUSEACTIVE) {
-        if (g_pCompositor->m_pLastWindow.lock() && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow.lock() != pWindow &&
-            g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace && g_pCompositor->m_pLastWindow->m_bIsMapped) {
-            OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
+        if (g_pCompositor->m_lastWindow.lock() && !g_pCompositor->m_lastWindow->m_bIsFloating && g_pCompositor->m_lastWindow.lock() != pWindow &&
+            g_pCompositor->m_lastWindow->m_pWorkspace == pWindow->m_pWorkspace && g_pCompositor->m_lastWindow->m_bIsMapped) {
+            OPENINGON = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
         } else {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
         }
@@ -547,7 +547,7 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 
 void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
 
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
     if (!validMapped(PWINDOW))
         return;
@@ -1065,7 +1065,7 @@ std::string CHyprDwindleLayout::getLayoutName() {
 }
 
 void CHyprDwindleLayout::onEnable() {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())
             continue;
 
@@ -1078,20 +1078,20 @@ void CHyprDwindleLayout::onDisable() {
 }
 
 Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
-    if (!g_pCompositor->m_pLastMonitor)
+    if (!g_pCompositor->m_lastMonitor)
         return {};
 
     // get window candidate
-    PHLWINDOW candidate = g_pCompositor->m_pLastWindow.lock();
+    PHLWINDOW candidate = g_pCompositor->m_lastWindow.lock();
 
     if (!candidate)
-        candidate = g_pCompositor->m_pLastMonitor->activeWorkspace->getFirstWindow();
+        candidate = g_pCompositor->m_lastMonitor->activeWorkspace->getFirstWindow();
 
     // create a fake node
     SDwindleNodeData node;
 
     if (!candidate)
-        return g_pCompositor->m_pLastMonitor->vecSize;
+        return g_pCompositor->m_lastMonitor->vecSize;
     else {
         const auto PNODE = getNodeFromWindow(candidate);
 

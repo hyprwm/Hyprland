@@ -174,7 +174,7 @@ void CForeignToplevelHandleWlr::sendState() {
     wl_array state;
     wl_array_init(&state);
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow) {
+    if (PWINDOW == g_pCompositor->m_lastWindow) {
         auto p = (uint32_t*)wl_array_add(&state, sizeof(uint32_t));
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
@@ -205,14 +205,14 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
         PROTO::foreignToplevelWlr->onManagerResourceDestroy(this);
     });
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (!PROTO::foreignToplevelWlr->windowValidForForeign(w))
             continue;
 
         onMap(w);
     }
 
-    lastFocus = g_pCompositor->m_pLastWindow;
+    lastFocus = g_pCompositor->m_lastWindow;
 }
 
 void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {

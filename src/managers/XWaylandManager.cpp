@@ -69,8 +69,8 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
         pWindow->m_pXDGSurface->toplevel->setActive(activate);
 
     if (activate) {
-        g_pCompositor->m_pLastFocus  = getWindowSurface(pWindow);
-        g_pCompositor->m_pLastWindow = pWindow;
+        g_pCompositor->m_lastFocus  = getWindowSurface(pWindow);
+        g_pCompositor->m_lastWindow = pWindow;
     }
 
     if (!pWindow->m_bPinned)
@@ -169,7 +169,7 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 
     PHLMONITOR  pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
-    for (const auto& m : g_pCompositor->m_vMonitors) {
+    for (const auto& m : g_pCompositor->m_monitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
 
         double     distance = vecToRectDistanceSquared(coord, {m->vecPosition.x, m->vecPosition.y}, {m->vecPosition.x + SIZ.x - 1, m->vecPosition.y + SIZ.y - 1});
@@ -200,7 +200,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     PHLMONITOR  pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
-    for (const auto& m : g_pCompositor->m_vMonitors) {
+    for (const auto& m : g_pCompositor->m_monitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
 
         double     distance =

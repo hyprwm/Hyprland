@@ -112,7 +112,7 @@ bool CMesaDRMResource::good() {
 
 CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     drmDevice* dev   = nullptr;
-    int        drmFD = g_pCompositor->m_iDRMFD;
+    int        drmFD = g_pCompositor->m_drmFD;
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
         LOGM(ERR, "Failed to get device, disabling MesaDRM");
         removeGlobal();

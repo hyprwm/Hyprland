@@ -41,7 +41,7 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
         if (!GEOMETRY.has_value())
             return;
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto& m : g_pCompositor->m_monitors) {
             if (!m->logicalBox().expand(-4).overlaps(*GEOMETRY))
                 continue;
 

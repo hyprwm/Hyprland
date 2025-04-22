@@ -150,7 +150,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         lockedSWCursors = true;
         // TODO: make it per-monitor
         if (!PROTO::screencopy->m_bTimerArmed) {
-            for (auto const& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_monitors) {
                 g_pPointerManager->lockSoftwareForMonitor(m);
             }
             PROTO::screencopy->m_bTimerArmed = true;
@@ -402,7 +402,7 @@ CScreencopyProtocol::CScreencopyProtocol(const wl_interface* iface, const int& v
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
             // TODO: make it per-monitor
-            for (auto const& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_monitors) {
                 g_pPointerManager->unlockSoftwareForMonitor(m);
             }
             m_bTimerArmed = false;

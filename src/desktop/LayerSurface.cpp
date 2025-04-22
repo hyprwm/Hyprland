@@ -15,7 +15,7 @@
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    auto  pMonitor = resource->monitor.empty() ? g_pCompositor->m_pLastMonitor.lock() : g_pCompositor->getMonitorFromName(resource->monitor);
+    auto  pMonitor = resource->monitor.empty() ? g_pCompositor->m_lastMonitor.lock() : g_pCompositor->getMonitorFromName(resource->monitor);
 
     pLS->surface->assign(resource->surface.lock(), pLS);
 
@@ -25,7 +25,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     }
 
     if (pMonitor->pMirrorOf)
-        pMonitor = g_pCompositor->m_vMonitors.front();
+        pMonitor = g_pCompositor->m_monitors.front();
 
     pLS->self = pLS;
 
@@ -76,7 +76,7 @@ CLayerSurface::~CLayerSurface() {
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == self.lock(); });
 
-    for (auto const& mon : g_pCompositor->m_vRealMonitors) {
+    for (auto const& mon : g_pCompositor->m_realMonitors) {
         for (auto& lsl : mon->m_aLayerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
         }
@@ -201,7 +201,7 @@ void CLayerSurface::onUnmap() {
 
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
-    if (!monitor || g_pCompositor->m_bUnsafeState) {
+    if (!monitor || g_pCompositor->m_unsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(self.lock());
@@ -238,11 +238,11 @@ void CLayerSurface::onUnmap() {
 
     // refocus if needed
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
-    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable())) {
+    if (WASLASTFOCUS || (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->hlSurface && !g_pCompositor->m_lastFocus->hlSurface->keyboardFocusable())) {
         if (!g_pInputManager->refocusLastWindow(PMONITOR))
             g_pInputManager->refocus();
-    } else if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus != surface->resource())
-        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
+    } else if (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus != surface->resource())
+        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);

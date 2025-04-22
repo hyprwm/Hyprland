@@ -89,11 +89,11 @@ void CEventLoopManager::enterLoop() {
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();
-    m_sListeners.pollFDsChanged = g_pCompositor->m_pAqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });
+    m_sListeners.pollFDsChanged = g_pCompositor->m_aqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });
 
     // if we have a session, dispatch it to get the pending input devices
-    if (g_pCompositor->m_pAqBackend->hasSession())
-        g_pCompositor->m_pAqBackend->session->dispatchPendingEventsAsync();
+    if (g_pCompositor->m_aqBackend->hasSession())
+        g_pCompositor->m_aqBackend->session->dispatchPendingEventsAsync();
 
     wl_display_run(m_sWayland.display);
 
@@ -186,7 +186,7 @@ void CEventLoopManager::doOnReadable(CFileDescriptor fd, const std::function<voi
 }
 
 void CEventLoopManager::syncPollFDs() {
-    auto aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
+    auto aqPollFDs = g_pCompositor->m_aqBackend->getPollFDs();
 
     std::erase_if(aqEventSources, [&](const auto& item) {
         auto const& [fd, eventSourceData] = item;

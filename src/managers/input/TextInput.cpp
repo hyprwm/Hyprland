@@ -31,8 +31,8 @@ void CTextInput::initCallbacks() {
                 g_pInputManager->m_sIMERelay.deactivateIME(this);
         });
 
-        if (!g_pCompositor->m_pLastFocus.expired() && g_pCompositor->m_pLastFocus->client() == INPUT->client())
-            enter(g_pCompositor->m_pLastFocus.lock());
+        if (!g_pCompositor->m_lastFocus.expired() && g_pCompositor->m_lastFocus->client() == INPUT->client())
+            enter(g_pCompositor->m_lastFocus.lock());
     } else {
         const auto INPUT = pV1Input.lock();
 
@@ -63,7 +63,7 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
     // v1 only, map surface to PTI
     if (!isV3()) {
-        if (g_pCompositor->m_pLastFocus != surfV1 || !pV1Input->active)
+        if (g_pCompositor->m_lastFocus != surfV1 || !pV1Input->active)
             return;
 
         enter(surfV1);

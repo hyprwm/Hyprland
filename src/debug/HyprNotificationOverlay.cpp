@@ -49,7 +49,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CH
     PNOTIF->icon     = icon;
     PNOTIF->fontSize = fontSize;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         g_pCompositor->scheduleFrameForMonitor(m);
     }
 }

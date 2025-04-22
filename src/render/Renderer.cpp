@@ -54,8 +54,8 @@ static int cursorTicker(void* data) {
 }
 
 CHyprRenderer::CHyprRenderer() {
-    if (g_pCompositor->m_pAqBackend->hasSession()) {
-        for (auto const& dev : g_pCompositor->m_pAqBackend->session->sessionDevices) {
+    if (g_pCompositor->m_aqBackend->hasSession()) {
+        for (auto const& dev : g_pCompositor->m_aqBackend->session->sessionDevices) {
             const auto DRMV = drmGetVersion(dev->fd);
             if (!DRMV)
                 continue;
@@ -73,7 +73,7 @@ CHyprRenderer::CHyprRenderer() {
     } else {
         Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
-        const auto DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
+        const auto DRMV = drmGetVersion(g_pCompositor->m_drmFD);
 
         if (DRMV) {
             std::string name = std::string{DRMV->name, DRMV->name_len};
@@ -119,13 +119,13 @@ CHyprRenderer::CHyprRenderer() {
         g_pEventLoopManager->doLater([this]() {
             if (!g_pHyprError->active())
                 return;
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto& m : g_pCompositor->m_monitors) {
                 arrangeLayersForMonitor(m->ID);
             }
         });
     });
 
-    m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, cursorTicker, nullptr);
+    m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, cursorTicker, nullptr);
     wl_event_source_timer_update(m_pCursorTicker, 500);
 
     m_tRenderUnfocusedTimer = makeShared<CEventLoopTimer>(
@@ -148,7 +148,7 @@ CHyprRenderer::CHyprRenderer() {
 
                 w->m_pWLSurface->resource()->frame(Time::steadyNow());
                 auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_pWLSurface->resource());
-                FEEDBACK->attachMonitor(g_pCompositor->m_pLastMonitor.lock());
+                FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
                 FEEDBACK->discarded();
                 PROTO::presentation->queueData(FEEDBACK);
             }
@@ -252,7 +252,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (PWORKSPACE && PWORKSPACE->isVisible())
         return true;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (PWORKSPACE && PWORKSPACE->m_pMonitor == m && (PWORKSPACE->m_vRenderOffset->isBeingAnimated() || PWORKSPACE->m_fAlpha->isBeingAnimated()))
             return true;
 
@@ -269,7 +269,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
     // loop over the tiled windows that are fading out
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
@@ -286,7 +286,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // and floating ones too
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
@@ -306,7 +306,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // TODO: this pass sucks
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         const auto PWORKSPACE = w->m_pWorkspace;
 
         if (w->m_pWorkspace != pWorkspace || !w->isFullscreen()) {
@@ -339,7 +339,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // then render windows over fullscreen.
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pWorkspace != pWorkspaceWindow->m_pWorkspace || !w->m_bIsFloating || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || (!w->m_bIsMapped && !w->m_bFadingOut) ||
             w->isFullscreen())
             continue;
@@ -360,9 +360,9 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
     std::vector<PHLWINDOWREF> windows, tiledFadingOut;
-    windows.reserve(g_pCompositor->m_vWindows.size());
+    windows.reserve(g_pCompositor->m_windows.size());
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->isHidden() || (!w->m_bIsMapped && !w->m_bFadingOut))
             continue;
 
@@ -384,7 +384,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
 
         // render active window after all others of this pass
-        if (w == g_pCompositor->m_pLastWindow) {
+        if (w == g_pCompositor->m_lastWindow) {
             lastWindow = w.lock();
             continue;
         }
@@ -907,7 +907,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
-    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_workspaces) {
         if (ws->m_pMonitor == pMonitor && ws->m_fAlpha->value() > 0.f && ws->m_bIsSpecialWorkspace) {
             const auto SPECIALANIMPROGRS = ws->m_vRenderOffset->isBeingAnimated() ? ws->m_vRenderOffset->getCurveValue() : ws->m_fAlpha->getCurveValue();
             const bool ANIMOUT           = !pMonitor->activeSpecialWorkspace;
@@ -935,7 +935,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // special
-    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_workspaces) {
         if (ws->m_fAlpha->value() > 0.f && ws->m_bIsSpecialWorkspace) {
             if (ws->m_bHasFullscreenWindow)
                 renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
@@ -945,7 +945,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pinned always above
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
             continue;
 
@@ -1177,7 +1177,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     if (*PDEBUGOVERLAY == 1)
         g_pDebugOverlay->frameData(pMonitor);
 
-    if (!g_pCompositor->m_bSessionActive)
+    if (!g_pCompositor->m_sessionActive)
         return;
 
     if (pMonitor->ID == m_pMostHzMonitor->ID ||
@@ -1329,13 +1329,13 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
                 renderLockscreen(pMonitor, NOW, renderBox);
 
-                if (pMonitor == g_pCompositor->m_pLastMonitor) {
+                if (pMonitor == g_pCompositor->m_lastMonitor) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
                     g_pHyprError->draw();
                 }
 
                 // for drawing the debug overlay
-                if (pMonitor == g_pCompositor->m_vMonitors.front() && *PDEBUGOVERLAY == 1) {
+                if (pMonitor == g_pCompositor->m_monitors.front() && *PDEBUGOVERLAY == 1) {
                     renderStartOverlay = std::chrono::high_resolution_clock::now();
                     g_pDebugOverlay->draw();
                     endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -1410,7 +1410,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     g_pDebugOverlay->renderData(pMonitor, durationUs);
 
     if (*PDEBUGOVERLAY == 1) {
-        if (pMonitor == g_pCompositor->m_vMonitors.front()) {
+        if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else
@@ -1591,7 +1591,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
 }
 
 void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface->resource())
             continue;
 
@@ -1779,7 +1779,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     CBox usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    if (g_pHyprError->active() && g_pCompositor->m_pLastMonitor == PMONITOR->self) {
+    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == PMONITOR->self) {
         const auto HEIGHT = g_pHyprError->height();
         if (*BAR_POSITION == 0) {
             PMONITOR->vecReservedTopLeft.y = HEIGHT;
@@ -1824,7 +1824,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (!pSurface)
         return; // wut?
 
-    if (g_pCompositor->m_bUnsafeState)
+    if (g_pCompositor->m_unsafeState)
         return;
 
     const auto WLSURF    = CWLSurface::fromResource(pSurface);
@@ -1847,7 +1847,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 
     CRegion damageBoxForEach;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (!m->output)
             continue;
 
@@ -1865,7 +1865,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 }
 
 void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
-    if (g_pCompositor->m_bUnsafeState)
+    if (g_pCompositor->m_unsafeState)
         return;
 
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
@@ -1874,7 +1874,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset->value());
     windowBox.translate(pWindow->m_vFloatingOffset);
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
@@ -1892,7 +1892,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
-    if (g_pCompositor->m_bUnsafeState || pMonitor->isMirror())
+    if (g_pCompositor->m_unsafeState || pMonitor->isMirror())
         return;
 
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
@@ -1905,10 +1905,10 @@ void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
 }
 
 void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
-    if (g_pCompositor->m_bUnsafeState)
+    if (g_pCompositor->m_unsafeState)
         return;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (m->isMirror())
             continue; // don't damage mirrors traditionally
 
@@ -2015,7 +2015,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (HIDE) {
         Debug::log(LOG, "Hiding the cursor (hl-mandated)");
 
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
@@ -2027,7 +2027,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     } else {
         Debug::log(LOG, "Showing the cursor (hl-mandated)");
 
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
@@ -2098,7 +2098,7 @@ static int handleCrashLoop(void* data) {
 void CHyprRenderer::initiateManualCrash() {
     g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
 
-    m_pCrashingLoop = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleCrashLoop, nullptr);
+    m_pCrashingLoop = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, handleCrashLoop, nullptr);
     wl_event_source_timer_update(m_pCrashingLoop, 1000);
 
     m_bCrashingInProgress = true;
@@ -2143,7 +2143,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
             return;
     }
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w == PCANDIDATE || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isHidden())
             continue;
 

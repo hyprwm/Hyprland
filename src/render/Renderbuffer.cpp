@@ -9,7 +9,7 @@
 #include <dlfcn.h>
 
 CRenderbuffer::~CRenderbuffer() {
-    if (!g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
+    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
         return;
 
     g_pHyprRenderer->makeEGLCurrent();

@@ -195,8 +195,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
 bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const PHLWINDOW OPENINGON        = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
-               g_pCompositor->m_pLastWindow.lock() :
+    const PHLWINDOW OPENINGON        = g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
+               g_pCompositor->m_lastWindow.lock() :
                (pWindow->m_pWorkspace ? pWindow->m_pWorkspace->getFirstWindow() : nullptr);
     const bool      FLOATEDINTOTILED = pWindow->m_bIsFloating && !OPENINGON->m_bIsFloating;
     const bool      SWALLOWING       = pWindow->m_pSwallowed || pWindow->m_bGroupSwallowed;
@@ -406,7 +406,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_pWorkspace && DRAGGINGWINDOW->m_pWorkspace->m_bHasFullscreenWindow;
 
-        for (auto& other : g_pCompositor->m_vWindows) {
+        for (auto& other : g_pCompositor->m_windows) {
             if ((HASFULLSCREEN && !other->m_bCreatedOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut ||
                 other->isX11OverrideRedirect())
                 continue;
@@ -748,7 +748,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(pWindow->m_pMonitor.lock());
 
-        if (pWindow == g_pCompositor->m_pLastWindow)
+        if (pWindow == g_pCompositor->m_lastWindow)
             m_pLastTiledWindow = pWindow;
     } else {
         onWindowRemovedTiling(pWindow);
@@ -784,7 +784,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_pLastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
     if (!validMapped(PWINDOW))
         return;
@@ -820,7 +820,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     if (pWindow->m_bIsFloating) {
 
         // find whether there is a floating window below this one
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
@@ -840,7 +840,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
             return PWINDOWCANDIDATE;
 
         // if not, floating window
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow)
                 return w;
@@ -860,7 +860,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = PWORKSPACE->getFirstWindow();
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
-        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_pMonitor != g_pCompositor->m_pLastMonitor)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_pMonitor != g_pCompositor->m_lastMonitor)
         return nullptr;
 
     return pWindowCandidate;
@@ -888,7 +888,7 @@ void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
 
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
-    if (g_pCompositor->m_pLastMonitor) {
+    if (g_pCompositor->m_lastMonitor) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r->ruleType != CWindowRule::RULE_SIZE)
                 continue;
@@ -900,11 +900,11 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
 
                 const auto  MAXSIZE = pWindow->requestedMaxSize();
 
-                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.x) :
-                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_pLastMonitor->vecSize.x);
+                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->vecSize.x) :
+                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_lastMonitor->vecSize.x);
 
-                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.y) :
-                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_pLastMonitor->vecSize.y);
+                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->vecSize.y) :
+                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_lastMonitor->vecSize.y);
 
                 sizeOverride = {SIZEX, SIZEY};
 

@@ -43,7 +43,7 @@ uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
 
     ASSERT(container);
 
-    auto serial = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
+    auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
     container->serials.emplace_back(serial);
 
@@ -621,7 +621,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             refocus = layer->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
 
         if (refocus) {
-            auto candidate = g_pCompositor->m_pLastWindow.lock();
+            auto candidate = g_pCompositor->m_lastWindow.lock();
 
             if (candidate)
                 g_pCompositor->focusWindow(candidate);

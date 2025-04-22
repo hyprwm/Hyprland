@@ -31,8 +31,8 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(re
     });
 
     // send all heads at start
-    for (auto const& m : g_pCompositor->m_vRealMonitors) {
-        if (m == g_pCompositor->m_pUnsafeOutput)
+    for (auto const& m : g_pCompositor->m_realMonitors) {
+        if (m == g_pCompositor->m_unsafeOutput)
             continue;
 
         LOGM(LOG, " | sending output head for {}", m->szName);
@@ -67,7 +67,7 @@ void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
 }
 
 void COutputManager::ensureMonitorSent(PHLMONITOR pMonitor) {
-    if (pMonitor == g_pCompositor->m_pUnsafeOutput)
+    if (pMonitor == g_pCompositor->m_unsafeOutput)
         return;
 
     for (auto const& hw : heads) {
@@ -86,7 +86,7 @@ void COutputManager::ensureMonitorSent(PHLMONITOR pMonitor) {
 }
 
 void COutputManager::sendDone() {
-    resource->sendDone(wl_display_next_serial(g_pCompositor->m_sWLDisplay));
+    resource->sendDone(wl_display_next_serial(g_pCompositor->m_wlDisplay));
 }
 
 COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
@@ -611,7 +611,7 @@ void COutputManagementProtocol::destroyResource(COutputConfigurationHead* resour
 }
 
 void COutputManagementProtocol::updateAllOutputs() {
-    for (auto const& m : g_pCompositor->m_vRealMonitors) {
+    for (auto const& m : g_pCompositor->m_realMonitors) {
         for (auto const& mgr : m_vManagers) {
             mgr->ensureMonitorSent(m);
         }

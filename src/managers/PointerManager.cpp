@@ -33,7 +33,7 @@ CPointerManager::CPointerManager() {
         PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
             [this](void* owner, std::any data) {
-                if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)
+                if (g_pCompositor && !g_pCompositor->m_isShuttingDown)
                     std::erase_if(monitorStates, [](const auto& other) { return other->monitor.expired(); });
             },
             nullptr);
@@ -213,7 +213,7 @@ void CPointerManager::resetCursorImage(bool apply) {
     damageIfSoftware();
 
     if (currentCursorImage.surface) {
-        for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_monitors) {
             currentCursorImage.surface->resource()->leave(m);
         }
 
@@ -258,7 +258,7 @@ void CPointerManager::resetCursorImage(bool apply) {
 void CPointerManager::updateCursorBackend() {
     const auto CURSORBOX = getCursorBoxGlobal();
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (!m->m_bEnabled || !m->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
@@ -297,7 +297,7 @@ void CPointerManager::onCursorMoved() {
     const auto CURSORBOX = getCursorBoxGlobal();
     bool       recalc    = false;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         auto state = stateFor(m);
 
         state->box = getCursorBoxLogicalForMonitor(state->monitor.lock());
@@ -433,7 +433,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
-        options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
+        options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drmFD;
         // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
         if (shouldUseCpuBuffer)
@@ -777,7 +777,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         abs.y = std::clamp(abs.y, 0.0, 1.0);
 
     // find x and y size of the entire space
-    const auto& MONITORS = g_pCompositor->m_vMonitors;
+    const auto& MONITORS = g_pCompositor->m_monitors;
     Vector2D    topLeft = MONITORS.at(0)->vecPosition, bottomRight = MONITORS.at(0)->vecPosition + MONITORS.at(0)->vecSize;
     for (size_t i = 1; i < MONITORS.size(); ++i) {
         const auto EXTENT = MONITORS[i]->logicalBox().extent();
@@ -795,7 +795,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     auto outputMappedArea = [&mappedArea](const std::string& output) {
         if (output == "current") {
-            if (const auto PLASTMONITOR = g_pCompositor->m_pLastMonitor.lock(); PLASTMONITOR)
+            if (const auto PLASTMONITOR = g_pCompositor->m_lastMonitor.lock(); PLASTMONITOR)
                 return PLASTMONITOR->logicalBox();
         } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(output); PMONITOR)
             return PMONITOR->logicalBox();
@@ -851,7 +851,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
 void CPointerManager::onMonitorLayoutChange() {
     currentMonitorLayout.monitorBoxes.clear();
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (m->isMirror() || !m->m_bEnabled || !m->output)
             continue;
 
@@ -903,7 +903,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -914,7 +914,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -937,7 +937,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     listener->frame = pointer->pointerEvents.frame.registerListener([] (std::any e) {
         bool shouldSkip = false;
         if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
+            auto PMONITOR = g_pCompositor->m_lastMonitor.get();
             shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
         }
         g_pSeatManager->isPointerFrameSkipped = shouldSkip;
@@ -952,7 +952,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -979,7 +979,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -1042,7 +1042,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -1097,7 +1097,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 
@@ -1116,7 +1116,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
             g_pKeybindManager->dpms("on");
     });
 

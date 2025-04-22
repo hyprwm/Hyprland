@@ -95,8 +95,8 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
         listeners.destroySurface.reset();
         listeners.commitSurface.reset();
 
-        if (g_pCompositor->m_pLastFocus == pSurface)
-            g_pCompositor->m_pLastFocus.reset();
+        if (g_pCompositor->m_lastFocus == pSurface)
+            g_pCompositor->m_lastFocus.reset();
 
         pSurface.reset();
     });

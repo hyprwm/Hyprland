@@ -20,8 +20,8 @@ static int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
         g_pAnimationManager->onTicked();
 
-    if (g_pCompositor->m_bSessionActive && g_pAnimationManager && g_pHookSystem && !g_pCompositor->m_bUnsafeState &&
-        std::ranges::any_of(g_pCompositor->m_vMonitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
+    if (g_pCompositor->m_sessionActive && g_pAnimationManager && g_pHookSystem && !g_pCompositor->m_unsafeState &&
+        std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
         g_pAnimationManager->tick();
         EMIT_HOOK_EVENT("tick", nullptr);
     }
@@ -109,7 +109,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
             g_pHyprRenderer->damageMonitor(PMONITOR);
 
         // TODO: just make this into a damn callback already vax...
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!w->m_bIsMapped || w->isHidden() || w->m_pWorkspace != PWORKSPACE)
                 continue;
 
@@ -127,7 +127,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         }
 
         // damage any workspace window that is on any monitor
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE || w->m_bPinned)
                 continue;
 
@@ -163,7 +163,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                 PWINDOW->updateWindowDecos();
                 g_pHyprRenderer->damageWindow(PWINDOW);
             } else if (PWORKSPACE) {
-                for (auto const& w : g_pCompositor->m_vWindows) {
+                for (auto const& w : g_pCompositor->m_windows) {
                     if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE)
                         continue;
 

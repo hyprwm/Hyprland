@@ -151,7 +151,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
+        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_lastWindow.lock() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
         color.a *= a;
 
         if (!rect.empty()) {
@@ -192,8 +192,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         if (!rect.empty()) {
             if (*PGRADIENTS) {
-                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                                          (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                         (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
                 if (GRADIENTTEX->m_iTexID) {
                     CTexPassElement::SRenderData data;
                     data.tex = GRADIENTTEX;
@@ -289,10 +289,10 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
 
-    if (!g_pCompositor->m_pLastMonitor)
+    if (!g_pCompositor->m_lastMonitor)
         return;
 
-    const Vector2D& bufferSize = g_pCompositor->m_pLastMonitor->vecPixelSize;
+    const Vector2D& bufferSize = g_pCompositor->m_lastMonitor->vecPixelSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto      CAIRO        = cairo_create(CAIROSURFACE);

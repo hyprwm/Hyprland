@@ -683,7 +683,7 @@ void CWLDataDeviceProtocol::updateDrag() {
     dnd.focusedDevice->sendDataOffer(offer);
     if (const auto WL = offer->getWayland(); WL)
         WL->sendData();
-    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
+    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
                                  g_pSeatManager->state.dndPointerFocus->current.size / 2.F, offer);
 }
 

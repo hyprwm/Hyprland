@@ -290,7 +290,7 @@ void CCursorManager::updateTheme() {
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         if (m->scale > highestScale)
             highestScale = m->scale;
     }
@@ -307,7 +307,7 @@ void CCursorManager::updateTheme() {
             m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
     }
 
-    for (auto const& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_monitors) {
         m->forceFullFrames = 5;
         g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }

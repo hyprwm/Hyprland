@@ -17,8 +17,8 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
         return;
 
     int onMonitor = 0;
-    for (auto const& w : g_pCompositor->m_vWorkspaces) {
-        if (w->m_pMonitor == g_pCompositor->m_pLastMonitor && !g_pCompositor->isWorkspaceSpecial(w->m_iID))
+    for (auto const& w : g_pCompositor->m_workspaces) {
+        if (w->m_pMonitor == g_pCompositor->m_lastMonitor && !g_pCompositor->isWorkspaceSpecial(w->m_iID))
             onMonitor++;
     }
 
@@ -29,18 +29,18 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
 }
 
 void CInputManager::beginWorkspaceSwipe() {
-    const auto PWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
+    const auto PWORKSPACE = g_pCompositor->m_lastMonitor->activeWorkspace;
 
     Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
-    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor;
+    m_sActiveSwipe.pMonitor        = g_pCompositor->m_lastMonitor;
     m_sActiveSwipe.avgSpeed        = 0;
     m_sActiveSwipe.speedPoints     = 0;
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        for (auto const& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
+        for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
             *ls->alpha = 1.f;
         }
     }
@@ -186,7 +186,7 @@ void CInputManager::endWorkspaceSwipe() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
+    for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
         *ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }

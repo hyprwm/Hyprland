@@ -115,9 +115,9 @@ CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
 }
 
 CWindow::~CWindow() {
-    if (g_pCompositor->m_pLastWindow == m_pSelf) {
-        g_pCompositor->m_pLastFocus.reset();
-        g_pCompositor->m_pLastWindow.reset();
+    if (g_pCompositor->m_lastWindow == m_pSelf) {
+        g_pCompositor->m_lastFocus.reset();
+        g_pCompositor->m_lastWindow.reset();
     }
 
     events.destroy.emit();
@@ -372,7 +372,7 @@ void CWindow::updateToplevel() {
 }
 
 void CWindow::updateSurfaceScaleTransformDetails(bool force) {
-    if (!m_bIsMapped || m_bHidden || g_pCompositor->m_bUnsafeState)
+    if (!m_bIsMapped || m_bHidden || g_pCompositor->m_unsafeState)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
@@ -489,7 +489,7 @@ PHLWINDOW CWindow::x11TransientFor() {
     if (s == m_pXWaylandSurface)
         return nullptr; // dead-ass circle
 
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_pXWaylandSurface != s)
             continue;
         return w;
@@ -516,7 +516,7 @@ void CWindow::onUnmap() {
 
     m_iLastWorkspace = m_pWorkspace->m_iID;
 
-    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [this](const auto& other) { return other.expired() || other == m_pSelf; });
+    std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_pSelf; });
 
     if (*PCLOSEONLASTSPECIAL && m_pWorkspace && m_pWorkspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_pMonitor.lock();
@@ -577,7 +577,7 @@ void CWindow::onMap() {
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    g_pCompositor->m_vWindowFocusHistory.push_back(m_pSelf);
+    g_pCompositor->m_windowFocusHistory.push_back(m_pSelf);
 
     m_vReportedSize = m_vPendingReportedSize;
     m_bAnimatingIn  = true;
@@ -612,8 +612,8 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 void CWindow::setHidden(bool hidden) {
     m_bHidden = hidden;
 
-    if (hidden && g_pCompositor->m_pLastWindow == m_pSelf)
-        g_pCompositor->m_pLastWindow.reset();
+    if (hidden && g_pCompositor->m_lastWindow == m_pSelf)
+        g_pCompositor->m_lastWindow.reset();
 
     setSuspended(hidden);
 }
@@ -1039,7 +1039,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto WORKSPACE  = PCURRENT->m_pWorkspace;
     const auto MODE       = PCURRENT->m_sFullscreenState.internal;
 
-    const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow.lock();
+    const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
@@ -1392,7 +1392,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 }
 
 void CWindow::activate(bool force) {
-    if (g_pCompositor->m_pLastWindow == m_pSelf)
+    if (g_pCompositor->m_lastWindow == m_pSelf)
         return;
 
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
@@ -1458,7 +1458,7 @@ void CWindow::onUpdateMeta() {
         g_pEventManager->postEvent(SHyprIPCEvent{"windowtitlev2", std::format("{:x},{}", (uintptr_t)this, m_szTitle)});
         EMIT_HOOK_EVENT("windowTitle", m_pSelf.lock());
 
-        if (m_pSelf == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
+        if (m_pSelf == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
@@ -1472,7 +1472,7 @@ void CWindow::onUpdateMeta() {
     if (m_szClass != NEWCLASS) {
         m_szClass = NEWCLASS;
 
-        if (m_pSelf == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
+        if (m_pSelf == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
@@ -1618,7 +1618,7 @@ PHLWINDOW CWindow::getSwallower() {
         if (!currentPid)
             break;
 
-        for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_windows) {
             if (!w->m_bIsMapped || w->isHidden())
                 continue;
 
@@ -1643,7 +1643,7 @@ PHLWINDOW CWindow::getSwallower() {
         return candidates[0];
 
     // walk up the focus history and find the last focused
-    for (auto const& w : g_pCompositor->m_vWindowFocusHistory) {
+    for (auto const& w : g_pCompositor->m_windowFocusHistory) {
         if (!w)
             continue;
 

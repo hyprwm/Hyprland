@@ -24,8 +24,8 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
     });
 
     listeners.destroy = surface_->events.destroy.registerListener([this](std::any data) {
-        if (pWlrSurface == g_pCompositor->m_pLastFocus)
-            g_pCompositor->m_pLastFocus.reset();
+        if (pWlrSurface == g_pCompositor->m_lastFocus)
+            g_pCompositor->m_lastFocus.reset();
 
         g_pSessionLockManager->removeSessionLockSurface(this);
     });
@@ -33,7 +33,7 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
     listeners.commit = surface_->events.commit.registerListener([this](std::any data) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 
-        if (mapped && !g_pCompositor->m_pLastFocus)
+        if (mapped && !g_pCompositor->m_lastFocus)
             g_pInputManager->simulateMouseMovement();
 
         if (PMONITOR)
@@ -75,7 +75,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pInputManager->refocus();
 
-        for (auto const& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_monitors)
             g_pHyprRenderer->damageMonitor(m);
     });
 
@@ -83,7 +83,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pCompositor->focusSurface(nullptr);
 
-        for (auto const& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_monitors)
             g_pHyprRenderer->damageMonitor(m);
     });
 
@@ -92,7 +92,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
 
     // Normally the locked event is sent after each output rendered a lock screen frame.
     // When there are no outputs, send it right away.
-    if (g_pCompositor->m_bUnsafeState) {
+    if (g_pCompositor->m_unsafeState) {
         m_pSessionLock->lock->sendLocked();
         m_pSessionLock->m_hasSentLocked = true;
     }
@@ -138,7 +138,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     if (!m_pSessionLock || m_pSessionLock->m_hasSentLocked)
         return;
     m_pSessionLock->m_lockedMonitors.emplace(id);
-    const bool LOCKED = std::ranges::all_of(g_pCompositor->m_vMonitors, [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->ID); });
+    const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->ID); });
     if (LOCKED && m_pSessionLock->lock->good()) {
         m_pSessionLock->lock->sendLocked();
         m_pSessionLock->m_hasSentLocked = true;
@@ -166,7 +166,7 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
 
     std::erase_if(m_pSessionLock->vSessionLockSurfaces, [&](const auto& other) { return pSLS == other.get(); });
 
-    if (g_pCompositor->m_pLastFocus)
+    if (g_pCompositor->m_lastFocus)
         return;
 
     for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {

@@ -189,7 +189,7 @@ void CLayerShellResource::sendClosed() {
 void CLayerShellResource::configure(const Vector2D& size_) {
     size = size_;
 
-    auto serial = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
+    auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
     serials.push_back({serial, size_});
 
@@ -247,7 +247,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     }
 
     SURF->role = makeShared<CLayerShellRole>(RESOURCE);
-    g_pCompositor->m_vLayers.emplace_back(CLayerSurface::create(RESOURCE));
+    g_pCompositor->m_layers.emplace_back(CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
 }

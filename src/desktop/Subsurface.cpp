@@ -166,7 +166,7 @@ void CSubsurface::onMap() {
 void CSubsurface::onUnmap() {
     damageLastArea();
 
-    if (m_pWLSurface->resource() == g_pCompositor->m_pLastFocus)
+    if (m_pWLSurface->resource() == g_pCompositor->m_lastFocus)
         g_pInputManager->releaseAllMouseButtons();
 
     g_pInputManager->simulateMouseMovement();

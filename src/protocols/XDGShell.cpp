@@ -431,7 +431,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         LOGM(LOG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)owner.get(), (uintptr_t)RESOURCE.get());
 
-        g_pCompositor->m_vWindows.emplace_back(CWindow::create(self.lock()));
+        g_pCompositor->m_windows.emplace_back(CWindow::create(self.lock()));
 
         for (auto const& p : popups) {
             if (!p)
@@ -503,8 +503,8 @@ uint32_t CXDGSurfaceResource::scheduleConfigure() {
     if (configureSource)
         return scheduledSerial;
 
-    configureSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, onConfigure, this);
-    scheduledSerial = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
+    configureSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, onConfigure, this);
+    scheduledSerial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
     return scheduledSerial;
 }

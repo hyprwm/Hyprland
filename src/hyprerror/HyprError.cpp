@@ -18,7 +18,7 @@ CHyprError::CHyprError() {
         if (!m_bIsCreated)
             return;
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor.lock());
+        g_pHyprRenderer->damageMonitor(g_pCompositor->m_lastMonitor.lock());
         m_bMonitorChanged = true;
     });
 
@@ -47,7 +47,7 @@ void CHyprError::createQueued() {
     m_fFadeOpacity->setValueAndWarp(0.f);
     *m_fFadeOpacity = 1.f;
 
-    const auto PMONITOR = g_pCompositor->m_vMonitors.front();
+    const auto PMONITOR = g_pCompositor->m_monitors.front();
 
     const auto SCALE = PMONITOR->scale;
 
@@ -182,7 +182,7 @@ void CHyprError::draw() {
                 m_bIsCreated = false;
                 m_szQueued   = "";
 
-                for (auto& m : g_pCompositor->m_vMonitors) {
+                for (auto& m : g_pCompositor->m_monitors) {
                     g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
                 }
 

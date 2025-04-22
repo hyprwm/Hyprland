@@ -45,7 +45,7 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
     Debug::log(LOG, "[xwm] New XSurface at {:x} with xid of {}", (uintptr_t)XSURF.get(), e->window);
 
     const auto WINDOW = CWindow::create(XSURF);
-    g_pCompositor->m_vWindows.emplace_back(WINDOW);
+    g_pCompositor->m_windows.emplace_back(WINDOW);
     WINDOW->m_pSelf = WINDOW;
     Debug::log(LOG, "[xwm] New XWayland window at {:x} for surf {:x}", (uintptr_t)WINDOW.get(), (uintptr_t)XSURF.get());
 }
@@ -933,7 +933,7 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
     xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen                                = screen_iterator.data;
 
-    eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, g_pXWayland->pServer->xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
+    eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, g_pXWayland->pServer->xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
     wl_event_source_check(eventSource);
 
     gatherResources();
@@ -1000,7 +1000,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!surf || (!activate && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsX11)) {
+    if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_bIsX11)) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {
@@ -1270,7 +1270,7 @@ void CXWM::getTransferData(SXSelection& sel) {
 
     auto& updatedTransfer = *newIt;
     if (updatedTransfer->eventSource && updatedTransfer->wlFD.get() != -1)
-        updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
+        updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
 }
 
 void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot) {
@@ -1444,7 +1444,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
 
     selection->send(mime, CFileDescriptor{p[1]});
 
-    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
+    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
     transfers.emplace_back(std::move(transfer));
 
     return true;

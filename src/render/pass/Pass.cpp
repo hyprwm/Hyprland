@@ -186,7 +186,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     if (*PDEBUGPASS) {
         renderDebugData();
         g_pEventLoopManager->doLater([] {
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto& m : g_pCompositor->m_monitors) {
                 g_pHyprRenderer->damageMonitor(m);
             }
         });
@@ -240,8 +240,8 @@ void CRenderPass::renderDebugData() {
 
     renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
     renderHLSurface(debugData.pointerFocusText, g_pSeatManager->state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
-    if (g_pCompositor->m_pLastWindow)
-        renderHLSurface(debugData.lastWindowText, g_pCompositor->m_pLastWindow->m_pWLSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
+    if (g_pCompositor->m_lastWindow)
+        renderHLSurface(debugData.lastWindowText, g_pCompositor->m_lastWindow->m_pWLSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->state.pointerFocus) {
         if (g_pSeatManager->state.pointerFocus->current.input.intersect(CBox{{}, g_pSeatManager->state.pointerFocus->current.size}).getExtents().size() !=

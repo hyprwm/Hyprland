@@ -286,7 +286,7 @@ bool CXWaylandServer::create() {
 
     // TODO: lazy mode
 
-    idleSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::startServer, nullptr);
+    idleSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, ::startServer, nullptr);
 
     return true;
 }
@@ -345,7 +345,7 @@ bool CXWaylandServer::start() {
         return false;
     }
 
-    xwaylandClient = wl_client_create(g_pCompositor->m_sWLDisplay, waylandFDs[0].get());
+    xwaylandClient = wl_client_create(g_pCompositor->m_wlDisplay, waylandFDs[0].get());
     if (!xwaylandClient) {
         Debug::log(ERR, "wl_client_create failed");
         die();
@@ -369,7 +369,7 @@ bool CXWaylandServer::start() {
         return false;
     }
 
-    pipeSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, notifyFds[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
+    pipeSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, notifyFds[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
     pipeFd     = std::move(notifyFds[0]);
 
     auto serverPID = fork();

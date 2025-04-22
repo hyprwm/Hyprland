@@ -50,7 +50,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
     }
 
     // check manual user-set inhibitors
-    for (auto const& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (isWindowInhibiting(w)) {
             PROTO::idle->setInhibit(true);
             return;

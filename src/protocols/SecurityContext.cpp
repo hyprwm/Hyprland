@@ -29,7 +29,7 @@ static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
 }
 
 CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(CFileDescriptor clientFD_) : clientFD(std::move(clientFD_)) {
-    client = wl_client_create(g_pCompositor->m_sWLDisplay, clientFD.get());
+    client = wl_client_create(g_pCompositor->m_wlDisplay, clientFD.get());
     if (!client)
         return;
 
@@ -113,8 +113,8 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
 
         LOGM(LOG, "security_context at 0x{:x} commits", (uintptr_t)this);
 
-        listenSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
-        closeSource  = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, closeFD.get(), 0, ::onCloseFdEvent, this);
+        listenSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
+        closeSource  = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, closeFD.get(), 0, ::onCloseFdEvent, this);
 
         if (!listenSource || !closeSource) {
             r->noMemory();

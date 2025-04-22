@@ -21,7 +21,7 @@ void IWaylandProtocol::onDisplayDestroy() {
 }
 
 IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
-    m_szName(name), m_pGlobal(wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal)) {
+    m_szName(name), m_pGlobal(wl_global_create(g_pCompositor->m_wlDisplay, iface, ver, this, &bindManagerInternal)) {
 
     if UNLIKELY (!m_pGlobal) {
         LOGM(ERR, "could not create a global [{}]", m_szName);
@@ -31,7 +31,7 @@ IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, co
     wl_list_init(&m_liDisplayDestroy.listener.link);
     m_liDisplayDestroy.listener.notify = displayDestroyInternal;
     m_liDisplayDestroy.parent          = this;
-    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy.listener);
+    wl_display_add_destroy_listener(g_pCompositor->m_wlDisplay, &m_liDisplayDestroy.listener);
 
     LOGM(LOG, "Registered global [{}]", m_szName);
 }

@@ -26,6 +26,7 @@ class CWindowRule {
         RULE_IDLEINHIBIT,
         RULE_MAXSIZE,
         RULE_MINSIZE,
+        RULE_CONTENTSCALE,
         RULE_MONITOR,
         RULE_MOVE,
         RULE_OPACITY,

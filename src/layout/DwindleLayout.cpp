@@ -816,18 +816,20 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
     const auto     originalWorkspaceID = pWindow->workspaceID();
     const Vector2D originalPos         = pWindow->middle();
 
-    if (!PNODE)
+    if (!PNODE || !pWindow->m_pMonitor)
         return;
 
-    Vector2D focalPoint;
+    Vector2D   focalPoint;
+
+    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{pWindow->m_pMonitor->vecPosition, pWindow->m_pMonitor->vecSize} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
 
     switch (dir[0]) {
         case 't':
-        case 'u': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x / 2.0, -1.0}; break;
+        case 'u': focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;
         case 'd':
-        case 'b': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x / 2.0, pWindow->m_vSize.y + 1.0}; break;
-        case 'l': focalPoint = pWindow->m_vPosition + Vector2D{-1.0, pWindow->m_vSize.y / 2.0}; break;
-        case 'r': focalPoint = pWindow->m_vPosition + Vector2D{pWindow->m_vSize.x + 1.0, pWindow->m_vSize.y / 2.0}; break;
+        case 'b': focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, WINDOWIDEALBB.size().y + 1.0}; break;
+        case 'l': focalPoint = WINDOWIDEALBB.pos() + Vector2D{-1.0, WINDOWIDEALBB.size().y / 2.0}; break;
+        case 'r': focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x + 1.0, WINDOWIDEALBB.size().y / 2.0}; break;
         default: UNREACHABLE();
     }
 

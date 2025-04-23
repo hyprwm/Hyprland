@@ -238,7 +238,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                                                 Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                             .get();
 
-                const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? pTitleTex->texActive : pTitleTex->texInactive;
+                const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? pTitleTex->texActive : pTitleTex->texInactive;
                 rect.y += std::ceil(((rect.height - titleTex->m_vSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->scale));
                 rect.height = titleTex->m_vSize.y;
                 rect.width  = titleTex->m_vSize.x;
@@ -291,8 +291,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    texActive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTACTIVE->value);
-    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */, FONTWEIGHTINACTIVE->value);
+    texActive   = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTACTIVE->m_value);
+    texInactive = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTINACTIVE->m_value);
 }
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {

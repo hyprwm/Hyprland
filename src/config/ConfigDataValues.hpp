@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include <vector>
+#include <map>
 
 enum eConfigValueDataTypes : int8_t {
     CVD_TYPE_INVALID     = -1,
@@ -145,14 +146,14 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
         parseWeight(weight);
     }
 
-    int64_t                       value = 400; // default to normal weight
+    int64_t                       m_value = 400; // default to normal weight
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_FONT_WEIGHT;
     }
 
     virtual std::string toString() {
-        return std::format("{}", value);
+        return std::format("{}", m_value);
     }
 
     void parseWeight(const std::string& strWeight) {
@@ -167,11 +168,11 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
 
         auto weight = WEIGHTS.find(lcWeight);
         if (weight != WEIGHTS.end())
-            value = weight->second;
+            m_value = weight->second;
         else {
             int w_i = std::stoi(strWeight);
             if (w_i < 100 || w_i > 1000)
-                value = 400;
+                m_value = 400;
         }
     }
 };

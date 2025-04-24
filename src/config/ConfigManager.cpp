@@ -147,6 +147,28 @@ static void configHandleGapDestroy(void** data) {
         delete reinterpret_cast<CCssGapData*>(*data);
 }
 
+static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void** data) {
+    if (!*data)
+        *data = new CFontWeightConfigValueData();
+
+    const auto             DATA = reinterpret_cast<CFontWeightConfigValueData*>(*data);
+    Hyprlang::CParseResult result;
+
+    try {
+        DATA->parseWeight(VALUE);
+    } catch (...) {
+        std::string parseError = std::format("{} is not a valid font weight", VALUE);
+        result.setError(parseError.c_str());
+    }
+
+    return result;
+}
+
+static void configHandleFontWeightDestroy(void** data) {
+    if (*data)
+        delete reinterpret_cast<CFontWeightConfigValueData*>(*data);
+}
+
 static Hyprlang::CParseResult handleExec(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -485,9 +507,12 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:group_on_movetoworkspace", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:enabled", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:font_family", {STRVAL_EMPTY});
+    registerConfigVar("group:groupbar:font_weight_active", Hyprlang::CConfigCustomValueType{&configHandleFontWeightSet, configHandleFontWeightDestroy, "normal"});
+    registerConfigVar("group:groupbar:font_weight_inactive", Hyprlang::CConfigCustomValueType{&configHandleFontWeightSet, configHandleFontWeightDestroy, "normal"});
     registerConfigVar("group:groupbar:font_size", Hyprlang::INT{8});
     registerConfigVar("group:groupbar:gradients", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:height", Hyprlang::INT{14});
+    registerConfigVar("group:groupbar:indicator_gap", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:indicator_height", Hyprlang::INT{3});
     registerConfigVar("group:groupbar:priority", Hyprlang::INT{3});
     registerConfigVar("group:groupbar:render_titles", Hyprlang::INT{1});

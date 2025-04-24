@@ -2,11 +2,13 @@
 #include "../defines.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include <vector>
+#include <map>
 
 enum eConfigValueDataTypes : int8_t {
-    CVD_TYPE_INVALID   = -1,
-    CVD_TYPE_GRADIENT  = 0,
-    CVD_TYPE_CSS_VALUE = 1
+    CVD_TYPE_INVALID     = -1,
+    CVD_TYPE_GRADIENT    = 0,
+    CVD_TYPE_CSS_VALUE   = 1,
+    CVD_TYPE_FONT_WEIGHT = 2,
 };
 
 class ICustomConfigValueData {
@@ -134,5 +136,43 @@ class CCssGapData : public ICustomConfigValueData {
 
     virtual std::string toString() {
         return std::format("{} {} {} {}", m_top, m_right, m_bottom, m_left);
+    }
+};
+
+class CFontWeightConfigValueData : public ICustomConfigValueData {
+  public:
+    CFontWeightConfigValueData() = default;
+    CFontWeightConfigValueData(const char* weight) {
+        parseWeight(weight);
+    }
+
+    int64_t                       m_value = 400; // default to normal weight
+
+    virtual eConfigValueDataTypes getDataType() {
+        return CVD_TYPE_FONT_WEIGHT;
+    }
+
+    virtual std::string toString() {
+        return std::format("{}", m_value);
+    }
+
+    void parseWeight(const std::string& strWeight) {
+        auto lcWeight{strWeight};
+        transform(strWeight.begin(), strWeight.end(), lcWeight.begin(), ::tolower);
+
+        // values taken from Pango weight enums
+        const auto WEIGHTS = std::map<std::string, int>{
+            {"thin", 100},   {"ultralight", 200}, {"light", 300}, {"semilight", 350}, {"book", 380},  {"normal", 400},
+            {"medium", 500}, {"semibold", 600},   {"bold", 700},  {"ultrabold", 800}, {"heavy", 900}, {"ultraheavy", 1000},
+        };
+
+        auto weight = WEIGHTS.find(lcWeight);
+        if (weight != WEIGHTS.end())
+            m_value = weight->second;
+        else {
+            int w_i = std::stoi(strWeight);
+            if (w_i < 100 || w_i > 1000)
+                m_value = 400;
+        }
     }
 };

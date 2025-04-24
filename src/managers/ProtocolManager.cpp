@@ -42,6 +42,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
+#include "../protocols/ToplevelMapping.hpp"
 #include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/XDGDialog.hpp"
@@ -68,6 +69,7 @@
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
+#include <hyprutils/memory/UniquePtr.hpp>
 
 // ********************************************************************************************
 // * IMPORTANT: make sure to .reset() any protocol UP's you create! (put reset in destructor) *
@@ -175,6 +177,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::xwaylandShell       = makeUnique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
     PROTO::screencopy          = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport      = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::toplevelMapping     = makeUnique<CToplevelMappingProtocol>(&hyprland_toplevel_mapping_manager_v1_interface, 1, "ToplevelMapping");
     PROTO::globalShortcuts     = makeUnique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
     PROTO::xdgDialog           = makeUnique<CXDGDialogProtocol>(&xdg_wm_dialog_v1_interface, 1, "XDGDialog");
     PROTO::singlePixel         = makeUnique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
@@ -262,6 +265,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xwaylandShell.reset();
     PROTO::screencopy.reset();
     PROTO::toplevelExport.reset();
+    PROTO::toplevelMapping.reset();
     PROTO::globalShortcuts.reset();
     PROTO::xdgDialog.reset();
     PROTO::singlePixel.reset();

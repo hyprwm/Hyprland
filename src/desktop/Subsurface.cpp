@@ -22,7 +22,7 @@ UP<CSubsurface> CSubsurface::create(WP<CPopup> pOwner) {
     subsurface->m_pPopupParent = pOwner;
     subsurface->m_pSelf        = subsurface;
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pOwner->m_WLSurface->resource());
+    subsurface->initExistingSubsurfaces(pOwner->m_wlSurface->resource());
     return subsurface;
 }
 
@@ -63,7 +63,7 @@ void CSubsurface::initSignals() {
             listeners.newSubsurface = m_pWindowParent->m_pWLSurface->resource()->events.newSubsurface.registerListener(
                 [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else if (m_pPopupParent)
-            listeners.newSubsurface = m_pPopupParent->m_WLSurface->resource()->events.newSubsurface.registerListener(
+            listeners.newSubsurface = m_pPopupParent->m_wlSurface->resource()->events.newSubsurface.registerListener(
                 [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else
             ASSERT(false);
@@ -107,7 +107,7 @@ void CSubsurface::onCommit() {
 
     g_pHyprRenderer->damageSurface(m_pWLSurface->resource(), COORDS.x, COORDS.y);
 
-    if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_WLSurface)
+    if (m_pPopupParent && !m_pPopupParent->inert() && m_pPopupParent->m_wlSurface)
         m_pPopupParent->recheckTree();
     if (!m_pWindowParent.expired()) // I hate you firefox why are you doing this
         m_pWindowParent->m_pPopupHead->recheckTree();

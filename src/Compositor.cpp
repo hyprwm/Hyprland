@@ -1019,7 +1019,7 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
         sl             = pos - pWindow->m_vRealPosition->goal() - OFF;
-        return PPOPUP->m_WLSurface->resource();
+        return PPOPUP->m_wlSurface->resource();
     }
 
     auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition->goal(), true);
@@ -1278,7 +1278,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
             if (SURFACEAT) {
                 *ppLayerSurfaceFound = ls.lock();
                 *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->m_WLSurface->resource();
+                return SURFACEAT->m_wlSurface->resource();
             }
         }
     }

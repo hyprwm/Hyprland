@@ -650,13 +650,13 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             pWindow->m_pPopupHead->breadthfirst(
                 [this, &renderdata](WP<CPopup> popup, void* data) {
-                    if (!popup->m_WLSurface || !popup->m_WLSurface->resource() || !popup->m_mapped)
+                    if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
 
-                    popup->m_WLSurface->resource()->breadthfirst(
+                    popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                             renderdata.localPos    = offset;
                             renderdata.texture     = s->current.texture;
@@ -753,13 +753,13 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
             [this, &renderdata](WP<CPopup> popup, void* data) {
-                if (!popup->m_WLSurface || !popup->m_WLSurface->resource() || !popup->m_mapped)
+                if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                     return;
 
                 Vector2D pos           = popup->coordsRelativeToParent();
                 renderdata.localPos    = pos;
-                renderdata.texture     = popup->m_WLSurface->resource()->current.texture;
-                renderdata.surface     = popup->m_WLSurface->resource();
+                renderdata.texture     = popup->m_wlSurface->resource()->current.texture;
+                renderdata.surface     = popup->m_wlSurface->resource();
                 renderdata.mainSurface = false;
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;

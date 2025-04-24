@@ -162,7 +162,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         m_pPopupHead->breadthfirst(
             [](WP<CPopup> popup, void* data) {
-                if (!popup->m_WLSurface || !popup->m_WLSurface->resource())
+                if (!popup->m_wlSurface || !popup->m_wlSurface->resource())
                     return;
 
                 CBox* pSurfaceExtents = (CBox*)data;
@@ -870,7 +870,7 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
 
     auto popup = m_pPopupHead->at(pos);
 
-    return popup && popup->m_WLSurface->resource();
+    return popup && popup->m_wlSurface->resource();
 }
 
 void CWindow::applyGroupRules() {

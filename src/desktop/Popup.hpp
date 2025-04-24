@@ -41,7 +41,7 @@ class CPopup {
     WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
     //
-    SP<CWLSurface> m_WLSurface;
+    SP<CWLSurface> m_wlSurface;
     WP<CPopup>     m_self;
     bool           m_mapped = false;
 

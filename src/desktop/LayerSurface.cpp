@@ -338,7 +338,7 @@ void CLayerSurface::onCommit() {
         if (!WASLASTFOCUS && m_popupHead) {
             m_popupHead->breadthfirst(
                 [&WASLASTFOCUS](WP<CPopup> popup, void* data) {
-                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_WLSurface && g_pSeatManager->state.keyboardFocus == popup->m_WLSurface->resource());
+                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_wlSurface && g_pSeatManager->state.keyboardFocus == popup->m_wlSurface->resource());
                 },
                 nullptr);
         }

@@ -12,9 +12,9 @@ class CTitleTex {
     CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale);
     ~CTitleTex() = default;
 
-    SP<CTexture> tex;
+    SP<CTexture> texActive;
+    SP<CTexture> texInactive;
     std::string  szContent;
-    Vector2D     texSize;
 
     PHLWINDOWREF pWindowOwner;
 };

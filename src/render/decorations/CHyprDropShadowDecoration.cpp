@@ -48,8 +48,8 @@ void CHyprDropShadowDecoration::damageEntire() {
                             PWINDOW->m_vRealSize->value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
 
     const auto PWORKSPACE = PWINDOW->m_pWorkspace;
-    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset->isBeingAnimated() && !PWINDOW->m_bPinned)
-        shadowBox.translate(PWORKSPACE->m_vRenderOffset->value());
+    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_bPinned)
+        shadowBox.translate(PWORKSPACE->m_renderOffset->value());
     shadowBox.translate(PWINDOW->m_vFloatingOffset);
 
     static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
@@ -59,8 +59,8 @@ void CHyprDropShadowDecoration::damageEntire() {
     CRegion     shadowRegion(shadowBox);
     if (*PSHADOWIGNOREWINDOW) {
         CBox surfaceBox = PWINDOW->getWindowMainSurfaceBox();
-        if (PWORKSPACE && PWORKSPACE->m_vRenderOffset->isBeingAnimated() && !PWINDOW->m_bPinned)
-            surfaceBox.translate(PWORKSPACE->m_vRenderOffset->value());
+        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_bPinned)
+            surfaceBox.translate(PWORKSPACE->m_renderOffset->value());
         surfaceBox.translate(PWINDOW->m_vFloatingOffset);
         surfaceBox.expand(-ROUNDINGSIZE);
         shadowRegion.subtract(CRegion(surfaceBox));
@@ -121,7 +121,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     const auto ROUNDINGPOWER   = PWINDOW->roundingPower();
     const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
     const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_bLastWindowBoxWithDecos;

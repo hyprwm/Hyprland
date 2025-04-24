@@ -54,10 +54,10 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
     listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
         auto surface = CWLSurface::fromResource(m_pSurface.lock());
 
-        if (surface && (surface->m_fOverallOpacity != m_fOpacity || m_bVisibleRegionChanged)) {
-            surface->m_fOverallOpacity = m_fOpacity;
-            surface->m_visibleRegion   = m_visibleRegion;
-            auto box                   = surface->getSurfaceBoxGlobal();
+        if (surface && (surface->m_overallOpacity != m_fOpacity || m_bVisibleRegionChanged)) {
+            surface->m_overallOpacity = m_fOpacity;
+            surface->m_visibleRegion  = m_visibleRegion;
+            auto box                  = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
                 g_pHyprRenderer->damageBox(*box);

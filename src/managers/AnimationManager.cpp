@@ -135,14 +135,14 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         }
     } else if (PLAYER) {
         // "some fucking layers miss 1 pixel???" -- vaxry
-        CBox expandBox = CBox{PLAYER->realPosition->value(), PLAYER->realSize->value()};
+        CBox expandBox = CBox{PLAYER->m_realPosition->value(), PLAYER->m_realSize->value()};
         expandBox.expand(5);
         g_pHyprRenderer->damageBox(expandBox);
 
-        PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition->goal() + PLAYER->realSize->goal() / 2.F);
+        PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->m_realPosition->goal() + PLAYER->m_realSize->goal() / 2.F);
         if (!PMONITOR)
             return;
-        animationsDisabled = animationsDisabled || PLAYER->noAnimations;
+        animationsDisabled = animationsDisabled || PLAYER->m_noAnimations;
     }
 
     const auto SPENT   = av.getPercent();
@@ -174,11 +174,11 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                         g_pHyprRenderer->damageWindow(w);
                 }
             } else if (PLAYER) {
-                if (PLAYER->layer <= 1)
+                if (PLAYER->m_layer <= 1)
                     g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
 
                 // some fucking layers miss 1 pixel???
-                CBox expandBox = CBox{PLAYER->realPosition->value(), PLAYER->realSize->value()};
+                CBox expandBox = CBox{PLAYER->m_realPosition->value(), PLAYER->m_realSize->value()};
                 expandBox.expand(5);
                 g_pHyprRenderer->damageBox(expandBox);
             }

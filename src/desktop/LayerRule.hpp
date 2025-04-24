@@ -22,10 +22,10 @@ class CLayerRule {
         RULE_ZUMBA,
     };
 
-    eRuleType           ruleType = RULE_INVALID;
+    eRuleType           m_ruleType = RULE_INVALID;
 
-    const std::string   targetNamespace;
-    const std::string   rule;
+    const std::string   m_targetNamespace;
+    const std::string   m_rule;
 
-    CRuleRegexContainer targetNamespaceRegex;
+    CRuleRegexContainer m_targetNamespaceRegex;
 };

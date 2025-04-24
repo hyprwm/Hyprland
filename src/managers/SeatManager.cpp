@@ -618,7 +618,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         }
 
         if (!refocus && layer)
-            refocus = layer->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+            refocus = layer->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
 
         if (refocus) {
             auto candidate = g_pCompositor->m_lastWindow.lock();

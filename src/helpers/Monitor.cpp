@@ -339,8 +339,8 @@ void CMonitor::onDisconnect(bool destroy) {
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto const& ls : m_aLayerSurfaceLayers[i]) {
-            if (ls->layerSurface && !ls->fadingOut)
-                ls->layerSurface->sendClosed();
+            if (ls->m_layerSurface && !ls->m_fadingOut)
+                ls->m_layerSurface->sendClosed();
         }
         m_aLayerSurfaceLayers[i].clear();
     }

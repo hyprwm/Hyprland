@@ -41,7 +41,7 @@ void CInputManager::beginWorkspaceSwipe() {
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
-            *ls->alpha = 1.f;
+            *ls->m_alpha = 1.f;
         }
     }
 }
@@ -187,7 +187,7 @@ void CInputManager::endWorkspaceSwipe() {
 
     // apply alpha
     for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
-        *ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
+        *ls->m_alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }
 

@@ -22,44 +22,43 @@ class CLayerSurface {
     bool                    isFadedOut();
     int                     popupsCount();
 
-    PHLANIMVAR<Vector2D>    realPosition;
-    PHLANIMVAR<Vector2D>    realSize;
-    PHLANIMVAR<float>       alpha;
+    PHLANIMVAR<Vector2D>    m_realPosition;
+    PHLANIMVAR<Vector2D>    m_realSize;
+    PHLANIMVAR<float>       m_alpha;
 
-    WP<CLayerShellResource> layerSurface;
-    wl_list                 link;
+    WP<CLayerShellResource> m_layerSurface;
 
     // the header providing the enum type cannot be imported here
-    int                        interactivity = 0;
+    int                        m_interactivity = 0;
 
-    SP<CWLSurface>             surface;
+    SP<CWLSurface>             m_surface;
 
-    bool                       mapped = false;
-    uint32_t                   layer  = 0;
+    bool                       m_mapped = false;
+    uint32_t                   m_layer  = 0;
 
-    PHLMONITORREF              monitor;
+    PHLMONITORREF              m_monitor;
 
-    bool                       fadingOut     = false;
-    bool                       readyToDelete = false;
-    bool                       noProcess     = false;
-    bool                       noAnimations  = false;
+    bool                       m_fadingOut     = false;
+    bool                       m_readyToDelete = false;
+    bool                       m_noProcess     = false;
+    bool                       m_noAnimations  = false;
 
-    bool                       forceBlur        = false;
-    bool                       forceBlurPopups  = false;
-    int64_t                    xray             = -1;
-    bool                       ignoreAlpha      = false;
-    float                      ignoreAlphaValue = 0.f;
-    bool                       dimAround        = false;
-    int64_t                    order            = 0;
+    bool                       m_forceBlur        = false;
+    bool                       m_forceBlurPopups  = false;
+    int64_t                    m_xray             = -1;
+    bool                       m_ignoreAlpha      = false;
+    float                      m_ignoreAlphaValue = 0.f;
+    bool                       m_dimAround        = false;
+    int64_t                    m_order            = 0;
 
-    std::optional<std::string> animationStyle;
+    std::optional<std::string> m_animationStyle;
 
-    PHLLSREF                   self;
+    PHLLSREF                   m_self;
 
-    CBox                       geometry = {0, 0, 0, 0};
-    Vector2D                   position;
-    std::string                szNamespace = "";
-    UP<CPopup>                 popupHead;
+    CBox                       m_geometry = {0, 0, 0, 0};
+    Vector2D                   m_position;
+    std::string                m_namespace = "";
+    UP<CPopup>                 m_popupHead;
 
     pid_t                      getPID();
 
@@ -75,12 +74,12 @@ class CLayerSurface {
         CHyprSignalListener map;
         CHyprSignalListener unmap;
         CHyprSignalListener commit;
-    } listeners;
+    } m_listeners;
 
     void registerCallbacks();
 
     // For the list lookup
     bool operator==(const CLayerSurface& rhs) const {
-        return layerSurface == rhs.layerSurface && monitor == rhs.monitor;
+        return m_layerSurface == rhs.m_layerSurface && m_monitor == rhs.m_monitor;
     }
 };

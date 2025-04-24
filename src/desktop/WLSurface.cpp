@@ -190,7 +190,7 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() const {
     if (!m_pWindowOwner.expired())
         return m_pWindowOwner->getWindowMainSurfaceBox();
     if (!m_pLayerOwner.expired())
-        return m_pLayerOwner->geometry;
+        return m_pLayerOwner->m_geometry;
     if (m_pPopupOwner)
         return CBox{m_pPopupOwner->coordsGlobal(), m_pPopupOwner->size()};
     if (m_pSubsurfaceOwner)
@@ -228,7 +228,7 @@ SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
 bool CWLSurface::keyboardFocusable() const {
     if (m_pWindowOwner || m_pPopupOwner || m_pSubsurfaceOwner)
         return true;
-    if (m_pLayerOwner && m_pLayerOwner->layerSurface)
-        return m_pLayerOwner->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+    if (m_pLayerOwner && m_pLayerOwner->m_layerSurface)
+        return m_pLayerOwner->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
 }

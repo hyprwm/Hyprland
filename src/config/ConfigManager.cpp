@@ -1530,22 +1530,22 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
 std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
     std::vector<SP<CLayerRule>> returns;
 
-    if (!pLS->layerSurface || pLS->fadingOut)
+    if (!pLS->m_layerSurface || pLS->m_fadingOut)
         return returns;
 
     for (auto const& lr : m_layerRules) {
-        if (lr->targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->targetNamespace)
+        if (lr->m_targetNamespace.starts_with("address:0x")) {
+            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_targetNamespace)
                 continue;
-        } else if (!lr->targetNamespaceRegex.passes(pLS->layerSurface->layerNamespace))
+        } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->layerNamespace))
             continue;
 
         // hit
         returns.emplace_back(lr);
     }
 
-    if (shouldBlurLS(pLS->layerSurface->layerNamespace))
-        returns.emplace_back(makeShared<CLayerRule>(pLS->layerSurface->layerNamespace, "blur"));
+    if (shouldBlurLS(pLS->m_layerSurface->layerNamespace))
+        returns.emplace_back(makeShared<CLayerRule>(pLS->m_layerSurface->layerNamespace, "blur"));
 
     return returns;
 }
@@ -2626,18 +2626,18 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
         return "empty rule?";
 
     if (RULE == "unset") {
-        std::erase_if(m_layerRules, [&](const auto& other) { return other->targetNamespace == VALUE; });
+        std::erase_if(m_layerRules, [&](const auto& other) { return other->m_targetNamespace == VALUE; });
         return {};
     }
 
     auto rule = makeShared<CLayerRule>(RULE, VALUE);
 
-    if (rule->ruleType == CLayerRule::RULE_INVALID) {
+    if (rule->m_ruleType == CLayerRule::RULE_INVALID) {
         Debug::log(ERR, "Invalid rule found: {}", RULE);
         return "Invalid rule found: " + RULE;
     }
 
-    rule->targetNamespaceRegex = {VALUE};
+    rule->m_targetNamespaceRegex = {VALUE};
 
     m_layerRules.emplace_back(rule);
 
@@ -2661,9 +2661,9 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
             for (auto const& ls : lsl) {
                 if (BYADDRESS) {
                     if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
-                        ls->forceBlur = forceBlur;
-                } else if (ls->szNamespace == matchName)
-                    ls->forceBlur = forceBlur;
+                        ls->m_forceBlur = forceBlur;
+                } else if (ls->m_namespace == matchName)
+                    ls->m_forceBlur = forceBlur;
             }
         }
     }

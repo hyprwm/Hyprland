@@ -42,7 +42,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (m_sActiveSwipe.pWorkspaceBegin) {
         return;
         // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
+    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
         const auto   PWORKSPACE  = PMONITOR->activeWorkspace;
         const auto   STYLE       = PWORKSPACE->m_vRenderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
@@ -88,7 +88,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
         }
     } else if (!m_sTouchData.touchFocusLS.expired()) {
-        local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusLS->geometry.pos();
+        local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusLS->m_geometry.pos();
 
         m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else
@@ -158,7 +158,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     } else if (!m_sTouchData.touchFocusLS.expired()) {
-        const auto PMONITOR = m_sTouchData.touchFocusLS->monitor.lock();
+        const auto PMONITOR = m_sTouchData.touchFocusLS->m_monitor.lock();
 
         g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 

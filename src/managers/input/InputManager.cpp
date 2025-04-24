@@ -160,7 +160,7 @@ void CInputManager::sendMotionEventsToFocused() {
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock());
     const auto PLS     = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
 
-    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition->goal() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
+    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition->goal() : (PLS ? Vector2D{PLS->m_geometry.x, PLS->m_geometry.y} : Vector2D{}));
 
     m_bEmptyFocusCursorSet = false;
 
@@ -314,8 +314,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &g_pInputManager->m_dExclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
-            foundSurface = (*g_pInputManager->m_dExclusiveLSes.begin())->surface->resource();
-            surfacePos   = (*g_pInputManager->m_dExclusiveLSes.begin())->realPosition->goal();
+            foundSurface = (*g_pInputManager->m_dExclusiveLSes.begin())->m_surface->resource();
+            surfacePos   = (*g_pInputManager->m_dExclusiveLSes.begin())->m_realPosition->goal();
         }
     }
 
@@ -487,7 +487,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (!refocus && g_pCompositor->m_lastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
 
-        if (PLS && PLS->layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+        if (PLS && PLS->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
             allowKeyboardRefocus = false;
     }
 
@@ -572,8 +572,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             unsetCursorImage();
         }
 
-        if (pFoundLayerSurface && (pFoundLayerSurface->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            (allowKeyboardRefocus || pFoundLayerSurface->layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
+        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
+            (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 
@@ -1461,14 +1461,14 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     if (!foundSurface) {
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
                                                            &surfaceCoords, &pFoundLayerSurface);
-        if (pFoundLayerSurface && pFoundLayerSurface->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+        if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
     }
 
     if (!foundSurface) {
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                            &surfaceCoords, &pFoundLayerSurface);
-        if (pFoundLayerSurface && pFoundLayerSurface->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+        if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
     }
 

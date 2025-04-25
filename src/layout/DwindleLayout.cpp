@@ -107,7 +107,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
             }
         }
     } else if (const auto WS = g_pCompositor->getWorkspaceByID(pNode->workspaceID); WS)
-        PMONITOR = WS->m_pMonitor.lock();
+        PMONITOR = WS->m_monitor.lock();
 
     if (!PMONITOR) {
         Debug::log(ERR, "Orphaned Node {}!!", pNode);
@@ -499,23 +499,23 @@ void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
 }
 
 void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
-    const auto PMONITOR = pWorkspace->m_pMonitor.lock();
+    const auto PMONITOR = pWorkspace->m_monitor.lock();
 
     if (!PMONITOR)
         return;
 
-    if (pWorkspace->m_bHasFullscreenWindow) {
+    if (pWorkspace->m_hasFullscreenWindow) {
         // massive hack from the fullscreen func
         const auto PFULLWINDOW = pWorkspace->getFullscreenWindow();
 
-        if (pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+        if (pWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
             *PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
             *PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
-        } else if (pWorkspace->m_efFullscreenMode == FSMODE_MAXIMIZED) {
+        } else if (pWorkspace->m_fullscreenMode == FSMODE_MAXIMIZED) {
             SDwindleNodeData fakeNode;
             fakeNode.pWindow         = PFULLWINDOW;
             fakeNode.box             = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
-            fakeNode.workspaceID     = pWorkspace->m_iID;
+            fakeNode.workspaceID     = pWorkspace->m_id;
             PFULLWINDOW->m_vPosition = fakeNode.box.pos();
             PFULLWINDOW->m_vSize     = fakeNode.box.size();
             fakeNode.ignoreFullscreenChecks = true;
@@ -527,7 +527,7 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
         return;
     }
 
-    const auto TOPNODE = getMasterNodeOnWorkspace(pWorkspace->m_iID);
+    const auto TOPNODE = getMasterNodeOnWorkspace(pWorkspace->m_id);
 
     if (TOPNODE) {
         TOPNODE->box = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};

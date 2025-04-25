@@ -342,12 +342,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     // then, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE   = PMONITOR->activeWorkspace;
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
-    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+    if (PWORKSPACE->m_hasFullscreenWindow && !foundSurface && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
         pFoundWindow = PWORKSPACE->getFullscreenWindow();
 
         if (!pFoundWindow) {
             // what the fuck, somehow happens occasionally??
-            PWORKSPACE->m_bHasFullscreenWindow = false;
+            PWORKSPACE->m_hasFullscreenWindow = false;
             return;
         }
 
@@ -367,7 +367,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // then windows
     if (!foundSurface) {
-        if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FSMODE_MAXIMIZED) {
+        if (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
             if (!foundSurface) {
                 if (PMONITOR->activeSpecialWorkspace) {
                     if (pFoundWindow != PWINDOWIDEAL)

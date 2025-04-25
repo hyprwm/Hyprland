@@ -34,7 +34,7 @@ class CSubsurface {
 
     void            recheckDamageForSubsurfaces();
 
-    WP<CSubsurface> m_pSelf;
+    WP<CSubsurface> m_self;
 
   private:
     CSubsurface() = default;
@@ -45,22 +45,22 @@ class CSubsurface {
         CHyprSignalListener mapSubsurface;
         CHyprSignalListener unmapSubsurface;
         CHyprSignalListener newSubsurface;
-    } listeners;
+    } m_listeners;
 
-    WP<CWLSubsurfaceResource> m_pSubsurface;
-    SP<CWLSurface>            m_pWLSurface;
-    Vector2D                  m_vLastSize     = {};
-    Vector2D                  m_vLastPosition = {};
+    WP<CWLSubsurfaceResource> m_subsurface;
+    SP<CWLSurface>            m_wlSurface;
+    Vector2D                  m_lastSize     = {};
+    Vector2D                  m_lastPosition = {};
 
     // if nullptr, means it's a dummy node
-    WP<CSubsurface>              m_pParent;
+    WP<CSubsurface>              m_parent;
 
-    PHLWINDOWREF                 m_pWindowParent;
-    WP<CPopup>                   m_pPopupParent;
+    PHLWINDOWREF                 m_windowParent;
+    WP<CPopup>                   m_popupParent;
 
-    std::vector<UP<CSubsurface>> m_vChildren;
+    std::vector<UP<CSubsurface>> m_children;
 
-    bool                         m_bInert = false;
+    bool                         m_inert = false;
 
     void                         initSignals();
     void                         initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);

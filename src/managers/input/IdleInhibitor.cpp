@@ -24,7 +24,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         return;
     }
 
-    PINHIBIT->surfaceDestroyListener = WLSurface->events.destroy.registerListener(
+    PINHIBIT->surfaceDestroyListener = WLSurface->m_events.destroy.registerListener(
         [this, PINHIBIT](std::any data) { std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
 
     recheckIdleInhibitorStatus();

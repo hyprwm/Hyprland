@@ -1454,7 +1454,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                         continue;
 
                     if (rule->szWorkspace.starts_with("name:")) {
-                        if (PWORKSPACE->m_szName != rule->szWorkspace.substr(5))
+                        if (PWORKSPACE->m_name != rule->szWorkspace.substr(5))
                             continue;
                     } else {
                         // number
@@ -1463,7 +1463,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
 
                         const int64_t ID = std::stoll(rule->szWorkspace);
 
-                        if (PWORKSPACE->m_iID != ID)
+                        if (PWORKSPACE->m_id != ID)
                             continue;
                     }
                 }
@@ -1715,7 +1715,7 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             if (!PWORKSPACE)
                 return; // ???
 
-            bool wantVRR = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
+            bool wantVRR = PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN);
             if (wantVRR && USEVRR == 3) {
                 const auto contentType = PWORKSPACE->getFullscreenWindow()->getContentType();
                 wantVRR                = contentType == CONTENT_TYPE_GAME || contentType == CONTENT_TYPE_VIDEO;

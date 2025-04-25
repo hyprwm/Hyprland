@@ -188,16 +188,16 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return true;
 
     const auto PWINDOWWORKSPACE = pWindow->m_pWorkspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_pMonitor == pMonitor) {
-        if (PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha->isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering)
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_monitor == pMonitor) {
+        if (PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() || PWINDOWWORKSPACE->m_alpha->isBeingAnimated() || PWINDOWWORKSPACE->m_forceRendering)
             return true;
 
         // if hidden behind fullscreen
-        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->isFullscreen() && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
+        if (PWINDOWWORKSPACE->m_hasFullscreenWindow && !pWindow->isFullscreen() && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
             pWindow->m_fAlpha->value() == 0)
             return false;
 
-        if (!PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha->isBeingAnimated() && !PWINDOWWORKSPACE->isVisible())
+        if (!PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOWWORKSPACE->m_alpha->isBeingAnimated() && !PWINDOWWORKSPACE->isVisible())
             return false;
     }
 
@@ -219,13 +219,13 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return false;
 
     if (pWindow->m_vRealPosition->isBeingAnimated()) {
-        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_bIsSpecialWorkspace && PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated())
+        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_isSpecialWorkspace && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated())
             return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
         CBox windowBox = pWindow->getFullWindowBoundingBox();
-        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated())
-            windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset->value());
+        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated())
+            windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
         windowBox.translate(pWindow->m_vFloatingOffset);
 
         const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
@@ -246,14 +246,14 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_pWorkspace)
         return false;
 
-    if (pWindow->m_bPinned || PWORKSPACE->m_bForceRendering)
+    if (pWindow->m_bPinned || PWORKSPACE->m_forceRendering)
         return true;
 
     if (PWORKSPACE && PWORKSPACE->isVisible())
         return true;
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        if (PWORKSPACE && PWORKSPACE->m_pMonitor == m && (PWORKSPACE->m_vRenderOffset->isBeingAnimated() || PWORKSPACE->m_fAlpha->isBeingAnimated()))
+        if (PWORKSPACE && PWORKSPACE->m_monitor == m && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated()))
             return true;
 
         if (m->activeSpecialWorkspace && pWindow->onSpecialWorkspace())
@@ -279,7 +279,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (w->isFullscreen() || w->m_bIsFloating)
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
@@ -296,10 +296,10 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (w->isFullscreen() || !w->m_bIsFloating)
             continue;
 
-        if (w->m_pMonitor == pWorkspace->m_pMonitor && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (w->m_pMonitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_pMonitor != pWorkspace->m_pMonitor)
+        if (pWorkspace->m_isSpecialWorkspace && w->m_pMonitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
@@ -310,7 +310,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         const auto PWORKSPACE = w->m_pWorkspace;
 
         if (w->m_pWorkspace != pWorkspace || !w->isFullscreen()) {
-            if (!(PWORKSPACE && (PWORKSPACE->m_vRenderOffset->isBeingAnimated() || PWORKSPACE->m_fAlpha->isBeingAnimated() || PWORKSPACE->m_bForceRendering)))
+            if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
                 continue;
 
             if (w->m_pMonitor != pMonitor)
@@ -320,11 +320,11 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (!w->isFullscreen())
             continue;
 
-        if (w->m_pMonitor == pWorkspace->m_pMonitor && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (w->m_pMonitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         if (shouldRenderWindow(w, pMonitor))
-            renderWindow(w, pMonitor, time, pWorkspace->m_efFullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
+            renderWindow(w, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
         if (w->m_pWorkspace != pWorkspace)
             continue;
@@ -334,7 +334,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     if (!pWorkspaceWindow) {
         // ?? happens sometimes...
-        pWorkspace->m_bHasFullscreenWindow = false;
+        pWorkspace->m_hasFullscreenWindow = false;
         return; // this will produce one blank frame. Oh well.
     }
 
@@ -344,10 +344,10 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
             w->isFullscreen())
             continue;
 
-        if (w->m_pMonitor == pWorkspace->m_pMonitor && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (w->m_pMonitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_pMonitor != pWorkspace->m_pMonitor)
+        if (pWorkspace->m_isSpecialWorkspace && w->m_pMonitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
@@ -380,7 +380,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         // some things may force us to ignore the special/not special disparity
         const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         // render active window after all others of this pass
@@ -422,7 +422,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         // some things may force us to ignore the special/not special disparity
         const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         // render the bad boy
@@ -441,10 +441,10 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         // some things may force us to ignore the special/not special disparity
         const bool IGNORE_SPECIAL_CHECK = w->m_iMonitorMovedFrom != -1 && (w->m_pWorkspace && !w->m_pWorkspace->isVisible());
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
+        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (pWorkspace->m_bIsSpecialWorkspace && w->m_pMonitor != pWorkspace->m_pMonitor)
+        if (pWorkspace->m_isSpecialWorkspace && w->m_pMonitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
@@ -468,7 +468,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     TRACY_GPU_ZONE("RenderWindow");
 
     const auto                       PWORKSPACE = pWindow->m_pWorkspace;
-    const auto                       REALPOS    = pWindow->m_vRealPosition->value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset->value());
+    const auto                       REALPOS    = pWindow->m_vRealPosition->value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
     static auto                      PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
     static auto                      PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
@@ -500,7 +500,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     renderdata.surface   = pWindow->m_pWLSurface->resource();
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
-    renderdata.fadeAlpha = pWindow->m_fAlpha->value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_fAlpha->value()) *
+    renderdata.fadeAlpha = pWindow->m_fAlpha->value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha->value() : 1.F) * pWindow->m_fMovingFromWorkspaceAlpha->value();
     renderdata.alpha         = pWindow->m_fActiveInactiveAlpha->value();
     renderdata.decorate      = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
@@ -534,9 +534,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pos.y += pWindow->m_vFloatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->isFullscreen() && PWORKSPACE->m_vRenderOffset->isBeingAnimated() && !pWindow->m_bPinned) {
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->isFullscreen() && PWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_bPinned) {
         CRegion rg =
-            pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset->value() + pWindow->m_vFloatingOffset).scale(pMonitor->scale);
+            pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_renderOffset->value() + pWindow->m_vFloatingOffset).scale(pMonitor->scale);
         renderdata.clipBox = rg.getExtents();
     }
 
@@ -573,7 +573,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sWindowData.nearestNeighbor.valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
-        if (!pWindow->m_sWindowData.noBlur.valueOrDefault() && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (!pWindow->m_sWindowData.noBlur.valueOrDefault() && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_fillIgnoreSmall && renderdata.blur && *PBLUR) {
             CBox wb = {renderdata.pos.x - pMonitor->vecPosition.x, renderdata.pos.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
             CRectPassElement::SRectData data;
@@ -901,15 +901,15 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
 
-    if (pWorkspace->m_bHasFullscreenWindow)
+    if (pWorkspace->m_hasFullscreenWindow)
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
     else
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
     for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_pMonitor == pMonitor && ws->m_fAlpha->value() > 0.f && ws->m_bIsSpecialWorkspace) {
-            const auto SPECIALANIMPROGRS = ws->m_vRenderOffset->isBeingAnimated() ? ws->m_vRenderOffset->getCurveValue() : ws->m_fAlpha->getCurveValue();
+        if (ws->m_monitor == pMonitor && ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
+            const auto SPECIALANIMPROGRS = ws->m_renderOffset->isBeingAnimated() ? ws->m_renderOffset->getCurveValue() : ws->m_alpha->getCurveValue();
             const bool ANIMOUT           = !pMonitor->activeSpecialWorkspace;
 
             if (*PDIMSPECIAL != 0.f) {
@@ -936,8 +936,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     // special
     for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_fAlpha->value() > 0.f && ws->m_bIsSpecialWorkspace) {
-            if (ws->m_bHasFullscreenWindow)
+        if (ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
+            if (ws->m_hasFullscreenWindow)
                 renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
             else
                 renderWorkspaceWindows(pMonitor, ws, time);
@@ -1107,7 +1107,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
             auto maxSize = projSizeUnscaled;
 
-            if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
+            if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_fillIgnoreSmall)
                 maxSize = pWindow->m_pWLSurface->getViewporterCorrectedSize();
 
             if (geom.width > maxSize.x)
@@ -1225,8 +1225,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     pMonitor->tearingState.activelyTearing = shouldTear;
 
     if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
-          pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
+         (*PDIRECTSCANOUT == 2 && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_hasFullscreenWindow &&
+          pMonitor->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN && pMonitor->activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
         !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
@@ -1481,7 +1481,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
         bool wantHDR      = PHDR;
         bool hdrIsHandled = false;
-        if (*PPASS && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+        if (*PPASS && pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_hasFullscreenWindow && pMonitor->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW    = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_pWLSurface->resource();
             const auto SURF =
@@ -1525,7 +1525,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
+    if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_hasFullscreenWindow && pMonitor->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
         const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
         pMonitor->output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
     } else
@@ -1870,8 +1870,8 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = pWindow->m_pWorkspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated() && !pWindow->m_bPinned)
-        windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset->value());
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_bPinned)
+        windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
     windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto const& m : g_pCompositor->m_monitors) {
@@ -2119,8 +2119,8 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
 
     const auto PWORKSPACE = pMonitor->activeWorkspace;
 
-    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || PROTO::data->dndActive() || pMonitor->activeSpecialWorkspace || PWORKSPACE->m_fAlpha->value() != 1.f ||
-        PWORKSPACE->m_vRenderOffset->value() != Vector2D{})
+    if (!PWORKSPACE || !PWORKSPACE->m_hasFullscreenWindow || PROTO::data->dndActive() || pMonitor->activeSpecialWorkspace || PWORKSPACE->m_alpha->value() != 1.f ||
+        PWORKSPACE->m_renderOffset->value() != Vector2D{})
         return;
 
     const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();

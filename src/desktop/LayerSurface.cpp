@@ -180,7 +180,7 @@ void CLayerSurface::onMap() {
 
     CBox geomFixed = {m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
-    const bool FULLSCREEN = PMONITOR->activeWorkspace && PMONITOR->activeWorkspace->m_bHasFullscreenWindow && PMONITOR->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
+    const bool FULLSCREEN = PMONITOR->activeWorkspace && PMONITOR->activeWorkspace->m_hasFullscreenWindow && PMONITOR->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
 
     startAnimation(!(m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
     m_readyToDelete = false;

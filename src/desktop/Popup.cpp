@@ -172,7 +172,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (!m_windowOwner.expired() && (!m_windowOwner->m_bIsMapped || !m_windowOwner->m_pWorkspace->m_bVisible)) {
+    if (!m_windowOwner.expired() && (!m_windowOwner->m_bIsMapped || !m_windowOwner->m_pWorkspace->m_visible)) {
         m_lastSize = m_resource->surface->surface->current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -301,9 +301,9 @@ Vector2D CPopup::size() {
 
 void CPopup::sendScale() {
     if (!m_windowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_pWLSurface->m_fLastScale);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_pWLSurface->m_lastScaleFloat);
     else if (!m_layerOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->m_surface->m_fLastScale);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->m_surface->m_lastScaleFloat);
     else
         UNREACHABLE();
 }

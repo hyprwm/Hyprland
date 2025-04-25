@@ -44,7 +44,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
         const auto   PWORKSPACE  = PMONITOR->activeWorkspace;
-        const auto   STYLE       = PWORKSPACE->m_vRenderOffset->getStyle();
+        const auto   STYLE       = PWORKSPACE->m_renderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.m_top : gapsOut.m_left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x));
@@ -121,7 +121,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         if (e.touchID != m_sActiveSwipe.touch_id)
             return;
 
-        const auto  ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
+        const auto  ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_renderOffset->getStyle();
         const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
         static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
         static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");

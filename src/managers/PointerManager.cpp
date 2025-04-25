@@ -149,7 +149,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
 
         surf->resource()->map();
 
-        currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
+        currentCursorImage.destroySurface = surf->m_events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
         currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
             currentCursorImage.size  = currentCursorImage.surface->resource()->current.texture ? currentCursorImage.surface->resource()->current.bufferSize : Vector2D{};

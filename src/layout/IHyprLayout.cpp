@@ -404,7 +404,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
-        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_pWorkspace && DRAGGINGWINDOW->m_pWorkspace->m_bHasFullscreenWindow;
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_pWorkspace && DRAGGINGWINDOW->m_pWorkspace->m_hasFullscreenWindow;
 
         for (auto& other : g_pCompositor->m_windows) {
             if ((HASFULLSCREEN && !other->m_bCreatedOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut ||
@@ -724,7 +724,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         const auto PWORKSPACE = PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace;
 
-        if (PWORKSPACE->m_bHasFullscreenWindow)
+        if (PWORKSPACE->m_hasFullscreenWindow)
             g_pCompositor->setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
 
         // save real pos cuz the func applies the default 5,5 mid
@@ -814,7 +814,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     // first of all, if this is a fullscreen workspace,
-    if (PWORKSPACE->m_bHasFullscreenWindow)
+    if (PWORKSPACE->m_hasFullscreenWindow)
         return PWORKSPACE->getFullscreenWindow();
 
     if (pWindow->m_bIsFloating) {
@@ -956,7 +956,7 @@ bool IHyprLayout::updateDragWindow() {
 
         const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
 
-        if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
+        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
             Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
             return true;

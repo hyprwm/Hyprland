@@ -190,7 +190,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
 
-                if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
+                if (JUSTWORKSPACE == PWORKSPACE->m_name || JUSTWORKSPACE == "name:" + PWORKSPACE->m_name)
                     requestedWorkspace = "";
 
                 Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r->szValue);
@@ -342,14 +342,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWORKSPACE = pWorkspace;
 
             PWINDOW->m_pWorkspace = pWorkspace;
-            PWINDOW->m_pMonitor   = pWorkspace->m_pMonitor;
+            PWINDOW->m_pMonitor   = pWorkspace->m_monitor;
 
-            if (PWINDOW->m_pMonitor.lock()->activeSpecialWorkspace && !pWorkspace->m_bIsSpecialWorkspace)
+            if (PWINDOW->m_pMonitor.lock()->activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
                 workspaceSilent = true;
 
             if (!workspaceSilent) {
-                if (pWorkspace->m_bIsSpecialWorkspace)
-                    pWorkspace->m_pMonitor->setSpecialWorkspace(pWorkspace);
+                if (pWorkspace->m_isSpecialWorkspace)
+                    pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
                 else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_bNoInitialFocus)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
@@ -379,10 +379,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         Debug::log(LOG, "Requested monitor, applying to {:mw}", PWINDOW);
     }
 
-    if (PWORKSPACE->m_bDefaultFloating)
+    if (PWORKSPACE->m_defaultFloating)
         PWINDOW->m_bIsFloating = true;
 
-    if (PWORKSPACE->m_bDefaultPseudo) {
+    if (PWORKSPACE->m_defaultPseudo) {
         PWINDOW->m_bIsPseudotiled = true;
         CBox desiredGeometry      = g_pXWaylandManager->getGeometryForWindow(PWINDOW);
         PWINDOW->m_vPseudoSize    = Vector2D(desiredGeometry.width, desiredGeometry.height);
@@ -584,11 +584,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_bNoInitialFocus = true;
 
-    if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !PWINDOW->m_bIsFloating) {
+    if (PWINDOW->m_pWorkspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !PWINDOW->m_bIsFloating) {
         if (*PNEWTAKESOVERFS == 0)
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)
-            requestedInternalFSMode = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+            requestedInternalFSMode = PWINDOW->m_pWorkspace->m_fullscreenMode;
         else if (*PNEWTAKESOVERFS == 2)
             g_pCompositor->setWindowFullscreenInternal(PWINDOW->m_pWorkspace->getFullscreenWindow(), FSMODE_NONE);
     }
@@ -611,7 +611,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bNoInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
-        if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow)
+        if (PWINDOW->m_pWorkspace->m_hasFullscreenWindow)
             g_pCompositor->setWindowFullscreenInternal(PWINDOW->m_pWorkspace->getFullscreenWindow(), FSMODE_NONE);
 
         PWINDOW->m_vRealPosition->warp();
@@ -652,7 +652,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->szName, PWINDOW->m_vRealPosition->goal(), PWINDOW->m_vRealSize->goal());
 
-    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
+    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_name;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, PWINDOW->m_szClass, PWINDOW->m_szTitle)});
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
@@ -672,7 +672,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     // avoid this window being visible
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_bIsFloating)
+    if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_bIsFloating)
         PWINDOW->m_fAlpha->setValueAndWarp(0.f);
 
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->scale);
@@ -764,8 +764,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = PWINDOW->m_pWorkspace;
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->isFullscreen())
-        PWORKSPACE->m_bHasFullscreenWindow = false;
+    if (PWORKSPACE->m_hasFullscreenWindow && PWINDOW->isFullscreen())
+        PWORKSPACE->m_hasFullscreenWindow = false;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
@@ -853,7 +853,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
-    if (!PWINDOW->m_pWorkspace->m_bVisible)
+    if (!PWINDOW->m_pWorkspace->m_visible)
         return;
 
     const auto PMONITOR = PWINDOW->m_pMonitor.lock();

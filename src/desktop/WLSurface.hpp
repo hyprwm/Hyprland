@@ -12,8 +12,8 @@ class CWLSurfaceResource;
 class CWLSurface {
   public:
     static SP<CWLSurface> create() {
-        auto p  = SP<CWLSurface>(new CWLSurface);
-        p->self = p;
+        auto p    = SP<CWLSurface>(new CWLSurface);
+        p->m_self = p;
         return p;
     }
     ~CWLSurface();
@@ -53,17 +53,17 @@ class CWLSurface {
     SP<CPointerConstraint> constraint() const;
 
     // allow stretching. Useful for plugins.
-    bool m_bFillIgnoreSmall = false;
+    bool m_fillIgnoreSmall = false;
 
     // track surface data and avoid dupes
-    float               m_fLastScale     = 0;
-    int                 m_iLastScale     = 0;
-    wl_output_transform m_eLastTransform = (wl_output_transform)-1;
+    float               m_lastScaleFloat = 0;
+    int                 m_lastScaleInt   = 0;
+    wl_output_transform m_lastTransform  = (wl_output_transform)-1;
 
     //
     CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {
         destroy();
-        m_pResource = pSurface;
+        m_resource = pSurface;
         init();
 
         return *this;
@@ -84,32 +84,32 @@ class CWLSurface {
     static SP<CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
 
     // used by the alpha-modifier protocol
-    float m_fAlphaModifier = 1.F;
+    float m_alphaModifier = 1.F;
 
     // used by the hyprland-surface protocol
-    float   m_fOverallOpacity = 1.F;
+    float   m_overallOpacity = 1.F;
     CRegion m_visibleRegion;
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
-    WP<CWLSurface> self;
+    WP<CWLSurface> m_self;
 
   private:
     CWLSurface() = default;
 
-    bool                   m_bInert = true;
+    bool                   m_inert = true;
 
-    WP<CWLSurfaceResource> m_pResource;
+    WP<CWLSurfaceResource> m_resource;
 
-    PHLWINDOWREF           m_pWindowOwner;
-    PHLLSREF               m_pLayerOwner;
-    CPopup*                m_pPopupOwner      = nullptr;
-    CSubsurface*           m_pSubsurfaceOwner = nullptr;
+    PHLWINDOWREF           m_windowOwner;
+    PHLLSREF               m_layerOwner;
+    CPopup*                m_popupOwner      = nullptr;
+    CSubsurface*           m_subsurfaceOwner = nullptr;
 
     //
-    WP<CPointerConstraint> m_pConstraint;
+    WP<CPointerConstraint> m_constraint;
 
     void                   destroy();
     void                   init();
@@ -117,7 +117,7 @@ class CWLSurface {
 
     struct {
         CHyprSignalListener destroy;
-    } listeners;
+    } m_listeners;
 
     friend class CPointerConstraint;
     friend class CXxColorManagerV4;

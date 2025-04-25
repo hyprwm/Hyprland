@@ -1397,10 +1397,10 @@ void CWindow::activate(bool force) {
 
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
 
+    m_bIsUrgent = true;
+
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
     EMIT_HOOK_EVENT("urgent", m_pSelf.lock());
-
-    m_bIsUrgent = true;
 
     if (!force && (!m_sWindowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;

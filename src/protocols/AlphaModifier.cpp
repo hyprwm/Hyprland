@@ -33,9 +33,9 @@ void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
     listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
         auto surface = CWLSurface::fromResource(m_pSurface.lock());
 
-        if (surface && surface->m_fAlphaModifier != m_fAlpha) {
-            surface->m_fAlphaModifier = m_fAlpha;
-            auto box                  = surface->getSurfaceBoxGlobal();
+        if (surface && surface->m_alphaModifier != m_fAlpha) {
+            surface->m_alphaModifier = m_fAlpha;
+            auto box                 = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
                 g_pHyprRenderer->damageBox(*box);

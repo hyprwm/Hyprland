@@ -100,12 +100,12 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
 
         animationsDisabled = PWINDOW->m_sWindowData.noAnim.valueOr(animationsDisabled);
     } else if (PWORKSPACE) {
-        PMONITOR = PWORKSPACE->m_pMonitor.lock();
+        PMONITOR = PWORKSPACE->m_monitor.lock();
         if (!PMONITOR)
             return;
 
         // dont damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
-        if (PWORKSPACE->m_bIsSpecialWorkspace)
+        if (PWORKSPACE->m_isSpecialWorkspace)
             g_pHyprRenderer->damageMonitor(PMONITOR);
 
         // TODO: just make this into a damn callback already vax...
@@ -122,7 +122,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                     g_pHyprRenderer->damageWindow(w, true);
             }
 
-            if (PWORKSPACE->m_bIsSpecialWorkspace)
+            if (PWORKSPACE->m_isSpecialWorkspace)
                 g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
         }
 

@@ -24,39 +24,39 @@ class CWorkspace {
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
-    WORKSPACEID     m_iID    = WORKSPACE_INVALID;
-    std::string     m_szName = "";
-    PHLMONITORREF   m_pMonitor;
+    WORKSPACEID     m_id   = WORKSPACE_INVALID;
+    std::string     m_name = "";
+    PHLMONITORREF   m_monitor;
 
-    bool            m_bHasFullscreenWindow = false;
-    eFullscreenMode m_efFullscreenMode     = FSMODE_NONE;
+    bool            m_hasFullscreenWindow = false;
+    eFullscreenMode m_fullscreenMode      = FSMODE_NONE;
 
     wl_array        m_wlrCoordinateArr;
 
     // for animations
-    PHLANIMVAR<Vector2D> m_vRenderOffset;
-    PHLANIMVAR<float>    m_fAlpha;
-    bool                 m_bForceRendering = false;
+    PHLANIMVAR<Vector2D> m_renderOffset;
+    PHLANIMVAR<float>    m_alpha;
+    bool                 m_forceRendering = false;
 
     // allows damage to propagate.
-    bool m_bVisible = false;
+    bool m_visible = false;
 
     // "scratchpad"
-    bool m_bIsSpecialWorkspace = false;
+    bool m_isSpecialWorkspace = false;
 
     // last window
-    PHLWINDOWREF m_pLastFocusedWindow;
+    PHLWINDOWREF m_lastFocusedWindow;
 
     // user-set
-    bool m_bDefaultFloating = false;
-    bool m_bDefaultPseudo   = false;
+    bool m_defaultFloating = false;
+    bool m_defaultPseudo   = false;
 
     // last monitor (used on reconnect)
-    std::string m_szLastMonitor = "";
+    std::string m_lastMonitor = "";
 
-    bool        m_bWasCreatedEmpty = true;
+    bool        m_wasCreatedEmpty = true;
 
-    bool        m_bPersistent = false;
+    bool        m_persistent = false;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool             inert();
@@ -88,11 +88,11 @@ class CWorkspace {
     void init(PHLWORKSPACE self);
     // Previous workspace ID and name is stored during a workspace change, allowing travel
     // to the previous workspace.
-    SWorkspaceIDName     m_sPrevWorkspace;
+    SWorkspaceIDName     m_prevWorkspace;
 
-    SP<HOOK_CALLBACK_FN> m_pFocusedWindowHook;
-    bool                 m_bInert = true;
-    WP<CWorkspace>       m_pSelf;
+    SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
+    bool                 m_inert = true;
+    WP<CWorkspace>       m_self;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

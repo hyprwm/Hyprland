@@ -16,6 +16,6 @@ class CRuleRegexContainer {
     bool passes(const std::string& str) const;
 
   private:
-    Hyprutils::Memory::CUniquePointer<re2::RE2> regex;
-    bool                                        negative = false;
+    Hyprutils::Memory::CUniquePointer<re2::RE2> m_regex;
+    bool                                        m_negative = false;
 };

@@ -1558,8 +1558,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     const bool skipCM = !*PENABLECM || !m_bCMSupported                   /* CM unsupported or disabled */
         || (imageDescription == m_RenderData.pMonitor->imageDescription) /* Source and target have the same image description */
         || ((*PPASS == 1 || (*PPASS == 2 && imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_RenderData.pMonitor->activeWorkspace &&
-            m_RenderData.pMonitor->activeWorkspace->m_bHasFullscreenWindow &&
-            m_RenderData.pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
+            m_RenderData.pMonitor->activeWorkspace->m_hasFullscreenWindow &&
+            m_RenderData.pMonitor->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
         shader = &m_shaders->m_shCM;
@@ -2057,13 +2057,13 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         if (pWindow->m_sWindowData.noBlur.valueOrDefault())
             return false;
 
-        if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
+        if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_fillIgnoreSmall)
             return true;
 
         const auto  PSURFACE = pWindow->m_pWLSurface->resource();
 
         const auto  PWORKSPACE = pWindow->m_pWorkspace;
-        const float A          = pWindow->m_fAlpha->value() * pWindow->m_fActiveInactiveAlpha->value() * PWORKSPACE->m_fAlpha->value();
+        const float A          = pWindow->m_fAlpha->value() * pWindow->m_fActiveInactiveAlpha->value() * PWORKSPACE->m_alpha->value();
 
         if (A >= 1.f) {
             // if (PSURFACE->opaque)

@@ -582,7 +582,7 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     const auto PWORKSPACE = m_pWindow->m_pWorkspace;
 
     if (PWORKSPACE && !m_pWindow->m_bPinned)
-        box.translate(PWORKSPACE->m_vRenderOffset->value());
+        box.translate(PWORKSPACE->m_renderOffset->value());
 
     return box.round();
 }

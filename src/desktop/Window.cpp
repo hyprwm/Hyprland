@@ -396,7 +396,7 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     m_pWLSurface->resource()->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
+            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->scale)
                 return;
 
             PROTO::fractional->sendScale(s, PMONITOR->scale);
@@ -452,8 +452,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_szName)});
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindowv2", std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_iID, pWorkspace->m_szName)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_name)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindowv2", std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_pSelf.lock(), pWorkspace}));
     }
 
@@ -464,8 +464,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
-        if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
+    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+        if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 }
@@ -514,7 +514,7 @@ void CWindow::onUnmap() {
         }
     }
 
-    m_iLastWorkspace = m_pWorkspace->m_iID;
+    m_iLastWorkspace = m_pWorkspace->m_id;
 
     std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_pSelf; });
 
@@ -1153,10 +1153,10 @@ bool CWindow::opaque() {
 
     const auto PWORKSPACE = m_pWorkspace;
 
-    if (m_pWLSurface->small() && !m_pWLSurface->m_bFillIgnoreSmall)
+    if (m_pWLSurface->small() && !m_pWLSurface->m_fillIgnoreSmall)
         return false;
 
-    if (PWORKSPACE->m_fAlpha->value() != 1.f)
+    if (PWORKSPACE->m_alpha->value() != 1.f)
         return false;
 
     if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.texture)
@@ -1273,16 +1273,16 @@ void CWindow::onWorkspaceAnimUpdate() {
         return;
 
     const auto WINBB = getFullWindowBoundingBox();
-    if (PWORKSPACE->m_vRenderOffset->value().x != 0) {
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset->value().x / PWSMON->vecSize.x;
+    if (PWORKSPACE->m_renderOffset->value().x != 0) {
+        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().x / PWSMON->vecSize.x;
 
         if (WINBB.x < PWSMON->vecPosition.x)
             offset.x += (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
 
         if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x)
             offset.x += (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
-    } else if (PWORKSPACE->m_vRenderOffset->value().y != 0) {
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset->value().y / PWSMON->vecSize.y;
+    } else if (PWORKSPACE->m_renderOffset->value().y != 0) {
+        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().y / PWSMON->vecSize.y;
 
         if (WINBB.y < PWSMON->vecPosition.y)
             offset.y += (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
@@ -1338,7 +1338,7 @@ bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
 }
 
 WORKSPACEID CWindow::workspaceID() {
-    return m_pWorkspace ? m_pWorkspace->m_iID : m_iLastWorkspace;
+    return m_pWorkspace ? m_pWorkspace->m_id : m_iLastWorkspace;
 }
 
 MONITORID CWindow::monitorID() {
@@ -1346,7 +1346,7 @@ MONITORID CWindow::monitorID() {
 }
 
 bool CWindow::onSpecialWorkspace() {
-    return m_pWorkspace ? m_pWorkspace->m_bIsSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_iLastWorkspace);
+    return m_pWorkspace ? m_pWorkspace->m_isSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_iLastWorkspace);
 }
 
 std::unordered_map<std::string, std::string> CWindow::getEnv() {

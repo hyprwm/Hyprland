@@ -14,6 +14,7 @@ class CLayerRule {
         RULE_BLUR,
         RULE_BLURPOPUPS,
         RULE_DIMAROUND,
+        RULE_ABOVELOCK,
         RULE_IGNOREALPHA,
         RULE_IGNOREZERO,
         RULE_XRAY,

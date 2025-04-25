@@ -43,13 +43,15 @@ class CLayerSurface {
     bool                       m_noProcess     = false;
     bool                       m_noAnimations  = false;
 
-    bool                       m_forceBlur        = false;
-    bool                       m_forceBlurPopups  = false;
-    int64_t                    m_xray             = -1;
-    bool                       m_ignoreAlpha      = false;
-    float                      m_ignoreAlphaValue = 0.f;
-    bool                       m_dimAround        = false;
-    int64_t                    m_order            = 0;
+    bool                       m_forceBlur                   = false;
+    bool                       m_forceBlurPopups             = false;
+    int64_t                    m_xray                        = -1;
+    bool                       m_ignoreAlpha                 = false;
+    float                      m_ignoreAlphaValue            = 0.f;
+    bool                       m_dimAround                   = false;
+    int64_t                    m_order                       = 0;
+    bool                       m_aboveLockscreen             = false;
+    bool                       m_aboveLockscreenInteractable = false;
 
     std::optional<std::string> m_animationStyle;
 

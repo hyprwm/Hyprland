@@ -21,8 +21,6 @@ CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_tar
         m_ruleType = RULE_BLURPOPUPS;
     else if (m_rule == "dimaround")
         m_ruleType = RULE_DIMAROUND;
-    else if (m_rule == "abovelock")
-        m_ruleType = RULE_ABOVELOCK;
     else if (m_rule.starts_with("ignorealpha"))
         m_ruleType = RULE_IGNOREALPHA;
     else if (m_rule.starts_with("ignorezero"))

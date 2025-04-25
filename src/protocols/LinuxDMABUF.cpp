@@ -499,7 +499,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
             PHLMONITOR mon;
             auto       HLSurface = CWLSurface::fromResource(feedback->surface);
             if (auto w = HLSurface->getWindow(); w)
-                if (auto m = w->m_pMonitor.lock(); m)
+                if (auto m = w->m_monitor.lock(); m)
                     mon = m->self.lock();
 
             if (!mon) {

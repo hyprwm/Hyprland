@@ -1127,12 +1127,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         // move pinned windows
         for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_pWorkspace == POLDWORKSPACE && w->m_bPinned)
+            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
                 w->moveToWorkspace(pWorkspace);
         }
 
         if (!noFocus && !g_pCompositor->m_lastMonitor->activeSpecialWorkspace &&
-            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_bPinned && g_pCompositor->m_lastWindow->m_pMonitor == self)) {
+            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
@@ -1194,7 +1194,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_bPinned && g_pCompositor->m_lastWindow->m_pMonitor == self)) {
+        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == self)) {
             if (const auto PLAST = activeWorkspace->getLastFocusedWindow(); PLAST)
                 g_pCompositor->focusWindow(PLAST);
             else
@@ -1238,32 +1238,32 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         pWorkspace->startAnim(true, true);
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_pWorkspace == pWorkspace) {
-            w->m_pMonitor = self;
+        if (w->m_workspace == pWorkspace) {
+            w->m_monitor = self;
             w->updateSurfaceScaleTransformDetails();
             w->setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
+            if (w->m_isFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
-                Vector2D   pos            = w->m_vRealPosition->goal();
+                Vector2D   pos            = w->m_realPosition->goal();
                 if (!VECINRECT(MIDDLE, PMONFROMMIDDLE->vecPosition.x, PMONFROMMIDDLE->vecPosition.y, PMONFROMMIDDLE->vecPosition.x + PMONFROMMIDDLE->vecSize.x,
                                PMONFROMMIDDLE->vecPosition.y + PMONFROMMIDDLE->vecSize.y)) {
                     // not on any monitor, center
-                    pos = middle() / 2.f - w->m_vRealSize->goal() / 2.f;
+                    pos = middle() / 2.f - w->m_realSize->goal() / 2.f;
                 } else
                     pos = pos - PMONFROMMIDDLE->vecPosition + vecPosition;
 
-                *w->m_vRealPosition = pos;
-                w->m_vPosition      = pos;
+                *w->m_realPosition = pos;
+                w->m_position      = pos;
             }
         }
     }
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_bPinned && g_pCompositor->m_lastWindow->m_pMonitor == self)) {
+    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             g_pCompositor->focusWindow(PLAST);
         else
@@ -1447,7 +1447,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (lastScanout.expired()) {
         lastScanout = PCANDIDATE;
-        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_title);
     }
 
     scanoutNeedsCursorUpdate = false;

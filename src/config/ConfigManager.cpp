@@ -1343,14 +1343,14 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
         return std::vector<SP<CWindowRule>>();
 
     // if the window is unmapped, don't process exec rules yet.
-    shadowExec = shadowExec || !pWindow->m_bIsMapped;
+    shadowExec = shadowExec || !pWindow->m_isMapped;
 
     std::vector<SP<CWindowRule>> returns;
 
-    Debug::log(LOG, "Searching for matching rules for {} (title: {})", pWindow->m_szClass, pWindow->m_szTitle);
+    Debug::log(LOG, "Searching for matching rules for {} (title: {})", pWindow->m_class, pWindow->m_title);
 
     // since some rules will be applied later, we need to store some flags
-    bool hasFloating   = pWindow->m_bIsFloating;
+    bool hasFloating   = pWindow->m_isFloating;
     bool hasFullscreen = pWindow->isFullscreen();
 
     // local tags for dynamic tag rule match
@@ -1358,50 +1358,50 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
 
     for (auto const& rule : m_windowRules) {
         // check if we have a matching rule
-        if (!rule->v2) {
+        if (!rule->m_v2) {
             try {
-                if (rule->szValue.starts_with("tag:") && !tags.isTagged(rule->szValue.substr(4)))
+                if (rule->m_value.starts_with("tag:") && !tags.isTagged(rule->m_value.substr(4)))
                     continue;
 
-                if (rule->szValue.starts_with("title:") && !rule->rV1Regex.passes(pWindow->m_szTitle))
+                if (rule->m_value.starts_with("title:") && !rule->m_v1Regex.passes(pWindow->m_title))
                     continue;
 
-                if (!rule->rV1Regex.passes(pWindow->m_szClass))
+                if (!rule->m_v1Regex.passes(pWindow->m_class))
                     continue;
 
             } catch (...) {
-                Debug::log(ERR, "Regex error at {}", rule->szValue);
+                Debug::log(ERR, "Regex error at {}", rule->m_value);
                 continue;
             }
         } else {
             try {
-                if (rule->bX11 != -1) {
-                    if (pWindow->m_bIsX11 != rule->bX11)
+                if (rule->m_X11 != -1) {
+                    if (pWindow->m_isX11 != rule->m_X11)
                         continue;
                 }
 
-                if (rule->bFloating != -1) {
-                    if (hasFloating != rule->bFloating)
+                if (rule->m_floating != -1) {
+                    if (hasFloating != rule->m_floating)
                         continue;
                 }
 
-                if (rule->bFullscreen != -1) {
-                    if (hasFullscreen != rule->bFullscreen)
+                if (rule->m_fullscreen != -1) {
+                    if (hasFullscreen != rule->m_fullscreen)
                         continue;
                 }
 
-                if (rule->bPinned != -1) {
-                    if (pWindow->m_bPinned != rule->bPinned)
+                if (rule->m_pinned != -1) {
+                    if (pWindow->m_pinned != rule->m_pinned)
                         continue;
                 }
 
-                if (rule->bFocus != -1) {
-                    if (rule->bFocus != (g_pCompositor->m_lastWindow.lock() == pWindow))
+                if (rule->m_focus != -1) {
+                    if (rule->m_focus != (g_pCompositor->m_lastWindow.lock() == pWindow))
                         continue;
                 }
 
-                if (!rule->szFullscreenState.empty()) {
-                    const auto ARGS = CVarList(rule->szFullscreenState, 2, ' ');
+                if (!rule->m_fullscreenState.empty()) {
+                    const auto ARGS = CVarList(rule->m_fullscreenState, 2, ' ');
                     //
                     std::optional<eFullscreenMode> internalMode, clientMode;
 
@@ -1419,82 +1419,82 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                     else
                         throw std::runtime_error("szFullscreenState client mode not valid");
 
-                    if (internalMode.has_value() && pWindow->m_sFullscreenState.internal != internalMode)
+                    if (internalMode.has_value() && pWindow->m_fullscreenState.internal != internalMode)
                         continue;
 
-                    if (clientMode.has_value() && pWindow->m_sFullscreenState.client != clientMode)
-                        continue;
-                }
-
-                if (!rule->szOnWorkspace.empty()) {
-                    const auto PWORKSPACE = pWindow->m_pWorkspace;
-                    if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule->szOnWorkspace))
+                    if (clientMode.has_value() && pWindow->m_fullscreenState.client != clientMode)
                         continue;
                 }
 
-                if (!rule->szContentType.empty()) {
+                if (!rule->m_onWorkspace.empty()) {
+                    const auto PWORKSPACE = pWindow->m_workspace;
+                    if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule->m_onWorkspace))
+                        continue;
+                }
+
+                if (!rule->m_contentType.empty()) {
                     try {
-                        const auto contentType = NContentType::fromString(rule->szContentType);
+                        const auto contentType = NContentType::fromString(rule->m_contentType);
                         if (pWindow->getContentType() != contentType)
                             continue;
-                    } catch (std::exception& e) { Debug::log(ERR, "Rule \"content:{}\" failed with: {}", rule->szContentType, e.what()); }
+                    } catch (std::exception& e) { Debug::log(ERR, "Rule \"content:{}\" failed with: {}", rule->m_contentType, e.what()); }
                 }
 
-                if (!rule->szXdgTag.empty()) {
-                    if (pWindow->xdgTag().value_or("") != rule->szXdgTag)
+                if (!rule->m_xdgTag.empty()) {
+                    if (pWindow->xdgTag().value_or("") != rule->m_xdgTag)
                         continue;
                 }
 
-                if (!rule->szWorkspace.empty()) {
-                    const auto PWORKSPACE = pWindow->m_pWorkspace;
+                if (!rule->m_workspace.empty()) {
+                    const auto PWORKSPACE = pWindow->m_workspace;
 
                     if (!PWORKSPACE)
                         continue;
 
-                    if (rule->szWorkspace.starts_with("name:")) {
-                        if (PWORKSPACE->m_name != rule->szWorkspace.substr(5))
+                    if (rule->m_workspace.starts_with("name:")) {
+                        if (PWORKSPACE->m_name != rule->m_workspace.substr(5))
                             continue;
                     } else {
                         // number
-                        if (!isNumber(rule->szWorkspace))
+                        if (!isNumber(rule->m_workspace))
                             throw std::runtime_error("szWorkspace not name: or number");
 
-                        const int64_t ID = std::stoll(rule->szWorkspace);
+                        const int64_t ID = std::stoll(rule->m_workspace);
 
                         if (PWORKSPACE->m_id != ID)
                             continue;
                     }
                 }
 
-                if (!rule->szTag.empty() && !tags.isTagged(rule->szTag))
+                if (!rule->m_tag.empty() && !tags.isTagged(rule->m_tag))
                     continue;
 
-                if (!rule->szClass.empty() && !rule->rClass.passes(pWindow->m_szClass))
+                if (!rule->m_class.empty() && !rule->m_classRegex.passes(pWindow->m_class))
                     continue;
 
-                if (!rule->szTitle.empty() && !rule->rTitle.passes(pWindow->m_szTitle))
+                if (!rule->m_title.empty() && !rule->m_titleRegex.passes(pWindow->m_title))
                     continue;
 
-                if (!rule->szInitialTitle.empty() && !rule->rInitialTitle.passes(pWindow->m_szInitialTitle))
+                if (!rule->m_initialTitle.empty() && !rule->m_initialTitleRegex.passes(pWindow->m_initialTitle))
                     continue;
 
-                if (!rule->szInitialClass.empty() && !rule->rInitialClass.passes(pWindow->m_szInitialClass))
+                if (!rule->m_initialClass.empty() && !rule->m_initialClassRegex.passes(pWindow->m_initialClass))
                     continue;
 
             } catch (std::exception& e) {
-                Debug::log(ERR, "Regex error at {} ({})", rule->szValue, e.what());
+                Debug::log(ERR, "Regex error at {} ({})", rule->m_value, e.what());
                 continue;
             }
         }
 
         // applies. Read the rule and behave accordingly
-        Debug::log(LOG, "Window rule {} -> {} matched {}", rule->szRule, rule->szValue, pWindow);
+        Debug::log(LOG, "Window rule {} -> {} matched {}", rule->m_rule, rule->m_value, pWindow);
 
         returns.emplace_back(rule);
 
         // apply tag with local tags
-        if (rule->ruleType == CWindowRule::RULE_TAG) {
-            CVarList vars{rule->szRule, 0, 's', true};
+        if (rule->m_ruleType == CWindowRule::RULE_TAG) {
+            CVarList vars{rule->m_rule, 0, 's', true};
             if (vars.size() == 2 && vars[0] == "tag")
                 tags.applyTag(vars[1], true);
         }
@@ -1502,9 +1502,9 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
         if (dynamic)
             continue;
 
-        if (rule->szRule == "float")
+        if (rule->m_rule == "float")
             hasFloating = true;
-        else if (rule->szRule == "fullscreen")
+        else if (rule->m_rule == "fullscreen")
             hasFullscreen = true;
     }
 
@@ -2418,7 +2418,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 
     auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
 
-    if (rule->ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
+    if (rule->m_ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
         Debug::log(ERR, "Invalid rulev2 found: {}", RULE);
         return "Invalid rulev2 found: " + RULE;
     }
@@ -2504,103 +2504,103 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     };
 
     if (TAGPOS != std::string::npos)
-        rule->szTag = extract(TAGPOS + 4);
+        rule->m_tag = extract(TAGPOS + 4);
 
     if (CLASSPOS != std::string::npos) {
-        rule->szClass = extract(CLASSPOS + 6);
-        rule->rClass  = {rule->szClass};
+        rule->m_class      = extract(CLASSPOS + 6);
+        rule->m_classRegex = {rule->m_class};
     }
 
     if (TITLEPOS != std::string::npos) {
-        rule->szTitle = extract(TITLEPOS + 6);
-        rule->rTitle  = {rule->szTitle};
+        rule->m_title      = extract(TITLEPOS + 6);
+        rule->m_titleRegex = {rule->m_title};
     }
 
     if (INITIALCLASSPOS != std::string::npos) {
-        rule->szInitialClass = extract(INITIALCLASSPOS + 13);
-        rule->rInitialClass  = {rule->szInitialClass};
+        rule->m_initialClass      = extract(INITIALCLASSPOS + 13);
+        rule->m_initialClassRegex = {rule->m_initialClass};
     }
 
     if (INITIALTITLEPOS != std::string::npos) {
-        rule->szInitialTitle = extract(INITIALTITLEPOS + 13);
-        rule->rInitialTitle  = {rule->szInitialTitle};
+        rule->m_initialTitle      = extract(INITIALTITLEPOS + 13);
+        rule->m_initialTitleRegex = {rule->m_initialTitle};
     }
 
     if (X11POS != std::string::npos)
-        rule->bX11 = extract(X11POS + 9) == "1" ? 1 : 0;
+        rule->m_X11 = extract(X11POS + 9) == "1" ? 1 : 0;
 
     if (FLOATPOS != std::string::npos)
-        rule->bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
+        rule->m_floating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
 
     if (FULLSCREENPOS != std::string::npos)
-        rule->bFullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
+        rule->m_fullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
 
     if (PINNEDPOS != std::string::npos)
-        rule->bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
+        rule->m_pinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
 
     if (FULLSCREENSTATEPOS != std::string::npos)
-        rule->szFullscreenState = extract(FULLSCREENSTATEPOS + 16);
+        rule->m_fullscreenState = extract(FULLSCREENSTATEPOS + 16);
 
     if (WORKSPACEPOS != std::string::npos)
-        rule->szWorkspace = extract(WORKSPACEPOS + 10);
+        rule->m_workspace = extract(WORKSPACEPOS + 10);
 
     if (FOCUSPOS != std::string::npos)
-        rule->bFocus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
+        rule->m_focus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
 
     if (ONWORKSPACEPOS != std::string::npos)
-        rule->szOnWorkspace = extract(ONWORKSPACEPOS + 12);
+        rule->m_onWorkspace = extract(ONWORKSPACEPOS + 12);
 
     if (CONTENTTYPEPOS != std::string::npos)
-        rule->szContentType = extract(CONTENTTYPEPOS + 8);
+        rule->m_contentType = extract(CONTENTTYPEPOS + 8);
 
     if (XDGTAGPOS != std::string::npos)
-        rule->szXdgTag = extract(XDGTAGPOS + 8);
+        rule->m_xdgTag = extract(XDGTAGPOS + 8);
 
     if (RULE == "unset") {
         std::erase_if(m_windowRules, [&](const auto& other) {
-            if (!other->v2)
-                return other->szClass == rule->szClass && !rule->szClass.empty();
+            if (!other->m_v2)
+                return other->m_class == rule->m_class && !rule->m_class.empty();
             else {
-                if (!rule->szTag.empty() && rule->szTag != other->szTag)
+                if (!rule->m_tag.empty() && rule->m_tag != other->m_tag)
                     return false;
 
-                if (!rule->szClass.empty() && rule->szClass != other->szClass)
+                if (!rule->m_class.empty() && rule->m_class != other->m_class)
                     return false;
 
-                if (!rule->szTitle.empty() && rule->szTitle != other->szTitle)
+                if (!rule->m_title.empty() && rule->m_title != other->m_title)
                     return false;
 
-                if (!rule->szInitialClass.empty() && rule->szInitialClass != other->szInitialClass)
+                if (!rule->m_initialClass.empty() && rule->m_initialClass != other->m_initialClass)
                     return false;
 
-                if (!rule->szInitialTitle.empty() && rule->szInitialTitle != other->szInitialTitle)
+                if (!rule->m_initialTitle.empty() && rule->m_initialTitle != other->m_initialTitle)
                     return false;
 
-                if (rule->bX11 != -1 && rule->bX11 != other->bX11)
+                if (rule->m_X11 != -1 && rule->m_X11 != other->m_X11)
                     return false;
 
-                if (rule->bFloating != -1 && rule->bFloating != other->bFloating)
+                if (rule->m_floating != -1 && rule->m_floating != other->m_floating)
                     return false;
 
-                if (rule->bFullscreen != -1 && rule->bFullscreen != other->bFullscreen)
+                if (rule->m_fullscreen != -1 && rule->m_fullscreen != other->m_fullscreen)
                     return false;
 
-                if (rule->bPinned != -1 && rule->bPinned != other->bPinned)
+                if (rule->m_pinned != -1 && rule->m_pinned != other->m_pinned)
                     return false;
 
-                if (!rule->szFullscreenState.empty() && rule->szFullscreenState != other->szFullscreenState)
+                if (!rule->m_fullscreenState.empty() && rule->m_fullscreenState != other->m_fullscreenState)
                     return false;
 
-                if (!rule->szWorkspace.empty() && rule->szWorkspace != other->szWorkspace)
+                if (!rule->m_workspace.empty() && rule->m_workspace != other->m_workspace)
                     return false;
 
-                if (rule->bFocus != -1 && rule->bFocus != other->bFocus)
+                if (rule->m_focus != -1 && rule->m_focus != other->m_focus)
                     return false;
 
-                if (!rule->szOnWorkspace.empty() && rule->szOnWorkspace != other->szOnWorkspace)
+                if (!rule->m_onWorkspace.empty() && rule->m_onWorkspace != other->m_onWorkspace)
                     return false;
 
-                if (!rule->szContentType.empty() && rule->szContentType != other->szContentType)
+                if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
 
                 return true;
@@ -3049,7 +3049,7 @@ void CConfigManager::ensurePersistentWorkspacesPresent() {
 }
 
 void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {
-    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, window->m_szClass, window->m_szTitle);
+    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, window->m_class, window->m_title);
     SFloatCache id{window};
     m_mStoredFloatingSizes[id] = size;
 }
@@ -3057,7 +3057,7 @@ void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {
 std::optional<Vector2D> CConfigManager::getStoredFloatingSize(PHLWINDOW window) {
     SFloatCache id{window};
     if (m_mStoredFloatingSizes.contains(id)) {
-        Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[id].x, m_mStoredFloatingSizes[id].y, window->m_szClass, window->m_szTitle);
+        Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[id].x, m_mStoredFloatingSizes[id].y, window->m_class, window->m_title);
         return m_mStoredFloatingSizes[id];
     }
     return std::nullopt;

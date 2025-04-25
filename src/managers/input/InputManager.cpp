@@ -156,7 +156,7 @@ void CInputManager::sendMotionEventsToFocused() {
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock());
     const auto PLS     = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
 
-    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition->goal() : (PLS ? Vector2D{PLS->m_geometry.x, PLS->m_geometry.y} : Vector2D{}));
+    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_realPosition->goal() : (PLS ? Vector2D{PLS->m_geometry.x, PLS->m_geometry.y} : Vector2D{}));
 
     m_bEmptyFocusCursorSet = false;
 
@@ -232,7 +232,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 const auto RG           = CONSTRAINT->logicConstraintRegion();
                 const auto CLOSEST      = RG.closestPoint(mouseCoords);
                 const auto BOX          = SURF->getSurfaceBoxGlobal();
-                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (SURF->getWindow() ? SURF->getWindow()->m_fX11SurfaceScaledBy : 1.0);
+                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (SURF->getWindow() ? SURF->getWindow()->m_X11SurfaceScaledBy : 1.0);
 
                 g_pCompositor->warpCursorTo(CLOSEST, true);
                 g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
@@ -268,8 +268,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (forcedFocus) {
         pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_vRealPosition->value();
-        foundSurface = pFoundWindow->m_pWLSurface->resource();
+        surfacePos   = pFoundWindow->m_realPosition->value();
+        foundSurface = pFoundWindow->m_wlSurface->resource();
     }
 
     // if we are holding a pointer button,
@@ -348,16 +348,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         }
 
         if (PWINDOWIDEAL &&
-            ((PWINDOWIDEAL->m_bIsFloating && PWINDOWIDEAL->m_bCreatedOverFullscreen) /* floating over fullscreen */
-             || (PMONITOR->activeSpecialWorkspace == PWINDOWIDEAL->m_pWorkspace) /* on an open special workspace */))
+            ((PWINDOWIDEAL->m_isFloating && PWINDOWIDEAL->m_createdOverFullscreen) /* floating over fullscreen */
+             || (PMONITOR->activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
             pFoundWindow = PWINDOWIDEAL;
 
-        if (!pFoundWindow->m_bIsX11) {
+        if (!pFoundWindow->m_isX11) {
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             surfacePos   = Vector2D(-1337, -1337);
         } else {
-            foundSurface = pFoundWindow->m_pWLSurface->resource();
-            surfacePos   = pFoundWindow->m_vRealPosition->value();
+            foundSurface = pFoundWindow->m_wlSurface->resource();
+            surfacePos   = pFoundWindow->m_realPosition->value();
         }
     }
 
@@ -383,7 +383,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                         if (pFoundWindow != PWINDOWIDEAL)
                             pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-                        if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
+                        if (!(pFoundWindow && pFoundWindow->m_isFloating && pFoundWindow->m_createdOverFullscreen))
                             pFoundWindow = PWORKSPACE->getFullscreenWindow();
                     }
                 }
@@ -395,15 +395,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         }
 
         if (pFoundWindow) {
-            if (!pFoundWindow->m_bIsX11) {
+            if (!pFoundWindow->m_isX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
-                    foundSurface = pFoundWindow->m_pWLSurface->resource();
-                    surfacePos   = pFoundWindow->m_vRealPosition->value();
+                    foundSurface = pFoundWindow->m_wlSurface->resource();
+                    surfacePos   = pFoundWindow->m_realPosition->value();
                 }
             } else {
-                foundSurface = pFoundWindow->m_pWLSurface->resource();
-                surfacePos   = pFoundWindow->m_vRealPosition->value();
+                foundSurface = pFoundWindow->m_wlSurface->resource();
+                surfacePos   = pFoundWindow->m_realPosition->value();
             }
         }
     }
@@ -468,15 +468,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
-    if (pFoundWindow && !pFoundWindow->m_bIsX11 && surfacePos != Vector2D(-1337, -1337)) {
+    if (pFoundWindow && !pFoundWindow->m_isX11 && surfacePos != Vector2D(-1337, -1337)) {
         // calc for oversized windows... fucking bullshit.
-        CBox geom = pFoundWindow->m_pXDGSurface->current.geometry;
+        CBox geom = pFoundWindow->m_xdgSurface->current.geometry;
 
         surfaceLocal = mouseCoords - surfacePos + geom.pos();
     }
 
-    if (pFoundWindow && pFoundWindow->m_bIsX11) // for x11 force scale zero
-        surfaceLocal = surfaceLocal * pFoundWindow->m_fX11SurfaceScaledBy;
+    if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
+        surfaceLocal = surfaceLocal * pFoundWindow->m_X11SurfaceScaledBy;
 
     bool allowKeyboardRefocus = true;
 
@@ -499,7 +499,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         return;
     }
 
-    if (pFoundWindow && foundSurface == pFoundWindow->m_pWLSurface->resource() && !m_bCursorImageOverridden) {
+    if (pFoundWindow && foundSurface == pFoundWindow->m_wlSurface->resource() && !m_bCursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
         if (!VECINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
             setCursorImageOverride("left_ptr");
@@ -519,7 +519,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow.lock() &&
-                ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_lastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
+                ((pFoundWindow->m_isFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_lastWindow->m_isFloating != pFoundWindow->m_isFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
@@ -547,7 +547,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
                     if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_lastWindow.lock() != pFoundWindow) {
                         if (m_fMousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus) {
-                            const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_sWindowData.noFollowMouse.valueOrDefault();
+                            const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_windowData.noFollowMouse.valueOrDefault();
 
                             if (refocus || !hasNoFollowMouse)
                                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
@@ -731,7 +731,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
         if (w && !w->isFullscreen()) {
-            const CBox real = {w->m_vRealPosition->value().x, w->m_vRealPosition->value().y, w->m_vRealSize->value().x, w->m_vRealSize->value().y};
+            const CBox real = {w->m_realPosition->value().x, w->m_realPosition->value().y, w->m_realSize->value().x, w->m_realSize->value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
@@ -1467,7 +1467,7 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
             foundSurface = nullptr;
     }
 
-    if (!foundSurface && g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pWorkspace && g_pCompositor->m_lastWindow->m_pWorkspace->isVisibleNotCovered()) {
+    if (!foundSurface && g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_workspace && g_pCompositor->m_lastWindow->m_workspace->isVisibleNotCovered()) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
         g_pCompositor->focusWindow(PLASTWINDOW);
@@ -1764,7 +1764,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     }
 
     // ignore X11 OR windows, they shouldn't be touched
-    if (w->m_bIsX11 && w->isX11OverrideRedirect())
+    if (w->m_isX11 && w->isX11OverrideRedirect())
         return;
 
     static auto PEXTENDBORDERGRAB = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
@@ -1787,7 +1787,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
         bool onDeco = false;
 
-        for (auto const& wd : w->m_dWindowDecorations) {
+        for (auto const& wd : w->m_windowDecorations) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 

@@ -91,8 +91,8 @@ void CDecorationPositioner::sanitizeDatas() {
     std::erase_if(m_vWindowPositioningDatas, [](const auto& other) {
         if (!validMapped(other->pWindow))
             return true;
-        if (std::find_if(other->pWindow->m_dWindowDecorations.begin(), other->pWindow->m_dWindowDecorations.end(),
-                         [&](const auto& el) { return el.get() == other->pDecoration; }) == other->pWindow->m_dWindowDecorations.end())
+        if (std::find_if(other->pWindow->m_windowDecorations.begin(), other->pWindow->m_windowDecorations.end(), [&](const auto& el) { return el.get() == other->pDecoration; }) ==
+            other->pWindow->m_windowDecorations.end())
             return true;
         return false;
     });
@@ -123,13 +123,13 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     //
     std::vector<CDecorationPositioner::SWindowPositioningData*> datas;
     // reserve to avoid reallocations
-    datas.reserve(pWindow->m_dWindowDecorations.size());
+    datas.reserve(pWindow->m_windowDecorations.size());
 
-    for (auto const& wd : pWindow->m_dWindowDecorations) {
+    for (auto const& wd : pWindow->m_windowDecorations) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }
 
-    if (WINDOWDATA->lastWindowSize == pWindow->m_vRealSize->value() /* position not changed */
+    if (WINDOWDATA->lastWindowSize == pWindow->m_realSize->value() /* position not changed */
         && std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(),
                        [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
         /* all window datas are either not for this window or don't need a reposition */
@@ -137,9 +137,9 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     )
         return;
 
-    WINDOWDATA->lastWindowSize = pWindow->m_vRealSize->value();
+    WINDOWDATA->lastWindowSize = pWindow->m_realSize->value();
     WINDOWDATA->needsRecalc    = false;
-    const bool EPHEMERAL       = pWindow->m_vRealSize->isBeingAnimated();
+    const bool EPHEMERAL       = pWindow->m_realSize->isBeingAnimated();
 
     std::sort(datas.begin(), datas.end(), [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
 

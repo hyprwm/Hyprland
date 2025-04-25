@@ -75,7 +75,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->scale) != data.pMonitor->scale /* Fractional */ && data.surface->current.scale == 1 /* fs protocol */ &&
         windowBox.size() != data.surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, data.surface->current.bufferSize.x, 3) &&
         DELTALESSTHAN(windowBox.height, data.surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!data.pWindow || (!data.pWindow->m_vRealSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
+        (!data.pWindow || (!data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     if (data.surface->colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
@@ -103,7 +103,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         roundingPower = 2.0f;
     }
 
-    const bool WINDOWOPAQUE    = data.pWindow && data.pWindow->m_pWLSurface->resource() == data.surface ? data.pWindow->opaque() : false;
+    const bool WINDOWOPAQUE    = data.pWindow && data.pWindow->m_wlSurface->resource() == data.surface ? data.pWindow->opaque() : false;
     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
@@ -153,8 +153,8 @@ CBox CSurfacePassElement::getTexBox() {
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.translate(CORRECT);
 
-                windowBox.width  = SIZE.x * (PWINDOW->m_vRealSize->value().x / PWINDOW->m_vReportedSize.x);
-                windowBox.height = SIZE.y * (PWINDOW->m_vRealSize->value().y / PWINDOW->m_vReportedSize.y);
+                windowBox.width  = SIZE.x * (PWINDOW->m_realSize->value().x / PWINDOW->m_reportedSize.x);
+                windowBox.height = SIZE.y * (PWINDOW->m_realSize->value().y / PWINDOW->m_reportedSize.y);
             } else {
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
@@ -164,10 +164,10 @@ CBox CSurfacePassElement::getTexBox() {
     } else { //  here we clamp to 2, these might be some tiny specks
         windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->current.size.x, 2.F),
                      std::max((float)data.surface->current.size.y, 2.F)};
-        if (data.pWindow && data.pWindow->m_vRealSize->isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
+        if (data.pWindow && data.pWindow->m_realSize->isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / data.pWindow->m_vReportedSize.x) * data.pWindow->m_vRealSize->value().x;
-            windowBox.height = (windowBox.height / data.pWindow->m_vReportedSize.y) * data.pWindow->m_vRealSize->value().y;
+            windowBox.width  = (windowBox.width / data.pWindow->m_reportedSize.x) * data.pWindow->m_realSize->value().x;
+            windowBox.height = (windowBox.height / data.pWindow->m_reportedSize.y) * data.pWindow->m_realSize->value().y;
         }
     }
 

@@ -199,7 +199,7 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const bool isJson = format == eHyprCtlOutputFormat::FORMAT_JSON;
-    if (w->m_sGroupData.pNextWindow.expired())
+    if (w->m_groupData.pNextWindow.expired())
         return isJson ? "" : "0";
 
     std::ostringstream result;
@@ -211,7 +211,7 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             result << std::format("\"0x{:x}\"", (uintptr_t)curr.get());
         else
             result << std::format("{:x}", (uintptr_t)curr.get());
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
         // We've wrapped around to the start, break out without trailing comma
         if (curr == head)
             break;
@@ -262,14 +262,13 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xdgTag": "{}",
     "xdgDescription": "{}"
 }},)#",
-            (uintptr_t)w.get(), (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition->goal().x, (int)w->m_vRealPosition->goal().y,
-            (int)w->m_vRealSize->goal().x, (int)w->m_vRealSize->goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
-            escapeJSONStrings(!w->m_pWorkspace ? "" : w->m_pWorkspace->m_name), ((int)w->m_bIsFloating == 1 ? "true" : "false"), (w->m_bIsPseudotiled ? "true" : "false"),
-            (int64_t)w->monitorID(), escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass),
-            escapeJSONStrings(w->m_szInitialTitle), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
-            (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.get(),
-            getFocusHistoryID(w), (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")),
-            escapeJSONStrings(w->xdgDescription().value_or("")));
+            (uintptr_t)w.get(), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_realPosition->goal().x, (int)w->m_realPosition->goal().y,
+            (int)w->m_realSize->goal().x, (int)w->m_realSize->goal().y, w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
+            escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), ((int)w->m_isFloating == 1 ? "true" : "false"), (w->m_isPseudotiled ? "true" : "false"),
+            (int64_t)w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle),
+            w->getPID(), ((int)w->m_isX11 == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), (uint8_t)w->m_fullscreenState.internal, (uint8_t)w->m_fullscreenState.client,
+            getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_swallowed.get(), getFocusHistoryID(w),
+            (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
@@ -277,11 +276,11 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\txwayland: {}\n\tpinned: "
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\n",
-            (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition->goal().x, (int)w->m_vRealPosition->goal().y,
-            (int)w->m_vRealSize->goal().x, (int)w->m_vRealSize->goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_name),
-            (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->monitorID(), w->m_szClass, w->m_szTitle, w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
-            (int)w->m_bIsX11, (int)w->m_bPinned, (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
-            (uintptr_t)w->m_pSwallowed.get(), getFocusHistoryID(w), (int)g_pInputManager->isWindowInhibiting(w, false), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
+            (uintptr_t)w.get(), w->m_title, (int)w->m_isMapped, (int)w->isHidden(), (int)w->m_realPosition->goal().x, (int)w->m_realPosition->goal().y,
+            (int)w->m_realSize->goal().x, (int)w->m_realSize->goal().y, w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name),
+            (int)w->m_isFloating, (int)w->m_isPseudotiled, (int64_t)w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), (int)w->m_isX11,
+            (int)w->m_pinned, (uint8_t)w->m_fullscreenState.internal, (uint8_t)w->m_fullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
+            (uintptr_t)w->m_swallowed.get(), getFocusHistoryID(w), (int)g_pInputManager->isWindowInhibiting(w, false), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
     }
 }
 
@@ -291,7 +290,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
         result += "[";
 
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
+            if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
             result += CHyprCtl::getWindowData(w, format);
@@ -302,7 +301,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
         result += "]";
     } else {
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsMapped && !g_pHyprCtl->m_currentRequestParams.all)
+            if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
             result += CHyprCtl::getWindowData(w, format);
@@ -328,12 +327,12 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
 }})#",
                            w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
                            escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
-                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "", w->m_persistent ? "true" : "false");
+                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->m_persistent ? "true" : "false");
     } else {
         return std::format(
             "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: {}\n\n",
             w->m_id, w->m_name, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_hasFullscreenWindow,
-            (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_szTitle : "", (int)w->m_persistent);
+            (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_title : "", (int)w->m_persistent);
     }
 }
 
@@ -1397,7 +1396,7 @@ static std::string decorationRequest(eHyprCtlOutputFormat format, std::string re
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& wd : PWINDOW->m_dWindowDecorations) {
+        for (auto const& wd : PWINDOW->m_windowDecorations) {
             result += "{\n\"decorationName\": \"" + wd->getDisplayName() + "\",\n\"priority\": " + std::to_string(wd->getPositioningInfo().priority) + "\n},";
         }
 
@@ -1405,7 +1404,7 @@ static std::string decorationRequest(eHyprCtlOutputFormat format, std::string re
         result += "]";
     } else {
         result = +"Decoration\tPriority\n";
-        for (auto const& wd : PWINDOW->m_dWindowDecorations) {
+        for (auto const& wd : PWINDOW->m_windowDecorations) {
             result += wd->getDisplayName() + "\t" + std::to_string(wd->getPositioningInfo().priority) + "\n";
         }
     }
@@ -1794,7 +1793,7 @@ std::string CHyprCtl::getReply(std::string request) {
         }
 
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsMapped || !w->m_pWorkspace || !w->m_pWorkspace->isVisible())
+            if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
                 continue;
 
             w->updateDynamicRules();

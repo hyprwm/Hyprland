@@ -170,12 +170,35 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};
 
-        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->getPrevWorkspaceIDName().id);
+        const auto PREVWORKSPACEIDNAME = PWORKSPACE->getPrevWorkspaceIDName();
 
-        if (!PLASTWORKSPACE)
+        if (PREVWORKSPACEIDNAME.id == -1)
             return {WORKSPACE_INVALID};
 
+        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PREVWORKSPACEIDNAME.id);
+
+        if (!PLASTWORKSPACE) {
+            Debug::log(LOG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
+            return {PREVWORKSPACEIDNAME.id, PREVWORKSPACEIDNAME.name};
+        }
+
         return {PLASTWORKSPACE->m_id, PLASTWORKSPACE->m_name};
+    } else if (in == "next") {
+        if (!g_pCompositor->m_lastMonitor || !g_pCompositor->m_lastMonitor->activeWorkspace) {
+            Debug::log(ERR, "no active monitor or workspace for 'next'");
+            return {WORKSPACE_INVALID};
+        }
+
+        auto        PCURRENTWORKSPACE = g_pCompositor->m_lastMonitor->activeWorkspace;
+
+        WORKSPACEID nextId = PCURRENTWORKSPACE->m_id + 1;
+
+        if (nextId <= 0)
+            return {WORKSPACE_INVALID};
+
+        result.id   = nextId;
+        result.name = std::to_string(nextId);
+        return result;
     } else {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';

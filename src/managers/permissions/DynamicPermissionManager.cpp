@@ -7,6 +7,9 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
 #endif
@@ -183,22 +186,86 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
 }
 
+eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(const std::string& str, eDynamicPermissionType permission) {
+    static auto PPERM = CConfigValue<Hyprlang::INT>("ecosystem:enforce_permissions");
+
+    if (*PPERM == 0)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
+    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for str {}", permissionToString(permission), str);
+
+    // first, check if we have the client + perm combo in our cache.
+    auto it = std::ranges::find_if(m_rules, [str, permission](const auto& e) { return e->m_keyString == str && e->m_type == permission; });
+    if (it == m_rules.end()) {
+        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
+
+        it = std::ranges::find_if(m_rules, [key = str, permission](const auto& e) {
+            if (e->m_type != permission)
+                return false; // wrong perm
+
+            if (!e->m_binaryRegex)
+                return false; // no regex
+
+            // regex match
+            if (RE2::FullMatch(key, *e->m_binaryRegex))
+                return true;
+
+            return false;
+        });
+
+        if (it == m_rules.end())
+            Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for key");
+        else {
+            if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
+                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_DENY;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_PENDING;
+            } else
+                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+        }
+
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
+        return PERMISSION_RULE_ALLOW_MODE_DENY;
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
+        return PERMISSION_RULE_ALLOW_MODE_PENDING;
+    }
+
+    // if we are here, we need to ask.
+    askForPermission(nullptr, str, permission);
+
+    return PERMISSION_RULE_ALLOW_MODE_PENDING;
+}
+
 void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type) {
     auto        rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
+
+    if (!client)
+        rule->m_keyString = binaryPath;
 
     std::string description = "";
     if (binaryPath.empty())
         description = std::format("An unknown application (wayland client ID 0x{:x}) is {}.", (uintptr_t)client, permissionToHumanString(type));
-    else {
+    else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
         description            = std::format("An application <b>{}</b> ({}) is {}.", binaryName, binaryPath, permissionToHumanString(type));
-    }
+    } else
+        description = std::format("An application is {}:<br/><b>{}</b>", permissionToHumanString(type), binaryPath);
 
     description += "<br/><br/>Do you want to allow this?";
 
     std::vector<std::string> options;
 
-    if (!binaryPath.empty()) {
+    if (!binaryPath.empty() && client) {
         description += "<br/><br/><i>Hint: you can set persistent rules for these in the Hyprland config file.</i>";
         options = {"Deny", "Allow and remember app", "Allow once"};
     } else
@@ -250,7 +317,21 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 }
 
 SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(wl_client* client, eDynamicPermissionType permission) {
-    auto rule = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
+    auto rule = std::ranges::find_if(m_rules, [&client, &permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
+    if (rule == m_rules.end())
+        return nullptr;
+
+    if (!(*rule)->m_promise)
+        return nullptr;
+
+    if ((*rule)->m_promiseResolverForExternal)
+        return nullptr;
+
+    return CPromise<eDynamicPermissionAllowMode>::make([rule](SP<CPromiseResolver<eDynamicPermissionAllowMode>> r) { (*rule)->m_promiseResolverForExternal = r; });
+}
+
+SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(const std::string& key, eDynamicPermissionType permission) {
+    auto rule = std::ranges::find_if(m_rules, [&key, &permission](const auto& e) { return e->m_keyString == key && e->m_type == permission; });
     if (rule == m_rules.end())
         return nullptr;
 

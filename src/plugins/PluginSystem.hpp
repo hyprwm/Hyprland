@@ -47,6 +47,8 @@ class CPluginSystem {
     std::vector<UP<CPlugin>> m_vLoadedPlugins;
 
     jmp_buf                  m_jbPluginFaultJumpBuf;
+
+    CPlugin* loadPluginInternal(const std::string& path);
 };
 
 inline UP<CPluginSystem> g_pPluginSystem;

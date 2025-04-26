@@ -56,6 +56,7 @@ class CDynamicPermissionRule {
     wl_client* const                                  m_client     = nullptr;
     std::string                                       m_binaryPath = "";
     UP<re2::RE2>                                      m_binaryRegex;
+    std::string                                       m_keyString = "";
 
     eDynamicPermissionAllowMode                       m_allowMode = PERMISSION_RULE_ALLOW_MODE_ASK;
     SP<CAsyncDialogBox>                               m_dialogBox;                  // for pending
@@ -76,9 +77,13 @@ class CDynamicPermissionManager {
     // (will continue returning false if the user does not agree, of course.)
     eDynamicPermissionAllowMode clientPermissionMode(wl_client* client, eDynamicPermissionType permission);
 
+    // for plugins for now
+    eDynamicPermissionAllowMode clientPermissionModeWithString(const std::string& str, eDynamicPermissionType permission);
+
     // get a promise for the result. Returns null if there already was one requested for the client.
     // Returns null if state is not pending
     SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(wl_client* client, eDynamicPermissionType permission);
+    SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(const std::string& str, eDynamicPermissionType permission);
 
     void                                      removeRulesForClient(wl_client* client);
 

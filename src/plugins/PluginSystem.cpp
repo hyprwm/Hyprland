@@ -6,6 +6,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 
 CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = makeUnique<CHookSystem>();
@@ -13,6 +14,42 @@ CPluginSystem::CPluginSystem() {
 
 CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(path, PERMISSION_TYPE_PLUGIN);
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        Debug::log(LOG, "CPluginSystem: Waiting for user confirmation to load {}", path);
+
+        m_szLastError = "Awaiting user permission";
+
+        auto promise = g_pDynamicPermissionManager->promiseFor(path, PERMISSION_TYPE_PLUGIN);
+        if (!promise) // already awaiting or something?
+            return nullptr;
+
+        promise->then([this, path](SP<CPromiseResult<eDynamicPermissionAllowMode>> result) {
+            if (result->hasError()) {
+                Debug::log(ERR, "CPluginSystem: Error spawning permission prompt");
+                return;
+            }
+
+            if (result->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                Debug::log(ERR, "CPluginSystem: Rejecting plugin load of {}, user denied", path);
+                return;
+            }
+
+            Debug::log(LOG, "CPluginSystem: Loading {}, user allowed", path);
+
+            loadPluginInternal(path);
+        });
+
+        return nullptr;
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        Debug::log(LOG, "CPluginSystem: Rejecting plugin load, permission is disabled");
+        return nullptr;
+    }
+
+    return loadPluginInternal(path);
+}
+
+CPlugin* CPluginSystem::loadPluginInternal(const std::string& path) {
     m_szLastError = "";
 
     if (getPluginByPath(path)) {

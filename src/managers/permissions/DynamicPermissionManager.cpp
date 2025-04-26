@@ -247,7 +247,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
 }
 
 void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type) {
-    auto        rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
+    auto rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
 
     if (!client)
         rule->m_keyString = binaryPath;

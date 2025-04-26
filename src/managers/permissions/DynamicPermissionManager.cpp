@@ -48,6 +48,7 @@ static const char* permissionToString(eDynamicPermissionType type) {
     switch (type) {
         case PERMISSION_TYPE_UNKNOWN: return "PERMISSION_TYPE_UNKNOWN";
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
+        case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
     }
 
     return "error";
@@ -57,6 +58,7 @@ static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
         case PERMISSION_TYPE_UNKNOWN: return "requesting an unknown permission";
         case PERMISSION_TYPE_SCREENCOPY: return "trying to capture your screen";
+        case PERMISSION_TYPE_PLUGIN: return "trying to load a plugin";
     }
 
     return "error";
@@ -210,9 +212,21 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         return;
     }
 
-    rule->m_dialogBox->open([r = WP<CDynamicPermissionRule>(rule), binaryPath](std::string result) {
+    rule->m_promise = rule->m_dialogBox->open();
+    rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath](SP<CPromiseResult<std::string>> pr) {
         if (!r)
             return;
+
+        if (pr->hasError()) {
+            // not reachable for now
+            Debug::log(TRACE, "CDynamicPermissionRule: error spawning dialog box");
+            if (r->m_promiseResolverForExternal)
+                r->m_promiseResolverForExternal->reject("error spawning dialog box");
+            r->m_promiseResolverForExternal.reset();
+            return;
+        }
+
+        const std::string& result = pr->result();
 
         Debug::log(TRACE, "CDynamicPermissionRule: user returned {}", result);
 
@@ -226,7 +240,27 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
             r->m_binaryPath = binaryPath;
         } else if (result.starts_with("Allow"))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
+        if (r->m_promiseResolverForExternal)
+            r->m_promiseResolverForExternal->resolve(r->m_allowMode);
+
+        r->m_promise.reset();
+        r->m_promiseResolverForExternal.reset();
     });
+}
+
+SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(wl_client* client, eDynamicPermissionType permission) {
+    auto rule = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
+    if (rule == m_rules.end())
+        return nullptr;
+
+    if (!(*rule)->m_promise)
+        return nullptr;
+
+    if ((*rule)->m_promiseResolverForExternal)
+        return nullptr;
+
+    return CPromise<eDynamicPermissionAllowMode>::make([rule](SP<CPromiseResolver<eDynamicPermissionAllowMode>> r) { (*rule)->m_promiseResolverForExternal = r; });
 }
 
 void CDynamicPermissionManager::removeRulesForClient(wl_client* client) {

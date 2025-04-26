@@ -5,7 +5,7 @@
 #include "../../helpers/AsyncDialogBox.hpp"
 #include <vector>
 #include <wayland-server-core.h>
-#include <optional>
+#include "../../helpers/defer/Promise.hpp"
 
 // NOLINTNEXTLINE
 namespace re2 {
@@ -15,6 +15,7 @@ namespace re2 {
 enum eDynamicPermissionType : uint8_t {
     PERMISSION_TYPE_UNKNOWN = 0,
     PERMISSION_TYPE_SCREENCOPY,
+    PERMISSION_TYPE_PLUGIN,
 };
 
 enum eDynamicPermissionRuleSource : uint8_t {
@@ -50,16 +51,18 @@ class CDynamicPermissionRule {
     // user rule
     CDynamicPermissionRule(wl_client* const client, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode = PERMISSION_RULE_ALLOW_MODE_ASK);
 
-    const eDynamicPermissionType         m_type       = PERMISSION_TYPE_UNKNOWN;
-    const eDynamicPermissionRuleSource   m_source     = PERMISSION_RULE_SOURCE_UNKNOWN;
-    wl_client* const                     m_client     = nullptr;
-    std::string                          m_binaryPath = "";
-    UP<re2::RE2>                         m_binaryRegex;
+    const eDynamicPermissionType                      m_type       = PERMISSION_TYPE_UNKNOWN;
+    const eDynamicPermissionRuleSource                m_source     = PERMISSION_RULE_SOURCE_UNKNOWN;
+    wl_client* const                                  m_client     = nullptr;
+    std::string                                       m_binaryPath = "";
+    UP<re2::RE2>                                      m_binaryRegex;
 
-    eDynamicPermissionAllowMode          m_allowMode = PERMISSION_RULE_ALLOW_MODE_ASK;
-    SP<CAsyncDialogBox>                  m_dialogBox; // for pending
+    eDynamicPermissionAllowMode                       m_allowMode = PERMISSION_RULE_ALLOW_MODE_ASK;
+    SP<CAsyncDialogBox>                               m_dialogBox;                  // for pending
+    SP<CPromise<std::string>>                         m_promise;                    // for pending
+    SP<CPromiseResolver<eDynamicPermissionAllowMode>> m_promiseResolverForExternal; // for external promise
 
-    SDynamicPermissionRuleDestroyWrapper m_destroyWrapper;
+    SDynamicPermissionRuleDestroyWrapper              m_destroyWrapper;
 
     friend class CDynamicPermissionManager;
 };
@@ -73,7 +76,11 @@ class CDynamicPermissionManager {
     // (will continue returning false if the user does not agree, of course.)
     eDynamicPermissionAllowMode clientPermissionMode(wl_client* client, eDynamicPermissionType permission);
 
-    void                        removeRulesForClient(wl_client* client);
+    // get a promise for the result. Returns null if there already was one requested for the client.
+    // Returns null if state is not pending
+    SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(wl_client* client, eDynamicPermissionType permission);
+
+    void                                      removeRulesForClient(wl_client* client);
 
   private:
     void askForPermission(wl_client* client, const std::string& binaryName, eDynamicPermissionType type);

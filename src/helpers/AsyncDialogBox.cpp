@@ -59,8 +59,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
         Debug::log(LOG, "CAsyncDialogBox: dialog {:x} hung up, closed.");
 
-        if (m_onResolution)
-            m_onResolution(m_stdout);
+        m_promiseResolver->resolve(m_stdout);
 
         wl_event_source_remove(m_readEventSource);
         m_selfReference.reset();
@@ -68,9 +67,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
     }
 }
 
-void CAsyncDialogBox::open(std::function<void(std::string)> onResolution) {
-    m_onResolution = onResolution;
-
+SP<CPromise<std::string>> CAsyncDialogBox::open() {
     std::string buttonsString = "";
     for (auto& b : m_buttons) {
         buttonsString += b + ";";
@@ -83,7 +80,7 @@ void CAsyncDialogBox::open(std::function<void(std::string)> onResolution) {
     int      outPipe[2];
     if (pipe(outPipe)) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to pipe()");
-        return;
+        return nullptr;
     }
 
     m_pipeReadFd = CFileDescriptor(outPipe[0]);
@@ -94,7 +91,7 @@ void CAsyncDialogBox::open(std::function<void(std::string)> onResolution) {
 
     if (!m_readEventSource) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to add read fd to loop");
-        return;
+        return nullptr;
     }
 
     m_selfReference = m_selfWeakReference.lock();
@@ -102,13 +99,17 @@ void CAsyncDialogBox::open(std::function<void(std::string)> onResolution) {
     if (!proc.runAsync()) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to run async");
         wl_event_source_remove(m_readEventSource);
-        return;
+        return nullptr;
     }
 
     m_dialogPid = proc.pid();
 
     // close the write fd, only the dialog owns it now
     close(outPipe[1]);
+
+    auto promise = CPromise<std::string>::make([this](SP<CPromiseResolver<std::string>> r) { m_promiseResolver = r; });
+
+    return promise;
 }
 
 void CAsyncDialogBox::kill() {

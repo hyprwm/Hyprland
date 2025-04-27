@@ -168,7 +168,14 @@ void CANRManager::SANRData::runDialog(const std::string& title, const std::strin
                                                     appClass.empty() ? "unknown" : appClass),
                                         std::vector<std::string>{"Terminate", "Wait"});
 
-    dialogBox->open([dialogWmPID, this](std::string result) {
+    dialogBox->open()->then([dialogWmPID, this](SP<CPromiseResult<std::string>> r) {
+        if (r->hasError()) {
+            Debug::log(ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
+            return;
+        }
+
+        const auto& result = r->result();
+
         if (result.starts_with("Terminate"))
             ::kill(dialogWmPID, SIGKILL);
         else if (result.starts_with("Wait"))

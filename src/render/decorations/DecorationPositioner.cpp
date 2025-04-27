@@ -137,6 +137,10 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     )
         return;
 
+    for (auto const& wd : datas) {
+        wd->positioningInfo = wd->pDecoration->getPositioningInfo();
+    }
+
     WINDOWDATA->lastWindowSize = pWindow->m_realSize->value();
     WINDOWDATA->needsRecalc    = false;
     const bool EPHEMERAL       = pWindow->m_realSize->isBeingAnimated();

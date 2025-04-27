@@ -2906,6 +2906,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
 
     if (data[1] == "screencopy")
         type = PERMISSION_TYPE_SCREENCOPY;
+    else if (data[1] == "plugin")
+        type = PERMISSION_TYPE_PLUGIN;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

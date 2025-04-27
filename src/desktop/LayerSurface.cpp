@@ -421,9 +421,8 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_XRAY: {
                 CVarList vars{rule->m_rule, 0, ' '};
-                try {
-                    m_xray = configStringToInt(vars[1]).value_or(false);
-                } catch (...) {}
+                m_xray = configStringToInt(vars[1]).value_or(false);
+
                 break;
             }
             case CLayerRule::RULE_ANIMATION: {
@@ -436,6 +435,14 @@ void CLayerSurface::applyRules() {
                 try {
                     m_order = std::stoi(vars[1]);
                 } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
+                break;
+            }
+            case CLayerRule::RULE_ABOVELOCK: {
+                m_aboveLockscreen = true;
+
+                CVarList vars{rule->m_rule, 0, ' '};
+                m_aboveLockscreenInteractable = configStringToInt(vars[1]).value_or(false);
+
                 break;
             }
             default: break;

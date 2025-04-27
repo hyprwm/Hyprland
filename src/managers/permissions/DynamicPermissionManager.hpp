@@ -80,7 +80,7 @@ class CDynamicPermissionManager {
     // Returns null if state is not pending
     SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(wl_client* client, eDynamicPermissionType permission);
 
-    void                        removeRulesForClient(wl_client* client);
+    void                                      removeRulesForClient(wl_client* client);
 
   private:
     void askForPermission(wl_client* client, const std::string& binaryName, eDynamicPermissionType type);

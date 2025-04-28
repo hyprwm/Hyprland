@@ -54,7 +54,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfac
     resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_pWLSurface->resource() == surf_) {
+        if (w->m_wlSurface->resource() == surf_) {
             pWindow = w;
             break;
         }
@@ -70,7 +70,7 @@ void CTearingControl::updateWindow() {
     if UNLIKELY (pWindow.expired())
         return;
 
-    pWindow->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
+    pWindow->m_tearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {

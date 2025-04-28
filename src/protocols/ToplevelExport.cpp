@@ -86,7 +86,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    if UNLIKELY (!pWindow->m_bIsMapped) {
+    if UNLIKELY (!pWindow->m_isMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
         resource->sendFailed();
         return;
@@ -96,7 +96,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { this->copy(pFrame, res, ignoreDamage); });
 
-    const auto PMONITOR = pWindow->m_pMonitor.lock();
+    const auto PMONITOR = pWindow->m_monitor.lock();
 
     g_pHyprRenderer->makeEGLCurrent();
 
@@ -116,7 +116,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     dmabufFormat = PMONITOR->output->state->state().drmFormat;
 
-    box = {0, 0, (int)(pWindow->m_vRealSize->value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize->value().y * PMONITOR->scale)};
+    box = {0, 0, (int)(pWindow->m_realSize->value().x * PMONITOR->scale), (int)(pWindow->m_realSize->value().y * PMONITOR->scale)};
 
     box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
 
@@ -142,7 +142,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if UNLIKELY (!pWindow->m_bIsMapped) {
+    if UNLIKELY (!pWindow->m_isMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
         resource->sendFailed();
         return;
@@ -235,7 +235,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     // render the client
-    const auto PMONITOR = pWindow->m_pMonitor.lock();
+    const auto PMONITOR = pWindow->m_monitor.lock();
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -262,7 +262,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
         if (overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
         CBox texbox =
             CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
@@ -329,7 +329,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
 bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     const auto PERM     = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
-    const auto PMONITOR = pWindow->m_pMonitor.lock();
+    const auto PMONITOR = pWindow->m_monitor.lock();
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
@@ -350,7 +350,7 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
         if (overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
         CBox texbox =
             CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
@@ -445,10 +445,10 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
 
         const auto PWINDOW = f->pWindow;
 
-        if (pMonitor != PWINDOW->m_pMonitor.lock())
+        if (pMonitor != PWINDOW->m_monitor.lock())
             continue;
 
-        CBox geometry = {PWINDOW->m_vRealPosition->value().x, PWINDOW->m_vRealPosition->value().y, PWINDOW->m_vRealSize->value().x, PWINDOW->m_vRealSize->value().y};
+        CBox geometry = {PWINDOW->m_realPosition->value().x, PWINDOW->m_realPosition->value().y, PWINDOW->m_realSize->value().x, PWINDOW->m_realSize->value().y};
 
         if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
             continue;

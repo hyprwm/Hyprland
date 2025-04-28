@@ -80,9 +80,9 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         local                           = g_pInputManager->getMouseCoordsInternal() - PMONITOR->vecPosition;
         m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else if (!m_sTouchData.touchFocusWindow.expired()) {
-        if (m_sTouchData.touchFocusWindow->m_bIsX11) {
-            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition->goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
-            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition->goal();
+        if (m_sTouchData.touchFocusWindow->m_isX11) {
+            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_realPosition->goal()) * m_sTouchData.touchFocusWindow->m_X11SurfaceScaledBy;
+            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_realPosition->goal();
         } else {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow.lock(), local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
@@ -148,13 +148,13 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         auto local = g_pInputManager->getMouseCoordsInternal() - PMONITOR->vecPosition;
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     } else if (validMapped(m_sTouchData.touchFocusWindow)) {
-        const auto PMONITOR = m_sTouchData.touchFocusWindow->m_pMonitor.lock();
+        const auto PMONITOR = m_sTouchData.touchFocusWindow->m_monitor.lock();
 
         g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 
         auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
-        if (m_sTouchData.touchFocusWindow->m_bIsX11)
-            local = local * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
+        if (m_sTouchData.touchFocusWindow->m_isX11)
+            local = local * m_sTouchData.touchFocusWindow->m_X11SurfaceScaledBy;
 
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     } else if (!m_sTouchData.touchFocusLS.expired()) {

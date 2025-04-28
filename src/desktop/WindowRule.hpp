@@ -40,33 +40,33 @@ class CWindowRule {
         RULE_PERSISTENTSIZE
     };
 
-    eRuleType         ruleType = RULE_INVALID;
+    eRuleType         m_ruleType = RULE_INVALID;
 
-    const std::string szValue;
-    const std::string szRule;
-    const bool        v2       = false;
-    const bool        execRule = false;
+    const std::string m_value;
+    const std::string m_rule;
+    const bool        m_v2       = false;
+    const bool        m_execRule = false;
 
-    std::string       szTitle;
-    std::string       szClass;
-    std::string       szInitialTitle;
-    std::string       szInitialClass;
-    std::string       szTag;
-    int               bX11              = -1; // -1 means "ANY"
-    int               bFloating         = -1;
-    int               bFullscreen       = -1;
-    int               bPinned           = -1;
-    int               bFocus            = -1;
-    std::string       szFullscreenState = ""; // empty means any
-    std::string       szOnWorkspace     = ""; // empty means any
-    std::string       szWorkspace       = ""; // empty means any
-    std::string       szContentType     = ""; // empty means any
-    std::string       szXdgTag          = ""; // empty means any
+    std::string       m_title;
+    std::string       m_class;
+    std::string       m_initialTitle;
+    std::string       m_initialClass;
+    std::string       m_tag;
+    int               m_X11             = -1; // -1 means "ANY"
+    int               m_floating        = -1;
+    int               m_fullscreen      = -1;
+    int               m_pinned          = -1;
+    int               m_focus           = -1;
+    std::string       m_fullscreenState = ""; // empty means any
+    std::string       m_onWorkspace     = ""; // empty means any
+    std::string       m_workspace       = ""; // empty means any
+    std::string       m_contentType     = ""; // empty means any
+    std::string       m_xdgTag          = ""; // empty means any
 
     // precompiled regexes
-    CRuleRegexContainer rTitle;
-    CRuleRegexContainer rClass;
-    CRuleRegexContainer rInitialTitle;
-    CRuleRegexContainer rInitialClass;
-    CRuleRegexContainer rV1Regex;
+    CRuleRegexContainer m_titleRegex;
+    CRuleRegexContainer m_classRegex;
+    CRuleRegexContainer m_initialTitleRegex;
+    CRuleRegexContainer m_initialClassRegex;
+    CRuleRegexContainer m_v1Regex;
 };

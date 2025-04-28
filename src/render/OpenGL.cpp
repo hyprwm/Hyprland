@@ -1533,7 +1533,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         }
     }
 
-    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.RGBX.valueOrDefault()) {
+    if (m_RenderData.currentWindow && m_RenderData.currentWindow->m_windowData.RGBX.valueOrDefault()) {
         shader  = &m_shaders->m_shRGBX;
         texType = TEXTURE_RGBX;
     }
@@ -1628,9 +1628,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
                 const auto DIM = m_RenderData.currentWindow->m_notRespondingTint->value();
                 glUniform1i(shader->applyTint, 1);
                 glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-            } else if (m_RenderData.currentWindow->m_fDimPercent->value() > 0) {
+            } else if (m_RenderData.currentWindow->m_dimPercent->value() > 0) {
                 glUniform1i(shader->applyTint, 1);
-                const auto DIM = m_RenderData.currentWindow->m_fDimPercent->value();
+                const auto DIM = m_RenderData.currentWindow->m_dimPercent->value();
                 glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
             } else
                 glUniform1i(shader->applyTint, 0);
@@ -2054,16 +2054,16 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         if (!pWindow)
             return false;
 
-        if (pWindow->m_sWindowData.noBlur.valueOrDefault())
+        if (pWindow->m_windowData.noBlur.valueOrDefault())
             return false;
 
-        if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_fillIgnoreSmall)
+        if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
             return true;
 
-        const auto  PSURFACE = pWindow->m_pWLSurface->resource();
+        const auto  PSURFACE = pWindow->m_wlSurface->resource();
 
-        const auto  PWORKSPACE = pWindow->m_pWorkspace;
-        const float A          = pWindow->m_fAlpha->value() * pWindow->m_fActiveInactiveAlpha->value() * PWORKSPACE->m_alpha->value();
+        const auto  PWORKSPACE = pWindow->m_workspace;
+        const float A          = pWindow->m_alpha->value() * pWindow->m_activeInactiveAlpha->value() * PWORKSPACE->m_alpha->value();
 
         if (A >= 1.f) {
             // if (PSURFACE->opaque)
@@ -2084,7 +2084,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
 
     bool hasWindows = false;
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_pWorkspace == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
+        if (w->m_workspace == pMonitor->activeWorkspace && !w->isHidden() && w->m_isMapped && (!w->m_isFloating || *PBLURXRAY)) {
 
             // check if window is valid
             if (!windowShouldBeBlurred(w))
@@ -2170,16 +2170,16 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (!m_RenderData.pCurrentMonData->blurFB.getTexture())
         return false;
 
-    if (pWindow && pWindow->m_sWindowData.xray.hasValue() && !pWindow->m_sWindowData.xray.valueOrDefault())
+    if (pWindow && pWindow->m_windowData.xray.hasValue() && !pWindow->m_windowData.xray.valueOrDefault())
         return false;
 
     if (pLayer && pLayer->m_xray == 0)
         return false;
 
-    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
+    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_isFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
         return true;
 
-    if ((pLayer && pLayer->m_xray == 1) || (pWindow && pWindow->m_sWindowData.xray.valueOrDefault()))
+    if ((pLayer && pLayer->m_xray == 1) || (pWindow && pWindow->m_windowData.xray.valueOrDefault()))
         return true;
 
     return false;
@@ -2303,7 +2303,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     TRACY_GPU_ZONE("RenderBorder");
 
-    if (m_RenderData.damage.empty() || (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.noBorder.valueOrDefault()))
+    if (m_RenderData.damage.empty() || (m_RenderData.currentWindow && m_RenderData.currentWindow->m_windowData.noBorder.valueOrDefault()))
         return;
 
     CBox newBox = box;
@@ -2401,7 +2401,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     TRACY_GPU_ZONE("RenderBorder2");
 
-    if (m_RenderData.damage.empty() || (m_RenderData.currentWindow && m_RenderData.currentWindow->m_sWindowData.noBorder.valueOrDefault()))
+    if (m_RenderData.damage.empty() || (m_RenderData.currentWindow && m_RenderData.currentWindow->m_windowData.noBorder.valueOrDefault()))
         return;
 
     CBox newBox = box;

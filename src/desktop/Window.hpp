@@ -67,14 +67,14 @@ enum eSuppressEvents : uint8_t {
 class IWindowTransformer;
 
 struct SAlphaValue {
-    float m_fAlpha;
-    bool  m_bOverride;
+    float alpha;
+    bool  override;
 
     float applyAlpha(float alpha) const {
-        if (m_bOverride)
-            return m_fAlpha;
+        if (override)
+            return alpha;
         else
-            return m_fAlpha * alpha;
+            return alpha * alpha;
     };
 };
 
@@ -145,154 +145,151 @@ class CWindow {
   public:
     ~CWindow();
 
-    SP<CWLSurface> m_pWLSurface;
+    SP<CWLSurface> m_wlSurface;
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
-    WP<CXDGSurfaceResource> m_pXDGSurface;
-    WP<CXWaylandSurface>    m_pXWaylandSurface;
+    WP<CXDGSurfaceResource> m_xdgSurface;
+    WP<CXWaylandSurface>    m_xwaylandSurface;
 
     // this is the position and size of the "bounding box"
-    Vector2D m_vPosition = Vector2D(0, 0);
-    Vector2D m_vSize     = Vector2D(0, 0);
+    Vector2D m_position = Vector2D(0, 0);
+    Vector2D m_size     = Vector2D(0, 0);
 
     // this is the real position and size used to draw the thing
-    PHLANIMVAR<Vector2D> m_vRealPosition;
-    PHLANIMVAR<Vector2D> m_vRealSize;
+    PHLANIMVAR<Vector2D> m_realPosition;
+    PHLANIMVAR<Vector2D> m_realSize;
 
     // for not spamming the protocols
-    Vector2D                                     m_vReportedPosition;
-    Vector2D                                     m_vReportedSize;
-    Vector2D                                     m_vPendingReportedSize;
-    std::optional<std::pair<uint32_t, Vector2D>> m_pPendingSizeAck;
-    std::vector<std::pair<uint32_t, Vector2D>>   m_vPendingSizeAcks;
+    Vector2D                                     m_reportedPosition;
+    Vector2D                                     m_reportedSize;
+    Vector2D                                     m_pendingReportedSize;
+    std::optional<std::pair<uint32_t, Vector2D>> m_pendingSizeAck;
+    std::vector<std::pair<uint32_t, Vector2D>>   m_pendingSizeAcks;
 
     // for restoring floating statuses
-    Vector2D m_vLastFloatingSize;
-    Vector2D m_vLastFloatingPosition;
+    Vector2D m_lastFloatingSize;
+    Vector2D m_lastFloatingPosition;
 
     // for floating window offset in workspace animations
-    Vector2D m_vFloatingOffset = Vector2D(0, 0);
+    Vector2D m_floatingOffset = Vector2D(0, 0);
 
     // this is used for pseudotiling
-    bool     m_bIsPseudotiled = false;
-    Vector2D m_vPseudoSize    = Vector2D(1280, 720);
+    bool     m_isPseudotiled = false;
+    Vector2D m_pseudoSize    = Vector2D(1280, 720);
 
     // for recovering relative cursor position
-    Vector2D         m_vRelativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+    Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-    bool             m_bFirstMap        = false; // for layouts
-    bool             m_bIsFloating      = false;
-    bool             m_bDraggingTiled   = false; // for dragging around tiled windows
-    bool             m_bWasMaximized    = false;
-    SFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-    std::string      m_szTitle          = "";
-    std::string      m_szClass          = "";
-    std::string      m_szInitialTitle   = "";
-    std::string      m_szInitialClass   = "";
-    PHLWORKSPACE     m_pWorkspace;
-    PHLMONITORREF    m_pMonitor;
+    bool             m_firstMap        = false; // for layouts
+    bool             m_isFloating      = false;
+    bool             m_draggingTiled   = false; // for dragging around tiled windows
+    SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+    std::string      m_title           = "";
+    std::string      m_class           = "";
+    std::string      m_initialTitle    = "";
+    std::string      m_initialClass    = "";
+    PHLWORKSPACE     m_workspace;
+    PHLMONITORREF    m_monitor;
 
-    bool             m_bIsMapped = false;
+    bool             m_isMapped = false;
 
-    bool             m_bRequestsFloat = false;
+    bool             m_requestsFloat = false;
 
     // This is for fullscreen apps
-    bool m_bCreatedOverFullscreen = false;
+    bool m_createdOverFullscreen = false;
 
     // XWayland stuff
-    bool         m_bIsX11 = false;
-    PHLWINDOWREF m_pX11Parent;
-    bool         m_bX11DoesntWantBorders = false;
-    bool         m_bX11ShouldntFocus     = false;
-    float        m_fX11SurfaceScaledBy   = 1.f;
+    bool  m_isX11                = false;
+    bool  m_X11DoesntWantBorders = false;
+    bool  m_X11ShouldntFocus     = false;
+    float m_X11SurfaceScaledBy   = 1.f;
     //
 
     // For nofocus
-    bool m_bNoInitialFocus = false;
+    bool m_noInitialFocus = false;
 
     // Fullscreen and Maximize
-    bool      m_bWantsInitialFullscreen        = false;
-    MONITORID m_iWantsInitialFullscreenMonitor = MONITOR_INVALID;
+    bool      m_wantsInitialFullscreen        = false;
+    MONITORID m_wantsInitialFullscreenMonitor = MONITOR_INVALID;
 
-    // bitfield eSuppressEvents
-    uint64_t m_eSuppressedEvents = SUPPRESS_NONE;
+    // bitfield suppressEvents
+    uint64_t m_suppressedEvents = SUPPRESS_NONE;
 
     // desktop components
-    UP<CSubsurface> m_pSubsurfaceHead;
-    UP<CPopup>      m_pPopupHead;
+    UP<CSubsurface> m_subsurfaceHead;
+    UP<CPopup>      m_popupHead;
 
     // Animated border
-    CGradientValueData m_cRealBorderColor         = {0};
-    CGradientValueData m_cRealBorderColorPrevious = {0};
-    PHLANIMVAR<float>  m_fBorderFadeAnimationProgress;
-    PHLANIMVAR<float>  m_fBorderAngleAnimationProgress;
+    CGradientValueData m_realBorderColor         = {0};
+    CGradientValueData m_realBorderColorPrevious = {0};
+    PHLANIMVAR<float>  m_borderFadeAnimationProgress;
+    PHLANIMVAR<float>  m_borderAngleAnimationProgress;
 
     // Fade in-out
-    PHLANIMVAR<float> m_fAlpha;
-    bool              m_bFadingOut     = false;
-    bool              m_bReadyToDelete = false;
-    Vector2D          m_vOriginalClosedPos;  // these will be used for calculations later on in
-    Vector2D          m_vOriginalClosedSize; // drawing the closing animations
-    SBoxExtents       m_eOriginalClosedExtents;
-    bool              m_bAnimatingIn = false;
+    PHLANIMVAR<float> m_alpha;
+    bool              m_fadingOut     = false;
+    bool              m_readyToDelete = false;
+    Vector2D          m_originalClosedPos;  // these will be used for calculations later on in
+    Vector2D          m_originalClosedSize; // drawing the closing animations
+    SBoxExtents       m_originalClosedExtents;
+    bool              m_animatingIn = false;
 
     // For pinned (sticky) windows
-    bool m_bPinned = false;
+    bool m_pinned = false;
 
     // For preserving pinned state when fullscreening a pinned window
-    bool m_bPinFullscreened = false;
+    bool m_pinFullscreened = false;
 
     // urgency hint
-    bool m_bIsUrgent = false;
+    bool m_isUrgent = false;
 
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
-    PHLWINDOWREF m_pLastCycledWindow;
+    PHLWINDOWREF m_lastCycledWindow;
 
     // Window decorations
     // TODO: make this a SP.
-    std::vector<UP<IHyprWindowDecoration>> m_dWindowDecorations;
-    std::vector<IHyprWindowDecoration*>    m_vDecosToRemove;
+    std::vector<UP<IHyprWindowDecoration>> m_windowDecorations;
+    std::vector<IHyprWindowDecoration*>    m_decosToRemove;
 
     // Special render data, rules, etc
-    SWindowData m_sWindowData;
+    SWindowData m_windowData;
 
     // Transformers
-    std::vector<UP<IWindowTransformer>> m_vTransformers;
+    std::vector<UP<IWindowTransformer>> m_transformers;
 
     // for alpha
-    PHLANIMVAR<float> m_fActiveInactiveAlpha;
-    PHLANIMVAR<float> m_fMovingFromWorkspaceAlpha;
+    PHLANIMVAR<float> m_activeInactiveAlpha;
+    PHLANIMVAR<float> m_movingFromWorkspaceAlpha;
 
     // animated shadow color
-    PHLANIMVAR<CHyprColor> m_cRealShadowColor;
+    PHLANIMVAR<CHyprColor> m_realShadowColor;
 
     // animated tint
-    PHLANIMVAR<float> m_fDimPercent;
+    PHLANIMVAR<float> m_dimPercent;
 
     // animate moving to an invisible workspace
-    int               m_iMonitorMovedFrom = -1; // -1 means not moving
-    PHLANIMVAR<float> m_fMovingToWorkspaceAlpha;
+    int               m_monitorMovedFrom = -1; // -1 means not moving
+    PHLANIMVAR<float> m_movingToWorkspaceAlpha;
 
     // swallowing
-    PHLWINDOWREF m_pSwallowed;
-    bool         m_bCurrentlySwallowed = false;
-    bool         m_bGroupSwallowed     = false;
+    PHLWINDOWREF m_swallowed;
+    bool         m_currentlySwallowed = false;
+    bool         m_groupSwallowed     = false;
 
     // focus stuff
-    bool m_bStayFocused = false;
+    bool m_stayFocused = false;
 
     // for toplevel monitor events
-    MONITORID m_iLastToplevelMonitorID = -1;
-    MONITORID m_iLastSurfaceMonitorID  = -1;
+    MONITORID m_lastSurfaceMonitorID = -1;
 
     // for idle inhibiting windows
-    eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+    eIdleInhibitMode m_idleInhibitMode = IDLEINHIBIT_NONE;
 
     // initial token. Will be unregistered on workspace change or timeout of 2 minutes
-    std::string m_szInitialWorkspaceToken = "";
+    std::string m_initialWorkspaceToken = "";
 
     // for groups
     struct SGroupData {
@@ -300,13 +297,13 @@ class CWindow {
         bool         head   = false;
         bool         locked = false; // per group lock
         bool         deny   = false; // deny window from enter a group or made a group
-    } m_sGroupData;
-    uint16_t m_eGroupRules = GROUP_NONE;
+    } m_groupData;
+    uint16_t m_groupRules = GROUP_NONE;
 
-    bool     m_bTearingHint = false;
+    bool     m_tearingHint = false;
 
     // stores the currently matched window rules
-    std::vector<SP<CWindowRule>> m_vMatchedRules;
+    std::vector<SP<CWindowRule>> m_matchedRules;
 
     // window tags
     CTagKeeper m_tags;
@@ -316,8 +313,8 @@ class CWindow {
 
     // For the list lookup
     bool operator==(const CWindow& rhs) const {
-        return m_pXDGSurface == rhs.m_pXDGSurface && m_pXWaylandSurface == rhs.m_pXWaylandSurface && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
-            m_bFadingOut == rhs.m_bFadingOut;
+        return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&
+            m_fadingOut == rhs.m_fadingOut;
     }
 
     // methods
@@ -411,7 +408,7 @@ class CWindow {
     std::optional<std::string> xdgDescription();
 
     CBox                       getWindowMainSurfaceBox() const {
-        return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};
+        return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
     }
 
     // listeners
@@ -421,7 +418,7 @@ class CWindow {
     std::unordered_map<std::string, std::string> getEnv();
 
     //
-    PHLWINDOWREF m_pSelf;
+    PHLWINDOWREF m_self;
 
     // make private once we move listeners to inside CWindow
     struct {
@@ -436,13 +433,13 @@ class CWindow {
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;
         CHyprSignalListener resourceChange;
-    } listeners;
+    } m_listeners;
 
   private:
     // For hidden windows and stuff
-    bool        m_bHidden        = false;
-    bool        m_bSuspended     = false;
-    WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
+    bool        m_hidden        = false;
+    bool        m_suspended     = false;
+    WORKSPACEID m_lastWorkspace = WORKSPACE_INVALID;
 };
 
 inline bool valid(PHLWINDOW w) {
@@ -456,49 +453,49 @@ inline bool valid(PHLWINDOWREF w) {
 inline bool validMapped(PHLWINDOW w) {
     if (!valid(w))
         return false;
-    return w->m_bIsMapped;
+    return w->m_isMapped;
 }
 
 inline bool validMapped(PHLWINDOWREF w) {
     if (!valid(w))
         return false;
-    return w->m_bIsMapped;
+    return w->m_isMapped;
 }
 
 namespace NWindowProperties {
     static const std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> boolWindowProperties = {
-        {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
-        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.dimAround; }},
-        {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.decorate; }},
-        {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
-        {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
-        {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
-        {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noAnim; }},
-        {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBlur; }},
-        {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noBorder; }},
-        {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noDim; }},
-        {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFocus; }},
-        {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
-        {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noRounding; }},
-        {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShadow; }},
-        {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
-        {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.opaque; }},
-        {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.RGBX; }},
-        {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
-        {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.tearing; }},
-        {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.xray; }},
-        {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.noFollowMouse; }},
+        {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.allowsInput; }},
+        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.dimAround; }},
+        {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.decorate; }},
+        {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.focusOnActivate; }},
+        {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.keepAspectRatio; }},
+        {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.nearestNeighbor; }},
+        {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noAnim; }},
+        {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noBlur; }},
+        {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noBorder; }},
+        {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noDim; }},
+        {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFocus; }},
+        {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noMaxSize; }},
+        {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noRounding; }},
+        {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noShadow; }},
+        {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noShortcutsInhibit; }},
+        {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.opaque; }},
+        {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.RGBX; }},
+        {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.syncFullscreen; }},
+        {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.tearing; }},
+        {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.xray; }},
+        {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFollowMouse; }},
     };
 
     const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::INT>*(const PHLWINDOW&)>> intWindowProperties = {
-        {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.rounding; }},
-        {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
+        {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.rounding; }},
+        {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.borderSize; }},
     };
 
     const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::FLOAT>*(PHLWINDOW)>> floatWindowProperties = {
-        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
-        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
-        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }},
+        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.roundingPower; }},
+        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.scrollMouse; }},
+        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.scrollTouchpad; }},
     };
 };
 
@@ -532,13 +529,13 @@ struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
             return std::format_to(out, "[Window nullptr]");
 
         std::format_to(out, "[");
-        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_szTitle);
+        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_title);
         if (formatWorkspace)
-            std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
+            std::format_to(out, ", workspace: {}", w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID);
         if (formatMonitor)
             std::format_to(out, ", monitor: {}", w->monitorID());
         if (formatClass)
-            std::format_to(out, ", class: {}", w->m_szClass);
+            std::format_to(out, ", class: {}", w->m_class);
         return std::format_to(out, "]");
     }
 };

@@ -38,19 +38,19 @@ using enum NContentType::eContentType;
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
-    pWindow->m_pSelf  = pWindow;
-    pWindow->m_bIsX11 = true;
+    pWindow->m_self  = pWindow;
+    pWindow->m_isX11 = true;
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_vRealPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_vRealSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fBorderFadeAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fBorderAngleAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_fAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_fActiveInactiveAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_cRealShadowColor, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fDimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, g_pConfigManager->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
@@ -62,65 +62,65 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(resource));
 
-    pWindow->m_pSelf           = pWindow;
+    pWindow->m_self            = pWindow;
     resource->toplevel->window = pWindow;
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_vRealPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_vRealSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fBorderFadeAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fBorderAngleAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_fAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_fActiveInactiveAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_cRealShadowColor, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fDimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_fMovingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, g_pConfigManager->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
-    pWindow->m_pWLSurface->assign(pWindow->m_pXDGSurface->surface.lock(), pWindow);
+    pWindow->m_wlSurface->assign(pWindow->m_xdgSurface->surface.lock(), pWindow);
 
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_pXDGSurface(resource) {
-    m_pWLSurface = CWLSurface::create();
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_xdgSurface(resource) {
+    m_wlSurface = CWLSurface::create();
 
-    listeners.map            = m_pXDGSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
-    listeners.ack            = m_pXDGSurface->events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
-    listeners.unmap          = m_pXDGSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
-    listeners.destroy        = m_pXDGSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
-    listeners.commit         = m_pXDGSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
-    listeners.updateState    = m_pXDGSurface->toplevel->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
-    listeners.updateMetadata = m_pXDGSurface->toplevel->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
+    m_listeners.map            = m_xdgSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    m_listeners.ack            = m_xdgSurface->events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
+    m_listeners.unmap          = m_xdgSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    m_listeners.destroy        = m_xdgSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    m_listeners.commit         = m_xdgSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    m_listeners.updateState    = m_xdgSurface->toplevel->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    m_listeners.updateMetadata = m_xdgSurface->toplevel->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
-    m_pWLSurface = CWLSurface::create();
+CWindow::CWindow(SP<CXWaylandSurface> surface) : m_xwaylandSurface(surface) {
+    m_wlSurface = CWLSurface::create();
 
-    listeners.map              = m_pXWaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
-    listeners.unmap            = m_pXWaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
-    listeners.destroy          = m_pXWaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
-    listeners.commit           = m_pXWaylandSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
-    listeners.configureRequest = m_pXWaylandSurface->events.configureRequest.registerListener([this](std::any d) { onX11ConfigureRequest(std::any_cast<CBox>(d)); });
-    listeners.updateState      = m_pXWaylandSurface->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
-    listeners.updateMetadata   = m_pXWaylandSurface->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
-    listeners.resourceChange   = m_pXWaylandSurface->events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
-    listeners.activate         = m_pXWaylandSurface->events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
+    m_listeners.map              = m_xwaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    m_listeners.unmap            = m_xwaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    m_listeners.destroy          = m_xwaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    m_listeners.commit           = m_xwaylandSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    m_listeners.configureRequest = m_xwaylandSurface->events.configureRequest.registerListener([this](std::any d) { onX11ConfigureRequest(std::any_cast<CBox>(d)); });
+    m_listeners.updateState      = m_xwaylandSurface->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    m_listeners.updateMetadata   = m_xwaylandSurface->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
+    m_listeners.resourceChange   = m_xwaylandSurface->events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
+    m_listeners.activate         = m_xwaylandSurface->events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
 
-    if (m_pXWaylandSurface->overrideRedirect)
-        listeners.setGeometry = m_pXWaylandSurface->events.setGeometry.registerListener([this](std::any d) { Events::listener_unmanagedSetGeometry(this, nullptr); });
+    if (m_xwaylandSurface->overrideRedirect)
+        m_listeners.setGeometry = m_xwaylandSurface->events.setGeometry.registerListener([this](std::any d) { Events::listener_unmanagedSetGeometry(this, nullptr); });
 }
 
 CWindow::~CWindow() {
-    if (g_pCompositor->m_lastWindow == m_pSelf) {
+    if (g_pCompositor->m_lastWindow == m_self) {
         g_pCompositor->m_lastFocus.reset();
         g_pCompositor->m_lastWindow.reset();
     }
 
-    events.destroy.emit();
+    m_events.destroy.emit();
 
     if (!g_pHyprOpenGL)
         return;
@@ -130,20 +130,20 @@ CWindow::~CWindow() {
 }
 
 SBoxExtents CWindow::getFullWindowExtents() {
-    if (m_bFadingOut)
-        return m_eOriginalClosedExtents;
+    if (m_fadingOut)
+        return m_originalClosedExtents;
 
     const int BORDERSIZE = getRealBorderSize();
 
-    if (m_sWindowData.dimAround.valueOrDefault()) {
-        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
-            return {{m_vRealPosition->value().x - PMONITOR->vecPosition.x, m_vRealPosition->value().y - PMONITOR->vecPosition.y},
-                    {PMONITOR->vecSize.x - (m_vRealPosition->value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition->value().y - PMONITOR->vecPosition.y)}};
+    if (m_windowData.dimAround.valueOrDefault()) {
+        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+            return {{m_realPosition->value().x - PMONITOR->vecPosition.x, m_realPosition->value().y - PMONITOR->vecPosition.y},
+                    {PMONITOR->vecSize.x - (m_realPosition->value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_realPosition->value().y - PMONITOR->vecPosition.y)}};
     }
 
     SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock());
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock());
 
     if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
         maxExtents.topLeft.x = EXTENTS.topLeft.x;
@@ -157,10 +157,10 @@ SBoxExtents CWindow::getFullWindowExtents() {
     if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
         maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
-    if (m_pWLSurface->exists() && !m_bIsX11 && m_pPopupHead) {
+    if (m_wlSurface->exists() && !m_isX11 && m_popupHead) {
         CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
-        m_pPopupHead->breadthfirst(
+        m_popupHead->breadthfirst(
             [](WP<CPopup> popup, void* data) {
                 if (!popup->m_wlSurface || !popup->m_wlSurface->resource())
                     return;
@@ -184,38 +184,38 @@ SBoxExtents CWindow::getFullWindowExtents() {
         if (-surfaceExtents.y > maxExtents.topLeft.y)
             maxExtents.topLeft.y = -surfaceExtents.y;
 
-        if (surfaceExtents.x + surfaceExtents.width > m_pWLSurface->resource()->current.size.x + maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_pWLSurface->resource()->current.size.x;
+        if (surfaceExtents.x + surfaceExtents.width > m_wlSurface->resource()->current.size.x + maxExtents.bottomRight.x)
+            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_wlSurface->resource()->current.size.x;
 
-        if (surfaceExtents.y + surfaceExtents.height > m_pWLSurface->resource()->current.size.y + maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_pWLSurface->resource()->current.size.y;
+        if (surfaceExtents.y + surfaceExtents.height > m_wlSurface->resource()->current.size.y + maxExtents.bottomRight.y)
+            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_wlSurface->resource()->current.size.y;
     }
 
     return maxExtents;
 }
 
 CBox CWindow::getFullWindowBoundingBox() {
-    if (m_sWindowData.dimAround.valueOrDefault()) {
-        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
+    if (m_windowData.dimAround.valueOrDefault()) {
+        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
     auto maxExtents = getFullWindowExtents();
 
-    CBox finalBox = {m_vRealPosition->value().x - maxExtents.topLeft.x, m_vRealPosition->value().y - maxExtents.topLeft.y,
-                     m_vRealSize->value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize->value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = {m_realPosition->value().x - maxExtents.topLeft.x, m_realPosition->value().y - maxExtents.topLeft.y,
+                     m_realSize->value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_realSize->value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
 }
 
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
-    const auto PMONITOR = m_pMonitor.lock();
+    const auto PMONITOR = m_monitor.lock();
 
     if (!PMONITOR)
-        return {m_vPosition, m_vSize};
+        return {m_position, m_size};
 
-    auto POS  = m_vPosition;
-    auto SIZE = m_vSize;
+    auto POS  = m_position;
+    auto SIZE = m_size;
 
     if (isFullscreen()) {
         POS  = PMONITOR->vecPosition;
@@ -243,82 +243,82 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 }
 
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
-    if (m_sWindowData.dimAround.valueOrDefault()) {
-        const auto PMONITOR = m_pMonitor.lock();
+    if (m_windowData.dimAround.valueOrDefault()) {
+        const auto PMONITOR = m_monitor.lock();
         if (PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
     SBoxExtents EXTENTS = {{0, 0}, {0, 0}};
     if (properties & RESERVED_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock()));
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
     if (properties & INPUT_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock(), true));
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
     if (properties & FULL_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock(), false));
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
 
-    CBox box = {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};
+    CBox box = {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
     box.addExtents(EXTENTS);
 
     return box;
 }
 
 SBoxExtents CWindow::getFullWindowReservedArea() {
-    return g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock());
+    return g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock());
 }
 
 void CWindow::updateWindowDecos() {
 
-    if (!m_bIsMapped || isHidden())
+    if (!m_isMapped || isHidden())
         return;
 
-    for (auto const& wd : m_vDecosToRemove) {
-        for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
+    for (auto const& wd : m_decosToRemove) {
+        for (auto it = m_windowDecorations.begin(); it != m_windowDecorations.end(); it++) {
             if (it->get() == wd) {
                 g_pDecorationPositioner->uncacheDecoration(it->get());
-                it = m_dWindowDecorations.erase(it);
-                if (it == m_dWindowDecorations.end())
+                it = m_windowDecorations.erase(it);
+                if (it == m_windowDecorations.end())
                     break;
             }
         }
     }
 
-    g_pDecorationPositioner->onWindowUpdate(m_pSelf.lock());
+    g_pDecorationPositioner->onWindowUpdate(m_self.lock());
 
-    m_vDecosToRemove.clear();
+    m_decosToRemove.clear();
 
     // make a copy because updateWindow can remove decos.
     std::vector<IHyprWindowDecoration*> decos;
     // reserve to avoid reallocations
-    decos.reserve(m_dWindowDecorations.size());
+    decos.reserve(m_windowDecorations.size());
 
-    for (auto const& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_windowDecorations) {
         decos.push_back(wd.get());
     }
 
     for (auto const& wd : decos) {
-        if (std::find_if(m_dWindowDecorations.begin(), m_dWindowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_dWindowDecorations.end())
+        if (std::find_if(m_windowDecorations.begin(), m_windowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
             continue;
-        wd->updateWindow(m_pSelf.lock());
+        wd->updateWindow(m_self.lock());
     }
 }
 
 void CWindow::addWindowDeco(UP<IHyprWindowDecoration> deco) {
-    m_dWindowDecorations.emplace_back(std::move(deco));
-    g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
+    m_windowDecorations.emplace_back(std::move(deco));
+    g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
 }
 
 void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
-    m_vDecosToRemove.push_back(deco);
-    g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
+    m_decosToRemove.push_back(deco);
+    g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
 }
 
 void CWindow::uncacheWindowDecos() {
-    for (auto const& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_windowDecorations) {
         g_pDecorationPositioner->uncacheDecoration(wd.get());
     }
 }
@@ -327,7 +327,7 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
     if (type != INPUT_TYPE_DRAG_END && hasPopupAt(mouseCoords))
         return false;
 
-    for (auto const& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_windowDecorations) {
         if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
             continue;
 
@@ -343,23 +343,23 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
 
 pid_t CWindow::getPID() {
     pid_t PID = -1;
-    if (!m_bIsX11) {
-        if (!m_pXDGSurface || !m_pXDGSurface->owner /* happens at unmap */)
+    if (!m_isX11) {
+        if (!m_xdgSurface || !m_xdgSurface->owner /* happens at unmap */)
             return -1;
 
-        wl_client_get_credentials(m_pXDGSurface->owner->client(), &PID, nullptr, nullptr);
+        wl_client_get_credentials(m_xdgSurface->owner->client(), &PID, nullptr, nullptr);
     } else {
-        if (!m_pXWaylandSurface)
+        if (!m_xwaylandSurface)
             return -1;
 
-        PID = m_pXWaylandSurface->pid;
+        PID = m_xwaylandSurface->pid;
     }
 
     return PID;
 }
 
 IHyprWindowDecoration* CWindow::getDecorationByType(eDecorationType type) {
-    for (auto const& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_windowDecorations) {
         if (wd->getDecorationType() == type)
             return wd.get();
     }
@@ -372,28 +372,28 @@ void CWindow::updateToplevel() {
 }
 
 void CWindow::updateSurfaceScaleTransformDetails(bool force) {
-    if (!m_bIsMapped || m_bHidden || g_pCompositor->m_unsafeState)
+    if (!m_isMapped || m_hidden || g_pCompositor->m_unsafeState)
         return;
 
-    const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
+    const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastSurfaceMonitorID);
 
-    m_iLastSurfaceMonitorID = monitorID();
+    m_lastSurfaceMonitorID = monitorID();
 
-    const auto PNEWMONITOR = m_pMonitor.lock();
+    const auto PNEWMONITOR = m_monitor.lock();
 
     if (!PNEWMONITOR)
         return;
 
     if (PNEWMONITOR != PLASTMONITOR || force) {
         if (PLASTMONITOR && PLASTMONITOR->m_bEnabled && PNEWMONITOR != PLASTMONITOR)
-            m_pWLSurface->resource()->breadthfirst([PLASTMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->leave(PLASTMONITOR->self.lock()); }, nullptr);
+            m_wlSurface->resource()->breadthfirst([PLASTMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->leave(PLASTMONITOR->self.lock()); }, nullptr);
 
-        m_pWLSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->self.lock()); }, nullptr);
+        m_wlSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->self.lock()); }, nullptr);
     }
 
-    const auto PMONITOR = m_pMonitor.lock();
+    const auto PMONITOR = m_monitor.lock();
 
-    m_pWLSurface->resource()->breadthfirst(
+    m_wlSurface->resource()->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
             if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->scale)
@@ -407,18 +407,18 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
 }
 
 void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
-    if (m_pWorkspace == pWorkspace)
+    if (m_workspace == pWorkspace)
         return;
 
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    if (!m_szInitialWorkspaceToken.empty()) {
-        const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);
+    if (!m_initialWorkspaceToken.empty()) {
+        const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent
                 SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
-                if (token.primaryOwner == m_pSelf) {
+                if (token.primaryOwner == m_self) {
                     token.workspace = pWorkspace->getConfigName();
                     TOKEN->m_data   = token;
                 }
@@ -428,16 +428,16 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
-    const auto  OLDWORKSPACE = m_pWorkspace;
+    const auto  OLDWORKSPACE = m_workspace;
 
     if (OLDWORKSPACE->isVisible()) {
-        m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
-        *m_fMovingToWorkspaceAlpha = 0.F;
-        m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
-        m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
+        m_movingToWorkspaceAlpha->setValueAndWarp(1.F);
+        *m_movingToWorkspaceAlpha = 0.F;
+        m_movingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_monitorMovedFrom = -1; });
+        m_monitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
     }
 
-    m_pWorkspace = pWorkspace;
+    m_workspace = pWorkspace;
 
     setAnimationsToMove();
 
@@ -454,13 +454,13 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (valid(pWorkspace)) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_name)});
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindowv2", std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_id, pWorkspace->m_name)});
-        EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_pSelf.lock(), pWorkspace}));
+        EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
     }
 
-    if (const auto SWALLOWED = m_pSwallowed.lock()) {
-        if (SWALLOWED->m_bCurrentlySwallowed) {
+    if (const auto SWALLOWED = m_swallowed.lock()) {
+        if (SWALLOWED->m_currentlySwallowed) {
             SWALLOWED->moveToWorkspace(pWorkspace);
-            SWALLOWED->m_pMonitor = m_pMonitor;
+            SWALLOWED->m_monitor = m_monitor;
         }
     }
 
@@ -471,10 +471,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 PHLWINDOW CWindow::x11TransientFor() {
-    if (!m_pXWaylandSurface || !m_pXWaylandSurface->parent)
+    if (!m_xwaylandSurface || !m_xwaylandSurface->parent)
         return nullptr;
 
-    auto                              s = m_pXWaylandSurface->parent;
+    auto                              s = m_xwaylandSurface->parent;
     std::vector<SP<CXWaylandSurface>> visited;
     while (s) {
         // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
@@ -486,11 +486,11 @@ PHLWINDOW CWindow::x11TransientFor() {
         s = s->parent;
     }
 
-    if (s == m_pXWaylandSurface)
+    if (s == m_xwaylandSurface)
         return nullptr; // dead-ass circle
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_pXWaylandSurface != s)
+        if (w->m_xwaylandSurface != s)
             continue;
         return w;
     }
@@ -502,93 +502,93 @@ void CWindow::onUnmap() {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
     static auto PINITIALWSTRACKING  = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    if (!m_szInitialWorkspaceToken.empty()) {
-        const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);
+    if (!m_initialWorkspaceToken.empty()) {
+        const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
         if (TOKEN) {
             if (*PINITIALWSTRACKING == 2) {
                 // persistent token, but the first window got removed so the token is gone
                 SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
-                if (token.primaryOwner == m_pSelf)
+                if (token.primaryOwner == m_self)
                     g_pTokenManager->removeToken(TOKEN);
             }
         }
     }
 
-    m_iLastWorkspace = m_pWorkspace->m_id;
+    m_lastWorkspace = m_workspace->m_id;
 
-    std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_pSelf; });
+    std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_self; });
 
-    if (*PCLOSEONLASTSPECIAL && m_pWorkspace && m_pWorkspace->getWindows() == 0 && onSpecialWorkspace()) {
-        const auto PMONITOR = m_pMonitor.lock();
-        if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace == m_pWorkspace)
+    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+        const auto PMONITOR = m_monitor.lock();
+        if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 
-    const auto PMONITOR = m_pMonitor.lock();
+    const auto PMONITOR = m_monitor.lock();
 
-    if (PMONITOR && PMONITOR->solitaryClient == m_pSelf)
+    if (PMONITOR && PMONITOR->solitaryClient == m_self)
         PMONITOR->solitaryClient.reset();
 
-    if (m_pWorkspace) {
-        m_pWorkspace->updateWindows();
-        m_pWorkspace->updateWindowData();
+    if (m_workspace) {
+        m_workspace->updateWindows();
+        m_workspace->updateWindowData();
     }
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    m_pWorkspace.reset();
+    m_workspace.reset();
 
-    if (m_bIsX11)
+    if (m_isX11)
         return;
 
-    m_pSubsurfaceHead.reset();
-    m_pPopupHead.reset();
+    m_subsurfaceHead.reset();
+    m_popupHead.reset();
 }
 
 void CWindow::onMap() {
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
-    m_vRealPosition->resetAllCallbacks();
-    m_vRealSize->resetAllCallbacks();
-    m_fBorderFadeAnimationProgress->resetAllCallbacks();
-    m_fBorderAngleAnimationProgress->resetAllCallbacks();
-    m_fActiveInactiveAlpha->resetAllCallbacks();
-    m_fAlpha->resetAllCallbacks();
-    m_cRealShadowColor->resetAllCallbacks();
-    m_fDimPercent->resetAllCallbacks();
-    m_fMovingToWorkspaceAlpha->resetAllCallbacks();
-    m_fMovingFromWorkspaceAlpha->resetAllCallbacks();
+    m_realPosition->resetAllCallbacks();
+    m_realSize->resetAllCallbacks();
+    m_borderFadeAnimationProgress->resetAllCallbacks();
+    m_borderAngleAnimationProgress->resetAllCallbacks();
+    m_activeInactiveAlpha->resetAllCallbacks();
+    m_alpha->resetAllCallbacks();
+    m_realShadowColor->resetAllCallbacks();
+    m_dimPercent->resetAllCallbacks();
+    m_movingToWorkspaceAlpha->resetAllCallbacks();
+    m_movingFromWorkspaceAlpha->resetAllCallbacks();
 
-    m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    if (m_fBorderAngleAnimationProgress->enabled()) {
-        m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
-        m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
-        *m_fBorderAngleAnimationProgress = 1.f;
+    if (m_borderAngleAnimationProgress->enabled()) {
+        m_borderAngleAnimationProgress->setValueAndWarp(0.f);
+        m_borderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
+        *m_borderAngleAnimationProgress = 1.f;
     }
 
-    m_vRealSize->setCallbackOnBegin(
+    m_realSize->setCallbackOnBegin(
         [this](auto) {
-            if (!m_bIsMapped || isX11OverrideRedirect())
+            if (!m_isMapped || isX11OverrideRedirect())
                 return;
 
             sendWindowSize();
         },
         false);
 
-    m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    g_pCompositor->m_windowFocusHistory.push_back(m_pSelf);
+    g_pCompositor->m_windowFocusHistory.push_back(m_self);
 
-    m_vReportedSize = m_vPendingReportedSize;
-    m_bAnimatingIn  = true;
+    m_reportedSize = m_pendingReportedSize;
+    m_animatingIn  = true;
 
     updateSurfaceScaleTransformDetails(true);
 
-    if (m_bIsX11)
+    if (m_isX11)
         return;
 
-    m_pSubsurfaceHead = CSubsurface::create(m_pSelf.lock());
-    m_pPopupHead      = CPopup::create(m_pSelf.lock());
+    m_subsurfaceHead = CSubsurface::create(m_self.lock());
+    m_popupHead      = CPopup::create(m_self.lock());
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
@@ -610,34 +610,34 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 }
 
 void CWindow::setHidden(bool hidden) {
-    m_bHidden = hidden;
+    m_hidden = hidden;
 
-    if (hidden && g_pCompositor->m_lastWindow == m_pSelf)
+    if (hidden && g_pCompositor->m_lastWindow == m_self)
         g_pCompositor->m_lastWindow.reset();
 
     setSuspended(hidden);
 }
 
 bool CWindow::isHidden() {
-    return m_bHidden;
+    return m_hidden;
 }
 
 void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
-    const eOverridePriority priority = r->execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    const eOverridePriority priority = r->m_execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
 
-    switch (r->ruleType) {
+    switch (r->m_ruleType) {
         case CWindowRule::RULE_TAG: {
-            CVarList vars{r->szRule, 0, 's', true};
+            CVarList vars{r->m_rule, 0, 's', true};
 
             if (vars.size() == 2 && vars[0] == "tag")
                 m_tags.applyTag(vars[1], true);
             else
-                Debug::log(ERR, "Tag rule invalid: {}", r->szRule);
+                Debug::log(ERR, "Tag rule invalid: {}", r->m_rule);
             break;
         }
         case CWindowRule::RULE_OPACITY: {
             try {
-                CVarList vars(r->szRule, 0, ' ');
+                CVarList vars(r->m_rule, 0, ' ');
 
                 int      opacityIDX = 0;
 
@@ -647,18 +647,18 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 
                     if (r == "override") {
                         if (opacityIDX == 1)
-                            m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, priority);
+                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{m_windowData.alpha.value().alpha, true}, priority);
                         else if (opacityIDX == 2)
-                            m_sWindowData.alphaInactive = CWindowOverridableVar(SAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, priority);
+                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{m_windowData.alphaInactive.value().alpha, true}, priority);
                         else if (opacityIDX == 3)
-                            m_sWindowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, priority);
+                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{m_windowData.alphaFullscreen.value().alpha, true}, priority);
                     } else {
                         if (opacityIDX == 0) {
-                            m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                         } else if (opacityIDX == 1) {
-                            m_sWindowData.alphaInactive = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                         } else if (opacityIDX == 2) {
-                            m_sWindowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                         } else {
                             throw std::runtime_error("more than 3 alpha values");
                         }
@@ -668,15 +668,15 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 }
 
                 if (opacityIDX == 1) {
-                    m_sWindowData.alphaInactive   = m_sWindowData.alpha;
-                    m_sWindowData.alphaFullscreen = m_sWindowData.alpha;
+                    m_windowData.alphaInactive   = m_windowData.alpha;
+                    m_windowData.alphaFullscreen = m_windowData.alpha;
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             break;
         }
         case CWindowRule::RULE_ANIMATION: {
-            auto STYLE                   = r->szRule.substr(r->szRule.find_first_of(' ') + 1);
-            m_sWindowData.animationStyle = CWindowOverridableVar(STYLE, priority);
+            auto STYLE                  = r->m_rule.substr(r->m_rule.find_first_of(' ') + 1);
+            m_windowData.animationStyle = CWindowOverridableVar(STYLE, priority);
             break;
         }
         case CWindowRule::RULE_BORDERCOLOR: {
@@ -685,12 +685,12 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 CGradientValueData activeBorderGradient   = {};
                 CGradientValueData inactiveBorderGradient = {};
                 bool               active                 = true;
-                CVarList           colorsAndAngles        = CVarList(trim(r->szRule.substr(r->szRule.find_first_of(' ') + 1)), 0, 's', true);
+                CVarList           colorsAndAngles        = CVarList(trim(r->m_rule.substr(r->m_rule.find_first_of(' ') + 1)), 0, 's', true);
 
                 // Basic form has only two colors, everything else can be parsed as a gradient
                 if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-                    m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), priority);
-                    m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), priority);
+                    m_windowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), priority);
+                    m_windowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), priority);
                     return;
                 }
 
@@ -711,91 +711,91 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 
                 // Includes sanity checks for the number of colors in each gradient
                 if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
-                    Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r->szRule);
+                    Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r->m_rule);
                 else if (activeBorderGradient.m_colors.empty())
-                    Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r->szRule);
+                    Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r->m_rule);
                 else if (inactiveBorderGradient.m_colors.empty())
-                    m_sWindowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, priority);
+                    m_windowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, priority);
                 else {
-                    m_sWindowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, priority);
-                    m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
+                    m_windowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, priority);
+                    m_windowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
                 }
-            } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             break;
         }
         case CWindowRule::RULE_IDLEINHIBIT: {
-            auto IDLERULE = r->szRule.substr(r->szRule.find_first_of(' ') + 1);
+            auto IDLERULE = r->m_rule.substr(r->m_rule.find_first_of(' ') + 1);
 
             if (IDLERULE == "none")
-                m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+                m_idleInhibitMode = IDLEINHIBIT_NONE;
             else if (IDLERULE == "always")
-                m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
+                m_idleInhibitMode = IDLEINHIBIT_ALWAYS;
             else if (IDLERULE == "focus")
-                m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
+                m_idleInhibitMode = IDLEINHIBIT_FOCUS;
             else if (IDLERULE == "fullscreen")
-                m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
+                m_idleInhibitMode = IDLEINHIBIT_FULLSCREEN;
             else
                 Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
             break;
         }
         case CWindowRule::RULE_MAXSIZE: {
             try {
-                if (!m_bIsFloating)
+                if (!m_isFloating)
                     return;
-                const auto VEC = configStringToVector2D(r->szRule.substr(8));
+                const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for maxsize");
                     return;
                 }
 
-                m_sWindowData.maxSize = CWindowOverridableVar(VEC, priority);
-                clampWindowSize(std::nullopt, m_sWindowData.maxSize.value());
+                m_windowData.maxSize = CWindowOverridableVar(VEC, priority);
+                clampWindowSize(std::nullopt, m_windowData.maxSize.value());
 
-            } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             break;
         }
         case CWindowRule::RULE_MINSIZE: {
             try {
-                if (!m_bIsFloating)
+                if (!m_isFloating)
                     return;
-                const auto VEC = configStringToVector2D(r->szRule.substr(8));
+                const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for minsize");
                     return;
                 }
 
-                m_sWindowData.minSize = CWindowOverridableVar(VEC, priority);
-                clampWindowSize(m_sWindowData.minSize.value(), std::nullopt);
+                m_windowData.minSize = CWindowOverridableVar(VEC, priority);
+                clampWindowSize(m_windowData.minSize.value(), std::nullopt);
 
-                if (m_sGroupData.pNextWindow.expired())
+                if (m_groupData.pNextWindow.expired())
                     setHidden(false);
-            } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r->szRule, e.what()); }
+            } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             break;
         }
         case CWindowRule::RULE_RENDERUNFOCUSED: {
-            m_sWindowData.renderUnfocused = CWindowOverridableVar(true, priority);
-            g_pHyprRenderer->addWindowToRenderUnfocused(m_pSelf.lock());
+            m_windowData.renderUnfocused = CWindowOverridableVar(true, priority);
+            g_pHyprRenderer->addWindowToRenderUnfocused(m_self.lock());
             break;
         }
         case CWindowRule::RULE_PROP: {
-            const CVarList VARS(r->szRule, 0, ' ');
+            const CVarList VARS(r->m_rule, 0, ' ');
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(Hyprlang::INT(std::stoi(VARS[2])), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                    *(search->second(m_self.lock())) = CWindowOverridableVar(Hyprlang::INT(std::stoi(VARS[2])), priority);
+                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stof(VARS[2]), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                    *(search->second(m_self.lock())) = CWindowOverridableVar(std::stof(VARS[2]), priority);
+                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
-                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
+                    *(search->second(m_self.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
+                } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             }
             break;
         }
         case CWindowRule::RULE_PERSISTENTSIZE: {
-            m_sWindowData.persistentSize = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+            m_windowData.persistentSize = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
             break;
         }
         default: break;
@@ -803,31 +803,31 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 }
 
 void CWindow::updateDynamicRules() {
-    m_sWindowData.alpha.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.alphaInactive.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.alphaFullscreen.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.alpha.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.alphaInactive.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.alphaFullscreen.unset(PRIORITY_WINDOW_RULE);
 
     unsetWindowData(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.animationStyle.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.maxSize.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.minSize.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.animationStyle.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.maxSize.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.minSize.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.renderUnfocused.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.renderUnfocused.unset(PRIORITY_WINDOW_RULE);
 
-    m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+    m_idleInhibitMode = IDLEINHIBIT_NONE;
 
     m_tags.removeDynamicTags();
 
-    m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
-    for (const auto& r : m_vMatchedRules) {
+    m_matchedRules = g_pConfigManager->getMatchingRules(m_self.lock());
+    for (const auto& r : m_matchedRules) {
         applyDynamicRule(r);
     }
 
-    EMIT_HOOK_EVENT("windowUpdateRules", m_pSelf.lock());
+    EMIT_HOOK_EVENT("windowUpdateRules", m_self.lock());
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 }
@@ -842,10 +842,10 @@ bool CWindow::isInCurvedCorner(double x, double y) {
         return false;
 
     // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    double x0 = m_vRealPosition->value().x + ROUNDING;
-    double y0 = m_vRealPosition->value().y + ROUNDING;
-    double x1 = m_vRealPosition->value().x + m_vRealSize->value().x - ROUNDING;
-    double y1 = m_vRealPosition->value().y + m_vRealSize->value().y - ROUNDING;
+    double x0 = m_realPosition->value().x + ROUNDING;
+    double y0 = m_realPosition->value().y + ROUNDING;
+    double x1 = m_realPosition->value().x + m_realSize->value().x - ROUNDING;
+    double y1 = m_realPosition->value().y + m_realSize->value().y - ROUNDING;
 
     if (x < x0 && y < y0) {
         return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
@@ -865,39 +865,39 @@ bool CWindow::isInCurvedCorner(double x, double y) {
 
 // checks if the wayland window has a popup at pos
 bool CWindow::hasPopupAt(const Vector2D& pos) {
-    if (m_bIsX11)
+    if (m_isX11)
         return false;
 
-    auto popup = m_pPopupHead->at(pos);
+    auto popup = m_popupHead->at(pos);
 
     return popup && popup->m_wlSurface->resource();
 }
 
 void CWindow::applyGroupRules() {
-    if ((m_eGroupRules & GROUP_SET && m_bFirstMap) || m_eGroupRules & GROUP_SET_ALWAYS)
+    if ((m_groupRules & GROUP_SET && m_firstMap) || m_groupRules & GROUP_SET_ALWAYS)
         createGroup();
 
-    if (m_sGroupData.pNextWindow.lock() && ((m_eGroupRules & GROUP_LOCK && m_bFirstMap) || m_eGroupRules & GROUP_LOCK_ALWAYS))
-        getGroupHead()->m_sGroupData.locked = true;
+    if (m_groupData.pNextWindow.lock() && ((m_groupRules & GROUP_LOCK && m_firstMap) || m_groupRules & GROUP_LOCK_ALWAYS))
+        getGroupHead()->m_groupData.locked = true;
 }
 
 void CWindow::createGroup() {
-    if (m_sGroupData.deny) {
-        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
+    if (m_groupData.deny) {
+        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_title);
         return;
     }
 
-    if (m_sGroupData.pNextWindow.expired()) {
-        m_sGroupData.pNextWindow = m_pSelf;
-        m_sGroupData.head        = true;
-        m_sGroupData.locked      = false;
-        m_sGroupData.deny        = false;
+    if (m_groupData.pNextWindow.expired()) {
+        m_groupData.pNextWindow = m_self;
+        m_groupData.head        = true;
+        m_groupData.locked      = false;
+        m_groupData.deny        = false;
 
-        addWindowDeco(makeUnique<CHyprGroupBarDecoration>(m_pSelf.lock()));
+        addWindowDeco(makeUnique<CHyprGroupBarDecoration>(m_self.lock()));
 
-        if (m_pWorkspace) {
-            m_pWorkspace->updateWindows();
-            m_pWorkspace->updateWindowData();
+        if (m_workspace) {
+            m_workspace->updateWindows();
+            m_workspace->updateWindowData();
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -907,17 +907,17 @@ void CWindow::createGroup() {
 }
 
 void CWindow::destroyGroup() {
-    if (m_sGroupData.pNextWindow == m_pSelf) {
-        if (m_eGroupRules & GROUP_SET_ALWAYS) {
-            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_szTitle);
+    if (m_groupData.pNextWindow == m_self) {
+        if (m_groupRules & GROUP_SET_ALWAYS) {
+            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_title);
             return;
         }
-        m_sGroupData.pNextWindow.reset();
-        m_sGroupData.head = false;
+        m_groupData.pNextWindow.reset();
+        m_groupData.head = false;
         updateWindowDecos();
-        if (m_pWorkspace) {
-            m_pWorkspace->updateWindows();
-            m_pWorkspace->updateWindowData();
+        if (m_workspace) {
+            m_workspace->updateWindows();
+            m_workspace->updateWindowData();
         }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -927,12 +927,12 @@ void CWindow::destroyGroup() {
     }
 
     std::string            addresses;
-    PHLWINDOW              curr = m_pSelf.lock();
+    PHLWINDOW              curr = m_self.lock();
     std::vector<PHLWINDOW> members;
     do {
         const auto PLASTWIN = curr;
-        curr                = curr->m_sGroupData.pNextWindow.lock();
-        PLASTWIN->m_sGroupData.pNextWindow.reset();
+        curr                = curr->m_groupData.pNextWindow.lock();
+        PLASTWIN->m_groupData.pNextWindow.reset();
         curr->setHidden(false);
         members.push_back(curr);
 
@@ -940,9 +940,9 @@ void CWindow::destroyGroup() {
     } while (curr.get() != this);
 
     for (auto const& w : members) {
-        if (w->m_sGroupData.head)
+        if (w->m_groupData.head)
             g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
-        w->m_sGroupData.head = false;
+        w->m_groupData.head = false;
     }
 
     const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
@@ -953,9 +953,9 @@ void CWindow::destroyGroup() {
     }
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
-    if (m_pWorkspace) {
-        m_pWorkspace->updateWindows();
-        m_pWorkspace->updateWindowData();
+    if (m_workspace) {
+        m_workspace->updateWindows();
+        m_workspace->updateWindowData();
     }
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -966,31 +966,31 @@ void CWindow::destroyGroup() {
 }
 
 PHLWINDOW CWindow::getGroupHead() {
-    PHLWINDOW curr = m_pSelf.lock();
-    while (!curr->m_sGroupData.head)
-        curr = curr->m_sGroupData.pNextWindow.lock();
+    PHLWINDOW curr = m_self.lock();
+    while (!curr->m_groupData.head)
+        curr = curr->m_groupData.pNextWindow.lock();
     return curr;
 }
 
 PHLWINDOW CWindow::getGroupTail() {
-    PHLWINDOW curr = m_pSelf.lock();
-    while (!curr->m_sGroupData.pNextWindow->m_sGroupData.head)
-        curr = curr->m_sGroupData.pNextWindow.lock();
+    PHLWINDOW curr = m_self.lock();
+    while (!curr->m_groupData.pNextWindow->m_groupData.head)
+        curr = curr->m_groupData.pNextWindow.lock();
     return curr;
 }
 
 PHLWINDOW CWindow::getGroupCurrent() {
-    PHLWINDOW curr = m_pSelf.lock();
+    PHLWINDOW curr = m_self.lock();
     while (curr->isHidden())
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
     return curr;
 }
 
 int CWindow::getGroupSize() {
     int       size = 1;
-    PHLWINDOW curr = m_pSelf.lock();
-    while (curr->m_sGroupData.pNextWindow != m_pSelf) {
-        curr = curr->m_sGroupData.pNextWindow.lock();
+    PHLWINDOW curr = m_self.lock();
+    while (curr->m_groupData.pNextWindow != m_self) {
+        curr = curr->m_groupData.pNextWindow.lock();
         size++;
     }
     return size;
@@ -998,15 +998,15 @@ int CWindow::getGroupSize() {
 
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
-    bool        isGroup               = m_sGroupData.pNextWindow;
+    bool        isGroup               = m_groupData.pNextWindow;
     bool        disallowDragIntoGroup = g_pInputManager->m_bWasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
-    return !g_pKeybindManager->m_bGroupsLocked                                                 // global group lock disengaged
-        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                                      // window ignore local group locks, or
-            || (!pWindow->getGroupHead()->m_sGroupData.locked                                  //      target unlocked
-                && !(m_sGroupData.pNextWindow.lock() && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
-        && !m_sGroupData.deny                                                                  // source is not denied entry
-        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap)                                      // group rule doesn't prevent adding window
-        && !disallowDragIntoGroup;                                                             // config allows groups to be merged
+    return !g_pKeybindManager->m_bGroupsLocked                                               // global group lock disengaged
+        && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
+            || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked
+                && !(m_groupData.pNextWindow.lock() && getGroupHead()->m_groupData.locked))) //      source unlocked or isn't group
+        && !m_groupData.deny                                                                 // source is not denied entry
+        && !(m_groupRules & GROUP_BARRED && m_firstMap)                                      // group rule doesn't prevent adding window
+        && !disallowDragIntoGroup;                                                           // config allows groups to be merged
 }
 
 PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
@@ -1014,21 +1014,21 @@ PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
     index          = ((index % SIZE) + SIZE) % SIZE;
     PHLWINDOW curr = getGroupHead();
     while (index > 0) {
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
         index--;
     }
     return curr;
 }
 
 void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
-    PHLWINDOW curr     = m_sGroupData.pNextWindow.lock();
+    PHLWINDOW curr     = m_groupData.pNextWindow.lock();
     bool      isMember = false;
     while (curr.get() != this) {
         if (curr == pWindow) {
             isMember = true;
             break;
         }
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
     }
 
     if (!isMember && pWindow.get() != this)
@@ -1036,25 +1036,25 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     const auto PCURRENT   = getGroupCurrent();
     const bool FULLSCREEN = PCURRENT->isFullscreen();
-    const auto WORKSPACE  = PCURRENT->m_pWorkspace;
-    const auto MODE       = PCURRENT->m_sFullscreenState.internal;
+    const auto WORKSPACE  = PCURRENT->m_workspace;
+    const auto MODE       = PCURRENT->m_fullscreenState.internal;
 
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
 
-    const auto PWINDOWSIZE = PCURRENT->m_vRealSize->goal();
-    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition->goal();
+    const auto PWINDOWSIZE = PCURRENT->m_realSize->goal();
+    const auto PWINDOWPOS  = PCURRENT->m_realPosition->goal();
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
-    if (PCURRENT->m_bIsFloating) {
-        pWindow->m_vRealPosition->setValueAndWarp(PWINDOWPOS);
-        pWindow->m_vRealSize->setValueAndWarp(PWINDOWSIZE);
+    if (PCURRENT->m_isFloating) {
+        pWindow->m_realPosition->setValueAndWarp(PWINDOWPOS);
+        pWindow->m_realSize->setValueAndWarp(PWINDOWSIZE);
     }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -1071,126 +1071,126 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 }
 
 void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
-    const auto BEGINAT = m_pSelf.lock();
-    const auto ENDAT   = m_sGroupData.pNextWindow.lock();
+    const auto BEGINAT = m_self.lock();
+    const auto ENDAT   = m_groupData.pNextWindow.lock();
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
         pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
-    if (!pWindow->m_sGroupData.pNextWindow.lock()) {
-        BEGINAT->m_sGroupData.pNextWindow = pWindow;
-        pWindow->m_sGroupData.pNextWindow = ENDAT;
-        pWindow->m_sGroupData.head        = false;
+    if (!pWindow->m_groupData.pNextWindow.lock()) {
+        BEGINAT->m_groupData.pNextWindow = pWindow;
+        pWindow->m_groupData.pNextWindow = ENDAT;
+        pWindow->m_groupData.head        = false;
         return;
     }
 
     const auto SHEAD = pWindow->getGroupHead();
     const auto STAIL = pWindow->getGroupTail();
 
-    SHEAD->m_sGroupData.head          = false;
-    BEGINAT->m_sGroupData.pNextWindow = SHEAD;
-    STAIL->m_sGroupData.pNextWindow   = ENDAT;
+    SHEAD->m_groupData.head          = false;
+    BEGINAT->m_groupData.pNextWindow = SHEAD;
+    STAIL->m_groupData.pNextWindow   = ENDAT;
 }
 
 PHLWINDOW CWindow::getGroupPrevious() {
-    PHLWINDOW curr = m_sGroupData.pNextWindow.lock();
+    PHLWINDOW curr = m_groupData.pNextWindow.lock();
 
-    while (curr != m_pSelf && curr->m_sGroupData.pNextWindow != m_pSelf)
-        curr = curr->m_sGroupData.pNextWindow.lock();
+    while (curr != m_self && curr->m_groupData.pNextWindow != m_self)
+        curr = curr->m_groupData.pNextWindow.lock();
 
     return curr;
 }
 
 void CWindow::switchWithWindowInGroup(PHLWINDOW pWindow) {
-    if (!m_sGroupData.pNextWindow.lock() || !pWindow->m_sGroupData.pNextWindow.lock())
+    if (!m_groupData.pNextWindow.lock() || !pWindow->m_groupData.pNextWindow.lock())
         return;
 
-    if (m_sGroupData.pNextWindow.lock() == pWindow) { // A -> this -> pWindow -> B >> A -> pWindow -> this -> B
-        getGroupPrevious()->m_sGroupData.pNextWindow = pWindow;
-        m_sGroupData.pNextWindow                     = pWindow->m_sGroupData.pNextWindow;
-        pWindow->m_sGroupData.pNextWindow            = m_pSelf;
+    if (m_groupData.pNextWindow.lock() == pWindow) { // A -> this -> pWindow -> B >> A -> pWindow -> this -> B
+        getGroupPrevious()->m_groupData.pNextWindow = pWindow;
+        m_groupData.pNextWindow                     = pWindow->m_groupData.pNextWindow;
+        pWindow->m_groupData.pNextWindow            = m_self;
 
-    } else if (pWindow->m_sGroupData.pNextWindow == m_pSelf) { // A -> pWindow -> this -> B >> A -> this -> pWindow -> B
-        pWindow->getGroupPrevious()->m_sGroupData.pNextWindow = m_pSelf;
-        pWindow->m_sGroupData.pNextWindow                     = m_sGroupData.pNextWindow;
-        m_sGroupData.pNextWindow                              = pWindow;
+    } else if (pWindow->m_groupData.pNextWindow == m_self) { // A -> pWindow -> this -> B >> A -> this -> pWindow -> B
+        pWindow->getGroupPrevious()->m_groupData.pNextWindow = m_self;
+        pWindow->m_groupData.pNextWindow                     = m_groupData.pNextWindow;
+        m_groupData.pNextWindow                              = pWindow;
 
     } else { // A -> this -> B | C -> pWindow -> D >> A -> pWindow -> B | C -> this -> D
-        std::swap(m_sGroupData.pNextWindow, pWindow->m_sGroupData.pNextWindow);
-        std::swap(getGroupPrevious()->m_sGroupData.pNextWindow, pWindow->getGroupPrevious()->m_sGroupData.pNextWindow);
+        std::swap(m_groupData.pNextWindow, pWindow->m_groupData.pNextWindow);
+        std::swap(getGroupPrevious()->m_groupData.pNextWindow, pWindow->getGroupPrevious()->m_groupData.pNextWindow);
     }
 
-    std::swap(m_sGroupData.head, pWindow->m_sGroupData.head);
-    std::swap(m_sGroupData.locked, pWindow->m_sGroupData.locked);
+    std::swap(m_groupData.head, pWindow->m_groupData.head);
+    std::swap(m_groupData.locked, pWindow->m_groupData.locked);
 }
 
 void CWindow::updateGroupOutputs() {
-    if (m_sGroupData.pNextWindow.expired())
+    if (m_groupData.pNextWindow.expired())
         return;
 
-    PHLWINDOW  curr = m_sGroupData.pNextWindow.lock();
+    PHLWINDOW  curr = m_groupData.pNextWindow.lock();
 
-    const auto WS = m_pWorkspace;
+    const auto WS = m_workspace;
 
     while (curr.get() != this) {
-        curr->m_pMonitor = m_pMonitor;
+        curr->m_monitor = m_monitor;
         curr->moveToWorkspace(WS);
 
-        *curr->m_vRealPosition = m_vRealPosition->goal();
-        *curr->m_vRealSize     = m_vRealSize->goal();
+        *curr->m_realPosition = m_realPosition->goal();
+        *curr->m_realSize     = m_realSize->goal();
 
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
     }
 }
 
 Vector2D CWindow::middle() {
-    return m_vRealPosition->goal() + m_vRealSize->goal() / 2.f;
+    return m_realPosition->goal() + m_realSize->goal() / 2.f;
 }
 
 bool CWindow::opaque() {
-    if (m_fAlpha->value() != 1.f || m_fActiveInactiveAlpha->value() != 1.f)
+    if (m_alpha->value() != 1.f || m_activeInactiveAlpha->value() != 1.f)
         return false;
 
-    const auto PWORKSPACE = m_pWorkspace;
+    const auto PWORKSPACE = m_workspace;
 
-    if (m_pWLSurface->small() && !m_pWLSurface->m_fillIgnoreSmall)
+    if (m_wlSurface->small() && !m_wlSurface->m_fillIgnoreSmall)
         return false;
 
     if (PWORKSPACE->m_alpha->value() != 1.f)
         return false;
 
-    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.texture)
-        return m_pXWaylandSurface->surface->current.texture->m_bOpaque;
+    if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->surface && m_xwaylandSurface->surface->current.texture)
+        return m_xwaylandSurface->surface->current.texture->m_bOpaque;
 
-    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.texture)
+    if (!m_wlSurface->resource() || !m_wlSurface->resource()->current.texture)
         return false;
 
     // TODO: this is wrong
-    const auto EXTENTS = m_pXDGSurface->surface->current.opaque.getExtents();
-    if (EXTENTS.w >= m_pXDGSurface->surface->current.bufferSize.x && EXTENTS.h >= m_pXDGSurface->surface->current.bufferSize.y)
+    const auto EXTENTS = m_xdgSurface->surface->current.opaque.getExtents();
+    if (EXTENTS.w >= m_xdgSurface->surface->current.bufferSize.x && EXTENTS.h >= m_xdgSurface->surface->current.bufferSize.y)
         return true;
 
-    return m_pWLSurface->resource()->current.texture->m_bOpaque;
+    return m_wlSurface->resource()->current.texture->m_bOpaque;
 }
 
 float CWindow::rounding() {
     static auto PROUNDING      = CConfigValue<Hyprlang::INT>("decoration:rounding");
     static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
 
-    float       roundingPower = m_sWindowData.roundingPower.valueOr(*PROUNDINGPOWER);
-    float       rounding      = m_sWindowData.rounding.valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
+    float       roundingPower = m_windowData.roundingPower.valueOr(*PROUNDINGPOWER);
+    float       rounding      = m_windowData.rounding.valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
 
-    return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
+    return m_windowData.noRounding.valueOrDefault() ? 0 : rounding;
 }
 
 float CWindow::roundingPower() {
     static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
 
-    return m_sWindowData.roundingPower.valueOr(*PROUNDINGPOWER);
+    return m_windowData.roundingPower.valueOr(*PROUNDINGPOWER);
 }
 
 void CWindow::updateWindowData() {
-    const auto PWORKSPACE    = m_pWorkspace;
+    const auto PWORKSPACE    = m_workspace;
     const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
     updateWindowData(WORKSPACERULE);
 }
@@ -1199,76 +1199,76 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
     static auto PNOBORDERONFLOATING = CConfigValue<Hyprlang::INT>("general:no_border_on_floating");
 
     if (*PNOBORDERONFLOATING)
-        m_sWindowData.noBorder = CWindowOverridableVar(m_bIsFloating, PRIORITY_LAYOUT);
+        m_windowData.noBorder = CWindowOverridableVar(m_isFloating, PRIORITY_LAYOUT);
     else
-        m_sWindowData.noBorder.unset(PRIORITY_LAYOUT);
+        m_windowData.noBorder.unset(PRIORITY_LAYOUT);
 
-    m_sWindowData.borderSize.matchOptional(workspaceRule.borderSize, PRIORITY_WORKSPACE_RULE);
-    m_sWindowData.decorate.matchOptional(workspaceRule.decorate, PRIORITY_WORKSPACE_RULE);
-    m_sWindowData.noBorder.matchOptional(workspaceRule.noBorder, PRIORITY_WORKSPACE_RULE);
-    m_sWindowData.noRounding.matchOptional(workspaceRule.noRounding, PRIORITY_WORKSPACE_RULE);
-    m_sWindowData.noShadow.matchOptional(workspaceRule.noShadow, PRIORITY_WORKSPACE_RULE);
+    m_windowData.borderSize.matchOptional(workspaceRule.borderSize, PRIORITY_WORKSPACE_RULE);
+    m_windowData.decorate.matchOptional(workspaceRule.decorate, PRIORITY_WORKSPACE_RULE);
+    m_windowData.noBorder.matchOptional(workspaceRule.noBorder, PRIORITY_WORKSPACE_RULE);
+    m_windowData.noRounding.matchOptional(workspaceRule.noRounding, PRIORITY_WORKSPACE_RULE);
+    m_windowData.noShadow.matchOptional(workspaceRule.noShadow, PRIORITY_WORKSPACE_RULE);
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_sWindowData.noBorder.valueOrDefault() || (m_pWorkspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)))
+    if (m_windowData.noBorder.valueOrDefault() || (m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)))
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
 
-    return m_sWindowData.borderSize.valueOr(*PBORDERSIZE);
+    return m_windowData.borderSize.valueOr(*PBORDERSIZE);
 }
 
 float CWindow::getScrollMouse() {
     static auto PINPUTSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
-    return m_sWindowData.scrollMouse.valueOr(*PINPUTSCROLLFACTOR);
+    return m_windowData.scrollMouse.valueOr(*PINPUTSCROLLFACTOR);
 }
 
 float CWindow::getScrollTouchpad() {
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
-    return m_sWindowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
+    return m_windowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
 }
 
 bool CWindow::canBeTorn() {
     static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
-    return m_sWindowData.tearing.valueOr(m_bTearingHint) && *PTEARING;
+    return m_windowData.tearing.valueOr(m_tearingHint) && *PTEARING;
 }
 
 void CWindow::setSuspended(bool suspend) {
-    if (suspend == m_bSuspended)
+    if (suspend == m_suspended)
         return;
 
-    if (m_bIsX11 || !m_pXDGSurface || !m_pXDGSurface->toplevel)
+    if (m_isX11 || !m_xdgSurface || !m_xdgSurface->toplevel)
         return;
 
-    m_pXDGSurface->toplevel->setSuspeneded(suspend);
-    m_bSuspended = suspend;
+    m_xdgSurface->toplevel->setSuspeneded(suspend);
+    m_suspended = suspend;
 }
 
 bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
-    CBox wbox = {m_vRealPosition->value(), m_vRealSize->value()};
+    CBox wbox = {m_realPosition->value(), m_realSize->value()};
 
     return !wbox.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty();
 }
 
 void CWindow::setAnimationsToMove() {
-    m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
-    m_bAnimatingIn = false;
+    m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
+    m_animatingIn = false;
 }
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_bIsFloating || m_bPinned || isFullscreen() || m_bDraggingTiled) {
-        m_vFloatingOffset = Vector2D(0, 0);
+    if (!m_isFloating || m_pinned || isFullscreen() || m_draggingTiled) {
+        m_floatingOffset = Vector2D(0, 0);
         return;
     }
 
     Vector2D   offset;
-    const auto PWORKSPACE = m_pWorkspace;
+    const auto PWORKSPACE = m_workspace;
     if (!PWORKSPACE)
         return;
 
-    const auto PWSMON = m_pMonitor.lock();
+    const auto PWSMON = m_monitor.lock();
     if (!PWSMON)
         return;
 
@@ -1291,62 +1291,62 @@ void CWindow::onWorkspaceAnimUpdate() {
             offset.y += (WINBB.y + WINBB.height - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
     }
 
-    m_vFloatingOffset = offset;
+    m_floatingOffset = offset;
 }
 
 void CWindow::onFocusAnimUpdate() {
     // borderangle once
-    if (m_fBorderAngleAnimationProgress->enabled() && !m_fBorderAngleAnimationProgress->isBeingAnimated()) {
-        m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
-        *m_fBorderAngleAnimationProgress = 1.f;
+    if (m_borderAngleAnimationProgress->enabled() && !m_borderAngleAnimationProgress->isBeingAnimated()) {
+        m_borderAngleAnimationProgress->setValueAndWarp(0.f);
+        *m_borderAngleAnimationProgress = 1.f;
     }
 }
 
 int CWindow::popupsCount() {
-    if (m_bIsX11)
+    if (m_isX11)
         return 0;
 
     int no = -1;
-    m_pPopupHead->breadthfirst([](WP<CPopup> p, void* d) { *((int*)d) += 1; }, &no);
+    m_popupHead->breadthfirst([](WP<CPopup> p, void* d) { *((int*)d) += 1; }, &no);
     return no;
 }
 
 int CWindow::surfacesCount() {
-    if (m_bIsX11)
+    if (m_isX11)
         return 1;
 
     int no = 0;
-    m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
+    m_wlSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
     return no;
 }
 
 void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
-    const Vector2D REALSIZE = m_vRealSize->goal();
+    const Vector2D REALSIZE = m_realSize->goal();
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
     const Vector2D DELTA    = REALSIZE - NEWSIZE;
 
-    *m_vRealPosition = m_vRealPosition->goal() + DELTA / 2.0;
-    *m_vRealSize     = NEWSIZE;
+    *m_realPosition = m_realPosition->goal() + DELTA / 2.0;
+    *m_realSize     = NEWSIZE;
 }
 
 bool CWindow::isFullscreen() {
-    return m_sFullscreenState.internal != FSMODE_NONE;
+    return m_fullscreenState.internal != FSMODE_NONE;
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
-    return (eFullscreenMode)std::bit_floor((uint8_t)m_sFullscreenState.internal) == MODE;
+    return (eFullscreenMode)std::bit_floor((uint8_t)m_fullscreenState.internal) == MODE;
 }
 
 WORKSPACEID CWindow::workspaceID() {
-    return m_pWorkspace ? m_pWorkspace->m_id : m_iLastWorkspace;
+    return m_workspace ? m_workspace->m_id : m_lastWorkspace;
 }
 
 MONITORID CWindow::monitorID() {
-    return m_pMonitor ? m_pMonitor->ID : MONITOR_INVALID;
+    return m_monitor ? m_monitor->ID : MONITOR_INVALID;
 }
 
 bool CWindow::onSpecialWorkspace() {
-    return m_pWorkspace ? m_pWorkspace->m_isSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_iLastWorkspace);
+    return m_workspace ? m_workspace->m_isSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_lastWorkspace);
 }
 
 std::unordered_map<std::string, std::string> CWindow::getEnv() {
@@ -1392,59 +1392,59 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 }
 
 void CWindow::activate(bool force) {
-    if (g_pCompositor->m_lastWindow == m_pSelf)
+    if (g_pCompositor->m_lastWindow == m_self)
         return;
 
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
 
-    m_bIsUrgent = true;
+    m_isUrgent = true;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
-    EMIT_HOOK_EVENT("urgent", m_pSelf.lock());
+    EMIT_HOOK_EVENT("urgent", m_self.lock());
 
-    if (!force && (!m_sWindowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
+    if (!force && (!m_windowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_suppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_suppressedEvents & SUPPRESS_ACTIVATE)))
         return;
 
-    if (!m_bIsMapped) {
+    if (!m_isMapped) {
         Debug::log(LOG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
         return;
     }
 
-    if (m_bIsFloating)
-        g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
+    if (m_isFloating)
+        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    g_pCompositor->focusWindow(m_pSelf.lock());
+    g_pCompositor->focusWindow(m_self.lock());
     warpCursor();
 }
 
 void CWindow::onUpdateState() {
-    std::optional<bool>      requestsFS = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsFullscreen : m_pXWaylandSurface->state.requestsFullscreen;
-    std::optional<MONITORID> requestsID = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsFullscreenMonitor : MONITOR_INVALID;
-    std::optional<bool>      requestsMX = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsMaximize : m_pXWaylandSurface->state.requestsMaximize;
+    std::optional<bool>      requestsFS = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsFullscreen : m_xwaylandSurface->state.requestsFullscreen;
+    std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsFullscreenMonitor : MONITOR_INVALID;
+    std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsMaximize : m_xwaylandSurface->state.requestsMaximize;
 
-    if (requestsFS.has_value() && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN)) {
-        if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
-            if (m_bIsMapped) {
+    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
+        if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
+            if (m_isMapped) {
                 const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
-                g_pCompositor->moveWindowToWorkspaceSafe(m_pSelf.lock(), monitor->activeWorkspace);
+                g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->activeWorkspace);
                 g_pCompositor->setActiveMonitor(monitor);
             }
 
-            if (!m_bIsMapped)
-                m_iWantsInitialFullscreenMonitor = requestsID.value();
+            if (!m_isMapped)
+                m_wantsInitialFullscreenMonitor = requestsID.value();
         }
 
         bool fs = requestsFS.value();
-        if (m_bIsMapped)
-            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_FULLSCREEN, requestsFS.value());
+        if (m_isMapped)
+            g_pCompositor->changeWindowFullscreenModeClient(m_self.lock(), FSMODE_FULLSCREEN, requestsFS.value());
 
-        if (!m_bIsMapped)
-            m_bWantsInitialFullscreen = fs;
+        if (!m_isMapped)
+            m_wantsInitialFullscreen = fs;
     }
 
-    if (requestsMX.has_value() && !(m_eSuppressedEvents & SUPPRESS_MAXIMIZE)) {
-        if (m_bIsMapped)
-            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_MAXIMIZED, requestsMX.value());
+    if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
+        if (m_isMapped)
+            g_pCompositor->changeWindowFullscreenModeClient(m_self.lock(), FSMODE_MAXIMIZED, requestsMX.value());
     }
 }
 
@@ -1452,107 +1452,107 @@ void CWindow::onUpdateMeta() {
     const auto NEWTITLE = fetchTitle();
     bool       doUpdate = false;
 
-    if (m_szTitle != NEWTITLE) {
-        m_szTitle = NEWTITLE;
+    if (m_title != NEWTITLE) {
+        m_title = NEWTITLE;
         g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)this)});
-        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitlev2", std::format("{:x},{}", (uintptr_t)this, m_szTitle)});
-        EMIT_HOOK_EVENT("windowTitle", m_pSelf.lock());
+        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitlev2", std::format("{:x},{}", (uintptr_t)this, m_title)});
+        EMIT_HOOK_EVENT("windowTitle", m_self.lock());
 
-        if (m_pSelf == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
+        if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
-            EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
+            EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
+        Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_title);
         doUpdate = true;
     }
 
     const auto NEWCLASS = fetchClass();
-    if (m_szClass != NEWCLASS) {
-        m_szClass = NEWCLASS;
+    if (m_class != NEWCLASS) {
+        m_class = NEWCLASS;
 
-        if (m_pSelf == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
+        if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
-            EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
+            EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
+        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_class);
         doUpdate = true;
     }
 
     if (doUpdate) {
         updateDynamicRules();
-        g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
+        g_pCompositor->updateWindowAnimatedDecorationValues(m_self.lock());
         updateToplevel();
     }
 }
 
 std::string CWindow::fetchTitle() {
-    if (!m_bIsX11) {
-        if (m_pXDGSurface && m_pXDGSurface->toplevel)
-            return m_pXDGSurface->toplevel->state.title;
+    if (!m_isX11) {
+        if (m_xdgSurface && m_xdgSurface->toplevel)
+            return m_xdgSurface->toplevel->state.title;
     } else {
-        if (m_pXWaylandSurface)
-            return m_pXWaylandSurface->state.title;
+        if (m_xwaylandSurface)
+            return m_xwaylandSurface->state.title;
     }
 
     return "";
 }
 
 std::string CWindow::fetchClass() {
-    if (!m_bIsX11) {
-        if (m_pXDGSurface && m_pXDGSurface->toplevel)
-            return m_pXDGSurface->toplevel->state.appid;
+    if (!m_isX11) {
+        if (m_xdgSurface && m_xdgSurface->toplevel)
+            return m_xdgSurface->toplevel->state.appid;
     } else {
-        if (m_pXWaylandSurface)
-            return m_pXWaylandSurface->state.appid;
+        if (m_xwaylandSurface)
+            return m_xwaylandSurface->state.appid;
     }
 
     return "";
 }
 
 void CWindow::onAck(uint32_t serial) {
-    const auto SERIAL = std::find_if(m_vPendingSizeAcks.rbegin(), m_vPendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
+    const auto SERIAL = std::find_if(m_pendingSizeAcks.rbegin(), m_pendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
 
-    if (SERIAL == m_vPendingSizeAcks.rend())
+    if (SERIAL == m_pendingSizeAcks.rend())
         return;
 
-    m_pPendingSizeAck = *SERIAL;
-    std::erase_if(m_vPendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
+    m_pendingSizeAck = *SERIAL;
+    std::erase_if(m_pendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
 }
 
 void CWindow::onResourceChangeX11() {
-    if (m_pXWaylandSurface->surface && !m_pWLSurface->resource())
-        m_pWLSurface->assign(m_pXWaylandSurface->surface.lock(), m_pSelf.lock());
-    else if (!m_pXWaylandSurface->surface && m_pWLSurface->resource())
-        m_pWLSurface->unassign();
+    if (m_xwaylandSurface->surface && !m_wlSurface->resource())
+        m_wlSurface->assign(m_xwaylandSurface->surface.lock(), m_self.lock());
+    else if (!m_xwaylandSurface->surface && m_wlSurface->resource())
+        m_wlSurface->unassign();
 
     // update metadata as well,
     // could be first assoc and we need to catch the class
     onUpdateMeta();
 
-    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface->resource().get());
+    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_xwaylandSurface.get(), (uintptr_t)m_wlSurface->resource().get());
 }
 
 void CWindow::onX11ConfigureRequest(CBox box) {
 
-    if (!m_pXWaylandSurface->surface || !m_pXWaylandSurface->mapped || !m_bIsMapped) {
-        m_pXWaylandSurface->configure(box);
-        m_vPendingReportedSize = box.size();
-        m_vReportedSize        = box.size();
-        m_vReportedPosition    = box.pos();
+    if (!m_xwaylandSurface->surface || !m_xwaylandSurface->mapped || !m_isMapped) {
+        m_xwaylandSurface->configure(box);
+        m_pendingReportedSize = box.size();
+        m_reportedSize        = box.size();
+        m_reportedPosition    = box.pos();
         updateX11SurfaceScale();
         return;
     }
 
-    g_pHyprRenderer->damageWindow(m_pSelf.lock());
+    g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_bIsFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_pSelf) {
+    if (!m_isFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_self) {
         sendWindowSize(true);
         g_pInputManager->refocus();
-        g_pHyprRenderer->damageWindow(m_pSelf.lock());
+        g_pHyprRenderer->damageWindow(m_self.lock());
         return;
     }
 
@@ -1561,41 +1561,41 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     else
         setHidden(true);
 
-    m_vRealPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
-    m_vRealSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
+    m_realPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
+    m_realSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
 
-    m_vPosition = m_vRealPosition->goal();
-    m_vSize     = m_vRealSize->goal();
+    m_position = m_realPosition->goal();
+    m_size     = m_realSize->goal();
 
-    if (m_vPendingReportedSize != box.size() || m_vReportedPosition != box.pos()) {
-        m_pXWaylandSurface->configure(box);
-        m_vReportedSize        = box.size();
-        m_vPendingReportedSize = box.size();
-        m_vReportedPosition    = box.pos();
+    if (m_pendingReportedSize != box.size() || m_reportedPosition != box.pos()) {
+        m_xwaylandSurface->configure(box);
+        m_reportedSize        = box.size();
+        m_pendingReportedSize = box.size();
+        m_reportedPosition    = box.pos();
     }
 
     updateX11SurfaceScale();
     updateWindowDecos();
 
-    if (!m_pWorkspace || !m_pWorkspace->isVisible())
+    if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
-    m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition->goal() + m_vRealSize->goal() / 2.f)->activeWorkspace;
+    m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->activeWorkspace;
 
-    g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
+    g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    m_bCreatedOverFullscreen = true;
+    m_createdOverFullscreen = true;
 
-    g_pHyprRenderer->damageWindow(m_pSelf.lock());
+    g_pHyprRenderer->damageWindow(m_self.lock());
 }
 
 void CWindow::warpCursor(bool force) {
-    static auto PERSISTENTWARPS         = CConfigValue<Hyprlang::INT>("cursor:persistent_warps");
-    const auto  coords                  = m_vRelativeCursorCoordsOnLastWarp;
-    m_vRelativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
+    static auto PERSISTENTWARPS        = CConfigValue<Hyprlang::INT>("cursor:persistent_warps");
+    const auto  coords                 = m_relativeCursorCoordsOnLastWarp;
+    m_relativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
-    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_vSize) // don't warp cursor outside the window
-        g_pCompositor->warpCursorTo(m_vPosition + coords, force);
+    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_size) // don't warp cursor outside the window
+        g_pCompositor->warpCursorTo(m_position + coords, force);
     else
         g_pCompositor->warpCursorTo(middle(), force);
 }
@@ -1619,7 +1619,7 @@ PHLWINDOW CWindow::getSwallower() {
             break;
 
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsMapped || w->isHidden())
+            if (!w->m_isMapped || w->isHidden())
                 continue;
 
             if (w->getPID() == currentPid)
@@ -1628,13 +1628,13 @@ PHLWINDOW CWindow::getSwallower() {
     }
 
     if (!(*PSWALLOWREGEX).empty())
-        std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_szClass, *PSWALLOWREGEX); });
+        std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_class, *PSWALLOWREGEX); });
 
     if (candidates.size() == 0)
         return nullptr;
 
     if (!(*PSWALLOWEXREGEX).empty())
-        std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_szTitle, *PSWALLOWEXREGEX); });
+        std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_title, *PSWALLOWEXREGEX); });
 
     if (candidates.size() == 0)
         return nullptr;
@@ -1657,29 +1657,29 @@ PHLWINDOW CWindow::getSwallower() {
 
 void CWindow::unsetWindowData(eOverridePriority priority) {
     for (auto const& element : NWindowProperties::boolWindowProperties) {
-        element.second(m_pSelf.lock())->unset(priority);
+        element.second(m_self.lock())->unset(priority);
     }
     for (auto const& element : NWindowProperties::intWindowProperties) {
-        element.second(m_pSelf.lock())->unset(priority);
+        element.second(m_self.lock())->unset(priority);
     }
     for (auto const& element : NWindowProperties::floatWindowProperties) {
-        element.second(m_pSelf.lock())->unset(priority);
+        element.second(m_self.lock())->unset(priority);
     }
 }
 
 bool CWindow::isX11OverrideRedirect() {
-    return m_pXWaylandSurface && m_pXWaylandSurface->overrideRedirect;
+    return m_xwaylandSurface && m_xwaylandSurface->overrideRedirect;
 }
 
 bool CWindow::isModal() {
-    return (m_pXWaylandSurface && m_pXWaylandSurface->modal);
+    return (m_xwaylandSurface && m_xwaylandSurface->modal);
 }
 
 Vector2D CWindow::requestedMinSize() {
-    if ((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && !m_pXDGSurface->toplevel))
+    if ((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && !m_xdgSurface->toplevel))
         return Vector2D(1, 1);
 
-    Vector2D minSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->min_width, m_pXWaylandSurface->sizeHints->min_height) : m_pXDGSurface->toplevel->layoutMinSize();
+    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->min_width, m_xwaylandSurface->sizeHints->min_height) : m_xdgSurface->toplevel->layoutMinSize();
 
     minSize = minSize.clamp({1, 1});
 
@@ -1688,10 +1688,10 @@ Vector2D CWindow::requestedMinSize() {
 
 Vector2D CWindow::requestedMaxSize() {
     constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && (!m_pXDGSurface || !m_pXDGSurface->toplevel)) || m_sWindowData.noMaxSize.valueOrDefault()))
+    if (((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->toplevel)) || m_windowData.noMaxSize.valueOrDefault()))
         return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
 
-    Vector2D maxSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->max_width, m_pXWaylandSurface->sizeHints->max_height) : m_pXDGSurface->toplevel->layoutMaxSize();
+    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->max_width, m_xwaylandSurface->sizeHints->max_height) : m_xdgSurface->toplevel->layoutMaxSize();
 
     if (maxSize.x < 5)
         maxSize.x = NO_MAX_SIZE_LIMIT;
@@ -1702,13 +1702,13 @@ Vector2D CWindow::requestedMaxSize() {
 }
 
 Vector2D CWindow::realToReportSize() {
-    if (!m_bIsX11)
-        return m_vRealSize->goal().clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    if (!m_isX11)
+        return m_realSize->goal().clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  REPORTSIZE = m_vRealSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
-    const auto  PMONITOR   = m_pMonitor.lock();
+    const auto  REPORTSIZE = m_realSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto  PMONITOR   = m_monitor.lock();
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
         return REPORTSIZE * PMONITOR->scale;
@@ -1717,16 +1717,16 @@ Vector2D CWindow::realToReportSize() {
 }
 
 Vector2D CWindow::realToReportPosition() {
-    if (!m_bIsX11)
-        return m_vRealPosition->goal();
+    if (!m_isX11)
+        return m_realPosition->goal();
 
-    return g_pXWaylandManager->waylandToXWaylandCoords(m_vRealPosition->goal());
+    return g_pXWaylandManager->waylandToXWaylandCoords(m_realPosition->goal());
 }
 
 Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  PMONITOR = m_pMonitor.lock();
+    const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
     const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->scale : 1.0f;
 
@@ -1740,85 +1740,85 @@ Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
 void CWindow::updateX11SurfaceScale() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    m_fX11SurfaceScaledBy = 1.0f;
-    if (m_bIsX11 && *PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
-            m_fX11SurfaceScaledBy = PMONITOR->scale;
+    m_X11SurfaceScaledBy = 1.0f;
+    if (m_isX11 && *PXWLFORCESCALEZERO) {
+        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+            m_X11SurfaceScaledBy = PMONITOR->scale;
     }
 }
 
 void CWindow::sendWindowSize(bool force) {
-    const auto PMONITOR = m_pMonitor.lock();
+    const auto PMONITOR = m_monitor.lock();
 
-    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_szTitle, m_vRealPosition->goal(),
-               m_vRealSize->goal(), force);
+    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_title, m_realPosition->goal(), m_realSize->goal(),
+               force);
 
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();
 
     const auto REPORTSIZE = realToReportSize();
 
-    if (!force && m_vPendingReportedSize == REPORTSIZE && (m_vReportedPosition == REPORTPOS || !m_bIsX11))
+    if (!force && m_pendingReportedSize == REPORTSIZE && (m_reportedPosition == REPORTPOS || !m_isX11))
         return;
 
-    m_vReportedPosition    = REPORTPOS;
-    m_vPendingReportedSize = REPORTSIZE;
+    m_reportedPosition    = REPORTPOS;
+    m_pendingReportedSize = REPORTSIZE;
     updateX11SurfaceScale();
 
-    if (m_bIsX11 && m_pXWaylandSurface)
-        m_pXWaylandSurface->configure({REPORTPOS, REPORTSIZE});
-    else if (m_pXDGSurface && m_pXDGSurface->toplevel)
-        m_vPendingSizeAcks.emplace_back(m_pXDGSurface->toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
+    if (m_isX11 && m_xwaylandSurface)
+        m_xwaylandSurface->configure({REPORTPOS, REPORTSIZE});
+    else if (m_xdgSurface && m_xdgSurface->toplevel)
+        m_pendingSizeAcks.emplace_back(m_xdgSurface->toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
 }
 
 NContentType::eContentType CWindow::getContentType() {
-    if (!m_pWLSurface || !m_pWLSurface->resource() || !m_pWLSurface->resource()->contentType.valid())
+    if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->contentType.valid())
         return CONTENT_TYPE_NONE;
 
-    return m_pWLSurface->resource()->contentType->value;
+    return m_wlSurface->resource()->contentType->value;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {
-    if (!m_pWLSurface->resource()->contentType.valid())
-        m_pWLSurface->resource()->contentType = PROTO::contentType->getContentType(m_pWLSurface->resource());
+    if (!m_wlSurface->resource()->contentType.valid())
+        m_wlSurface->resource()->contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
     // else disallow content type change if proto is used?
 
     Debug::log(INFO, "ContentType for window {}", (int)contentType);
-    m_pWLSurface->resource()->contentType->value = contentType;
+    m_wlSurface->resource()->contentType->value = contentType;
 }
 
 void CWindow::deactivateGroupMembers() {
     auto curr = getGroupHead();
     while (curr) {
-        if (curr != m_pSelf.lock()) {
+        if (curr != m_self.lock()) {
             // we dont want to deactivate unfocused xwayland windows
             // because X is weird, keep the behavior for wayland windows
             // also its not really needed for xwayland windows
             // ref: #9760 #9294
-            if (!curr->m_bIsX11 && curr->m_pXDGSurface && curr->m_pXDGSurface->toplevel)
-                curr->m_pXDGSurface->toplevel->setActive(false);
+            if (!curr->m_isX11 && curr->m_xdgSurface && curr->m_xdgSurface->toplevel)
+                curr->m_xdgSurface->toplevel->setActive(false);
         }
 
-        curr = curr->m_sGroupData.pNextWindow.lock();
+        curr = curr->m_groupData.pNextWindow.lock();
         if (curr == getGroupHead())
             break;
     }
 }
 
 bool CWindow::isNotResponding() {
-    return g_pANRManager->isNotResponding(m_pSelf.lock());
+    return g_pANRManager->isNotResponding(m_self.lock());
 }
 
 std::optional<std::string> CWindow::xdgTag() {
-    if (!m_pXDGSurface || !m_pXDGSurface->toplevel)
+    if (!m_xdgSurface || !m_xdgSurface->toplevel)
         return std::nullopt;
 
-    return m_pXDGSurface->toplevel->m_toplevelTag;
+    return m_xdgSurface->toplevel->m_toplevelTag;
 }
 
 std::optional<std::string> CWindow::xdgDescription() {
-    if (!m_pXDGSurface || !m_pXDGSurface->toplevel)
+    if (!m_xdgSurface || !m_xdgSurface->toplevel)
         return std::nullopt;
 
-    return m_pXDGSurface->toplevel->m_toplevelDescription;
+    return m_xdgSurface->toplevel->m_toplevelDescription;
 }

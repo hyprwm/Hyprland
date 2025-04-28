@@ -36,8 +36,8 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         float      scale   = 1.f;
         const auto PWINDOW = pHLSurface->getWindow();
         if (PWINDOW) {
-            const auto ISXWL = PWINDOW->m_bIsX11;
-            scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_fX11SurfaceScaledBy : 1.f;
+            const auto ISXWL = PWINDOW->m_isX11;
+            scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;
         }
 
         positionHint = {wl_fixed_to_double(x) / scale, wl_fixed_to_double(y) / scale};

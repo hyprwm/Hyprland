@@ -777,8 +777,6 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         else if (SPECIALDISPATCHER && pressed)
             m_vPressedSpecialBinds.emplace_back(k);
 
-        found = true;
-
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
@@ -796,8 +794,10 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             m_iPassPressed = -1;
 
-            if (k->handler == "submap")
+            if (k->handler == "submap") {
+                found = true; // don't process keybinds on submap change.
                 break;
+            }
         }
 
         if (k->repeat) {

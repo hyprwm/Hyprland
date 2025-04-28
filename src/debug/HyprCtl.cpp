@@ -53,6 +53,28 @@ using namespace Hyprutils::OS;
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/ucred.h>
+#define CRED_T   xucred
+#define CRED_LVL SOL_LOCAL
+#define CRED_OPT LOCAL_PEERCRED
+#define CRED_PID cr_pid
+#elif defined(__NetBSD__)
+#define CRED_T   unpcbid
+#define CRED_LVL SOL_LOCAL
+#define CRED_OPT LOCAL_PEEREID
+#define CRED_PID unp_pid
+#else
+#if defined(__OpenBSD__)
+#define CRED_T sockpeercred
+#else
+#define CRED_T ucred
+#endif
+#define CRED_LVL SOL_SOCKET
+#define CRED_OPT SO_PEERCRED
+#define CRED_PID pid
+#endif
+
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
         str.pop_back();
@@ -1868,14 +1890,13 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     std::array<char, 1024> readBuffer;
 
     // try to get creds
-    // FIXME: BSD support?
-    uint32_t len = sizeof(ucred);
-    ucred    creds;
-    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &creds, &len) == -1)
+    CRED_T   creds;
+    uint32_t len = sizeof(creds);
+    if (getsockopt(fd, CRED_LVL, CRED_OPT, &creds, &len) == -1)
         Debug::log(ERR, "Hyprctl: failed to get peer creds");
     else {
-        g_pHyprCtl->m_currentRequestParams.pid = creds.pid;
-        Debug::log(LOG, "Hyprctl: new connection from pid {}", creds.pid);
+        g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
+        Debug::log(LOG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
     }
 
     //

@@ -142,7 +142,7 @@ struct SFloatCache {
     size_t hash;
 
     SFloatCache(PHLWINDOW window) {
-        hash = std::hash<std::string>{}(window->m_szClass) ^ (std::hash<std::string>{}(window->m_szTitle) << 1);
+        hash = std::hash<std::string>{}(window->m_class) ^ (std::hash<std::string>{}(window->m_title) << 1);
     }
 
     bool operator==(const SFloatCache& other) const {

@@ -9,7 +9,7 @@ CXWayland::CXWayland(const bool wantsEnabled) {
     if (!wantsEnabled) {
         Debug::log(LOG, "XWayland has been disabled, cleaning up...");
         for (auto& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsX11)
+            if (!w->m_isX11)
                 continue;
             g_pCompositor->closeWindow(w);
         }

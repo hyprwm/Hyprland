@@ -36,12 +36,12 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedGeometry;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
-    const auto PWORKSPACE = m_pWindow->m_pWorkspace;
+    const auto PWORKSPACE = m_pWindow->m_workspace;
 
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }
 
@@ -52,22 +52,22 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + m_pWindow->m_vFloatingOffset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
+    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + m_pWindow->m_floatingOffset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;
 
-    auto       grad     = m_pWindow->m_cRealBorderColor;
-    const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress->isBeingAnimated();
+    auto       grad     = m_pWindow->m_realBorderColor;
+    const bool ANIMATED = m_pWindow->m_borderFadeAnimationProgress->isBeingAnimated();
 
-    if (m_pWindow->m_fBorderAngleAnimationProgress->enabled()) {
-        grad.m_angle += m_pWindow->m_fBorderAngleAnimationProgress->value() * M_PI * 2;
+    if (m_pWindow->m_borderAngleAnimationProgress->enabled()) {
+        grad.m_angle += m_pWindow->m_borderAngleAnimationProgress->value() * M_PI * 2;
         grad.m_angle = normalizeAngleRad(grad.m_angle);
 
         // When borderangle is animated, it is counterintuitive to fade between inactive/active gradient angles.
         // Instead we sync the angles to avoid fading between them and additionally rotating the border angle.
         if (ANIMATED)
-            m_pWindow->m_cRealBorderColorPrevious.m_angle = grad.m_angle;
+            m_pWindow->m_realBorderColorPrevious.m_angle = grad.m_angle;
     }
 
     int                             borderSize    = m_pWindow->getRealBorderSize();
@@ -84,9 +84,9 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     if (ANIMATED) {
         data.hasGrad2 = true;
-        data.grad1    = m_pWindow->m_cRealBorderColorPrevious;
+        data.grad1    = m_pWindow->m_realBorderColorPrevious;
         data.grad2    = grad;
-        data.lerp     = m_pWindow->m_fBorderFadeAnimationProgress->value();
+        data.lerp     = m_pWindow->m_borderFadeAnimationProgress->value();
     }
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPassElement>(data));
@@ -119,10 +119,10 @@ void CHyprBorderDecoration::damageEntire() {
     const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 2;
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize() + 1;
 
-    const auto PWINDOWWORKSPACE = m_pWindow->m_pWorkspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !m_pWindow->m_bPinned)
+    const auto PWINDOWWORKSPACE = m_pWindow->m_workspace;
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !m_pWindow->m_pinned)
         surfaceBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
-    surfaceBox.translate(m_pWindow->m_vFloatingOffset);
+    surfaceBox.translate(m_pWindow->m_floatingOffset);
 
     CBox surfaceBoxExpandedBorder = surfaceBox;
     surfaceBoxExpandedBorder.expand(BORDERSIZE);
@@ -157,5 +157,5 @@ std::string CHyprBorderDecoration::getDisplayName() {
 }
 
 bool CHyprBorderDecoration::doesntWantBorders() {
-    return m_pWindow->m_sWindowData.noBorder.valueOrDefault() || m_pWindow->m_bX11DoesntWantBorders || m_pWindow->getRealBorderSize() == 0;
+    return m_pWindow->m_windowData.noBorder.valueOrDefault() || m_pWindow->m_X11DoesntWantBorders || m_pWindow->getRealBorderSize() == 0;
 }

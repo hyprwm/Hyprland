@@ -60,8 +60,8 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
     LOGM(LOG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     resource->sendToplevel(NEWHANDLE->resource.get());
     NEWHANDLE->resource->sendIdentifier(IDENTIFIER.c_str());
-    NEWHANDLE->resource->sendAppId(pWindow->m_szInitialClass.c_str());
-    NEWHANDLE->resource->sendTitle(pWindow->m_szInitialTitle.c_str());
+    NEWHANDLE->resource->sendAppId(pWindow->m_initialClass.c_str());
+    NEWHANDLE->resource->sendTitle(pWindow->m_initialTitle.c_str());
     NEWHANDLE->resource->sendDone();
 
     handles.push_back(NEWHANDLE);
@@ -81,7 +81,7 @@ void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
     if UNLIKELY (!H || H->closed)
         return;
 
-    H->resource->sendTitle(pWindow->m_szTitle.c_str());
+    H->resource->sendTitle(pWindow->m_title.c_str());
     H->resource->sendDone();
 }
 
@@ -93,7 +93,7 @@ void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
     if UNLIKELY (!H || H->closed)
         return;
 
-    H->resource->sendAppId(pWindow->m_szClass.c_str());
+    H->resource->sendAppId(pWindow->m_class.c_str());
     H->resource->sendDone();
 }
 

@@ -13,7 +13,7 @@ UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
     subsurface->m_self         = subsurface;
 
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
+    subsurface->initExistingSubsurfaces(pOwner->m_wlSurface->resource());
     return subsurface;
 }
 
@@ -60,7 +60,7 @@ void CSubsurface::initSignals() {
             m_subsurface->surface->events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
     } else {
         if (m_windowParent)
-            m_listeners.newSubsurface = m_windowParent->m_pWLSurface->resource()->events.newSubsurface.registerListener(
+            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->events.newSubsurface.registerListener(
                 [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else if (m_popupParent)
             m_listeners.newSubsurface =
@@ -74,7 +74,7 @@ void CSubsurface::checkSiblingDamage() {
     if (!m_parent)
         return; // ??????????
 
-    const double SCALE = m_windowParent.lock() && m_windowParent->m_bIsX11 ? 1.0 / m_windowParent->m_fX11SurfaceScaledBy : 1.0;
+    const double SCALE = m_windowParent.lock() && m_windowParent->m_isX11 ? 1.0 / m_windowParent->m_X11SurfaceScaledBy : 1.0;
 
     for (auto const& n : m_parent->m_children) {
         if (n.get() == this)
@@ -94,7 +94,7 @@ void CSubsurface::recheckDamageForSubsurfaces() {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (!m_windowParent.expired() && (!m_windowParent->m_bIsMapped || !m_windowParent->m_pWorkspace->m_visible)) {
+    if (!m_windowParent.expired() && (!m_windowParent->m_isMapped || !m_windowParent->m_workspace->m_visible)) {
         m_lastSize = m_wlSurface->resource()->current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -110,7 +110,7 @@ void CSubsurface::onCommit() {
     if (m_popupParent && !m_popupParent->inert() && m_popupParent->m_wlSurface)
         m_popupParent->recheckTree();
     if (!m_windowParent.expired()) // I hate you firefox why are you doing this
-        m_windowParent->m_pPopupHead->recheckTree();
+        m_windowParent->m_popupHead->recheckTree();
 
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
@@ -191,7 +191,7 @@ Vector2D CSubsurface::coordsGlobal() {
     Vector2D coords = coordsRelativeToParent();
 
     if (!m_windowParent.expired())
-        coords += m_windowParent->m_vRealPosition->value();
+        coords += m_windowParent->m_realPosition->value();
     else if (m_popupParent)
         coords += m_popupParent->coordsGlobal();
 

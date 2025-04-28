@@ -131,7 +131,7 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
         return false;
 
     for (auto const& w : g_pCompositor->m_windows) {
-        for (auto const& d : w->m_dWindowDecorations) {
+        for (auto const& d : w->m_windowDecorations) {
             if (d.get() == pDecoration) {
                 w->removeWindowDeco(pDecoration);
                 return true;

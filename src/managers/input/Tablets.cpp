@@ -69,12 +69,12 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
         // yes, this technically ignores any regions set by the app. Too bad!
         if (LASTHLSURFACE->getWindow())
-            local = tool->absolutePos * LASTHLSURFACE->getWindow()->m_vRealSize->goal();
+            local = tool->absolutePos * LASTHLSURFACE->getWindow()->m_realSize->goal();
         else
             local = tool->absolutePos * BOX->size();
 
-        if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_bIsX11)
-            local = local * LASTHLSURFACE->getWindow()->m_fX11SurfaceScaledBy;
+        if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
+            local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
 
         PROTO::tablet->motion(tool, local);
         return;
@@ -82,8 +82,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     auto local = CURSORPOS - BOX->pos();
 
-    if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_bIsX11)
-        local = local * LASTHLSURFACE->getWindow()->m_fX11SurfaceScaledBy;
+    if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
+        local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
 
     PROTO::tablet->motion(tool, local);
 }

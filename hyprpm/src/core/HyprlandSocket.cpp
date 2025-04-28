@@ -31,12 +31,6 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
         return "";
     }
 
-    auto t = timeval{.tv_sec = 5, .tv_usec = 0};
-    if (setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) < 0) {
-        std::println("{}", failureString("Couldn't set socket timeout (2)"));
-        return "";
-    }
-
     const auto HIS = getenv("HYPRLAND_INSTANCE_SIGNATURE");
 
     if (!HIS) {
@@ -70,8 +64,6 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
     sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
 
     if (sizeWritten < 0) {
-        if (errno == EWOULDBLOCK)
-            std::println("{}", failureString("Hyprland IPC didn't respond in time"));
         std::println("{}", failureString("Couldn't read (6)"));
         return "";
     }

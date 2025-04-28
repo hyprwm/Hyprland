@@ -248,7 +248,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
     }
 
     // if we are here, we need to ask.
-    askForPermission(nullptr, str, permission);
+    askForPermission(nullptr, str, permission, pid);
 
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
 }

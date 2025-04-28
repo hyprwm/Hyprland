@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../helpers/defer/Promise.hpp"
 #include "PluginAPI.hpp"
 #include <csetjmp>
+#include <expected>
 
 class IHyprWindowDecoration;
 
@@ -30,25 +32,24 @@ class CPluginSystem {
   public:
     CPluginSystem();
 
-    CPlugin*                 loadPlugin(const std::string& path);
-    void                     unloadPlugin(const CPlugin* plugin, bool eject = false);
-    void                     unloadAllPlugins();
-    std::vector<std::string> updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
-    CPlugin*                 getPluginByPath(const std::string& path);
-    CPlugin*                 getPluginByHandle(HANDLE handle);
-    std::vector<CPlugin*>    getAllPlugins();
-    size_t                   pluginCount();
-    void                     sigGetPlugins(CPlugin** data, size_t len);
+    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path);
+    void                   unloadPlugin(const CPlugin* plugin, bool eject = false);
+    void                   unloadAllPlugins();
+    void                   updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
+    CPlugin*               getPluginByPath(const std::string& path);
+    CPlugin*               getPluginByHandle(HANDLE handle);
+    std::vector<CPlugin*>  getAllPlugins();
+    size_t                 pluginCount();
+    void                   sigGetPlugins(CPlugin** data, size_t len);
 
-    bool                     m_bAllowConfigVars = false;
-    std::string              m_szLastError      = "";
+    bool                   m_bAllowConfigVars = false;
 
   private:
-    std::vector<UP<CPlugin>> m_vLoadedPlugins;
+    std::vector<UP<CPlugin>>             m_vLoadedPlugins;
 
-    jmp_buf                  m_jbPluginFaultJumpBuf;
+    jmp_buf                              m_jbPluginFaultJumpBuf;
 
-    CPlugin*                 loadPluginInternal(const std::string& path);
+    std::expected<CPlugin*, std::string> loadPluginInternal(const std::string& path);
 };
 
 inline UP<CPluginSystem> g_pPluginSystem;

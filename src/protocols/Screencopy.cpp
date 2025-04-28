@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../render/Renderer.hpp"
@@ -146,18 +147,6 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
 
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
-    if (overlayCursor && !lockedSWCursors) {
-        lockedSWCursors = true;
-        // TODO: make it per-monitor
-        if (!PROTO::screencopy->m_bTimerArmed) {
-            for (auto const& m : g_pCompositor->m_monitors) {
-                g_pPointerManager->lockSoftwareForMonitor(m);
-            }
-            PROTO::screencopy->m_bTimerArmed = true;
-            LOGM(LOG, "Locking sw cursors due to screensharing");
-        }
-        PROTO::screencopy->m_pSoftwareCursorTimer->updateTimeout(std::chrono::seconds(1));
-    }
 
     if (!withDamage)
         g_pHyprRenderer->damageMonitor(pMonitor.lock());
@@ -219,6 +208,8 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage, g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(),
+                                                    true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
@@ -272,6 +263,8 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage, g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(),
+                                                    true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
@@ -398,19 +391,7 @@ bool CScreencopyClient::good() {
 }
 
 CScreencopyProtocol::CScreencopyProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    m_pSoftwareCursorTimer = makeShared<CEventLoopTimer>(
-        std::nullopt,
-        [this](SP<CEventLoopTimer> self, void* data) {
-            // TODO: make it per-monitor
-            for (auto const& m : g_pCompositor->m_monitors) {
-                g_pPointerManager->unlockSoftwareForMonitor(m);
-            }
-            m_bTimerArmed = false;
-
-            LOGM(LOG, "Releasing software cursor lock");
-        },
-        nullptr);
-    g_pEventLoopManager->addTimer(m_pSoftwareCursorTimer);
+    ;
 }
 
 void CScreencopyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

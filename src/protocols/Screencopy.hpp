@@ -96,9 +96,6 @@ class CScreencopyProtocol : public IWaylandProtocol {
     std::vector<WP<CScreencopyFrame>>  m_vFramesAwaitingWrite;
     std::vector<SP<CScreencopyClient>> m_vClients;
 
-    SP<CEventLoopTimer>                m_pSoftwareCursorTimer;
-    bool                               m_bTimerArmed = false;
-
     void                               shareAllFrames(PHLMONITOR pMonitor);
     void                               shareFrame(CScreencopyFrame* frame);
     void                               sendFrameDamage(CScreencopyFrame* frame);

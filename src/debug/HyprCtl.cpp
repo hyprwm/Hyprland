@@ -1956,6 +1956,8 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
             close(ACCEPTEDCONNECTION);
         });
+
+        g_pHyprCtl->m_currentRequestParams.pendingPromise.reset();
     } else {
         successWrite(ACCEPTEDCONNECTION, reply);
 

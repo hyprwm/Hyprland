@@ -1867,6 +1867,17 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     std::array<char, 1024> readBuffer;
 
+    // try to get creds
+    // FIXME: BSD support?
+    uint32_t len = sizeof(ucred);
+    ucred    creds;
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &creds, &len) == -1)
+        Debug::log(ERR, "Hyprctl: failed to get peer creds");
+    else {
+        g_pHyprCtl->m_currentRequestParams.pid = creds.pid;
+        Debug::log(LOG, "Hyprctl: new connection from pid {}", creds.pid);
+    }
+
     //
     pollfd pollfds[1] = {
         {
@@ -1915,6 +1926,8 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     if (g_pConfigManager->m_wantsMonitorReload)
         g_pConfigManager->ensureMonitorStatus();
+
+    g_pHyprCtl->m_currentRequestParams.pid = 0;
 
     return 0;
 }

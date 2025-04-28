@@ -67,10 +67,7 @@ static const char* permissionToHumanString(eDynamicPermissionType type) {
     return "error";
 }
 
-static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
-    pid_t pid = 0;
-    wl_client_get_credentials(client, &pid, nullptr, nullptr);
-
+static std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     if (pid <= 0)
         return std::unexpected("No pid for client");
 
@@ -103,6 +100,13 @@ static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* 
         return std::unexpected("canonical failed");
 
     return fullPath;
+}
+
+static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
+    pid_t pid = 0;
+    wl_client_get_credentials(client, &pid, nullptr, nullptr);
+
+    return binaryNameForPid(pid);
 }
 
 void CDynamicPermissionManager::clearConfigPermissions() {
@@ -186,20 +190,23 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
 }
 
-eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(const std::string& str, eDynamicPermissionType permission) {
+eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission) {
     static auto PPERM = CConfigValue<Hyprlang::INT>("ecosystem:enforce_permissions");
 
     if (*PPERM == 0)
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
-    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for str {}", permissionToString(permission), str);
+    const auto LOOKUP = binaryNameForPid(pid);
+
+    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
+               LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [str, permission](const auto& e) { return e->m_keyString == str && e->m_type == permission; });
     if (it == m_rules.end()) {
         Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
 
-        it = std::ranges::find_if(m_rules, [key = str, permission](const auto& e) {
+        it = std::ranges::find_if(m_rules, [key = str, permission, &LOOKUP](const auto& e) {
             if (e->m_type != permission)
                 return false; // wrong perm
 
@@ -207,7 +214,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
                 return false; // no regex
 
             // regex match
-            if (RE2::FullMatch(key, *e->m_binaryRegex))
+            if (RE2::FullMatch(key, *e->m_binaryRegex) || (LOOKUP.has_value() && RE2::FullMatch(LOOKUP.value(), *e->m_binaryRegex)))
                 return true;
 
             return false;
@@ -246,11 +253,13 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
 }
 
-void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type) {
+void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type, pid_t pid) {
     auto rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
 
     if (!client)
         rule->m_keyString = binaryPath;
+
+    rule->m_pid = pid;
 
     std::string description = "";
     if (binaryPath.empty())
@@ -258,6 +267,9 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
         description            = std::format("An application <b>{}</b> ({}) is {}.", binaryName, binaryPath, permissionToHumanString(type));
+    } else if (pid >= 0) {
+        const auto LOOKUP = binaryNameForPid(pid);
+        description       = std::format("An application <b>{}</b> ({}) is {}.", LOOKUP.value_or("Unknown"), binaryPath, permissionToHumanString(type));
     } else
         description = std::format("An application is {}:<br/><b>{}</b>", permissionToHumanString(type), binaryPath);
 
@@ -332,6 +344,20 @@ SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(
 
 SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(const std::string& key, eDynamicPermissionType permission) {
     auto rule = std::ranges::find_if(m_rules, [&key, &permission](const auto& e) { return e->m_keyString == key && e->m_type == permission; });
+    if (rule == m_rules.end())
+        return nullptr;
+
+    if (!(*rule)->m_promise)
+        return nullptr;
+
+    if ((*rule)->m_promiseResolverForExternal)
+        return nullptr;
+
+    return CPromise<eDynamicPermissionAllowMode>::make([rule](SP<CPromiseResolver<eDynamicPermissionAllowMode>> r) { (*rule)->m_promiseResolverForExternal = r; });
+}
+
+SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(pid_t pid, eDynamicPermissionType permission) {
+    auto rule = std::ranges::find_if(m_rules, [&pid, &permission](const auto& e) { return e->m_pid == pid && e->m_type == permission; });
     if (rule == m_rules.end())
         return nullptr;
 

@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 #include <ranges>
 #include "../config/ConfigManager.hpp"
+#include "../debug/HyprCtl.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
@@ -14,7 +15,12 @@ CPluginSystem::CPluginSystem() {
 
 CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
-    const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(path, PERMISSION_TYPE_PLUGIN);
+    pid_t pid = 0;
+
+    if (g_pHyprCtl->m_currentRequestParams.pid > 0)
+        pid = g_pHyprCtl->m_currentRequestParams.pid;
+
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(pid, path, PERMISSION_TYPE_PLUGIN);
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
         Debug::log(LOG, "CPluginSystem: Waiting for user confirmation to load {}", path);
 

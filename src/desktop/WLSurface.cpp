@@ -64,7 +64,7 @@ bool CWLSurface::small() const {
 
     const auto O = m_windowOwner.lock();
 
-    return O->m_vReportedSize.x > m_resource->current.size.x + 1 || O->m_vReportedSize.y > m_resource->current.size.y + 1;
+    return O->m_reportedSize.x > m_resource->current.size.x + 1 || O->m_reportedSize.y > m_resource->current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -74,7 +74,7 @@ Vector2D CWLSurface::correctSmallVec() const {
     const auto SIZE = getViewporterCorrectedSize();
     const auto O    = m_windowOwner.lock();
 
-    return Vector2D{(O->m_vReportedSize.x - SIZE.x) / 2, (O->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_vRealSize->value() / O->m_vReportedSize);
+    return Vector2D{(O->m_reportedSize.x - SIZE.x) / 2, (O->m_reportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / O->m_reportedSize);
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
@@ -121,7 +121,7 @@ CRegion CWLSurface::computeDamage() const {
     damage.scale(SCALE);
 
     if (m_windowOwner)
-        damage.scale(m_windowOwner->m_fX11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
+        damage.scale(m_windowOwner->m_X11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
 
     return damage;
 }

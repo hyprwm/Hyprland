@@ -46,7 +46,7 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
 
     const auto WINDOW = CWindow::create(XSURF);
     g_pCompositor->m_windows.emplace_back(WINDOW);
-    WINDOW->m_pSelf = WINDOW;
+    WINDOW->m_self = WINDOW;
     Debug::log(LOG, "[xwm] New XWayland window at {:x} for surf {:x}", (uintptr_t)WINDOW.get(), (uintptr_t)XSURF.get());
 }
 
@@ -1000,7 +1000,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_bIsX11)) {
+    if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_isX11)) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

@@ -54,8 +54,7 @@ void CPopup::initAllSignals() {
 
     if (!m_resource) {
         if (!m_windowOwner.expired())
-            m_listeners.newPopup =
-                m_windowOwner->m_pXDGSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup = m_windowOwner->m_xdgSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else if (!m_layerOwner.expired())
             m_listeners.newPopup =
                 m_layerOwner->m_layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
@@ -172,7 +171,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (!m_windowOwner.expired() && (!m_windowOwner->m_bIsMapped || !m_windowOwner->m_pWorkspace->m_visible)) {
+    if (!m_windowOwner.expired() && (!m_windowOwner->m_isMapped || !m_windowOwner->m_workspace->m_visible)) {
         m_lastSize = m_resource->surface->surface->current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -231,7 +230,7 @@ void CPopup::reposition() {
 
 SP<CWLSurface> CPopup::getT1Owner() {
     if (m_windowOwner)
-        return m_windowOwner->m_pWLSurface;
+        return m_windowOwner->m_wlSurface;
     else
         return m_layerOwner->m_surface;
 }
@@ -266,7 +265,7 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 
 Vector2D CPopup::t1ParentCoords() {
     if (!m_windowOwner.expired())
-        return m_windowOwner->m_vRealPosition->value();
+        return m_windowOwner->m_realPosition->value();
     if (!m_layerOwner.expired())
         return m_layerOwner->m_realPosition->value();
 
@@ -301,7 +300,7 @@ Vector2D CPopup::size() {
 
 void CPopup::sendScale() {
     if (!m_windowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_pWLSurface->m_lastScaleFloat);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_wlSurface->m_lastScaleFloat);
     else if (!m_layerOwner.expired())
         g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->m_surface->m_lastScaleFloat);
     else

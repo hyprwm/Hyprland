@@ -591,13 +591,13 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos) {
+void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos, bool forceRender) {
     if (!hasCursor())
         return;
 
     auto state = stateFor(pMonitor);
 
-    if ((!state->hardwareFailed && state->softwareLocks == 0)) {
+    if (!state->hardwareFailed && state->softwareLocks == 0 && !forceRender) {
         if (currentCursorImage.surface)
             currentCursorImage.surface->resource()->frame(now);
         return;

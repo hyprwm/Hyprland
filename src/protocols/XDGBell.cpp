@@ -11,7 +11,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
     m_resource->setOnDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
 
-    resource->setRing([](CXdgSystemBellV1* r, wl_resource* toplevel) {
+    m_resource->setRing([](CXdgSystemBellV1* r, wl_resource* toplevel) {
         auto TOPLEVEL = CXDGToplevelResource::fromResource(toplevel);
 
         if (!TOPLEVEL) {

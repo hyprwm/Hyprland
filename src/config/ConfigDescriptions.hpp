@@ -1450,6 +1450,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:send_content_type",
+        .description = "Report content type to allow monitor profile autoswitch (may result in a black screen during the switch)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * cursor:

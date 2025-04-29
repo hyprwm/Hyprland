@@ -198,7 +198,7 @@ void CPluginSystem::unloadAllPlugins() {
 void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
     // unload all plugins that are no longer present
     for (auto const& p : m_vLoadedPlugins | std::views::reverse) {
-        if (p->m_bLoadedWithConfig && std::ranges::find(plugins, p->path) != plugins.end())
+        if (!p->m_bLoadedWithConfig || std::ranges::find(plugins, p->path) != plugins.end())
             continue;
 
         Debug::log(LOG, "Unloading plugin {} which is no longer present in config", p->path);
@@ -222,6 +222,8 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
                 g_pHyprNotificationOverlay->addNotification(std::format("Failed to load plugin {}: {}", NAME, result->error()), CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
                 return;
             }
+
+            result->result()->m_bLoadedWithConfig = true;
 
             Debug::log(LOG, "CPluginSystem::updateConfigPlugins: loaded {}", path);
         });

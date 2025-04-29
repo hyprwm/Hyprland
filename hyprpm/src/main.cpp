@@ -21,7 +21,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ update                 → Check and update all plugins if needed.
 ┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                   → List all installed plugins.
-┣ purge-cache            → Remove the entire hyprpm cache, built plugins and headers.
+┣ purge-cache            → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
 ┣ Flags:
 ┃

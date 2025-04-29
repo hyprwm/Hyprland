@@ -87,18 +87,18 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
         return;
 
     if (keyboard)
-        keyboard->active = false;
+        keyboard->m_active = false;
     keyboard = KEEB;
 
     if (KEEB)
-        KEEB->active = true;
+        KEEB->m_active = true;
 
     updateActiveKeyboardData();
 }
 
 void CSeatManager::updateActiveKeyboardData() {
     if (keyboard)
-        PROTO::seat->updateRepeatInfo(keyboard->repeatRate, keyboard->repeatDelay);
+        PROTO::seat->updateRepeatInfo(keyboard->m_repeatRate, keyboard->m_repeatDelay);
     PROTO::seat->updateKeymap();
 }
 
@@ -147,7 +147,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
                 continue;
 
             k->sendEnter(surf);
-            k->sendMods(keyboard->modifiersState.depressed, keyboard->modifiersState.latched, keyboard->modifiersState.locked, keyboard->modifiersState.group);
+            k->sendMods(keyboard->m_modifiersState.depressed, keyboard->m_modifiersState.latched, keyboard->m_modifiersState.locked, keyboard->m_modifiersState.group);
         }
     }
 

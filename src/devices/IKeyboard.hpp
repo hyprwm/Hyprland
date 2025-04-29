@@ -52,7 +52,7 @@ class IKeyboard : public IHID {
         CSignal modifiers;
         CSignal keymap;
         CSignal repeatInfo;
-    } keyboardEvents;
+    } m_keyboardEvents;
 
     struct SStringRuleNames {
         std::string layout  = "";
@@ -74,42 +74,46 @@ class IKeyboard : public IHID {
     void                    updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
     void                    updateKeymapFD();
 
-    bool                    active     = false;
-    bool                    enabled    = true;
-    bool                    allowBinds = true;
+    bool                    m_active     = false;
+    bool                    m_enabled    = true;
+    bool                    m_allowBinds = true;
 
     // if the keymap is overridden by the implementation,
     // don't try to set keyboard rules anymore, to avoid overwriting the requested one.
     // e.g. Virtual keyboards with custom maps.
-    bool               keymapOverridden = false;
+    bool               m_keymapOverridden = false;
 
-    xkb_layout_index_t activeLayout = 0;
-    xkb_state *        xkbState = nullptr, *xkbStaticState /* Static state: never gets modifiers or layout changes sent, used for keybinds. */ = nullptr,
-              *xkbSymState = nullptr /* Same as static but gets layouts */;
-    xkb_keymap* xkbKeymap  = nullptr;
+    xkb_layout_index_t m_activeLayout = 0;
+    xkb_state*         m_xkbState     = nullptr;
+
+    // never gets modifiers or layout changes sent, used for keybinds
+    xkb_state*  m_xkbStaticState = nullptr;
+    xkb_state*  m_xkbSymState    = nullptr; // same as static but gets layouts
+
+    xkb_keymap* m_xkbKeymap = nullptr;
 
     struct {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;
-    } modifiersState;
+    } m_modifiersState;
 
-    std::array<xkb_led_index_t, 3> ledIndexes = {XKB_MOD_INVALID};
-    std::array<xkb_mod_index_t, 8> modIndexes = {XKB_MOD_INVALID};
-    uint32_t                       leds       = 0;
+    std::array<xkb_led_index_t, 3> m_ledIndexes = {XKB_MOD_INVALID};
+    std::array<xkb_mod_index_t, 8> m_modIndexes = {XKB_MOD_INVALID};
+    uint32_t                       m_leds       = 0;
 
-    std::string                    xkbFilePath     = "";
-    std::string                    xkbKeymapString = "";
-    Hyprutils::OS::CFileDescriptor xkbKeymapFD;
+    std::string                    m_xkbFilePath     = "";
+    std::string                    m_xkbKeymapString = "";
+    Hyprutils::OS::CFileDescriptor m_xkbKeymapFD;
 
-    SStringRuleNames               currentRules;
-    int                            repeatRate        = 0;
-    int                            repeatDelay       = 0;
-    int                            numlockOn         = -1;
-    bool                           resolveBindsBySym = false;
+    SStringRuleNames               m_currentRules;
+    int                            m_repeatRate        = 0;
+    int                            m_repeatDelay       = 0;
+    int                            m_numlockOn         = -1;
+    bool                           m_resolveBindsBySym = false;
 
-    WP<IKeyboard>                  self;
+    WP<IKeyboard>                  m_self;
 
   private:
     void                  clearManuallyAllocd();
 
-    std::vector<uint32_t> pressedXKB;
+    std::vector<uint32_t> m_pressedXKB;
 };

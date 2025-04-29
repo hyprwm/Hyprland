@@ -106,13 +106,13 @@ class IPointer : public IHID {
 
         CSignal holdBegin;
         CSignal holdEnd;
-    } pointerEvents;
+    } m_pointerEvents;
 
-    bool         connected   = false; // means connected to the cursor
-    std::string  boundOutput = "";
-    bool         flipX       = false; // decide to invert horizontal movement
-    bool         flipY       = false; // decide to invert vertical movement
-    bool         isTouchpad  = false;
+    bool         m_connected   = false; // means connected to the cursor
+    std::string  m_boundOutput = "";
+    bool         m_flipX       = false; // decide to invert horizontal movement
+    bool         m_flipY       = false; // decide to invert vertical movement
+    bool         m_isTouchpad  = false;
 
-    WP<IPointer> self;
+    WP<IPointer> m_self;
 };

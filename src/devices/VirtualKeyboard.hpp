@@ -16,12 +16,12 @@ class CVirtualKeyboard : public IKeyboard {
   private:
     CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb);
 
-    WP<CVirtualKeyboardV1Resource> keyboard;
+    WP<CVirtualKeyboardV1Resource> m_keyboard;
 
     struct {
         CHyprSignalListener destroy;
         CHyprSignalListener key;
         CHyprSignalListener modifiers;
         CHyprSignalListener keymap;
-    } listeners;
+    } m_listeners;
 };

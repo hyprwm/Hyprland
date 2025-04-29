@@ -14,7 +14,7 @@ class CVirtualPointer : public IPointer {
   private:
     CVirtualPointer(SP<CVirtualPointerV1Resource>);
 
-    WP<CVirtualPointerV1Resource> pointer;
+    WP<CVirtualPointerV1Resource> m_pointer;
 
     struct {
         CHyprSignalListener destroy;
@@ -35,5 +35,5 @@ class CVirtualPointer : public IPointer {
 
         CHyprSignalListener holdBegin;
         CHyprSignalListener holdEnd;
-    } listeners;
+    } m_listeners;
 };

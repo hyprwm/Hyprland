@@ -579,12 +579,12 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
     std::string result = "";
 
     auto        getModState = [](SP<IKeyboard> keyboard, const char* xkbModName) -> bool {
-        auto IDX = xkb_keymap_mod_get_index(keyboard->xkbKeymap, xkbModName);
+        auto IDX = xkb_keymap_mod_get_index(keyboard->m_xkbKeymap, xkbModName);
 
         if (IDX == XKB_MOD_INVALID)
             return false;
 
-        return (keyboard->modifiersState.locked & (1 << IDX)) > 0;
+        return (keyboard->m_modifiersState.locked & (1 << IDX)) > 0;
     };
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -598,7 +598,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "name": "{}",
         "defaultSpeed": {:.5f}
     }},)#",
-                (uintptr_t)m.get(), escapeJSONStrings(m->hlName),
+                (uintptr_t)m.get(), escapeJSONStrings(m->m_hlName),
                 m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
         }
 
@@ -622,9 +622,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "numLock": {},
         "main": {}
     }},)#",
-                (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
-                escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
-                (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->active ? "true" : "false"));
+                (uintptr_t)k.get(), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
+                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), escapeJSONStrings(KM),
+                (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
         }
 
         trimTrailingComma(result);
@@ -642,7 +642,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
             "name": "{}"
         }}
     }},)#",
-                (uintptr_t)d.get(), (uintptr_t)d->parent.get(), escapeJSONStrings(d->parent ? d->parent->hlName : ""));
+                (uintptr_t)d.get(), (uintptr_t)d->m_parent.get(), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
         }
 
         for (auto const& d : g_pInputManager->m_vTablets) {
@@ -651,7 +651,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)d.get(), escapeJSONStrings(d->hlName));
+                (uintptr_t)d.get(), escapeJSONStrings(d->m_hlName));
         }
 
         for (auto const& d : g_pInputManager->m_vTabletTools) {
@@ -674,7 +674,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)d.get(), escapeJSONStrings(d->hlName));
+                (uintptr_t)d.get(), escapeJSONStrings(d->m_hlName));
         }
 
         trimTrailingComma(result);
@@ -700,7 +700,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_vPointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->m_hlName,
                                   (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
@@ -708,21 +708,21 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         for (auto const& k : g_pInputManager->m_vKeyboards) {
             const auto KM = k->getActiveLayout();
-            result +=
-                std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
-                            "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
-                            (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant, k->currentRules.options,
-                            KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"), (k->active ? "yes" : "no"));
+            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
+                                  "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
+                                  (uintptr_t)k.get(), k->m_hlName, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout, k->m_currentRules.variant,
+                                  k->m_currentRules.options, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
+                                  (k->m_active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";
 
         for (auto const& d : g_pInputManager->m_vTabletPads) {
-            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)d.get(), (uintptr_t)d->parent.get(), d->parent ? d->parent->hlName : "");
+            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)d.get(), (uintptr_t)d->m_parent.get(), d->m_parent ? d->m_parent->m_hlName : "");
         }
 
         for (auto const& d : g_pInputManager->m_vTablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->m_hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
         for (auto const& d : g_pInputManager->m_vTabletTools) {
@@ -732,7 +732,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n\nTouch:\n";
 
         for (auto const& d : g_pInputManager->m_vTouches) {
-            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)d.get(), d->hlName);
+            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)d.get(), d->m_hlName);
         }
 
         result += "\n\nSwitches:\n";
@@ -1230,19 +1230,20 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
     SP<IKeyboard> pKeyboard;
 
     auto          updateKeyboard = [](const SP<IKeyboard> KEEB, const std::string& CMD) -> std::optional<std::string> {
-        const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->xkbKeymap);
+        const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->m_xkbKeymap);
         xkb_layout_index_t activeLayout = 0;
         while (activeLayout < LAYOUTS) {
-            if (xkb_state_layout_index_is_active(KEEB->xkbState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
+            if (xkb_state_layout_index_is_active(KEEB->m_xkbState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
                 break;
 
             activeLayout++;
         }
 
         if (CMD == "next")
-            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
+            KEEB->updateModifiers(KEEB->m_modifiersState.depressed, KEEB->m_modifiersState.latched, KEEB->m_modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
         else if (CMD == "prev")
-            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
+            KEEB->updateModifiers(KEEB->m_modifiersState.depressed, KEEB->m_modifiersState.latched, KEEB->m_modifiersState.locked,
+                                  activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
         else {
             int requestedLayout = 0;
             try {
@@ -1253,7 +1254,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
                 return "layout idx out of range of " + std::to_string(LAYOUTS);
             }
 
-            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, requestedLayout);
+            KEEB->updateModifiers(KEEB->m_modifiersState.depressed, KEEB->m_modifiersState.latched, KEEB->m_modifiersState.locked, requestedLayout);
         }
 
         return std::nullopt;
@@ -1261,7 +1262,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
 
     if (KB == "main" || KB == "active" || KB == "current") {
         for (auto const& k : g_pInputManager->m_vKeyboards) {
-            if (!k->active)
+            if (!k->m_active)
                 continue;
 
             pKeyboard = k;
@@ -1277,7 +1278,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         return result.empty() ? "ok" : result;
     } else {
         auto k = std::find_if(g_pInputManager->m_vKeyboards.begin(), g_pInputManager->m_vKeyboards.end(),
-                              [&](const auto& other) { return other->hlName == g_pInputManager->deviceNameToInternalString(KB); });
+                              [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
 
         if (k == g_pInputManager->m_vKeyboards.end())
             return "device not found";

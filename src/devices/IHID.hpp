@@ -34,7 +34,8 @@ class IHID {
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
-    std::string deviceName, hlName;
+    std::string m_deviceName;
+    std::string m_hlName;
 };

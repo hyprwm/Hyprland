@@ -151,7 +151,7 @@ CKeybindManager::CKeybindManager() {
                 return;
 
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
-            if (!PACTIVEKEEB->allowBinds)
+            if (!PACTIVEKEEB->m_allowBinds)
                 return;
 
             const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(m_pLastLongPressKeybind->handler);
@@ -168,7 +168,7 @@ CKeybindManager::CKeybindManager() {
                 return;
 
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
-            if (!PACTIVEKEEB->allowBinds)
+            if (!PACTIVEKEEB->m_allowBinds)
                 return;
 
             for (const auto& k : m_vActiveKeybinds) {
@@ -178,7 +178,7 @@ CKeybindManager::CKeybindManager() {
                 DISPATCHER->second(k->arg);
             }
 
-            self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->repeatRate));
+            self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->m_repeatRate));
         },
         nullptr);
 
@@ -431,7 +431,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         return true;
     }
 
-    if (!pKeyboard->allowBinds)
+    if (!pKeyboard->m_allowBinds)
         return true;
 
     if (!m_pXKBTranslationState) {
@@ -446,8 +446,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbSymState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->m_resolveBindsBySym ? pKeyboard->m_xkbSymState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->m_xkbState, KEYCODE);
 
     if (keysym == XKB_KEY_Escape || internalKeysym == XKB_KEY_Escape)
         PROTO::data->abortDndIfPresent();
@@ -764,7 +764,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (k->longPress) {
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
-            m_pLongPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
+            m_pLongPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
             m_pLastLongPressKeybind = k;
 
             continue;
@@ -804,7 +804,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
             m_vActiveKeybinds.emplace_back(k);
-            m_pRepeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
+            m_pRepeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
         }
 
         if (!k->nonConsuming)
@@ -2535,8 +2535,8 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
-            xkb_keymap*   km = KB->xkbKeymap;
-            xkb_state*    ks = KB->xkbState;
+            xkb_keymap*   km = KB->m_xkbKeymap;
+            xkb_state*    ks = KB->m_xkbState;
 
             xkb_keycode_t keycode_min, keycode_max;
             keycode_min = xkb_keymap_min_keycode(km);

@@ -5,51 +5,51 @@
 SP<CMouse> CMouse::create(SP<Aquamarine::IPointer> mouse) {
     SP<CMouse> pMouse = SP<CMouse>(new CMouse(mouse));
 
-    pMouse->self = pMouse;
+    pMouse->m_self = pMouse;
 
     return pMouse;
 }
 
-CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
-    if (!mouse)
+CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
+    if (!m_mouse)
         return;
 
-    if (auto handle = mouse->getLibinputHandle()) {
+    if (auto handle = m_mouse->getLibinputHandle()) {
         double w = 0, h = 0;
-        isTouchpad = libinput_device_has_capability(handle, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(handle, &w, &h) == 0;
+        m_isTouchpad = libinput_device_has_capability(handle, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(handle, &w, &h) == 0;
     }
 
-    listeners.destroy = mouse->events.destroy.registerListener([this](std::any d) {
-        mouse.reset();
-        events.destroy.emit();
+    m_listeners.destroy = m_mouse->events.destroy.registerListener([this](std::any d) {
+        m_mouse.reset();
+        m_events.destroy.emit();
     });
 
-    listeners.motion = mouse->events.move.registerListener([this](std::any d) {
+    m_listeners.motion = m_mouse->events.move.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SMoveEvent>(d);
 
-        pointerEvents.motion.emit(SMotionEvent{
+        m_pointerEvents.motion.emit(SMotionEvent{
             .timeMs  = E.timeMs,
             .delta   = E.delta,
             .unaccel = E.unaccel,
             .mouse   = true,
-            .device  = self.lock(),
+            .device  = m_self.lock(),
         });
     });
 
-    listeners.motionAbsolute = mouse->events.warp.registerListener([this](std::any d) {
+    m_listeners.motionAbsolute = m_mouse->events.warp.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SWarpEvent>(d);
 
-        pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
+        m_pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
             .timeMs   = E.timeMs,
             .absolute = E.absolute,
-            .device   = self.lock(),
+            .device   = m_self.lock(),
         });
     });
 
-    listeners.button = mouse->events.button.registerListener([this](std::any d) {
+    m_listeners.button = m_mouse->events.button.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SButtonEvent>(d);
 
-        pointerEvents.button.emit(SButtonEvent{
+        m_pointerEvents.button.emit(SButtonEvent{
             .timeMs = E.timeMs,
             .button = E.button,
             .state  = E.pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
@@ -57,10 +57,10 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
         });
     });
 
-    listeners.axis = mouse->events.axis.registerListener([this](std::any d) {
+    m_listeners.axis = m_mouse->events.axis.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SAxisEvent>(d);
 
-        pointerEvents.axis.emit(SAxisEvent{
+        m_pointerEvents.axis.emit(SAxisEvent{
             .timeMs            = E.timeMs,
             .source            = (wl_pointer_axis_source)E.source,
             .axis              = (wl_pointer_axis)E.axis,
@@ -71,58 +71,58 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
         });
     });
 
-    listeners.frame = mouse->events.frame.registerListener([this](std::any d) { pointerEvents.frame.emit(); });
+    m_listeners.frame = m_mouse->events.frame.registerListener([this](std::any d) { m_pointerEvents.frame.emit(); });
 
-    listeners.swipeBegin = mouse->events.swipeBegin.registerListener([this](std::any d) {
+    m_listeners.swipeBegin = m_mouse->events.swipeBegin.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SSwipeBeginEvent>(d);
 
-        pointerEvents.swipeBegin.emit(SSwipeBeginEvent{
+        m_pointerEvents.swipeBegin.emit(SSwipeBeginEvent{
             .timeMs  = E.timeMs,
             .fingers = E.fingers,
         });
     });
 
-    listeners.swipeEnd = mouse->events.swipeEnd.registerListener([this](std::any d) {
+    m_listeners.swipeEnd = m_mouse->events.swipeEnd.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SSwipeEndEvent>(d);
 
-        pointerEvents.swipeEnd.emit(SSwipeEndEvent{
+        m_pointerEvents.swipeEnd.emit(SSwipeEndEvent{
             .timeMs    = E.timeMs,
             .cancelled = E.cancelled,
         });
     });
 
-    listeners.swipeUpdate = mouse->events.swipeUpdate.registerListener([this](std::any d) {
+    m_listeners.swipeUpdate = m_mouse->events.swipeUpdate.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SSwipeUpdateEvent>(d);
 
-        pointerEvents.swipeUpdate.emit(SSwipeUpdateEvent{
+        m_pointerEvents.swipeUpdate.emit(SSwipeUpdateEvent{
             .timeMs  = E.timeMs,
             .fingers = E.fingers,
             .delta   = E.delta,
         });
     });
 
-    listeners.pinchBegin = mouse->events.pinchBegin.registerListener([this](std::any d) {
+    m_listeners.pinchBegin = m_mouse->events.pinchBegin.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SPinchBeginEvent>(d);
 
-        pointerEvents.pinchBegin.emit(SPinchBeginEvent{
+        m_pointerEvents.pinchBegin.emit(SPinchBeginEvent{
             .timeMs  = E.timeMs,
             .fingers = E.fingers,
         });
     });
 
-    listeners.pinchEnd = mouse->events.pinchEnd.registerListener([this](std::any d) {
+    m_listeners.pinchEnd = m_mouse->events.pinchEnd.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SPinchEndEvent>(d);
 
-        pointerEvents.pinchEnd.emit(SPinchEndEvent{
+        m_pointerEvents.pinchEnd.emit(SPinchEndEvent{
             .timeMs    = E.timeMs,
             .cancelled = E.cancelled,
         });
     });
 
-    listeners.pinchUpdate = mouse->events.pinchUpdate.registerListener([this](std::any d) {
+    m_listeners.pinchUpdate = m_mouse->events.pinchUpdate.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SPinchUpdateEvent>(d);
 
-        pointerEvents.pinchUpdate.emit(SPinchUpdateEvent{
+        m_pointerEvents.pinchUpdate.emit(SPinchUpdateEvent{
             .timeMs   = E.timeMs,
             .fingers  = E.fingers,
             .delta    = E.delta,
@@ -131,25 +131,25 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
         });
     });
 
-    listeners.holdBegin = mouse->events.holdBegin.registerListener([this](std::any d) {
+    m_listeners.holdBegin = m_mouse->events.holdBegin.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SHoldBeginEvent>(d);
 
-        pointerEvents.holdBegin.emit(SHoldBeginEvent{
+        m_pointerEvents.holdBegin.emit(SHoldBeginEvent{
             .timeMs  = E.timeMs,
             .fingers = E.fingers,
         });
     });
 
-    listeners.holdEnd = mouse->events.holdEnd.registerListener([this](std::any d) {
+    m_listeners.holdEnd = m_mouse->events.holdEnd.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IPointer::SHoldEndEvent>(d);
 
-        pointerEvents.holdEnd.emit(SHoldEndEvent{
+        m_pointerEvents.holdEnd.emit(SHoldEndEvent{
             .timeMs    = E.timeMs,
             .cancelled = E.cancelled,
         });
     });
 
-    deviceName = mouse->getName();
+    m_deviceName = m_mouse->getName();
 }
 
 bool CMouse::isVirtual() {
@@ -157,5 +157,5 @@ bool CMouse::isVirtual() {
 }
 
 SP<Aquamarine::IPointer> CMouse::aq() {
-    return mouse.lock();
+    return m_mouse.lock();
 }

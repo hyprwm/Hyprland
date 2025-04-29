@@ -303,7 +303,7 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     }
 
     sendKeymap(g_pSeatManager->keyboard.lock());
-    repeatInfo(g_pSeatManager->keyboard->repeatRate, g_pSeatManager->keyboard->repeatDelay);
+    repeatInfo(g_pSeatManager->keyboard->m_repeatRate, g_pSeatManager->keyboard->m_repeatDelay);
 
     if (g_pSeatManager->state.keyboardFocus && g_pSeatManager->state.keyboardFocus->client() == resource->client())
         sendEnter(g_pSeatManager->state.keyboardFocus.lock());
@@ -320,9 +320,9 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    std::string_view                keymap = keyboard->xkbKeymapString;
-    Hyprutils::OS::CFileDescriptor& fd     = keyboard->xkbKeymapFD;
-    uint32_t                        size   = keyboard->xkbKeymapString.length() + 1;
+    std::string_view                keymap = keyboard->m_xkbKeymapString;
+    Hyprutils::OS::CFileDescriptor& fd     = keyboard->m_xkbKeymapFD;
+    uint32_t                        size   = keyboard->m_xkbKeymapString.length() + 1;
 
     if (keymap == lastKeymap)
         return;

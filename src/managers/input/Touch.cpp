@@ -23,7 +23,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     static auto PSWIPEINVR  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
     EMIT_HOOK_EVENT_CANCELLABLE("touchDown", e);
 
-    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");
+    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
 
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
 

@@ -6,7 +6,7 @@
 SP<CKeyboard> CKeyboard::create(SP<Aquamarine::IKeyboard> keeb) {
     SP<CKeyboard> pKeeb = SP<CKeyboard>(new CKeyboard(keeb));
 
-    pKeeb->self = pKeeb;
+    pKeeb->m_self = pKeeb;
 
     return pKeeb;
 }
@@ -16,22 +16,22 @@ bool CKeyboard::isVirtual() {
 }
 
 SP<Aquamarine::IKeyboard> CKeyboard::aq() {
-    return keyboard.lock();
+    return m_keyboard.lock();
 }
 
-CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
+CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : m_keyboard(keeb) {
     if (!keeb)
         return;
 
-    listeners.destroy = keeb->events.destroy.registerListener([this](std::any d) {
-        keyboard.reset();
-        events.destroy.emit();
+    m_listeners.destroy = keeb->events.destroy.registerListener([this](std::any d) {
+        m_keyboard.reset();
+        m_events.destroy.emit();
     });
 
-    listeners.key = keeb->events.key.registerListener([this](std::any d) {
+    m_listeners.key = keeb->events.key.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
 
-        keyboardEvents.key.emit(SKeyEvent{
+        m_keyboardEvents.key.emit(SKeyEvent{
             .timeMs  = E.timeMs,
             .keycode = E.key,
             .state   = E.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
@@ -40,16 +40,16 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
         updateXkbStateWithKey(E.key + 8, E.pressed);
     });
 
-    listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {
+    m_listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {
         updateModifiersState();
 
-        keyboardEvents.modifiers.emit(SModifiersEvent{
-            .depressed = modifiersState.depressed,
-            .latched   = modifiersState.latched,
-            .locked    = modifiersState.locked,
-            .group     = modifiersState.group,
+        m_keyboardEvents.modifiers.emit(SModifiersEvent{
+            .depressed = m_modifiersState.depressed,
+            .latched   = m_modifiersState.latched,
+            .locked    = m_modifiersState.locked,
+            .group     = m_modifiersState.group,
         });
     });
 
-    deviceName = keeb->getName();
+    m_deviceName = keeb->getName();
 }

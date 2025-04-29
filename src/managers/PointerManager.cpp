@@ -805,31 +805,31 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
     switch (dev->getType()) {
         case HID_TYPE_TABLET: {
             CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
-            if (!TAB->boundOutput.empty()) {
-                mappedArea = outputMappedArea(TAB->boundOutput);
-                mappedArea.translate(TAB->boundBox.pos());
-            } else if (TAB->absolutePos) {
-                mappedArea.x = TAB->boundBox.x;
-                mappedArea.y = TAB->boundBox.y;
+            if (!TAB->m_boundOutput.empty()) {
+                mappedArea = outputMappedArea(TAB->m_boundOutput);
+                mappedArea.translate(TAB->m_boundBox.pos());
+            } else if (TAB->m_absolutePos) {
+                mappedArea.x = TAB->m_boundBox.x;
+                mappedArea.y = TAB->m_boundBox.y;
             } else
-                mappedArea.translate(TAB->boundBox.pos());
+                mappedArea.translate(TAB->m_boundBox.pos());
 
-            if (!TAB->boundBox.empty()) {
-                mappedArea.w = TAB->boundBox.w;
-                mappedArea.h = TAB->boundBox.h;
+            if (!TAB->m_boundBox.empty()) {
+                mappedArea.w = TAB->m_boundBox.w;
+                mappedArea.h = TAB->m_boundBox.h;
             }
             break;
         }
         case HID_TYPE_TOUCH: {
             ITouch* TOUCH = reinterpret_cast<ITouch*>(dev.get());
-            if (!TOUCH->boundOutput.empty())
-                mappedArea = outputMappedArea(TOUCH->boundOutput);
+            if (!TOUCH->m_boundOutput.empty())
+                mappedArea = outputMappedArea(TOUCH->m_boundOutput);
             break;
         }
         case HID_TYPE_POINTER: {
             IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
-            if (!POINTER->boundOutput.empty())
-                mappedArea = outputMappedArea(POINTER->boundOutput);
+            if (!POINTER->m_boundOutput.empty())
+                mappedArea = outputMappedArea(POINTER->m_boundOutput);
             break;
         }
         default: break;
@@ -892,11 +892,11 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     listener->pointer = pointer;
 
     // clang-format off
-    listener->destroy = pointer->events.destroy.registerListener([this] (std::any d) {
+    listener->destroy = pointer->m_events.destroy.registerListener([this] (std::any d) {
         detachPointer(nullptr);
     });
 
-    listener->motion = pointer->pointerEvents.motion.registerListener([] (std::any e) {
+    listener->motion = pointer->m_pointerEvents.motion.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SMotionEvent>(e);
 
         g_pInputManager->onMouseMoved(E);
@@ -907,7 +907,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->motionAbsolute = pointer->pointerEvents.motionAbsolute.registerListener([] (std::any e) {
+    listener->motionAbsolute = pointer->m_pointerEvents.motionAbsolute.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SMotionAbsoluteEvent>(e);
 
         g_pInputManager->onMouseWarp(E);
@@ -918,7 +918,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->button = pointer->pointerEvents.button.registerListener([] (std::any e) {
+    listener->button = pointer->m_pointerEvents.button.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SButtonEvent>(e);
 
         g_pInputManager->onMouseButton(E);
@@ -926,7 +926,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->pointerEvents.axis.registerListener([] (std::any e) {
+    listener->axis = pointer->m_pointerEvents.axis.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SAxisEvent>(e);
 
         g_pInputManager->onMouseWheel(E);
@@ -934,7 +934,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->frame = pointer->pointerEvents.frame.registerListener([] (std::any e) {
+    listener->frame = pointer->m_pointerEvents.frame.registerListener([] (std::any e) {
         bool shouldSkip = false;
         if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
             auto PMONITOR = g_pCompositor->m_lastMonitor.get();
@@ -945,7 +945,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             g_pSeatManager->sendPointerFrame();
     });
 
-    listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([] (std::any e) {
+    listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SSwipeBeginEvent>(e);
 
         g_pInputManager->onSwipeBegin(E);
@@ -956,7 +956,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->swipeEnd = pointer->pointerEvents.swipeEnd.registerListener([] (std::any e) {
+    listener->swipeEnd = pointer->m_pointerEvents.swipeEnd.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SSwipeEndEvent>(e);
 
         g_pInputManager->onSwipeEnd(E);
@@ -964,7 +964,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->swipeUpdate = pointer->pointerEvents.swipeUpdate.registerListener([] (std::any e) {
+    listener->swipeUpdate = pointer->m_pointerEvents.swipeUpdate.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SSwipeUpdateEvent>(e);
 
         g_pInputManager->onSwipeUpdate(E);
@@ -972,7 +972,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->pinchBegin = pointer->pointerEvents.pinchBegin.registerListener([] (std::any e) {
+    listener->pinchBegin = pointer->m_pointerEvents.pinchBegin.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SPinchBeginEvent>(e);
 
         PROTO::pointerGestures->pinchBegin(E.timeMs, E.fingers);
@@ -983,7 +983,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->pinchEnd = pointer->pointerEvents.pinchEnd.registerListener([] (std::any e) {
+    listener->pinchEnd = pointer->m_pointerEvents.pinchEnd.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SPinchEndEvent>(e);
 
         PROTO::pointerGestures->pinchEnd(E.timeMs, E.cancelled);
@@ -991,7 +991,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->pinchUpdate = pointer->pointerEvents.pinchUpdate.registerListener([] (std::any e) {
+    listener->pinchUpdate = pointer->m_pointerEvents.pinchUpdate.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SPinchUpdateEvent>(e);
 
         PROTO::pointerGestures->pinchUpdate(E.timeMs, E.delta, E.scale, E.rotation);
@@ -999,7 +999,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->holdBegin = pointer->pointerEvents.holdBegin.registerListener([] (std::any e) {
+    listener->holdBegin = pointer->m_pointerEvents.holdBegin.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SHoldBeginEvent>(e);
 
         PROTO::pointerGestures->holdBegin(E.timeMs, E.fingers);
@@ -1007,7 +1007,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->holdEnd = pointer->pointerEvents.holdEnd.registerListener([] (std::any e) {
+    listener->holdEnd = pointer->m_pointerEvents.holdEnd.registerListener([] (std::any e) {
         auto E = std::any_cast<IPointer::SHoldEndEvent>(e);
 
         PROTO::pointerGestures->holdEnd(E.timeMs, E.cancelled);
@@ -1016,7 +1016,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached pointer {} to global", pointer->hlName);
+    Debug::log(LOG, "Attached pointer {} to global", pointer->m_hlName);
 }
 
 void CPointerManager::attachTouch(SP<ITouch> touch) {
@@ -1031,11 +1031,11 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     listener->touch = touch;
 
     // clang-format off
-    listener->destroy = touch->events.destroy.registerListener([this] (std::any d) {
+    listener->destroy = touch->m_events.destroy.registerListener([this] (std::any d) {
         detachTouch(nullptr);
     });
 
-    listener->down = touch->touchEvents.down.registerListener([] (std::any e) {
+    listener->down = touch->m_touchEvents.down.registerListener([] (std::any e) {
         auto E = std::any_cast<ITouch::SDownEvent>(e);
 
         g_pInputManager->onTouchDown(E);
@@ -1046,7 +1046,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->up = touch->touchEvents.up.registerListener([] (std::any e) {
+    listener->up = touch->m_touchEvents.up.registerListener([] (std::any e) {
         auto E = std::any_cast<ITouch::SUpEvent>(e);
 
         g_pInputManager->onTouchUp(E);
@@ -1054,7 +1054,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
         PROTO::idle->onActivity();
     });
 
-    listener->motion = touch->touchEvents.motion.registerListener([] (std::any e) {
+    listener->motion = touch->m_touchEvents.motion.registerListener([] (std::any e) {
         auto E = std::any_cast<ITouch::SMotionEvent>(e);
 
         g_pInputManager->onTouchMove(E);
@@ -1062,16 +1062,16 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
         PROTO::idle->onActivity();
     });
 
-    listener->cancel = touch->touchEvents.cancel.registerListener([] (std::any e) {
+    listener->cancel = touch->m_touchEvents.cancel.registerListener([] (std::any e) {
         //
     });
 
-    listener->frame = touch->touchEvents.frame.registerListener([] (std::any e) {
+    listener->frame = touch->m_touchEvents.frame.registerListener([] (std::any e) {
         g_pSeatManager->sendTouchFrame();
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached touch {} to global", touch->hlName);
+    Debug::log(LOG, "Attached touch {} to global", touch->m_hlName);
 }
 
 void CPointerManager::attachTablet(SP<CTablet> tablet) {
@@ -1086,11 +1086,11 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     listener->tablet = tablet;
 
     // clang-format off
-    listener->destroy = tablet->events.destroy.registerListener([this] (std::any d) {
+    listener->destroy = tablet->m_events.destroy.registerListener([this] (std::any d) {
         detachTablet(nullptr);
     });
 
-    listener->axis = tablet->tabletEvents.axis.registerListener([] (std::any e) {
+    listener->axis = tablet->m_tabletEvents.axis.registerListener([] (std::any e) {
         auto E = std::any_cast<CTablet::SAxisEvent>(e);
 
         g_pInputManager->onTabletAxis(E);
@@ -1101,7 +1101,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->proximity = tablet->tabletEvents.proximity.registerListener([] (std::any e) {
+    listener->proximity = tablet->m_tabletEvents.proximity.registerListener([] (std::any e) {
         auto E = std::any_cast<CTablet::SProximityEvent>(e);
 
         g_pInputManager->onTabletProximity(E);
@@ -1109,7 +1109,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         PROTO::idle->onActivity();
     });
 
-    listener->tip = tablet->tabletEvents.tip.registerListener([] (std::any e) {
+    listener->tip = tablet->m_tabletEvents.tip.registerListener([] (std::any e) {
         auto E = std::any_cast<CTablet::STipEvent>(e);
 
         g_pInputManager->onTabletTip(E);
@@ -1120,7 +1120,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
             g_pKeybindManager->dpms("on");
     });
 
-    listener->button = tablet->tabletEvents.button.registerListener([] (std::any e) {
+    listener->button = tablet->m_tabletEvents.button.registerListener([] (std::any e) {
         auto E = std::any_cast<CTablet::SButtonEvent>(e);
 
         g_pInputManager->onTabletButton(E);
@@ -1129,7 +1129,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     });
     // clang-format on
 
-    Debug::log(LOG, "Attached tablet {} to global", tablet->hlName);
+    Debug::log(LOG, "Attached tablet {} to global", tablet->m_hlName);
 }
 
 void CPointerManager::detachPointer(SP<IPointer> pointer) {

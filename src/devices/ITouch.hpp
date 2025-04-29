@@ -42,9 +42,9 @@ class ITouch : public IHID {
         CSignal motion;
         CSignal cancel;
         CSignal frame;
-    } touchEvents;
+    } m_touchEvents;
 
-    std::string boundOutput = "";
+    std::string m_boundOutput = "";
 
-    WP<ITouch>  self;
+    WP<ITouch>  m_self;
 };

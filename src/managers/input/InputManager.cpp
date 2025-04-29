@@ -98,12 +98,12 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    unaccel = e.unaccel;
 
     if (e.device) {
-        if (e.device->isTouchpad) {
-            if (e.device->flipX) {
+        if (e.device->m_isTouchpad) {
+            if (e.device->m_flipX) {
                 delta.x   = -delta.x;
                 unaccel.x = -unaccel.x;
             }
-            if (e.device->flipY) {
+            if (e.device->m_flipY) {
                 delta.y   = -delta.y;
                 unaccel.y = -unaccel.y;
             }
@@ -949,14 +949,14 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     m_vHIDs.emplace_back(keeb);
 
     try {
-        keeb->hlName = getNameForNewDevice(keeb->deviceName);
+        keeb->m_hlName = getNameForNewDevice(keeb->m_deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???"); // logic error
     }
 
-    keeb->events.destroy.registerStaticListener(
+    keeb->m_events.destroy.registerStaticListener(
         [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->self.lock();
+            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
 
             if (!PKEEB)
                 return;
@@ -966,37 +966,37 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         },
         keeb.get());
 
-    keeb->keyboardEvents.key.registerStaticListener(
+    keeb->m_keyboardEvents.key.registerStaticListener(
         [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->self.lock();
+            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
 
             onKeyboardKey(data, PKEEB);
 
-            if (PKEEB->enabled)
+            if (PKEEB->m_enabled)
                 PROTO::idle->onActivity();
 
-            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
+            if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
                 g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
-    keeb->keyboardEvents.modifiers.registerStaticListener(
+    keeb->m_keyboardEvents.modifiers.registerStaticListener(
         [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->self.lock();
+            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
 
             onKeyboardMod(PKEEB);
 
-            if (PKEEB->enabled)
+            if (PKEEB->m_enabled)
                 PROTO::idle->onActivity();
 
-            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
+            if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
                 g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
-    keeb->keyboardEvents.keymap.registerStaticListener(
+    keeb->m_keyboardEvents.keymap.registerStaticListener(
         [](void* owner, std::any data) {
-            auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
+            auto       PKEEB  = ((IKeyboard*)owner)->m_self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 
             if (PKEEB == g_pSeatManager->keyboard) {
@@ -1004,7 +1004,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
                 g_pKeybindManager->m_mKeyToCodeCache.clear();
             }
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->hlName + "," + LAYOUT});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
         },
         keeb.get());
@@ -1026,7 +1026,7 @@ void CInputManager::setKeyboardLayout() {
 }
 
 void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
-    auto       devname = pKeyboard->hlName;
+    auto       devname = pKeyboard->m_hlName;
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
@@ -1048,14 +1048,14 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto ENABLED    = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
     const auto ALLOWBINDS = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "keybinds") : true;
 
-    pKeyboard->enabled           = ENABLED;
-    pKeyboard->resolveBindsBySym = RESOLVEBINDSBYSYM;
-    pKeyboard->allowBinds        = ALLOWBINDS;
+    pKeyboard->m_enabled           = ENABLED;
+    pKeyboard->m_resolveBindsBySym = RESOLVEBINDSBYSYM;
+    pKeyboard->m_allowBinds        = ALLOWBINDS;
 
     try {
-        if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" &&
-            RULES == pKeyboard->currentRules.rules && MODEL == pKeyboard->currentRules.model && LAYOUT == pKeyboard->currentRules.layout &&
-            VARIANT == pKeyboard->currentRules.variant && OPTIONS == pKeyboard->currentRules.options && FILEPATH == pKeyboard->xkbFilePath) {
+        if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES != "" &&
+            RULES == pKeyboard->m_currentRules.rules && MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout &&
+            VARIANT == pKeyboard->m_currentRules.variant && OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
             return;
         }
@@ -1064,19 +1064,20 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         // we can ignore those and just apply
     }
 
-    pKeyboard->repeatRate  = std::max(0, REPEATRATE);
-    pKeyboard->repeatDelay = std::max(0, REPEATDELAY);
-    pKeyboard->numlockOn   = NUMLOCKON;
-    pKeyboard->xkbFilePath = FILEPATH;
+    pKeyboard->m_repeatRate  = std::max(0, REPEATRATE);
+    pKeyboard->m_repeatDelay = std::max(0, REPEATDELAY);
+    pKeyboard->m_numlockOn   = NUMLOCKON;
+    pKeyboard->m_xkbFilePath = FILEPATH;
 
     pKeyboard->setKeymap(IKeyboard::SStringRuleNames{LAYOUT, MODEL, VARIANT, OPTIONS, RULES});
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUTSTR});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUTSTR}));
 
-    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->currentRules.layout, pKeyboard->currentRules.variant, pKeyboard->hlName);
+    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
+               pKeyboard->m_hlName);
 }
 
 void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
@@ -1099,7 +1100,7 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
     m_vHIDs.emplace_back(mauz);
 
     try {
-        mauz->hlName = getNameForNewDevice(mauz->deviceName);
+        mauz->m_hlName = getNameForNewDevice(mauz->m_deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
@@ -1114,18 +1115,18 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
 
     g_pPointerManager->attachPointer(mauz);
 
-    mauz->connected = true;
+    mauz->m_connected = true;
 
     setPointerConfigs();
 
-    mauz->events.destroy.registerStaticListener(
+    mauz->m_events.destroy.registerStaticListener(
         [this](void* mouse, std::any data) {
             const auto PMOUSE = (IPointer*)mouse;
 
             if (!PMOUSE)
                 return;
 
-            destroyPointer(PMOUSE->self.lock());
+            destroyPointer(PMOUSE->m_self.lock());
         },
         mauz.get());
 
@@ -1136,18 +1137,18 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
 
 void CInputManager::setPointerConfigs() {
     for (auto const& m : m_vPointers) {
-        auto       devname = m->hlName;
+        auto       devname = m->m_hlName;
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
         if (HASCONFIG) {
             const auto ENABLED = g_pConfigManager->getDeviceInt(devname, "enabled");
-            if (ENABLED && !m->connected) {
+            if (ENABLED && !m->m_connected) {
                 g_pPointerManager->attachPointer(m);
-                m->connected = true;
-            } else if (!ENABLED && m->connected) {
+                m->m_connected = true;
+            } else if (!ENABLED && m->m_connected) {
                 g_pPointerManager->detachPointer(m);
-                m->connected = false;
+                m->m_connected = false;
             }
         }
 
@@ -1231,8 +1232,8 @@ void CInputManager::setPointerConfigs() {
             const auto LIBINPUTSENS = std::clamp(g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity"), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
-            m->flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
-            m->flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
+            m->m_flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
+            m->m_flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
             m->invert_axis = g_pConfigManager->getDeviceInt(devname, "invert_axis", "input:touchpad:invert_axis") != 0;
 
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
@@ -1286,7 +1287,7 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_scroll_set_button_lock(LIBINPUTDEV,
                                                           SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
 
-            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m->hlName, LIBINPUTSENS);
+            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m->m_hlName, LIBINPUTSENS);
         }
     }
 }
@@ -1380,7 +1381,7 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
-    if (!pKeyboard->enabled)
+    if (!pKeyboard->m_enabled)
         return;
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
@@ -1408,14 +1409,14 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
-    if (!pKeyboard->enabled)
+    if (!pKeyboard->m_enabled)
         return;
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
     const auto ALLMODS = accumulateModsFromAllKBs();
 
-    auto       MODS = pKeyboard->modifiersState;
+    auto       MODS = pKeyboard->m_modifiersState;
     MODS.depressed  = ALLMODS;
 
     const auto IME = m_sIMERelay.m_pIME.lock();
@@ -1430,14 +1431,14 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     updateKeyboardsLeds(pKeyboard);
 
-    if (pKeyboard->modifiersState.group != pKeyboard->activeLayout) {
-        pKeyboard->activeLayout = pKeyboard->modifiersState.group;
+    if (pKeyboard->m_modifiersState.group != pKeyboard->m_activeLayout) {
+        pKeyboard->m_activeLayout = pKeyboard->m_modifiersState.group;
 
         const auto LAYOUT = pKeyboard->getActiveLayout();
 
         Debug::log(LOG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUT});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUT}));
     }
 }
@@ -1561,7 +1562,7 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
             continue;
 
-        if (!kb->enabled)
+        if (!kb->m_enabled)
             continue;
 
         finalMask |= kb->getModifiers();
@@ -1576,7 +1577,7 @@ void CInputManager::disableAllKeyboards(bool virt) {
         if (k->isVirtual() != virt)
             continue;
 
-        k->active = false;
+        k->m_active = false;
     }
 }
 
@@ -1585,7 +1586,7 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     m_vHIDs.emplace_back(PNEWDEV);
 
     try {
-        PNEWDEV->hlName = getNameForNewDevice(PNEWDEV->deviceName);
+        PNEWDEV->m_hlName = getNameForNewDevice(PNEWDEV->m_deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Touch Device had no name???"); // logic error
     }
@@ -1593,9 +1594,9 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     setTouchDeviceConfigs(PNEWDEV);
     g_pPointerManager->attachTouch(PNEWDEV);
 
-    PNEWDEV->events.destroy.registerStaticListener(
+    PNEWDEV->m_events.destroy.registerStaticListener(
         [this](void* owner, std::any data) {
-            auto PDEV = ((ITouch*)owner)->self.lock();
+            auto PDEV = ((ITouch*)owner)->m_self.lock();
 
             if (!PDEV)
                 return;
@@ -1612,20 +1613,20 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
         if (PTOUCHDEV->aq() && PTOUCHDEV->aq()->getLibinputHandle()) {
             const auto LIBINPUTDEV = PTOUCHDEV->aq()->getLibinputHandle();
 
-            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "enabled", "input:touchdevice:enabled");
+            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->m_hlName, "enabled", "input:touchdevice:enabled");
             const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
             if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
                 libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
 
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV)) {
-                Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->hlName);
+                Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->m_hlName);
                 // default value of transform being -1 means it's unset.
-                const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "transform", "input:touchdevice:transform"), -1, 7);
+                const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->m_hlName, "transform", "input:touchdevice:transform"), -1, 7);
                 if (ROTATION > -1)
                     libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
             }
 
-            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->hlName, "output", "input:touchdevice:output");
+            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->m_hlName, "output", "input:touchdevice:output");
             bool       bound      = !output.empty() && output != STRVAL_EMPTY;
             const bool AUTODETECT = output == "[[Auto]]";
             if (!bound && AUTODETECT) {
@@ -1636,13 +1637,13 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
                 //     bound  = true;
                 // }
             }
-            PTOUCHDEV->boundOutput = bound ? output : "";
-            const auto PMONITOR    = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
+            PTOUCHDEV->m_boundOutput = bound ? output : "";
+            const auto PMONITOR      = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
             if (PMONITOR) {
-                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->hlName, PMONITOR->szName);
+                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->m_hlName, PMONITOR->szName);
                 // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, PMONITOR->output);
             } else if (bound)
-                Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->hlName, output);
+                Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->m_hlName, output);
         }
     };
 
@@ -1659,11 +1660,11 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
 void CInputManager::setTabletConfigs() {
     for (auto const& t : m_vTablets) {
         if (t->aq()->getLibinputHandle()) {
-            const auto NAME        = t->hlName;
+            const auto NAME        = t->m_hlName;
             const auto LIBINPUTDEV = t->aq()->getLibinputHandle();
 
             const auto RELINPUT = g_pConfigManager->getDeviceInt(NAME, "relative_input", "input:tablet:relative_input");
-            t->relativeInput    = RELINPUT;
+            t->m_relativeInput  = RELINPUT;
 
             const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(NAME, "transform", "input:tablet:transform"), -1, 7);
             Debug::log(LOG, "Setting calibration matrix for device {}", NAME);
@@ -1678,22 +1679,22 @@ void CInputManager::setTabletConfigs() {
             const auto OUTPUT = g_pConfigManager->getDeviceString(NAME, "output", "input:tablet:output");
             if (OUTPUT != STRVAL_EMPTY) {
                 Debug::log(LOG, "Binding tablet {} to output {}", NAME, OUTPUT);
-                t->boundOutput = OUTPUT;
+                t->m_boundOutput = OUTPUT;
             } else
-                t->boundOutput = "";
+                t->m_boundOutput = "";
 
             const auto REGION_POS  = g_pConfigManager->getDeviceVec(NAME, "region_position", "input:tablet:region_position");
             const auto REGION_SIZE = g_pConfigManager->getDeviceVec(NAME, "region_size", "input:tablet:region_size");
-            t->boundBox            = {REGION_POS, REGION_SIZE};
+            t->m_boundBox          = {REGION_POS, REGION_SIZE};
 
             const auto ABSOLUTE_REGION_POS = g_pConfigManager->getDeviceInt(NAME, "absolute_region_position", "input:tablet:absolute_region_position");
-            t->absolutePos                 = ABSOLUTE_REGION_POS;
+            t->m_absolutePos               = ABSOLUTE_REGION_POS;
 
             const auto ACTIVE_AREA_SIZE = g_pConfigManager->getDeviceVec(NAME, "active_area_size", "input:tablet:active_area_size");
             const auto ACTIVE_AREA_POS  = g_pConfigManager->getDeviceVec(NAME, "active_area_position", "input:tablet:active_area_position");
             if (ACTIVE_AREA_SIZE.x != 0 || ACTIVE_AREA_SIZE.y != 0) {
-                t->activeArea = CBox{ACTIVE_AREA_POS.x / t->aq()->physicalSize.x, ACTIVE_AREA_POS.y / t->aq()->physicalSize.y,
-                                     (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / t->aq()->physicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / t->aq()->physicalSize.y};
+                t->m_activeArea = CBox{ACTIVE_AREA_POS.x / t->aq()->physicalSize.x, ACTIVE_AREA_POS.y / t->aq()->physicalSize.y,
+                                       (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / t->aq()->physicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / t->aq()->physicalSize.y};
             }
         }
     }
@@ -1757,7 +1758,7 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
 
     auto makeNewName = [&]() { return (proposedNewName.empty() ? "unknown-device" : proposedNewName) + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); };
 
-    while (std::find_if(m_vHIDs.begin(), m_vHIDs.end(), [&](const auto& other) { return other->hlName == makeNewName(); }) != m_vHIDs.end())
+    while (std::find_if(m_vHIDs.begin(), m_vHIDs.end(), [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_vHIDs.end())
         dupeno++;
 
     return makeNewName();

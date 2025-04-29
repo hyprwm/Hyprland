@@ -12,11 +12,11 @@ class CKeyboard : public IKeyboard {
   private:
     CKeyboard(SP<Aquamarine::IKeyboard> keeb);
 
-    WP<Aquamarine::IKeyboard> keyboard;
+    WP<Aquamarine::IKeyboard> m_keyboard;
 
     struct {
         CHyprSignalListener destroy;
         CHyprSignalListener key;
         CHyprSignalListener modifiers;
-    } listeners;
+    } m_listeners;
 };

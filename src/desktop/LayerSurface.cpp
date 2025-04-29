@@ -199,7 +199,7 @@ void CLayerSurface::onUnmap() {
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", m_layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", m_self.lock());
 
-    std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == m_self.lock(); });
+    std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor || g_pCompositor->m_unsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");

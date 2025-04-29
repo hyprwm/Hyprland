@@ -11,8 +11,6 @@ uniform float brightness;
 uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction 
-uniform mat4x2 sourcePrimaries;
-uniform mat4x2 targetPrimaries;
 
 #include "CM.glsl"
 
@@ -29,17 +27,9 @@ void main() {
         if (sourceTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
             pixColor.rgb /= sdrBrightnessMultiplier;
         }
-        pixColor.rgb = toLinearRGB(pixColor.rgb, sourceTF);
-        mat3 srcxyz = primaries2xyz(sourcePrimaries);
-        mat3 dstxyz;
-        if (sourcePrimaries == targetPrimaries)
-            dstxyz = srcxyz;
-        else {
-            dstxyz = primaries2xyz(targetPrimaries);
-            pixColor = convertPrimaries(pixColor, srcxyz, sourcePrimaries[3], dstxyz, targetPrimaries[3]);
-        }
-        pixColor = toNit(pixColor, sourceTF);
-        pixColor = fromLinearNit(pixColor, targetTF);
+        pixColor.rgb = convertMatrix * toLinearRGB(pixColor.rgb, sourceTF);
+        pixColor = toNit(pixColor, srcTFRange);
+        pixColor = fromLinearNit(pixColor, targetTF, dstTFRange);
     }
 
     // contrast

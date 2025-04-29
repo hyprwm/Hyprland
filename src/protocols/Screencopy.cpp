@@ -208,8 +208,9 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage, g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(),
-                                                    true);
+        if (overlayCursor)
+            g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage,
+                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(), true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
@@ -263,8 +264,9 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage, g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(),
-                                                    true);
+        if (overlayCursor)
+            g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage,
+                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(), true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {

@@ -1,6 +1,7 @@
 #include "AsyncDialogBox.hpp"
 #include "./fs/FsUtils.hpp"
 #include <csignal>
+#include <algorithm>
 #include <unistd.h>
 #include "../managers/eventLoop/EventLoopManager.hpp"
 

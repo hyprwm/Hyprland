@@ -2,14 +2,11 @@
 #include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
-#include "hyprpm/src/helpers/Sys.hpp"
 
 #include <cstdio>
 #include <vector>
 #include <string>
 #include <print>
-#include <chrono>
-#include <thread>
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃

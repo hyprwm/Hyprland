@@ -70,6 +70,8 @@ env = HYPRCURSOR_SIZE,24
 ###################
 
 # See https://wiki.hyprland.org/Configuring/Permissions/
+# Please note permission changes here require a Hyprland restart and are not applied on-the-fly
+# for security reasons
 
 # ecosystem {
 #   enforce_permissions = 1

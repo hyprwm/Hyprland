@@ -989,8 +989,6 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_failedPluginConfigValues.clear();
     m_finalExecRequests.clear();
 
-    g_pDynamicPermissionManager->clearConfigPermissions();
-
     // paths
     m_configPaths.clear();
     std::string mainConfigPath = getMainConfigPath();
@@ -2911,7 +2909,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
     if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
         return "unknown permission allow mode";
 
-    g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
+    if (m_isFirstLaunch)
+        g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
 }

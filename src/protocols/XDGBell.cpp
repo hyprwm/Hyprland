@@ -12,6 +12,14 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setOnDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
 
     m_resource->setRing([](CXdgSystemBellV1* r, wl_resource* toplevel) {
+        if (!toplevel) {
+            g_pEventManager->postEvent(SHyprIPCEvent{
+                .event = "bell",
+                .data  = "",
+            });
+            return;
+        }
+
         auto TOPLEVEL = CXDGToplevelResource::fromResource(toplevel);
 
         if (!TOPLEVEL) {

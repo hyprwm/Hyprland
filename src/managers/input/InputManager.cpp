@@ -289,7 +289,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // if we are holding a pointer button,
     // and we're not dnd-ing, don't refocus. Keep focus on last surface.
-    if (!PROTO::data->dndActive() && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_lastFocus && g_pSeatManager->state.pointerFocus && !m_bHardInput) {
+    if (!PROTO::data->dndActive() && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->mapped && g_pSeatManager->state.pointerFocus &&
+        !m_bHardInput) {
         foundSurface = g_pSeatManager->state.pointerFocus.lock();
 
         // IME popups aren't desktop-like elements

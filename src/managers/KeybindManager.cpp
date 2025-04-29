@@ -1037,6 +1037,9 @@ SDispatchResult CKeybindManager::killActive(std::string args) {
 }
 
 SDispatchResult CKeybindManager::closeActive(std::string args) {
+    if (g_pCompositor->m_lastWindow && g_pCompositor->m_lastWindow->m_closeableSince > Time::steadyNow())
+        return {.success = false, .error = "can't close window, it's not closeable yet (noclosefor)"};
+
     g_pCompositor->closeWindow(g_pCompositor->m_lastWindow.lock());
 
     return {};
@@ -1049,6 +1052,9 @@ SDispatchResult CKeybindManager::closeWindow(std::string args) {
         Debug::log(ERR, "closeWindow: no window found");
         return {.success = false, .error = "closeWindow: no window found"};
     }
+
+    if (PWINDOW->m_closeableSince > Time::steadyNow())
+        return {.success = false, .error = "can't close window, it's not closeable yet (noclosefor)"};
 
     g_pCompositor->closeWindow(PWINDOW);
 

@@ -74,6 +74,7 @@ protocols = [
 	wayland_protocol_dir / 'staging/content-type/content-type-v1.xml',
 	wayland_protocol_dir / 'staging/color-management/color-management-v1.xml',
 	wayland_protocol_dir / 'staging/xdg-toplevel-tag/xdg-toplevel-tag-v1.xml',
+	wayland_protocol_dir / 'staging/xdg-system-bell/xdg-system-bell-v1.xml',
 ]
 
 wl_protocols = []

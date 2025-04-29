@@ -1117,7 +1117,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
             if (L < R) {
                 const auto output = COMMAND.substr(L + 1, R - L - 1);
                 g_pConfigManager->handleMonitorv2(output);
-                g_pConfigManager->m_bWantsMonitorReload = true;
+                g_pConfigManager->m_wantsMonitorReload = true;
             }
         }
     }

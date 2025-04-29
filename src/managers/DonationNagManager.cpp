@@ -94,7 +94,7 @@ CDonationNagManager::CDonationNagManager() {
         Debug::log(LOG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
 
         fire();
-        
+
         state.major = currentMajor;
         state.epoch = EPOCH;
         writeState(state);
@@ -109,7 +109,7 @@ CDonationNagManager::CDonationNagManager() {
         Debug::log(LOG, "DonationNag: hit nag for major update {} -> {}", state.major, currentMajor);
 
         fire();
-        
+
         state.major = currentMajor;
         state.epoch = EPOCH;
         writeState(state);

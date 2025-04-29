@@ -5,6 +5,8 @@
 #include "Manifest.hpp"
 #include "DataState.hpp"
 #include "HyprlandSocket.hpp"
+#include "../helpers/Sys.hpp"
+#include "../helpers/Die.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -48,6 +50,13 @@ static std::string getTempRoot() {
     const auto STR = ENV + std::string{"/hyprpm/"};
 
     return STR;
+}
+
+CPluginManager::CPluginManager() {
+    if (NSys::isSuperuser())
+        Debug::die("Don't run hyprpm as a superuser.");
+
+    m_szUsername = getpwuid(NSys::getUID())->pw_name;
 }
 
 SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
@@ -550,12 +559,19 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
 
-    const std::string& cmd =
-        std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile && cd {} && make installheaders", DataState::getHeadersPath(), WORKINGDIR, WORKINGDIR);
+    std::string cmd = std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile", DataState::getHeadersPath(), WORKINGDIR);
     if (m_bVerbose)
-        progress.printMessageAbove(verboseString("installation will run: {}", cmd));
+        progress.printMessageAbove(verboseString("prepare install will run: {}", cmd));
 
     ret = execAndGet(cmd);
+
+    cmd = std::format("cd {} && make installheaders && chmod -R 644 {} && find {} -type d -exec chmod o+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
+                      DataState::getHeadersPath());
+
+    if (m_bVerbose)
+        progress.printMessageAbove(verboseString("install will run as sudo: {}", cmd));
+
+    ret = NSys::runAsSuperuser(cmd);
 
     if (m_bVerbose)
         std::println("{}", verboseString("installer returned: {}", ret));
@@ -569,6 +585,10 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Done!";
         progress.print();
+
+        auto GLOBALSTATE                = DataState::getGlobalState();
+        GLOBALSTATE.headersHashCompiled = HLVER.hash;
+        DataState::updateGlobalState(GLOBALSTATE);
 
         std::print("\n");
     } else {
@@ -884,7 +904,8 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
     auto HLVER = getHyprlandVersion(true);
 
     if (state.headersHashCompiled != HLVER.hash) {
-        std::println("{}", infoString("Running Hyprland version differs from plugin state, please restart Hyprland."));
+        if (load)
+            std::println("{}", infoString("Running Hyprland version ({}) differs from plugin state ({}), please restart Hyprland.", HLVER.hash, state.headersHashCompiled));
         return false;
     }
 

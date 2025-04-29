@@ -2,6 +2,7 @@
 #include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
+#include "hyprpm/src/helpers/Sys.hpp"
 
 #include <cstdio>
 #include <vector>

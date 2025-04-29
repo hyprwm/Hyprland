@@ -132,7 +132,7 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
 void DataState::updateGlobalState(const SGlobalState& state) {
     ensureStateStoreExists();
 
-    const auto PATH = getDataStatePath();
+    const auto      PATH = getDataStatePath();
 
     std::error_code ec;
     if (!std::filesystem::exists(PATH, ec) || ec)
@@ -237,4 +237,12 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
     }
 
     return false;
+}
+
+void DataState::purgeAllCache() {
+    const auto PATH = getDataStatePath().string();
+    if (PATH.contains('\''))
+        return;
+    // scary!
+    NSys::runAsSuperuser("rm -r '" + PATH + "'");
 }

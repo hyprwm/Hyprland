@@ -10,7 +10,9 @@
 #include "../helpers/fs/FsUtils.hpp"
 
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/string/VarList.hpp>
 using namespace Hyprutils::OS;
+using namespace Hyprutils::String;
 
 constexpr const char* LAST_NAG_FILE_NAME = "lastNag";
 constexpr uint64_t    DAY_IN_SECONDS     = 3600ULL * 24;
@@ -46,29 +48,28 @@ CDonationNagManager::CDonationNagManager() {
 
     const auto EPOCH = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    const auto LASTNAGSTR = NFsUtils::readFileAsString(*DATAROOT + "/" + LAST_NAG_FILE_NAME);
-
-    if (!LASTNAGSTR) {
-        const auto EPOCHSTR = std::format("{}", EPOCH);
-        NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, EPOCHSTR);
+    uint64_t   currentMajor = 0;
+    try {
+        CVarList vl(HYPRLAND_VERSION, 0, '.');
+        currentMajor = std::stoull(vl[1]);
+    } catch (...) {
+        // ????
         return;
     }
 
-    uint64_t LAST_EPOCH = 0;
+    auto state = getState();
 
-    try {
-        LAST_EPOCH = std::stoull(*LASTNAGSTR);
-    } catch (std::exception& e) {
-        Debug::log(ERR, "DonationNag: Last epoch invalid? Failed to parse \"{}\". Setting to today.", *LASTNAGSTR);
-        const auto EPOCHSTR = std::format("{}", EPOCH);
-        NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, EPOCHSTR);
+    if (!state.major && currentMajor <= 48) {
+        state.major = currentMajor;
+        state.epoch = state.epoch == 0 ? EPOCH : state.epoch;
+        writeState(state);
         return;
     }
 
     // don't nag if the last nag was less than a month ago. This is
     // mostly for first-time nags, as other nags happen in specific time frames shorter than a month
-    if (EPOCH - LAST_EPOCH < MONTH_IN_SECONDS) {
-        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", (int)std::round((EPOCH - LAST_EPOCH) / (double)MONTH_IN_SECONDS));
+    if (EPOCH - state.epoch < MONTH_IN_SECONDS) {
+        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", (int)std::round((EPOCH - state.epoch) / (double)DAY_IN_SECONDS));
         return;
     }
 
@@ -92,23 +93,66 @@ CDonationNagManager::CDonationNagManager() {
 
         Debug::log(LOG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
 
-        m_bFired = true;
-
-        const auto EPOCHSTR = std::format("{}", EPOCH);
-        NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, EPOCHSTR);
-
-        g_pEventLoopManager->doLater([] {
-            CProcess proc("hyprland-donate-screen", {});
-            proc.runAsync();
-        });
+        fire();
+        
+        state.major = currentMajor;
+        state.epoch = EPOCH;
+        writeState(state);
 
         break;
     }
 
     if (!m_bFired)
-        Debug::log(LOG, "DonationNag: didn't hit any nagging periods");
+        Debug::log(LOG, "DonationNag: didn't hit any nagging periods, checking update");
+
+    if (state.major < currentMajor) {
+        Debug::log(LOG, "DonationNag: hit nag for major update {} -> {}", state.major, currentMajor);
+
+        fire();
+        
+        state.major = currentMajor;
+        state.epoch = EPOCH;
+        writeState(state);
+    }
+
+    if (!m_bFired)
+        Debug::log(LOG, "DonationNag: didn't hit nagging conditions");
 }
 
 bool CDonationNagManager::fired() {
     return m_bFired;
+}
+
+void CDonationNagManager::fire() {
+    static const auto DATAROOT = NFsUtils::getDataHome();
+
+    m_bFired = true;
+
+    g_pEventLoopManager->doLater([] {
+        CProcess proc("hyprland-donate-screen", {});
+        proc.runAsync();
+    });
+}
+
+CDonationNagManager::SStateData CDonationNagManager::getState() {
+    static const auto DATAROOT = NFsUtils::getDataHome();
+    const auto        STR      = NFsUtils::readFileAsString(*DATAROOT + "/" + LAST_NAG_FILE_NAME);
+
+    if (!STR.has_value())
+        return {};
+
+    CVarList                        lines(*STR, 0, '\n');
+    CDonationNagManager::SStateData state;
+
+    try {
+        state.epoch = std::stoull(lines[0]);
+        state.major = std::stoull(lines[1]);
+    } catch (...) { ; }
+
+    return state;
+}
+
+void CDonationNagManager::writeState(const SStateData& s) {
+    static const auto DATAROOT = NFsUtils::getDataHome();
+    NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, std::format("{}\n{}", s.epoch, s.major));
 }

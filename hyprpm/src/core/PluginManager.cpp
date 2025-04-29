@@ -4,6 +4,7 @@
 #include "../progress/CProgressBar.hpp"
 #include "Manifest.hpp"
 #include "DataState.hpp"
+#include "HyprlandSocket.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -66,7 +67,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
     else
         onceInstalled = true;
 
-    const auto HLVERCALL = running ? execAndGet("hyprctl version") : execAndGet("Hyprland --version");
+    const auto HLVERCALL = running ? NHyprlandSocket::send("/version") : execAndGet("Hyprland --version");
     if (m_bVerbose)
         std::println("{}", verboseString("{} version returned: {}", running ? "running" : "installed", HLVERCALL));
 
@@ -797,9 +798,9 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
     }
     const auto HYPRPMPATH = DataState::getDataStatePath();
 
-    const auto json = glz::read_json<glz::json_t::array_t>(execAndGet("hyprctl plugins list -j"));
+    const auto json = glz::read_json<glz::json_t::array_t>(NHyprlandSocket::send("j/plugins list"));
     if (!json) {
-        std::println(stderr, "PluginManager: couldn't parse hyprctl output");
+        std::println(stderr, "PluginManager: couldn't parse plugin list output");
         return LOADSTATE_FAIL;
     }
 
@@ -888,9 +889,9 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
     }
 
     if (load)
-        execAndGet("hyprctl plugin load " + path);
+        NHyprlandSocket::send("/plugin load " + path);
     else
-        execAndGet("hyprctl plugin unload " + path);
+        NHyprlandSocket::send("/plugin unload " + path);
 
     return true;
 }
@@ -915,7 +916,7 @@ void CPluginManager::listAllPlugins() {
 }
 
 void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message) {
-    execAndGet("hyprctl notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
+    NHyprlandSocket::send("/notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
 }
 
 std::string CPluginManager::headerError(const eHeadersErrors err) {

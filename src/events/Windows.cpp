@@ -2,6 +2,7 @@
 
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
+#include "../helpers/AsyncDialogBox.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../managers/SeatManager.hpp"
@@ -326,6 +327,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         PWINDOW->applyDynamicRule(r);
     }
+
+    // make it uncloseable if it's a Hyprland dialog
+    // TODO: make some closeable?
+    if (CAsyncDialogBox::isAsyncDialogBox(PWINDOW->getPID()))
+        PWINDOW->m_closeableSince = Time::steadyNow() + std::chrono::years(10 /* Should be enough, no? */);
 
     // disallow tiled pinned
     if (PWINDOW->m_pinned && !PWINDOW->m_isFloating)

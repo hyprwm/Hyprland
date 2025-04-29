@@ -6,6 +6,9 @@
 
 using namespace Hyprutils::OS;
 
+static std::vector<pid_t> asyncDialogBoxes;
+
+//
 SP<CAsyncDialogBox> CAsyncDialogBox::create(const std::string& title, const std::string& description, std::vector<std::string> buttons) {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
         Debug::log(ERR, "CAsyncDialogBox: cannot create, no hyprland-dialog");
@@ -17,6 +20,10 @@ SP<CAsyncDialogBox> CAsyncDialogBox::create(const std::string& title, const std:
     dialog->m_selfWeakReference = dialog;
 
     return dialog;
+}
+
+bool CAsyncDialogBox::isAsyncDialogBox(pid_t pid) {
+    return std::ranges::contains(asyncDialogBoxes, pid);
 }
 
 CAsyncDialogBox::CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons) :
@@ -60,6 +67,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         Debug::log(LOG, "CAsyncDialogBox: dialog {:x} hung up, closed.");
 
         m_promiseResolver->resolve(m_stdout);
+        std::erase(asyncDialogBoxes, m_dialogPid);
 
         wl_event_source_remove(m_readEventSource);
         m_selfReference.reset();
@@ -103,6 +111,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
     }
 
     m_dialogPid = proc.pid();
+    asyncDialogBoxes.emplace_back(m_dialogPid);
 
     // close the write fd, only the dialog owns it now
     close(outPipe[1]);

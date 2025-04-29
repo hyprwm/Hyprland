@@ -15,6 +15,7 @@ struct wl_event_source;
 class CAsyncDialogBox {
   public:
     static SP<CAsyncDialogBox> create(const std::string& title, const std::string& description, std::vector<std::string> buttons);
+    static bool                isAsyncDialogBox(pid_t pid);
 
     CAsyncDialogBox(const CAsyncDialogBox&)                     = delete;
     CAsyncDialogBox(CAsyncDialogBox&&)                          = delete;

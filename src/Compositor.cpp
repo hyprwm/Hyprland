@@ -2547,9 +2547,8 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 }
 
 void CCompositor::closeWindow(PHLWINDOW pWindow) {
-    if (pWindow && validMapped(pWindow)) {
+    if (pWindow && validMapped(pWindow))
         g_pXWaylandManager->sendCloseWindow(pWindow);
-    }
 }
 
 PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {

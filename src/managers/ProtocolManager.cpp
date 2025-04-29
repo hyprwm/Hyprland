@@ -61,6 +61,7 @@
 #include "../protocols/FrogColorManagement.hpp"
 #include "../protocols/ContentType.hpp"
 #include "../protocols/XDGTag.hpp"
+#include "../protocols/XDGBell.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -186,6 +187,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
     PROTO::xdgTag              = makeUnique<CXDGToplevelTagProtocol>(&xdg_toplevel_tag_manager_v1_interface, 1, "XDGTag");
+    PROTO::xdgBell             = makeUnique<CXDGSystemBellProtocol>(&xdg_system_bell_v1_interface, 1, "XDGBell");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
@@ -277,6 +279,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xxColorManagement.reset();
     PROTO::frogColorManagement.reset();
     PROTO::xdgTag.reset();
+    PROTO::xdgBell.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();
@@ -329,11 +332,12 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::primarySelection->getGlobal(),
 		PROTO::hyprlandSurface->getGlobal(),
 		PROTO::xdgTag->getGlobal(),
+		PROTO::xdgBell->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
     };
     // clang-format on
 
-    return std::find(ALLOWED_WHITELIST.begin(), ALLOWED_WHITELIST.end(), global) == ALLOWED_WHITELIST.end();
+    return std::ranges::find(ALLOWED_WHITELIST, global) == ALLOWED_WHITELIST.end();
 }

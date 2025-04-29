@@ -2,8 +2,10 @@
 
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/defer/Promise.hpp"
 #include "../desktop/Window.hpp"
 #include <functional>
+#include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>
 
 // exposed for main.cpp
@@ -23,8 +25,10 @@ class CHyprCtl {
     Hyprutils::OS::CFileDescriptor m_socketFD;
 
     struct {
-        bool all           = false;
-        bool sysInfoConfig = false;
+        bool                      all           = false;
+        bool                      sysInfoConfig = false;
+        pid_t                     pid           = 0;
+        SP<CPromise<std::string>> pendingPromise;
     } m_currentRequestParams;
 
     static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);

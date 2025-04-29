@@ -5,6 +5,7 @@
 #include "../../helpers/AsyncDialogBox.hpp"
 #include <vector>
 #include <wayland-server-core.h>
+#include <sys/types.h>
 #include "../../helpers/defer/Promise.hpp"
 
 // NOLINTNEXTLINE
@@ -56,6 +57,8 @@ class CDynamicPermissionRule {
     wl_client* const                                  m_client     = nullptr;
     std::string                                       m_binaryPath = "";
     UP<re2::RE2>                                      m_binaryRegex;
+    std::string                                       m_keyString = "";
+    pid_t                                             m_pid       = 0;
 
     eDynamicPermissionAllowMode                       m_allowMode = PERMISSION_RULE_ALLOW_MODE_ASK;
     SP<CAsyncDialogBox>                               m_dialogBox;                  // for pending
@@ -76,14 +79,19 @@ class CDynamicPermissionManager {
     // (will continue returning false if the user does not agree, of course.)
     eDynamicPermissionAllowMode clientPermissionMode(wl_client* client, eDynamicPermissionType permission);
 
+    // for plugins for now. Pid 0 means unknown
+    eDynamicPermissionAllowMode clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission);
+
     // get a promise for the result. Returns null if there already was one requested for the client.
     // Returns null if state is not pending
     SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(wl_client* client, eDynamicPermissionType permission);
+    SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(const std::string& str, eDynamicPermissionType permission);
+    SP<CPromise<eDynamicPermissionAllowMode>> promiseFor(pid_t pid, const std::string& key, eDynamicPermissionType permission);
 
     void                                      removeRulesForClient(wl_client* client);
 
   private:
-    void askForPermission(wl_client* client, const std::string& binaryName, eDynamicPermissionType type);
+    void askForPermission(wl_client* client, const std::string& binaryName, eDynamicPermissionType type, pid_t pid = 0);
 
     //
     std::vector<SP<CDynamicPermissionRule>> m_rules;

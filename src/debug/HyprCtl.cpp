@@ -17,6 +17,7 @@
 #include <sys/poll.h>
 #include <filesystem>
 #include <ranges>
+#include <sys/eventfd.h>
 
 #include <sstream>
 #include <string>
@@ -24,6 +25,7 @@
 #include <numeric>
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
@@ -52,6 +54,28 @@ using namespace Hyprutils::OS;
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/ucred.h>
+#define CRED_T   xucred
+#define CRED_LVL SOL_LOCAL
+#define CRED_OPT LOCAL_PEERCRED
+#define CRED_PID cr_pid
+#elif defined(__NetBSD__)
+#define CRED_T   unpcbid
+#define CRED_LVL SOL_LOCAL
+#define CRED_OPT LOCAL_PEEREID
+#define CRED_PID unp_pid
+#else
+#if defined(__OpenBSD__)
+#define CRED_T sockpeercred
+#else
+#define CRED_T ucred
+#endif
+#define CRED_LVL SOL_SOCKET
+#define CRED_OPT SO_PEERCRED
+#define CRED_PID pid
+#endif
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -1480,10 +1504,18 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
         if (vars.size() < 3)
             return "not enough args";
 
-        const auto PLUGIN = g_pPluginSystem->loadPlugin(PATH);
+        g_pHyprCtl->m_currentRequestParams.pendingPromise = CPromise<std::string>::make([PATH](SP<CPromiseResolver<std::string>> resolver) {
+            g_pPluginSystem->loadPlugin(PATH)->then([resolver, PATH](SP<CPromiseResult<CPlugin*>> result) {
+                if (result->hasError()) {
+                    resolver->reject(result->error());
+                    return;
+                }
 
-        if (!PLUGIN)
-            return "error in loading plugin, last error: " + g_pPluginSystem->m_szLastError;
+                resolver->resolve("ok");
+            });
+        });
+
+        return "ok";
     } else if (OPERATION == "unload") {
         if (vars.size() < 3)
             return "not enough args";
@@ -1712,9 +1744,10 @@ void CHyprCtl::unregisterCommand(const SP<SHyprCtlCommand>& cmd) {
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format            = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll         = false;
-    m_currentRequestParams = {};
+    auto format                          = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll                       = false;
+    m_currentRequestParams.all           = false;
+    m_currentRequestParams.sysInfoConfig = false;
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1867,6 +1900,16 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     std::array<char, 1024> readBuffer;
 
+    // try to get creds
+    CRED_T   creds;
+    uint32_t len = sizeof(creds);
+    if (getsockopt(ACCEPTEDCONNECTION, CRED_LVL, CRED_OPT, &creds, &len) == -1)
+        Debug::log(ERR, "Hyprctl: failed to get peer creds");
+    else {
+        g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
+        Debug::log(LOG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
+    }
+
     //
     pollfd pollfds[1] = {
         {
@@ -1903,18 +1946,34 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         reply = "Err: " + std::string(e.what());
     }
 
-    successWrite(ACCEPTEDCONNECTION, reply);
+    if (g_pHyprCtl->m_currentRequestParams.pendingPromise) {
+        // we have a promise pending
+        g_pHyprCtl->m_currentRequestParams.pendingPromise->then([ACCEPTEDCONNECTION, request](SP<CPromiseResult<std::string>> result) {
+            const auto RES = result->hasError() ? result->error() : result->result();
+            successWrite(ACCEPTEDCONNECTION, RES);
 
-    if (isFollowUpRollingLogRequest(request)) {
-        Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-        Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
-        runWritingDebugLogThread(ACCEPTEDCONNECTION);
-        Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
-    } else
-        close(ACCEPTEDCONNECTION);
+            // No rollinglog or ensureMonitor here. These are only for plugins for now.
 
-    if (g_pConfigManager->m_wantsMonitorReload)
-        g_pConfigManager->ensureMonitorStatus();
+            close(ACCEPTEDCONNECTION);
+        });
+
+        g_pHyprCtl->m_currentRequestParams.pendingPromise.reset();
+    } else {
+        successWrite(ACCEPTEDCONNECTION, reply);
+
+        if (isFollowUpRollingLogRequest(request)) {
+            Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
+            Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
+            runWritingDebugLogThread(ACCEPTEDCONNECTION);
+            Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
+        } else
+            close(ACCEPTEDCONNECTION);
+
+        if (g_pConfigManager->m_wantsMonitorReload)
+            g_pConfigManager->ensureMonitorStatus();
+
+        g_pHyprCtl->m_currentRequestParams.pid = 0;
+    }
 
     return 0;
 }

@@ -26,7 +26,7 @@ SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path) {
         if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
             Debug::log(LOG, "CPluginSystem: Waiting for user confirmation to load {}", path);
 
-            auto promise = g_pDynamicPermissionManager->promiseFor(path, PERMISSION_TYPE_PLUGIN);
+            auto promise = g_pDynamicPermissionManager->promiseFor(pid, path, PERMISSION_TYPE_PLUGIN);
             if (!promise) { // already awaiting or something?
                 resolver->reject("Failed to get a promise for permission");
                 return;

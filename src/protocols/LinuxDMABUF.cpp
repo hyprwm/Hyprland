@@ -436,7 +436,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 auto tranche = SDMABUFTranche{
                     .device  = mainDevice,
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
-                    .formats = mon->output->getRenderFormats(),
+                    .formats = mon->m_output->getRenderFormats(),
                 };
                 tches.emplace_back(std::make_pair<>(mon, tranche));
             }
@@ -446,7 +446,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 auto tranche  = SDMABUFTranche{
                      .device  = mainDevice,
                      .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
-                     .formats = pMonitor->output->getRenderFormats(),
+                     .formats = pMonitor->m_output->getRenderFormats(),
                 };
                 formatTable->monitorTranches.emplace_back(std::make_pair<>(pMonitor, tranche));
                 resetFormatTable();
@@ -500,7 +500,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
             auto       HLSurface = CWLSurface::fromResource(feedback->surface);
             if (auto w = HLSurface->getWindow(); w)
                 if (auto m = w->m_monitor.lock(); m)
-                    mon = m->self.lock();
+                    mon = m->m_self.lock();
 
             if (!mon) {
                 feedback->sendDefaultFeedback();

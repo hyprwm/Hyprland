@@ -56,11 +56,11 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         pSurface.reset();
     });
 
-    PROTO::fractional->sendScale(surface_, pMonitor_->scale);
+    PROTO::fractional->sendScale(surface_, pMonitor_->m_scale);
 
     sendConfigure();
 
-    listeners.monitorMode = pMonitor->events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
+    listeners.monitorMode = pMonitor->m_events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
@@ -73,7 +73,7 @@ CSessionLockSurface::~CSessionLockSurface() {
 
 void CSessionLockSurface::sendConfigure() {
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(resource->client()));
-    resource->sendConfigure(SERIAL, pMonitor->vecSize.x, pMonitor->vecSize.y);
+    resource->sendConfigure(SERIAL, pMonitor->m_size.x, pMonitor->m_size.y);
 }
 
 bool CSessionLockSurface::good() {

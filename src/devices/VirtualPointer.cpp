@@ -42,7 +42,7 @@ CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : m_poi
     m_listeners.holdBegin      = m_pointer->events.holdBegin.registerListener([this](std::any d) { m_pointerEvents.holdBegin.emit(d); });
     m_listeners.holdEnd        = m_pointer->events.holdEnd.registerListener([this](std::any d) { m_pointerEvents.holdEnd.emit(d); });
 
-    m_boundOutput = resource->boundOutput ? resource->boundOutput->szName : "";
+    m_boundOutput = resource->boundOutput ? resource->boundOutput->m_name : "";
 
     m_deviceName = m_pointer->name;
 }

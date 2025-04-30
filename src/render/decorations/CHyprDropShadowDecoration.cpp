@@ -68,7 +68,7 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     for (auto const& m : g_pCompositor->m_monitors) {
         if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m)) {
-            const CRegion monitorRegion({m->vecPosition, m->vecSize});
+            const CRegion monitorRegion({m->m_position, m->m_size});
             shadowRegion.subtract(monitorRegion);
         }
     }
@@ -125,7 +125,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     // draw the shadow
     CBox fullBox = m_bLastWindowBoxWithDecos;
-    fullBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
+    fullBox.translate(-pMonitor->m_position + WORKSPACEOFFSET);
     fullBox.x -= *PSHADOWSIZE;
     fullBox.y -= *PSHADOWSIZE;
     fullBox.w += 2 * *PSHADOWSIZE;
@@ -138,9 +138,9 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     updateWindow(PWINDOW);
     m_vLastWindowPos += WORKSPACEOFFSET;
-    m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
-                   {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
-                    fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
+    m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->m_position.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->m_position.y + 2},
+                   {fullBox.x + fullBox.width + pMonitor->m_position.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
+                    fullBox.y + fullBox.height + pMonitor->m_position.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
 
     fullBox.translate(PWINDOW->m_floatingOffset);
 
@@ -155,25 +155,25 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     CFramebuffer& alphaSwapFB = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorSwapFB;
     auto*         LASTFB      = g_pHyprOpenGL->m_RenderData.currentFB;
 
-    fullBox.scale(pMonitor->scale).round();
+    fullBox.scale(pMonitor->m_scale).round();
 
     if (*PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
         CBox withDecos = m_bLastWindowBoxWithDecos;
 
         // get window box
-        windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
-        withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
+        windowBox.translate(-pMonitor->m_position + WORKSPACEOFFSET);
+        withDecos.translate(-pMonitor->m_position + WORKSPACEOFFSET);
 
         windowBox.translate(PWINDOW->m_floatingOffset);
         withDecos.translate(PWINDOW->m_floatingOffset);
 
         auto scaledExtentss = withDecos.extentsFrom(windowBox);
-        scaledExtentss      = scaledExtentss * pMonitor->scale;
+        scaledExtentss      = scaledExtentss * pMonitor->m_scale;
         scaledExtentss      = scaledExtentss.round();
 
         // add extents
-        windowBox.scale(pMonitor->scale).round().addExtents(scaledExtentss);
+        windowBox.scale(pMonitor->m_scale).round().addExtents(scaledExtentss);
 
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
@@ -181,7 +181,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         CRegion saveDamage = g_pHyprOpenGL->m_RenderData.damage;
 
         g_pHyprOpenGL->m_RenderData.damage = fullBox;
-        g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->scale)).intersect(saveDamage);
+        g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
         g_pHyprOpenGL->m_RenderData.renderModif.applyToRegion(g_pHyprOpenGL->m_RenderData.damage);
 
         alphaFB.bind();
@@ -192,10 +192,10 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprOpenGL->renderRect(fullBox, CHyprColor(0, 0, 0, 1), 0);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
-        drawShadowInternal(fullBox, ROUNDING * pMonitor->scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->scale, CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
+        drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
 
         // render black window box ("clip")
-        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->scale, ROUNDINGPOWER);
+        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale, ROUNDINGPOWER);
 
         alphaSwapFB.bind();
 
@@ -204,7 +204,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         LASTFB->bind();
 
-        CBox monbox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+        CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
@@ -214,7 +214,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         g_pHyprOpenGL->m_RenderData.damage = saveDamage;
     } else
-        drawShadowInternal(fullBox, ROUNDING * pMonitor->scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->scale, PWINDOW->m_realShadowColor->value(), a);
+        drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
 
     if (m_seExtents != m_seReportedExtents)
         g_pDecorationPositioner->repositionDeco(this);

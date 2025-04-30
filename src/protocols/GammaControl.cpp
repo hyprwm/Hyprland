@@ -20,7 +20,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     pMonitor = OUTPUTRES->monitor;
 
-    if UNLIKELY (!pMonitor || !pMonitor->output) {
+    if UNLIKELY (!pMonitor || !pMonitor->m_output) {
         LOGM(ERR, "No CMonitor");
         resource->sendFailed();
         return;
@@ -33,10 +33,10 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         }
     }
 
-    gammaSize = pMonitor->output->getGammaSize();
+    gammaSize = pMonitor->m_output->getGammaSize();
 
     if UNLIKELY (gammaSize <= 0) {
-        LOGM(ERR, "Output {} doesn't support gamma", pMonitor->szName);
+        LOGM(ERR, "Output {} doesn't support gamma", pMonitor->m_name);
         resource->sendFailed();
         return;
     }
@@ -54,7 +54,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
             return;
         }
 
-        LOGM(LOG, "setGamma for {}", pMonitor->szName);
+        LOGM(LOG, "setGamma for {}", pMonitor->m_name);
 
         // TODO: make CFileDescriptor getflags use F_GETFL
         int fdFlags = fcntl(gammaFd.get(), F_GETFL, 0);
@@ -108,16 +108,16 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     resource->sendGammaSize(gammaSize);
 
-    listeners.monitorDestroy    = pMonitor->events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
-    listeners.monitorDisconnect = pMonitor->events.disconnect.registerListener([this](std::any) { this->onMonitorDestroy(); });
+    listeners.monitorDestroy    = pMonitor->m_events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
+    listeners.monitorDisconnect = pMonitor->m_events.disconnect.registerListener([this](std::any) { this->onMonitorDestroy(); });
 }
 
 CGammaControl::~CGammaControl() {
-    if (!gammaTableSet || !pMonitor || !pMonitor->output)
+    if (!gammaTableSet || !pMonitor || !pMonitor->m_output)
         return;
 
     // reset the LUT if the client dies for whatever reason and doesn't unset the gamma
-    pMonitor->output->state->setGammaLut({});
+    pMonitor->m_output->state->setGammaLut({});
 }
 
 bool CGammaControl::good() {
@@ -125,21 +125,21 @@ bool CGammaControl::good() {
 }
 
 void CGammaControl::applyToMonitor() {
-    if UNLIKELY (!pMonitor || !pMonitor->output)
+    if UNLIKELY (!pMonitor || !pMonitor->m_output)
         return; // ??
 
-    LOGM(LOG, "setting to monitor {}", pMonitor->szName);
+    LOGM(LOG, "setting to monitor {}", pMonitor->m_name);
 
     if (!gammaTableSet) {
-        pMonitor->output->state->setGammaLut({});
+        pMonitor->m_output->state->setGammaLut({});
         return;
     }
 
-    pMonitor->output->state->setGammaLut(gammaTable);
+    pMonitor->m_output->state->setGammaLut(gammaTable);
 
-    if (!pMonitor->state.test()) {
-        LOGM(LOG, "setting to monitor {} failed", pMonitor->szName);
-        pMonitor->output->state->setGammaLut({});
+    if (!pMonitor->m_state.test()) {
+        LOGM(LOG, "setting to monitor {} failed", pMonitor->m_name);
+        pMonitor->m_output->state->setGammaLut({});
     }
 
     g_pHyprRenderer->damageMonitor(pMonitor.lock());
@@ -150,7 +150,7 @@ PHLMONITOR CGammaControl::getMonitor() {
 }
 
 void CGammaControl::onMonitorDestroy() {
-    LOGM(LOG, "Destroying gamma control for {}", pMonitor->szName);
+    LOGM(LOG, "Destroying gamma control for {}", pMonitor->m_name);
     resource->sendFailed();
 }
 

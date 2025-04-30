@@ -84,12 +84,12 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     // mirrored outputs should have their global removed, as they are not physical parts of the
     // layout.
 
-    if (ISMIRROR && PROTO::outputs.contains(pMonitor->szName))
-        PROTO::outputs.at(pMonitor->szName)->remove();
-    else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->szName) || PROTO::outputs.at(pMonitor->szName)->isDefunct())) {
-        if (PROTO::outputs.contains(pMonitor->szName))
-            PROTO::outputs.erase(pMonitor->szName);
-        PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
+    if (ISMIRROR && PROTO::outputs.contains(pMonitor->m_name))
+        PROTO::outputs.at(pMonitor->m_name)->remove();
+    else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->m_name) || PROTO::outputs.at(pMonitor->m_name)->isDefunct())) {
+        if (PROTO::outputs.contains(pMonitor->m_name))
+            PROTO::outputs.erase(pMonitor->m_name);
+        PROTO::outputs.emplace(pMonitor->m_name, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
@@ -115,22 +115,22 @@ CProtocolManager::CProtocolManager() {
         if (M->isMirror() || M == g_pCompositor->m_unsafeOutput)
             return;
 
-        if (PROTO::outputs.contains(M->szName))
-            PROTO::outputs.erase(M->szName);
+        if (PROTO::outputs.contains(M->m_name))
+            PROTO::outputs.erase(M->m_name);
 
-        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock());
-        PROTO::outputs.emplace(M->szName, ref);
+        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->m_name), M->m_self.lock());
+        PROTO::outputs.emplace(M->m_name, ref);
         ref->self = ref;
 
-        m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
+        m_mModeChangeListeners[M->m_name] = M->m_events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<PHLMONITOR>(param);
-        if (!PROTO::outputs.contains(M->szName))
+        if (!PROTO::outputs.contains(M->m_name))
             return;
-        PROTO::outputs.at(M->szName)->remove();
-        m_mModeChangeListeners.erase(M->szName);
+        PROTO::outputs.at(M->m_name)->remove();
+        m_mModeChangeListeners.erase(M->m_name);
     });
 
     // Core

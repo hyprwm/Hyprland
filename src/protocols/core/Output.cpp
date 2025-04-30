@@ -15,17 +15,17 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
         return;
 
     resource->setOnDestroy([this](CWlOutput* r) {
-        if (monitor && PROTO::outputs.contains(monitor->szName))
-            PROTO::outputs.at(monitor->szName)->destroyResource(this);
+        if (monitor && PROTO::outputs.contains(monitor->m_name))
+            PROTO::outputs.at(monitor->m_name)->destroyResource(this);
     });
     resource->setRelease([this](CWlOutput* r) {
-        if (monitor && PROTO::outputs.contains(monitor->szName))
-            PROTO::outputs.at(monitor->szName)->destroyResource(this);
+        if (monitor && PROTO::outputs.contains(monitor->m_name))
+            PROTO::outputs.at(monitor->m_name)->destroyResource(this);
     });
 
     if (resource->version() >= 4) {
-        resource->sendName(monitor->szName.c_str());
-        resource->sendDescription(monitor->szDescription.c_str());
+        resource->sendName(monitor->m_name.c_str());
+        resource->sendDescription(monitor->m_description.c_str());
     }
 
     updateState();
@@ -72,21 +72,21 @@ void CWLOutputResource::updateState() {
         return;
 
     if (resource->version() >= 2)
-        resource->sendScale(std::ceil(monitor->scale));
+        resource->sendScale(std::ceil(monitor->m_scale));
 
-    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
+    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->m_pixelSize.x, monitor->m_pixelSize.y, monitor->m_refreshRate * 1000.0);
 
-    resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
-                           monitor->output->model.c_str(), monitor->transform);
+    resource->sendGeometry(0, 0, monitor->m_output->physicalSize.x, monitor->m_output->physicalSize.y, (wl_output_subpixel)monitor->m_output->subpixel,
+                           monitor->m_output->make.c_str(), monitor->m_output->model.c_str(), monitor->m_transform);
 
     if (resource->version() >= 2)
         resource->sendDone();
 }
 
 CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name, PHLMONITOR pMonitor) :
-    IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
+    IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->m_name) {
 
-    listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
+    listeners.modeChanged = monitor->m_events.modeChanged.registerListener([this](std::any d) {
         for (auto const& o : m_vOutputs) {
             o->updateState();
         }

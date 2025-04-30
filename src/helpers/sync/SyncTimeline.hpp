@@ -31,10 +31,10 @@ class CSyncTimeline {
     bool                           transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint);
     void                           signal(uint64_t point);
 
-    int                            drmFD = -1;
-    Hyprutils::OS::CFileDescriptor syncobjFd;
-    uint32_t                       handle = 0;
-    WP<CSyncTimeline>              self;
+    int                            m_drmFD = -1;
+    Hyprutils::OS::CFileDescriptor m_syncobjFD;
+    uint32_t                       m_handle = 0;
+    WP<CSyncTimeline>              m_self;
 
   private:
     CSyncTimeline() = default;

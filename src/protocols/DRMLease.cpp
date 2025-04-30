@@ -17,8 +17,8 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     requested = request->requested;
 
     for (auto const& m : requested) {
-        if (!m->monitor || m->monitor->isBeingLeased) {
-            LOGM(ERR, "Rejecting lease: no monitor or monitor is being leased for {}", (m->monitor ? m->monitor->szName : "null"));
+        if (!m->monitor || m->monitor->m_isBeingLeased) {
+            LOGM(ERR, "Rejecting lease: no monitor or monitor is being leased for {}", (m->monitor ? m->monitor->m_name : "null"));
             resource->sendFinished();
             return;
         }
@@ -29,7 +29,7 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     LOGM(LOG, "Leasing outputs: {}", [this]() {
         std::string roll;
         for (auto const& o : requested) {
-            roll += std::format("{} ", o->monitor->szName);
+            roll += std::format("{} ", o->monitor->m_name);
         }
         return roll;
     }());
@@ -39,7 +39,7 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     outputs.reserve(requested.size());
 
     for (auto const& m : requested) {
-        outputs.emplace_back(m->monitor->output);
+        outputs.emplace_back(m->monitor->m_output);
     }
 
     auto aqlease = Aquamarine::CDRMLease::create(outputs);
@@ -52,13 +52,13 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     lease = aqlease;
 
     for (auto const& m : requested) {
-        m->monitor->isBeingLeased = true;
+        m->monitor->m_isBeingLeased = true;
     }
 
     listeners.destroyLease = lease->events.destroy.registerListener([this](std::any d) {
         for (auto const& m : requested) {
             if (m && m->monitor)
-                m->monitor->isBeingLeased = false;
+                m->monitor->m_isBeingLeased = false;
         }
 
         resource->sendFinished();
@@ -143,7 +143,7 @@ CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1
 
     resource->setData(this);
 
-    listeners.destroyMonitor = monitor->events.destroy.registerListener([this](std::any d) {
+    listeners.destroyMonitor = monitor->m_events.destroy.registerListener([this](std::any d) {
         resource->sendWithdrawn();
         dead = true;
     });
@@ -154,10 +154,10 @@ bool CDRMLeaseConnectorResource::good() {
 }
 
 void CDRMLeaseConnectorResource::sendData() {
-    resource->sendName(monitor->szName.c_str());
-    resource->sendDescription(monitor->szDescription.c_str());
+    resource->sendName(monitor->m_name.c_str());
+    resource->sendDescription(monitor->m_description.c_str());
 
-    auto AQDRMOutput = (Aquamarine::CDRMOutput*)monitor->output.get();
+    auto AQDRMOutput = (Aquamarine::CDRMOutput*)monitor->m_output.get();
     resource->sendConnectorId(AQDRMOutput->getConnectorID());
 
     resource->sendDone();
@@ -220,7 +220,7 @@ void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
     RESOURCE->parent = self;
     RESOURCE->self   = RESOURCE;
 
-    LOGM(LOG, "Sending new connector {}", monitor->szName);
+    LOGM(LOG, "Sending new connector {}", monitor->m_name);
 
     connectorsSent.emplace_back(RESOURCE);
     PROTO::lease->m_vConnectors.emplace_back(RESOURCE);
@@ -297,11 +297,11 @@ void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
     if (std::find(primaryDevice->offeredOutputs.begin(), primaryDevice->offeredOutputs.end(), monitor) != primaryDevice->offeredOutputs.end())
         return;
 
-    if (monitor->output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)
+    if (monitor->m_output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)
         return;
 
-    if (monitor->output->getBackend() != primaryDevice->backend) {
-        LOGM(ERR, "Monitor {} cannot be leased: primaryDevice lease is for a different device", monitor->szName);
+    if (monitor->m_output->getBackend() != primaryDevice->backend) {
+        LOGM(ERR, "Monitor {} cannot be leased: primaryDevice lease is for a different device", monitor->m_name);
         return;
     }
 

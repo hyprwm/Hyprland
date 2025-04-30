@@ -85,7 +85,7 @@ void CFramebuffer::bind() {
 #endif
 
     if (g_pHyprOpenGL)
-        glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+        glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->m_pixelSize.y);
     else
         glViewport(0, 0, m_vSize.x, m_vSize.y);
 }

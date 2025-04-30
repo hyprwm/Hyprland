@@ -15,8 +15,8 @@ class CDamageRing {
     bool    hasChanged();
 
   private:
-    Vector2D                                      size;
-    CRegion                                       current;
-    std::array<CRegion, DAMAGE_RING_PREVIOUS_LEN> previous;
-    size_t                                        previousIdx = 0;
+    Vector2D                                      m_size;
+    CRegion                                       m_current;
+    std::array<CRegion, DAMAGE_RING_PREVIOUS_LEN> m_previous;
+    size_t                                        m_previousIdx = 0;
 };

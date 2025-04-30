@@ -77,8 +77,8 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     float                 offsetY  = 10;
     float                 maxWidth = 0;
 
-    const auto            SCALE   = pMonitor->scale;
-    const auto            MONSIZE = pMonitor->vecTransformedSize;
+    const auto            SCALE   = pMonitor->m_scale;
+    const auto            MONSIZE = pMonitor->m_transformedSize;
 
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
 
@@ -94,7 +94,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
 
     for (auto const& notif : m_notifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
-        const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
+        const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
         // first rect (bg, col)
         const float FIRSTRECTANIMP =
@@ -189,12 +189,12 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     // cleanup notifs
     std::erase_if(m_notifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
-    return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
+    return CBox{(int)(pMonitor->m_position.x + pMonitor->m_size.x - maxWidth - 20), (int)pMonitor->m_position.y, (int)maxWidth + 20, (int)offsetY + 10};
 }
 
 void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
-    const auto MONSIZE = pMonitor->vecTransformedSize;
+    const auto MONSIZE = pMonitor->m_transformedSize;
 
     if (m_lastMonitor != pMonitor || m_lastSize != MONSIZE || !m_cairo || !m_cairoSurface) {
 

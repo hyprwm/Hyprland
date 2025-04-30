@@ -24,7 +24,7 @@ void CTexPassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_RenderData.monitorProjection = *data.replaceProjection;
     g_pHyprOpenGL->renderTextureInternalWithDamage(data.tex, data.box, data.a, data.damage.empty() ? damage : data.damage, data.round, data.roundingPower);
     if (data.replaceProjection)
-        g_pHyprOpenGL->m_RenderData.monitorProjection = g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix;
+        g_pHyprOpenGL->m_RenderData.monitorProjection = g_pHyprOpenGL->m_RenderData.pMonitor->m_projMatrix;
 }
 
 bool CTexPassElement::needsLiveBlur() {
@@ -36,7 +36,7 @@ bool CTexPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CTexPassElement::boundingBox() {
-    return data.box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->scale).round();
+    return data.box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->m_scale).round();
 }
 
 CRegion CTexPassElement::opaqueRegion() {

@@ -114,11 +114,11 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    dmabufFormat = PMONITOR->output->state->state().drmFormat;
+    dmabufFormat = PMONITOR->m_output->state->state().drmFormat;
 
-    box = {0, 0, (int)(pWindow->m_realSize->value().x * PMONITOR->scale), (int)(pWindow->m_realSize->value().y * PMONITOR->scale)};
+    box = {0, 0, (int)(pWindow->m_realSize->value().x * PMONITOR->m_scale), (int)(pWindow->m_realSize->value().y * PMONITOR->m_scale)};
 
-    box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
+    box.transform(wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y).round();
 
     shmStride = NFormatUtils::minStride(PSHMINFO, box.w);
 
@@ -236,18 +236,18 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
     // render the client
     const auto PMONITOR = pWindow->m_monitor.lock();
-    CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_pixelSize.x * 10, PMONITOR->m_pixelSize.y * 10};
 
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
+    outFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
     auto overlayCursor = shouldOverlayCursor();
 
     if (overlayCursor) {
-        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
-        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->m_self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
@@ -262,10 +262,10 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
         if (overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
         CBox texbox =
-            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 
@@ -291,21 +291,21 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
 
     auto origin = Vector2D(0, 0);
-    switch (PMONITOR->transform) {
+    switch (PMONITOR->m_transform) {
         case WL_OUTPUT_TRANSFORM_FLIPPED_180:
         case WL_OUTPUT_TRANSFORM_90: {
-            origin.y = PMONITOR->vecPixelSize.y - box.height;
+            origin.y = PMONITOR->m_pixelSize.y - box.height;
             break;
         }
         case WL_OUTPUT_TRANSFORM_FLIPPED_270:
         case WL_OUTPUT_TRANSFORM_180: {
-            origin.x = PMONITOR->vecPixelSize.x - box.width;
-            origin.y = PMONITOR->vecPixelSize.y - box.height;
+            origin.x = PMONITOR->m_pixelSize.x - box.width;
+            origin.y = PMONITOR->m_pixelSize.y - box.height;
             break;
         }
         case WL_OUTPUT_TRANSFORM_FLIPPED:
         case WL_OUTPUT_TRANSFORM_270: {
-            origin.x = PMONITOR->vecPixelSize.x - box.width;
+            origin.x = PMONITOR->m_pixelSize.x - box.width;
             break;
         }
         default: break;
@@ -314,8 +314,8 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     glReadPixels(origin.x, origin.y, box.width, box.height, glFormat, PFORMAT->glType, pixelData);
 
     if (overlayCursor) {
-        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
-        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
     outFB.unbind();
@@ -336,8 +336,8 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     auto       overlayCursor = shouldOverlayCursor();
 
     if (overlayCursor) {
-        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
-        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->m_self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer))
@@ -350,10 +350,10 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
         if (overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
+            g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
         CBox texbox =
-            CBox{PMONITOR->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 
@@ -361,8 +361,8 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     g_pHyprRenderer->endRender();
 
     if (overlayCursor) {
-        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
-        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
     return true;
@@ -450,7 +450,7 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
 
         CBox geometry = {PWINDOW->m_realPosition->value().x, PWINDOW->m_realPosition->value().y, PWINDOW->m_realSize->value().x, PWINDOW->m_realSize->value().y};
 
-        if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
+        if (geometry.intersection({pMonitor->m_position, pMonitor->m_size}).empty())
             continue;
 
         f->share();

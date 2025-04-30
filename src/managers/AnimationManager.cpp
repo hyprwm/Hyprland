@@ -21,7 +21,7 @@ static int wlTick(SP<CEventLoopTimer> self, void* data) {
         g_pAnimationManager->onTicked();
 
     if (g_pCompositor->m_sessionActive && g_pAnimationManager && g_pHookSystem && !g_pCompositor->m_unsafeState &&
-        std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_bEnabled && mon->output; })) {
+        std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; })) {
         g_pAnimationManager->tick();
         EMIT_HOOK_EVENT("tick", nullptr);
     }
@@ -64,7 +64,7 @@ static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float P
     const auto&                L1 = av.begun().asOkLab();
     const auto&                L2 = av.goal().asOkLab();
 
-    static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
+    static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + ((two - one) * progress); };
 
     const Hyprgraphics::CColor lerped = Hyprgraphics::CColor::SOkLab{
         .l = lerp(L1.l, L2.l, POINTY),
@@ -117,7 +117,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                 // still doing the full damage hack for floating because sometimes when the window
                 // goes through multiple monitors the last rendered frame is missing damage somehow??
                 const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
-                const CBox monitorBox        = {PMONITOR->vecPosition, PMONITOR->vecSize};
+                const CBox monitorBox        = {PMONITOR->m_position, PMONITOR->m_size};
                 if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
                     g_pHyprRenderer->damageWindow(w, true);
             }
@@ -262,9 +262,9 @@ void CHyprAnimationManager::scheduleTick() {
         return;
     }
 
-    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
+    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->m_refreshRate);
 
-    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(Time::steadyNow() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.F;
+    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(Time::steadyNow() - PMOSTHZ->m_lastPresentationTimer.chrono()).count() / 1000.F;
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 
@@ -308,13 +308,13 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
 
     if (force != "") {
         if (force == "bottom")
-            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y + PMONITOR->m_size.y);
         else if (force == "left")
             posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0.0);
         else if (force == "right")
             posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0.0);
         else
-            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y - GOALSIZE.y);
 
         if (!close)
             pWindow->m_realPosition->setValue(posOffset);
@@ -327,10 +327,10 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
     const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
 
     // check sides it touches
-    const bool DISPLAYLEFT   = STICKS(pWindow->m_position.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
-    const bool DISPLAYRIGHT  = STICKS(pWindow->m_position.x + pWindow->m_size.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
-    const bool DISPLAYTOP    = STICKS(pWindow->m_position.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
-    const bool DISPLAYBOTTOM = STICKS(pWindow->m_position.y + pWindow->m_size.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
+    const bool DISPLAYLEFT   = STICKS(pWindow->m_position.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
+    const bool DISPLAYRIGHT  = STICKS(pWindow->m_position.x + pWindow->m_size.x, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
+    const bool DISPLAYTOP    = STICKS(pWindow->m_position.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
+    const bool DISPLAYBOTTOM = STICKS(pWindow->m_position.y + pWindow->m_size.y, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
 
     if (DISPLAYBOTTOM && DISPLAYTOP) {
         if (DISPLAYLEFT && DISPLAYRIGHT) {
@@ -345,10 +345,10 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
     } else if (DISPLAYBOTTOM) {
         posOffset = GOALPOS + Vector2D(0.0, GOALSIZE.y);
     } else {
-        if (MIDPOINT.y > PMONITOR->vecPosition.y + PMONITOR->vecSize.y / 2.f)
-            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
+        if (MIDPOINT.y > PMONITOR->m_position.y + PMONITOR->m_size.y / 2.f)
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y + PMONITOR->m_size.y);
         else
-            posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y - GOALSIZE.y);
     }
 
     if (!close)

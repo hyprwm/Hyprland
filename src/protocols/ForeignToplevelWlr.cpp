@@ -46,8 +46,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             if (!wpMonitor.expired()) {
                 const auto monitor = wpMonitor.lock();
 
-                if (PWINDOW->m_workspace != monitor->activeWorkspace) {
-                    g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->activeWorkspace);
+                if (PWINDOW->m_workspace != monitor->m_activeWorkspace) {
+                    g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->m_activeWorkspace);
                     g_pCompositor->setActiveMonitor(monitor);
                 }
             }
@@ -145,26 +145,26 @@ wl_resource* CForeignToplevelHandleWlr::res() {
 }
 
 void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
-    if (lastMonitorID == pMonitor->ID)
+    if (lastMonitorID == pMonitor->m_id)
         return;
 
     const auto CLIENT = resource->client();
 
-    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->szName)) {
-        const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->szName)->outputResourceFrom(CLIENT);
+    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
+        const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->m_name)->outputResourceFrom(CLIENT);
 
         if LIKELY (OLDRESOURCE)
             resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
     }
 
-    if (PROTO::outputs.contains(pMonitor->szName)) {
-        const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->szName)->outputResourceFrom(CLIENT);
+    if (PROTO::outputs.contains(pMonitor->m_name)) {
+        const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->m_name)->outputResourceFrom(CLIENT);
 
         if LIKELY (NEWRESOURCE)
             resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
     }
 
-    lastMonitorID = pMonitor->ID;
+    lastMonitorID = pMonitor->m_id;
 }
 
 void CForeignToplevelHandleWlr::sendState() {

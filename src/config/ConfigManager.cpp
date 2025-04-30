@@ -3051,13 +3051,18 @@ void CConfigManager::ensurePersistentWorkspacesPresent() {
 }
 
 void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {
-    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, window->m_class, window->m_title);
-    SFloatCache id{window};
+    Debug::log(LOG, "storing floating size {}x{} for window {}::{}", size.x, size.y, window->m_initialClass, window->m_initialTitle);
+    // true -> use m_initialClass and m_initialTitle
+    SFloatCache id{window, true};
     m_mStoredFloatingSizes[id] = size;
 }
 
 std::optional<Vector2D> CConfigManager::getStoredFloatingSize(PHLWINDOW window) {
-    SFloatCache id{window};
+    // At startup, m_initialClass and m_initialTitle are undefined 
+    // and m_class and m_title are just "initial" ones.
+    // false -> use m_class and m_title
+    SFloatCache id{window, false};
+    Debug::log(LOG, "Hash for window {}::{} = {}", window->m_class, window->m_title, id.hash);
     if (m_mStoredFloatingSizes.contains(id)) {
         Debug::log(LOG, "got stored size {}x{} for window {}::{}", m_mStoredFloatingSizes[id].x, m_mStoredFloatingSizes[id].y, window->m_class, window->m_title);
         return m_mStoredFloatingSizes[id];

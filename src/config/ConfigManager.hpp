@@ -141,8 +141,11 @@ struct SFirstExecRequest {
 struct SFloatCache {
     size_t hash;
 
-    SFloatCache(PHLWINDOW window) {
-        hash = std::hash<std::string>{}(window->m_class) ^ (std::hash<std::string>{}(window->m_title) << 1);
+    SFloatCache(PHLWINDOW window, bool initial) {
+        if (initial)
+            hash = std::hash<std::string>{}(window->m_initialClass) ^ (std::hash<std::string>{}(window->m_initialTitle) << 1);
+        else
+            hash = std::hash<std::string>{}(window->m_class) ^ (std::hash<std::string>{}(window->m_title) << 1);
     }
 
     bool operator==(const SFloatCache& other) const {

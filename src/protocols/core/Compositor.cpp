@@ -7,7 +7,6 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
-#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../types/DMABuffer.hpp"
@@ -518,8 +517,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
             nullptr);
     }
 
-    // release the buffer if it's synchronous (SHM) as update() has done everything thats needed
-    // so we can let the app know we're done.
+    // release the buffer if it's synchronous (SHM) as updateSynchronousTexture() has copied the buffer data to a GPU tex
     // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
     if (current.buffer && current.buffer->isSynchronous() && role->role() != SURFACE_ROLE_UNASSIGNED)
         dropCurrentBuffer();
@@ -572,12 +570,6 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     else
         FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
-
-    if (!pMonitor || !pMonitor->m_inTimeline || !syncobj)
-        return;
-
-    // attach explicit sync
-    g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

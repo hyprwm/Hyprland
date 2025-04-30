@@ -150,17 +150,20 @@ struct SCurrentRenderData {
 
 class CEGLSync {
   public:
+    static UP<CEGLSync> create();
+
     ~CEGLSync();
 
-    EGLSyncKHR                       sync = nullptr;
-
-    Hyprutils::OS::CFileDescriptor&& takeFD();
     Hyprutils::OS::CFileDescriptor&  fd();
+    Hyprutils::OS::CFileDescriptor&& takeFd();
+    bool                             isValid();
 
   private:
     CEGLSync() = default;
 
-    Hyprutils::OS::CFileDescriptor m_iFd;
+    Hyprutils::OS::CFileDescriptor m_fd;
+    EGLSyncKHR                     m_sync  = EGL_NO_SYNC_KHR;
+    bool                           m_valid = false;
 
     friend class CHyprOpenGLImpl;
 };
@@ -234,7 +237,6 @@ class CHyprOpenGLImpl {
     uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                                createEGLSync(int fence = -1);
 
     bool                                        initShaders();
     bool                                        m_bShadersInitialized = false;

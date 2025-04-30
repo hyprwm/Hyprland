@@ -105,10 +105,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         surface->pending.acquire         = pendingAcquire;
         pendingAcquire                   = {};
 
-        surface->pending.buffer.release = pendingRelease;
-        pendingRelease                  = {};
-
-        surface->pending.buffer->syncReleaser = surface->pending.buffer.release.createSyncRelease();
+        surface->pending.buffer->addReleasePoint(pendingRelease);
+        pendingRelease = {};
     });
 }
 

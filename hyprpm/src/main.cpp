@@ -2,6 +2,7 @@
 #include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
+#include "helpers/Sys.hpp"
 
 #include <cstdio>
 #include <vector>
@@ -95,9 +96,10 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         std::string rev = "";
-        if (command.size() >= 3) {
+        if (command.size() >= 3)
             rev = command[2];
-        }
+
+        NSys::cacheSudo();
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
@@ -106,10 +108,15 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
+        NSys::cacheSudo();
+
         return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
     } else if (command[0] == "update") {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
         bool headers      = g_pPluginManager->updateHeaders(force);
+
+        NSys::cacheSudo();
+
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
@@ -140,6 +147,8 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
+        NSys::cacheSudo();
+
         auto ret = g_pPluginManager->ensurePluginsLoadState();
 
         if (ret == LOADSTATE_HYPRLAND_UPDATED)
@@ -157,6 +166,8 @@ int                        main(int argc, char** argv, char** envp) {
             std::println(stderr, "{}", failureString("Couldn't disable plugin (missing?)"));
             return 1;
         }
+
+        NSys::cacheSudo();
 
         auto ret = g_pPluginManager->ensurePluginsLoadState();
         if (ret != LOADSTATE_OK)
@@ -181,6 +192,7 @@ int                        main(int argc, char** argv, char** envp) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
     } else if (command[0] == "purge-cache") {
+        NSys::cacheSudo();
         DataState::purgeAllCache();
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();

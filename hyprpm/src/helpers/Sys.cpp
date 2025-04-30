@@ -1,4 +1,5 @@
 #include "Sys.hpp"
+#include "Die.hpp"
 #include <pwd.h>
 #include <unistd.h>
 #include <print>
@@ -42,16 +43,16 @@ static bool executableExistsInPath(const std::string& exe) {
     return false;
 }
 
-static std::string execAndGet(std::string cmd, bool noRedirect = false) {
+static std::pair<std::string, int> execAndGet(std::string cmd, bool noRedirect = false) {
     if (!noRedirect)
         cmd += " 2>&1";
 
     CProcess proc("/bin/sh", {"-c", cmd});
 
     if (!proc.runSync())
-        return "error";
+        return {"error", 1};
 
-    return proc.stdOut();
+    return {proc.stdOut(), proc.exitCode()};
 }
 
 int NSys::getUID() {
@@ -75,8 +76,20 @@ std::string NSys::runAsSuperuser(const std::string& cmd) {
         if (!executableExistsInPath(SB))
             continue;
 
-        return execAndGet(std::string{SB} + " /bin/sh -c \"" + cmd + "\"", true);
+        const auto RESULT = execAndGet(std::string{SB} + " /bin/sh -c \"" + cmd + "\"", true);
+
+        if (RESULT.second != 0)
+            Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
+
+        return RESULT.first;
     }
 
-    return "no superuser binary installed";
+    Debug::die("Failed to find a superuser binary. Supported: sudo, doas, run0.");
+    return "";
+}
+
+void NSys::cacheSudo() {
+    // "caches" the sudo so that the prompt later doesn't pop up in a weird spot
+    // sudo will not ask us again for a moment
+    runAsSuperuser("echo e > /dev/null");
 }

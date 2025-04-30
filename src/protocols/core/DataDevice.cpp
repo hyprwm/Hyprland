@@ -809,7 +809,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp
 
     surfacePos += dnd.dndSurface->current.offset;
 
-    CBox                         box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition).scale(pMonitor->scale);
+    CBox                         box = CBox{surfacePos, dnd.dndSurface->current.size}.translate(-pMonitor->m_position).scale(pMonitor->m_scale);
 
     CTexPassElement::SRenderData data;
     data.tex = dnd.dndSurface->current.texture;

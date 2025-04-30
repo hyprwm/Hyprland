@@ -137,8 +137,8 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     if (m_windowData.dimAround.valueOrDefault()) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            return {{m_realPosition->value().x - PMONITOR->vecPosition.x, m_realPosition->value().y - PMONITOR->vecPosition.y},
-                    {PMONITOR->vecSize.x - (m_realPosition->value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_realPosition->value().y - PMONITOR->vecPosition.y)}};
+            return {{m_realPosition->value().x - PMONITOR->m_position.x, m_realPosition->value().y - PMONITOR->m_position.y},
+                    {PMONITOR->m_size.x - (m_realPosition->value().x - PMONITOR->m_position.x), PMONITOR->m_size.y - (m_realPosition->value().y - PMONITOR->m_position.y)}};
     }
 
     SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
@@ -197,7 +197,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 CBox CWindow::getFullWindowBoundingBox() {
     if (m_windowData.dimAround.valueOrDefault()) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+            return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
     auto maxExtents = getFullWindowExtents();
@@ -218,25 +218,25 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto SIZE = m_size;
 
     if (isFullscreen()) {
-        POS  = PMONITOR->vecPosition;
-        SIZE = PMONITOR->vecSize;
+        POS  = PMONITOR->m_position;
+        SIZE = PMONITOR->m_size;
 
         return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
     }
 
-    if (DELTALESSTHAN(POS.y - PMONITOR->vecPosition.y, PMONITOR->vecReservedTopLeft.y, 1)) {
-        POS.y = PMONITOR->vecPosition.y;
-        SIZE.y += PMONITOR->vecReservedTopLeft.y;
+    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, PMONITOR->m_reservedTopLeft.y, 1)) {
+        POS.y = PMONITOR->m_position.y;
+        SIZE.y += PMONITOR->m_reservedTopLeft.y;
     }
-    if (DELTALESSTHAN(POS.x - PMONITOR->vecPosition.x, PMONITOR->vecReservedTopLeft.x, 1)) {
-        POS.x = PMONITOR->vecPosition.x;
-        SIZE.x += PMONITOR->vecReservedTopLeft.x;
+    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, PMONITOR->m_reservedTopLeft.x, 1)) {
+        POS.x = PMONITOR->m_position.x;
+        SIZE.x += PMONITOR->m_reservedTopLeft.x;
     }
-    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->vecPosition.x, PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x, 1)) {
-        SIZE.x += PMONITOR->vecReservedBottomRight.x;
+    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x, 1)) {
+        SIZE.x += PMONITOR->m_reservedBottomRight.x;
     }
-    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->vecPosition.y, PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y, 1)) {
-        SIZE.y += PMONITOR->vecReservedBottomRight.y;
+    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y, 1)) {
+        SIZE.y += PMONITOR->m_reservedBottomRight.y;
     }
 
     return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
@@ -246,7 +246,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     if (m_windowData.dimAround.valueOrDefault()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR)
-            return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+            return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
     SBoxExtents EXTENTS = {{0, 0}, {0, 0}};
@@ -385,10 +385,10 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
         return;
 
     if (PNEWMONITOR != PLASTMONITOR || force) {
-        if (PLASTMONITOR && PLASTMONITOR->m_bEnabled && PNEWMONITOR != PLASTMONITOR)
-            m_wlSurface->resource()->breadthfirst([PLASTMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->leave(PLASTMONITOR->self.lock()); }, nullptr);
+        if (PLASTMONITOR && PLASTMONITOR->m_enabled && PNEWMONITOR != PLASTMONITOR)
+            m_wlSurface->resource()->breadthfirst([PLASTMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->leave(PLASTMONITOR->m_self.lock()); }, nullptr);
 
-        m_wlSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->self.lock()); }, nullptr);
+        m_wlSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->m_self.lock()); }, nullptr);
     }
 
     const auto PMONITOR = m_monitor.lock();
@@ -396,12 +396,12 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     m_wlSurface->resource()->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->scale)
+            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
                 return;
 
-            PROTO::fractional->sendScale(s, PMONITOR->scale);
-            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->scale);
-            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->transform);
+            PROTO::fractional->sendScale(s, PMONITOR->m_scale);
+            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
+            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
         },
         nullptr);
 }
@@ -520,14 +520,14 @@ void CWindow::onUnmap() {
 
     if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
-        if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace == m_workspace)
+        if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 
     const auto PMONITOR = m_monitor.lock();
 
-    if (PMONITOR && PMONITOR->solitaryClient == m_self)
-        PMONITOR->solitaryClient.reset();
+    if (PMONITOR && PMONITOR->m_solitaryClient == m_self)
+        PMONITOR->m_solitaryClient.reset();
 
     if (m_workspace) {
         m_workspace->updateWindows();
@@ -1248,7 +1248,7 @@ void CWindow::setSuspended(bool suspend) {
 bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
     CBox wbox = {m_realPosition->value(), m_realSize->value()};
 
-    return !wbox.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty();
+    return !wbox.intersection({pMonitor->m_position, pMonitor->m_size}).empty();
 }
 
 void CWindow::setAnimationsToMove() {
@@ -1274,21 +1274,21 @@ void CWindow::onWorkspaceAnimUpdate() {
 
     const auto WINBB = getFullWindowBoundingBox();
     if (PWORKSPACE->m_renderOffset->value().x != 0) {
-        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().x / PWSMON->vecSize.x;
+        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().x / PWSMON->m_size.x;
 
-        if (WINBB.x < PWSMON->vecPosition.x)
-            offset.x += (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
+        if (WINBB.x < PWSMON->m_position.x)
+            offset.x += (PWSMON->m_position.x - WINBB.x) * PROGRESS;
 
-        if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x)
-            offset.x += (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
+        if (WINBB.x + WINBB.width > PWSMON->m_position.x + PWSMON->m_size.x)
+            offset.x += (WINBB.x + WINBB.width - PWSMON->m_position.x - PWSMON->m_size.x) * PROGRESS;
     } else if (PWORKSPACE->m_renderOffset->value().y != 0) {
-        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().y / PWSMON->vecSize.y;
+        const auto PROGRESS = PWORKSPACE->m_renderOffset->value().y / PWSMON->m_size.y;
 
-        if (WINBB.y < PWSMON->vecPosition.y)
-            offset.y += (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
+        if (WINBB.y < PWSMON->m_position.y)
+            offset.y += (PWSMON->m_position.y - WINBB.y) * PROGRESS;
 
-        if (WINBB.y + WINBB.height > PWSMON->vecPosition.y + PWSMON->vecSize.y)
-            offset.y += (WINBB.y + WINBB.height - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
+        if (WINBB.y + WINBB.height > PWSMON->m_position.y + PWSMON->m_size.y)
+            offset.y += (WINBB.y + WINBB.height - PWSMON->m_position.y - PWSMON->m_size.y) * PROGRESS;
     }
 
     m_floatingOffset = offset;
@@ -1342,7 +1342,7 @@ WORKSPACEID CWindow::workspaceID() {
 }
 
 MONITORID CWindow::monitorID() {
-    return m_monitor ? m_monitor->ID : MONITOR_INVALID;
+    return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
 bool CWindow::onSpecialWorkspace() {
@@ -1426,7 +1426,7 @@ void CWindow::onUpdateState() {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
-                g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->activeWorkspace);
+                g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
                 g_pCompositor->setActiveMonitor(monitor);
             }
 
@@ -1580,7 +1580,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
-    m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->activeWorkspace;
+    m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->m_activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
@@ -1711,7 +1711,7 @@ Vector2D CWindow::realToReportSize() {
     const auto  PMONITOR   = m_monitor.lock();
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
-        return REPORTSIZE * PMONITOR->scale;
+        return REPORTSIZE * PMONITOR->m_scale;
 
     return REPORTSIZE;
 }
@@ -1728,7 +1728,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 
     const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
-    const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->scale : 1.0f;
+    const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->m_scale : 1.0f;
 
     return SIZE / SCALE;
 }
@@ -1743,7 +1743,7 @@ void CWindow::updateX11SurfaceScale() {
     m_X11SurfaceScaledBy = 1.0f;
     if (m_isX11 && *PXWLFORCESCALEZERO) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            m_X11SurfaceScaledBy = PMONITOR->scale;
+            m_X11SurfaceScaledBy = PMONITOR->m_scale;
     }
 }
 

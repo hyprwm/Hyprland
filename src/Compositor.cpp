@@ -476,7 +476,7 @@ void CCompositor::initAllSignals() {
 
                     for (auto const& m : m_monitors) {
                         scheduleFrameForMonitor(m);
-                        m->applyMonitorRule(&m->activeMonitorRule, true);
+                        m->applyMonitorRule(&m->m_activeMonitorRule, true);
                     }
 
                     g_pConfigManager->m_wantsMonitorReload = true;
@@ -558,8 +558,8 @@ void CCompositor::cleanup() {
     for (auto const& m : m_monitors) {
         g_pHyprOpenGL->destroyMonitorResources(m);
 
-        m->output->state->setEnabled(false);
-        m->state.commit();
+        m->m_output->state->setEnabled(false);
+        m->m_state.commit();
     }
 
     g_pXWayland.reset();
@@ -783,7 +783,7 @@ void CCompositor::startCompositor() {
 
 PHLMONITOR CCompositor::getMonitorFromID(const MONITORID& id) {
     for (auto const& m : m_monitors) {
-        if (m->ID == id) {
+        if (m->m_id == id) {
             return m;
         }
     }
@@ -793,7 +793,7 @@ PHLMONITOR CCompositor::getMonitorFromID(const MONITORID& id) {
 
 PHLMONITOR CCompositor::getMonitorFromName(const std::string& name) {
     for (auto const& m : m_monitors) {
-        if (m->szName == name) {
+        if (m->m_name == name) {
             return m;
         }
     }
@@ -802,7 +802,7 @@ PHLMONITOR CCompositor::getMonitorFromName(const std::string& name) {
 
 PHLMONITOR CCompositor::getMonitorFromDesc(const std::string& desc) {
     for (auto const& m : m_monitors) {
-        if (m->szDescription.starts_with(desc))
+        if (m->m_description.starts_with(desc))
             return m;
     }
     return nullptr;
@@ -820,7 +820,7 @@ PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
 
     PHLMONITOR mon;
     for (auto const& m : m_monitors) {
-        if (CBox{m->vecPosition, m->vecSize}.containsPoint(point)) {
+        if (CBox{m->m_position, m->m_size}.containsPoint(point)) {
             mon = m;
             break;
         }
@@ -831,7 +831,7 @@ PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
         PHLMONITOR pBestMon;
 
         for (auto const& m : m_monitors) {
-            float dist = vecToRectDistanceSquared(point, m->vecPosition, m->vecPosition + m->vecSize);
+            float dist = vecToRectDistanceSquared(point, m->m_position, m->m_position + m->m_size);
 
             if (dist < bestDistance || !pBestMon) {
                 bestDistance = dist;
@@ -901,11 +901,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 const auto PWINDOWMONITOR = w->m_monitor.lock();
 
                 // to avoid focusing windows behind special workspaces from other monitors
-                if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->activeSpecialWorkspace && w->m_workspace != PWINDOWMONITOR->activeSpecialWorkspace) {
+                if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->m_activeSpecialWorkspace && w->m_workspace != PWINDOWMONITOR->m_activeSpecialWorkspace) {
                     const auto BB = w->getWindowBoxUnified(properties);
-                    if (BB.x >= PWINDOWMONITOR->vecPosition.x && BB.y >= PWINDOWMONITOR->vecPosition.y &&
-                        BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x &&
-                        BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
+                    if (BB.x >= PWINDOWMONITOR->m_position.x && BB.y >= PWINDOWMONITOR->m_position.y &&
+                        BB.x + BB.width <= PWINDOWMONITOR->m_position.x + PWINDOWMONITOR->m_size.x && BB.y + BB.height <= PWINDOWMONITOR->m_position.y + PWINDOWMONITOR->m_size.y)
                         continue;
                 }
 
@@ -992,10 +991,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     };
 
     // special workspace
-    if (PMONITOR->activeSpecialWorkspace && !*PSPECIALFALLTHRU)
+    if (PMONITOR->m_activeSpecialWorkspace && !*PSPECIALFALLTHRU)
         return windowForWorkspace(true);
 
-    if (PMONITOR->activeSpecialWorkspace) {
+    if (PMONITOR->m_activeSpecialWorkspace) {
         const auto PWINDOW = windowForWorkspace(true);
 
         if (PWINDOW)
@@ -1061,7 +1060,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
 
 PHLMONITOR CCompositor::getMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     for (auto const& m : m_monitors) {
-        if (m->output == out) {
+        if (m->m_output == out) {
             return m;
         }
     }
@@ -1071,7 +1070,7 @@ PHLMONITOR CCompositor::getMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 
 PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     for (auto const& m : m_realMonitors) {
-        if (m->output == out) {
+        if (m->m_output == out) {
             return m;
         }
     }
@@ -1137,7 +1136,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
 
     if (pWindow->m_pinned)
-        pWindow->m_workspace = m_lastMonitor->activeWorkspace;
+        pWindow->m_workspace = m_lastMonitor->m_activeWorkspace;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
 
@@ -1145,8 +1144,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         const auto PWORKSPACE = pWindow->m_workspace;
         // This is to fix incorrect feedback on the focus history.
         PWORKSPACE->m_lastFocusedWindow = pWindow;
-        if (m_lastMonitor->activeWorkspace)
-            PWORKSPACE->rememberPrevWorkspace(m_lastMonitor->activeWorkspace);
+        if (m_lastMonitor->m_activeWorkspace)
+            PWORKSPACE->rememberPrevWorkspace(m_lastMonitor->m_activeWorkspace);
         if (PWORKSPACE->m_isSpecialWorkspace)
             m_lastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
         else if (PMONITOR)
@@ -1160,7 +1159,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
-    if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace != pWindow->m_workspace && !pWindow->m_pinned && !*PSPECIALFALLTHROUGH)
+    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !pWindow->m_pinned && !*PSPECIALFALLTHROUGH)
         PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
@@ -1267,7 +1266,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
 }
 
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
-    for (auto const& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
+    for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
             if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->mapped) || ls->m_alpha->value() == 0.f)
                 continue;
@@ -1474,7 +1473,7 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
 
         if (ls->m_fadingOut && ls->m_readyToDelete && ls->isFadedOut()) {
             for (auto const& m : m_monitors) {
-                for (auto& lsl : m->m_aLayerSurfaceLayers) {
+                for (auto& lsl : m->m_layerSurfaceLayers) {
                     if (!lsl.empty() && std::ranges::find_if(lsl, [&](auto& other) { return other == ls; }) != lsl.end()) {
                         std::erase_if(lsl, [&](auto& other) { return other == ls || !other; });
                     }
@@ -1528,7 +1527,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
     if (!PMONITOR)
         return nullptr; // ??
 
-    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->vecPosition, PMONITOR->vecSize} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
     const auto PWORKSPACE    = pWindow->m_workspace;
 
     return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow, pWindow->m_isFloating);
@@ -1754,14 +1753,14 @@ PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
 
 bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     return std::ranges::any_of(
-        m_monitors, [&](const PHLMONITOR& m) { return VECINRECT(point, m->vecPosition.x, m->vecPosition.y, m->vecSize.x + m->vecPosition.x, m->vecSize.y + m->vecPosition.y); });
+        m_monitors, [&](const PHLMONITOR& m) { return VECINRECT(point, m->m_position.x, m->m_position.y, m->m_size.x + m->m_position.x, m->m_size.y + m->m_position.y); });
 }
 
 bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {
     const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
 
-    const auto XY1 = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-    const auto XY2 = PMONITOR->vecPosition + PMONITOR->vecSize - PMONITOR->vecReservedBottomRight;
+    const auto XY1 = PMONITOR->m_position + PMONITOR->m_reservedTopLeft;
+    const auto XY2 = PMONITOR->m_position + PMONITOR->m_size - PMONITOR->m_reservedBottomRight;
 
     return VECNOTINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
 }
@@ -1774,8 +1773,8 @@ PHLMONITOR CCompositor::getMonitorInDirection(PHLMONITOR pSourceMonitor, const c
     if (!pSourceMonitor)
         return nullptr;
 
-    const auto POSA  = pSourceMonitor->vecPosition;
-    const auto SIZEA = pSourceMonitor->vecSize;
+    const auto POSA  = pSourceMonitor->m_position;
+    const auto SIZEA = pSourceMonitor->m_size;
 
     auto       longestIntersect        = -1;
     PHLMONITOR longestIntersectMonitor = nullptr;
@@ -1784,8 +1783,8 @@ PHLMONITOR CCompositor::getMonitorInDirection(PHLMONITOR pSourceMonitor, const c
         if (m == pSourceMonitor)
             continue;
 
-        const auto POSB  = m->vecPosition;
-        const auto SIZEB = m->vecSize;
+        const auto POSB  = m->m_position;
+        const auto SIZEB = m->m_size;
         switch (dir) {
             case 'l':
                 if (STICKS(POSA.x, POSB.x + SIZEB.x)) {
@@ -1937,13 +1936,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
 
 MONITORID CCompositor::getNextAvailableMonitorID(std::string const& name) {
     // reuse ID if it's already in the map, and the monitor with that ID is not being used by another monitor
-    if (m_monitorIDMap.contains(name) && !std::ranges::any_of(m_realMonitors, [&](auto m) { return m->ID == m_monitorIDMap[name]; }))
+    if (m_monitorIDMap.contains(name) && !std::ranges::any_of(m_realMonitors, [&](auto m) { return m->m_id == m_monitorIDMap[name]; }))
         return m_monitorIDMap[name];
 
     // otherwise, find minimum available ID that is not in the map
     std::unordered_set<MONITORID> usedIDs;
     for (auto const& monitor : m_realMonitors) {
-        usedIDs.insert(monitor->ID);
+        usedIDs.insert(monitor->m_id);
     }
 
     MONITORID nextID = 0;
@@ -1955,11 +1954,11 @@ MONITORID CCompositor::getNextAvailableMonitorID(std::string const& name) {
 }
 
 void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitorB) {
-    const auto PWORKSPACEA = pMonitorA->activeWorkspace;
-    const auto PWORKSPACEB = pMonitorB->activeWorkspace;
+    const auto PWORKSPACEA = pMonitorA->m_activeWorkspace;
+    const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
 
     PWORKSPACEA->m_monitor = pMonitorB;
-    PWORKSPACEA->moveToMonitor(pMonitorB->ID);
+    PWORKSPACEA->moveToMonitor(pMonitorB->m_id);
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEA) {
@@ -1972,11 +1971,11 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_isFloating)
-                *w->m_realPosition = w->m_realPosition->goal() - pMonitorA->vecPosition + pMonitorB->vecPosition;
+                *w->m_realPosition = w->m_realPosition->goal() - pMonitorA->m_position + pMonitorB->m_position;
 
             if (w->isFullscreen()) {
-                *w->m_realPosition = pMonitorB->vecPosition;
-                *w->m_realSize     = pMonitorB->vecSize;
+                *w->m_realPosition = pMonitorB->m_position;
+                *w->m_realSize     = pMonitorB->m_size;
             }
 
             w->updateToplevel();
@@ -1984,7 +1983,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     }
 
     PWORKSPACEB->m_monitor = pMonitorA;
-    PWORKSPACEB->moveToMonitor(pMonitorA->ID);
+    PWORKSPACEB->moveToMonitor(pMonitorA->m_id);
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEB) {
@@ -1997,46 +1996,46 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_isFloating)
-                *w->m_realPosition = w->m_realPosition->goal() - pMonitorB->vecPosition + pMonitorA->vecPosition;
+                *w->m_realPosition = w->m_realPosition->goal() - pMonitorB->m_position + pMonitorA->m_position;
 
             if (w->isFullscreen()) {
-                *w->m_realPosition = pMonitorA->vecPosition;
-                *w->m_realSize     = pMonitorA->vecSize;
+                *w->m_realPosition = pMonitorA->m_position;
+                *w->m_realSize     = pMonitorA->m_size;
             }
 
             w->updateToplevel();
         }
     }
 
-    pMonitorA->activeWorkspace = PWORKSPACEB;
-    pMonitorB->activeWorkspace = PWORKSPACEA;
+    pMonitorA->m_activeWorkspace = PWORKSPACEB;
+    pMonitorB->m_activeWorkspace = PWORKSPACEA;
 
     PWORKSPACEA->rememberPrevWorkspace(PWORKSPACEB);
     PWORKSPACEB->rememberPrevWorkspace(PWORKSPACEA);
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->ID);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);
 
     updateFullscreenFadeOnWorkspace(PWORKSPACEB);
     updateFullscreenFadeOnWorkspace(PWORKSPACEA);
 
-    if (pMonitorA->ID == g_pCompositor->m_lastMonitor->ID || pMonitorB->ID == g_pCompositor->m_lastMonitor->ID) {
-        const auto LASTWIN = pMonitorA->ID == g_pCompositor->m_lastMonitor->ID ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
+    if (pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id || pMonitorB->m_id == g_pCompositor->m_lastMonitor->m_id) {
+        const auto LASTWIN = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
         g_pCompositor->focusWindow(LASTWIN ? LASTWIN :
                                              (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
 
-        const auto PNEWWORKSPACE = pMonitorA->ID == g_pCompositor->m_lastMonitor->ID ? PWORKSPACEB : PWORKSPACEA;
+        const auto PNEWWORKSPACE = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB : PWORKSPACEA;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
         EMIT_HOOK_EVENT("workspace", PNEWWORKSPACE);
     }
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->szName)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
     EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{PWORKSPACEA, pMonitorB}));
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->szName)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
 
     EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{PWORKSPACEB, pMonitorA}));
 }
@@ -2103,7 +2102,7 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
         }
     } else {
         for (auto const& m : m_monitors) {
-            if (!m->output)
+            if (!m->m_output)
                 continue;
 
             if (m->matchesStaticSelector(name)) {
@@ -2124,11 +2123,11 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     if (pWorkspace->m_monitor == pMonitor)
         return;
 
-    Debug::log(LOG, "moveWorkspaceToMonitor: Moving {} to monitor {}", pWorkspace->m_id, pMonitor->ID);
+    Debug::log(LOG, "moveWorkspaceToMonitor: Moving {} to monitor {}", pWorkspace->m_id, pMonitor->m_id);
 
     const auto POLDMON = pWorkspace->m_monitor.lock();
 
-    const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->activeWorkspace == pWorkspace : false;
+    const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->m_activeWorkspace == pWorkspace : false;
 
     // fix old mon
     WORKSPACEID nextWorkspaceOnMonitorID = WORKSPACE_INVALID;
@@ -2154,7 +2153,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
             if (POLDMON)
-                g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->ID);
+                g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->m_id);
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
@@ -2164,7 +2163,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // move the workspace
     pWorkspace->m_monitor = pMonitor;
-    pWorkspace->moveToMonitor(pMonitor->ID);
+    pWorkspace->moveToMonitor(pMonitor->m_id);
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == pWorkspace) {
@@ -2179,16 +2178,16 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             if (w->m_isMapped && !w->isHidden()) {
                 if (POLDMON) {
                     if (w->m_isFloating)
-                        *w->m_realPosition = w->m_realPosition->goal() - POLDMON->vecPosition + pMonitor->vecPosition;
+                        *w->m_realPosition = w->m_realPosition->goal() - POLDMON->m_position + pMonitor->m_position;
 
                     if (w->isFullscreen()) {
-                        *w->m_realPosition = pMonitor->vecPosition;
-                        *w->m_realSize     = pMonitor->vecSize;
+                        *w->m_realPosition = pMonitor->m_position;
+                        *w->m_realSize     = pMonitor->m_size;
                     }
                 } else
                     *w->m_realPosition = Vector2D{
-                        (pMonitor->vecSize.x != 0) ? (int)w->m_realPosition->goal().x % (int)pMonitor->vecSize.x : 0,
-                        (pMonitor->vecSize.y != 0) ? (int)w->m_realPosition->goal().y % (int)pMonitor->vecSize.y : 0,
+                        (pMonitor->m_size.x != 0) ? (int)w->m_realPosition->goal().x % (int)pMonitor->m_size.x : 0,
+                        (pMonitor->m_size.y != 0) ? (int)w->m_realPosition->goal().y % (int)pMonitor->m_size.y : 0,
                     };
             }
 
@@ -2199,32 +2198,32 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_lastMonitor) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
 
-        if (valid(pMonitor->activeWorkspace)) {
-            pMonitor->activeWorkspace->m_visible = false;
-            pMonitor->activeWorkspace->startAnim(false, false);
+        if (valid(pMonitor->m_activeWorkspace)) {
+            pMonitor->m_activeWorkspace->m_visible = false;
+            pMonitor->m_activeWorkspace->startAnim(false, false);
         }
 
         if (*PHIDESPECIALONWORKSPACECHANGE)
             pMonitor->setSpecialWorkspace(nullptr);
 
         setActiveMonitor(pMonitor);
-        pMonitor->activeWorkspace = pWorkspace;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
+        pMonitor->m_activeWorkspace = pWorkspace;
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
 
         pWorkspace->startAnim(true, true, true);
         pWorkspace->m_visible = true;
 
         if (!noWarpCursor)
-            g_pPointerManager->warpTo(pMonitor->vecPosition + pMonitor->vecTransformedSize / 2.F);
+            g_pPointerManager->warpTo(pMonitor->m_position + pMonitor->m_transformedSize / 2.F);
 
         g_pInputManager->sendMotionEventsToFocused();
     }
 
     // finalize
     if (POLDMON) {
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
-        if (valid(POLDMON->activeWorkspace))
-            updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->m_id);
+        if (valid(POLDMON->m_activeWorkspace))
+            updateFullscreenFadeOnWorkspace(POLDMON->m_activeWorkspace);
         updateSuspendedStates();
     }
 
@@ -2232,8 +2231,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     updateSuspendedStates();
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->szName)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
     EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{pWorkspace, pMonitor}));
 }
 
@@ -2274,7 +2273,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     const auto PMONITOR = pWorkspace->m_monitor.lock();
 
     if (pWorkspace->m_id == PMONITOR->activeWorkspaceID() || pWorkspace->m_id == PMONITOR->activeSpecialWorkspaceID()) {
-        for (auto const& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->m_fadingOut)
                 *ls->m_alpha = FULLSCREEN && pWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
@@ -2382,7 +2381,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
     if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))
-        g_pHyprRenderer->setSurfaceScanoutMode(PWINDOW->m_wlSurface->resource(), EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->self.lock() : nullptr);
+        g_pHyprRenderer->setSurfaceScanoutMode(PWINDOW->m_wlSurface->resource(), EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
 
     g_pConfigManager->ensureVRR(PMONITOR);
 }
@@ -2406,13 +2405,13 @@ void CCompositor::scheduleFrameForMonitor(PHLMONITOR pMonitor, IOutput::schedule
     if ((m_aqBackend->hasSession() && !m_aqBackend->session->active) || !m_sessionActive)
         return;
 
-    if (!pMonitor->m_bEnabled)
+    if (!pMonitor->m_enabled)
         return;
 
-    if (pMonitor->renderingActive)
-        pMonitor->pendingFrame = true;
+    if (pMonitor->m_renderingActive)
+        pMonitor->m_pendingFrame = true;
 
-    pMonitor->output->scheduleFrame(reason);
+    pMonitor->m_output->scheduleFrame(reason);
 }
 
 PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
@@ -2617,8 +2616,8 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     int Y = 0;
 
     if (isExact) {
-        X = xIsPercent ? std::stof(x) * 0.01 * PMONITOR->vecSize.x : std::stoi(x);
-        Y = yIsPercent ? std::stof(y) * 0.01 * PMONITOR->vecSize.y : std::stoi(y);
+        X = xIsPercent ? std::stof(x) * 0.01 * PMONITOR->m_size.x : std::stoi(x);
+        Y = yIsPercent ? std::stof(y) * 0.01 * PMONITOR->m_size.y : std::stoi(y);
     } else {
         X = xIsPercent ? (std::stof(x) * 0.01 * relativeTo.x) + relativeTo.x : std::stoi(x) + relativeTo.x;
         Y = yIsPercent ? (std::stof(y) * 0.01 * relativeTo.y) + relativeTo.y : std::stoi(y) + relativeTo.y;
@@ -2633,7 +2632,7 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
 
     // check if bound
     if (const auto PMONITOR = g_pConfigManager->getBoundMonitorForWS(NAME); PMONITOR)
-        monID = PMONITOR->ID;
+        monID = PMONITOR->m_id;
 
     const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
 
@@ -2659,16 +2658,16 @@ void CCompositor::setActiveMonitor(PHLMONITOR pMonitor) {
         return;
     }
 
-    const auto PWORKSPACE = pMonitor->activeWorkspace;
+    const auto PWORKSPACE = pMonitor->m_activeWorkspace;
 
     const auto WORKSPACE_ID   = PWORKSPACE ? std::to_string(PWORKSPACE->m_id) : std::to_string(WORKSPACE_INVALID);
     const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_name : "?";
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->szName + "," + WORKSPACE_NAME});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->szName + "," + WORKSPACE_ID});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
 
     EMIT_HOOK_EVENT("focusedMon", pMonitor);
-    m_lastMonitor = pMonitor->self;
+    m_lastMonitor = pMonitor->m_self;
 }
 
 bool CCompositor::isWorkspaceSpecial(const WORKSPACEID& id) {
@@ -2733,7 +2732,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(std::nullopt, true);
-    const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->vecPosition : Vector2D{});
+    const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->m_position : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
 
     if (!pWindow->m_isFloating)
@@ -2770,7 +2769,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
             g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
         if (pWindow->m_isFloating)
-            *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
+            *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
     }
 
     pWindow->updateToplevel();
@@ -2826,11 +2825,11 @@ void CCompositor::arrangeMonitors() {
     for (auto it = toArrange.begin(); it != toArrange.end();) {
         auto m = *it;
 
-        if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
+        if (m->m_activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
-            Debug::log(LOG, "arrangeMonitors: {} explicit {:j}", m->szName, m->activeMonitorRule.offset);
+            Debug::log(LOG, "arrangeMonitors: {} explicit {:j}", m->m_name, m->m_activeMonitorRule.offset);
 
-            m->moveTo(m->activeMonitorRule.offset);
+            m->moveTo(m->m_activeMonitorRule.offset);
             arranged.push_back(m);
             it = toArrange.erase(it);
 
@@ -2857,10 +2856,10 @@ void CCompositor::arrangeMonitors() {
 
         // Finds the max and min values of explicitely placed monitors.
         for (auto const& m : arranged) {
-            maxXOffsetRight = std::max<double>(m->vecPosition.x + m->vecSize.x, maxXOffsetRight);
-            maxXOffsetLeft  = std::min<double>(m->vecPosition.x, maxXOffsetLeft);
-            maxYOffsetDown  = std::max<double>(m->vecPosition.y + m->vecSize.y, maxYOffsetDown);
-            maxYOffsetUp    = std::min<double>(m->vecPosition.y, maxYOffsetUp);
+            maxXOffsetRight = std::max<double>(m->m_position.x + m->m_size.x, maxXOffsetRight);
+            maxXOffsetLeft  = std::min<double>(m->m_position.x, maxXOffsetLeft);
+            maxYOffsetDown  = std::max<double>(m->m_position.y + m->m_size.y, maxYOffsetDown);
+            maxYOffsetUp    = std::min<double>(m->m_position.y, maxYOffsetUp);
         }
     };
 
@@ -2871,15 +2870,15 @@ void CCompositor::arrangeMonitors() {
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
         Vector2D newPosition = {0, 0};
-        switch (m->activeMonitorRule.autoDir) {
-            case eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->vecSize.y; break;
+        switch (m->m_activeMonitorRule.autoDir) {
+            case eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->m_size.y; break;
             case eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
-            case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->vecSize.x; break;
+            case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->m_size.x; break;
             case eAutoDirs::DIR_AUTO_RIGHT:
             case eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
             default: UNREACHABLE();
         }
-        Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->szName, m->vecPosition);
+        Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->m_name, m->m_position);
         m->moveTo(newPosition);
         arranged.emplace_back(m);
     }
@@ -2888,14 +2887,14 @@ void CCompositor::arrangeMonitors() {
     // and set xwayland positions aka auto for all
     maxXOffsetRight = 0;
     for (auto const& m : m_monitors) {
-        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {}]", m->szName, maxXOffsetRight, 0);
-        m->vecXWaylandPosition = {maxXOffsetRight, 0};
-        maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
+        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {}]", m->m_name, maxXOffsetRight, 0);
+        m->m_xwaylandPosition = {maxXOffsetRight, 0};
+        maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->m_transformedSize.x : m->m_size.x);
 
         if (*PXWLFORCESCALEZERO)
-            m->xwaylandScale = m->scale;
+            m->m_xwaylandScale = m->m_scale;
         else
-            m->xwaylandScale = 1.f;
+            m->m_xwaylandScale = 1.f;
     }
 
     PROTO::xdgOutput->updateAllOutputs();
@@ -2907,7 +2906,7 @@ void CCompositor::enterUnsafeState() {
 
     Debug::log(LOG, "Entering unsafe state");
 
-    if (!m_unsafeOutput->m_bEnabled)
+    if (!m_unsafeOutput->m_enabled)
         m_unsafeOutput->onConnect(false);
 
     m_unsafeState = true;
@@ -2925,7 +2924,7 @@ void CCompositor::leaveUnsafeState() {
 
     PHLMONITOR pNewMonitor = nullptr;
     for (auto const& pMonitor : m_monitors) {
-        if (pMonitor->output != m_unsafeOutput->output) {
+        if (pMonitor->m_output != m_unsafeOutput->m_output) {
             pNewMonitor = pMonitor;
             break;
         }
@@ -2933,7 +2932,7 @@ void CCompositor::leaveUnsafeState() {
 
     RASSERT(pNewMonitor, "Tried to leave unsafe without a monitor");
 
-    if (m_unsafeOutput->m_bEnabled)
+    if (m_unsafeOutput->m_enabled)
         m_unsafeOutput->onDisconnect();
 
     for (auto const& m : m_monitors) {
@@ -2993,7 +2992,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     }
 
     if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
-        if (*PCURSORMONITOR == monitor->szName) {
+        if (*PCURSORMONITOR == monitor->m_name) {
             cursorDefaultDone = true;
             g_pCompositor->warpCursorTo(POS, true);
             g_pInputManager->refocus();
@@ -3018,23 +3017,23 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     Debug::log(LOG, "New output with name {}", output->name);
 
-    PNEWMONITOR->szName           = output->name;
-    PNEWMONITOR->self             = PNEWMONITOR;
-    const bool FALLBACK           = g_pCompositor->m_unsafeOutput ? output == g_pCompositor->m_unsafeOutput->output : false;
-    PNEWMONITOR->ID               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);
-    PNEWMONITOR->isUnsafeFallback = FALLBACK;
+    PNEWMONITOR->m_name             = output->name;
+    PNEWMONITOR->m_self             = PNEWMONITOR;
+    const bool FALLBACK             = g_pCompositor->m_unsafeOutput ? output == g_pCompositor->m_unsafeOutput->m_output : false;
+    PNEWMONITOR->m_id               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);
+    PNEWMONITOR->m_isUnsafeFallback = FALLBACK;
 
     EMIT_HOOK_EVENT("newMonitor", PNEWMONITOR);
 
     if (!FALLBACK)
         PNEWMONITOR->onConnect(false);
 
-    if (!PNEWMONITOR->m_bEnabled || FALLBACK)
+    if (!PNEWMONITOR->m_enabled || FALLBACK)
         return;
 
     // ready to process if we have a real monitor
 
-    if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
+    if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->m_refreshRate > g_pHyprRenderer->m_pMostHzMonitor->m_refreshRate) && PNEWMONITOR->m_enabled)
         g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
     g_pCompositor->m_readyToProcess = true;
@@ -3112,7 +3111,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PWORKSPACE)
-                createNewWorkspace(id, PMONITOR ? PMONITOR->ID : m_lastMonitor->ID, wsname, false);
+                createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
         }
 
         if (PWORKSPACE)
@@ -3125,12 +3124,12 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
 
         if (PWORKSPACE) {
             if (PWORKSPACE->m_monitor == PMONITOR) {
-                Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.workspaceString, PMONITOR->szName);
+                Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.workspaceString, PMONITOR->m_name);
 
                 continue;
             }
 
-            Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->szName);
+            Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->m_name);
             moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
             continue;
         }

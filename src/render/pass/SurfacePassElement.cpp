@@ -64,7 +64,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     const auto  PROJSIZEUNSCALED = windowBox.size();
 
-    windowBox.scale(data.pMonitor->scale);
+    windowBox.scale(data.pMonitor->m_scale);
     windowBox.round();
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
@@ -72,14 +72,14 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         return;
     }
 
-    const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->scale) != data.pMonitor->scale /* Fractional */ && data.surface->current.scale == 1 /* fs protocol */ &&
+    const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->m_scale) != data.pMonitor->m_scale /* Fractional */ && data.surface->current.scale == 1 /* fs protocol */ &&
         windowBox.size() != data.surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, data.surface->current.bufferSize.x, 3) &&
         DELTALESSTHAN(windowBox.height, data.surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!data.pWindow || (!data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     if (data.surface->colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
-    g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+    g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->m_self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;
     g_pHyprOpenGL->m_RenderData.clipRegion = visibleRegion(cancelRender);
@@ -127,7 +127,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        data.surface->presentFeedback(data.when, data.pMonitor->self.lock());
+        data.surface->presentFeedback(data.when, data.pMonitor->m_self.lock());
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here
@@ -138,7 +138,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 }
 
 CBox CSurfacePassElement::getTexBox() {
-    const double outputX = -data.pMonitor->vecPosition.x, outputY = -data.pMonitor->vecPosition.y;
+    const double outputX = -data.pMonitor->m_position.x, outputY = -data.pMonitor->m_position.y;
 
     const auto   INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
     auto         PSURFACE                    = CWLSurface::fromResource(data.surface);
@@ -230,7 +230,7 @@ CRegion CSurfacePassElement::opaqueRegion() {
         CRegion    opaqueSurf = data.surface->current.opaque.copy().intersect(CBox{{}, {data.w, data.h}});
         const auto texBox     = getTexBox();
         opaqueSurf.scale(texBox.size() / Vector2D{data.w, data.h});
-        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->vecPosition).expand(-data.rounding);
+        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->m_position).expand(-data.rounding);
     }
 
     return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};
@@ -269,11 +269,11 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     visibleRegion.translate(-uvTL * bufferSize);
 
     auto texBox = getTexBox();
-    texBox.scale(data.pMonitor->scale);
+    texBox.scale(data.pMonitor->m_scale);
     texBox.round();
 
     visibleRegion.scale((Vector2D(1, 1) / (uvBR - uvTL)) * (texBox.size() / bufferSize));
-    visibleRegion.translate((data.pos + data.localPos) * data.pMonitor->scale - data.pMonitor->vecPosition);
+    visibleRegion.translate((data.pos + data.localPos) * data.pMonitor->m_scale - data.pMonitor->m_position);
 
     return visibleRegion;
 }
@@ -281,6 +281,6 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
 void CSurfacePassElement::discard() {
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
         Debug::log(TRACE, "discard for invisible surface");
-        data.surface->presentFeedback(data.when, data.pMonitor->self.lock(), true);
+        data.surface->presentFeedback(data.when, data.pMonitor->m_self.lock(), true);
     }
 }

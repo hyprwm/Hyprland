@@ -58,15 +58,15 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    dmabufFormat = pMonitor->output->state->state().drmFormat;
+    dmabufFormat = pMonitor->m_output->state->state().drmFormat;
 
     if (box_.width == 0 && box_.height == 0)
-        box = {0, 0, (int)(pMonitor->vecSize.x), (int)(pMonitor->vecSize.y)};
+        box = {0, 0, (int)(pMonitor->m_size.x), (int)(pMonitor->m_size.y)};
     else {
         box = box_;
     }
 
-    box.transform(wlTransformToHyprutils(pMonitor->transform), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y).scale(pMonitor->scale).round();
+    box.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y).scale(pMonitor->m_scale).round();
 
     shmStride = NFormatUtils::minStride(PSHMINFO, box.w);
 
@@ -189,7 +189,7 @@ void CScreencopyFrame::share() {
 
 void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
-    auto       TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
+    auto       TEXTURE = makeShared<CTexture>(pMonitor->m_output->state->state().buffer);
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -200,9 +200,9 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        CBox monbox = CBox{0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y}
+        CBox monbox = CBox{0, 0, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y}
                           .translate({-box.x, -box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                          .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+                          .transform(wlTransformToHyprutils(invertTransform(pMonitor->m_transform)), pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
@@ -210,13 +210,13 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage,
-                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(), true);
+                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position - box.pos(), true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
         CBox texbox =
-            CBox{pMonitor->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+            CBox{pMonitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 
@@ -230,7 +230,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
 bool CScreencopyFrame::copyShm() {
     const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(resource->client(), PERMISSION_TYPE_SCREENCOPY);
-    auto       TEXTURE = makeShared<CTexture>(pMonitor->output->state->state().buffer);
+    auto       TEXTURE = makeShared<CTexture>(pMonitor->m_output->state->state().buffer);
 
     auto       shm                = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
@@ -240,7 +240,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(box.w, box.h, pMonitor->output->state->state().drmFormat);
+    fb.alloc(box.w, box.h, pMonitor->m_output->state->state().drmFormat);
 
     if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering");
@@ -248,7 +248,7 @@ bool CScreencopyFrame::copyShm() {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        CBox monbox = CBox{0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y}.translate({-box.x, -box.y});
+        CBox monbox = CBox{0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y}.translate({-box.x, -box.y});
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
@@ -256,13 +256,13 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(pMonitor.lock(), Time::steadyNow(), fakeDamage,
-                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition - box.pos(), true);
+                                                        g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position - box.pos(), true);
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
         CBox texbox =
-            CBox{pMonitor->vecTransformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
+            CBox{pMonitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
     }
 

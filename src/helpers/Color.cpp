@@ -8,11 +8,11 @@
 CHyprColor::CHyprColor() = default;
 
 CHyprColor::CHyprColor(float r_, float g_, float b_, float a_) : r(r_), g(g_), b(b_), a(a_) {
-    okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
+    m_okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
 }
 
 CHyprColor::CHyprColor(uint64_t hex) : r(RED(hex)), g(GREEN(hex)), b(BLUE(hex)), a(ALPHA(hex)) {
-    okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
+    m_okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
 }
 
 CHyprColor::CHyprColor(const Hyprgraphics::CColor& color, float a_) : a(a_) {
@@ -21,7 +21,7 @@ CHyprColor::CHyprColor(const Hyprgraphics::CColor& color, float a_) : a(a_) {
     g               = SRGB.g;
     b               = SRGB.b;
 
-    okLab = color.asOkLab();
+    m_okLab = color.asOkLab();
 }
 
 uint32_t CHyprColor::getAsHex() const {
@@ -33,11 +33,11 @@ Hyprgraphics::CColor::SSRGB CHyprColor::asRGB() const {
 }
 
 Hyprgraphics::CColor::SOkLab CHyprColor::asOkLab() const {
-    return okLab;
+    return m_okLab;
 }
 
 Hyprgraphics::CColor::SHSL CHyprColor::asHSL() const {
-    return Hyprgraphics::CColor(okLab).asHSL();
+    return Hyprgraphics::CColor(m_okLab).asHSL();
 }
 
 CHyprColor CHyprColor::stripA() const {

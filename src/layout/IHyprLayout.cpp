@@ -27,7 +27,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
         pWindow->m_lastFloatingSize = STOREDSIZE.value();
     } else if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PMONITOR         = pWindow->m_monitor.lock();
-        pWindow->m_lastFloatingSize = PMONITOR->vecSize / 2.f;
+        pWindow->m_lastFloatingSize = PMONITOR->m_size / 2.f;
     } else
         pWindow->m_lastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
 
@@ -128,18 +128,18 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
         // reject any windows with size <= 5x5
         if (pWindow->m_realSize->goal().x <= 5 || pWindow->m_realSize->goal().y <= 5)
-            *pWindow->m_realSize = PMONITOR->vecSize / 2.f;
+            *pWindow->m_realSize = PMONITOR->m_size / 2.f;
 
         if (pWindow->m_isX11 && pWindow->isX11OverrideRedirect()) {
 
             if (pWindow->m_xwaylandSurface->geometry.x != 0 && pWindow->m_xwaylandSurface->geometry.y != 0)
                 *pWindow->m_realPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_xwaylandSurface->geometry.pos());
             else
-                *pWindow->m_realPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_realSize->goal().x) / 2.f,
-                                                    PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_realSize->goal().y) / 2.f);
+                *pWindow->m_realPosition = Vector2D(PMONITOR->m_position.x + (PMONITOR->m_size.x - pWindow->m_realSize->goal().x) / 2.f,
+                                                    PMONITOR->m_position.y + (PMONITOR->m_size.y - pWindow->m_realSize->goal().y) / 2.f);
         } else {
-            *pWindow->m_realPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_realSize->goal().x) / 2.f,
-                                                PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_realSize->goal().y) / 2.f);
+            *pWindow->m_realPosition = Vector2D(PMONITOR->m_position.x + (PMONITOR->m_size.x - pWindow->m_realSize->goal().x) / 2.f,
+                                                PMONITOR->m_position.y + (PMONITOR->m_size.y - pWindow->m_realSize->goal().y) / 2.f);
         }
     } else {
         // we respect the size.
@@ -165,20 +165,20 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
                 *pWindow->m_realPosition = pWindow->m_xdgSurface->toplevel->parent->window->m_realPosition->goal() +
                     pWindow->m_xdgSurface->toplevel->parent->window->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
             else
-                *pWindow->m_realPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.F - desiredGeometry.size() / 2.F;
+                *pWindow->m_realPosition = PMONITOR->m_position + PMONITOR->m_size / 2.F - desiredGeometry.size() / 2.F;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
 
-            if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID)
-                *pWindow->m_realPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
+            if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->m_id != PMONITOR->m_id)
+                *pWindow->m_realPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->m_position + PMONITOR->m_position;
             else
                 *pWindow->m_realPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
         }
     }
 
     if (*PXWLFORCESCALEZERO && pWindow->m_isX11)
-        *pWindow->m_realSize = pWindow->m_realSize->goal() / PMONITOR->scale;
+        *pWindow->m_realSize = pWindow->m_realSize->goal() / PMONITOR->m_scale;
 
     if (pWindow->m_X11DoesntWantBorders || (pWindow->m_isX11 && pWindow->isX11OverrideRedirect())) {
         pWindow->m_realPosition->warp();
@@ -468,32 +468,30 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         const double BORDERDIFF = OVERLAP ? DRAGGINGBORDERSIZE : 0;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
 
-        SRange       monX = {MON->vecPosition.x + MON->vecReservedTopLeft.x + DRAGGINGBORDERSIZE,
-                             MON->vecPosition.x + MON->vecSize.x - MON->vecReservedBottomRight.x - DRAGGINGBORDERSIZE};
-        SRange       monY = {MON->vecPosition.y + MON->vecReservedTopLeft.y + DRAGGINGBORDERSIZE,
-                             MON->vecPosition.y + MON->vecSize.y - MON->vecReservedBottomRight.y - DRAGGINGBORDERSIZE};
+        SRange monX = {MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE};
+        SRange monY = {MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE};
 
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
-            ((MON->vecReservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
-             canSnap(sourceX.start, (monX.start -= MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
+            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
+             canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
-            ((MON->vecReservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
-             canSnap(sourceX.end, (monX.end += MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
+            ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
+             canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
-            ((MON->vecReservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
-             canSnap(sourceY.start, (monY.start -= MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
+            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
+             canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
-            ((MON->vecReservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
-             canSnap(sourceY.end, (monY.end += MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
+            ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
+             canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
@@ -555,7 +553,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
-    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
+    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->m_refreshRate;
     static int  totalMs       = 0;
     bool        canSkipUpdate = true;
 
@@ -688,7 +686,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (PMONITOR && !SPECIAL) {
         DRAGGINGWINDOW->m_monitor = PMONITOR;
-        DRAGGINGWINDOW->moveToWorkspace(PMONITOR->activeWorkspace);
+        DRAGGINGWINDOW->moveToWorkspace(PMONITOR->m_activeWorkspace);
         DRAGGINGWINDOW->updateGroupOutputs();
 
         DRAGGINGWINDOW->updateToplevel();
@@ -719,10 +717,10 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     if (!TILED) {
         const auto PNEWMON = g_pCompositor->getMonitorFromVector(pWindow->m_realPosition->value() + pWindow->m_realSize->value() / 2.f);
         pWindow->m_monitor = PNEWMON;
-        pWindow->moveToWorkspace(PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace);
+        pWindow->moveToWorkspace(PNEWMON->m_activeSpecialWorkspace ? PNEWMON->m_activeSpecialWorkspace : PNEWMON->m_activeWorkspace);
         pWindow->updateGroupOutputs();
 
-        const auto PWORKSPACE = PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace;
+        const auto PWORKSPACE = PNEWMON->m_activeSpecialWorkspace ? PNEWMON->m_activeSpecialWorkspace : PNEWMON->m_activeWorkspace;
 
         if (PWORKSPACE->m_hasFullscreenWindow)
             g_pCompositor->setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
@@ -899,11 +897,11 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
 
                 const auto  MAXSIZE = pWindow->requestedMaxSize();
 
-                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->vecSize.x) :
-                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_lastMonitor->vecSize.x);
+                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.x) :
+                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_lastMonitor->m_size.x);
 
-                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->vecSize.y) :
-                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_lastMonitor->vecSize.y);
+                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.y) :
+                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_lastMonitor->m_size.y);
 
                 sizeOverride = {SIZEX, SIZEY};
 

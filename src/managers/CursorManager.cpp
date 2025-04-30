@@ -291,8 +291,8 @@ void CCursorManager::updateTheme() {
     float       highestScale   = 1.0;
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        if (m->scale > highestScale)
-            highestScale = m->scale;
+        if (m->m_scale > highestScale)
+            highestScale = m->m_scale;
     }
 
     m_fCursorScale = highestScale;
@@ -308,7 +308,7 @@ void CCursorManager::updateTheme() {
     }
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        m->forceFullFrames = 5;
+        m->m_forceFullFrames = 5;
         g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
 }

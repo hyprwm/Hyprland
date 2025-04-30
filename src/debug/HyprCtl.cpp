@@ -97,7 +97,7 @@ static std::string formatToString(uint32_t drmFormat) {
 static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
-    for (auto const& m : pMonitor->output->modes) {
+    for (auto const& m : pMonitor->m_output->modes) {
         if (format == FORMAT_NORMAL)
             result += std::format("{}x{}@{:.2f}Hz ", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
         else
@@ -111,7 +111,7 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
 
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
-    if (!m->output || m->ID == -1)
+    if (!m->m_output || m->m_id == -1)
         return "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -152,27 +152,28 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "availableModes": [{}]
 }},)#",
 
-            m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make), escapeJSONStrings(m->output->model),
-            escapeJSONStrings(m->output->serial), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
-            m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
-            escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_name : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
-            (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
-            (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->solitaryClient.get(),
-            (m->tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->lastScanout.get(), (m->m_bEnabled ? "false" : "true"),
-            formatToString(m->output->state->state().drmFormat), m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
+            m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
+            escapeJSONStrings(m->m_output->serial), (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y,
+            m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
+            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x, (int)m->m_reservedTopLeft.y,
+            (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform, (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
+            (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->m_solitaryClient.get(),
+            (m->m_tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->m_lastScanout.get(), (m->m_enabled ? "false" : "true"),
+            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
-        result += std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
-                              "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                              "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
-                              "{}\n\tavailableModes: {}\n\n",
-                              m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                              m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_name),
-                              m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_name : ""), (int)m->vecReservedTopLeft.x,
-                              (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                              (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, (uint64_t)m->solitaryClient.get(),
-                              m->tearingState.activelyTearing, (uint64_t)m->lastScanout.get(), !m->m_bEnabled, formatToString(m->output->state->state().drmFormat),
-                              m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
+        result +=
+            std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                        "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                        "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
+                        "{}\n\tavailableModes: {}\n\n",
+                        m->m_name, m->m_id, (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y, m->m_shortDescription,
+                        m->m_output->make, m->m_output->model, m->m_output->serial, m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name),
+                        m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x,
+                        (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
+                        (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->m_dpmsStatus, m->m_output->state->state().adaptiveSync, (uint64_t)m->m_solitaryClient.get(),
+                        m->m_tearingState.activelyTearing, (uint64_t)m->m_lastScanout.get(), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
+                        m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 
     return result;
@@ -201,7 +202,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
         result += "]";
     } else {
         for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
-            if (!m->output || m->ID == -1)
+            if (!m->m_output || m->m_id == -1)
                 continue;
 
             result += CHyprCtl::getMonitorData(m, format);
@@ -349,13 +350,13 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "lastwindowtitle": "{}",
     "ispersistent": {}
 }})#",
-                           w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
+                           w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
                            (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->m_persistent ? "true" : "false");
     } else {
         return std::format(
             "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: {}\n\n",
-            w->m_id, w->m_name, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_hasFullscreenWindow,
+            w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindows(), (int)w->m_hasFullscreenWindow,
             (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_title : "", (int)w->m_persistent);
     }
 }
@@ -415,7 +416,7 @@ static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::stri
         return "unsafe state";
 
     std::string result = "";
-    auto        w      = g_pCompositor->m_lastMonitor->activeWorkspace;
+    auto        w      = g_pCompositor->m_lastMonitor->m_activeWorkspace;
 
     if (!valid(w))
         return "internal error";
@@ -489,10 +490,10 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 R"#("{}": {{
     "levels": {{
 )#",
-                escapeJSONStrings(mon->szName));
+                escapeJSONStrings(mon->m_name));
 
             int layerLevel = 0;
-            for (auto const& level : mon->m_aLayerSurfaceLayers) {
+            for (auto const& level : mon->m_layerSurfaceLayers) {
                 result += std::format(
                     R"#(
         "{}": [
@@ -534,10 +535,10 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
     } else {
         for (auto const& mon : g_pCompositor->m_monitors) {
-            result += std::format("Monitor {}:\n", mon->szName);
+            result += std::format("Monitor {}:\n", mon->m_name);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
-            for (auto const& level : mon->m_aLayerSurfaceLayers) {
+            for (auto const& level : mon->m_layerSurfaceLayers) {
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
@@ -1143,7 +1144,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         COMMAND.starts_with("windowrule")) {
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
 
@@ -1449,7 +1450,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
 
     if (!vars[3].empty()) {
         for (auto const& m : g_pCompositor->m_realMonitors) {
-            if (m->szName == vars[3])
+            if (m->m_name == vars[3])
                 return "Name already taken";
         }
     }
@@ -1483,10 +1484,10 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
         if (!PMONITOR)
             return "output not found";
 
-        if (!PMONITOR->createdByUser)
+        if (!PMONITOR->m_createdByUser)
             return "cannot remove a real display. Use the monitor keyword.";
 
-        PMONITOR->output->destroy();
+        PMONITOR->m_output->destroy();
     }
 
     return "ok";
@@ -1836,7 +1837,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
 

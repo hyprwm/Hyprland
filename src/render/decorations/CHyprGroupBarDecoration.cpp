@@ -143,11 +143,11 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_floatingOffset.x,
-                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->vecPosition.y + m_pWindow->m_floatingOffset.y, m_fBarWidth,
+        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_pWindow->m_floatingOffset.x,
+                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + m_pWindow->m_floatingOffset.y, m_fBarWidth,
                            *PINDICATORHEIGHT};
 
-        rect.scale(pMonitor->scale).round();
+        rect.scale(pMonitor->m_scale).round();
 
         const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_groupData.locked || g_pKeybindManager->m_bGroupsLocked;
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
@@ -187,10 +187,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(rectdata));
         }
 
-        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_floatingOffset.x,
-                ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_floatingOffset.y, m_fBarWidth,
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_pWindow->m_floatingOffset.x,
+                ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + m_pWindow->m_floatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
-        rect.scale(pMonitor->scale);
+        rect.scale(pMonitor->m_scale);
 
         if (!rect.empty()) {
             if (*PGRADIENTS) {
@@ -232,17 +232,17 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_title);
 
                 if (!pTitleTex)
-                    pTitleTex =
-                        m_sTitleTexs.titleTexs
-                            .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
-                                                                Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
-                            .get();
+                    pTitleTex = m_sTitleTexs.titleTexs
+                                    .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
+                                                                        Vector2D{m_fBarWidth * pMonitor->m_scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->m_scale},
+                                                                        pMonitor->m_scale))
+                                    .get();
 
                 const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? pTitleTex->texActive : pTitleTex->texInactive;
-                rect.y += std::ceil(((rect.height - titleTex->m_vSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->scale));
+                rect.y += std::ceil(((rect.height - titleTex->m_vSize.y) / 2.0) - (*PTEXTOFFSET * pMonitor->m_scale));
                 rect.height = titleTex->m_vSize.y;
                 rect.width  = titleTex->m_vSize.x;
-                rect.x += std::round(((m_fBarWidth * pMonitor->scale) / 2.0) - (titleTex->m_vSize.x / 2.0));
+                rect.x += std::round(((m_fBarWidth * pMonitor->m_scale) / 2.0) - (titleTex->m_vSize.x / 2.0));
                 rect.round();
 
                 CTexPassElement::SRenderData data;
@@ -300,7 +300,7 @@ static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
     if (!g_pCompositor->m_lastMonitor)
         return;
 
-    const Vector2D& bufferSize = g_pCompositor->m_lastMonitor->vecPixelSize;
+    const Vector2D& bufferSize = g_pCompositor->m_lastMonitor->m_pixelSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto      CAIRO        = cairo_create(CAIROSURFACE);

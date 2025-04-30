@@ -217,7 +217,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
 
-    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) && !skipFrameSchedule)
+    if (!PMONITOR->m_solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->m_self.lock()) && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
@@ -252,13 +252,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (g_pSessionLockManager->isSessionLocked()) {
 
         // set keyboard focus on session lock surface regardless of layers
-        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->m_id);
         const auto foundLockSurface    = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
 
         g_pCompositor->focusSurface(foundLockSurface);
 
         // search for interactable abovelock surfaces for pointer focus, or use session lock surface if not found
-        for (auto& lsl : PMONITOR->m_aLayerSurfaceLayers | std::views::reverse) {
+        for (auto& lsl : PMONITOR->m_layerSurfaceLayers | std::views::reverse) {
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
 
             if (foundSurface)
@@ -266,7 +266,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         }
 
         if (!foundSurface) {
-            surfaceCoords = mouseCoords - PMONITOR->vecPosition;
+            surfaceCoords = mouseCoords - PMONITOR->m_position;
             foundSurface  = foundLockSurface;
         }
 
@@ -336,7 +336,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // overlays are above fullscreen
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
 
     // also IME popups
     if (!foundSurface) {
@@ -349,10 +349,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // also top layers
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 
     // then, we check if the workspace doesnt have a fullscreen window
-    const auto PWORKSPACE   = PMONITOR->activeWorkspace;
+    const auto PWORKSPACE   = PMONITOR->m_activeWorkspace;
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
     if (PWORKSPACE->m_hasFullscreenWindow && !foundSurface && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
         pFoundWindow = PWORKSPACE->getFullscreenWindow();
@@ -365,7 +365,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
         if (PWINDOWIDEAL &&
             ((PWINDOWIDEAL->m_isFloating && PWINDOWIDEAL->m_createdOverFullscreen) /* floating over fullscreen */
-             || (PMONITOR->activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
+             || (PMONITOR->m_activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
             pFoundWindow = PWINDOWIDEAL;
 
         if (!pFoundWindow->m_isX11) {
@@ -381,7 +381,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (!foundSurface) {
         if (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
             if (!foundSurface) {
-                if (PMONITOR->activeSpecialWorkspace) {
+                if (PMONITOR->m_activeSpecialWorkspace) {
                     if (pFoundWindow != PWINDOWIDEAL)
                         pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
@@ -391,7 +391,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
                     if (g_pCompositor->isPointOnReservedArea(mouseCoords, PMONITOR)) {
-                        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords,
+                        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords,
                                                                            &pFoundLayerSurface);
                     }
 
@@ -426,13 +426,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // then surfaces below
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
 
     if (!foundSurface)
-        foundSurface =
-            g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) > 0 && !skipFrameSchedule)
+    if (g_pPointerManager->softwareLockedFor(PMONITOR->m_self.lock()) > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_lastMonitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
@@ -1471,14 +1470,14 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
 
     // then any surfaces above windows on the same monitor
     if (!foundSurface) {
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
                                                            &surfaceCoords, &pFoundLayerSurface);
         if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
     }
 
     if (!foundSurface) {
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                            &surfaceCoords, &pFoundLayerSurface);
         if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
@@ -1636,7 +1635,7 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
             PTOUCHDEV->m_boundOutput = bound ? output : "";
             const auto PMONITOR      = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
             if (PMONITOR) {
-                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->m_hlName, PMONITOR->szName);
+                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->m_hlName, PMONITOR->m_name);
                 // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, PMONITOR->output);
             } else if (bound)
                 Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->m_hlName, output);

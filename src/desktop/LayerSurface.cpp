@@ -24,7 +24,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
         return pLS;
     }
 
-    if (pMonitor->pMirrorOf)
+    if (pMonitor->m_mirrorOf)
         pMonitor = g_pCompositor->m_monitors.front();
 
     pLS->m_self = pLS;
@@ -34,7 +34,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_layer     = resource->current.layer;
     pLS->m_popupHead = CPopup::create(pLS);
     pLS->m_monitor   = pMonitor;
-    pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
+    pMonitor->m_layerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 
     pLS->m_forceBlur = g_pConfigManager->shouldBlurLS(pLS->m_namespace);
 
@@ -46,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->m_layer, pMonitor->szName);
+    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->m_layer, pMonitor->m_name);
 
     return pLS;
 }
@@ -77,7 +77,7 @@ CLayerSurface::~CLayerSurface() {
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == m_self.lock(); });
 
     for (auto const& mon : g_pCompositor->m_realMonitors) {
-        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
+        for (auto& lsl : mon->m_layerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
         }
     }
@@ -110,11 +110,11 @@ void CLayerSurface::onDestroy() {
 
     // rearrange to fix the reserved areas
     if (PMONITOR) {
-        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
-        PMONITOR->scheduledRecalc = true;
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
+        PMONITOR->m_scheduledRecalc = true;
 
         // and damage
-        CBox geomFixed = {m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y, m_geometry.width, m_geometry.height};
+        CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
         g_pHyprRenderer->damageBox(geomFixed);
     }
 
@@ -149,11 +149,11 @@ void CLayerSurface::onMap() {
 
     applyRules();
 
-    PMONITOR->scheduledRecalc = true;
+    PMONITOR->m_scheduledRecalc = true;
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
 
-    m_surface->resource()->enter(PMONITOR->self.lock());
+    m_surface->resource()->enter(PMONITOR->m_self.lock());
 
     const bool ISEXCLUSIVE = m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
@@ -171,16 +171,16 @@ void CLayerSurface::onMap() {
         g_pInputManager->releaseAllMouseButtons();
         g_pCompositor->focusSurface(m_surface->resource());
 
-        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y);
+        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
         g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
     }
 
     m_position = Vector2D(m_geometry.x, m_geometry.y);
 
-    CBox geomFixed = {m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y, m_geometry.width, m_geometry.height};
+    CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
-    const bool FULLSCREEN = PMONITOR->activeWorkspace && PMONITOR->activeWorkspace->m_hasFullscreenWindow && PMONITOR->activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+    const bool FULLSCREEN = PMONITOR->m_activeWorkspace && PMONITOR->m_activeWorkspace->m_hasFullscreenWindow && PMONITOR->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
 
     startAnimation(!(m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
     m_readyToDelete = false;
@@ -189,8 +189,8 @@ void CLayerSurface::onMap() {
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", m_namespace});
     EMIT_HOOK_EVENT("openLayer", m_self.lock());
 
-    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->scale);
-    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->transform);
+    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->m_transform);
 }
 
 void CLayerSurface::onUnmap() {
@@ -244,16 +244,16 @@ void CLayerSurface::onUnmap() {
     } else if (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus != m_surface->resource())
         g_pSeatManager->setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
 
-    CBox geomFixed = {m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y, m_geometry.width, m_geometry.height};
+    CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
 
-    geomFixed = {m_geometry.x + (int)PMONITOR->vecPosition.x, m_geometry.y + (int)PMONITOR->vecPosition.y, (int)m_layerSurface->surface->current.size.x,
+    geomFixed = {m_geometry.x + (int)PMONITOR->m_position.x, m_geometry.y + (int)PMONITOR->m_position.y, (int)m_layerSurface->surface->current.size.x,
                  (int)m_layerSurface->surface->current.size.y};
     g_pHyprRenderer->damageBox(geomFixed);
 
     g_pInputManager->simulateMouseMovement();
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
 }
 
 void CLayerSurface::onCommit() {
@@ -285,12 +285,12 @@ void CLayerSurface::onCommit() {
     if (m_layerSurface->current.committed != 0) {
         if (m_layerSurface->current.committed & CLayerShellResource::eCommittedState::STATE_LAYER) {
 
-            for (auto it = PMONITOR->m_aLayerSurfaceLayers[m_layer].begin(); it != PMONITOR->m_aLayerSurfaceLayers[m_layer].end(); it++) {
+            for (auto it = PMONITOR->m_layerSurfaceLayers[m_layer].begin(); it != PMONITOR->m_layerSurfaceLayers[m_layer].end(); it++) {
                 if (*it == m_self) {
                     if (m_layerSurface->current.layer == m_layer)
                         break;
-                    PMONITOR->m_aLayerSurfaceLayers[m_layerSurface->current.layer].emplace_back(*it);
-                    PMONITOR->m_aLayerSurfaceLayers[m_layer].erase(it);
+                    PMONITOR->m_layerSurfaceLayers[m_layerSurface->current.layer].emplace_back(*it);
+                    PMONITOR->m_layerSurfaceLayers[m_layer].erase(it);
                     break;
                 }
             }
@@ -301,14 +301,14 @@ void CLayerSurface::onCommit() {
                 g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
         }
 
-        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
 
-        PMONITOR->scheduledRecalc = true;
+        PMONITOR->m_scheduledRecalc = true;
     } else {
         m_position = Vector2D(m_geometry.x, m_geometry.y);
 
         // update geom if it changed
-        if (m_layerSurface->surface->current.scale == 1 && PMONITOR->scale != 1.f && m_layerSurface->surface->current.viewport.hasDestination) {
+        if (m_layerSurface->surface->current.scale == 1 && PMONITOR->m_scale != 1.f && m_layerSurface->surface->current.viewport.hasDestination) {
             // fractional scaling. Dirty hack.
             m_geometry = {m_geometry.pos(), m_layerSurface->surface->current.viewport.destination};
         } else {
@@ -364,7 +364,7 @@ void CLayerSurface::onCommit() {
             g_pInputManager->releaseAllMouseButtons();
             g_pCompositor->focusSurface(m_surface->resource());
 
-            const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->vecPosition.x, m_geometry.y + PMONITOR->vecPosition.y);
+            const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
             g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
             g_pInputManager->m_bEmptyFocusCursorSet = false;
         }
@@ -374,8 +374,8 @@ void CLayerSurface::onCommit() {
 
     g_pHyprRenderer->damageSurface(m_surface->resource(), m_position.x, m_position.y);
 
-    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->scale);
-    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->transform);
+    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->m_transform);
 }
 
 void CLayerSurface::applyRules() {
@@ -484,10 +484,10 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
         }
 
         const std::array<Vector2D, 4> edgePoints = {
-            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, 0.0},
-            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, PMONITOR->vecSize.y},
-            PMONITOR->vecPosition + Vector2D{0.0, PMONITOR->vecSize.y},
-            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x, PMONITOR->vecSize.y / 2},
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, 0.0},
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, PMONITOR->m_size.y},
+            PMONITOR->m_position + Vector2D{0.0, PMONITOR->m_size.y},
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x, PMONITOR->m_size.y / 2},
         };
 
         float closest = std::numeric_limits<float>::max();
@@ -511,19 +511,19 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
         switch (leader) {
             case 0:
                 // TOP
-                prePos = {m_geometry.x, PMONITOR->vecPosition.y - m_geometry.h};
+                prePos = {m_geometry.x, PMONITOR->m_position.y - m_geometry.h};
                 break;
             case 1:
                 // BOTTOM
-                prePos = {m_geometry.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y};
+                prePos = {m_geometry.x, PMONITOR->m_position.y + PMONITOR->m_size.y};
                 break;
             case 2:
                 // LEFT
-                prePos = {PMONITOR->vecPosition.x - m_geometry.w, m_geometry.y};
+                prePos = {PMONITOR->m_position.x - m_geometry.w, m_geometry.y};
                 break;
             case 3:
                 // RIGHT
-                prePos = {PMONITOR->vecPosition.x + PMONITOR->vecSize.x, m_geometry.y};
+                prePos = {PMONITOR->m_position.x + PMONITOR->m_size.x, m_geometry.y};
                 break;
             default: UNREACHABLE();
         }
@@ -594,7 +594,7 @@ int CLayerSurface::popupsCount() {
 }
 
 MONITORID CLayerSurface::monitorID() {
-    return m_monitor ? m_monitor->ID : MONITOR_INVALID;
+    return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
 pid_t CLayerSurface::getPID() {

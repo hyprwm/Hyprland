@@ -59,7 +59,7 @@ CDonationNagManager::CDonationNagManager() {
 
     auto state = getState();
 
-    if (!state.major && currentMajor <= 48) {
+    if ((!state.major && currentMajor <= 48) || !state.epoch) {
         state.major = currentMajor;
         state.epoch = state.epoch == 0 ? EPOCH : state.epoch;
         writeState(state);

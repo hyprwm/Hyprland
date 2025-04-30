@@ -12,7 +12,6 @@
 */
 
 class CSyncTimeline;
-class CEGLSync;
 
 class CSyncReleaser {
   public:
@@ -29,5 +28,4 @@ class CSyncReleaser {
     SP<CSyncTimeline>              m_timeline;
     uint64_t                       m_point = 0;
     Hyprutils::OS::CFileDescriptor m_fd;
-    SP<CEGLSync>                   m_sync;
 };

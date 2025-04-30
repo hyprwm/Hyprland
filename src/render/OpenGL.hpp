@@ -150,7 +150,8 @@ struct SCurrentRenderData {
 
 class CEGLSync {
   public:
-    CEGLSync();
+    static UP<CEGLSync> create();
+
     ~CEGLSync();
 
     Hyprutils::OS::CFileDescriptor&  fd();
@@ -158,8 +159,10 @@ class CEGLSync {
     bool                             isValid();
 
   private:
+    CEGLSync() = default;
+
     Hyprutils::OS::CFileDescriptor m_fd;
-    EGLSyncKHR                     sync    = nullptr;
+    EGLSyncKHR                     m_sync  = EGL_NO_SYNC_KHR;
     bool                           m_valid = false;
 
     friend class CHyprOpenGLImpl;

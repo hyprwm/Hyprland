@@ -2888,7 +2888,7 @@ void CCompositor::arrangeMonitors() {
     maxXOffsetRight = 0;
     for (auto const& m : m_monitors) {
         Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {}]", m->m_name, maxXOffsetRight, 0);
-        m->m_xWaylandPosition = {maxXOffsetRight, 0};
+        m->m_xwaylandPosition = {maxXOffsetRight, 0};
         maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->m_transformedSize.x : m->m_size.x);
 
         if (*PXWLFORCESCALEZERO)

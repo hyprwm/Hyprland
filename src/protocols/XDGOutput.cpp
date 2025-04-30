@@ -110,7 +110,7 @@ void CXDGOutput::sendDetails() {
     if UNLIKELY (!monitor || !outputProto || outputProto->isDefunct())
         return;
 
-    const auto POS = isXWayland ? monitor->m_xWaylandPosition : monitor->m_position;
+    const auto POS = isXWayland ? monitor->m_xwaylandPosition : monitor->m_position;
     resource->sendLogicalPosition(POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && isXWayland)

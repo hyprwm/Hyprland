@@ -3,7 +3,6 @@
 #include "../macros.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
@@ -60,10 +59,6 @@ void CMonitor::onConnect(bool noRule) {
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
-
-    if (output->supportsExplicit) {
-        inTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
-    }
 
     listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
     listeners.commit = output->events.commit.registerListener([this](std::any d) {

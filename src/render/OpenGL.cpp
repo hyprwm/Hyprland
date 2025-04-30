@@ -3090,44 +3090,6 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return drmFormats;
 }
 
-SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
-    std::vector<EGLint> attribs;
-    CFileDescriptor     dupFd;
-    if (fenceFD >= 0) {
-        dupFd = CFileDescriptor{fcntl(fenceFD, F_DUPFD_CLOEXEC, 0)};
-        if (!dupFd.isValid()) {
-            Debug::log(ERR, "createEGLSync: dup failed");
-            return nullptr;
-        }
-        // reserve number of elements to avoid reallocations
-        attribs.reserve(3);
-        attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
-        attribs.push_back(dupFd.get());
-        attribs.push_back(EGL_NONE);
-    }
-
-    EGLSyncKHR sync = m_sProc.eglCreateSyncKHR(m_pEglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs.data());
-    if (sync == EGL_NO_SYNC_KHR) {
-        Debug::log(ERR, "eglCreateSyncKHR failed");
-        return nullptr;
-    } else
-        dupFd.take(); // eglCreateSyncKHR only takes ownership on success
-
-    // we need to flush otherwise we might not get a valid fd
-    glFlush();
-
-    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
-        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
-        return nullptr;
-    }
-
-    auto eglsync   = SP<CEGLSync>(new CEGLSync);
-    eglsync->sync  = sync;
-    eglsync->m_iFd = CFileDescriptor{fd};
-    return eglsync;
-}
-
 void SRenderModifData::applyToBox(CBox& box) {
     if (!enabled)
         return;
@@ -3189,18 +3151,47 @@ float SRenderModifData::combinedScale() {
     return scale;
 }
 
+UP<CEGLSync> CEGLSync::create() {
+    EGLSyncKHR sync = g_pHyprOpenGL->m_sProc.eglCreateSyncKHR(g_pHyprOpenGL->m_pEglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
+
+    if (sync == EGL_NO_SYNC_KHR) {
+        Debug::log(ERR, "eglCreateSyncKHR failed");
+        return nullptr;
+    }
+
+    // we need to flush otherwise we might not get a valid fd
+    glFlush();
+
+    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
+    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
+        return nullptr;
+    }
+
+    UP<CEGLSync> eglSync(new CEGLSync);
+    eglSync->m_fd    = CFileDescriptor(fd);
+    eglSync->m_sync  = sync;
+    eglSync->m_valid = true;
+
+    return eglSync;
+}
+
 CEGLSync::~CEGLSync() {
-    if (sync == EGL_NO_SYNC_KHR)
+    if (m_sync == EGL_NO_SYNC_KHR)
         return;
 
-    if (g_pHyprOpenGL && g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
+    if (g_pHyprOpenGL && g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, m_sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
 }
 
-CFileDescriptor&& CEGLSync::takeFD() {
-    return std::move(m_iFd);
+CFileDescriptor& CEGLSync::fd() {
+    return m_fd;
 }
 
-CFileDescriptor& CEGLSync::fd() {
-    return m_iFd;
+CFileDescriptor&& CEGLSync::takeFd() {
+    return std::move(m_fd);
+}
+
+bool CEGLSync::isValid() {
+    return m_valid && m_sync != EGL_NO_SYNC_KHR && m_fd.isValid();
 }

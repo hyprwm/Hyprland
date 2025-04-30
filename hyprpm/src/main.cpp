@@ -9,6 +9,9 @@
 #include <string>
 #include <print>
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
+
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision.
@@ -100,6 +103,7 @@ int                        main(int argc, char** argv, char** envp) {
             rev = command[2];
 
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
@@ -109,6 +113,7 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
         return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
     } else if (command[0] == "update") {
@@ -116,6 +121,7 @@ int                        main(int argc, char** argv, char** envp) {
         bool headers      = g_pPluginManager->updateHeaders(force);
 
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
@@ -148,8 +154,9 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
 
         if (ret == LOADSTATE_HYPRLAND_UPDATED)
             g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] Enabled plugin, but Hyprland was updated. Please restart Hyprland.");
@@ -168,8 +175,10 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
+
         if (ret != LOADSTATE_OK)
             return 1;
     } else if (command[0] == "reload") {
@@ -193,6 +202,7 @@ int                        main(int argc, char** argv, char** envp) {
         }
     } else if (command[0] == "purge-cache") {
         NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
         DataState::purgeAllCache();
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();

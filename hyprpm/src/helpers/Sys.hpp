@@ -8,4 +8,5 @@ namespace NSys {
     int         getEUID();
     std::string runAsSuperuser(const std::string& cmd);
     void        cacheSudo();
+    void        dropSudo();
 };

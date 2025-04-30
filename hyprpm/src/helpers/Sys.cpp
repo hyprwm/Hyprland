@@ -1,5 +1,6 @@
 #include "Sys.hpp"
 #include "Die.hpp"
+#include "StringUtils.hpp"
 #include <pwd.h>
 #include <unistd.h>
 #include <print>
@@ -92,4 +93,18 @@ void NSys::cacheSudo() {
     // "caches" the sudo so that the prompt later doesn't pop up in a weird spot
     // sudo will not ask us again for a moment
     runAsSuperuser("echo e > /dev/null");
+}
+
+void NSys::dropSudo() {
+    for (const auto& SB : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(SB))
+            continue;
+
+        if (SB == std::string_view{"sudo"})
+            execAndGet("sudo -k");
+        else
+            std::println("{}", infoString("Don't know how to drop timestamp for {}, ignoring.", SB));
+
+        return;
+    }
 }

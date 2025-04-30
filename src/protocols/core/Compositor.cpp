@@ -272,21 +272,21 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
     if (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) != enteredOutputs.end())
         return;
 
-    if UNLIKELY (!PROTO::outputs.contains(monitor->szName)) {
+    if UNLIKELY (!PROTO::outputs.contains(monitor->m_name)) {
         // can happen on unplug/replug
         LOGM(ERR, "enter() called on a non-existent output global");
         return;
     }
 
-    if UNLIKELY (PROTO::outputs.at(monitor->szName)->isDefunct()) {
+    if UNLIKELY (PROTO::outputs.at(monitor->m_name)->isDefunct()) {
         LOGM(ERR, "enter() called on a defunct output global");
         return;
     }
 
-    auto output = PROTO::outputs.at(monitor->szName)->outputResourceFrom(pClient);
+    auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(pClient);
 
     if UNLIKELY (!output || !output->getResource() || !output->getResource()->resource()) {
-        LOGM(ERR, "Cannot enter surface {:x} to {}, client hasn't bound the output", (uintptr_t)this, monitor->szName);
+        LOGM(ERR, "Cannot enter surface {:x} to {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
@@ -299,10 +299,10 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     if UNLIKELY (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) == enteredOutputs.end())
         return;
 
-    auto output = PROTO::outputs.at(monitor->szName)->outputResourceFrom(pClient);
+    auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(pClient);
 
     if UNLIKELY (!output) {
-        LOGM(ERR, "Cannot leave surface {:x} from {}, client hasn't bound the output", (uintptr_t)this, monitor->szName);
+        LOGM(ERR, "Cannot leave surface {:x} from {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
@@ -573,7 +573,7 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
         FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->inTimeline || !syncobj)
+    if (!pMonitor || !pMonitor->m_inTimeline || !syncobj)
         return;
 
     // attach explicit sync

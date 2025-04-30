@@ -170,9 +170,9 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
     PHLMONITOR  pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
     for (const auto& m : g_pCompositor->m_monitors) {
-        const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
+        const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
 
-        double     distance = vecToRectDistanceSquared(coord, {m->vecPosition.x, m->vecPosition.y}, {m->vecPosition.x + SIZ.x - 1, m->vecPosition.y + SIZ.y - 1});
+        double     distance = vecToRectDistanceSquared(coord, {m->m_position.x, m->m_position.y}, {m->m_position.x + SIZ.x - 1, m->m_position.y + SIZ.y - 1});
 
         if (distance < bestDistance) {
             bestDistance = distance;
@@ -184,12 +184,12 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
         return Vector2D{};
 
     // get local coords
-    Vector2D result = coord - pMonitor->vecPosition;
+    Vector2D result = coord - pMonitor->m_position;
     // if scaled, scale
     if (*PXWLFORCESCALEZERO)
-        result *= pMonitor->scale;
+        result *= pMonitor->m_scale;
     // add pos
-    result += pMonitor->vecXWaylandPosition;
+    result += pMonitor->m_xWaylandPosition;
 
     return result;
 }
@@ -201,10 +201,10 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
     PHLMONITOR  pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
     for (const auto& m : g_pCompositor->m_monitors) {
-        const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
+        const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
 
         double     distance =
-            vecToRectDistanceSquared(coord, {m->vecXWaylandPosition.x, m->vecXWaylandPosition.y}, {m->vecXWaylandPosition.x + SIZ.x - 1, m->vecXWaylandPosition.y + SIZ.y - 1});
+            vecToRectDistanceSquared(coord, {m->m_xWaylandPosition.x, m->m_xWaylandPosition.y}, {m->m_xWaylandPosition.x + SIZ.x - 1, m->m_xWaylandPosition.y + SIZ.y - 1});
 
         if (distance < bestDistance) {
             bestDistance = distance;
@@ -216,12 +216,12 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
         return Vector2D{};
 
     // get local coords
-    Vector2D result = coord - pMonitor->vecXWaylandPosition;
+    Vector2D result = coord - pMonitor->m_xWaylandPosition;
     // if scaled, unscale
     if (*PXWLFORCESCALEZERO)
-        result /= pMonitor->scale;
+        result /= pMonitor->m_scale;
     // add pos
-    result += pMonitor->vecPosition;
+    result += pMonitor->m_position;
 
     return result;
 }

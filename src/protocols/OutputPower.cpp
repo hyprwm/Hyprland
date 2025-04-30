@@ -13,25 +13,25 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
         if (!pMonitor)
             return;
 
-        pMonitor->dpmsStatus = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
+        pMonitor->m_dpmsStatus = mode == ZWLR_OUTPUT_POWER_V1_MODE_ON;
 
-        pMonitor->output->state->setEnabled(mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
+        pMonitor->m_output->state->setEnabled(mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
 
-        if (!pMonitor->state.commit())
-            LOGM(ERR, "Couldn't set dpms to {} for {}", pMonitor->dpmsStatus, pMonitor->szName);
+        if (!pMonitor->m_state.commit())
+            LOGM(ERR, "Couldn't set dpms to {} for {}", pMonitor->m_dpmsStatus, pMonitor->m_name);
     });
 
-    resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
+    resource->sendMode(pMonitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 
-    listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any v) {
+    listeners.monitorDestroy = pMonitor->m_events.destroy.registerListener([this](std::any v) {
         pMonitor.reset();
         resource->sendFailed();
     });
 
-    listeners.monitorDpms = pMonitor->events.dpmsChanged.registerListener(
-        [this](std::any v) { resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
-    listeners.monitorState = pMonitor->events.modeChanged.registerListener(
-        [this](std::any v) { resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
+    listeners.monitorDpms = pMonitor->m_events.dpmsChanged.registerListener(
+        [this](std::any v) { resource->sendMode(pMonitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
+    listeners.monitorState = pMonitor->m_events.modeChanged.registerListener(
+        [this](std::any v) { resource->sendMode(pMonitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
 }
 
 bool COutputPower::good() {

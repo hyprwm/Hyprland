@@ -29,7 +29,7 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
 }
 
 void CInputManager::beginWorkspaceSwipe() {
-    const auto PWORKSPACE = g_pCompositor->m_lastMonitor->activeWorkspace;
+    const auto PWORKSPACE = g_pCompositor->m_lastMonitor->m_activeWorkspace;
 
     Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_name);
 
@@ -40,7 +40,7 @@ void CInputManager::beginWorkspaceSwipe() {
     m_sActiveSwipe.speedPoints     = 0;
 
     if (PWORKSPACE->m_hasFullscreenWindow) {
-        for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
+        for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
             *ls->m_alpha = 1.f;
         }
     }
@@ -79,8 +79,8 @@ void CInputManager::endWorkspaceSwipe() {
     auto         PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
 
     const auto   RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_renderOffset->value();
-    const auto   XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto   YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
+    const auto   XDISTANCE          = m_sActiveSwipe.pMonitor->m_size.x + *PWORKSPACEGAP;
+    const auto   YDISTANCE          = m_sActiveSwipe.pMonitor->m_size.y + *PWORKSPACEGAP;
 
     PHLWORKSPACE pSwitchedTo = nullptr;
 
@@ -122,7 +122,7 @@ void CInputManager::endWorkspaceSwipe() {
         if (PWORKSPACEL)
             m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDLeft);
         else {
-            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_sActiveSwipe.pMonitor->ID));
+            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_sActiveSwipe.pMonitor->m_id));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
             PWORKSPACEL->rememberPrevWorkspace(m_sActiveSwipe.pWorkspaceBegin);
         }
@@ -149,7 +149,7 @@ void CInputManager::endWorkspaceSwipe() {
         if (PWORKSPACER)
             m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDRight);
         else {
-            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_sActiveSwipe.pMonitor->ID));
+            m_sActiveSwipe.pMonitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_sActiveSwipe.pMonitor->m_id));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
             PWORKSPACER->rememberPrevWorkspace(m_sActiveSwipe.pWorkspaceBegin);
         }
@@ -186,7 +186,7 @@ void CInputManager::endWorkspaceSwipe() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : g_pCompositor->m_lastMonitor->m_aLayerSurfaceLayers[2]) {
+    for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
         *ls->m_alpha = pSwitchedTo->m_hasFullscreenWindow && pSwitchedTo->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }
@@ -214,8 +214,8 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     static auto  PWORKSPACEGAP          = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
-    const auto   XDISTANCE     = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto   YDISTANCE     = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
+    const auto   XDISTANCE     = m_sActiveSwipe.pMonitor->m_size.x + *PWORKSPACEGAP;
+    const auto   YDISTANCE     = m_sActiveSwipe.pMonitor->m_size.y + *PWORKSPACEGAP;
     const auto   ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_renderOffset->getStyle();
     const bool   VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
     const double d             = m_sActiveSwipe.delta - delta;

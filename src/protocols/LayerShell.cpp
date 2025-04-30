@@ -22,7 +22,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         return;
 
     current.layer = layer;
-    monitor       = pMonitor ? pMonitor->szName : "";
+    monitor       = pMonitor ? pMonitor->m_name : "";
 
     resource->setDestroy([this](CZwlrLayerSurfaceV1* r) {
         events.destroy.emit();

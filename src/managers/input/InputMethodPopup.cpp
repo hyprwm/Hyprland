@@ -40,7 +40,7 @@ void CInputPopup::onMap() {
     if (!PMONITOR)
         return;
 
-    PROTO::fractional->sendScale(surface->resource(), PMONITOR->scale);
+    PROTO::fractional->sendScale(surface->resource(), PMONITOR->m_scale);
 }
 
 void CInputPopup::onUnmap() {
@@ -108,12 +108,12 @@ void CInputPopup::updateBox() {
 
     Vector2D   popupOffset(0, 0);
 
-    if (parentBox.y + cursorBoxParent.y + cursorBoxParent.height + currentPopupSize.y > pMonitor->vecPosition.y + pMonitor->vecSize.y)
+    if (parentBox.y + cursorBoxParent.y + cursorBoxParent.height + currentPopupSize.y > pMonitor->m_position.y + pMonitor->m_size.y)
         popupOffset.y -= currentPopupSize.y;
     else
         popupOffset.y = cursorBoxParent.height;
 
-    double popupOverflow = parentBox.x + cursorBoxParent.x + currentPopupSize.x - (pMonitor->vecPosition.x + pMonitor->vecSize.x);
+    double popupOverflow = parentBox.x + cursorBoxParent.x + currentPopupSize.x - (pMonitor->m_position.x + pMonitor->m_size.x);
     if (popupOverflow > 0)
         popupOffset.x -= popupOverflow;
 
@@ -127,15 +127,15 @@ void CInputPopup::updateBox() {
     }
     damageSurface();
 
-    if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->ID != lastMonitor) {
+    if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->m_id != lastMonitor) {
         const auto PML = g_pCompositor->getMonitorFromID(lastMonitor);
 
         if (PML)
-            surface->resource()->leave(PML->self.lock());
+            surface->resource()->leave(PML->m_self.lock());
 
-        surface->resource()->enter(PM->self.lock());
+        surface->resource()->enter(PM->m_self.lock());
 
-        lastMonitor = PM->ID;
+        lastMonitor = PM->m_id;
     }
 }
 

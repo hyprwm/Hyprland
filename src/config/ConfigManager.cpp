@@ -1016,7 +1016,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
     for (auto const& m : g_pCompositor->m_monitors)
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!m_isFirstLaunch) {
@@ -1113,11 +1113,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pCompositor->scheduleFrameForMonitor(m);
 
         // Force the compositor to fully re-render all monitors
-        m->forceFullFrames = 2;
+        m->m_forceFullFrames = 2;
 
         // also force mirrors, as the aspect ratio could've changed
-        for (auto const& mirror : m->mirrors)
-            mirror->forceFullFrames = 3;
+        for (auto const& mirror : m->m_mirrors)
+            mirror->m_forceFullFrames = 3;
     }
 
     // Reset no monitor reload
@@ -1157,7 +1157,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
         for (auto const& m : g_pCompositor->m_monitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
     }
 
     if (COMMAND.contains("explicit")) {
@@ -1225,7 +1225,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
         if (!CONFIG)
             return rule;
 
-        Debug::log(LOG, "CConfigManager::getMonitorRuleFor: found a wlr_output_manager override for {}", PMONITOR->szName);
+        Debug::log(LOG, "CConfigManager::getMonitorRuleFor: found a wlr_output_manager override for {}", PMONITOR->m_name);
 
         Debug::log(LOG, " > overriding enabled: {} -> {}", !rule.disabled, !CONFIG->enabled);
         rule.disabled = !CONFIG->enabled;
@@ -1266,7 +1266,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
         }
     }
 
-    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR->szName);
+    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR->m_name);
 
     for (auto const& r : m_monitorRules) {
         if (r.name.empty()) {
@@ -1605,7 +1605,7 @@ void CConfigManager::performMonitorReload() {
     bool overAgain = false;
 
     for (auto const& m : g_pCompositor->m_realMonitors) {
-        if (!m->output || m->isUnsafeFallback)
+        if (!m->m_output || m->m_isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(m);
@@ -1618,7 +1618,7 @@ void CConfigManager::performMonitorReload() {
         // ensure mirror
         m->setMirror(rule.mirrorOf);
 
-        g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
+        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
     }
 
     if (overAgain)
@@ -1662,12 +1662,12 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 
 void CConfigManager::ensureMonitorStatus() {
     for (auto const& rm : g_pCompositor->m_realMonitors) {
-        if (!rm->output || rm->isUnsafeFallback)
+        if (!rm->m_output || rm->m_isUnsafeFallback)
             continue;
 
         auto rule = getMonitorRuleFor(rm);
 
-        if (rule.disabled == rm->m_bEnabled)
+        if (rule.disabled == rm->m_enabled)
             rm->applyMonitorRule(&rule);
     }
 }
@@ -1676,38 +1676,38 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
     static auto PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
 
     static auto ensureVRRForDisplay = [&](PHLMONITOR m) -> void {
-        if (!m->output || m->createdByUser)
+        if (!m->m_output || m->m_createdByUser)
             return;
 
-        const auto USEVRR = m->activeMonitorRule.vrr.has_value() ? m->activeMonitorRule.vrr.value() : **PVRR;
+        const auto USEVRR = m->m_activeMonitorRule.vrr.has_value() ? m->m_activeMonitorRule.vrr.value() : **PVRR;
 
         if (USEVRR == 0) {
-            if (m->vrrActive) {
-                m->output->state->resetExplicitFences();
-                m->output->state->setAdaptiveSync(false);
+            if (m->m_vrrActive) {
+                m->m_output->state->resetExplicitFences();
+                m->m_output->state->setAdaptiveSync(false);
 
-                if (!m->state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
+                if (!m->m_state.commit())
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
             }
-            m->vrrActive = false;
+            m->m_vrrActive = false;
             return;
         } else if (USEVRR == 1) {
-            if (!m->vrrActive) {
-                m->output->state->resetExplicitFences();
-                m->output->state->setAdaptiveSync(true);
+            if (!m->m_vrrActive) {
+                m->m_output->state->resetExplicitFences();
+                m->m_output->state->setAdaptiveSync(true);
 
-                if (!m->state.test()) {
-                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
-                    m->output->state->setAdaptiveSync(false);
+                if (!m->m_state.test()) {
+                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->m_output->name);
+                    m->m_output->state->setAdaptiveSync(false);
                 }
 
-                if (!m->state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
+                if (!m->m_state.commit())
+                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
             }
-            m->vrrActive = true;
+            m->m_vrrActive = true;
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            const auto PWORKSPACE = m->activeWorkspace;
+            const auto PWORKSPACE = m->m_activeWorkspace;
 
             if (!PWORKSPACE)
                 return; // ???
@@ -1720,20 +1720,20 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
 
             if (wantVRR) {
                 /* fullscreen */
-                m->vrrActive = true;
+                m->m_vrrActive = true;
 
-                if (!m->output->state->state().adaptiveSync) {
-                    m->output->state->setAdaptiveSync(true);
+                if (!m->m_output->state->state().adaptiveSync) {
+                    m->m_output->state->setAdaptiveSync(true);
 
-                    if (!m->state.test()) {
-                        Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
-                        m->output->state->setAdaptiveSync(false);
+                    if (!m->m_state.test()) {
+                        Debug::log(LOG, "Pending output {} does not accept VRR.", m->m_output->name);
+                        m->m_output->state->setAdaptiveSync(false);
                     }
                 }
             } else {
-                m->vrrActive = false;
+                m->m_vrrActive = false;
 
-                m->output->state->setAdaptiveSync(false);
+                m->m_output->state->setAdaptiveSync(false);
             }
         }
     };
@@ -1840,7 +1840,7 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
                 return other->workspaceString;
             if (other->monitor.starts_with("desc:")) {
                 auto const monitor = g_pCompositor->getMonitorFromDesc(trim(other->monitor.substr(5)));
-                if (monitor && monitor->szName == name)
+                if (monitor && monitor->m_name == name)
                     return other->workspaceString;
             }
         }
@@ -2630,7 +2630,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     m_layerRules.emplace_back(rule);
 
     for (auto const& m : g_pCompositor->m_monitors)
-        for (auto const& lsl : m->m_aLayerSurfaceLayers)
+        for (auto const& lsl : m->m_layerSurfaceLayers)
             for (auto const& ls : lsl)
                 ls->applyRules();
 
@@ -2645,7 +2645,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         matchName = matchName.substr(8);
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        for (auto const& lsl : m->m_aLayerSurfaceLayers) {
+        for (auto const& lsl : m->m_layerSurfaceLayers) {
             for (auto const& ls : lsl) {
                 if (BYADDRESS) {
                     if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
@@ -2925,7 +2925,7 @@ bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
-        case 2: return pMonitor->tearingState.activelyTearing;
+        case 2: return pMonitor->m_tearingState.activelyTearing;
         default: break;
     }
 

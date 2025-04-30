@@ -67,8 +67,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         const auto PMONITOR = SURFACE->monitor();
 
         const auto NEWSURFACE  = m_pSessionLock->vSessionLockSurfaces.emplace_back(makeUnique<SSessionLockSurface>(SURFACE)).get();
-        NEWSURFACE->iMonitorID = PMONITOR->ID;
-        PROTO::fractional->sendScale(SURFACE->surface(), PMONITOR->scale);
+        NEWSURFACE->iMonitorID = PMONITOR->m_id;
+        PROTO::fractional->sendScale(SURFACE->surface(), PMONITOR->m_scale);
     });
 
     m_pSessionLock->listeners.unlock = pLock->events.unlockAndDestroy.registerListener([this](std::any data) {
@@ -138,7 +138,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     if (!m_pSessionLock || m_pSessionLock->m_hasSentLocked)
         return;
     m_pSessionLock->m_lockedMonitors.emplace(id);
-    const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->ID); });
+    const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->m_id); });
     if (LOCKED && m_pSessionLock->lock->good()) {
         m_pSessionLock->lock->sendLocked();
         m_pSessionLock->m_hasSentLocked = true;

@@ -235,7 +235,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
         if (!m_monitor.valid())
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
-            RESOURCE->settings = m_monitor->imageDescription;
+            RESOURCE->settings = m_monitor->m_imageDescription;
             RESOURCE->m_resource->sendReady(RESOURCE->settings.updateId());
         }
     });

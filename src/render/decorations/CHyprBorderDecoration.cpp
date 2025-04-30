@@ -52,7 +52,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + m_pWindow->m_floatingOffset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
+    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->m_position + m_pWindow->m_floatingOffset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;
@@ -71,7 +71,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     }
 
     int                             borderSize    = m_pWindow->getRealBorderSize();
-    const auto                      ROUNDING      = m_pWindow->rounding() * pMonitor->scale;
+    const auto                      ROUNDING      = m_pWindow->rounding() * pMonitor->m_scale;
     const auto                      ROUNDINGPOWER = m_pWindow->roundingPower();
 
     CBorderPassElement::SBorderData data;
@@ -134,7 +134,7 @@ void CHyprBorderDecoration::damageEntire() {
 
     for (auto const& m : g_pCompositor->m_monitors) {
         if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow.lock(), m)) {
-            const CRegion monitorRegion({m->vecPosition, m->vecSize});
+            const CRegion monitorRegion({m->m_position, m->m_size});
             borderRegion.subtract(monitorRegion);
         }
     }

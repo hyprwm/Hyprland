@@ -43,13 +43,13 @@ bool CPresentationFeedback::good() {
 void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = resource->client();
 
-    if LIKELY (PROTO::outputs.contains(data->pMonitor->szName)) {
-        if LIKELY (auto outputResource = PROTO::outputs.at(data->pMonitor->szName)->outputResourceFrom(client); outputResource)
+    if LIKELY (PROTO::outputs.contains(data->pMonitor->m_name)) {
+        if LIKELY (auto outputResource = PROTO::outputs.at(data->pMonitor->m_name)->outputResourceFrom(client); outputResource)
             resource->sendSyncOutput(outputResource->getResource()->resource());
     }
 
     uint32_t flags = 0;
-    if (!data->pMonitor->tearingState.activelyTearing)
+    if (!data->pMonitor->m_tearingState.activelyTearing)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
     if (data->zeroCopy)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;

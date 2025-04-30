@@ -110,24 +110,24 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         if (ANIMSTYLE.starts_with("slidefadevert")) {
             if (in) {
                 m_alpha->setValueAndWarp(0.f);
-                m_renderOffset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
+                m_renderOffset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->m_size.y : -PMONITOR->m_size.y) * (movePerc / 100.f)));
                 *m_alpha        = 1.f;
                 *m_renderOffset = Vector2D(0, 0);
             } else {
                 m_alpha->setValueAndWarp(1.f);
                 *m_alpha        = 0.f;
-                *m_renderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
+                *m_renderOffset = Vector2D(0.0, (left ? -PMONITOR->m_size.y : PMONITOR->m_size.y) * (movePerc / 100.f));
             }
         } else {
             if (in) {
                 m_alpha->setValueAndWarp(0.f);
-                m_renderOffset->setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
+                m_renderOffset->setValueAndWarp(Vector2D((left ? PMONITOR->m_size.x : -PMONITOR->m_size.x) * (movePerc / 100.f), 0.0));
                 *m_alpha        = 1.f;
                 *m_renderOffset = Vector2D(0, 0);
             } else {
                 m_alpha->setValueAndWarp(1.f);
                 *m_alpha        = 0.f;
-                *m_renderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
+                *m_renderOffset = Vector2D((left ? -PMONITOR->m_size.x : PMONITOR->m_size.x) * (movePerc / 100.f), 0.0);
             }
         }
     } else if (ANIMSTYLE == "fade") {
@@ -143,7 +143,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR  = m_monitor.lock();
-        const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
+        const auto YDISTANCE = PMONITOR->m_size.y + *PWORKSPACEGAP;
 
         m_alpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
@@ -156,7 +156,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else {
         // fallback is slide
         const auto PMONITOR  = m_monitor.lock();
-        const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
+        const auto XDISTANCE = PMONITOR->m_size.x + *PWORKSPACEGAP;
 
         m_alpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
@@ -520,7 +520,7 @@ bool CWorkspace::inert() {
 }
 
 MONITORID CWorkspace::monitorID() {
-    return m_monitor ? m_monitor->ID : MONITOR_INVALID;
+    return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
 PHLWINDOW CWorkspace::getFullscreenWindow() {
@@ -538,10 +538,10 @@ bool CWorkspace::isVisible() {
 
 bool CWorkspace::isVisibleNotCovered() {
     const auto PMONITOR = m_monitor.lock();
-    if (PMONITOR->activeSpecialWorkspace)
-        return PMONITOR->activeSpecialWorkspace->m_id == m_id;
+    if (PMONITOR->m_activeSpecialWorkspace)
+        return PMONITOR->m_activeSpecialWorkspace->m_id == m_id;
 
-    return PMONITOR->activeWorkspace->m_id == m_id;
+    return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
@@ -597,7 +597,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
 
-        if (WINDOWIDEALBB.x <= PMONITOR->vecPosition.x + 1 && WINDOWIDEALBB.y <= PMONITOR->vecPosition.y + 1)
+        if (WINDOWIDEALBB.x <= PMONITOR->m_position.x + 1 && WINDOWIDEALBB.y <= PMONITOR->m_position.y + 1)
             return w;
     }
     return nullptr;

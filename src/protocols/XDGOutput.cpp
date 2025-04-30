@@ -65,14 +65,14 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
         return;
     }
 
-    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->szName, (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
+    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
 
     const auto XDGVER = pXDGOutput->resource->version();
 
     if (XDGVER >= OUTPUT_NAME_SINCE_VERSION)
-        pXDGOutput->resource->sendName(PMONITOR->szName.c_str());
-    if (XDGVER >= OUTPUT_DESCRIPTION_SINCE_VERSION && !PMONITOR->output->description.empty())
-        pXDGOutput->resource->sendDescription(PMONITOR->output->description.c_str());
+        pXDGOutput->resource->sendName(PMONITOR->m_name.c_str());
+    if (XDGVER >= OUTPUT_DESCRIPTION_SINCE_VERSION && !PMONITOR->m_output->description.empty())
+        pXDGOutput->resource->sendDescription(PMONITOR->m_output->description.c_str());
 
     pXDGOutput->sendDetails();
 
@@ -110,13 +110,13 @@ void CXDGOutput::sendDetails() {
     if UNLIKELY (!monitor || !outputProto || outputProto->isDefunct())
         return;
 
-    const auto POS = isXWayland ? monitor->vecXWaylandPosition : monitor->vecPosition;
+    const auto POS = isXWayland ? monitor->m_xWaylandPosition : monitor->m_position;
     resource->sendLogicalPosition(POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && isXWayland)
-        resource->sendLogicalSize(monitor->vecTransformedSize.x, monitor->vecTransformedSize.y);
+        resource->sendLogicalSize(monitor->m_transformedSize.x, monitor->m_transformedSize.y);
     else
-        resource->sendLogicalSize(monitor->vecSize.x, monitor->vecSize.y);
+        resource->sendLogicalSize(monitor->m_size.x, monitor->m_size.y);
 
     if (resource->version() < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
         resource->sendDone();

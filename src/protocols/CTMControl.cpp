@@ -40,9 +40,9 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
             }
         }
 
-        ctms[PMONITOR->szName] = MAT;
+        ctms[PMONITOR->m_name] = MAT;
 
-        LOGM(LOG, "CTM set for output {}: {}", PMONITOR->szName, ctms.at(PMONITOR->szName).toString());
+        LOGM(LOG, "CTM set for output {}: {}", PMONITOR->m_name, ctms.at(PMONITOR->m_name).toString());
     });
 
     resource->setCommit([this](CHyprlandCtmControlManagerV1* r) {
@@ -52,12 +52,12 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
         LOGM(LOG, "Committing ctms to outputs");
 
         for (auto& m : g_pCompositor->m_monitors) {
-            if (!ctms.contains(m->szName)) {
+            if (!ctms.contains(m->m_name)) {
                 PROTO::ctm->setCTM(m, Mat3x3::identity());
                 continue;
             }
 
-            PROTO::ctm->setCTM(m, ctms.at(m->szName));
+            PROTO::ctm->setCTM(m, ctms.at(m->m_name));
         }
     });
 }

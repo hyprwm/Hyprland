@@ -110,7 +110,7 @@ void CPopup::onMap() {
 
     //unconstrain();
     sendScale();
-    m_resource->surface->surface->enter(PMONITOR->self.lock());
+    m_resource->surface->surface->enter(PMONITOR->m_self.lock());
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
@@ -224,7 +224,7 @@ void CPopup::reposition() {
     if (!PMONITOR)
         return;
 
-    CBox box = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    CBox box = {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     m_resource->applyPositioning(box, COORDS);
 }
 

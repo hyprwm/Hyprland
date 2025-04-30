@@ -29,7 +29,7 @@ bool CRectPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CRectPassElement::boundingBox() {
-    return data.box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->scale).round();
+    return data.box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->m_scale).round();
 }
 
 CRegion CRectPassElement::opaqueRegion() {

@@ -49,11 +49,11 @@ void CHyprError::createQueued() {
 
     const auto PMONITOR = g_pCompositor->m_monitors.front();
 
-    const auto SCALE = PMONITOR->scale;
+    const auto SCALE = PMONITOR->m_scale;
 
-    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
+    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -76,13 +76,13 @@ void CHyprError::createQueued() {
 
     const double PAD = 10 * SCALE;
 
-    const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
+    const double WIDTH  = PMONITOR->m_pixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * (VISLINECOUNT + EXTRALINES) + 3;
     const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
     const double X      = PAD;
-    const double Y      = TOPBAR ? PAD : PMONITOR->vecPixelSize.y - HEIGHT - PAD;
+    const double Y      = TOPBAR ? PAD : PMONITOR->m_pixelSize.y - HEIGHT - PAD;
 
-    m_bDamageBox = {0, 0, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
+    m_bDamageBox = {0, 0, (int)PMONITOR->m_pixelSize.x, (int)HEIGHT + (int)PAD * 2};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -152,7 +152,7 @@ void CHyprError::createQueued() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 #endif
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo
     cairo_destroy(CAIRO);
@@ -164,7 +164,7 @@ void CHyprError::createQueued() {
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
 }
 
 void CHyprError::draw() {
@@ -183,7 +183,7 @@ void CHyprError::draw() {
                 m_szQueued   = "";
 
                 for (auto& m : g_pCompositor->m_monitors) {
-                    g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
+                    g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
                 }
 
                 return;
@@ -196,10 +196,10 @@ void CHyprError::draw() {
 
     const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
 
-    CBox       monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    CBox       monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
-    m_bDamageBox.x = (int)PMONITOR->vecPosition.x;
-    m_bDamageBox.y = (int)PMONITOR->vecPosition.y;
+    m_bDamageBox.x = (int)PMONITOR->m_position.x;
+    m_bDamageBox.y = (int)PMONITOR->m_position.y;
 
     if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
         g_pHyprRenderer->damageBox(m_bDamageBox);

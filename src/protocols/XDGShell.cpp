@@ -196,7 +196,7 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     resource->setSetFullscreen([this](CXdgToplevel* r, wl_resource* output) {
         if (output)
             if (const auto PM = CWLOutputResource::fromResource(output)->monitor; PM)
-                state.requestsFullscreenMonitor = PM->ID;
+                state.requestsFullscreenMonitor = PM->m_id;
 
         state.requestsFullscreen = true;
         events.stateChanged.emit();

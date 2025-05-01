@@ -313,10 +313,10 @@ void CKeybindManager::updateXKBTranslationState() {
 }
 
 bool CKeybindManager::ensureMouseBindState() {
-    if (!g_pInputManager->currentlyDraggedWindow)
+    if (!g_pInputManager->m_currentlyDraggedWindow)
         return false;
 
-    if (!g_pInputManager->currentlyDraggedWindow.expired()) {
+    if (!g_pInputManager->m_currentlyDraggedWindow.expired()) {
         changeMouseBindMode(MBIND_INVALID);
         return true;
     }
@@ -364,9 +364,9 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
         PNEWWINDOW->warpCursor();
 
         if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
-            g_pInputManager->m_pForcedFocus = PNEWWINDOW;
+            g_pInputManager->m_forcedFocus = PNEWWINDOW;
             g_pInputManager->simulateMouseMovement();
-            g_pInputManager->m_pForcedFocus.reset();
+            g_pInputManager->m_forcedFocus.reset();
         }
     } else {
         g_pCompositor->focusWindow(nullptr);
@@ -411,9 +411,9 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
         if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
-            g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+            g_pInputManager->m_forcedFocus = PWINDOWTOCHANGETO;
             g_pInputManager->simulateMouseMovement();
-            g_pInputManager->m_pForcedFocus.reset();
+            g_pInputManager->m_forcedFocus.reset();
         }
 
         if (PLASTWINDOW && PLASTWINDOW->m_monitor != PWINDOWTOCHANGETO->m_monitor) {
@@ -755,9 +755,9 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             // Require mouse to stay inside drag_threshold for clicks, outside for drags
             // Check if either a mouse bind has triggered or currently over the threshold (maybe there is no mouse bind on the same key)
             const auto THRESHOLDREACHED = key.mousePosAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > std::pow(*PDRAGTHRESHOLD, 2);
-            if (k->click && (g_pInputManager->m_bDragThresholdReached || THRESHOLDREACHED))
+            if (k->click && (g_pInputManager->m_dragThresholdReached || THRESHOLDREACHED))
                 continue;
-            else if (k->drag && !g_pInputManager->m_bDragThresholdReached && !THRESHOLDREACHED)
+            else if (k->drag && !g_pInputManager->m_dragThresholdReached && !THRESHOLDREACHED)
                 continue;
         }
 
@@ -811,7 +811,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             found = true;
     }
 
-    g_pInputManager->m_bDragThresholdReached = false;
+    g_pInputManager->m_dragThresholdReached = false;
 
     // if keybind wasn't found (or dispatcher said to) then pass event
     res.passEvent |= !found;
@@ -1143,7 +1143,7 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
         return {};
 
     // remove drag status
-    if (!g_pInputManager->currentlyDraggedWindow.expired())
+    if (!g_pInputManager->m_currentlyDraggedWindow.expired())
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
 
     if (PWINDOW->m_groupData.pNextWindow.lock() && PWINDOW->m_groupData.pNextWindow.lock() != PWINDOW) {
@@ -1279,7 +1279,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     }
 
     g_pInputManager->unconstrainMouse();
-    g_pInputManager->m_bEmptyFocusCursorSet = false;
+    g_pInputManager->m_emptyFocusCursorSet = false;
 
     auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(BISWORKSPACECURRENT ? PPREVWS.id : workspaceToChangeTo);
     if (!pWorkspaceToChangeTo)
@@ -1325,7 +1325,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
         g_pCompositor->warpCursorTo(middle);
     }
 
-    if (!g_pInputManager->m_bLastFocusOnLS) {
+    if (!g_pInputManager->m_lastFocusOnLS) {
         if (g_pCompositor->m_lastFocus)
             g_pInputManager->sendMotionEventsToFocused();
         else
@@ -2812,7 +2812,7 @@ SDispatchResult CKeybindManager::mouse(std::string args) {
 
 SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) {
     if (MODE != MBIND_INVALID) {
-        if (!g_pInputManager->currentlyDraggedWindow.expired() || g_pInputManager->dragMode != MBIND_INVALID)
+        if (!g_pInputManager->m_currentlyDraggedWindow.expired() || g_pInputManager->m_dragMode != MBIND_INVALID)
             return {};
 
         const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
@@ -2824,18 +2824,18 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE)
             PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS);
 
-        if (g_pInputManager->currentlyDraggedWindow.expired())
-            g_pInputManager->currentlyDraggedWindow = PWINDOW;
+        if (g_pInputManager->m_currentlyDraggedWindow.expired())
+            g_pInputManager->m_currentlyDraggedWindow = PWINDOW;
 
-        g_pInputManager->dragMode = MODE;
+        g_pInputManager->m_dragMode = MODE;
 
         g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
     } else {
-        if (g_pInputManager->currentlyDraggedWindow.expired() || g_pInputManager->dragMode == MBIND_INVALID)
+        if (g_pInputManager->m_currentlyDraggedWindow.expired() || g_pInputManager->m_dragMode == MBIND_INVALID)
             return {};
 
         g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
-        g_pInputManager->dragMode = MODE;
+        g_pInputManager->m_dragMode = MODE;
     }
 
     return {};

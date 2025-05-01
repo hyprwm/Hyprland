@@ -616,7 +616,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "{\n";
         result += "\"mice\": [\n";
 
-        for (auto const& m : g_pInputManager->m_vPointers) {
+        for (auto const& m : g_pInputManager->m_pointers) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -631,7 +631,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n],\n";
 
         result += "\"keyboards\": [\n";
-        for (auto const& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_keyboards) {
             const auto KM = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
@@ -657,7 +657,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"tablets\": [\n";
 
-        for (auto const& d : g_pInputManager->m_vTabletPads) {
+        for (auto const& d : g_pInputManager->m_tabletPads) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -670,7 +670,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                 (uintptr_t)d.get(), (uintptr_t)d->m_parent.get(), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
         }
 
-        for (auto const& d : g_pInputManager->m_vTablets) {
+        for (auto const& d : g_pInputManager->m_tablets) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -679,7 +679,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                 (uintptr_t)d.get(), escapeJSONStrings(d->m_hlName));
         }
 
-        for (auto const& d : g_pInputManager->m_vTabletTools) {
+        for (auto const& d : g_pInputManager->m_tabletTools) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -693,7 +693,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"touch\": [\n";
 
-        for (auto const& d : g_pInputManager->m_vTouches) {
+        for (auto const& d : g_pInputManager->m_touches) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -707,7 +707,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"switches\": [\n";
 
-        for (auto const& d : g_pInputManager->m_lSwitches) {
+        for (auto const& d : g_pInputManager->m_switches) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -724,14 +724,14 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
     } else {
         result += "mice:\n";
 
-        for (auto const& m : g_pInputManager->m_vPointers) {
+        for (auto const& m : g_pInputManager->m_pointers) {
             result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->m_hlName,
                                   (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";
 
-        for (auto const& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_keyboards) {
             const auto KM = k->getActiveLayout();
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
@@ -742,27 +742,27 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\n\nTablets:\n";
 
-        for (auto const& d : g_pInputManager->m_vTabletPads) {
+        for (auto const& d : g_pInputManager->m_tabletPads) {
             result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)d.get(), (uintptr_t)d->m_parent.get(), d->m_parent ? d->m_parent->m_hlName : "");
         }
 
-        for (auto const& d : g_pInputManager->m_vTablets) {
+        for (auto const& d : g_pInputManager->m_tablets) {
             result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->m_hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
-        for (auto const& d : g_pInputManager->m_vTabletTools) {
+        for (auto const& d : g_pInputManager->m_tabletTools) {
             result += std::format("\tTablet Tool at {:x}\n", (uintptr_t)d.get());
         }
 
         result += "\n\nTouch:\n";
 
-        for (auto const& d : g_pInputManager->m_vTouches) {
+        for (auto const& d : g_pInputManager->m_touches) {
             result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)d.get(), d->m_hlName);
         }
 
         result += "\n\nSwitches:\n";
 
-        for (auto const& d : g_pInputManager->m_lSwitches) {
+        for (auto const& d : g_pInputManager->m_switches) {
             result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pDevice ? d.pDevice->getName() : "");
         }
     }
@@ -1286,7 +1286,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
     };
 
     if (KB == "main" || KB == "active" || KB == "current") {
-        for (auto const& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_keyboards) {
             if (!k->m_active)
                 continue;
 
@@ -1295,17 +1295,17 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         }
     } else if (KB == "all") {
         std::string result = "";
-        for (auto const& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_keyboards) {
             auto res = updateKeyboard(k, CMD);
             if (res.has_value())
                 result += *res + "\n";
         }
         return result.empty() ? "ok" : result;
     } else {
-        auto k = std::find_if(g_pInputManager->m_vKeyboards.begin(), g_pInputManager->m_vKeyboards.end(),
+        auto k = std::find_if(g_pInputManager->m_keyboards.begin(), g_pInputManager->m_keyboards.end(),
                               [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
 
-        if (k == g_pInputManager->m_vKeyboards.end())
+        if (k == g_pInputManager->m_keyboards.end())
             return "device not found";
 
         pKeyboard = *k;

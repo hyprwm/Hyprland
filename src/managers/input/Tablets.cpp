@@ -136,7 +136,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL, true);
-        m_tmrLastCursorMovement.reset();
+        m_lastCursorMovement.reset();
     }
 
     if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_PRESSURE)
@@ -217,8 +217,8 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
 }
 
 void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
-    const auto PNEWTABLET = m_vTablets.emplace_back(CTablet::create(pDevice));
-    m_vHIDs.emplace_back(PNEWTABLET);
+    const auto PNEWTABLET = m_tablets.emplace_back(CTablet::create(pDevice));
+    m_hids.emplace_back(PNEWTABLET);
 
     try {
         PNEWTABLET->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());
@@ -240,13 +240,13 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
 
 SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletTool> pTool) {
 
-    for (auto const& t : m_vTabletTools) {
+    for (auto const& t : m_tabletTools) {
         if (t->aq() == pTool)
             return t;
     }
 
-    const auto PTOOL = m_vTabletTools.emplace_back(CTabletTool::create(pTool));
-    m_vHIDs.emplace_back(PTOOL);
+    const auto PTOOL = m_tabletTools.emplace_back(CTabletTool::create(pTool));
+    m_hids.emplace_back(PTOOL);
 
     try {
         PTOOL->m_hlName = g_pInputManager->getNameForNewDevice(pTool->getName());
@@ -265,8 +265,8 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
 }
 
 void CInputManager::newTabletPad(SP<Aquamarine::ITabletPad> pDevice) {
-    const auto PNEWPAD = m_vTabletPads.emplace_back(CTabletPad::create(pDevice));
-    m_vHIDs.emplace_back(PNEWPAD);
+    const auto PNEWPAD = m_tabletPads.emplace_back(CTabletPad::create(pDevice));
+    m_hids.emplace_back(PNEWPAD);
 
     try {
         PNEWPAD->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());

@@ -1088,7 +1088,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
     }
 
-    if (!g_pInputManager->m_dExclusiveLSes.empty()) {
+    if (!g_pInputManager->m_exclusiveLSes.empty()) {
         Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
         return;
     }

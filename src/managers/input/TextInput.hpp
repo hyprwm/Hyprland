@@ -38,10 +38,10 @@ class CTextInput {
     void                   setFocusedSurface(SP<CWLSurfaceResource> pSurface);
     void                   initCallbacks();
 
-    WP<CWLSurfaceResource> pFocusedSurface;
-    int                    enterLocks = 0;
-    WP<CTextInputV3>       pV3Input;
-    WP<CTextInputV1>       pV1Input;
+    WP<CWLSurfaceResource> m_focusedSurface;
+    int                    m_enterLocks = 0;
+    WP<CTextInputV3>       m_v3Input;
+    WP<CTextInputV1>       m_v1Input;
 
     struct {
         CHyprSignalListener enable;
@@ -51,5 +51,5 @@ class CTextInput {
         CHyprSignalListener destroy;
         CHyprSignalListener surfaceUnmap;
         CHyprSignalListener surfaceDestroy;
-    } listeners;
+    } m_listeners;
 };

@@ -121,7 +121,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-    if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
+    if (*PDROPATCURSOR && g_pInputManager->m_dragMode == MBIND_MOVE) {
         if (WINDOWSONWORKSPACE > 2) {
             for (auto it = m_masterNodesData.begin(); it != m_masterNodesData.end(); ++it) {
                 if (it->workspaceID != pWindow->workspaceID())
@@ -177,11 +177,11 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         }
     }
 
-    if ((BNEWISMASTER && g_pInputManager->dragMode != MBIND_MOVE)                  //
+    if ((BNEWISMASTER && g_pInputManager->m_dragMode != MBIND_MOVE)                //
         || WINDOWSONWORKSPACE == 1                                                 //
         || (WINDOWSONWORKSPACE > 2 && !pWindow->m_firstMap && OPENINGON->isMaster) //
         || forceDropAsMaster                                                       //
-        || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && g_pInputManager->dragMode != MBIND_MOVE)) {
+        || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && g_pInputManager->m_dragMode != MBIND_MOVE)) {
 
         if (BNEWBEFOREACTIVE) {
             for (auto& nd : m_masterNodesData | std::views::reverse) {
@@ -1065,9 +1065,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
         }
 
-        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+        g_pInputManager->m_forcedFocus = PWINDOWTOCHANGETO;
         g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        g_pInputManager->m_forcedFocus.reset();
     };
 
     CVarList vars(message, 0, ' ');

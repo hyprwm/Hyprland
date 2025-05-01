@@ -333,7 +333,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     eOrientation orientation         = getDynamicOrientation(pWorkspace);
     bool         centerMasterWindow  = false;
     static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
-    static auto  CMSLAVESONRIGHT     = CConfigValue<Hyprlang::INT>("master:center_master_slaves_on_right");
+    static auto  CMFALLBACK          = CConfigValue<std::string>("master:center_master_fallback");
     static auto  PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
     static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
@@ -347,10 +347,16 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         if (STACKWINDOWS >= *SLAVECOUNTFORCENTER) {
             centerMasterWindow = true;
         } else {
-            if (*CMSLAVESONRIGHT)
+            if (*CMFALLBACK == "left")
                 orientation = ORIENTATION_LEFT;
-            else
+            else if (*CMFALLBACK == "right")
                 orientation = ORIENTATION_RIGHT;
+            else if (*CMFALLBACK == "top")
+                orientation = ORIENTATION_TOP;
+            else if (*CMFALLBACK == "bottom")
+                orientation = ORIENTATION_BOTTOM;
+            else
+                orientation = ORIENTATION_LEFT;
         }
     }
 
@@ -538,11 +544,11 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         float       nextY       = 0;
         float       nextYL      = 0;
         float       nextYR      = 0;
-        bool        onRight     = *CMSLAVESONRIGHT;
+        bool        onRight     = *CMFALLBACK == "right";
         int         slavesLeftL = 1 + (slavesLeft - 1) / 2;
         int         slavesLeftR = slavesLeft - slavesLeftL;
 
-        if (*CMSLAVESONRIGHT) {
+        if (onRight) {
             slavesLeftR = 1 + (slavesLeft - 1) / 2;
             slavesLeftL = slavesLeft - slavesLeftR;
         }
@@ -565,7 +571,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
                 onRight = !onRight;
             }
 
-            onRight = *CMSLAVESONRIGHT;
+            onRight = *CMFALLBACK == "right";
         }
 
         for (auto& nd : m_masterNodesData) {

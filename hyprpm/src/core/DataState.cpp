@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <toml++/toml.hpp>
 #include <print>
-#include <fstream>
+#include <sstream>
 #include "PluginManager.hpp"
 #include "../helpers/Die.hpp"
 #include "../helpers/Sys.hpp"

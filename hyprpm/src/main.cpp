@@ -2,34 +2,37 @@
 #include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
+#include "helpers/Sys.hpp"
 
 #include <cstdio>
 #include <vector>
 #include <string>
 #include <print>
-#include <chrono>
-#include <thread>
+
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
+┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision.
 ┃                          is optional, when set, commit locks are ignored.
-┣ remove [url/name]      → Remove an installed plugin repository
-┣ enable [name]          → Enable a plugin
-┣ disable [name]         → Disable a plugin
-┣ update                 → Check and update all plugins if needed
+┣ remove [url/name]      → Remove an installed plugin repository.
+┣ enable [name]          → Enable a plugin.
+┣ disable [name]         → Disable a plugin.
+┣ update                 → Check and update all plugins if needed.
 ┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
-┣ list                   → List all installed plugins
+┣ list                   → List all installed plugins.
+┣ purge-cache            → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
 ┣ Flags:
 ┃
-┣ --notify       | -n    → Send a hyprland notification for important events (including both successes and fail events)
-┣ --notify-fail  | -nn   → Send a hyprland notification for fail events only
-┣ --help         | -h    → Show this menu
-┣ --verbose      | -v    → Enable too much logging
-┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
-┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources
-┣ --hl-url       |       → Pass a custom hyprland source url
+┣ --notify       | -n    → Send a hyprland notification for important events (including both successes and fail events).
+┣ --notify-fail  | -nn   → Send a hyprland notification for fail events only.
+┣ --help         | -h    → Show this menu.
+┣ --verbose      | -v    → Enable too much logging.
+┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f).
+┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources.
+┣ --hl-url       |       → Pass a custom hyprland source url.
 ┗
 )#";
 
@@ -96,9 +99,11 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         std::string rev = "";
-        if (command.size() >= 3) {
+        if (command.size() >= 3)
             rev = command[2];
-        }
+
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
@@ -107,10 +112,17 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
+
         return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
     } else if (command[0] == "update") {
-        bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
-        bool headers      = g_pPluginManager->updateHeaders(force);
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
+
+        bool        headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
+        bool        headers      = g_pPluginManager->updateHeaders(force);
+
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
@@ -141,7 +153,10 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
+
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
 
         if (ret == LOADSTATE_HYPRLAND_UPDATED)
             g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] Enabled plugin, but Hyprland was updated. Please restart Hyprland.");
@@ -159,7 +174,11 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
+
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
+
         if (ret != LOADSTATE_OK)
             return 1;
     } else if (command[0] == "reload") {
@@ -181,6 +200,10 @@ int                        main(int argc, char** argv, char** envp) {
         } else if (notify && !notifyFail) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
+    } else if (command[0] == "purge-cache") {
+        NSys::cacheSudo();
+        CScopeGuard x([] { NSys::dropSudo(); });
+        DataState::purgeAllCache();
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {

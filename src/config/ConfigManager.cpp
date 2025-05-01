@@ -597,7 +597,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:mfact", {0.55f});
     registerConfigVar("master:new_status", {"slave"});
     registerConfigVar("master:slave_count_for_center_master", Hyprlang::INT{2});
-    registerConfigVar("master:center_master_slaves_on_right", Hyprlang::INT{1});
+    registerConfigVar("master:center_master_fallback", {"left"});
     registerConfigVar("master:center_ignores_reserved", Hyprlang::INT{0});
     registerConfigVar("master:new_on_active", {"none"});
     registerConfigVar("master:new_on_top", Hyprlang::INT{0});

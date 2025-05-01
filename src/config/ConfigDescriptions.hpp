@@ -1811,12 +1811,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{2, 0, 10}, //##TODO RANGE?
     },
-    SConfigOptionDescription{
-        .value       = "master:center_master_slaves_on_right",
-        .description = "set if the slaves should appear on right of master when slave_count_for_center_master > 2",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
+    SConfigOptionDescription{.value       = "master:center_master_fallback",
+                             .description = "Set fallback for center master when slaves are less than slave_count_for_center_master, can be left ,right ,top ,bottom",
+                             .type        = CONFIG_OPTION_STRING_SHORT,
+                             .data        = SConfigOptionDescription::SStringData{"left"}},
     SConfigOptionDescription{
         .value       = "master:center_ignores_reserved",
         .description = "centers the master window on monitor ignoring reserved areas",

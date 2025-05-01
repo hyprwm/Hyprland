@@ -45,7 +45,7 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
 int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
     int no = 0;
-    for (auto const& n : m_lDwindleNodesData) {
+    for (auto const& n : m_dwindleNodesData) {
         if (n.workspaceID == id && n.valid)
             ++no;
     }
@@ -53,7 +53,7 @@ int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
 }
 
 SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const WORKSPACEID& id) {
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto& n : m_dwindleNodesData) {
         if (n.workspaceID == id && validMapped(n.pWindow))
             return &n;
     }
@@ -63,7 +63,7 @@ SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const WORKSPACEID&
 SDwindleNodeData* CHyprDwindleLayout::getClosestNodeOnWorkspace(const WORKSPACEID& id, const Vector2D& point) {
     SDwindleNodeData* res         = nullptr;
     double            distClosest = -1;
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto& n : m_dwindleNodesData) {
         if (n.workspaceID == id && validMapped(n.pWindow)) {
             auto distAnother = vecToRectDistanceSquared(point, n.box.pos(), n.box.pos() + n.box.size());
             if (!res || distAnother < distClosest) {
@@ -76,7 +76,7 @@ SDwindleNodeData* CHyprDwindleLayout::getClosestNodeOnWorkspace(const WORKSPACEI
 }
 
 SDwindleNodeData* CHyprDwindleLayout::getNodeFromWindow(PHLWINDOW pWindow) {
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto& n : m_dwindleNodesData) {
         if (n.pWindow.lock() == pWindow && !n.isNode)
             return &n;
     }
@@ -85,7 +85,7 @@ SDwindleNodeData* CHyprDwindleLayout::getNodeFromWindow(PHLWINDOW pWindow) {
 }
 
 SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const WORKSPACEID& id) {
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto& n : m_dwindleNodesData) {
         if (!n.pParent && n.workspaceID == id)
             return &n;
     }
@@ -223,16 +223,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     if (pWindow->m_isFloating)
         return;
 
-    m_lDwindleNodesData.emplace_back();
-    const auto  PNODE = &m_lDwindleNodesData.back();
+    m_dwindleNodesData.emplace_back();
+    const auto  PNODE = &m_dwindleNodesData.back();
 
     const auto  PMONITOR = pWindow->m_monitor.lock();
 
     static auto PUSEACTIVE    = CConfigValue<Hyprlang::INT>("dwindle:use_active_for_splits");
     static auto PDEFAULTSPLIT = CConfigValue<Hyprlang::FLOAT>("dwindle:default_split_ratio");
 
-    if (direction != DIRECTION_DEFAULT && overrideDirection == DIRECTION_DEFAULT)
-        overrideDirection = direction;
+    if (direction != DIRECTION_DEFAULT && m_overrideDirection == DIRECTION_DEFAULT)
+        m_overrideDirection = direction;
 
     // Populate the node with our window's data
     PNODE->workspaceID = pWindow->workspaceID();
@@ -242,7 +242,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     SDwindleNodeData* OPENINGON;
 
-    const auto        MOUSECOORDS   = m_vOverrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
+    const auto        MOUSECOORDS   = m_overrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
     if (PMONITOR->m_id == MONFROMCURSOR->m_id &&
@@ -278,14 +278,14 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     if (const auto MAXSIZE = pWindow->requestedMaxSize(); MAXSIZE.x < PREDSIZEMAX.x || MAXSIZE.y < PREDSIZEMAX.y) {
         // we can't continue. make it floating.
         pWindow->m_isFloating = true;
-        m_lDwindleNodesData.remove(*PNODE);
+        m_dwindleNodesData.remove(*PNODE);
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
         return;
     }
 
     // last fail-safe to avoid duplicate fullscreens
     if ((!OPENINGON || OPENINGON->pWindow.lock() == pWindow) && getNodesOnWorkspace(PNODE->workspaceID) > 1) {
-        for (auto& node : m_lDwindleNodesData) {
+        for (auto& node : m_dwindleNodesData) {
             if (node.workspaceID == PNODE->workspaceID && node.pWindow.lock() && node.pWindow.lock() != pWindow) {
                 OPENINGON = &node;
                 break;
@@ -304,8 +304,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     // get the node under our cursor
 
-    m_lDwindleNodesData.emplace_back();
-    const auto NEWPARENT = &m_lDwindleNodesData.back();
+    m_dwindleNodesData.emplace_back();
+    const auto NEWPARENT = &m_dwindleNodesData.back();
 
     // make the parent have the OPENINGON's stats
     NEWPARENT->box         = OPENINGON->box;
@@ -328,16 +328,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     bool        verticalOverride   = false;
 
     // let user select position -> top, right, bottom, left
-    if (overrideDirection != DIRECTION_DEFAULT) {
+    if (m_overrideDirection != DIRECTION_DEFAULT) {
 
         // this is horizontal
-        if (overrideDirection % 2 == 0)
+        if (m_overrideDirection % 2 == 0)
             verticalOverride = true;
         else
             horizontalOverride = true;
 
         // 0 -> top and left | 1,2 -> right and bottom
-        if (overrideDirection % 3 == 0) {
+        if (m_overrideDirection % 3 == 0) {
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
         } else {
@@ -347,7 +347,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
-            overrideDirection = DIRECTION_DEFAULT;
+            m_overrideDirection = DIRECTION_DEFAULT;
     } else if (*PSMARTSPLIT == 1) {
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
@@ -455,7 +455,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     if (!PPARENT) {
         Debug::log(LOG, "Removing last node (dwindle)");
-        m_lDwindleNodesData.remove(*PNODE);
+        m_dwindleNodesData.remove(*PNODE);
         return;
     }
 
@@ -480,8 +480,8 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     else
         PSIBLING->recalcSizePosRecursive();
 
-    m_lDwindleNodesData.remove(*PPARENT);
-    m_lDwindleNodesData.remove(*PNODE);
+    m_dwindleNodesData.remove(*PPARENT);
+    m_dwindleNodesData.remove(*PNODE);
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
@@ -540,8 +540,8 @@ bool CHyprDwindleLayout::isWindowTiled(PHLWINDOW pWindow) {
 }
 
 void CHyprDwindleLayout::onBeginDragWindow() {
-    m_PseudoDragFlags.started = false;
-    m_PseudoDragFlags.pseudo  = false;
+    m_pseudoDragFlags.started = false;
+    m_pseudoDragFlags.pseudo  = false;
     IHyprLayout::onBeginDragWindow();
 }
 
@@ -573,29 +573,29 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_position.y + PWINDOW->m_size.y, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
 
     if (PWINDOW->m_isPseudotiled) {
-        if (!m_PseudoDragFlags.started) {
-            m_PseudoDragFlags.started = true;
+        if (!m_pseudoDragFlags.started) {
+            m_pseudoDragFlags.started = true;
 
             const auto pseudoSize  = PWINDOW->m_realSize->goal();
             const auto mouseOffset = g_pInputManager->getMouseCoordsInternal() - (PNODE->box.pos() + ((PNODE->box.size() / 2) - (pseudoSize / 2)));
 
             if (mouseOffset.x > 0 && mouseOffset.x < pseudoSize.x && mouseOffset.y > 0 && mouseOffset.y < pseudoSize.y) {
-                m_PseudoDragFlags.pseudo  = true;
-                m_PseudoDragFlags.xExtent = mouseOffset.x > pseudoSize.x / 2;
-                m_PseudoDragFlags.yExtent = mouseOffset.y > pseudoSize.y / 2;
+                m_pseudoDragFlags.pseudo  = true;
+                m_pseudoDragFlags.xExtent = mouseOffset.x > pseudoSize.x / 2;
+                m_pseudoDragFlags.yExtent = mouseOffset.y > pseudoSize.y / 2;
 
                 PWINDOW->m_pseudoSize = pseudoSize;
             } else {
-                m_PseudoDragFlags.pseudo = false;
+                m_pseudoDragFlags.pseudo = false;
             }
         }
 
-        if (m_PseudoDragFlags.pseudo) {
-            if (m_PseudoDragFlags.xExtent)
+        if (m_pseudoDragFlags.pseudo) {
+            if (m_pseudoDragFlags.xExtent)
                 PWINDOW->m_pseudoSize.x += pixResize.x * 2;
             else
                 PWINDOW->m_pseudoSize.x -= pixResize.x * 2;
-            if (m_PseudoDragFlags.yExtent)
+            if (m_pseudoDragFlags.yExtent)
                 PWINDOW->m_pseudoSize.y += pixResize.y * 2;
             else
                 PWINDOW->m_pseudoSize.y -= pixResize.y * 2;
@@ -837,7 +837,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
 
     onWindowRemovedTiling(pWindow);
 
-    m_vOverrideFocalPoint = focalPoint;
+    m_overrideFocalPoint = focalPoint;
 
     const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
 
@@ -857,7 +857,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
 
     onWindowCreatedTiling(pWindow);
 
-    m_vOverrideFocalPoint.reset();
+    m_overrideFocalPoint.reset();
 
     // restore focus to the previous position
     if (silent) {
@@ -957,26 +957,26 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         switch (direction.front()) {
             case 'u':
             case 't': {
-                overrideDirection = DIRECTION_UP;
+                m_overrideDirection = DIRECTION_UP;
                 break;
             }
             case 'd':
             case 'b': {
-                overrideDirection = DIRECTION_DOWN;
+                m_overrideDirection = DIRECTION_DOWN;
                 break;
             }
             case 'r': {
-                overrideDirection = DIRECTION_RIGHT;
+                m_overrideDirection = DIRECTION_RIGHT;
                 break;
             }
             case 'l': {
-                overrideDirection = DIRECTION_LEFT;
+                m_overrideDirection = DIRECTION_LEFT;
                 break;
             }
             default: {
                 // any other character resets the focus direction
                 // needed for the persistent mode
-                overrideDirection = DIRECTION_DEFAULT;
+                m_overrideDirection = DIRECTION_DEFAULT;
                 break;
             }
         }
@@ -1076,7 +1076,7 @@ void CHyprDwindleLayout::onEnable() {
 }
 
 void CHyprDwindleLayout::onDisable() {
-    m_lDwindleNodesData.clear();
+    m_dwindleNodesData.clear();
 }
 
 Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {

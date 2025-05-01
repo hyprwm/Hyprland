@@ -117,11 +117,11 @@ int                        main(int argc, char** argv, char** envp) {
 
         return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
     } else if (command[0] == "update") {
-        bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
-        bool headers      = g_pPluginManager->updateHeaders(force);
-
         NSys::cacheSudo();
         CScopeGuard x([] { NSys::dropSudo(); });
+
+        bool        headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
+        bool        headers      = g_pPluginManager->updateHeaders(force);
 
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);

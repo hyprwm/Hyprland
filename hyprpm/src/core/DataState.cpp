@@ -240,6 +240,12 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
 }
 
 void DataState::purgeAllCache() {
+    std::error_code ec;
+    if (!std::filesystem::exists(getDataStatePath()) && !ec) {
+        std::println("{}", infoString("Nothing to do"));
+        return;
+    }
+
     const auto PATH = getDataStatePath().string();
     if (PATH.contains('\''))
         return;

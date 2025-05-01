@@ -212,13 +212,13 @@ class IHyprLayout {
     virtual bool updateDragWindow();
 
   private:
-    int          m_iMouseMoveEventCount;
-    Vector2D     m_vBeginDragXY;
-    Vector2D     m_vLastDragXY;
-    Vector2D     m_vBeginDragPositionXY;
-    Vector2D     m_vBeginDragSizeXY;
-    Vector2D     m_vDraggingWindowOriginalFloatSize;
-    eRectCorner  m_eGrabbedCorner = CORNER_TOPLEFT;
+    int          m_mouseMoveEventCount;
+    Vector2D     m_beginDragXY;
+    Vector2D     m_lastDragXY;
+    Vector2D     m_beginDragPositionXY;
+    Vector2D     m_beginDragSizeXY;
+    Vector2D     m_draggingWindowOriginalFloatSize;
+    eRectCorner  m_grabbedCorner = CORNER_TOPLEFT;
 
-    PHLWINDOWREF m_pLastTiledWindow;
+    PHLWINDOWREF m_lastTiledWindow;
 };

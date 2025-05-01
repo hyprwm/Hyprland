@@ -62,20 +62,20 @@ class CEventLoopManager {
         wl_event_loop*   loop        = nullptr;
         wl_display*      display     = nullptr;
         wl_event_source* eventSource = nullptr;
-    } m_sWayland;
+    } m_wayland;
 
     struct {
         std::vector<SP<CEventLoopTimer>> timers;
         Hyprutils::OS::CFileDescriptor   timerfd;
-    } m_sTimers;
+    } m_timers;
 
-    SIdleData                        m_sIdle;
-    std::map<int, SEventSourceData>  aqEventSources;
-    std::vector<UP<SReadableWaiter>> m_vReadableWaiters;
+    SIdleData                        m_idle;
+    std::map<int, SEventSourceData>  m_aqEventSources;
+    std::vector<UP<SReadableWaiter>> m_readableWaiters;
 
     struct {
         CHyprSignalListener pollFDsChanged;
-    } m_sListeners;
+    } m_listeners;
 
     wl_event_source* m_configWatcherInotifySource = nullptr;
 

@@ -109,7 +109,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
     }
 
-    if (g_pInputManager->m_bLastFocusOnLS) // waybar fix
+    if (g_pInputManager->m_lastFocusOnLS) // waybar fix
         g_pInputManager->releaseAllMouseButtons();
 
     // checks if the window wants borders and sets the appropriate flag
@@ -770,7 +770,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    if (PWINDOW == g_pInputManager->currentlyDraggedWindow.lock())
+    if (PWINDOW == g_pInputManager->m_currentlyDraggedWindow.lock())
         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
 
     // remove the fullscreen window status from workspace if we closed it

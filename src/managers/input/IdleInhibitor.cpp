@@ -5,13 +5,13 @@
 #include "../../protocols/core/Compositor.hpp"
 
 void CInputManager::newIdleInhibitor(std::any inhibitor) {
-    const auto PINHIBIT = m_vIdleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
+    const auto PINHIBIT = m_idleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
     PINHIBIT->inhibitor = std::any_cast<SP<CIdleInhibitor>>(inhibitor);
 
     Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface.get());
 
     PINHIBIT->inhibitor->listeners.destroy = PINHIBIT->inhibitor->resource->events.destroy.registerListener([this, PINHIBIT](std::any data) {
-        std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
+        std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
         recheckIdleInhibitorStatus();
     });
 
@@ -25,14 +25,14 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
     }
 
     PINHIBIT->surfaceDestroyListener = WLSurface->m_events.destroy.registerListener(
-        [this, PINHIBIT](std::any data) { std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
+        [this, PINHIBIT](std::any data) { std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
 
     recheckIdleInhibitorStatus();
 }
 
 void CInputManager::recheckIdleInhibitorStatus() {
 
-    for (auto const& ii : m_vIdleInhibitors) {
+    for (auto const& ii : m_idleInhibitors) {
         if (ii->nonDesktop) {
             PROTO::idle->setInhibit(true);
             return;
@@ -73,7 +73,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
     if (onlyHl)
         return false;
 
-    for (auto const& ii : m_vIdleInhibitors) {
+    for (auto const& ii : m_idleInhibitors) {
         if (ii->nonDesktop || !ii->inhibitor)
             continue;
 

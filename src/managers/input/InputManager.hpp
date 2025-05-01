@@ -143,44 +143,44 @@ class CInputManager {
     void               onTabletTip(CTablet::STipEvent);
     void               onTabletButton(CTablet::SButtonEvent);
 
-    STouchData         m_sTouchData;
+    STouchData         m_touchData;
 
     // for dragging floating windows
-    PHLWINDOWREF   currentlyDraggedWindow;
-    eMouseBindMode dragMode                = MBIND_INVALID;
-    bool           m_bWasDraggingWindow    = false;
-    bool           m_bDragThresholdReached = false;
+    PHLWINDOWREF   m_currentlyDraggedWindow;
+    eMouseBindMode m_dragMode             = MBIND_INVALID;
+    bool           m_wasDraggingWindow    = false;
+    bool           m_dragThresholdReached = false;
 
     // for refocus to be forced
-    PHLWINDOWREF                 m_pForcedFocus;
+    PHLWINDOWREF                 m_forcedFocus;
 
-    std::vector<SP<IKeyboard>>   m_vKeyboards;
-    std::vector<SP<IPointer>>    m_vPointers;
-    std::vector<SP<ITouch>>      m_vTouches;
-    std::vector<SP<CTablet>>     m_vTablets;
-    std::vector<SP<CTabletTool>> m_vTabletTools;
-    std::vector<SP<CTabletPad>>  m_vTabletPads;
-    std::vector<WP<IHID>>        m_vHIDs; // general container for all HID devices connected to the input manager.
+    std::vector<SP<IKeyboard>>   m_keyboards;
+    std::vector<SP<IPointer>>    m_pointers;
+    std::vector<SP<ITouch>>      m_touches;
+    std::vector<SP<CTablet>>     m_tablets;
+    std::vector<SP<CTabletTool>> m_tabletTools;
+    std::vector<SP<CTabletPad>>  m_tabletPads;
+    std::vector<WP<IHID>>        m_hids; // general container for all HID devices connected to the input manager.
 
     // Switches
-    std::list<SSwitchDevice> m_lSwitches;
+    std::list<SSwitchDevice> m_switches;
 
     // Exclusive layer surfaces
-    std::vector<PHLLSREF> m_dExclusiveLSes;
+    std::vector<PHLLSREF> m_exclusiveLSes;
 
     // constraints
-    std::vector<WP<CPointerConstraint>> m_vConstraints;
+    std::vector<WP<CPointerConstraint>> m_constraints;
 
     //
     void              newIdleInhibitor(std::any);
     void              recheckIdleInhibitorStatus();
     bool              isWindowInhibiting(const PHLWINDOW& pWindow, bool onlyHl = true);
 
-    SSwipeGesture     m_sActiveSwipe;
+    SSwipeGesture     m_activeSwipe;
 
-    CTimer            m_tmrLastCursorMovement;
+    CTimer            m_lastCursorMovement;
 
-    CInputMethodRelay m_sIMERelay;
+    CInputMethodRelay m_relay;
 
     // for shared mods
     uint32_t accumulateModsFromAllKBs();
@@ -198,20 +198,19 @@ class CInputManager {
     void        releaseAllMouseButtons();
 
     // for some bugs in follow mouse 0
-    bool m_bLastFocusOnLS       = false;
-    bool m_bLastFocusOnIMEPopup = false;
+    bool m_lastFocusOnLS = false;
 
     // for hard input e.g. clicks
-    bool m_bHardInput = false;
+    bool m_hardInput = false;
 
     // for hiding cursor on touch
-    bool m_bLastInputTouch = false;
+    bool m_lastInputTouch = false;
 
     // for tracking mouse refocus
-    PHLWINDOWREF m_pLastMouseFocus;
+    PHLWINDOWREF m_lastMouseFocus;
 
     //
-    bool m_bEmptyFocusCursorSet = false;
+    bool m_emptyFocusCursorSet = false;
 
   private:
     // Listeners
@@ -221,14 +220,14 @@ class CInputManager {
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
         CHyprSignalListener setCursor;
-    } m_sListeners;
+    } m_listeners;
 
-    bool                 m_bCursorImageOverridden = false;
-    eBorderIconDirection m_eBorderIconDirection   = BORDERICON_NONE;
+    bool                 m_cursorImageOverridden = false;
+    eBorderIconDirection m_borderIconDirection   = BORDERICON_NONE;
 
     // for click behavior override
-    eClickBehaviorMode m_ecbClickBehavior      = CLICKMODE_DEFAULT;
-    Vector2D           m_vLastCursorPosFloored = Vector2D();
+    eClickBehaviorMode m_clickBehavior        = CLICKMODE_DEFAULT;
+    Vector2D           m_lastCursorPosFloored = Vector2D();
 
     void               setupKeyboard(SP<IKeyboard> keeb);
     void               setupMouse(SP<IPointer> mauz);
@@ -240,7 +239,7 @@ class CInputManager {
 
     void               disableAllKeyboards(bool virt = false);
 
-    uint32_t           m_uiCapabilities = 0;
+    uint32_t           m_capabilities = 0;
 
     void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false);
     void               recheckMouseWarpOnMouseInput();
@@ -250,21 +249,21 @@ class CInputManager {
     void               applyConfigToKeyboard(SP<IKeyboard>);
 
     // this will be set after a refocus()
-    WP<CWLSurfaceResource> m_pFoundSurfaceToFocus;
-    PHLLSREF               m_pFoundLSToFocus;
-    PHLWINDOWREF           m_pFoundWindowToFocus;
+    WP<CWLSurfaceResource> m_foundSurfaceToFocus;
+    PHLLSREF               m_foundLSToFocus;
+    PHLWINDOWREF           m_foundWindowToFocus;
 
     // used for warping back after non-mouse input
-    Vector2D m_vLastMousePos   = {};
-    double   m_fMousePosDelta  = 0;
-    bool     m_bLastInputMouse = true;
+    Vector2D m_lastMousePos   = {};
+    double   m_mousePosDelta  = 0;
+    bool     m_lastInputMouse = true;
 
     // for holding focus on buttons held
-    bool m_bFocusHeldByButtons   = false;
-    bool m_bRefocusHeldByButtons = false;
+    bool m_focusHeldByButtons   = false;
+    bool m_refocusHeldByButtons = false;
 
     // for releasing mouse buttons
-    std::list<uint32_t> m_lCurrentlyHeldButtons;
+    std::list<uint32_t> m_currentlyHeldButtons;
 
     // idle inhibitors
     struct SIdleInhibitor {
@@ -272,7 +271,7 @@ class CInputManager {
         bool                nonDesktop = false;
         CHyprSignalListener surfaceDestroyListener;
     };
-    std::vector<UP<SIdleInhibitor>> m_vIdleInhibitors;
+    std::vector<UP<SIdleInhibitor>> m_idleInhibitors;
 
     // swipe
     void beginWorkspaceSwipe();
@@ -292,7 +291,7 @@ class CInputManager {
         Vector2D       vHotspot;
         std::string    name; // if not empty, means set by name.
         bool           inUse = false;
-    } m_sCursorSurfaceInfo;
+    } m_cursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
 
@@ -302,7 +301,7 @@ class CInputManager {
         bool     lastEventAxis     = false;
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
-    } m_ScrollWheelState;
+    } m_scrollWheelState;
 
     friend class CKeybindManager;
     friend class CWLSurface;

@@ -7,17 +7,17 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 
-CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : popup(popup_) {
-    listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
-    listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
-    listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
-    surface           = CWLSurface::create();
-    surface->assign(popup_->surface());
+CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : m_popup(popup_) {
+    m_listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
+    m_listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
+    m_listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    m_listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    m_surface           = CWLSurface::create();
+    m_surface->assign(popup_->surface());
 }
 
 SP<CWLSurface> CInputPopup::queryOwner() {
-    const auto FOCUSED = g_pInputManager->m_sIMERelay.getFocusedTextInput();
+    const auto FOCUSED = g_pInputManager->m_relay.getFocusedTextInput();
 
     if (!FOCUSED)
         return nullptr;
@@ -26,7 +26,7 @@ SP<CWLSurface> CInputPopup::queryOwner() {
 }
 
 void CInputPopup::onDestroy() {
-    g_pInputManager->m_sIMERelay.removePopup(this);
+    g_pInputManager->m_relay.removePopup(this);
 }
 
 void CInputPopup::onMap() {
@@ -40,7 +40,7 @@ void CInputPopup::onMap() {
     if (!PMONITOR)
         return;
 
-    PROTO::fractional->sendScale(surface->resource(), PMONITOR->m_scale);
+    PROTO::fractional->sendScale(m_surface->resource(), PMONITOR->m_scale);
 }
 
 void CInputPopup::onUnmap() {
@@ -73,15 +73,15 @@ void CInputPopup::damageSurface() {
     }
 
     Vector2D pos = globalBox().pos();
-    g_pHyprRenderer->damageSurface(surface->resource(), pos.x, pos.y);
+    g_pHyprRenderer->damageSurface(m_surface->resource(), pos.x, pos.y);
 }
 
 void CInputPopup::updateBox() {
-    if (!popup->mapped)
+    if (!m_popup->mapped)
         return;
 
     const auto OWNER      = queryOwner();
-    const auto PFOCUSEDTI = g_pInputManager->m_sIMERelay.getFocusedTextInput();
+    const auto PFOCUSEDTI = g_pInputManager->m_relay.getFocusedTextInput();
 
     if (!PFOCUSEDTI)
         return;
@@ -102,7 +102,7 @@ void CInputPopup::updateBox() {
         cursorBoxParent = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D   currentPopupSize = surface->getViewporterCorrectedSize() / surface->resource()->current.scale;
+    Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->current.scale;
 
     PHLMONITOR pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 
@@ -118,24 +118,24 @@ void CInputPopup::updateBox() {
         popupOffset.x -= popupOverflow;
 
     CBox cursorBoxLocal({-popupOffset.x, -popupOffset.y}, cursorBoxParent.size());
-    popup->sendInputRectangle(cursorBoxLocal);
+    m_popup->sendInputRectangle(cursorBoxLocal);
 
     CBox popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
-    if (popupBoxParent != lastBoxLocal) {
+    if (popupBoxParent != m_lastBoxLocal) {
         damageEntire();
-        lastBoxLocal = popupBoxParent;
+        m_lastBoxLocal = popupBoxParent;
     }
     damageSurface();
 
-    if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->m_id != lastMonitor) {
-        const auto PML = g_pCompositor->getMonitorFromID(lastMonitor);
+    if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->m_id != m_lastMonitor) {
+        const auto PML = g_pCompositor->getMonitorFromID(m_lastMonitor);
 
         if (PML)
-            surface->resource()->leave(PML->m_self.lock());
+            m_surface->resource()->leave(PML->m_self.lock());
 
-        surface->resource()->enter(PM->m_self.lock());
+        m_surface->resource()->enter(PM->m_self.lock());
 
-        lastMonitor = PM->m_id;
+        m_lastMonitor = PM->m_id;
     }
 }
 
@@ -148,7 +148,7 @@ CBox CInputPopup::globalBox() {
     }
     CBox parentBox = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500});
 
-    return lastBoxLocal.copy().translate(parentBox.pos());
+    return m_lastBoxLocal.copy().translate(parentBox.pos());
 }
 
 bool CInputPopup::isVecInPopup(const Vector2D& point) {
@@ -156,5 +156,5 @@ bool CInputPopup::isVecInPopup(const Vector2D& point) {
 }
 
 SP<CWLSurfaceResource> CInputPopup::getSurface() {
-    return surface->resource();
+    return m_surface->resource();
 }

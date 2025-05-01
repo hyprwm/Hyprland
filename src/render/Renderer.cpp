@@ -104,13 +104,13 @@ CHyprRenderer::CHyprRenderer() {
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("mouseMove", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (!m_sCursorHiddenConditions.hiddenOnKeyboard && m_sCursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_bLastInputTouch &&
+        if (!m_sCursorHiddenConditions.hiddenOnKeyboard && m_sCursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_lastInputTouch &&
             !m_sCursorHiddenConditions.hiddenOnTimeout)
             return;
 
         m_sCursorHiddenConditions.hiddenOnKeyboard = false;
         m_sCursorHiddenConditions.hiddenOnTimeout  = false;
-        m_sCursorHiddenConditions.hiddenOnTouch    = g_pInputManager->m_bLastInputTouch;
+        m_sCursorHiddenConditions.hiddenOnTouch    = g_pInputManager->m_lastInputTouch;
         ensureCursorRenderingMode();
     });
 
@@ -969,7 +969,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // Render IME popups
-    for (auto const& imep : g_pInputManager->m_sIMERelay.m_vIMEPopups) {
+    for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
         renderIMEPopup(imep.get(), pMonitor, time);
     }
 
@@ -2004,7 +2004,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
         m_sCursorHiddenConditions.hiddenOnKeyboard = false;
 
     if (*PCURSORTIMEOUT > 0)
-        m_sCursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_tmrLastCursorMovement.getSeconds();
+        m_sCursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_lastCursorMovement.getSeconds();
 
     const bool HIDE = m_sCursorHiddenConditions.hiddenOnTimeout || m_sCursorHiddenConditions.hiddenOnTouch || m_sCursorHiddenConditions.hiddenOnKeyboard;
 

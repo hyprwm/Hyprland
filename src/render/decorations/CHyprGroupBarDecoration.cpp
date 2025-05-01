@@ -404,7 +404,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
         g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
     }
 
-    g_pInputManager->currentlyDraggedWindow = pWindow;
+    g_pInputManager->m_currentlyDraggedWindow = pWindow;
 
     if (!g_pCompositor->isWindowActive(pWindow))
         g_pCompositor->focusWindow(pWindow);
@@ -421,11 +421,11 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_pWindow->m_isFloating && !pDraggedWindow->m_draggingTiled;
 
-    g_pInputManager->m_bWasDraggingWindow = false;
+    g_pInputManager->m_wasDraggingWindow = false;
 
     if (!pDraggedWindow->canBeGroupedInto(m_pWindow.lock()) || (*PDRAGINTOGROUP != 1 && *PDRAGINTOGROUP != 2) || (FLOATEDINTOTILED && !*PMERGEFLOATEDINTOTILEDONGROUPBAR) ||
         (!*PMERGEGROUPSONGROUPBAR && pDraggedWindow->m_groupData.pNextWindow.lock() && m_pWindow->m_groupData.pNextWindow.lock())) {
-        g_pInputManager->m_bWasDraggingWindow = true;
+        g_pInputManager->m_wasDraggingWindow = true;
         return false;
     }
 

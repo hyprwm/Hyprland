@@ -11,13 +11,13 @@ CInputMethodRelay::CInputMethodRelay() {
     static auto P =
         g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
 
-    listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
-    listeners.newTIV1 = PROTO::textInputV1->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
-    listeners.newIME  = PROTO::ime->events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
+    m_listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
+    m_listeners.newTIV1 = PROTO::textInputV1->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
+    m_listeners.newIME  = PROTO::ime->events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
 }
 
 void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
-    if (!m_pIME.expired()) {
+    if (!m_inputMethod.expired()) {
         Debug::log(ERR, "Cannot register 2 IMEs at once!");
 
         pIME->unavailable();
@@ -25,9 +25,9 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         return;
     }
 
-    m_pIME = pIME;
+    m_inputMethod = pIME;
 
-    listeners.commitIME = pIME->events.onCommit.registerListener([this](std::any d) {
+    m_listeners.commitIME = pIME->events.onCommit.registerListener([this](std::any d) {
         const auto PTI = getFocusedTextInput();
 
         if (!PTI) {
@@ -35,10 +35,10 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
             return;
         }
 
-        PTI->updateIMEState(m_pIME.lock());
+        PTI->updateIMEState(m_inputMethod.lock());
     });
 
-    listeners.destroyIME = pIME->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyIME = pIME->events.destroy.registerListener([this](std::any d) {
         const auto PTI = getFocusedTextInput();
 
         Debug::log(LOG, "IME Destroy");
@@ -46,11 +46,11 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         if (PTI)
             PTI->leave();
 
-        m_pIME.reset();
+        m_inputMethod.reset();
     });
 
-    listeners.newPopup = pIME->events.newPopup.registerListener([this](std::any d) {
-        m_vIMEPopups.emplace_back(makeUnique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
+    m_listeners.newPopup = pIME->events.newPopup.registerListener([this](std::any d) {
+        m_inputMethodPopups.emplace_back(makeUnique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
 
         Debug::log(LOG, "New input popup");
     });
@@ -58,7 +58,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     if (!g_pCompositor->m_lastFocus)
         return;
 
-    for (auto const& ti : m_vTextInputs) {
+    for (auto const& ti : m_textInputs) {
         if (ti->client() != g_pCompositor->m_lastFocus->client())
             continue;
 
@@ -70,14 +70,14 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
 }
 
 void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
-    std::erase_if(m_vIMEPopups, [pPopup](const auto& other) { return other.get() == pPopup; });
+    std::erase_if(m_inputMethodPopups, [pPopup](const auto& other) { return other.get() == pPopup; });
 }
 
 CTextInput* CInputMethodRelay::getFocusedTextInput() {
     if (!g_pCompositor->m_lastFocus)
         return nullptr;
 
-    for (auto const& ti : m_vTextInputs) {
+    for (auto const& ti : m_textInputs) {
         if (ti->focusedSurface() == g_pCompositor->m_lastFocus)
             return ti.get();
     }
@@ -86,58 +86,58 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
 }
 
 void CInputMethodRelay::onNewTextInput(WP<CTextInputV3> tiv3) {
-    m_vTextInputs.emplace_back(makeUnique<CTextInput>(tiv3));
+    m_textInputs.emplace_back(makeUnique<CTextInput>(tiv3));
 }
 
 void CInputMethodRelay::onNewTextInput(WP<CTextInputV1> pTIV1) {
-    m_vTextInputs.emplace_back(makeUnique<CTextInput>(pTIV1));
+    m_textInputs.emplace_back(makeUnique<CTextInput>(pTIV1));
 }
 
 void CInputMethodRelay::removeTextInput(CTextInput* pInput) {
-    std::erase_if(m_vTextInputs, [pInput](const auto& other) { return other.get() == pInput; });
+    std::erase_if(m_textInputs, [pInput](const auto& other) { return other.get() == pInput; });
 }
 
 void CInputMethodRelay::updateAllPopups() {
-    for (auto const& p : m_vIMEPopups) {
+    for (auto const& p : m_inputMethodPopups) {
         p->onCommit();
     }
 }
 
 void CInputMethodRelay::activateIME(CTextInput* pInput, bool shouldCommit) {
-    if (m_pIME.expired())
+    if (m_inputMethod.expired())
         return;
 
-    m_pIME->activate();
+    m_inputMethod->activate();
     if (shouldCommit)
         commitIMEState(pInput);
 }
 
 void CInputMethodRelay::deactivateIME(CTextInput* pInput, bool shouldCommit) {
-    if (m_pIME.expired())
+    if (m_inputMethod.expired())
         return;
 
-    m_pIME->deactivate();
+    m_inputMethod->deactivate();
     if (shouldCommit)
         commitIMEState(pInput);
 }
 
 void CInputMethodRelay::commitIMEState(CTextInput* pInput) {
-    if (m_pIME.expired())
+    if (m_inputMethod.expired())
         return;
 
-    pInput->commitStateToIME(m_pIME.lock());
+    pInput->commitStateToIME(m_inputMethod.lock());
 }
 
 void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
-    if (m_pIME.expired())
+    if (m_inputMethod.expired())
         return;
 
-    if (pSurface == m_pLastKbFocus)
+    if (pSurface == m_lastKbFocus)
         return;
 
-    m_pLastKbFocus = pSurface;
+    m_lastKbFocus = pSurface;
 
-    for (auto const& ti : m_vTextInputs) {
+    for (auto const& ti : m_textInputs) {
         if (!ti->focusedSurface())
             continue;
 
@@ -147,7 +147,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return;
 
-    for (auto const& ti : m_vTextInputs) {
+    for (auto const& ti : m_textInputs) {
         if (!ti->isV3())
             continue;
 
@@ -159,7 +159,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
 }
 
 CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
-    for (auto const& p : m_vIMEPopups) {
+    for (auto const& p : m_inputMethodPopups) {
         if (p->isVecInPopup(point))
             return p.get();
     }
@@ -168,7 +168,7 @@ CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
 }
 
 CInputPopup* CInputMethodRelay::popupFromSurface(const SP<CWLSurfaceResource> surface) {
-    for (auto const& p : m_vIMEPopups) {
+    for (auto const& p : m_inputMethodPopups) {
         if (p->getSurface() == surface)
             return p.get();
     }

@@ -29,15 +29,15 @@ class CInputPopup {
     void                    onMap();
     void                    onUnmap();
 
-    WP<CInputMethodPopupV2> popup;
-    SP<CWLSurface>          surface;
-    CBox                    lastBoxLocal;
-    MONITORID               lastMonitor = MONITOR_INVALID;
+    WP<CInputMethodPopupV2> m_popup;
+    SP<CWLSurface>          m_surface;
+    CBox                    m_lastBoxLocal;
+    MONITORID               m_lastMonitor = MONITOR_INVALID;
 
     struct {
         CHyprSignalListener map;
         CHyprSignalListener unmap;
         CHyprSignalListener destroy;
         CHyprSignalListener commit;
-    } listeners;
+    } m_listeners;
 };

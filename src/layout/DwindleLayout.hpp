@@ -65,16 +65,16 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onDisable();
 
   private:
-    std::list<SDwindleNodeData> m_lDwindleNodesData;
+    std::list<SDwindleNodeData> m_dwindleNodesData;
 
     struct {
         bool started = false;
         bool pseudo  = false;
         bool xExtent = false;
         bool yExtent = false;
-    } m_PseudoDragFlags;
+    } m_pseudoDragFlags;
 
-    std::optional<Vector2D> m_vOverrideFocalPoint; // for onWindowCreatedTiling.
+    std::optional<Vector2D> m_overrideFocalPoint; // for onWindowCreatedTiling.
 
     int                     getNodesOnWorkspace(const WORKSPACEID&);
     void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
@@ -88,7 +88,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     void                    swapSplit(PHLWINDOW);
     void                    moveToRoot(PHLWINDOW, bool stable = true);
 
-    eDirection              overrideDirection = DIRECTION_DEFAULT;
+    eDirection              m_overrideDirection = DIRECTION_DEFAULT;
 
     friend struct SDwindleNodeData;
 };

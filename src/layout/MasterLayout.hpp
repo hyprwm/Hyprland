@@ -71,10 +71,10 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual void                     onDisable();
 
   private:
-    std::list<SMasterNodeData>        m_lMasterNodesData;
-    std::vector<SMasterWorkspaceData> m_lMasterWorkspacesData;
+    std::list<SMasterNodeData>        m_masterNodesData;
+    std::vector<SMasterWorkspaceData> m_masterWorkspacesData;
 
-    bool                              m_bForceWarps = false;
+    bool                              m_forceWarps = false;
 
     void                              buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars);
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);

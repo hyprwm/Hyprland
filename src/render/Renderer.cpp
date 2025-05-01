@@ -338,7 +338,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     // then render windows over fullscreen.
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != pWorkspaceWindow->m_workspace || !w->m_isFloating || (!w->m_createdOverFullscreen && !w->m_pinned) || (!w->m_isMapped && !w->m_fadingOut) ||
+        if (w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || (!w->m_createdOverFullscreen && !w->m_pinned) || (!w->m_isMapped && !w->m_fadingOut) ||
             w->isFullscreen())
             continue;
 
@@ -2146,7 +2146,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
         if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
             continue;
 
-        if (w->m_workspace == PCANDIDATE->m_workspace && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(pMonitor))
+        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(pMonitor))
             return;
     }
 

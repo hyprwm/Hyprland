@@ -158,7 +158,7 @@ void CLayerSurface::onMap() {
     const bool ISEXCLUSIVE = m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
     if (ISEXCLUSIVE)
-        g_pInputManager->m_dExclusiveLSes.push_back(m_self);
+        g_pInputManager->m_exclusiveLSes.push_back(m_self);
 
     const bool GRABSFOCUS = ISEXCLUSIVE ||
         (m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
@@ -173,7 +173,7 @@ void CLayerSurface::onMap() {
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
         g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
-        g_pInputManager->m_bEmptyFocusCursorSet = false;
+        g_pInputManager->m_emptyFocusCursorSet = false;
     }
 
     m_position = Vector2D(m_geometry.x, m_geometry.y);
@@ -199,7 +199,7 @@ void CLayerSurface::onUnmap() {
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", m_layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", m_self.lock());
 
-    std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
+    std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor || g_pCompositor->m_unsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
@@ -346,9 +346,9 @@ void CLayerSurface::onCommit() {
         const bool ISEXCLUSIVE  = m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
         if (!WASEXCLUSIVE && ISEXCLUSIVE)
-            g_pInputManager->m_dExclusiveLSes.push_back(m_self);
+            g_pInputManager->m_exclusiveLSes.push_back(m_self);
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
-            std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == m_self.lock(); });
+            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == m_self.lock(); });
 
         // if the surface was focused and interactive but now isn't, refocus
         if (WASLASTFOCUS && m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
@@ -366,7 +366,7 @@ void CLayerSurface::onCommit() {
 
             const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
             g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
-            g_pInputManager->m_bEmptyFocusCursorSet = false;
+            g_pInputManager->m_emptyFocusCursorSet = false;
         }
     }
 

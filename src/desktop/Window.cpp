@@ -999,7 +999,7 @@ int CWindow::getGroupSize() {
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
     bool        isGroup               = m_groupData.pNextWindow;
-    bool        disallowDragIntoGroup = g_pInputManager->m_bWasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
+    bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
     return !g_pKeybindManager->m_bGroupsLocked                                               // global group lock disengaged
         && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
             || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked
@@ -1549,7 +1549,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_self) {
+    if (!m_isFloating || isFullscreen() || g_pInputManager->m_currentlyDraggedWindow == m_self) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());

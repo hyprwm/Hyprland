@@ -229,7 +229,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onBeginDragWindow() {
-    const auto  DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto  DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
     static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
 
     m_mouseMoveEventCount = 1;
@@ -244,7 +244,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     // Try to pick up dragged window now if drag_threshold is disabled
     // or at least update dragging related variables for the cursors
-    g_pInputManager->m_bDragThresholdReached = *PDRAGTHRESHOLD <= 0;
+    g_pInputManager->m_dragThresholdReached = *PDRAGTHRESHOLD <= 0;
     if (updateDragWindow())
         return;
 
@@ -287,7 +287,7 @@ void IHyprLayout::onBeginDragWindow() {
         }
     }
 
-    if (g_pInputManager->dragMode != MBIND_RESIZE && g_pInputManager->dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->dragMode != MBIND_RESIZE_BLOCK_RATIO)
+    if (g_pInputManager->m_dragMode != MBIND_RESIZE && g_pInputManager->m_dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->m_dragMode != MBIND_RESIZE_BLOCK_RATIO)
         g_pInputManager->setCursorImageUntilUnset("grabbing");
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -299,23 +299,23 @@ void IHyprLayout::onBeginDragWindow() {
 }
 
 void IHyprLayout::onEndDragWindow() {
-    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
 
     m_mouseMoveEventCount = 1;
 
     if (!validMapped(DRAGGINGWINDOW)) {
         if (DRAGGINGWINDOW) {
             g_pInputManager->unsetCursorImage();
-            g_pInputManager->currentlyDraggedWindow.reset();
+            g_pInputManager->m_currentlyDraggedWindow.reset();
         }
         return;
     }
 
     g_pInputManager->unsetCursorImage();
-    g_pInputManager->currentlyDraggedWindow.reset();
-    g_pInputManager->m_bWasDraggingWindow = true;
+    g_pInputManager->m_currentlyDraggedWindow.reset();
+    g_pInputManager->m_wasDraggingWindow = true;
 
-    if (g_pInputManager->dragMode == MBIND_MOVE) {
+    if (g_pInputManager->m_dragMode == MBIND_MOVE) {
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
         PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
@@ -365,7 +365,7 @@ void IHyprLayout::onEndDragWindow() {
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
 
-    g_pInputManager->m_bWasDraggingWindow = false;
+    g_pInputManager->m_wasDraggingWindow = false;
 }
 
 static inline bool canSnap(const double SIDEA, const double SIDEB, const double GAP) {
@@ -518,10 +518,10 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
-    if (g_pInputManager->currentlyDraggedWindow.expired())
+    if (g_pInputManager->m_currentlyDraggedWindow.expired())
         return;
 
-    const auto  DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto  DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
     static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
@@ -531,10 +531,10 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     }
 
     // Yoink dragged window here instead if using drag_threshold and it has been reached
-    if (*PDRAGTHRESHOLD > 0 && !g_pInputManager->m_bDragThresholdReached) {
+    if (*PDRAGTHRESHOLD > 0 && !g_pInputManager->m_dragThresholdReached) {
         if ((m_beginDragXY.distanceSq(mousePos) <= std::pow(*PDRAGTHRESHOLD, 2) && m_beginDragXY == m_lastDragXY))
             return;
-        g_pInputManager->m_bDragThresholdReached = true;
+        g_pInputManager->m_dragThresholdReached = true;
         if (updateDragWindow())
             return;
     }
@@ -570,7 +570,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_mouseMoveEventCount;
     }
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate && (g_pInputManager->dragMode != MBIND_MOVE || *PANIMATEMOUSE)))
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate && (g_pInputManager->m_dragMode != MBIND_MOVE || *PANIMATEMOUSE)))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();
@@ -579,7 +579,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
-    if (g_pInputManager->dragMode == MBIND_MOVE) {
+    if (g_pInputManager->m_dragMode == MBIND_MOVE) {
 
         Vector2D newPos  = m_beginDragPositionXY + DELTA;
         Vector2D newSize = DRAGGINGWINDOW->m_realSize->goal();
@@ -599,7 +599,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
         DRAGGINGWINDOW->m_position = wb.pos();
 
-    } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
+    } else if (g_pInputManager->m_dragMode == MBIND_RESIZE || g_pInputManager->m_dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->m_dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_isFloating) {
 
             Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
@@ -621,7 +621,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             else if (m_grabbedCorner == CORNER_BOTTOMLEFT)
                 newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
 
-            eMouseBindMode mode = g_pInputManager->dragMode;
+            eMouseBindMode mode = g_pInputManager->m_dragMode;
             if (DRAGGINGWINDOW->m_windowData.keepAspectRatio.valueOrDefault() && mode != MBIND_RESIZE_BLOCK_RATIO)
                 mode = MBIND_RESIZE_FORCE_RATIO;
 
@@ -942,10 +942,10 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 }
 
 bool IHyprLayout::updateDragWindow() {
-    const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
+    const auto DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
     const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
 
-    if (g_pInputManager->m_bDragThresholdReached) {
+    if (g_pInputManager->m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
             Debug::log(LOG, "Dragging a fullscreen window");
             g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
@@ -966,11 +966,11 @@ bool IHyprLayout::updateDragWindow() {
     if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_isFloating) {
         const auto MOUSECOORDS          = g_pInputManager->getMouseCoordsInternal();
         *DRAGGINGWINDOW->m_realPosition = MOUSECOORDS - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
-    } else if (!DRAGGINGWINDOW->m_isFloating && g_pInputManager->dragMode == MBIND_MOVE) {
+    } else if (!DRAGGINGWINDOW->m_isFloating && g_pInputManager->m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE                   = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
         DRAGGINGWINDOW->m_lastFloatingSize = (DRAGGINGWINDOW->m_realSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
         *DRAGGINGWINDOW->m_realPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
-        if (g_pInputManager->m_bDragThresholdReached) {
+        if (g_pInputManager->m_dragThresholdReached) {
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_isFloating    = true;
             DRAGGINGWINDOW->m_draggingTiled = true;

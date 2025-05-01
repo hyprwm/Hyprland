@@ -96,7 +96,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
 
     proc.setStdoutFD(outPipe[1]);
 
-    m_readEventSource = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, m_pipeReadFd.get(), WL_EVENT_READABLE, ::onFdWrite, this);
+    m_readEventSource = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, m_pipeReadFd.get(), WL_EVENT_READABLE, ::onFdWrite, this);
 
     if (!m_readEventSource) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to add read fd to loop");

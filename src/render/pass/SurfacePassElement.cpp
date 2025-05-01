@@ -51,7 +51,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (!TEXTURE->m_iTexID)
         return;
 
-    const auto INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    const auto INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
@@ -140,7 +140,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 CBox CSurfacePassElement::getTexBox() {
     const double outputX = -data.pMonitor->m_position.x, outputY = -data.pMonitor->m_position.y;
 
-    const auto   INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    const auto   INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
     auto         PSURFACE                    = CWLSurface::fromResource(data.surface);
 
     CBox         windowBox;

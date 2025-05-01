@@ -69,7 +69,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<C
 }
 
 CPointerConstraint::~CPointerConstraint() {
-    std::erase_if(g_pInputManager->m_vConstraints, [this](const auto& c) {
+    std::erase_if(g_pInputManager->m_constraints, [this](const auto& c) {
         const auto SHP = c.lock();
         return !SHP || SHP.get() == this;
     });
@@ -85,7 +85,7 @@ void CPointerConstraint::sharedConstructions() {
             if (active)
                 deactivate();
 
-            std::erase_if(g_pInputManager->m_vConstraints, [this](const auto& c) {
+            std::erase_if(g_pInputManager->m_constraints, [this](const auto& c) {
                 const auto SHP = c.lock();
                 return !SHP || SHP.get() == this;
             });
@@ -113,7 +113,7 @@ void CPointerConstraint::deactivate() {
     if (lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT) {
         dead = true;
         // remove from inputmgr
-        std::erase_if(g_pInputManager->m_vConstraints, [this](const auto& c) {
+        std::erase_if(g_pInputManager->m_constraints, [this](const auto& c) {
             const auto SHP = c.lock();
             return !SHP || SHP.get() == this;
         });
@@ -240,7 +240,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     OWNER->appendConstraint(constraint);
 
-    g_pInputManager->m_vConstraints.emplace_back(constraint);
+    g_pInputManager->m_constraints.emplace_back(constraint);
 
     if (g_pCompositor->m_lastFocus == OWNER->resource())
         constraint->activate();

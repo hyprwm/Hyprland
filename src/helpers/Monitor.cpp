@@ -277,6 +277,7 @@ void CMonitor::onDisconnect(bool destroy) {
         if (g_pCompositor->m_isShuttingDown)
             return;
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         EMIT_HOOK_EVENT("monitorRemoved", m_self.lock());
         g_pCompositor->arrangeMonitors();
     }};

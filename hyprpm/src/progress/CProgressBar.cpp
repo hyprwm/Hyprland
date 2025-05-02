@@ -40,12 +40,11 @@ void CProgressBar::print() {
     clearCurrentLine();
 
     float percentDone = 0.0f;
-    if (m_fPercentage >= 0.0f) {
+    if (m_fPercentage >= 0.0f)
         percentDone = m_fPercentage;
-    } else {
+    else
         // check for divide-by-zero
         percentDone = m_iMaxSteps > 0 ? static_cast<float>(m_iSteps) / m_iMaxSteps : 0.0f;
-    }
     // clamp to ensure no overflows (sanity check)
     percentDone = std::clamp(percentDone, 0.0f, 1.0f);
 
@@ -69,11 +68,10 @@ void CProgressBar::print() {
         oss << Colors::RESET;
     }
 
-    if (m_fPercentage >= 0.0f) {
+    if (m_fPercentage >= 0.0f)
         oss << "  " << std::format("{}%", static_cast<int>(percentDone * 100.0)) << ' ';
-    } else {
+    else
         oss << "  " << std::format("{} / {}", m_iSteps, m_iMaxSteps) << ' ';
-    }
 
     std::print("{} {}", oss.str(), m_szCurrentMessage);
     std::fflush(stdout);

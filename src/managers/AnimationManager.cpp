@@ -33,9 +33,9 @@ static int wlTick(SP<CEventLoopTimer> self, void* data) {
 }
 
 CHyprAnimationManager::CHyprAnimationManager() {
-    m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
+    m_animationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
     if (g_pEventLoopManager) // null in --verify-config mode
-        g_pEventLoopManager->addTimer(m_pAnimationTimer);
+        g_pEventLoopManager->addTimer(m_animationTimer);
 
     addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
 }
@@ -213,7 +213,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
 
 void CHyprAnimationManager::tick() {
     static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
-    m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
+    m_lastTickTimeMs                        = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
     lastTick                                = std::chrono::high_resolution_clock::now();
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
@@ -250,15 +250,15 @@ void CHyprAnimationManager::tick() {
 }
 
 void CHyprAnimationManager::scheduleTick() {
-    if (m_bTickScheduled)
+    if (m_tickScheduled)
         return;
 
-    m_bTickScheduled = true;
+    m_tickScheduled = true;
 
     const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
 
     if (!PMOSTHZ) {
-        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(16));
+        m_animationTimer->updateTimeout(std::chrono::milliseconds(16));
         return;
     }
 
@@ -268,11 +268,11 @@ void CHyprAnimationManager::scheduleTick() {
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 
-    m_pAnimationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
+    m_animationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
 }
 
 void CHyprAnimationManager::onTicked() {
-    m_bTickScheduled = false;
+    m_tickScheduled = false;
 }
 
 //

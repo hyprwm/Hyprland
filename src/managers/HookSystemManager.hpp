@@ -50,11 +50,11 @@ class CHookSystemManager {
     void                         emit(std::vector<SCallbackFNPtr>* const callbacks, SCallbackInfo& info, std::any data = 0);
     std::vector<SCallbackFNPtr>* getVecForEvent(const std::string& event);
 
-    bool                         m_bCurrentEventPlugin = false;
-    jmp_buf                      m_jbHookFaultJumpBuf;
+    bool                         m_currentEventPlugin = false;
+    jmp_buf                      m_hookFaultJumpBuf;
 
   private:
-    std::unordered_map<std::string, std::vector<SCallbackFNPtr>> m_mRegisteredHooks;
+    std::unordered_map<std::string, std::vector<SCallbackFNPtr>> m_registeredHooks;
 };
 
 inline UP<CHookSystemManager> g_pHookSystem;

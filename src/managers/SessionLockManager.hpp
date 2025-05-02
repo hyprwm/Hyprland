@@ -40,8 +40,8 @@ struct SSessionLock {
         CHyprSignalListener destroy;
     } listeners;
 
-    bool                         m_hasSentLocked = false;
-    std::unordered_set<uint64_t> m_lockedMonitors;
+    bool                         hasSentLocked = false;
+    std::unordered_set<uint64_t> lockedMonitors;
 };
 
 class CSessionLockManager {
@@ -65,11 +65,11 @@ class CSessionLockManager {
     bool                    shallConsiderLockMissing();
 
   private:
-    UP<SSessionLock> m_pSessionLock;
+    UP<SSessionLock> m_sessionLock;
 
     struct {
         CHyprSignalListener newLock;
-    } listeners;
+    } m_listeners;
 
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
 };

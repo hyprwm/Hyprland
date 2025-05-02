@@ -945,13 +945,13 @@ void CWindow::destroyGroup() {
         w->m_groupData.head = false;
     }
 
-    const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-    g_pKeybindManager->m_bGroupsLocked = true;
+    const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
+    g_pKeybindManager->m_groupsLocked = true;
     for (auto const& w : members) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
         w->updateWindowDecos();
     }
-    g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
 
     if (m_workspace) {
         m_workspace->updateWindows();
@@ -1000,7 +1000,7 @@ bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
     bool        isGroup               = m_groupData.pNextWindow;
     bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
-    return !g_pKeybindManager->m_bGroupsLocked                                               // global group lock disengaged
+    return !g_pKeybindManager->m_groupsLocked                                                // global group lock disengaged
         && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
             || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked
                 && !(m_groupData.pNextWindow.lock() && getGroupHead()->m_groupData.locked))) //      source unlocked or isn't group

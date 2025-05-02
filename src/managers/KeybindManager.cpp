@@ -70,109 +70,109 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHL
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
-    m_mDispatchers["exec"]                           = spawn;
-    m_mDispatchers["execr"]                          = spawnRaw;
-    m_mDispatchers["killactive"]                     = closeActive;
-    m_mDispatchers["forcekillactive"]                = killActive;
-    m_mDispatchers["closewindow"]                    = closeWindow;
-    m_mDispatchers["killwindow"]                     = killWindow;
-    m_mDispatchers["signal"]                         = signalActive;
-    m_mDispatchers["signalwindow"]                   = signalWindow;
-    m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
-    m_mDispatchers["setfloating"]                    = setActiveFloating;
-    m_mDispatchers["settiled"]                       = setActiveTiled;
-    m_mDispatchers["workspace"]                      = changeworkspace;
-    m_mDispatchers["renameworkspace"]                = renameWorkspace;
-    m_mDispatchers["fullscreen"]                     = fullscreenActive;
-    m_mDispatchers["fullscreenstate"]                = fullscreenStateActive;
-    m_mDispatchers["movetoworkspace"]                = moveActiveToWorkspace;
-    m_mDispatchers["movetoworkspacesilent"]          = moveActiveToWorkspaceSilent;
-    m_mDispatchers["pseudo"]                         = toggleActivePseudo;
-    m_mDispatchers["movefocus"]                      = moveFocusTo;
-    m_mDispatchers["movewindow"]                     = moveActiveTo;
-    m_mDispatchers["swapwindow"]                     = swapActive;
-    m_mDispatchers["centerwindow"]                   = centerWindow;
-    m_mDispatchers["togglegroup"]                    = toggleGroup;
-    m_mDispatchers["changegroupactive"]              = changeGroupActive;
-    m_mDispatchers["movegroupwindow"]                = moveGroupWindow;
-    m_mDispatchers["togglesplit"]                    = toggleSplit;
-    m_mDispatchers["swapsplit"]                      = swapSplit;
-    m_mDispatchers["splitratio"]                     = alterSplitRatio;
-    m_mDispatchers["focusmonitor"]                   = focusMonitor;
-    m_mDispatchers["movecursortocorner"]             = moveCursorToCorner;
-    m_mDispatchers["movecursor"]                     = moveCursor;
-    m_mDispatchers["workspaceopt"]                   = workspaceOpt;
-    m_mDispatchers["exit"]                           = exitHyprland;
-    m_mDispatchers["movecurrentworkspacetomonitor"]  = moveCurrentWorkspaceToMonitor;
-    m_mDispatchers["focusworkspaceoncurrentmonitor"] = focusWorkspaceOnCurrentMonitor;
-    m_mDispatchers["moveworkspacetomonitor"]         = moveWorkspaceToMonitor;
-    m_mDispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
-    m_mDispatchers["forcerendererreload"]            = forceRendererReload;
-    m_mDispatchers["resizeactive"]                   = resizeActive;
-    m_mDispatchers["moveactive"]                     = moveActive;
-    m_mDispatchers["cyclenext"]                      = circleNext;
-    m_mDispatchers["focuswindowbyclass"]             = focusWindow;
-    m_mDispatchers["focuswindow"]                    = focusWindow;
-    m_mDispatchers["tagwindow"]                      = tagWindow;
-    m_mDispatchers["toggleswallow"]                  = toggleSwallow;
-    m_mDispatchers["submap"]                         = setSubmap;
-    m_mDispatchers["pass"]                           = pass;
-    m_mDispatchers["sendshortcut"]                   = sendshortcut;
-    m_mDispatchers["sendkeystate"]                   = sendkeystate;
-    m_mDispatchers["layoutmsg"]                      = layoutmsg;
-    m_mDispatchers["dpms"]                           = dpms;
-    m_mDispatchers["movewindowpixel"]                = moveWindow;
-    m_mDispatchers["resizewindowpixel"]              = resizeWindow;
-    m_mDispatchers["swapnext"]                       = swapnext;
-    m_mDispatchers["swapactiveworkspaces"]           = swapActiveWorkspaces;
-    m_mDispatchers["pin"]                            = pinActive;
-    m_mDispatchers["mouse"]                          = mouse;
-    m_mDispatchers["bringactivetotop"]               = bringActiveToTop;
-    m_mDispatchers["alterzorder"]                    = alterZOrder;
-    m_mDispatchers["focusurgentorlast"]              = focusUrgentOrLast;
-    m_mDispatchers["focuscurrentorlast"]             = focusCurrentOrLast;
-    m_mDispatchers["lockgroups"]                     = lockGroups;
-    m_mDispatchers["lockactivegroup"]                = lockActiveGroup;
-    m_mDispatchers["moveintogroup"]                  = moveIntoGroup;
-    m_mDispatchers["moveoutofgroup"]                 = moveOutOfGroup;
-    m_mDispatchers["movewindoworgroup"]              = moveWindowOrGroup;
-    m_mDispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
-    m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
-    m_mDispatchers["event"]                          = event;
-    m_mDispatchers["global"]                         = global;
-    m_mDispatchers["setprop"]                        = setProp;
+    m_dispatchers["exec"]                           = spawn;
+    m_dispatchers["execr"]                          = spawnRaw;
+    m_dispatchers["killactive"]                     = closeActive;
+    m_dispatchers["forcekillactive"]                = killActive;
+    m_dispatchers["closewindow"]                    = closeWindow;
+    m_dispatchers["killwindow"]                     = killWindow;
+    m_dispatchers["signal"]                         = signalActive;
+    m_dispatchers["signalwindow"]                   = signalWindow;
+    m_dispatchers["togglefloating"]                 = toggleActiveFloating;
+    m_dispatchers["setfloating"]                    = setActiveFloating;
+    m_dispatchers["settiled"]                       = setActiveTiled;
+    m_dispatchers["workspace"]                      = changeworkspace;
+    m_dispatchers["renameworkspace"]                = renameWorkspace;
+    m_dispatchers["fullscreen"]                     = fullscreenActive;
+    m_dispatchers["fullscreenstate"]                = fullscreenStateActive;
+    m_dispatchers["movetoworkspace"]                = moveActiveToWorkspace;
+    m_dispatchers["movetoworkspacesilent"]          = moveActiveToWorkspaceSilent;
+    m_dispatchers["pseudo"]                         = toggleActivePseudo;
+    m_dispatchers["movefocus"]                      = moveFocusTo;
+    m_dispatchers["movewindow"]                     = moveActiveTo;
+    m_dispatchers["swapwindow"]                     = swapActive;
+    m_dispatchers["centerwindow"]                   = centerWindow;
+    m_dispatchers["togglegroup"]                    = toggleGroup;
+    m_dispatchers["changegroupactive"]              = changeGroupActive;
+    m_dispatchers["movegroupwindow"]                = moveGroupWindow;
+    m_dispatchers["togglesplit"]                    = toggleSplit;
+    m_dispatchers["swapsplit"]                      = swapSplit;
+    m_dispatchers["splitratio"]                     = alterSplitRatio;
+    m_dispatchers["focusmonitor"]                   = focusMonitor;
+    m_dispatchers["movecursortocorner"]             = moveCursorToCorner;
+    m_dispatchers["movecursor"]                     = moveCursor;
+    m_dispatchers["workspaceopt"]                   = workspaceOpt;
+    m_dispatchers["exit"]                           = exitHyprland;
+    m_dispatchers["movecurrentworkspacetomonitor"]  = moveCurrentWorkspaceToMonitor;
+    m_dispatchers["focusworkspaceoncurrentmonitor"] = focusWorkspaceOnCurrentMonitor;
+    m_dispatchers["moveworkspacetomonitor"]         = moveWorkspaceToMonitor;
+    m_dispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
+    m_dispatchers["forcerendererreload"]            = forceRendererReload;
+    m_dispatchers["resizeactive"]                   = resizeActive;
+    m_dispatchers["moveactive"]                     = moveActive;
+    m_dispatchers["cyclenext"]                      = circleNext;
+    m_dispatchers["focuswindowbyclass"]             = focusWindow;
+    m_dispatchers["focuswindow"]                    = focusWindow;
+    m_dispatchers["tagwindow"]                      = tagWindow;
+    m_dispatchers["toggleswallow"]                  = toggleSwallow;
+    m_dispatchers["submap"]                         = setSubmap;
+    m_dispatchers["pass"]                           = pass;
+    m_dispatchers["sendshortcut"]                   = sendshortcut;
+    m_dispatchers["sendkeystate"]                   = sendkeystate;
+    m_dispatchers["layoutmsg"]                      = layoutmsg;
+    m_dispatchers["dpms"]                           = dpms;
+    m_dispatchers["movewindowpixel"]                = moveWindow;
+    m_dispatchers["resizewindowpixel"]              = resizeWindow;
+    m_dispatchers["swapnext"]                       = swapnext;
+    m_dispatchers["swapactiveworkspaces"]           = swapActiveWorkspaces;
+    m_dispatchers["pin"]                            = pinActive;
+    m_dispatchers["mouse"]                          = mouse;
+    m_dispatchers["bringactivetotop"]               = bringActiveToTop;
+    m_dispatchers["alterzorder"]                    = alterZOrder;
+    m_dispatchers["focusurgentorlast"]              = focusUrgentOrLast;
+    m_dispatchers["focuscurrentorlast"]             = focusCurrentOrLast;
+    m_dispatchers["lockgroups"]                     = lockGroups;
+    m_dispatchers["lockactivegroup"]                = lockActiveGroup;
+    m_dispatchers["moveintogroup"]                  = moveIntoGroup;
+    m_dispatchers["moveoutofgroup"]                 = moveOutOfGroup;
+    m_dispatchers["movewindoworgroup"]              = moveWindowOrGroup;
+    m_dispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
+    m_dispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
+    m_dispatchers["event"]                          = event;
+    m_dispatchers["global"]                         = global;
+    m_dispatchers["setprop"]                        = setProp;
 
-    m_tScrollTimer.reset();
+    m_scrollTimer.reset();
 
-    m_pLongPressTimer = makeShared<CEventLoopTimer>(
+    m_longPressTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
-            if (!m_pLastLongPressKeybind || g_pSeatManager->keyboard.expired())
+            if (!m_lastLongPressKeybind || g_pSeatManager->m_keyboard.expired())
                 return;
 
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
             if (!PACTIVEKEEB->m_allowBinds)
                 return;
 
-            const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(m_pLastLongPressKeybind->handler);
+            const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(m_lastLongPressKeybind->handler);
 
             Debug::log(LOG, "Long press timeout passed, calling dispatcher.");
-            DISPATCHER->second(m_pLastLongPressKeybind->arg);
+            DISPATCHER->second(m_lastLongPressKeybind->arg);
         },
         nullptr);
 
-    m_pRepeatKeyTimer = makeShared<CEventLoopTimer>(
+    m_repeatKeyTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
-            if (m_vActiveKeybinds.size() == 0 || g_pSeatManager->keyboard.expired())
+            if (m_activeKeybinds.size() == 0 || g_pSeatManager->m_keyboard.expired())
                 return;
 
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
             if (!PACTIVEKEEB->m_allowBinds)
                 return;
 
-            for (const auto& k : m_vActiveKeybinds) {
-                const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
+            for (const auto& k : m_activeKeybinds) {
+                const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(k->handler);
 
                 Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
                 DISPATCHER->second(k->arg);
@@ -184,43 +184,43 @@ CKeybindManager::CKeybindManager() {
 
     // null in --verify-config mode
     if (g_pEventLoopManager) {
-        g_pEventLoopManager->addTimer(m_pLongPressTimer);
-        g_pEventLoopManager->addTimer(m_pRepeatKeyTimer);
+        g_pEventLoopManager->addTimer(m_longPressTimer);
+        g_pEventLoopManager->addTimer(m_repeatKeyTimer);
     }
 
     static auto P = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
-        m_vActiveKeybinds.clear();
-        m_pLastLongPressKeybind.reset();
-        m_vPressedSpecialBinds.clear();
+        m_activeKeybinds.clear();
+        m_lastLongPressKeybind.reset();
+        m_pressedSpecialBinds.clear();
     });
 }
 
 CKeybindManager::~CKeybindManager() {
-    if (m_pXKBTranslationState)
-        xkb_state_unref(m_pXKBTranslationState);
-    if (m_pLongPressTimer && g_pEventLoopManager) {
-        g_pEventLoopManager->removeTimer(m_pLongPressTimer);
-        m_pLongPressTimer.reset();
+    if (m_xkbTranslationState)
+        xkb_state_unref(m_xkbTranslationState);
+    if (m_longPressTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_longPressTimer);
+        m_longPressTimer.reset();
     }
-    if (m_pRepeatKeyTimer && g_pEventLoopManager) {
-        g_pEventLoopManager->removeTimer(m_pRepeatKeyTimer);
-        m_pRepeatKeyTimer.reset();
+    if (m_repeatKeyTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_repeatKeyTimer);
+        m_repeatKeyTimer.reset();
     }
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
-    m_vKeybinds.emplace_back(makeShared<SKeybind>(kb));
+    m_keybinds.emplace_back(makeShared<SKeybind>(kb));
 
-    m_vActiveKeybinds.clear();
-    m_pLastLongPressKeybind.reset();
+    m_activeKeybinds.clear();
+    m_lastLongPressKeybind.reset();
 }
 
 void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
-    std::erase_if(m_vKeybinds, [&mod, &key](const auto& el) { return el->modmask == mod && el->key == key.key && el->keycode == key.keycode && el->catchAll == key.catchAll; });
+    std::erase_if(m_keybinds, [&mod, &key](const auto& el) { return el->modmask == mod && el->key == key.key && el->keycode == key.keycode && el->catchAll == key.catchAll; });
 
-    m_vActiveKeybinds.clear();
-    m_pLastLongPressKeybind.reset();
+    m_activeKeybinds.clear();
+    m_lastLongPressKeybind.reset();
 }
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
@@ -266,10 +266,10 @@ uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
 }
 
 void CKeybindManager::updateXKBTranslationState() {
-    if (m_pXKBTranslationState) {
-        xkb_state_unref(m_pXKBTranslationState);
+    if (m_xkbTranslationState) {
+        xkb_state_unref(m_xkbTranslationState);
 
-        m_pXKBTranslationState = nullptr;
+        m_xkbTranslationState = nullptr;
     }
 
     static auto       PFILEPATH = CConfigValue<std::string>("input:kb_file");
@@ -308,7 +308,7 @@ void CKeybindManager::updateXKBTranslationState() {
     }
 
     xkb_context_unref(PCONTEXT);
-    m_pXKBTranslationState = xkb_state_new(PKEYMAP);
+    m_xkbTranslationState = xkb_state_new(PKEYMAP);
     xkb_keymap_unref(PKEYMAP);
 }
 
@@ -427,18 +427,18 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
 
 bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (!g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
-        m_dPressedKeys.clear();
+        m_pressedKeys.clear();
         return true;
     }
 
     if (!pKeyboard->m_allowBinds)
         return true;
 
-    if (!m_pXKBTranslationState) {
+    if (!m_xkbTranslationState) {
         Debug::log(ERR, "BUG THIS: m_pXKBTranslationState nullptr!");
         updateXKBTranslationState();
 
-        if (!m_pXKBTranslationState)
+        if (!m_xkbTranslationState)
             return true;
     }
 
@@ -446,7 +446,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->m_resolveBindsBySym ? pKeyboard->m_xkbSymState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->m_resolveBindsBySym ? pKeyboard->m_xkbSymState : m_xkbTranslationState, KEYCODE);
     const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->m_xkbState, KEYCODE);
 
     if (keysym == XKB_KEY_Escape || internalKeysym == XKB_KEY_Escape)
@@ -459,9 +459,9 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    m_uTimeLastMs    = e.timeMs;
-    m_uLastCode      = KEYCODE;
-    m_uLastMouseCode = 0;
+    m_timeLastMs    = e.timeMs;
+    m_lastCode      = KEYCODE;
+    m_lastMouseCode = 0;
 
     bool       mouseBindWasActive = ensureMouseBindState();
 
@@ -470,34 +470,34 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
         .sent               = true,
-        .submapAtPress      = m_szCurrentSelectedSubmap,
+        .submapAtPress      = m_currentSelectedSubmap,
         .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
-    m_vActiveKeybinds.clear();
+    m_activeKeybinds.clear();
 
-    m_pLastLongPressKeybind.reset();
+    m_lastLongPressKeybind.reset();
 
     bool suppressEvent = false;
     if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 
-        m_dPressedKeys.push_back(KEY);
+        m_pressedKeys.push_back(KEY);
 
         suppressEvent = !handleKeybinds(MODS, KEY, true).passEvent;
 
         if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
 
-        m_dPressedKeys.back().sent = !suppressEvent;
+        m_pressedKeys.back().sent = !suppressEvent;
     } else { // key release
 
         bool foundInPressedKeys = false;
-        for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
+        for (auto it = m_pressedKeys.begin(); it != m_pressedKeys.end();) {
             if (it->keycode == KEYCODE) {
                 handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
-                it                 = m_dPressedKeys.erase(it);
+                it                 = m_pressedKeys.erase(it);
             } else {
                 ++it;
             }
@@ -519,14 +519,14 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
 
     static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
 
-    if (m_tScrollTimer.getMillis() < *PDELAY) {
-        m_tScrollTimer.reset();
+    if (m_scrollTimer.getMillis() < *PDELAY) {
+        m_scrollTimer.reset();
         return true; // timer hasn't passed yet!
     }
 
-    m_tScrollTimer.reset();
+    m_scrollTimer.reset();
 
-    m_vActiveKeybinds.clear();
+    m_activeKeybinds.clear();
 
     bool found = false;
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
@@ -552,9 +552,9 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
 
     bool       suppressEvent = false;
 
-    m_uLastMouseCode = e.button;
-    m_uLastCode      = 0;
-    m_uTimeLastMs    = e.timeMs;
+    m_lastMouseCode = e.button;
+    m_lastCode      = 0;
+    m_timeLastMs    = e.timeMs;
 
     bool       mouseBindWasActive = ensureMouseBindState();
 
@@ -566,25 +566,25 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
         .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
-    m_vActiveKeybinds.clear();
+    m_activeKeybinds.clear();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
-        m_dPressedKeys.push_back(KEY);
+        m_pressedKeys.push_back(KEY);
 
         suppressEvent = !handleKeybinds(MODS, KEY, true).passEvent;
 
         if (suppressEvent)
             shadowKeybinds();
 
-        m_dPressedKeys.back().sent = !suppressEvent;
+        m_pressedKeys.back().sent = !suppressEvent;
     } else {
         bool foundInPressedKeys = false;
-        for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
+        for (auto it = m_pressedKeys.begin(); it != m_pressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
                 suppressEvent      = !handleKeybinds(MODS, *it, false).passEvent;
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
-                it                 = m_dPressedKeys.erase(it);
+                it                 = m_pressedKeys.erase(it);
             } else {
                 ++it;
             }
@@ -639,14 +639,14 @@ eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> k
 }
 
 eMultiKeyCase CKeybindManager::mkBindMatches(const SP<SKeybind> keybind) {
-    if (mkKeysymSetMatches(keybind->sMkMods, m_sMkMods) != MK_FULL_MATCH)
+    if (mkKeysymSetMatches(keybind->sMkMods, m_mkMods) != MK_FULL_MATCH)
         return MK_NO_MATCH;
 
-    return mkKeysymSetMatches(keybind->sMkKeys, m_sMkKeys);
+    return mkKeysymSetMatches(keybind->sMkKeys, m_mkKeys);
 }
 
 std::string CKeybindManager::getCurrentSubmap() {
-    return m_szCurrentSelectedSubmap;
+    return m_currentSelectedSubmap;
 }
 
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
@@ -658,20 +658,20 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
     if (pressed) {
         if (keycodeToModifier(key.keycode))
-            m_sMkMods.insert(key.keysym);
+            m_mkMods.insert(key.keysym);
         else
-            m_sMkKeys.insert(key.keysym);
+            m_mkKeys.insert(key.keysym);
     } else {
         if (keycodeToModifier(key.keycode))
-            m_sMkMods.erase(key.keysym);
+            m_mkMods.erase(key.keysym);
         else
-            m_sMkKeys.erase(key.keysym);
+            m_mkKeys.erase(key.keysym);
     }
 
-    for (auto& k : m_vKeybinds) {
+    for (auto& k : m_keybinds) {
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse";
         const bool SPECIALTRIGGERED =
-            std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == k; }) != m_vPressedSpecialBinds.end();
+            std::find_if(m_pressedSpecialBinds.begin(), m_pressedSpecialBinds.end(), [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
@@ -681,7 +681,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || k->submap != m_szCurrentSelectedSubmap || k->shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || k->submap != m_currentSelectedSubmap || k->shadowed))
             continue;
 
         if (k->multiKey) {
@@ -697,7 +697,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             if (key.keycode != k->keycode)
                 continue;
         } else if (k->catchAll) {
-            if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
+            if (found || key.submapAtPress != m_currentSelectedSubmap)
                 continue;
         } else {
             // in this case, we only have the keysym to go off of for this keybind, and it's invalid
@@ -762,29 +762,29 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (k->longPress) {
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
 
-            m_pLongPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
-            m_pLastLongPressKeybind = k;
+            m_longPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
+            m_lastLongPressKeybind = k;
 
             continue;
         }
 
-        const auto DISPATCHER = m_mDispatchers.find(k->mouse ? "mouse" : k->handler);
+        const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
         if (SPECIALTRIGGERED && !pressed)
-            std::erase_if(m_vPressedSpecialBinds, [&](const auto& other) { return other == k; });
+            std::erase_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; });
         else if (SPECIALDISPATCHER && pressed)
-            m_vPressedSpecialBinds.emplace_back(k);
+            m_pressedSpecialBinds.emplace_back(k);
 
         // Should never happen, as we check in the ConfigManager, but oh well
-        if (DISPATCHER == m_mDispatchers.end()) {
+        if (DISPATCHER == m_dispatchers.end()) {
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
         } else {
             // call the dispatcher
             Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
-            m_iPassPressed = (int)pressed;
+            m_passPressed = (int)pressed;
 
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
@@ -792,7 +792,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             else
                 res = DISPATCHER->second(k->arg);
 
-            m_iPassPressed = -1;
+            m_passPressed = -1;
 
             if (k->handler == "submap") {
                 found = true; // don't process keybinds on submap change.
@@ -801,10 +801,10 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (k->repeat) {
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
 
-            m_vActiveKeybinds.emplace_back(k);
-            m_pRepeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
+            m_activeKeybinds.emplace_back(k);
+            m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
         }
 
         if (!k->nonConsuming)
@@ -830,7 +830,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint32_t doesntHaveCode) {
     // shadow disables keybinds after one has been triggered
 
-    for (auto& k : m_vKeybinds) {
+    for (auto& k : m_keybinds) {
 
         bool shadow = false;
 
@@ -843,7 +843,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
             const auto KBKEY      = xkb_keysym_from_name(k->key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-            for (auto const& pk : m_dPressedKeys) {
+            for (auto const& pk : m_pressedKeys) {
                 if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
                     shadow = true;
 
@@ -1125,7 +1125,7 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
 }
 
 void CKeybindManager::clearKeybinds() {
-    m_vKeybinds.clear();
+    m_keybinds.clear();
 }
 
 static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
@@ -1336,7 +1336,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
     if (*PWARPONWORKSPACECHANGE > 0) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
-        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
         if (PLAST && (!HLSurface || HLSurface->getWindow()))
             PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
@@ -2154,7 +2154,7 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     if (*PWARPONTOGGLESPECIAL > 0) {
         auto PLAST     = focusedWorkspace->getLastFocusedWindow();
-        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
         if (PLAST && (!HLSurface || HLSurface->getWindow()))
             PLAST->warpCursor(*PWARPONTOGGLESPECIAL == 2);
@@ -2400,19 +2400,19 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
 
 SDispatchResult CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap == "") {
-        m_szCurrentSelectedSubmap = "";
+        m_currentSelectedSubmap = "";
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
-        EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
+        EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
         return {};
     }
 
-    for (const auto& k : g_pKeybindManager->m_vKeybinds) {
+    for (const auto& k : g_pKeybindManager->m_keybinds) {
         if (k->submap == submap) {
-            m_szCurrentSelectedSubmap = submap;
+            m_currentSelectedSubmap = submap;
             Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
-            EMIT_HOOK_EVENT("submap", m_szCurrentSelectedSubmap);
+            EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
             return {};
         }
     }
@@ -2431,18 +2431,18 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
         return {.success = false, .error = "pass: window not found"};
     }
 
-    if (!g_pSeatManager->keyboard) {
+    if (!g_pSeatManager->m_keyboard) {
         Debug::log(ERR, "No kb in pass?");
         return {.success = false, .error = "No kb in pass?"};
     }
 
     const auto XWTOXW        = PWINDOW->m_isX11 && g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_isX11;
-    const auto LASTMOUSESURF = g_pSeatManager->state.pointerFocus.lock();
-    const auto LASTKBSURF    = g_pSeatManager->state.keyboardFocus.lock();
+    const auto LASTMOUSESURF = g_pSeatManager->m_state.pointerFocus.lock();
+    const auto LASTKBSURF    = g_pSeatManager->m_state.keyboardFocus.lock();
 
     // pass all mf shit
     if (!XWTOXW) {
-        if (g_pKeybindManager->m_uLastCode != 0)
+        if (g_pKeybindManager->m_lastCode != 0)
             g_pSeatManager->setKeyboardFocus(PWINDOW->m_wlSurface->resource());
         else
             g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
@@ -2450,24 +2450,24 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
 
     g_pSeatManager->sendKeyboardMods(g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0);
 
-    if (g_pKeybindManager->m_iPassPressed == 1) {
-        if (g_pKeybindManager->m_uLastCode != 0)
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+    if (g_pKeybindManager->m_passPressed == 1) {
+        if (g_pKeybindManager->m_lastCode != 0)
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
         else
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
-    } else if (g_pKeybindManager->m_iPassPressed == 0)
-        if (g_pKeybindManager->m_uLastCode != 0)
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
+    } else if (g_pKeybindManager->m_passPressed == 0)
+        if (g_pKeybindManager->m_lastCode != 0)
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         else
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
     else {
         // dynamic call of the dispatcher
-        if (g_pKeybindManager->m_uLastCode != 0) {
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+        if (g_pKeybindManager->m_lastCode != 0) {
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         } else {
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, g_pKeybindManager->m_lastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 
@@ -2478,18 +2478,18 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
     // this will make g_pSeatManager NOT send the leave event to XWayland apps, provided we are not on an XWayland window already.
     // please kill me
     if (PWINDOW->m_isX11) {
-        if (g_pKeybindManager->m_uLastCode != 0) {
-            g_pSeatManager->state.keyboardFocus.reset();
-            g_pSeatManager->state.keyboardFocusResource.reset();
+        if (g_pKeybindManager->m_lastCode != 0) {
+            g_pSeatManager->m_state.keyboardFocus.reset();
+            g_pSeatManager->m_state.keyboardFocusResource.reset();
         } else {
-            g_pSeatManager->state.pointerFocus.reset();
-            g_pSeatManager->state.pointerFocusResource.reset();
+            g_pSeatManager->m_state.pointerFocus.reset();
+            g_pSeatManager->m_state.pointerFocusResource.reset();
         }
     }
 
     const auto SL = PWINDOW->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal();
 
-    if (g_pKeybindManager->m_uLastCode != 0)
+    if (g_pKeybindManager->m_lastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTKBSURF);
     else
         g_pSeatManager->setPointerFocus(LASTMOUSESURF, SL);
@@ -2531,7 +2531,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         const auto KEYSYM = xkb_keysym_from_name(KEY.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
         keycode           = 0;
 
-        const auto KB = g_pSeatManager->keyboard;
+        const auto KB = g_pSeatManager->m_keyboard;
 
         if (!KB) {
             Debug::log(ERR, "sendshortcut: no kb");
@@ -2540,7 +2540,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 
         const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
-        if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
+        if (!g_pKeybindManager->m_keyToCodeCache.contains(KEYPAIRSTRING)) {
             xkb_keymap*   km = KB->m_xkbKeymap;
             xkb_state*    ks = KB->m_xkbState;
 
@@ -2552,8 +2552,8 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
                 xkb_keysym_t sym = xkb_state_key_get_one_sym(ks, kc);
 
                 if (sym == KEYSYM) {
-                    keycode                                             = kc;
-                    g_pKeybindManager->m_mKeyToCodeCache[KEYPAIRSTRING] = keycode;
+                    keycode                                            = kc;
+                    g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING] = keycode;
                 }
             }
 
@@ -2563,7 +2563,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
             }
 
         } else
-            keycode = g_pKeybindManager->m_mKeyToCodeCache[KEYPAIRSTRING];
+            keycode = g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING];
     }
 
     if (!keycode) {
@@ -2585,7 +2585,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
             return {.success = false, .error = "sendshortcut: window not found"};
         }
 
-        if (!g_pSeatManager->keyboard) {
+        if (!g_pSeatManager->m_keyboard) {
             Debug::log(ERR, "No kb in sendshortcut?");
             return {.success = false, .error = "No kb in sendshortcut?"};
         }
@@ -2606,24 +2606,24 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 
     g_pSeatManager->sendKeyboardMods(MOD, 0, 0, 0);
 
-    if (g_pKeybindManager->m_iPassPressed == 1) {
+    if (g_pKeybindManager->m_passPressed == 1) {
         if (!isMouse)
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
         else
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
-    } else if (g_pKeybindManager->m_iPassPressed == 0) {
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
+    } else if (g_pKeybindManager->m_passPressed == 0) {
         if (!isMouse)
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         else
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
     } else {
         // dynamic call of the dispatcher
         if (!isMouse) {
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
-            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_timeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         } else {
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
-            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_timeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 
@@ -2634,11 +2634,11 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 
     if (PWINDOW->m_isX11) { //xwayland hack, see pass
         if (!isMouse) {
-            g_pSeatManager->state.keyboardFocus.reset();
-            g_pSeatManager->state.keyboardFocusResource.reset();
+            g_pSeatManager->m_state.keyboardFocus.reset();
+            g_pSeatManager->m_state.keyboardFocusResource.reset();
         } else {
-            g_pSeatManager->state.pointerFocus.reset();
-            g_pSeatManager->state.pointerFocusResource.reset();
+            g_pSeatManager->m_state.pointerFocus.reset();
+            g_pSeatManager->m_state.pointerFocusResource.reset();
         }
     }
 
@@ -2877,13 +2877,13 @@ SDispatchResult CKeybindManager::alterZOrder(std::string args) {
 
 SDispatchResult CKeybindManager::lockGroups(std::string args) {
     if (args == "lock" || args.empty() || args == "lockgroups")
-        g_pKeybindManager->m_bGroupsLocked = true;
+        g_pKeybindManager->m_groupsLocked = true;
     else if (args == "toggle")
-        g_pKeybindManager->m_bGroupsLocked = !g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_groupsLocked = !g_pKeybindManager->m_groupsLocked;
     else
-        g_pKeybindManager->m_bGroupsLocked = false;
+        g_pKeybindManager->m_groupsLocked = false;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"lockgroups", g_pKeybindManager->m_bGroupsLocked ? "1" : "0"});
+    g_pEventManager->postEvent(SHyprIPCEvent{"lockgroups", g_pKeybindManager->m_groupsLocked ? "1" : "0"});
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     return {};
@@ -2962,12 +2962,12 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
     } else {
         g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
 
-        const auto GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-        g_pKeybindManager->m_bGroupsLocked = true;
+        const auto GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
+        g_pKeybindManager->m_groupsLocked = true;
 
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
 
-        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+        g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
     }
 
     if (*BFOCUSREMOVEDWINDOW) {
@@ -2986,7 +2986,7 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 
     static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
         return {};
 
     if (!isDirection(args)) {
@@ -3016,7 +3016,7 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
     static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
         return {.success = false, .error = "Groups locked"};
 
     PHLWINDOW PWINDOW = nullptr;
@@ -3054,7 +3054,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
     if (PWINDOW->isFullscreen())
         return {};
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked) {
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
         return {};
     }
@@ -3130,7 +3130,7 @@ SDispatchResult CKeybindManager::global(std::string args) {
     if (!PROTO::globalShortcuts->isTaken(APPID, NAME))
         return {};
 
-    PROTO::globalShortcuts->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
+    PROTO::globalShortcuts->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_passPressed);
 
     return {};
 }
@@ -3296,21 +3296,21 @@ SDispatchResult CKeybindManager::sendkeystate(std::string args) {
 
     std::string modifiedArgs = ARGS[0] + "," + ARGS[1] + "," + ARGS[3];
 
-    const int   oldPassPressed = g_pKeybindManager->m_iPassPressed;
+    const int   oldPassPressed = g_pKeybindManager->m_passPressed;
 
     if (STATE == "down")
-        g_pKeybindManager->m_iPassPressed = 1;
+        g_pKeybindManager->m_passPressed = 1;
     else if (STATE == "up")
-        g_pKeybindManager->m_iPassPressed = 0;
+        g_pKeybindManager->m_passPressed = 0;
     else if (STATE == "repeat")
-        g_pKeybindManager->m_iPassPressed = 1;
+        g_pKeybindManager->m_passPressed = 1;
 
     auto result = sendshortcut(modifiedArgs);
 
     if (STATE == "repeat" && result.success)
         result = sendshortcut(modifiedArgs);
 
-    g_pKeybindManager->m_iPassPressed = oldPassPressed;
+    g_pKeybindManager->m_passPressed = oldPassPressed;
 
     if (!result.success && !result.error.empty()) {
         size_t pos = result.error.find("sendshortcut:");

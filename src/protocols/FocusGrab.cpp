@@ -15,9 +15,9 @@ CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_)
     if UNLIKELY (!resource->resource())
         return;
 
-    grab           = makeShared<CSeatGrab>();
-    grab->keyboard = true;
-    grab->pointer  = true;
+    grab             = makeShared<CSeatGrab>();
+    grab->m_keyboard = true;
+    grab->m_pointer  = true;
     grab->setCallback([this]() { finish(true); });
 
     resource->setDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
@@ -58,7 +58,7 @@ void CFocusGrab::finish(bool sendCleared) {
     if (m_bGrabActive) {
         m_bGrabActive = false;
 
-        if (g_pSeatManager->seatGrab == grab)
+        if (g_pSeatManager->m_seatGrab == grab)
             g_pSeatManager->setGrab(nullptr);
 
         grab->clear();
@@ -91,7 +91,7 @@ void CFocusGrab::eraseSurface(SP<CWLSurfaceResource> surface) {
 }
 
 void CFocusGrab::refocusKeyboard() {
-    auto keyboardSurface = g_pSeatManager->state.keyboardFocus;
+    auto keyboardSurface = g_pSeatManager->m_state.keyboardFocus;
     if (keyboardSurface && isSurfaceComitted(keyboardSurface.lock()))
         return;
 

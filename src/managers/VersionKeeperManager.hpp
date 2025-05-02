@@ -12,7 +12,7 @@ class CVersionKeeperManager {
   private:
     bool isVersionOlderThanRunning(const std::string& ver);
 
-    bool m_bFired = false;
+    bool m_fired = false;
 };
 
 inline UP<CVersionKeeperManager> g_pVersionKeeperMgr;

@@ -228,7 +228,7 @@ void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint3
 
     // we need to do it here because protocols come before seatMgr
     if (!listeners.onPointerFocusChange)
-        listeners.onPointerFocusChange = g_pSeatManager->events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
+        listeners.onPointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionManager* resource) {
@@ -279,10 +279,10 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
     if (!source) {
         LOGM(LOG, "resetting selection");
 
-        if (!g_pSeatManager->state.pointerFocusResource)
+        if (!g_pSeatManager->m_state.pointerFocusResource)
             return;
 
-        auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.pointerFocusResource->client());
+        auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
         if (DESTDEVICE)
             sendSelectionToDevice(DESTDEVICE, nullptr);
 
@@ -291,10 +291,10 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
 
     LOGM(LOG, "New selection for data source {:x}", (uintptr_t)source.get());
 
-    if (!g_pSeatManager->state.pointerFocusResource)
+    if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
 
-    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.pointerFocusResource->client());
+    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
@@ -305,17 +305,17 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
 }
 
 void CPrimarySelectionProtocol::updateSelection() {
-    if (!g_pSeatManager->state.pointerFocusResource)
+    if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
 
-    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.pointerFocusResource->client());
+    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device");
         return;
     }
 
-    sendSelectionToDevice(DESTDEVICE, g_pSeatManager->selection.currentPrimarySelection.lock());
+    sendSelectionToDevice(DESTDEVICE, g_pSeatManager->m_selection.currentPrimarySelection.lock());
 }
 
 void CPrimarySelectionProtocol::onPointerFocus() {

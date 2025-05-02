@@ -133,8 +133,8 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
         g_pSeatManager->onSetCursor(owner.lock(), serial, surfResource, {hotX, hotY});
     });
 
-    if (g_pSeatManager->state.pointerFocus && g_pSeatManager->state.pointerFocus->client() == resource->client())
-        sendEnter(g_pSeatManager->state.pointerFocus.lock(), {-1, -1} /* Coords don't really matter that much, they will be updated next move */);
+    if (g_pSeatManager->m_state.pointerFocus && g_pSeatManager->m_state.pointerFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->m_state.pointerFocus.lock(), {-1, -1} /* Coords don't really matter that much, they will be updated next move */);
 }
 
 int CWLPointerResource::version() {
@@ -297,16 +297,16 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     resource->setRelease([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
     resource->setOnDestroy([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
 
-    if (!g_pSeatManager->keyboard) {
+    if (!g_pSeatManager->m_keyboard) {
         LOGM(ERR, "No keyboard on bound wl_keyboard??");
         return;
     }
 
-    sendKeymap(g_pSeatManager->keyboard.lock());
-    repeatInfo(g_pSeatManager->keyboard->m_repeatRate, g_pSeatManager->keyboard->m_repeatDelay);
+    sendKeymap(g_pSeatManager->m_keyboard.lock());
+    repeatInfo(g_pSeatManager->m_keyboard->m_repeatRate, g_pSeatManager->m_keyboard->m_repeatDelay);
 
-    if (g_pSeatManager->state.keyboardFocus && g_pSeatManager->state.keyboardFocus->client() == resource->client())
-        sendEnter(g_pSeatManager->state.keyboardFocus.lock());
+    if (g_pSeatManager->m_state.keyboardFocus && g_pSeatManager->m_state.keyboardFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->m_state.keyboardFocus.lock());
 }
 
 bool CWLKeyboardResource::good() {
@@ -533,7 +533,7 @@ void CWLSeatProtocol::updateKeymap() {
         return;
 
     for (auto const& k : m_vKeyboards) {
-        k->sendKeymap(g_pSeatManager->keyboard.lock());
+        k->sendKeymap(g_pSeatManager->m_keyboard.lock());
     }
 }
 

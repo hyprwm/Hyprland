@@ -764,9 +764,9 @@ void CXDGWMBase::ping() {
 }
 
 CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    grab           = makeShared<CSeatGrab>();
-    grab->keyboard = true;
-    grab->pointer  = true;
+    grab             = makeShared<CSeatGrab>();
+    grab->m_keyboard = true;
+    grab->m_pointer  = true;
     grab->setCallback([this]() {
         for (auto const& g : grabbed) {
             g->done();

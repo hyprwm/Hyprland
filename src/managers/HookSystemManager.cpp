@@ -9,12 +9,12 @@ CHookSystemManager::CHookSystemManager() {
 // returns the pointer to the function
 SP<HOOK_CALLBACK_FN> CHookSystemManager::hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle) {
     SP<HOOK_CALLBACK_FN> hookFN = makeShared<HOOK_CALLBACK_FN>(fn);
-    m_mRegisteredHooks[event].emplace_back(SCallbackFNPtr{.fn = hookFN, .handle = handle});
+    m_registeredHooks[event].emplace_back(SCallbackFNPtr{.fn = hookFN, .handle = handle});
     return hookFN;
 }
 
 void CHookSystemManager::unhook(SP<HOOK_CALLBACK_FN> fn) {
-    for (auto& [k, v] : m_mRegisteredHooks) {
+    for (auto& [k, v] : m_registeredHooks) {
         std::erase_if(v, [&](const auto& other) {
             SP<HOOK_CALLBACK_FN> fn_ = other.fn.lock();
 
@@ -32,7 +32,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
 
     for (auto const& cb : *callbacks) {
 
-        m_bCurrentEventPlugin = false;
+        m_currentEventPlugin = false;
 
         if (!cb.handle) {
             // we don't guard hl hooks
@@ -44,13 +44,13 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
             continue;
         }
 
-        m_bCurrentEventPlugin = true;
+        m_currentEventPlugin = true;
 
         if (std::find(faultyHandles.begin(), faultyHandles.end(), cb.handle) != faultyHandles.end())
             continue;
 
         try {
-            if (!setjmp(m_jbHookFaultJumpBuf)) {
+            if (!setjmp(m_hookFaultJumpBuf)) {
                 if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
                     (*fn)(fn.get(), info, data);
                 else
@@ -76,8 +76,8 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
 }
 
 std::vector<SCallbackFNPtr>* CHookSystemManager::getVecForEvent(const std::string& event) {
-    if (!m_mRegisteredHooks.contains(event))
+    if (!m_registeredHooks.contains(event))
         Debug::log(LOG, "[hookSystem] New hook event registered: {}", event);
 
-    return &m_mRegisteredHooks[event];
+    return &m_registeredHooks[event];
 }

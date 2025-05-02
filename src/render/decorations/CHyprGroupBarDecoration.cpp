@@ -149,7 +149,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         rect.scale(pMonitor->m_scale).round();
 
-        const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_groupData.locked || g_pKeybindManager->m_bGroupsLocked;
+        const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_groupData.locked || g_pKeybindManager->m_groupsLocked;
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
@@ -398,10 +398,10 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     // hack
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
     if (!pWindow->m_isFloating) {
-        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
-        g_pKeybindManager->m_bGroupsLocked = true;
+        const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
+        g_pKeybindManager->m_groupsLocked = true;
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+        g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
     }
 
     g_pInputManager->m_currentlyDraggedWindow = pWindow;

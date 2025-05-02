@@ -372,7 +372,7 @@ bool CToplevelExportFrame::shouldOverlayCursor() const {
     if (!cursorOverlayRequested)
         return false;
 
-    auto pointerSurfaceResource = g_pSeatManager->state.pointerFocus.lock();
+    auto pointerSurfaceResource = g_pSeatManager->m_state.pointerFocus.lock();
 
     if (!pointerSurfaceResource)
         return false;

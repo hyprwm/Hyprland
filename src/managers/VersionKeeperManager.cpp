@@ -50,7 +50,7 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
     }
 
-    m_bFired = true;
+    m_fired = true;
 
     g_pEventLoopManager->doLater([]() {
         CProcess proc("hyprland-update-screen", {"--new-version", HYPRLAND_VERSION});
@@ -81,5 +81,5 @@ bool CVersionKeeperManager::isVersionOlderThanRunning(const std::string& ver) {
 }
 
 bool CVersionKeeperManager::fired() {
-    return m_bFired;
+    return m_fired;
 }

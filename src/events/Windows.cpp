@@ -169,7 +169,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto PMONITORFROMID = PWINDOW->m_monitor.lock();
 
                     if (PWINDOW->m_monitor != PMONITOR) {
-                        g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+                        g_pKeybindManager->m_dispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
                         PMONITOR = PMONITORFROMID;
                     }
                     PWINDOW->m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -363,7 +363,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (pWorkspace->m_isSpecialWorkspace)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
                 else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_noInitialFocus)
-                    g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
+                    g_pKeybindManager->m_dispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_lastMonitor.lock();
             }
@@ -382,7 +382,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         const auto PMONITORFROMID = PWINDOW->m_monitor.lock();
 
         if (PWINDOW->m_monitor != PMONITOR) {
-            g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+            g_pKeybindManager->m_dispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
             PMONITOR = PMONITORFROMID;
         }
         PWINDOW->m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -690,7 +690,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_transform);
 
-    if (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())
+    if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely
@@ -871,19 +871,19 @@ void Events::listener_commitWindow(void* owner, void* data) {
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 
     if (PMONITOR)
-        PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
+        PMONITOR->debugLastPresentation(g_pSeatManager->m_isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
 
-    if (g_pSeatManager->isPointerFrameCommit) {
-        g_pSeatManager->isPointerFrameSkipped = false;
-        g_pSeatManager->isPointerFrameCommit  = false;
+    if (g_pSeatManager->m_isPointerFrameCommit) {
+        g_pSeatManager->m_isPointerFrameSkipped = false;
+        g_pSeatManager->m_isPointerFrameCommit  = false;
     } else
         g_pHyprRenderer->damageSurface(PWINDOW->m_wlSurface->resource(), PWINDOW->m_realPosition->goal().x, PWINDOW->m_realPosition->goal().y,
                                        PWINDOW->m_isX11 ? 1.0 / PWINDOW->m_X11SurfaceScaledBy : 1.0);
 
-    if (g_pSeatManager->isPointerFrameSkipped) {
+    if (g_pSeatManager->m_isPointerFrameSkipped) {
         g_pPointerManager->sendStoredMovement();
         g_pSeatManager->sendPointerFrame();
-        g_pSeatManager->isPointerFrameCommit = true;
+        g_pSeatManager->m_isPointerFrameCommit = true;
     }
 
     if (!PWINDOW->m_isX11) {

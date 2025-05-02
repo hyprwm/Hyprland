@@ -1640,6 +1640,9 @@ Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::str
     if (!specialCat.empty())
         return m_config->getSpecialConfigValuePtr(specialCat.c_str(), name.c_str(), nullptr);
 
+    if (name.starts_with("plugin:"))
+        return m_config->getSpecialConfigValuePtr("plugin", name.substr(7).c_str(), nullptr);
+
     return m_config->getConfigValuePtr(name.c_str());
 }
 

@@ -128,8 +128,9 @@ void NSys::dropSudo() {
 
         if (bin == "sudo")
             execAndGet("sudo -k");
-        else
+        else {
             // note the superuser binary that is being dropped
             std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", bin));
+        }
     }
 }

@@ -37,6 +37,7 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 static int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor(((CMonitor*)data)->m_self.lock());
@@ -1542,6 +1543,147 @@ void CMonitor::onCursorMovedOnMonitor() {
     // this will throw too but fix it if we use sw cursors
 
     m_tearingState.frameScheduledWhileBusy = true;
+}
+
+static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
+
+static hdr_output_metadata       createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
+    uint8_t eotf = 0;
+    switch (settings.transferFunction) {
+        case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
+        case CM_TRANSFER_FUNCTION_ST2084_PQ: eotf = 2; break;
+        // case CM_TRANSFER_FUNCTION_HLG: eotf = 3; break; TODO check display capabilities first
+        default: return NO_HDR_METADATA; // empty metadata for SDR
+    }
+
+    const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
+    const auto to16Bit = [](float value) { return uint16_t(std::round(value * 50000)); };
+
+    auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
+    auto       luminances  = settings.masteringLuminances.max > 0 ?
+                     settings.masteringLuminances :
+                     SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
+
+    Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
+                     colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+    Debug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
+    return hdr_output_metadata{
+              .metadata_type = 0,
+              .hdmi_metadata_type1 =
+            hdr_metadata_infoframe{
+                      .eotf          = eotf,
+                      .metadata_type = 0,
+                      .display_primaries =
+                          {
+                        {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
+                        {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
+                        {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
+                    },
+                      .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
+                      .max_display_mastering_luminance = toNits(luminances.max),
+                      .min_display_mastering_luminance = toNits(luminances.min * 10000),
+                      .max_cll                         = toNits(settings.maxCLL),
+                      .max_fall                        = toNits(settings.maxFALL),
+            },
+    };
+}
+
+bool CMonitor::fullCommit() {
+    static auto PCT   = CConfigValue<Hyprlang::INT>("render:send_content_type");
+    static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    const bool  PHDR  = m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
+
+    const bool  SUPPORTSPQ = m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false;
+    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", m_output->parsedEDID.supportsBT2020, SUPPORTSPQ);
+
+    if (m_output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
+        // HDR metadata determined by
+        // PPASS = 0 monitor settings
+        // PPASS = 1
+        //           windowed: monitor settings
+        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, ctm, gamma if needed
+        // PPASS = 2
+        //           windowed: monitor settings
+        //           fullscreen SDR surface: monitor settings
+        //           fullscreen HDR surface: surface settings
+
+        bool wantHDR      = PHDR;
+        bool hdrIsHandled = false;
+        if (*PPASS && m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
+            const auto WINDOW    = m_activeWorkspace->getFullscreenWindow();
+            const auto ROOT_SURF = WINDOW->m_wlSurface->resource();
+            const auto SURF =
+                ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
+
+            wantHDR = PHDR && *PPASS == 2;
+
+            // we have a surface with image description and it's allowed by wantHDR
+            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription() &&
+                (!wantHDR || SURF->colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) {
+                bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || m_previousFSWindow != WINDOW;
+                if (SURF->colorManagement->needsHdrMetadataUpdate())
+                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), m_output->parsedEDID));
+                if (needsHdrMetadataUpdate)
+                    m_output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
+                hdrIsHandled = true;
+            }
+
+            m_previousFSWindow = WINDOW;
+        }
+        if (!hdrIsHandled) {
+            if ((m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != wantHDR)
+                m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(m_imageDescription, m_output->parsedEDID) : NO_HDR_METADATA);
+            m_previousFSWindow.reset();
+        }
+    }
+
+    const bool needsWCG = m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2 || m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020;
+    if (m_output->state->state().wideColorGamut != needsWCG) {
+        Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
+        m_output->state->setWideColorGamut(needsWCG);
+
+        // FIXME do not trust enabled10bit, auto switch to 10bit and back if needed
+        if (needsWCG && !m_enabled10bit) {
+            Debug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
+            static bool shown = false;
+            if (!shown) {
+                g_pHyprNotificationOverlay->addNotification("Wide color gamut is enabled but the display is not in 10bit mode", CHyprColor{}, 15000, ICON_WARNING);
+                shown = true;
+            }
+        }
+    }
+
+    if (*PCT) {
+        if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
+            const auto WINDOW = m_activeWorkspace->getFullscreenWindow();
+            m_output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
+        } else
+            m_output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
+    }
+
+    if (m_ctmUpdated) {
+        m_ctmUpdated = false;
+        m_output->state->setCTM(m_ctm);
+    }
+
+    bool ok = commit();
+    if (!ok) {
+        if (m_inFence.isValid()) {
+            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+            m_output->state->resetExplicitFences();
+            ok = commit();
+        }
+
+        if (!ok) {
+            Debug::log(TRACE, "Monitor state commit failed");
+            // rollback the buffer to avoid writing to the front buffer that is being
+            // displayed
+            m_output->swapchain->rollback();
+            m_damage.damageEntire();
+        }
+    }
+
+    return ok;
 }
 
 bool CMonitor::commit() {

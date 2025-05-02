@@ -189,6 +189,7 @@ class CMonitor {
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();
 
+    bool                                fullCommit();
     bool                                commit();
     bool                                test();
 

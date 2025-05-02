@@ -148,9 +148,8 @@ struct SFloatCache {
 
         // Use empty string as default tag value
         std::string tagValue = "";
-        if (auto xdgTag = window->xdgTag()) {
+        if (auto xdgTag = window->xdgTag())
             tagValue = xdgTag.value();
-        }
 
         // Combine hashes
         hash = baseHash ^ (std::hash<std::string>{}(tagValue) << 2);

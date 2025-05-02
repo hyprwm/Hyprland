@@ -1418,8 +1418,6 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
-    m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                          Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1589,6 +1587,10 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
 }
 
 bool CMonitor::fullCommit() {
+    const auto STATE = m_output->state->state();
+    if (~(STATE.committed | Aquamarine::COutputState::AQ_OUTPUT_STATE_BUFFER) || !STATE.buffer || !STATE.buffer->good() || !STATE.buffer->dmabuf().success)
+        return false;
+
     static auto PCT   = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
@@ -1637,8 +1639,8 @@ bool CMonitor::fullCommit() {
         }
     }
 
-    const bool needsWCG = m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2 || m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020;
-    if (m_output->state->state().wideColorGamut != needsWCG) {
+    const bool needsWCG = STATE.hdrMetadata.hdmi_metadata_type1.eotf == 2 || m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020;
+    if (STATE.wideColorGamut != needsWCG) {
         Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
         m_output->state->setWideColorGamut(needsWCG);
 
@@ -1666,21 +1668,32 @@ bool CMonitor::fullCommit() {
         m_output->state->setCTM(m_ctm);
     }
 
-    bool ok = commit();
-    if (!ok) {
-        if (m_inFence.isValid()) {
-            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
-            m_output->state->resetExplicitFences();
-            ok = commit();
-        }
+    if (m_inFence.isValid())
+        m_output->state->setExplicitInFence(m_inFence.get());
 
-        if (!ok) {
-            Debug::log(TRACE, "Monitor state commit failed");
-            // rollback the buffer to avoid writing to the front buffer that is being
-            // displayed
-            m_output->swapchain->rollback();
-            m_damage.damageEntire();
-        }
+    m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
+                                                                          Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    bool ok = m_output->commit();
+
+    if (!ok && m_inFence.isValid()) {
+        Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+        m_output->state->resetExplicitFences();
+        ok = m_output->commit();
+    }
+
+    if (!ok && m_tearingState.activelyTearing) {
+        Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+        m_output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+        ok = m_output->commit();
+    }
+
+    if (!ok) {
+        Debug::log(TRACE, "Monitor state commit failed");
+        // rollback the buffer to avoid writing to the front buffer that is being
+        // displayed
+        m_output->swapchain->rollback();
+        m_damage.damageEntire();
     }
 
     return ok;

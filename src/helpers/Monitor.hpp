@@ -189,7 +189,7 @@ class CMonitor {
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();
 
-    bool                                fullCommit();
+    bool                                fullCommit(); // output must already have buffer commited (setBuffer)
     bool                                commit();
     bool                                test();
 

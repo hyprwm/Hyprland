@@ -1408,9 +1408,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
-    pMonitor->m_output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
-
     pMonitor->fullCommit();
 
     if (shouldTear)
@@ -2164,10 +2161,8 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         });
         usedAsyncBuffers.clear();
 
-        if (m_eRenderMode == RENDER_MODE_NORMAL) {
+        if (m_eRenderMode == RENDER_MODE_NORMAL)
             PMONITOR->m_inFence = eglSync->takeFd();
-            PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
-        }
     } else {
         Debug::log(ERR, "renderer: couldn't use EGLSync for explicit gpu synchronization");
 

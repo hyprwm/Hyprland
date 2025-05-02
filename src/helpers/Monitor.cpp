@@ -1388,7 +1388,7 @@ bool CMonitor::attemptDirectScanout() {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
-            if (!test()) {
+            if (!m_output->test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
                 return false;
             }
@@ -1419,7 +1419,7 @@ bool CMonitor::attemptDirectScanout() {
 
     m_output->state->setBuffer(PBUFFER);
 
-    if (!test()) {
+    if (!m_output->test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
@@ -1427,13 +1427,12 @@ bool CMonitor::attemptDirectScanout() {
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
     m_output->state->addDamage(PSURFACE->current.accumulateBufferDamage());
-    m_output->state->resetExplicitFences();
 
     // no need to do explicit sync here as surface current can only ever be ready to read
+    m_output->state->resetExplicitFences();
+    m_inFence = {};
 
-    bool ok = m_output->commit();
-
-    if (!ok) {
+    if (!fullCommit()) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
         return false;

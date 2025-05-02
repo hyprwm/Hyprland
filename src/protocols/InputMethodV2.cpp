@@ -13,12 +13,12 @@ CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboar
     resource->setRelease([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
     resource->setOnDestroy([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
 
-    if (!g_pSeatManager->keyboard) {
+    if (!g_pSeatManager->m_keyboard) {
         LOGM(ERR, "IME called but no active keyboard???");
         return;
     }
 
-    sendKeyboardData(g_pSeatManager->keyboard.lock());
+    sendKeyboardData(g_pSeatManager->m_keyboard.lock());
 }
 
 CInputMethodKeyboardGrabV2::~CInputMethodKeyboardGrabV2() {

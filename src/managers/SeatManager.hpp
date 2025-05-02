@@ -33,15 +33,12 @@ class CSeatGrab {
     void setCallback(std::function<void()> onEnd_);
     void clear();
 
-    bool keyboard = false;
-    bool pointer  = false;
-    bool touch    = false;
-
-    bool removeOnInput = true; // on hard input e.g. click outside, remove
+    bool m_keyboard = false;
+    bool m_pointer  = false;
 
   private:
-    std::vector<WP<CWLSurfaceResource>> surfs;
-    std::function<void()>               onEnd;
+    std::vector<WP<CWLSurfaceResource>> m_surfs;
+    std::function<void()>               m_onEnd;
     friend class CSeatManager;
 };
 
@@ -96,7 +93,7 @@ class CSeatManager {
         WP<CWLSeatResource>    touchFocusResource;
 
         WP<CWLSurfaceResource> dndPointerFocus;
-    } state;
+    } m_state;
 
     struct SSetCursorEvent {
         SP<CWLSurfaceResource> surf = nullptr;
@@ -111,27 +108,27 @@ class CSeatManager {
         CSignal setCursor; // SSetCursorEvent
         CSignal setSelection;
         CSignal setPrimarySelection;
-    } events;
+    } m_events;
 
     struct {
         WP<IDataSource>     currentSelection;
         CHyprSignalListener destroySelection;
         WP<IDataSource>     currentPrimarySelection;
         CHyprSignalListener destroyPrimarySelection;
-    } selection;
+    } m_selection;
 
     void setCurrentSelection(SP<IDataSource> source);
     void setCurrentPrimarySelection(SP<IDataSource> source);
 
     // do not write to directly, use set...
-    WP<IPointer>  mouse;
-    WP<IKeyboard> keyboard;
+    WP<IPointer>  m_mouse;
+    WP<IKeyboard> m_keyboard;
 
     void          setGrab(SP<CSeatGrab> grab); // nullptr removes
-    SP<CSeatGrab> seatGrab;
+    SP<CSeatGrab> m_seatGrab;
 
-    bool          isPointerFrameSkipped = false;
-    bool          isPointerFrameCommit  = false;
+    bool          m_isPointerFrameSkipped = false;
+    bool          m_isPointerFrameCommit  = false;
 
   private:
     struct SSeatResourceContainer {
@@ -145,7 +142,7 @@ class CSeatManager {
         } listeners;
     };
 
-    std::vector<SP<SSeatResourceContainer>> seatResources;
+    std::vector<SP<SSeatResourceContainer>> m_seatResources;
     void                                    onNewSeatResource(SP<CWLSeatResource> resource);
     SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
 
@@ -156,10 +153,10 @@ class CSeatManager {
         CHyprSignalListener keyboardSurfaceDestroy;
         CHyprSignalListener pointerSurfaceDestroy;
         CHyprSignalListener touchSurfaceDestroy;
-    } listeners;
+    } m_listeners;
 
-    Vector2D lastLocalCoords;
-    int      touchLocks = 0; // we assume there aint like 20 touch devices at once...
+    Vector2D m_lastLocalCoords;
+    int      m_touchLocks = 0; // we assume there aint like 20 touch devices at once...
 
     friend struct SSeatResourceContainer;
     friend class CSeatGrab;

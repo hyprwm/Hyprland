@@ -1174,7 +1174,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
 
         if (header.pWindow->m_isFloating) {
-            g_pKeybindManager->m_mDispatchers["swapnext"]("");
+            g_pKeybindManager->m_dispatchers["swapnext"]("");
             return 0;
         }
 
@@ -1191,7 +1191,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
 
         if (header.pWindow->m_isFloating) {
-            g_pKeybindManager->m_mDispatchers["swapnext"]("prev");
+            g_pKeybindManager->m_dispatchers["swapnext"]("prev");
             return 0;
         }
 
@@ -1296,7 +1296,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (command == "orientationcycle") {
         runOrientationCycle(header, &vars, 1);
     } else if (command == "mfact") {
-        g_pKeybindManager->m_mDispatchers["splitratio"](vars[1] + " " + vars[2]);
+        g_pKeybindManager->m_dispatchers["splitratio"](vars[1] + " " + vars[2]);
     } else if (command == "rollnext") {
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);

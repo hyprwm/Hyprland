@@ -13,7 +13,7 @@ class CProtocolManager {
     bool isGlobalPrivileged(const wl_global* global);
 
   private:
-    std::unordered_map<std::string, CHyprSignalListener> m_mModeChangeListeners;
+    std::unordered_map<std::string, CHyprSignalListener> m_modeChangeListeners;
 
     void                                                 onMonitorModeChange(PHLMONITOR pMonitor);
 };

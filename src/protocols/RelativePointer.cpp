@@ -59,10 +59,10 @@ void CRelativePointerProtocol::onGetRelativePointer(CZwpRelativePointerManagerV1
 
 void CRelativePointerProtocol::sendRelativeMotion(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
 
-    if (!g_pSeatManager->state.pointerFocusResource)
+    if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
 
-    const auto FOCUSED = g_pSeatManager->state.pointerFocusResource->client();
+    const auto FOCUSED = g_pSeatManager->m_state.pointerFocusResource->client();
 
     for (auto const& rp : m_vRelativePointers) {
         if (FOCUSED != rp->client())

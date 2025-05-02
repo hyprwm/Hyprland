@@ -154,8 +154,8 @@ wl_client* CWLRDataDevice::client() {
 }
 
 void CWLRDataDevice::sendInitialSelections() {
-    PROTO::dataWlr->sendSelectionToDevice(self.lock(), g_pSeatManager->selection.currentSelection.lock(), false);
-    PROTO::dataWlr->sendSelectionToDevice(self.lock(), g_pSeatManager->selection.currentPrimarySelection.lock(), true);
+    PROTO::dataWlr->sendSelectionToDevice(self.lock(), g_pSeatManager->m_selection.currentSelection.lock(), false);
+    PROTO::dataWlr->sendSelectionToDevice(self.lock(), g_pSeatManager->m_selection.currentPrimarySelection.lock(), true);
 }
 
 void CWLRDataDevice::sendDataOffer(SP<CWLRDataOffer> offer) {

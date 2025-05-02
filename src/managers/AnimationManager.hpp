@@ -49,12 +49,12 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
 
     std::string         styleValidInConfigVar(const std::string&, const std::string&);
 
-    SP<CEventLoopTimer> m_pAnimationTimer;
+    SP<CEventLoopTimer> m_animationTimer;
 
-    float               m_fLastTickTime; // in ms
+    float               m_lastTickTimeMs;
 
   private:
-    bool m_bTickScheduled = false;
+    bool m_tickScheduled = false;
 
     // Anim stuff
     void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);

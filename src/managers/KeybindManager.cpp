@@ -3194,13 +3194,13 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             PWINDOW->clampWindowSize(PWINDOW->m_windowData.minSize.value(), std::nullopt);
             PWINDOW->setHidden(false);
         } else if (PROP == "alpha") {
-            PWINDOW->m_windowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alpha.valueOrDefault().override}, PRIORITY_SET_PROP);
+            PWINDOW->m_windowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alpha.valueOrDefault().overridden}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
             PWINDOW->m_windowData.alphaInactive =
-                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaInactive.valueOrDefault().override}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaInactive.valueOrDefault().overridden}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
             PWINDOW->m_windowData.alphaFullscreen =
-                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaFullscreen.valueOrDefault().override}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaFullscreen.valueOrDefault().overridden}, PRIORITY_SET_PROP);
         } else if (PROP == "alphaoverride") {
             PWINDOW->m_windowData.alpha =
                 CWindowOverridableVar(SAlphaValue{PWINDOW->m_windowData.alpha.valueOrDefault().alpha, (bool)configStringToInt(VAL).value_or(0)}, PRIORITY_SET_PROP);

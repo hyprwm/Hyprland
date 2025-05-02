@@ -137,7 +137,7 @@ void CGammaControl::applyToMonitor() {
 
     pMonitor->m_output->state->setGammaLut(gammaTable);
 
-    if (!pMonitor->m_state.test()) {
+    if (!pMonitor->test()) {
         LOGM(LOG, "setting to monitor {} failed", pMonitor->m_name);
         pMonitor->m_output->state->setGammaLut({});
     }

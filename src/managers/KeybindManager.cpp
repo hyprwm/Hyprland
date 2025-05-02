@@ -2681,7 +2681,7 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
 
         m->m_dpmsStatus = enable;
 
-        if (!m->m_state.commit()) {
+        if (!m->commit()) {
             Debug::log(ERR, "Couldn't commit output {}", m->m_name);
             res.success = false;
             res.error   = "Couldn't commit output {}";

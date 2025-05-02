@@ -559,7 +559,7 @@ void CCompositor::cleanup() {
         g_pHyprOpenGL->destroyMonitorResources(m);
 
         m->m_output->state->setEnabled(false);
-        m->m_state.commit();
+        m->commit();
     }
 
     g_pXWayland.reset();

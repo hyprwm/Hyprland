@@ -59,21 +59,6 @@ class CMonitor;
 class CSyncTimeline;
 class CEGLSync;
 
-class CMonitorState {
-  public:
-    CMonitorState(CMonitor* owner);
-    ~CMonitorState() = default;
-
-    bool commit();
-    bool test();
-    bool updateSwapchain();
-
-  private:
-    void      ensureBufferPresent();
-
-    CMonitor* m_owner = nullptr;
-};
-
 class CMonitor {
   public:
     CMonitor(SP<Aquamarine::IOutput> output);
@@ -100,7 +85,6 @@ class CMonitor {
 
     drmModeModeInfo             m_customDrmMode = {};
 
-    CMonitorState               m_state;
     CDamageRing                 m_damage;
 
     SP<Aquamarine::IOutput>     m_output;
@@ -205,6 +189,9 @@ class CMonitor {
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();
 
+    bool                                commit();
+    bool                                test();
+
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;
@@ -223,6 +210,9 @@ class CMonitor {
   private:
     void                    setupDefaultWS(const SMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
+
+    void                    ensureBufferPresent();
+    bool                    updateSwapchain();
 
     bool                    m_doneScheduled = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;

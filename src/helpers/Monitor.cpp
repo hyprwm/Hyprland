@@ -127,7 +127,7 @@ void CMonitor::onConnect(bool noRule) {
     if (m_enabled) {
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(true);
-        m_state.commit();
+        commit();
         return;
     }
 
@@ -153,7 +153,7 @@ void CMonitor::onConnect(bool noRule) {
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(false);
 
-        if (!m_state.commit())
+        if (!commit())
             Debug::log(ERR, "Couldn't commit disabled state on output {}", m_output->name);
 
         m_enabled = false;
@@ -194,7 +194,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         applyMonitorRule(&monitorRule, true);
 
-    if (!m_state.commit())
+    if (!commit())
         Debug::log(WARN, "state.commit() failed in CMonitor::onCommit");
 
     m_damage.setSize(m_transformedSize);
@@ -380,7 +380,7 @@ void CMonitor::onDisconnect(bool destroy) {
     m_output->state->setAdaptiveSync(false);
     m_output->state->setEnabled(false);
 
-    if (!m_state.commit())
+    if (!commit())
         Debug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_lastMonitor == m_self)
@@ -579,7 +579,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF) {
             m_output->state->setCustomMode(mode);
 
-            if (!m_state.test()) {
+            if (!test()) {
                 Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
                 continue;
             }
@@ -588,7 +588,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         } else {
             m_output->state->setMode(mode);
 
-            if (!m_state.test()) {
+            if (!test()) {
                 Debug::log(ERR, "Monitor {}: REJECTED available mode {}!", m_name, modeStr);
                 if (mode->preferred)
                     Debug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", m_name);
@@ -622,7 +622,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
         m_output->state->setCustomMode(mode);
 
-        if (m_state.test()) {
+        if (test()) {
             Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
 
             refreshRate     = mode->refreshRate / 1000.f;
@@ -640,7 +640,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         for (auto const& mode : m_output->modes) {
             m_output->state->setMode(mode);
 
-            if (!m_state.test())
+            if (!test())
                 continue;
 
             auto errorMessage =
@@ -687,7 +687,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         m_prevDrmFormat = m_drmFormat;
         m_drmFormat     = fmt.second;
 
-        if (!m_state.test()) {
+        if (!test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", m_name, fmt.first);
         } else {
             Debug::log(LOG, "output {} succeeded basic test on format {}", m_name, fmt.first);
@@ -814,7 +814,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_output->scheduleFrame();
 
-    if (!m_state.commit())
+    if (!commit())
         Debug::log(ERR, "Couldn't commit output named {}", m_output->name);
 
     Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
@@ -1387,7 +1387,7 @@ bool CMonitor::attemptDirectScanout() {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
-            if (!m_state.test()) {
+            if (!test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
                 return false;
             }
@@ -1420,7 +1420,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    if (!m_state.test()) {
+    if (!test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
@@ -1544,61 +1544,57 @@ void CMonitor::onCursorMovedOnMonitor() {
     m_tearingState.frameScheduledWhileBusy = true;
 }
 
-CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {
-    ;
+bool CMonitor::commit() {
+    if (!updateSwapchain())
+        return false;
+
+    EMIT_HOOK_EVENT("preMonitorCommit", m_self.lock());
+
+    ensureBufferPresent();
+
+    return m_output->commit();
 }
 
-void CMonitorState::ensureBufferPresent() {
-    const auto STATE = m_owner->m_output->state->state();
+bool CMonitor::test() {
+    if (!updateSwapchain())
+        return false;
+
+    ensureBufferPresent();
+
+    return m_output->test();
+}
+
+void CMonitor::ensureBufferPresent() {
+    const auto STATE = m_output->state->state();
     if (!STATE.enabled) {
         Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
-    if (STATE.buffer) {
-        if (const auto params = STATE.buffer->dmabuf(); params.success && params.format == m_owner->m_drmFormat)
+    if (STATE.buffer && STATE.buffer->good()) {
+        const auto params = STATE.buffer->dmabuf();
+        if (params.success && params.format == m_drmFormat && params.size == m_size)
             return;
     }
 
     // this is required for modesetting being possible and might be missing in case of first tests in the renderer
     // where we test modes and buffers
     Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
-    m_owner->m_output->state->setBuffer(m_owner->m_output->swapchain->next(nullptr));
-    m_owner->m_output->swapchain->rollback(); // restore the counter, don't advance the swapchain
+    m_output->state->setBuffer(m_output->swapchain->next(nullptr));
+    m_output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
 
-bool CMonitorState::commit() {
-    if (!updateSwapchain())
-        return false;
-
-    EMIT_HOOK_EVENT("preMonitorCommit", m_owner->m_self.lock());
-
-    ensureBufferPresent();
-
-    bool ret = m_owner->m_output->commit();
-    return ret;
-}
-
-bool CMonitorState::test() {
-    if (!updateSwapchain())
-        return false;
-
-    ensureBufferPresent();
-
-    return m_owner->m_output->test();
-}
-
-bool CMonitorState::updateSwapchain() {
-    auto        options = m_owner->m_output->swapchain->currentOptions();
-    const auto& STATE   = m_owner->m_output->state->state();
+bool CMonitor::updateSwapchain() {
+    auto        options = m_output->swapchain->currentOptions();
+    const auto& STATE   = m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
         Debug::log(WARN, "updateSwapchain: No mode?");
         return true;
     }
-    options.format  = m_owner->m_drmFormat;
+    options.format  = m_drmFormat;
     options.scanout = true;
     options.length  = 2;
     options.size    = MODE->pixelSize;
-    return m_owner->m_output->swapchain->reconfigure(options);
+    return m_output->swapchain->reconfigure(options);
 }

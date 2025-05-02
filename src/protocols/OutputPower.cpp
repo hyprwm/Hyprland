@@ -17,7 +17,7 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
 
         pMonitor->m_output->state->setEnabled(mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
 
-        if (!pMonitor->m_state.commit())
+        if (!pMonitor->commit())
             LOGM(ERR, "Couldn't set dpms to {} for {}", pMonitor->m_dpmsStatus, pMonitor->m_name);
     });
 

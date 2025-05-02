@@ -1554,12 +1554,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
 
-    bool ok = pMonitor->m_state.commit();
+    bool ok = pMonitor->commit();
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
             Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->m_output->state->resetExplicitFences();
-            ok = pMonitor->m_state.commit();
+            ok = pMonitor->commit();
         }
 
         if (!ok) {

@@ -49,21 +49,21 @@ void CProgressBar::print() {
     // clamp to ensure no overflows (sanity check)
     percentDone = std::clamp(percentDone, 0.0f, 1.0f);
 
-    const size_t       barWidth = std::clamp<size_t>(w.ws_col - m_szCurrentMessage.length() - 2, 0, 50);
+    const size_t       BARWIDTH = std::clamp<size_t>(w.ws_col - m_szCurrentMessage.length() - 2, 0, 50);
 
     std::ostringstream oss;
     oss << ' ' << Colors::GREEN;
 
-    size_t filled = static_cast<size_t>(std::floor(percentDone * barWidth));
+    size_t filled = static_cast<size_t>(std::floor(percentDone * BARWIDTH));
     size_t i      = 0;
 
     for (; i < filled; ++i)
         oss << "━";
 
-    if (i < barWidth) {
+    if (i < BARWIDTH) {
         oss << "╍" << Colors::RESET;
         ++i;
-        for (; i < barWidth; ++i)
+        for (; i < BARWIDTH; ++i)
             oss << "━";
     } else
         oss << Colors::RESET;

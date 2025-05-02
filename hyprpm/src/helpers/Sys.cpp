@@ -33,15 +33,15 @@ static std::string fetchSuperuserBins() {
 }
 
 static bool executableExistsInPath(const std::string& exe) {
-    const char* pathEnv = std::getenv("PATH");
-    if (!pathEnv)
+    const char* PATHENV = std::getenv("PATH");
+    if (!PATHENV)
         return false;
 
-    CVarList        paths(pathEnv, 0, ':', true);
+    CVarList        paths(PATHENV, 0, ':', true);
     std::error_code ec;
 
-    for (const auto& p : paths) {
-        std::filesystem::path candidate = std::filesystem::path(p) / exe;
+    for (const auto& PATH : paths) {
+        std::filesystem::path candidate = std::filesystem::path(PATH) / exe;
         if (!std::filesystem::exists(candidate, ec) || ec)
             continue;
         if (!std::filesystem::is_regular_file(candidate, ec) || ec)
@@ -100,11 +100,11 @@ bool NSys::isSuperuser() {
 std::string NSys::runAsSuperuser(const std::string& cmd) {
     const std::string escapedCmd = shellEscape(cmd);
 
-    for (const auto& bin : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(std::string{bin}))
+    for (const auto& BIN : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(std::string{BIN}))
             continue;
 
-        const auto result = execAndGet(std::string{bin} + " /bin/sh -c " + escapedCmd, true);
+        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c " + escapedCmd, true);
         if (!result.has_value() || result->second != 0)
             Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
 
@@ -122,15 +122,15 @@ void NSys::cacheSudo() {
 }
 
 void NSys::dropSudo() {
-    for (const auto& bin : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(std::string{bin}))
+    for (const auto& BIN : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(std::string{BIN}))
             continue;
 
-        if (bin == "sudo")
+        if (BIN == "sudo")
             execAndGet("sudo -k");
         else {
             // note the superuser binary that is being dropped
-            std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", bin));
+            std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", BIN));
         }
     }
 }

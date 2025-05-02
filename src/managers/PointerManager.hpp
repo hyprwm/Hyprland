@@ -110,7 +110,7 @@ class CPointerManager {
 
         WP<IPointer>        pointer;
     };
-    std::vector<SP<SPointerListener>> pointerListeners;
+    std::vector<SP<SPointerListener>> m_pointerListeners;
 
     struct STouchListener {
         CHyprSignalListener destroy;
@@ -122,7 +122,7 @@ class CPointerManager {
 
         WP<ITouch>          touch;
     };
-    std::vector<SP<STouchListener>> touchListeners;
+    std::vector<SP<STouchListener>> m_touchListeners;
 
     struct STabletListener {
         CHyprSignalListener destroy;
@@ -133,11 +133,11 @@ class CPointerManager {
 
         WP<CTablet>         tablet;
     };
-    std::vector<SP<STabletListener>> tabletListeners;
+    std::vector<SP<STabletListener>> m_tabletListeners;
 
     struct {
         std::vector<CBox> monitorBoxes;
-    } currentMonitorLayout;
+    } m_currentMonitorLayout;
 
     struct {
         SP<Aquamarine::IBuffer> pBuffer;
@@ -150,13 +150,13 @@ class CPointerManager {
 
         CHyprSignalListener     destroySurface;
         CHyprSignalListener     commitSurface;
-    } currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
+    } m_currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
-    Vector2D pointerPos = {0, 0};
+    Vector2D m_pointerPos = {0, 0};
 
-    uint64_t storedTime    = 0;
-    Vector2D storedDelta   = {0, 0};
-    Vector2D storedUnaccel = {0, 0};
+    uint64_t m_storedTime    = 0;
+    Vector2D m_storedDelta   = {0, 0};
+    Vector2D m_storedUnaccel = {0, 0};
 
     struct SMonitorPointerState {
         SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}
@@ -174,7 +174,7 @@ class CPointerManager {
         SP<Aquamarine::IBuffer> cursorFrontBuffer;
     };
 
-    std::vector<SP<SMonitorPointerState>> monitorStates;
+    std::vector<SP<SMonitorPointerState>> m_monitorStates;
     SP<SMonitorPointerState>              stateFor(PHLMONITOR mon);
     bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
     SP<Aquamarine::IBuffer>               renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<CTexture> texture);
@@ -183,7 +183,7 @@ class CPointerManager {
     struct {
         SP<HOOK_CALLBACK_FN> monitorAdded;
         SP<HOOK_CALLBACK_FN> monitorPreRender;
-    } hooks;
+    } m_hooks;
 };
 
 inline UP<CPointerManager> g_pPointerManager;

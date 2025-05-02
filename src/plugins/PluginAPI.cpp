@@ -200,7 +200,7 @@ APICALL bool HyprlandAPI::addDispatcher(HANDLE handle, const std::string& name, 
 
     PLUGIN->registeredDispatchers.push_back(name);
 
-    g_pKeybindManager->m_mDispatchers[name] = [handler](std::string arg1) -> SDispatchResult {
+    g_pKeybindManager->m_dispatchers[name] = [handler](std::string arg1) -> SDispatchResult {
         handler(arg1);
         return {};
     };
@@ -216,7 +216,7 @@ APICALL bool HyprlandAPI::addDispatcherV2(HANDLE handle, const std::string& name
 
     PLUGIN->registeredDispatchers.push_back(name);
 
-    g_pKeybindManager->m_mDispatchers[name] = handler;
+    g_pKeybindManager->m_dispatchers[name] = handler;
 
     return true;
 }
@@ -227,7 +227,7 @@ APICALL bool HyprlandAPI::removeDispatcher(HANDLE handle, const std::string& nam
     if (!PLUGIN)
         return false;
 
-    std::erase_if(g_pKeybindManager->m_mDispatchers, [&](const auto& other) { return other.first == name; });
+    std::erase_if(g_pKeybindManager->m_dispatchers, [&](const auto& other) { return other.first == name; });
     std::erase_if(PLUGIN->registeredDispatchers, [&](const auto& other) { return other == name; });
 
     return true;

@@ -163,7 +163,7 @@ void CLayerSurface::onMap() {
     const bool GRABSFOCUS = ISEXCLUSIVE ||
         (m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
          // don't focus if constrained
-         (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()));
+         (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained()));
 
     if (GRABSFOCUS) {
         // TODO: use the new superb really very cool grab
@@ -231,7 +231,7 @@ void CLayerSurface::onUnmap() {
 
     const auto PMONITOR = m_monitor.lock();
 
-    const bool WASLASTFOCUS = g_pSeatManager->state.keyboardFocus == m_surface->resource() || g_pSeatManager->state.pointerFocus == m_surface->resource();
+    const bool WASLASTFOCUS = g_pSeatManager->m_state.keyboardFocus == m_surface->resource() || g_pSeatManager->m_state.pointerFocus == m_surface->resource();
 
     if (!PMONITOR)
         return;
@@ -333,12 +333,12 @@ void CLayerSurface::onCommit() {
     if (m_mapped && (m_layerSurface->current.committed & CLayerShellResource::eCommittedState::STATE_INTERACTIVITY)) {
         bool WASLASTFOCUS = false;
         m_layerSurface->surface->breadthfirst(
-            [&WASLASTFOCUS](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { WASLASTFOCUS = WASLASTFOCUS || g_pSeatManager->state.keyboardFocus == surf; },
+            [&WASLASTFOCUS](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { WASLASTFOCUS = WASLASTFOCUS || g_pSeatManager->m_state.keyboardFocus == surf; },
             nullptr);
         if (!WASLASTFOCUS && m_popupHead) {
             m_popupHead->breadthfirst(
                 [&WASLASTFOCUS](WP<CPopup> popup, void* data) {
-                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_wlSurface && g_pSeatManager->state.keyboardFocus == popup->m_wlSurface->resource());
+                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_wlSurface && g_pSeatManager->m_state.keyboardFocus == popup->m_wlSurface->resource());
                 },
                 nullptr);
         }

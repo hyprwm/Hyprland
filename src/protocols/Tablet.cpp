@@ -157,7 +157,7 @@ CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<
     resource->setOnDestroy([this](CZwpTabletToolV2* r) { PROTO::tablet->destroyResource(this); });
 
     resource->setSetCursor([](CZwpTabletToolV2* r, uint32_t serial, wl_resource* surf, int32_t hot_x, int32_t hot_y) {
-        if (!g_pSeatManager->state.pointerFocusResource || g_pSeatManager->state.pointerFocusResource->client() != r->client())
+        if (!g_pSeatManager->m_state.pointerFocusResource || g_pSeatManager->m_state.pointerFocusResource->client() != r->client())
             return;
 
         g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hot_x, hot_y}});

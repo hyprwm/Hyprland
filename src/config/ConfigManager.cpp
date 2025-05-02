@@ -2359,9 +2359,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // to lower
     std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
 
-    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
+    const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(HANDLER);
 
-    if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {
+    if (DISPATCHER == g_pKeybindManager->m_dispatchers.end()) {
         Debug::log(ERR, "Invalid dispatcher: {}", HANDLER);
         return "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
     }

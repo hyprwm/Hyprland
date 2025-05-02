@@ -93,8 +93,8 @@ static void handleUnrecoverableSignal(int sig) {
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
 
-    if (g_pHookSystem && g_pHookSystem->m_bCurrentEventPlugin) {
-        longjmp(g_pHookSystem->m_jbHookFaultJumpBuf, 1);
+    if (g_pHookSystem && g_pHookSystem->m_currentEventPlugin) {
+        longjmp(g_pHookSystem->m_hookFaultJumpBuf, 1);
         return;
     }
 
@@ -1132,7 +1132,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
     }
 
-    if (m_lastWindow.lock() == pWindow && g_pSeatManager->state.keyboardFocus == pSurface && g_pSeatManager->state.keyboardFocus)
+    if (m_lastWindow.lock() == pWindow && g_pSeatManager->m_state.keyboardFocus == pSurface && g_pSeatManager->m_state.keyboardFocus)
         return;
 
     if (pWindow->m_pinned)
@@ -1216,13 +1216,13 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
 void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
 
-    if (g_pSeatManager->state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->state.keyboardFocus == pWindowOwner->m_wlSurface->resource()))
+    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->m_wlSurface->resource()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked() && pSurface && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
         return;
 
-    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(pSurface)) {
+    if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
         Debug::log(LOG, "surface {:x} won't receive kb focus becuase grab rejected it", (uintptr_t)pSurface.get());
         return;
     }
@@ -1242,7 +1242,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         return;
     }
 
-    if (g_pSeatManager->keyboard)
+    if (g_pSeatManager->m_keyboard)
         g_pSeatManager->setKeyboardFocus(pSurface);
 
     if (pWindowOwner)

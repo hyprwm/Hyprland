@@ -19,7 +19,7 @@ class CDonationNagManager {
     void       writeState(const SStateData& s);
     void       fire();
 
-    bool       m_bFired = false;
+    bool       m_fired = false;
 };
 
 inline UP<CDonationNagManager> g_pDonationNagManager;

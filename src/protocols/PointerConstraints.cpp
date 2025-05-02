@@ -125,7 +125,7 @@ void CPointerConstraint::activate() {
         return;
 
     // TODO: hack, probably not a super duper great idea
-    if (g_pSeatManager->state.pointerFocus != pHLSurface->resource()) {
+    if (g_pSeatManager->m_state.pointerFocus != pHLSurface->resource()) {
         const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
         g_pSeatManager->setPointerFocus(pHLSurface->resource(), LOCAL);

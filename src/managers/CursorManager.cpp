@@ -69,45 +69,45 @@ void CCursorBuffer::endDataPtr() {
 }
 
 CCursorManager::CCursorManager() {
-    m_pHyprcursor              = makeUnique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), hcLogger);
-    m_pXcursor                 = makeUnique<CXCursorManager>();
+    m_hyprcursor               = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), hcLogger);
+    m_xcursor                  = makeUnique<CXCursorManager>();
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
 
-    if (m_pHyprcursor->valid() && *PUSEHYPRCURSOR) {
+    if (m_hyprcursor->valid() && *PUSEHYPRCURSOR) {
         // find default size. First, HYPRCURSOR_SIZE then default to 24
         auto const* SIZE = getenv("HYPRCURSOR_SIZE");
         if (SIZE) {
             try {
-                m_iSize = std::stoi(SIZE);
+                m_size = std::stoi(SIZE);
             } catch (...) { ; }
         }
 
-        if (m_iSize <= 0) {
+        if (m_size <= 0) {
             Debug::log(WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
-            m_iSize = 24;
+            m_size = 24;
         }
     } else {
-        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_szTheme);
+        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_theme);
 
         auto const* SIZE = getenv("XCURSOR_SIZE");
         if (SIZE) {
             try {
-                m_iSize = std::stoi(SIZE);
+                m_size = std::stoi(SIZE);
             } catch (...) { ; }
         }
 
-        if (m_iSize <= 0) {
+        if (m_size <= 0) {
             Debug::log(WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
-            m_iSize = 24;
+            m_size = 24;
         }
     }
 
     // since we fallback to xcursor always load it on startup. otherwise we end up with a empty theme if hyprcursor is enabled in the config
     // and then later is disabled.
-    m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize, m_fCursorScale);
+    m_xcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_size, m_cursorScale);
 
-    m_pAnimationTimer = makeShared<CEventLoopTimer>(std::nullopt, cursorAnimTimer, this);
-    g_pEventLoopManager->addTimer(m_pAnimationTimer);
+    m_animationTimer = makeShared<CEventLoopTimer>(std::nullopt, cursorAnimTimer, this);
+    g_pEventLoopManager->addTimer(m_animationTimer);
 
     updateTheme();
 
@@ -115,17 +115,17 @@ CCursorManager::CCursorManager() {
 }
 
 CCursorManager::~CCursorManager() {
-    if (m_pAnimationTimer && g_pEventLoopManager) {
-        g_pEventLoopManager->removeTimer(m_pAnimationTimer);
-        m_pAnimationTimer.reset();
+    if (m_animationTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_animationTimer);
+        m_animationTimer.reset();
     }
 
-    if (m_pHyprcursor->valid() && m_sCurrentStyleInfo.size > 0)
-        m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
+    if (m_hyprcursor->valid() && m_currentStyleInfo.size > 0)
+        m_hyprcursor->cursorSurfaceStyleDone(m_currentStyleInfo);
 }
 
 SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
-    return !m_vCursorBuffers.empty() ? m_vCursorBuffers.back() : nullptr;
+    return !m_cursorBuffers.empty() ? m_cursorBuffers.back() : nullptr;
 }
 
 void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
@@ -134,28 +134,28 @@ void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotsp
     else
         g_pPointerManager->setCursorSurface(surf, hotspot);
 
-    m_bOurBufferConnected = false;
+    m_ourBufferConnected = false;
 }
 
 void CCursorManager::setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale) {
-    m_vCursorBuffers.emplace_back(buf);
+    m_cursorBuffers.emplace_back(buf);
     g_pPointerManager->setCursorBuffer(getCursorBuffer(), hotspot, scale);
-    if (m_vCursorBuffers.size() > 1)
-        std::erase_if(m_vCursorBuffers, [this](const auto& buf) { return buf.get() == m_vCursorBuffers.front().get(); });
+    if (m_cursorBuffers.size() > 1)
+        std::erase_if(m_cursorBuffers, [this](const auto& buf) { return buf.get() == m_cursorBuffers.front().get(); });
 
-    m_bOurBufferConnected = true;
+    m_ourBufferConnected = true;
 }
 
 void CCursorManager::setAnimationTimer(const int& frame, const int& delay) {
     if (delay > 0) {
         // arm
-        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(delay));
+        m_animationTimer->updateTimeout(std::chrono::milliseconds(delay));
     } else {
         // disarm
-        m_pAnimationTimer->updateTimeout(std::nullopt);
+        m_animationTimer->updateTimeout(std::nullopt);
     }
 
-    m_iCurrentAnimationFrame = frame;
+    m_currentAnimationFrame = frame;
 }
 
 void CCursorManager::setCursorFromName(const std::string& name) {
@@ -163,9 +163,9 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
 
     auto        setXCursor = [this](auto const& name) {
-        float scale = std::ceil(m_fCursorScale);
+        float scale = std::ceil(m_cursorScale);
 
-        auto  xcursor = m_pXcursor->getShape(name, m_iSize, m_fCursorScale);
+        auto  xcursor = m_xcursor->getShape(name, m_size, m_cursorScale);
         auto& icon    = xcursor->images.front();
         auto  buf     = makeShared<CCursorBuffer>((uint8_t*)icon.pixels.data(), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
@@ -181,90 +181,89 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     };
 
     auto setHyprCursor = [this](auto const& name) {
-        m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
+        m_currentCursorShapeData = m_hyprcursor->getShape(name.c_str(), m_currentStyleInfo);
 
-        if (m_sCurrentCursorShapeData.images.size() < 1) {
+        if (m_currentCursorShapeData.images.size() < 1) {
             // try with '_' first (old hc, etc)
             std::string newName = name;
             std::replace(newName.begin(), newName.end(), '-', '_');
 
-            m_sCurrentCursorShapeData = m_pHyprcursor->getShape(newName.c_str(), m_sCurrentStyleInfo);
+            m_currentCursorShapeData = m_hyprcursor->getShape(newName.c_str(), m_currentStyleInfo);
         }
 
-        if (m_sCurrentCursorShapeData.images.size() < 1) {
+        if (m_currentCursorShapeData.images.size() < 1) {
             // fallback to a default if available
             constexpr const std::array<const char*, 3> fallbackShapes = {"default", "left_ptr", "left-ptr"};
 
             for (auto const& s : fallbackShapes) {
-                m_sCurrentCursorShapeData = m_pHyprcursor->getShape(s, m_sCurrentStyleInfo);
+                m_currentCursorShapeData = m_hyprcursor->getShape(s, m_currentStyleInfo);
 
-                if (m_sCurrentCursorShapeData.images.size() > 0)
+                if (m_currentCursorShapeData.images.size() > 0)
                     break;
             }
 
-            if (m_sCurrentCursorShapeData.images.size() < 1) {
+            if (m_currentCursorShapeData.images.size() < 1) {
                 Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
                 return false;
             }
         }
 
-        auto buf =
-            makeShared<CCursorBuffer>(m_sCurrentCursorShapeData.images[0].surface, Vector2D{m_sCurrentCursorShapeData.images[0].size, m_sCurrentCursorShapeData.images[0].size},
-                                      Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY});
-        auto hotspot = Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY} / m_fCursorScale;
-        setCursorBuffer(buf, hotspot, m_fCursorScale);
+        auto buf = makeShared<CCursorBuffer>(m_currentCursorShapeData.images[0].surface, Vector2D{m_currentCursorShapeData.images[0].size, m_currentCursorShapeData.images[0].size},
+                                             Vector2D{m_currentCursorShapeData.images[0].hotspotX, m_currentCursorShapeData.images[0].hotspotY});
+        auto hotspot = Vector2D{m_currentCursorShapeData.images[0].hotspotX, m_currentCursorShapeData.images[0].hotspotY} / m_cursorScale;
+        setCursorBuffer(buf, hotspot, m_cursorScale);
 
         int delay = 0;
         int frame = 0;
-        if (m_sCurrentCursorShapeData.images.size() > 1)
-            delay = m_sCurrentCursorShapeData.images[frame].delay;
+        if (m_currentCursorShapeData.images.size() > 1)
+            delay = m_currentCursorShapeData.images[frame].delay;
 
         setAnimationTimer(frame, delay);
         return true;
     };
 
-    if (!m_pHyprcursor->valid() || !*PUSEHYPRCURSOR || !setHyprCursor(name))
+    if (!m_hyprcursor->valid() || !*PUSEHYPRCURSOR || !setHyprCursor(name))
         setXCursor(name);
 }
 
 void CCursorManager::tickAnimatedCursor() {
-    if (!m_bOurBufferConnected)
+    if (!m_ourBufferConnected)
         return;
 
-    if (!m_pHyprcursor->valid() && m_currentXcursor->images.size() > 1) {
-        m_iCurrentAnimationFrame++;
+    if (!m_hyprcursor->valid() && m_currentXcursor->images.size() > 1) {
+        m_currentAnimationFrame++;
 
-        if ((size_t)m_iCurrentAnimationFrame >= m_currentXcursor->images.size())
-            m_iCurrentAnimationFrame = 0;
+        if ((size_t)m_currentAnimationFrame >= m_currentXcursor->images.size())
+            m_currentAnimationFrame = 0;
 
-        float scale = std::ceil(m_fCursorScale);
-        auto& icon  = m_currentXcursor->images.at(m_iCurrentAnimationFrame);
+        float scale = std::ceil(m_cursorScale);
+        auto& icon  = m_currentXcursor->images.at(m_currentAnimationFrame);
         auto  buf   = makeShared<CCursorBuffer>((uint8_t*)icon.pixels.data(), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
-        setAnimationTimer(m_iCurrentAnimationFrame, m_currentXcursor->images[m_iCurrentAnimationFrame].delay);
-    } else if (m_sCurrentCursorShapeData.images.size() > 1) {
-        m_iCurrentAnimationFrame++;
+        setAnimationTimer(m_currentAnimationFrame, m_currentXcursor->images[m_currentAnimationFrame].delay);
+    } else if (m_currentCursorShapeData.images.size() > 1) {
+        m_currentAnimationFrame++;
 
-        if ((size_t)m_iCurrentAnimationFrame >= m_sCurrentCursorShapeData.images.size())
-            m_iCurrentAnimationFrame = 0;
+        if ((size_t)m_currentAnimationFrame >= m_currentCursorShapeData.images.size())
+            m_currentAnimationFrame = 0;
 
         auto hotspot =
-            Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY} / m_fCursorScale;
+            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotX, m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotY} / m_cursorScale;
         auto buf = makeShared<CCursorBuffer>(
-            m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].surface,
-            Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size},
-            Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY});
-        setCursorBuffer(buf, hotspot, m_fCursorScale);
-        setAnimationTimer(m_iCurrentAnimationFrame, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay);
+            m_currentCursorShapeData.images[m_currentAnimationFrame].surface,
+            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].size, m_currentCursorShapeData.images[m_currentAnimationFrame].size},
+            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotX, m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotY});
+        setCursorBuffer(buf, hotspot, m_cursorScale);
+        setAnimationTimer(m_currentAnimationFrame, m_currentCursorShapeData.images[m_currentAnimationFrame].delay);
     }
 }
 
 SCursorImageData CCursorManager::dataFor(const std::string& name) {
 
-    if (!m_pHyprcursor->valid())
+    if (!m_hyprcursor->valid())
         return {};
 
-    const auto IMAGES = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
+    const auto IMAGES = m_hyprcursor->getShape(name.c_str(), m_currentStyleInfo);
 
     if (IMAGES.images.empty())
         return {};
@@ -279,7 +278,7 @@ void CCursorManager::setXWaylandCursor() {
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
                                {CURSOR.hotspotX, CURSOR.hotspotY});
     else {
-        auto  xcursor = m_pXcursor->getShape("left_ptr", m_iSize, 1);
+        auto  xcursor = m_xcursor->getShape("left_ptr", m_size, 1);
         auto& icon    = xcursor->images.front();
 
         g_pXWayland->setCursor((uint8_t*)icon.pixels.data(), icon.size.x * 4, icon.size, icon.hotspot);
@@ -295,16 +294,16 @@ void CCursorManager::updateTheme() {
             highestScale = m->m_scale;
     }
 
-    m_fCursorScale = highestScale;
+    m_cursorScale = highestScale;
 
     if (*PUSEHYPRCURSOR) {
-        if (m_sCurrentStyleInfo.size > 0 && m_pHyprcursor->valid())
-            m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
+        if (m_currentStyleInfo.size > 0 && m_hyprcursor->valid())
+            m_hyprcursor->cursorSurfaceStyleDone(m_currentStyleInfo);
 
-        m_sCurrentStyleInfo.size = std::round(m_iSize * highestScale);
+        m_currentStyleInfo.size = std::round(m_size * highestScale);
 
-        if (m_pHyprcursor->valid())
-            m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
+        if (m_hyprcursor->valid())
+            m_hyprcursor->loadThemeStyle(m_currentStyleInfo);
     }
 
     for (auto const& m : g_pCompositor->m_monitors) {
@@ -315,24 +314,24 @@ void CCursorManager::updateTheme() {
 
 bool CCursorManager::changeTheme(const std::string& name, const int size) {
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
-    m_szTheme                  = name.empty() ? "" : name;
-    m_iSize                    = size <= 0 ? 24 : size;
+    m_theme                    = name.empty() ? "" : name;
+    m_size                     = size <= 0 ? 24 : size;
     auto xcursor_theme         = getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default";
 
     if (*PUSEHYPRCURSOR) {
         auto options                 = Hyprcursor::SManagerOptions();
         options.logFn                = hcLogger;
         options.allowDefaultFallback = false;
-        m_szTheme                    = name.empty() ? "" : name;
-        m_iSize                      = size;
+        m_theme                      = name.empty() ? "" : name;
+        m_size                       = size;
 
-        m_pHyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
-        if (!m_pHyprcursor->valid()) {
-            Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
-            m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);
+        m_hyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), options);
+        if (!m_hyprcursor->valid()) {
+            Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_theme);
+            m_xcursor->loadTheme(m_theme.empty() ? xcursor_theme : m_theme, m_size, m_cursorScale);
         }
     } else
-        m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);
+        m_xcursor->loadTheme(m_theme.empty() ? xcursor_theme : m_theme, m_size, m_cursorScale);
 
     updateTheme();
 
@@ -340,5 +339,5 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 }
 
 void CCursorManager::syncGsettings() {
-    m_pXcursor->syncGsettings();
+    m_xcursor->syncGsettings();
 }

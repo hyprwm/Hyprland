@@ -385,8 +385,8 @@ bool CWLDataDeviceManagerResource::good() {
 
 CWLDataDeviceProtocol::CWLDataDeviceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pEventLoopManager->doLater([this]() {
-        listeners.onKeyboardFocusChange   = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
-        listeners.onDndPointerFocusChange = g_pSeatManager->events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
+        listeners.onKeyboardFocusChange   = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
+        listeners.onDndPointerFocusChange = g_pSeatManager->m_events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
     });
 }
 
@@ -451,7 +451,7 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
     }
 #ifndef NO_XWAYLAND
     else if (const auto X11 = dev->getX11(); X11)
-        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), sel);
+        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), sel);
 #endif
 
     if UNLIKELY (!offer) {
@@ -482,10 +482,10 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
     if (!source) {
         LOGM(LOG, "resetting selection");
 
-        if (!g_pSeatManager->state.keyboardFocusResource)
+        if (!g_pSeatManager->m_state.keyboardFocusResource)
             return;
 
-        auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.keyboardFocusResource->client());
+        auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.keyboardFocusResource->client());
         if (DESTDEVICE && DESTDEVICE->type() == DATA_SOURCE_TYPE_WAYLAND)
             sendSelectionToDevice(DESTDEVICE, nullptr);
 
@@ -494,10 +494,10 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
 
     LOGM(LOG, "New selection for data source {:x}", (uintptr_t)source.get());
 
-    if (!g_pSeatManager->state.keyboardFocusResource)
+    if (!g_pSeatManager->m_state.keyboardFocusResource)
         return;
 
-    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.keyboardFocusResource->client());
+    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.keyboardFocusResource->client());
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
@@ -513,17 +513,17 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
 }
 
 void CWLDataDeviceProtocol::updateSelection() {
-    if (!g_pSeatManager->state.keyboardFocusResource)
+    if (!g_pSeatManager->m_state.keyboardFocusResource)
         return;
 
-    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.keyboardFocusResource->client());
+    auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.keyboardFocusResource->client());
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CWLDataDeviceProtocol::onKeyboardFocus: cannot send selection to a client without a data_device");
         return;
     }
 
-    sendSelectionToDevice(DESTDEVICE, g_pSeatManager->selection.currentSelection.lock());
+    sendSelectionToDevice(DESTDEVICE, g_pSeatManager->m_selection.currentSelection.lock());
 }
 
 void CWLDataDeviceProtocol::onKeyboardFocus() {
@@ -593,8 +593,8 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 
     dnd.mouseMove = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto V = std::any_cast<const Vector2D>(e);
-        if (dnd.focusedDevice && g_pSeatManager->state.dndPointerFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->state.dndPointerFocus.lock());
+        if (dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
+            auto surf = CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
 
             if (!surf)
                 return;
@@ -611,8 +611,8 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 
     dnd.touchMove = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<ITouch::SMotionEvent>(e);
-        if (dnd.focusedDevice && g_pSeatManager->state.dndPointerFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->state.dndPointerFocus.lock());
+        if (dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
+            auto surf = CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
 
             if (!surf)
                 return;
@@ -630,9 +630,9 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
     // BTW, the spec does NOT require this explicitly...
     // Fuck you gtk.
-    const auto LASTDNDFOCUS = g_pSeatManager->state.dndPointerFocus;
+    const auto LASTDNDFOCUS = g_pSeatManager->m_state.dndPointerFocus;
     g_pSeatManager->setPointerFocus(nullptr, {});
-    g_pSeatManager->state.dndPointerFocus = LASTDNDFOCUS;
+    g_pSeatManager->m_state.dndPointerFocus = LASTDNDFOCUS;
 
     // make a new offer, etc
     updateDrag();
@@ -645,10 +645,10 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (dnd.focusedDevice)
         dnd.focusedDevice->sendLeave();
 
-    if (!g_pSeatManager->state.dndPointerFocus)
+    if (!g_pSeatManager->m_state.dndPointerFocus)
         return;
 
-    dnd.focusedDevice = dataDeviceForClient(g_pSeatManager->state.dndPointerFocus->client());
+    dnd.focusedDevice = dataDeviceForClient(g_pSeatManager->m_state.dndPointerFocus->client());
 
     if (!dnd.focusedDevice)
         return;
@@ -669,7 +669,7 @@ void CWLDataDeviceProtocol::updateDrag() {
     }
 #ifndef NO_XWAYLAND
     else if (const auto X11 = dnd.focusedDevice->getX11(); X11)
-        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), dnd.currentSource.lock());
+        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), dnd.currentSource.lock());
 #endif
 
     if (!offer) {
@@ -683,8 +683,8 @@ void CWLDataDeviceProtocol::updateDrag() {
     dnd.focusedDevice->sendDataOffer(offer);
     if (const auto WL = offer->getWayland(); WL)
         WL->sendData();
-    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
-                                 g_pSeatManager->state.dndPointerFocus->current.size / 2.F, offer);
+    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), g_pSeatManager->m_state.dndPointerFocus.lock(),
+                                 g_pSeatManager->m_state.dndPointerFocus->current.size / 2.F, offer);
 }
 
 void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput) {

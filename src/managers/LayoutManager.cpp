@@ -1,22 +1,22 @@
 #include "LayoutManager.hpp"
 
 CLayoutManager::CLayoutManager() {
-    m_vLayouts.emplace_back(std::make_pair<>("dwindle", &m_cDwindleLayout));
-    m_vLayouts.emplace_back(std::make_pair<>("master", &m_cMasterLayout));
+    m_layouts.emplace_back(std::make_pair<>("dwindle", &m_dwindleLayout));
+    m_layouts.emplace_back(std::make_pair<>("master", &m_masterLayout));
 }
 
 IHyprLayout* CLayoutManager::getCurrentLayout() {
-    return m_vLayouts[m_iCurrentLayoutID].second;
+    return m_layouts[m_currentLayoutID].second;
 }
 
 void CLayoutManager::switchToLayout(std::string layout) {
-    for (size_t i = 0; i < m_vLayouts.size(); ++i) {
-        if (m_vLayouts[i].first == layout) {
-            if (i == (size_t)m_iCurrentLayoutID)
+    for (size_t i = 0; i < m_layouts.size(); ++i) {
+        if (m_layouts[i].first == layout) {
+            if (i == (size_t)m_currentLayoutID)
                 return;
 
             getCurrentLayout()->onDisable();
-            m_iCurrentLayoutID = i;
+            m_currentLayoutID = i;
             getCurrentLayout()->onEnable();
             return;
         }
@@ -26,10 +26,10 @@ void CLayoutManager::switchToLayout(std::string layout) {
 }
 
 bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
-    if (std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_vLayouts.end())
+    if (std::find_if(m_layouts.begin(), m_layouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_layouts.end())
         return false;
 
-    m_vLayouts.emplace_back(std::make_pair<>(name, layout));
+    m_layouts.emplace_back(std::make_pair<>(name, layout));
 
     Debug::log(LOG, "Added new layout {} at {:x}", name, (uintptr_t)layout);
 
@@ -37,24 +37,24 @@ bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
 }
 
 bool CLayoutManager::removeLayout(IHyprLayout* layout) {
-    const auto IT = std::find_if(m_vLayouts.begin(), m_vLayouts.end(), [&](const auto& other) { return other.second == layout; });
+    const auto IT = std::find_if(m_layouts.begin(), m_layouts.end(), [&](const auto& other) { return other.second == layout; });
 
-    if (IT == m_vLayouts.end() || IT->first == "dwindle" || IT->first == "master")
+    if (IT == m_layouts.end() || IT->first == "dwindle" || IT->first == "master")
         return false;
 
-    if (m_iCurrentLayoutID == IT - m_vLayouts.begin())
+    if (m_currentLayoutID == IT - m_layouts.begin())
         switchToLayout("dwindle");
 
     Debug::log(LOG, "Removed a layout {} at {:x}", IT->first, (uintptr_t)layout);
 
-    std::erase(m_vLayouts, *IT);
+    std::erase(m_layouts, *IT);
 
     return true;
 }
 
 std::vector<std::string> CLayoutManager::getAllLayoutNames() {
-    std::vector<std::string> results(m_vLayouts.size());
-    for (size_t i = 0; i < m_vLayouts.size(); ++i)
-        results[i] = m_vLayouts[i].first;
+    std::vector<std::string> results(m_layouts.size());
+    for (size_t i = 0; i < m_layouts.size(); ++i)
+        results[i] = m_layouts[i].first;
     return results;
 }

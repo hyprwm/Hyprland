@@ -100,50 +100,52 @@ class CKeybindManager {
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
     std::string                                                                  getCurrentSubmap();
 
-    std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_mDispatchers;
+    std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_dispatchers;
 
-    bool                                                                         m_bGroupsLocked = false;
+    bool                                                                         m_groupsLocked = false;
 
-    std::vector<SP<SKeybind>>                                                    m_vKeybinds;
+    std::vector<SP<SKeybind>>                                                    m_keybinds;
 
     //since we cant find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
     //and cache it in this map to make sendshortcut calls faster
     //we also store the keyboard pointer (in the string) to differentiate between different keyboard (layouts)
-    std::unordered_map<std::string, xkb_keycode_t> m_mKeyToCodeCache;
+    std::unordered_map<std::string, xkb_keycode_t> m_keyToCodeCache;
 
     static SDispatchResult                         changeMouseBindMode(const eMouseBindMode mode);
 
   private:
-    std::vector<SPressedKeyWithMods> m_dPressedKeys;
+    std::vector<SPressedKeyWithMods> m_pressedKeys;
 
-    inline static std::string        m_szCurrentSelectedSubmap = "";
+    inline static std::string        m_currentSelectedSubmap = "";
 
-    std::vector<WP<SKeybind>>        m_vActiveKeybinds;
-    WP<SKeybind>                     m_pLastLongPressKeybind;
-    SP<CEventLoopTimer>              m_pLongPressTimer, m_pRepeatKeyTimer;
+    std::vector<WP<SKeybind>>        m_activeKeybinds;
+    WP<SKeybind>                     m_lastLongPressKeybind;
 
-    uint32_t                         m_uTimeLastMs    = 0;
-    uint32_t                         m_uLastCode      = 0;
-    uint32_t                         m_uLastMouseCode = 0;
+    SP<CEventLoopTimer>              m_longPressTimer;
+    SP<CEventLoopTimer>              m_repeatKeyTimer;
 
-    std::vector<WP<SKeybind>>        m_vPressedSpecialBinds;
+    uint32_t                         m_timeLastMs    = 0;
+    uint32_t                         m_lastCode      = 0;
+    uint32_t                         m_lastMouseCode = 0;
 
-    int                              m_iPassPressed = -1; // used for pass
+    std::vector<WP<SKeybind>>        m_pressedSpecialBinds;
 
-    CTimer                           m_tScrollTimer;
+    int                              m_passPressed = -1; // used for pass
+
+    CTimer                           m_scrollTimer;
 
     SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
 
-    std::set<xkb_keysym_t>           m_sMkKeys = {};
-    std::set<xkb_keysym_t>           m_sMkMods = {};
+    std::set<xkb_keysym_t>           m_mkKeys = {};
+    std::set<xkb_keysym_t>           m_mkMods = {};
     eMultiKeyCase                    mkBindMatches(const SP<SKeybind>);
     eMultiKeyCase                    mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
 
     bool                             handleInternalKeybinds(xkb_keysym_t);
     bool                             handleVT(xkb_keysym_t);
 
-    xkb_state*                       m_pXKBTranslationState = nullptr;
+    xkb_state*                       m_xkbTranslationState = nullptr;
 
     void                             updateXKBTranslationState();
     bool                             ensureMouseBindState();

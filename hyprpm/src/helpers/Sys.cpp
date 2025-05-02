@@ -1,59 +1,86 @@
 #include "Sys.hpp"
 #include "Die.hpp"
 #include "StringUtils.hpp"
+
 #include <pwd.h>
 #include <unistd.h>
 #include <print>
 #include <filesystem>
+#include <optional>
 
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/string/VarList.hpp>
+
 using namespace Hyprutils::OS;
 using namespace Hyprutils::String;
 
-static const std::vector<const char*> SUPERUSER_BINARIES = {
+inline constexpr std::array<std::string_view, 3> SUPERUSER_BINARIES = {
     "sudo",
     "doas",
     "run0",
 };
 
+static std::string fetchSuperuserBins() {
+    std::ostringstream oss;
+    oss << "Failed to find a superuser binary. Supported: ";
+
+    auto it = SUPERUSER_BINARIES.begin();
+    if (it != SUPERUSER_BINARIES.end()) {
+        oss << *it++;
+        for (; it != SUPERUSER_BINARIES.end(); ++it)
+            oss << ", " << *it;
+    }
+
+    return oss.str();
+}
+
 static bool executableExistsInPath(const std::string& exe) {
-    if (!getenv("PATH"))
+    const char* pathEnv = std::getenv("PATH");
+    if (!pathEnv)
         return false;
 
-    static CVarList paths(getenv("PATH"), 0, ':', true);
+    CVarList        paths(pathEnv, 0, ':', true);
+    std::error_code ec;
 
-    for (auto& p : paths) {
-        std::string     path = p + std::string{"/"} + exe;
-        std::error_code ec;
-        if (!std::filesystem::exists(path, ec) || ec)
+    for (const auto& p : paths) {
+        std::filesystem::path candidate = std::filesystem::path(p) / exe;
+        if (!std::filesystem::exists(candidate, ec) || ec)
             continue;
-
-        if (!std::filesystem::is_regular_file(path, ec) || ec)
+        if (!std::filesystem::is_regular_file(candidate, ec) || ec)
             continue;
-
-        auto stat = std::filesystem::status(path, ec);
+        auto perms = std::filesystem::status(candidate, ec).permissions();
         if (ec)
             continue;
-
-        auto perms = stat.permissions();
-
-        return std::filesystem::perms::none != (perms & std::filesystem::perms::others_exec);
+        if ((perms & std::filesystem::perms::others_exec) != std::filesystem::perms::none)
+            return true;
     }
 
     return false;
 }
 
-static std::pair<std::string, int> execAndGet(std::string cmd, bool noRedirect = false) {
+static std::optional<std::pair<std::string, int>> execAndGet(std::string_view cmd, bool noRedirect = false) {
+    std::string command = std::string{cmd};
     if (!noRedirect)
-        cmd += " 2>&1";
+        command += " 2>&1";
 
-    CProcess proc("/bin/sh", {"-c", cmd});
-
+    CProcess proc("/bin/sh", {"-c", command});
     if (!proc.runSync())
-        return {"error", 1};
+        // optional handles nullopt gracefully
+        return std::nullopt;
 
-    return {proc.stdOut(), proc.exitCode()};
+    return {{proc.stdOut(), proc.exitCode()}};
+}
+
+static std::string shellEscape(const std::string& input) {
+    std::string escaped = "'";
+    for (char c : input) {
+        if (c == '\'')
+            escaped += "'\\''";
+        else
+            escaped += c;
+    }
+    escaped += "'";
+    return escaped;
 }
 
 int NSys::getUID() {
@@ -69,23 +96,24 @@ int NSys::getEUID() {
 }
 
 bool NSys::isSuperuser() {
-    return getuid() != geteuid() || !geteuid();
+    return getuid() != geteuid() || geteuid() == 0;
 }
 
 std::string NSys::runAsSuperuser(const std::string& cmd) {
-    for (const auto& SB : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(SB))
+    const std::string escapedCmd = shellEscape(cmd);
+
+    for (const auto& bin : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(std::string{bin}))
             continue;
 
-        const auto RESULT = execAndGet(std::string{SB} + " /bin/sh -c \"" + cmd + "\"", true);
-
-        if (RESULT.second != 0)
+        const auto result = execAndGet(std::string{bin} + " /bin/sh -c " + escapedCmd, true);
+        if (!result.has_value() || result->second != 0)
             Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
 
-        return RESULT.first;
+        return result->first;
     }
 
-    Debug::die("Failed to find a superuser binary. Supported: sudo, doas, run0.");
+    Debug::die("{} {}", "Failed to find a superuser binary. Supported:", fetchSuperuserBins());
     return "";
 }
 
@@ -96,15 +124,15 @@ void NSys::cacheSudo() {
 }
 
 void NSys::dropSudo() {
-    for (const auto& SB : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(SB))
+    for (const auto& bin : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(std::string{bin}))
             continue;
 
-        if (SB == std::string_view{"sudo"})
+        if (bin == "sudo") {
             execAndGet("sudo -k");
-        else
-            std::println("{}", infoString("Don't know how to drop timestamp for {}, ignoring.", SB));
-
-        return;
+        } else {
+            // note the superuser binary that is being dropped
+            std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", bin));
+        }
     }
 }

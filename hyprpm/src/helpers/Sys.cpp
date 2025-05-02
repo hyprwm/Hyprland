@@ -22,9 +22,7 @@ inline constexpr std::array<std::string_view, 3> SUPERUSER_BINARIES = {
 
 static std::string fetchSuperuserBins() {
     std::ostringstream oss;
-    oss << "Failed to find a superuser binary. Supported: ";
-
-    auto it = SUPERUSER_BINARIES.begin();
+    auto               it = SUPERUSER_BINARIES.begin();
     if (it != SUPERUSER_BINARIES.end()) {
         oss << *it++;
         for (; it != SUPERUSER_BINARIES.end(); ++it)
@@ -113,7 +111,7 @@ std::string NSys::runAsSuperuser(const std::string& cmd) {
         return result->first;
     }
 
-    Debug::die("{} {}", "Failed to find a superuser binary. Supported:", fetchSuperuserBins());
+    Debug::die("{} {}", "Failed to find a superuser binary. Supported: ", fetchSuperuserBins());
     return "";
 }
 

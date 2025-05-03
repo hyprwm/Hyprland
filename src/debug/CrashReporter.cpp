@@ -130,11 +130,11 @@ void NCrashReporter::createAndSaveCrash(int sig) {
         for (size_t i = 0; i < count; i++) {
             auto p = plugins[i];
             finalCrashReport += '\t';
-            finalCrashReport += p->name;
+            finalCrashReport += p->m_name;
             finalCrashReport += " (";
-            finalCrashReport += p->author;
+            finalCrashReport += p->m_author;
             finalCrashReport += ") ";
-            finalCrashReport += p->version;
+            finalCrashReport += p->m_version;
             finalCrashReport += '\n';
         }
 

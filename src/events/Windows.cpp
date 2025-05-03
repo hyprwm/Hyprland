@@ -337,19 +337,28 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_pinned && !PWINDOW->m_isFloating)
         PWINDOW->m_pinned = false;
 
-    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
+    CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
-        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].starts_with("silent"))
+        WORKSPACEID requestedWorkspaceID;
+        std::string requestedWorkspaceName;
+        if (WORKSPACEARGS.contains("silent"))
             workspaceSilent = true;
 
-        const auto& [REQUESTEDWORKSPACEID, requestedWorkspaceName] = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
+        if (WORKSPACEARGS.contains("empty") && PWORKSPACE->getWindows() <= 1) {
+            requestedWorkspaceID   = PWORKSPACE->m_id;
+            requestedWorkspaceName = PWORKSPACE->m_name;
+        } else {
+            auto result            = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
+            requestedWorkspaceID   = result.id;
+            requestedWorkspaceName = result.name;
+        }
 
-        if (REQUESTEDWORKSPACEID != WORKSPACE_INVALID) {
-            auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
+        if (requestedWorkspaceID != WORKSPACE_INVALID) {
+            auto pWorkspace = g_pCompositor->getWorkspaceByID(requestedWorkspaceID);
 
             if (!pWorkspace)
-                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->monitorID(), requestedWorkspaceName, false);
+                pWorkspace = g_pCompositor->createNewWorkspace(requestedWorkspaceID, PWINDOW->monitorID(), requestedWorkspaceName, false);
 
             PWORKSPACE = pWorkspace;
 
@@ -362,7 +371,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (!workspaceSilent) {
                 if (pWorkspace->m_isSpecialWorkspace)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_noInitialFocus)
+                else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !PWINDOW->m_noInitialFocus)
                     g_pKeybindManager->m_dispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_lastMonitor.lock();

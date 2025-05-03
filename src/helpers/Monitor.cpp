@@ -1244,7 +1244,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_realPosition->goal();
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
-                               PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
+                                 PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
                     // not on any monitor, center
                     pos = middle() / 2.f - w->m_realSize->goal() / 2.f;
                 } else

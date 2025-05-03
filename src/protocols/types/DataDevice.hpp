@@ -42,10 +42,10 @@ class IDataSource {
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
   private:
-    bool wasUsed = false;
+    bool m_wasUsed = false;
 };
 
 class IDataOffer {

@@ -49,11 +49,11 @@ CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDa
     resource->setData(this);
 
     resource->setDestroy([this](CZwlrDataControlSourceV1* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::dataWlr->destroyResource(this);
     });
     resource->setOnDestroy([this](CZwlrDataControlSourceV1* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::dataWlr->destroyResource(this);
     });
 
@@ -61,7 +61,7 @@ CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDa
 }
 
 CWLRDataSource::~CWLRDataSource() {
-    events.destroy.emit();
+    m_events.destroy.emit();
 }
 
 SP<CWLRDataSource> CWLRDataSource::fromResource(wl_resource* res) {

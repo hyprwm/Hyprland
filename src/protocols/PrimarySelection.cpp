@@ -50,11 +50,11 @@ CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1
     resource->setData(this);
 
     resource->setDestroy([this](CZwpPrimarySelectionSourceV1* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::primarySelection->destroyResource(this);
     });
     resource->setOnDestroy([this](CZwpPrimarySelectionSourceV1* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::primarySelection->destroyResource(this);
     });
 
@@ -62,7 +62,7 @@ CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1
 }
 
 CPrimarySelectionSource::~CPrimarySelectionSource() {
-    events.destroy.emit();
+    m_events.destroy.emit();
 }
 
 SP<CPrimarySelectionSource> CPrimarySelectionSource::fromResource(wl_resource* res) {

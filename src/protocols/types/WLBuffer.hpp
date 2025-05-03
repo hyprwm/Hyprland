@@ -18,14 +18,14 @@ class CWLBufferResource {
     void                         sendRelease();
     wl_resource*                 getResource();
 
-    WP<IHLBuffer>                buffer;
+    WP<IHLBuffer>                m_buffer;
 
-    WP<CWLBufferResource>        self;
+    WP<CWLBufferResource>        m_self;
 
   private:
     CWLBufferResource(WP<CWlBuffer> resource_);
 
-    SP<CWlBuffer> resource;
+    SP<CWlBuffer> m_resource;
 
     friend class IHLBuffer;
 };

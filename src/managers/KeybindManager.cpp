@@ -363,7 +363,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
         g_pCompositor->focusWindow(PNEWWINDOW);
         PNEWWINDOW->warpCursor();
 
-        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE == 1) {
             g_pInputManager->m_forcedFocus = PNEWWINDOW;
             g_pInputManager->simulateMouseMovement();
             g_pInputManager->m_forcedFocus.reset();
@@ -410,7 +410,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
-        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE == 1) {
             g_pInputManager->m_forcedFocus = PWINDOWTOCHANGETO;
             g_pInputManager->simulateMouseMovement();
             g_pInputManager->m_forcedFocus.reset();

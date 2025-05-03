@@ -503,7 +503,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:follow_mouse",
-        .description = "Specify if and how cursor movement should affect window focus. See the note below. [0/1/2/3]",
+        .description = "Specify if and how cursor movement should affect window focus. See the note below. [0/1/2]",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 3},
     },
@@ -525,13 +525,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
-        .value       = "input:float_switch_override_focus",
-        .description = "If enabled (1 or 2), focus will change to the window under the cursor when changing from tiled-to-floating and vice versa. If 2, focus will also follow "
-                       "mouse on float-to-float switches.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:special_fallthrough",

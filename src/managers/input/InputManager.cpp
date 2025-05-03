@@ -180,7 +180,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Hyprlang::FLOAT>("input:follow_mouse_threshold");
     static auto PMOUSEREFOCUS         = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
     static auto PFOLLOWONDND          = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
-    static auto PFLOATBEHAVIOR        = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON        = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
     static auto PRESIZEONBORDER       = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PRESIZECURSORICON     = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
@@ -533,13 +532,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         }
 
         if (FOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow.lock() &&
-                ((pFoundWindow->m_isFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_lastWindow->m_isFloating != pFoundWindow->m_isFloating && *PFLOATBEHAVIOR != 0))) {
-                // enter if change floating style
-                if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
+            if (pFoundWindow != g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow.lock()) {
+                // focus window if requested by direct action
+                if (FOLLOWMOUSE != 2 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
-            } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3)
+            } else if (FOLLOWMOUSE == 2)
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
             if (pFoundWindow == g_pCompositor->m_lastWindow)
@@ -554,7 +552,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             m_lastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_lastMouseFocus.lock() != pFoundWindow)) || refocus)) {
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 2 && (*PMOUSEREFOCUS || m_lastMouseFocus.lock() != pFoundWindow)) || refocus)) {
                 if (m_lastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_lastWindow.lock() != pFoundWindow || g_pCompositor->m_lastFocus != foundSurface || refocus) {
                     m_lastMouseFocus = pFoundWindow;
 
@@ -583,7 +581,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             unsetCursorImage();
         }
 
-        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
+        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 2 &&
             (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
@@ -758,7 +756,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     switch (e.state) {
         case WL_POINTER_BUTTON_STATE_PRESSED: {
-            if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
+            if (*PFOLLOWMOUSE == 2) // don't refocus on full loose
                 break;
 
             if ((g_pSeatManager->m_mouse.expired() || !isConstrained()) /* No constraints */

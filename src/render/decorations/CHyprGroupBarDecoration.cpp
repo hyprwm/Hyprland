@@ -530,7 +530,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     if (pWindow != m_pWindow)
         pWindow->setGroupCurrent(pWindow);
 
-    if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
+    if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 2)
         g_pCompositor->focusWindow(pWindow);
 
     if (pWindow->m_isFloating)

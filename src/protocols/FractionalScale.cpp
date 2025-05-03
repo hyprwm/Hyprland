@@ -47,7 +47,7 @@ void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1*
     if (std::ranges::find_if(m_mSurfaceScales, [surface](const auto& e) { return e.first == surface; }) == m_mSurfaceScales.end())
         m_mSurfaceScales.emplace(surface, 1.F);
 
-    if (surface->mapped)
+    if (surface->m_mapped)
         PADDON->setScale(m_mSurfaceScales.at(surface));
 
     // clean old

@@ -120,7 +120,7 @@ CProtocolManager::CProtocolManager() {
 
         auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->m_name), M->m_self.lock());
         PROTO::outputs.emplace(M->m_name, ref);
-        ref->self = ref;
+        ref->m_self = ref;
 
         m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });

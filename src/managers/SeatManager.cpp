@@ -14,11 +14,11 @@
 #include <ranges>
 
 CSeatManager::CSeatManager() {
-    m_listeners.newSeatResource = PROTO::seat->events.newSeatResource.registerListener([this](std::any res) { onNewSeatResource(std::any_cast<SP<CWLSeatResource>>(res)); });
+    m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.registerListener([this](std::any res) { onNewSeatResource(std::any_cast<SP<CWLSeatResource>>(res)); });
 }
 
 CSeatManager::SSeatResourceContainer::SSeatResourceContainer(SP<CWLSeatResource> res) : resource(res) {
-    listeners.destroy = res->events.destroy.registerListener(
+    listeners.destroy = res->m_events.destroy.registerListener(
         [this](std::any data) { std::erase_if(g_pSeatManager->m_seatResources, [this](const auto& e) { return e->resource.expired() || e->resource == resource; }); });
 }
 
@@ -119,7 +119,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
             if (s->resource->client() != client)
                 continue;
 
-            for (auto const& k : s->resource->keyboards) {
+            for (auto const& k : s->resource->m_keyboards) {
                 if (!k)
                     continue;
 
@@ -142,7 +142,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
             continue;
 
         m_state.keyboardFocusResource = r->resource;
-        for (auto const& k : r->resource->keyboards) {
+        for (auto const& k : r->resource->m_keyboards) {
             if (!k)
                 continue;
 
@@ -151,7 +151,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         }
     }
 
-    m_listeners.keyboardSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
+    m_listeners.keyboardSurfaceDestroy = surf->m_events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
 
     m_events.keyboardFocusChange.emit();
 }
@@ -164,7 +164,7 @@ void CSeatManager::sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_ke
         if (s->resource->client() != m_state.keyboardFocusResource->client())
             continue;
 
-        for (auto const& k : s->resource->keyboards) {
+        for (auto const& k : s->resource->m_keyboards) {
             if (!k)
                 continue;
 
@@ -181,7 +181,7 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
         if (s->resource->client() != m_state.keyboardFocusResource->client())
             continue;
 
-        for (auto const& k : s->resource->keyboards) {
+        for (auto const& k : s->resource->m_keyboards) {
             if (!k)
                 continue;
 
@@ -216,7 +216,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
             if (s->resource->client() != client)
                 continue;
 
-            for (auto const& p : s->resource->pointers) {
+            for (auto const& p : s->resource->m_pointers) {
                 if (!p)
                     continue;
 
@@ -245,7 +245,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
             continue;
 
         m_state.pointerFocusResource = r->resource;
-        for (auto const& p : r->resource->pointers) {
+        for (auto const& p : r->resource->m_pointers) {
             if (!p)
                 continue;
 
@@ -258,7 +258,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     sendPointerFrame();
 
-    m_listeners.pointerSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
+    m_listeners.pointerSurfaceDestroy = surf->m_events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
 
     m_events.pointerFocusChange.emit();
     m_events.dndPointerFocusChange.emit();
@@ -272,7 +272,7 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
         if (s->resource->client() != m_state.pointerFocusResource->client())
             continue;
 
-        for (auto const& p : s->resource->pointers) {
+        for (auto const& p : s->resource->m_pointers) {
             if (!p)
                 continue;
 
@@ -291,7 +291,7 @@ void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_b
         if (s->resource->client() != m_state.pointerFocusResource->client())
             continue;
 
-        for (auto const& p : s->resource->pointers) {
+        for (auto const& p : s->resource->m_pointers) {
             if (!p)
                 continue;
 
@@ -315,7 +315,7 @@ void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
         if (s->resource->client() != pResource->client())
             continue;
 
-        for (auto const& p : s->resource->pointers) {
+        for (auto const& p : s->resource->m_pointers) {
             if (!p)
                 continue;
 
@@ -333,7 +333,7 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
         if (s->resource->client() != m_state.pointerFocusResource->client())
             continue;
 
-        for (auto const& p : s->resource->pointers) {
+        for (auto const& p : s->resource->m_pointers) {
             if (!p)
                 continue;
 
@@ -364,7 +364,7 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
             continue;
 
         m_state.touchFocusResource = r->resource;
-        for (auto const& t : r->resource->touches) {
+        for (auto const& t : r->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -372,7 +372,7 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
         }
     }
 
-    m_listeners.touchSurfaceDestroy = surf->events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
+    m_listeners.touchSurfaceDestroy = surf->m_events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
 
     m_touchLocks++;
 
@@ -390,7 +390,7 @@ void CSeatManager::sendTouchUp(uint32_t timeMs, int32_t id) {
             continue;
 
         m_state.touchFocusResource = r->resource;
-        for (auto const& t : r->resource->touches) {
+        for (auto const& t : r->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -412,7 +412,7 @@ void CSeatManager::sendTouchMotion(uint32_t timeMs, int32_t id, const Vector2D& 
         if (s->resource->client() != m_state.touchFocusResource->client())
             continue;
 
-        for (auto const& t : s->resource->touches) {
+        for (auto const& t : s->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -429,7 +429,7 @@ void CSeatManager::sendTouchFrame() {
         if (s->resource->client() != m_state.touchFocusResource->client())
             continue;
 
-        for (auto const& t : s->resource->touches) {
+        for (auto const& t : s->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -446,7 +446,7 @@ void CSeatManager::sendTouchCancel() {
         if (s->resource->client() != m_state.touchFocusResource->client())
             continue;
 
-        for (auto const& t : s->resource->touches) {
+        for (auto const& t : s->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -463,7 +463,7 @@ void CSeatManager::sendTouchShape(int32_t id, const Vector2D& shape) {
         if (s->resource->client() != m_state.touchFocusResource->client())
             continue;
 
-        for (auto const& t : s->resource->touches) {
+        for (auto const& t : s->resource->m_touches) {
             if (!t)
                 continue;
 
@@ -480,7 +480,7 @@ void CSeatManager::sendTouchOrientation(int32_t id, double angle) {
         if (s->resource->client() != m_state.touchFocusResource->client())
             continue;
 
-        for (auto const& t : s->resource->touches) {
+        for (auto const& t : s->resource->m_touches) {
             if (!t)
                 continue;
 

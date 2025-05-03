@@ -135,7 +135,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     m_listeners.surfaceUnmap.reset();
     m_listeners.surfaceDestroy.reset();
 
-    m_listeners.surfaceUnmap = pSurface->events.unmap.registerListener([this](std::any d) {
+    m_listeners.surfaceUnmap = pSurface->m_events.unmap.registerListener([this](std::any d) {
         Debug::log(LOG, "Unmap TI owner1");
 
         if (m_enterLocks)
@@ -155,7 +155,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
             g_pInputManager->m_relay.deactivateIME(this);
     });
 
-    m_listeners.surfaceDestroy = pSurface->events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = pSurface->m_events.destroy.registerListener([this](std::any d) {
         Debug::log(LOG, "Destroy TI owner1");
 
         if (m_enterLocks)
@@ -181,7 +181,7 @@ bool CTextInput::isV3() {
 }
 
 void CTextInput::enter(SP<CWLSurfaceResource> pSurface) {
-    if (!pSurface || !pSurface->mapped)
+    if (!pSurface || !pSurface->m_mapped)
         return;
 
     if (pSurface == focusedSurface())

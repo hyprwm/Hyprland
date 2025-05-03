@@ -33,18 +33,18 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         PROTO::layerShell->destroyResource(this);
     });
 
-    listeners.destroySurface = surf_->events.destroy.registerListener([this](std::any d) {
+    listeners.destroySurface = surf_->m_events.destroy.registerListener([this](std::any d) {
         events.destroy.emit();
         PROTO::layerShell->destroyResource(this);
     });
 
-    listeners.unmapSurface = surf_->events.unmap.registerListener([this](std::any d) { events.unmap.emit(); });
+    listeners.unmapSurface = surf_->m_events.unmap.registerListener([this](std::any d) { events.unmap.emit(); });
 
-    listeners.commitSurface = surf_->events.commit.registerListener([this](std::any d) {
+    listeners.commitSurface = surf_->m_events.commit.registerListener([this](std::any d) {
         current           = pending;
         pending.committed = 0;
 
-        bool attachedBuffer = surface->current.texture;
+        bool attachedBuffer = surface->m_current.texture;
 
         if (attachedBuffer && !configured) {
             surface->error(-1, "layerSurface was not configured, but a buffer was attached");
@@ -220,7 +220,7 @@ void CLayerShellProtocol::destroyResource(CLayerShellResource* surf) {
 
 void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_) {
     const auto CLIENT   = pMgr->client();
-    const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.lock() : nullptr;
+    const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->m_monitor.lock() : nullptr;
     auto       SURF     = CWLSurfaceResource::fromResource(surface);
 
     if UNLIKELY (!SURF) {
@@ -228,7 +228,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
-    if UNLIKELY (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+    if UNLIKELY (SURF->m_role->role() != SURFACE_ROLE_UNASSIGNED) {
         pMgr->error(-1, "Surface already has a different role");
         return;
     }
@@ -246,7 +246,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
-    SURF->role = makeShared<CLayerShellRole>(RESOURCE);
+    SURF->m_role = makeShared<CLayerShellRole>(RESOURCE);
     g_pCompositor->m_layers.emplace_back(CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());

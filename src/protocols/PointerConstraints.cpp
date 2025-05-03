@@ -22,7 +22,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         return;
 
     if (region_)
-        region.set(CWLRegionResource::fromResource(region_)->region);
+        region.set(CWLRegionResource::fromResource(region_)->m_region);
 
     resource_->setSetRegion([this](CZwpLockedPointerV1* p, wl_resource* region) { onSetRegion(region); });
     resource_->setSetCursorPositionHint([this](CZwpLockedPointerV1* p, wl_fixed_t x, wl_fixed_t y) {
@@ -61,7 +61,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<C
         return;
 
     if (region_)
-        region.set(CWLRegionResource::fromResource(region_)->region);
+        region.set(CWLRegionResource::fromResource(region_)->m_region);
 
     resource_->setSetRegion([this](CZwpConfinedPointerV1* p, wl_resource* region) { onSetRegion(region); });
 
@@ -151,7 +151,7 @@ void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
         return;
     }
 
-    const auto REGION = region.set(CWLRegionResource::fromResource(wlRegion)->region);
+    const auto REGION = region.set(CWLRegionResource::fromResource(wlRegion)->m_region);
 
     region.set(REGION);
     positionHint = region.closestPoint(positionHint);

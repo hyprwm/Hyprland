@@ -4,58 +4,58 @@
 #include "alpha-modifier-v1.hpp"
 #include "core/Compositor.hpp"
 
-CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_pSurface(surface) {
+CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_surface(surface) {
     setResource(std::move(resource));
 }
 
 bool CAlphaModifier::good() {
-    return m_pResource->resource();
+    return m_resource->resource();
 }
 
 void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
-    m_pResource = std::move(resource);
+    m_resource = std::move(resource);
 
-    if UNLIKELY (!m_pResource->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    m_pResource->setDestroy([this](CWpAlphaModifierSurfaceV1* resource) { destroy(); });
-    m_pResource->setOnDestroy([this](CWpAlphaModifierSurfaceV1* resource) { destroy(); });
+    m_resource->setDestroy([this](CWpAlphaModifierSurfaceV1* resource) { destroy(); });
+    m_resource->setOnDestroy([this](CWpAlphaModifierSurfaceV1* resource) { destroy(); });
 
-    m_pResource->setSetMultiplier([this](CWpAlphaModifierSurfaceV1* resource, uint32_t alpha) {
-        if (!m_pSurface) {
-            m_pResource->error(WP_ALPHA_MODIFIER_SURFACE_V1_ERROR_NO_SURFACE, "set_multiplier called for destroyed wl_surface");
+    m_resource->setSetMultiplier([this](CWpAlphaModifierSurfaceV1* resource, uint32_t alpha) {
+        if (!m_surface) {
+            m_resource->error(WP_ALPHA_MODIFIER_SURFACE_V1_ERROR_NO_SURFACE, "set_multiplier called for destroyed wl_surface");
             return;
         }
 
-        m_fAlpha = alpha / (float)UINT32_MAX;
+        m_alpha = alpha / (float)UINT32_MAX;
     });
 
-    listeners.surfaceCommitted = m_pSurface->m_events.commit.registerListener([this](std::any data) {
-        auto surface = CWLSurface::fromResource(m_pSurface.lock());
+    m_listeners.surfaceCommitted = m_surface->m_events.commit.registerListener([this](std::any data) {
+        auto surface = CWLSurface::fromResource(m_surface.lock());
 
-        if (surface && surface->m_alphaModifier != m_fAlpha) {
-            surface->m_alphaModifier = m_fAlpha;
+        if (surface && surface->m_alphaModifier != m_alpha) {
+            surface->m_alphaModifier = m_alpha;
             auto box                 = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
                 g_pHyprRenderer->damageBox(*box);
 
-            if (!m_pResource)
+            if (!m_resource)
                 PROTO::alphaModifier->destroyAlphaModifier(this);
         }
     });
 
-    listeners.surfaceDestroyed = m_pSurface->m_events.destroy.registerListener([this](std::any data) {
-        if (!m_pResource)
+    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.registerListener([this](std::any data) {
+        if (!m_resource)
             PROTO::alphaModifier->destroyAlphaModifier(this);
     });
 }
 
 void CAlphaModifier::destroy() {
-    m_pResource.reset();
-    m_fAlpha = 1.F;
+    m_resource.reset();
+    m_alpha = 1.F;
 
-    if (!m_pSurface)
+    if (!m_surface)
         PROTO::alphaModifier->destroyAlphaModifier(this);
 }
 
@@ -64,7 +64,7 @@ CAlphaModifierProtocol::CAlphaModifierProtocol(const wl_interface* iface, const 
 }
 
 void CAlphaModifierProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CWpAlphaModifierV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CWpAlphaModifierV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CWpAlphaModifierV1* manager) { destroyManager(manager); });
 
     RESOURCE->setDestroy([this](CWpAlphaModifierV1* manager) { destroyManager(manager); });
@@ -72,19 +72,19 @@ void CAlphaModifierProtocol::bindManager(wl_client* client, void* data, uint32_t
 }
 
 void CAlphaModifierProtocol::destroyManager(CWpAlphaModifierV1* manager) {
-    std::erase_if(m_vManagers, [&](const auto& p) { return p.get() == manager; });
+    std::erase_if(m_managers, [&](const auto& p) { return p.get() == manager; });
 }
 
 void CAlphaModifierProtocol::destroyAlphaModifier(CAlphaModifier* modifier) {
-    std::erase_if(m_mAlphaModifiers, [&](const auto& entry) { return entry.second.get() == modifier; });
+    std::erase_if(m_alphaModifiers, [&](const auto& entry) { return entry.second.get() == modifier; });
 }
 
 void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id, SP<CWLSurfaceResource> surface) {
     CAlphaModifier* alphaModifier = nullptr;
-    auto            iter          = std::find_if(m_mAlphaModifiers.begin(), m_mAlphaModifiers.end(), [&](const auto& entry) { return entry.second->m_pSurface == surface; });
+    auto            iter          = std::find_if(m_alphaModifiers.begin(), m_alphaModifiers.end(), [&](const auto& entry) { return entry.second->m_surface == surface; });
 
-    if (iter != m_mAlphaModifiers.end()) {
-        if (iter->second->m_pResource) {
+    if (iter != m_alphaModifiers.end()) {
+        if (iter->second->m_resource) {
             LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
             return;
@@ -93,12 +93,12 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
             alphaModifier = iter->second.get();
         }
     } else {
-        alphaModifier = m_mAlphaModifiers.emplace(surface, makeUnique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
+        alphaModifier = m_alphaModifiers.emplace(surface, makeUnique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
                             .first->second.get();
     }
 
     if UNLIKELY (!alphaModifier->good()) {
         manager->noMemory();
-        m_mAlphaModifiers.erase(surface);
+        m_alphaModifiers.erase(surface);
     }
 }

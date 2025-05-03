@@ -21,7 +21,7 @@ class CInputMethodV2 {
         CSignal onCommit;
         CSignal destroy;
         CSignal newPopup;
-    } events;
+    } m_events;
 
     struct SState {
         void reset();
@@ -43,7 +43,8 @@ class CInputMethodV2 {
         } deleteSurrounding;
     };
 
-    SState     pending, current;
+    SState     m_pending;
+    SState     m_current;
 
     bool       good();
     void       activate();
@@ -64,15 +65,15 @@ class CInputMethodV2 {
     wl_client* grabClient();
 
   private:
-    SP<CZwpInputMethodV2>                       resource;
-    std::vector<WP<CInputMethodKeyboardGrabV2>> grabs;
-    std::vector<WP<CInputMethodPopupV2>>        popups;
+    SP<CZwpInputMethodV2>                       m_resource;
+    std::vector<WP<CInputMethodKeyboardGrabV2>> m_grabs;
+    std::vector<WP<CInputMethodPopupV2>>        m_popups;
 
-    WP<CInputMethodV2>                          self;
+    WP<CInputMethodV2>                          m_self;
 
-    bool                                        active = false;
+    bool                                        m_active = false;
 
-    CBox                                        inputRectangle;
+    CBox                                        m_inputRectangle;
 
     friend class CInputMethodPopupV2;
     friend class CInputMethodKeyboardGrabV2;
@@ -93,10 +94,10 @@ class CInputMethodKeyboardGrabV2 {
     void               sendKeyboardData(SP<IKeyboard> keyboard);
 
   private:
-    SP<CZwpInputMethodKeyboardGrabV2> resource;
-    WP<CInputMethodV2>                owner;
+    SP<CZwpInputMethodKeyboardGrabV2> m_resource;
+    WP<CInputMethodV2>                m_owner;
 
-    WP<IKeyboard>                     pLastKeyboard;
+    WP<IKeyboard>                     m_lastKeyboard;
 };
 
 class CInputMethodPopupV2 {
@@ -113,19 +114,19 @@ class CInputMethodPopupV2 {
         CSignal unmap;
         CSignal commit;
         CSignal destroy;
-    } events;
+    } m_events;
 
-    bool mapped = false;
+    bool m_mapped = false;
 
   private:
-    SP<CZwpInputPopupSurfaceV2> resource;
-    WP<CInputMethodV2>          owner;
-    WP<CWLSurfaceResource>      pSurface;
+    SP<CZwpInputPopupSurfaceV2> m_resource;
+    WP<CInputMethodV2>          m_owner;
+    WP<CWLSurfaceResource>      m_surface;
 
     struct {
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
-    } listeners;
+    } m_listeners;
 };
 
 class CInputMethodV2Protocol : public IWaylandProtocol {
@@ -136,7 +137,7 @@ class CInputMethodV2Protocol : public IWaylandProtocol {
 
     struct {
         CSignal newIME; // SP<CInputMethodV2>
-    } events;
+    } m_events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
@@ -147,10 +148,10 @@ class CInputMethodV2Protocol : public IWaylandProtocol {
     void onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id);
 
     //
-    std::vector<UP<CZwpInputMethodManagerV2>>   m_vManagers;
-    std::vector<SP<CInputMethodV2>>             m_vIMEs;
-    std::vector<SP<CInputMethodKeyboardGrabV2>> m_vGrabs;
-    std::vector<SP<CInputMethodPopupV2>>        m_vPopups;
+    std::vector<UP<CZwpInputMethodManagerV2>>   m_managers;
+    std::vector<SP<CInputMethodV2>>             m_imes;
+    std::vector<SP<CInputMethodKeyboardGrabV2>> m_grabs;
+    std::vector<SP<CInputMethodPopupV2>>        m_popups;
 
     friend class CInputMethodPopupV2;
     friend class CInputMethodKeyboardGrabV2;

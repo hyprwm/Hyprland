@@ -11,15 +11,15 @@ static int onTimer(SP<CEventLoopTimer> self, void* data) {
 }
 
 CExtIdleNotification::CExtIdleNotification(SP<CExtIdleNotificationV1> resource_, uint32_t timeoutMs_, bool obeyInhibitors_) :
-    resource(resource_), timeoutMs(timeoutMs_), obeyInhibitors(obeyInhibitors_) {
+    m_resource(resource_), m_timeoutMs(timeoutMs_), m_obeyInhibitors(obeyInhibitors_) {
     if UNLIKELY (!resource_->resource())
         return;
 
-    resource->setDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
-    resource->setOnDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
+    m_resource->setDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
+    m_resource->setOnDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
 
-    timer = makeShared<CEventLoopTimer>(std::nullopt, onTimer, this);
-    g_pEventLoopManager->addTimer(timer);
+    m_timer = makeShared<CEventLoopTimer>(std::nullopt, onTimer, this);
+    g_pEventLoopManager->addTimer(m_timer);
 
     updateTimer();
 
@@ -27,36 +27,36 @@ CExtIdleNotification::CExtIdleNotification(SP<CExtIdleNotificationV1> resource_,
 }
 
 CExtIdleNotification::~CExtIdleNotification() {
-    g_pEventLoopManager->removeTimer(timer);
-    timer.reset();
+    g_pEventLoopManager->removeTimer(m_timer);
+    m_timer.reset();
 }
 
 bool CExtIdleNotification::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CExtIdleNotification::updateTimer() {
-    if (PROTO::idle->isInhibited && obeyInhibitors)
-        timer->updateTimeout(std::nullopt);
+    if (PROTO::idle->isInhibited && m_obeyInhibitors)
+        m_timer->updateTimeout(std::nullopt);
     else
-        timer->updateTimeout(std::chrono::milliseconds(timeoutMs));
+        m_timer->updateTimeout(std::chrono::milliseconds(m_timeoutMs));
 }
 
 void CExtIdleNotification::onTimerFired() {
-    resource->sendIdled();
-    idled = true;
+    m_resource->sendIdled();
+    m_idled = true;
 }
 
 void CExtIdleNotification::onActivity() {
-    if (idled)
-        resource->sendResumed();
+    if (m_idled)
+        m_resource->sendResumed();
 
-    idled = false;
+    m_idled = false;
     updateTimer();
 }
 
 bool CExtIdleNotification::inhibitorsAreObeyed() const {
-    return obeyInhibitors;
+    return m_obeyInhibitors;
 }
 
 CIdleNotifyProtocol::CIdleNotifyProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -64,7 +64,7 @@ CIdleNotifyProtocol::CIdleNotifyProtocol(const wl_interface* iface, const int& v
 }
 
 void CIdleNotifyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CExtIdleNotifierV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CExtIdleNotifierV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CExtIdleNotifierV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CExtIdleNotifierV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -75,34 +75,34 @@ void CIdleNotifyProtocol::bindManager(wl_client* client, void* data, uint32_t ve
 }
 
 void CIdleNotifyProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CIdleNotifyProtocol::destroyNotification(CExtIdleNotification* notif) {
-    std::erase_if(m_vNotifications, [&](const auto& other) { return other.get() == notif; });
+    std::erase_if(m_notifications, [&](const auto& other) { return other.get() == notif; });
 }
 
 void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t id, uint32_t timeout, wl_resource* seat, bool obeyInhibitors) {
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_vNotifications.emplace_back(makeShared<CExtIdleNotification>(makeShared<CExtIdleNotificationV1>(CLIENT, pMgr->version(), id), timeout, obeyInhibitors)).get();
+        m_notifications.emplace_back(makeShared<CExtIdleNotification>(makeShared<CExtIdleNotificationV1>(CLIENT, pMgr->version(), id), timeout, obeyInhibitors)).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vNotifications.pop_back();
+        m_notifications.pop_back();
         return;
     }
 }
 
 void CIdleNotifyProtocol::onActivity() {
-    for (auto const& n : m_vNotifications) {
+    for (auto const& n : m_notifications) {
         n->onActivity();
     }
 }
 
 void CIdleNotifyProtocol::setInhibit(bool inhibited) {
     isInhibited = inhibited;
-    for (auto const& n : m_vNotifications) {
+    for (auto const& n : m_notifications) {
         if (n->inhibitorsAreObeyed())
             n->onActivity();
     }

@@ -42,7 +42,7 @@
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {
-    m_listeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+    m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.registerListener([this](std::any data) {
         if (!cursorImageUnlocked())
             return;
 
@@ -65,7 +65,7 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
     });
 
-    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
     m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
         this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
         updateCapabilities();
@@ -504,7 +504,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (!refocus && g_pCompositor->m_lastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
 
-        if (PLS && PLS->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+        if (PLS && PLS->m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
             allowKeyboardRefocus = false;
     }
 
@@ -589,8 +589,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             unsetCursorImage();
         }
 
-        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
+        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
+            (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 

@@ -17,16 +17,16 @@ class CAlphaModifier {
     void setResource(SP<CWpAlphaModifierSurfaceV1> resource);
 
   private:
-    SP<CWpAlphaModifierSurfaceV1> m_pResource;
-    WP<CWLSurfaceResource>        m_pSurface;
-    float                         m_fAlpha = 1.0;
+    SP<CWpAlphaModifierSurfaceV1> m_resource;
+    WP<CWLSurfaceResource>        m_surface;
+    float                         m_alpha = 1.0;
 
     void                          destroy();
 
     struct {
         CHyprSignalListener surfaceCommitted;
         CHyprSignalListener surfaceDestroyed;
-    } listeners;
+    } m_listeners;
 
     friend class CAlphaModifierProtocol;
 };
@@ -43,8 +43,8 @@ class CAlphaModifierProtocol : public IWaylandProtocol {
     void getSurface(CWpAlphaModifierV1* manager, uint32_t id, SP<CWLSurfaceResource> surface);
 
     //
-    std::vector<UP<CWpAlphaModifierV1>>                            m_vManagers;
-    std::unordered_map<WP<CWLSurfaceResource>, UP<CAlphaModifier>> m_mAlphaModifiers;
+    std::vector<UP<CWpAlphaModifierV1>>                            m_managers;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CAlphaModifier>> m_alphaModifiers;
 
     friend class CAlphaModifier;
 };

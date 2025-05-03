@@ -4,60 +4,60 @@
 #include "core/Seat.hpp"
 using namespace Hyprutils::OS;
 
-CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
+CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : m_source(source_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
-    resource->setOnDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwlrDataControlOfferV1* r) { PROTO::dataWlr->destroyResource(this); });
 
-    resource->setReceive([this](CZwlrDataControlOfferV1* r, const char* mime, int32_t fd) {
+    m_resource->setReceive([this](CZwlrDataControlOfferV1* r, const char* mime, int32_t fd) {
         CFileDescriptor sendFd{fd};
-        if (!source) {
+        if (!m_source) {
             LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
-        if (dead) {
+        if (m_dead) {
             LOGM(WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
+        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
-        source->send(mime, std::move(sendFd));
+        m_source->send(mime, std::move(sendFd));
     });
 }
 
 bool CWLRDataOffer::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CWLRDataOffer::sendData() {
-    if UNLIKELY (!source)
+    if UNLIKELY (!m_source)
         return;
 
-    for (auto const& m : source->mimes()) {
-        resource->sendOffer(m.c_str());
+    for (auto const& m : m_source->mimes()) {
+        m_resource->sendOffer(m.c_str());
     }
 }
 
-CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDataDevice> device_) : device(device_), resource(resource_) {
+CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDataDevice> device_) : m_device(device_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setData(this);
+    m_resource->setData(this);
 
-    resource->setDestroy([this](CZwlrDataControlSourceV1* r) {
+    m_resource->setDestroy([this](CZwlrDataControlSourceV1* r) {
         m_events.destroy.emit();
         PROTO::dataWlr->destroyResource(this);
     });
-    resource->setOnDestroy([this](CZwlrDataControlSourceV1* r) {
+    m_resource->setOnDestroy([this](CZwlrDataControlSourceV1* r) {
         m_events.destroy.emit();
         PROTO::dataWlr->destroyResource(this);
     });
 
-    resource->setOffer([this](CZwlrDataControlSourceV1* r, const char* mime) { mimeTypes.emplace_back(mime); });
+    m_resource->setOffer([this](CZwlrDataControlSourceV1* r, const char* mime) { m_mimeTypes.emplace_back(mime); });
 }
 
 CWLRDataSource::~CWLRDataSource() {
@@ -66,51 +66,51 @@ CWLRDataSource::~CWLRDataSource() {
 
 SP<CWLRDataSource> CWLRDataSource::fromResource(wl_resource* res) {
     auto data = (CWLRDataSource*)(((CZwlrDataControlSourceV1*)wl_resource_get_user_data(res))->data());
-    return data ? data->self.lock() : nullptr;
+    return data ? data->m_self.lock() : nullptr;
 }
 
 bool CWLRDataSource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 std::vector<std::string> CWLRDataSource::mimes() {
-    return mimeTypes;
+    return m_mimeTypes;
 }
 
 void CWLRDataSource::send(const std::string& mime, CFileDescriptor fd) {
-    if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
+    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAskSend with non-existent mime");
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd.get());
+    m_resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CWLRDataSource::accepted(const std::string& mime) {
-    if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end())
+    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end())
         LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAccepted with non-existent mime");
 
     // wlr has no accepted
 }
 
 void CWLRDataSource::cancelled() {
-    resource->sendCancelled();
+    m_resource->sendCancelled();
 }
 
 void CWLRDataSource::error(uint32_t code, const std::string& msg) {
-    resource->error(code, msg);
+    m_resource->error(code, msg);
 }
 
-CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resource(resource_) {
+CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    pClient = resource->client();
+    m_client = m_resource->client();
 
-    resource->setDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
-    resource->setOnDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
 
-    resource->setSetSelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
+    m_resource->setSetSelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset selection received");
@@ -127,7 +127,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
         g_pSeatManager->setCurrentSelection(source);
     });
 
-    resource->setSetPrimarySelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
+    m_resource->setSetPrimarySelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset primary selection received");
@@ -146,11 +146,11 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
 }
 
 bool CWLRDataDevice::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 wl_client* CWLRDataDevice::client() {
-    return pClient;
+    return m_client;
 }
 
 void CWLRDataDevice::sendInitialSelections() {
@@ -159,40 +159,40 @@ void CWLRDataDevice::sendInitialSelections() {
 }
 
 void CWLRDataDevice::sendDataOffer(SP<CWLRDataOffer> offer) {
-    resource->sendDataOffer(offer->resource.get());
+    m_resource->sendDataOffer(offer->m_resource.get());
 }
 
 void CWLRDataDevice::sendSelection(SP<CWLRDataOffer> selection) {
-    resource->sendSelection(selection->resource.get());
+    m_resource->sendSelection(selection->m_resource.get());
 }
 
 void CWLRDataDevice::sendPrimarySelection(SP<CWLRDataOffer> selection) {
-    resource->sendPrimarySelection(selection->resource.get());
+    m_resource->sendPrimarySelection(selection->m_resource.get());
 }
 
-CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataControlManagerV1> resource_) : resource(resource_) {
+CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataControlManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CZwlrDataControlManagerV1* r) { PROTO::dataWlr->destroyResource(this); });
-    resource->setOnDestroy([this](CZwlrDataControlManagerV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setDestroy([this](CZwlrDataControlManagerV1* r) { PROTO::dataWlr->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwlrDataControlManagerV1* r) { PROTO::dataWlr->destroyResource(this); });
 
-    resource->setGetDataDevice([this](CZwlrDataControlManagerV1* r, uint32_t id, wl_resource* seat) {
-        const auto RESOURCE = PROTO::dataWlr->m_vDevices.emplace_back(makeShared<CWLRDataDevice>(makeShared<CZwlrDataControlDeviceV1>(r->client(), r->version(), id)));
+    m_resource->setGetDataDevice([this](CZwlrDataControlManagerV1* r, uint32_t id, wl_resource* seat) {
+        const auto RESOURCE = PROTO::dataWlr->m_devices.emplace_back(makeShared<CWLRDataDevice>(makeShared<CZwlrDataControlDeviceV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::dataWlr->m_vDevices.pop_back();
+            PROTO::dataWlr->m_devices.pop_back();
             return;
         }
 
         RESOURCE->self = RESOURCE;
-        device         = RESOURCE;
+        m_device       = RESOURCE;
 
-        for (auto const& s : sources) {
+        for (auto const& s : m_sources) {
             if (!s)
                 continue;
-            s->device = RESOURCE;
+            s->m_device = RESOURCE;
         }
 
         RESOURCE->sendInitialSelections();
@@ -200,31 +200,31 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
         LOGM(LOG, "New wlr data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
-    resource->setCreateDataSource([this](CZwlrDataControlManagerV1* r, uint32_t id) {
-        std::erase_if(sources, [](const auto& e) { return e.expired(); });
+    m_resource->setCreateDataSource([this](CZwlrDataControlManagerV1* r, uint32_t id) {
+        std::erase_if(m_sources, [](const auto& e) { return e.expired(); });
 
         const auto RESOURCE =
-            PROTO::dataWlr->m_vSources.emplace_back(makeShared<CWLRDataSource>(makeShared<CZwlrDataControlSourceV1>(r->client(), r->version(), id), device.lock()));
+            PROTO::dataWlr->m_sources.emplace_back(makeShared<CWLRDataSource>(makeShared<CZwlrDataControlSourceV1>(r->client(), r->version(), id), m_device.lock()));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::dataWlr->m_vSources.pop_back();
+            PROTO::dataWlr->m_sources.pop_back();
             return;
         }
 
-        if (!device)
+        if (!m_device)
             LOGM(WARN, "New data source before a device was created");
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
 
-        sources.emplace_back(RESOURCE);
+        m_sources.emplace_back(RESOURCE);
 
         LOGM(LOG, "New wlr data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
 bool CWLRDataControlManagerResource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 CDataDeviceWLRProtocol::CDataDeviceWLRProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -232,11 +232,11 @@ CDataDeviceWLRProtocol::CDataDeviceWLRProtocol(const wl_interface* iface, const 
 }
 
 void CDataDeviceWLRProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLRDataControlManagerResource>(makeShared<CZwlrDataControlManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CWLRDataControlManagerResource>(makeShared<CZwlrDataControlManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
-        m_vManagers.pop_back();
+        m_managers.pop_back();
         return;
     }
 
@@ -244,39 +244,39 @@ void CDataDeviceWLRProtocol::bindManager(wl_client* client, void* data, uint32_t
 }
 
 void CDataDeviceWLRProtocol::destroyResource(CWLRDataControlManagerResource* resource) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CDataDeviceWLRProtocol::destroyResource(CWLRDataSource* resource) {
-    std::erase_if(m_vSources, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_sources, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CDataDeviceWLRProtocol::destroyResource(CWLRDataDevice* resource) {
-    std::erase_if(m_vDevices, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_devices, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CDataDeviceWLRProtocol::destroyResource(CWLRDataOffer* resource) {
-    std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_offers, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary) {
     if (!sel) {
         if (primary)
-            dev->resource->sendPrimarySelectionRaw(nullptr);
+            dev->m_resource->sendPrimarySelectionRaw(nullptr);
         else
-            dev->resource->sendSelectionRaw(nullptr);
+            dev->m_resource->sendSelectionRaw(nullptr);
         return;
     }
 
-    const auto OFFER = m_vOffers.emplace_back(makeShared<CWLRDataOffer>(makeShared<CZwlrDataControlOfferV1>(dev->resource->client(), dev->resource->version(), 0), sel));
+    const auto OFFER = m_offers.emplace_back(makeShared<CWLRDataOffer>(makeShared<CZwlrDataControlOfferV1>(dev->m_resource->client(), dev->m_resource->version(), 0), sel));
 
     if (!OFFER->good()) {
-        dev->resource->noMemory();
-        m_vOffers.pop_back();
+        dev->m_resource->noMemory();
+        m_offers.pop_back();
         return;
     }
 
-    OFFER->primary = primary;
+    OFFER->m_primary = primary;
 
     LOGM(LOG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
 
@@ -289,18 +289,18 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
 }
 
 void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) {
-    for (auto const& o : m_vOffers) {
-        if (o->source && o->source->hasDnd())
+    for (auto const& o : m_offers) {
+        if (o->m_source && o->m_source->hasDnd())
             continue;
-        if (o->primary != primary)
+        if (o->m_primary != primary)
             continue;
-        o->dead = true;
+        o->m_dead = true;
     }
 
     if (!source) {
         LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
 
-        for (auto const& d : m_vDevices) {
+        for (auto const& d : m_devices) {
             sendSelectionToDevice(d, nullptr, primary);
         }
 
@@ -309,14 +309,14 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
 
     LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
-    for (auto const& d : m_vDevices) {
+    for (auto const& d : m_devices) {
         sendSelectionToDevice(d, source, primary);
     }
 }
 
 SP<CWLRDataDevice> CDataDeviceWLRProtocol::dataDeviceForClient(wl_client* c) {
-    auto it = std::find_if(m_vDevices.begin(), m_vDevices.end(), [c](const auto& e) { return e->client() == c; });
-    if (it == m_vDevices.end())
+    auto it = std::find_if(m_devices.begin(), m_devices.end(), [c](const auto& e) { return e->client() == c; });
+    if (it == m_devices.end())
         return nullptr;
     return *it;
 }

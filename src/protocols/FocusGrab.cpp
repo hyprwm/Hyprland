@@ -8,23 +8,23 @@
 #include <wayland-server.h>
 
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
-    listeners.destroy = surface->m_events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
+    m_listeners.destroy = surface->m_events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
 }
 
-CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    grab             = makeShared<CSeatGrab>();
-    grab->m_keyboard = true;
-    grab->m_pointer  = true;
-    grab->setCallback([this]() { finish(true); });
+    m_grab             = makeShared<CSeatGrab>();
+    m_grab->m_keyboard = true;
+    m_grab->m_pointer  = true;
+    m_grab->setCallback([this]() { finish(true); });
 
-    resource->setDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
-    resource->setOnDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
-    resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { addSurface(CWLSurfaceResource::fromResource(surface)); });
-    resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { removeSurface(CWLSurfaceResource::fromResource(surface)); });
-    resource->setCommit([this](CHyprlandFocusGrabV1* pMgr) { commit(); });
+    m_resource->setDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
+    m_resource->setOnDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
+    m_resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { addSurface(CWLSurfaceResource::fromResource(surface)); });
+    m_resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { removeSurface(CWLSurfaceResource::fromResource(surface)); });
+    m_resource->setCommit([this](CHyprlandFocusGrabV1* pMgr) { commit(); });
 }
 
 CFocusGrab::~CFocusGrab() {
@@ -32,21 +32,21 @@ CFocusGrab::~CFocusGrab() {
 }
 
 bool CFocusGrab::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 bool CFocusGrab::isSurfaceComitted(SP<CWLSurfaceResource> surface) {
-    auto iter = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [surface](const auto& o) { return o.first == surface; });
-    if (iter == m_mSurfaces.end())
+    auto iter = std::find_if(m_surfaces.begin(), m_surfaces.end(), [surface](const auto& o) { return o.first == surface; });
+    if (iter == m_surfaces.end())
         return false;
 
-    return iter->second->state == CFocusGrabSurfaceState::Comitted;
+    return iter->second->m_state == CFocusGrabSurfaceState::Comitted;
 }
 
 void CFocusGrab::start() {
-    if (!m_bGrabActive) {
-        m_bGrabActive = true;
-        g_pSeatManager->setGrab(grab);
+    if (!m_grabActive) {
+        m_grabActive = true;
+        g_pSeatManager->setGrab(m_grab);
     }
 
     // Ensure new surfaces are focused if under the mouse when comitted.
@@ -55,33 +55,33 @@ void CFocusGrab::start() {
 }
 
 void CFocusGrab::finish(bool sendCleared) {
-    if (m_bGrabActive) {
-        m_bGrabActive = false;
+    if (m_grabActive) {
+        m_grabActive = false;
 
-        if (g_pSeatManager->m_seatGrab == grab)
+        if (g_pSeatManager->m_seatGrab == m_grab)
             g_pSeatManager->setGrab(nullptr);
 
-        grab->clear();
-        m_mSurfaces.clear();
+        m_grab->clear();
+        m_surfaces.clear();
 
         if (sendCleared)
-            resource->sendCleared();
+            m_resource->sendCleared();
     }
 }
 
 void CFocusGrab::addSurface(SP<CWLSurfaceResource> surface) {
-    auto iter = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [surface](const auto& e) { return e.first == surface; });
-    if (iter == m_mSurfaces.end())
-        m_mSurfaces.emplace(surface, makeUnique<CFocusGrabSurfaceState>(this, surface));
+    auto iter = std::find_if(m_surfaces.begin(), m_surfaces.end(), [surface](const auto& e) { return e.first == surface; });
+    if (iter == m_surfaces.end())
+        m_surfaces.emplace(surface, makeUnique<CFocusGrabSurfaceState>(this, surface));
 }
 
 void CFocusGrab::removeSurface(SP<CWLSurfaceResource> surface) {
-    auto iter = m_mSurfaces.find(surface);
-    if (iter != m_mSurfaces.end()) {
-        if (iter->second->state == CFocusGrabSurfaceState::PendingAddition)
-            m_mSurfaces.erase(iter);
+    auto iter = m_surfaces.find(surface);
+    if (iter != m_surfaces.end()) {
+        if (iter->second->m_state == CFocusGrabSurfaceState::PendingAddition)
+            m_surfaces.erase(iter);
         else
-            iter->second->state = CFocusGrabSurfaceState::PendingRemoval;
+            iter->second->m_state = CFocusGrabSurfaceState::PendingRemoval;
     }
 }
 
@@ -96,8 +96,8 @@ void CFocusGrab::refocusKeyboard() {
         return;
 
     SP<CWLSurfaceResource> surface = nullptr;
-    for (auto const& [surf, state] : m_mSurfaces) {
-        if (state->state == CFocusGrabSurfaceState::Comitted) {
+    for (auto const& [surf, state] : m_surfaces) {
+        if (state->m_state == CFocusGrabSurfaceState::Comitted) {
             surface = surf.lock();
             break;
         }
@@ -112,17 +112,17 @@ void CFocusGrab::refocusKeyboard() {
 void CFocusGrab::commit(bool removeOnly) {
     auto surfacesChanged = false;
     auto anyComitted     = false;
-    for (auto iter = m_mSurfaces.begin(); iter != m_mSurfaces.end();) {
-        switch (iter->second->state) {
+    for (auto iter = m_surfaces.begin(); iter != m_surfaces.end();) {
+        switch (iter->second->m_state) {
             case CFocusGrabSurfaceState::PendingRemoval:
-                grab->remove(iter->first.lock());
-                iter            = m_mSurfaces.erase(iter);
+                m_grab->remove(iter->first.lock());
+                iter            = m_surfaces.erase(iter);
                 surfacesChanged = true;
                 continue;
             case CFocusGrabSurfaceState::PendingAddition:
                 if (!removeOnly) {
-                    iter->second->state = CFocusGrabSurfaceState::Comitted;
-                    grab->add(iter->first.lock());
+                    iter->second->m_state = CFocusGrabSurfaceState::Comitted;
+                    m_grab->add(iter->first.lock());
                     surfacesChanged = true;
                     anyComitted     = true;
                 }
@@ -146,7 +146,7 @@ CFocusGrabProtocol::CFocusGrabProtocol(const wl_interface* iface, const int& ver
 }
 
 void CFocusGrabProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
@@ -154,19 +154,19 @@ void CFocusGrabProtocol::bindManager(wl_client* client, void* data, uint32_t ver
 }
 
 void CFocusGrabProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CFocusGrabProtocol::destroyGrab(CFocusGrab* grab) {
-    std::erase_if(m_vGrabs, [&](const auto& other) { return other.get() == grab; });
+    std::erase_if(m_grabs, [&](const auto& other) { return other.get() == grab; });
 }
 
 void CFocusGrabProtocol::onCreateGrab(CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) {
-    m_vGrabs.push_back(makeUnique<CFocusGrab>(makeShared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
-    const auto RESOURCE = m_vGrabs.back().get();
+    m_grabs.push_back(makeUnique<CFocusGrab>(makeShared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_grabs.back().get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vGrabs.pop_back();
+        m_grabs.pop_back();
     }
 }

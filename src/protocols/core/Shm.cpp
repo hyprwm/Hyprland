@@ -20,9 +20,9 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     m_stride = stride_;
     m_fmt    = fmt_;
     m_offset = offset_;
-    opaque   = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
+    m_opaque = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
 
-    resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->m_resource->client(), 1, id));
+    m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->m_resource->client(), 1, id));
 
     m_listeners.bufferResourceDestroy = events.destroy.registerListener([this](std::any d) {
         m_listeners.bufferResourceDestroy.reset();
@@ -31,8 +31,8 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
 }
 
 CWLSHMBuffer::~CWLSHMBuffer() {
-    if (resource)
-        resource->sendRelease();
+    if (m_resource)
+        m_resource->sendRelease();
 }
 
 Aquamarine::eBufferCapability CWLSHMBuffer::caps() {
@@ -156,7 +156,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor
         }
 
         // append instance so that buffer knows its owner
-        RESOURCE->resource->buffer = RESOURCE;
+        RESOURCE->m_resource->m_buffer = RESOURCE;
     });
 
     if UNLIKELY (m_pool->m_data == MAP_FAILED)

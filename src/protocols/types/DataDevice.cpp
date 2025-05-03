@@ -9,11 +9,11 @@ bool IDataSource::dndDone() {
 }
 
 bool IDataSource::used() {
-    return wasUsed;
+    return m_wasUsed;
 }
 
 void IDataSource::markUsed() {
-    wasUsed = true;
+    m_wasUsed = true;
 }
 
 eDataSourceType IDataSource::type() {

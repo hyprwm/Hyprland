@@ -134,12 +134,12 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
     m_resource->setData(this);
 
     m_resource->setDestroy([this](CWlDataSource* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::data->onDestroyDataSource(m_self);
         PROTO::data->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWlDataSource* r) {
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::data->onDestroyDataSource(m_self);
         PROTO::data->destroyResource(this);
     });
@@ -152,7 +152,7 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
 }
 
 CWLDataSourceResource::~CWLDataSourceResource() {
-    events.destroy.emit();
+    m_events.destroy.emit();
     PROTO::data->onDestroyDataSource(m_self);
 }
 

@@ -559,7 +559,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     m_selection.currentSelection = source;
 
     if (source) {
-        m_selection.destroySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
+        m_selection.destroySelection = source->m_events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
         PROTO::data->setSelection(source);
         PROTO::dataWlr->setSelection(source, false);
     }
@@ -584,7 +584,7 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     m_selection.currentPrimarySelection = source;
 
     if (source) {
-        m_selection.destroyPrimarySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentPrimarySelection(nullptr); });
+        m_selection.destroyPrimarySelection = source->m_events.destroy.registerListener([this](std::any d) { setCurrentPrimarySelection(nullptr); });
         PROTO::primarySelection->setSelection(source);
         PROTO::dataWlr->setSelection(source, true);
     }

@@ -12,40 +12,40 @@
 
 using namespace Hyprutils::OS;
 
-CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : attrs(attrs_) {
+CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
+    m_listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
         closeFDs();
-        listeners.resourceDestroy.reset();
+        m_listeners.resourceDestroy.reset();
     });
 
-    size     = attrs.size;
-    resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
+    size       = m_attrs.size;
+    m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    auto eglImage = g_pHyprOpenGL->createEGLImage(attrs);
+    auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
     if UNLIKELY (!eglImage) {
         Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
-        attrs.modifier = DRM_FORMAT_MOD_INVALID;
-        eglImage       = g_pHyprOpenGL->createEGLImage(attrs);
+        m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
+        eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
         if UNLIKELY (!eglImage) {
             Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
     }
 
-    texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
-    opaque  = NFormatUtils::isFormatOpaque(attrs.format);
-    success = texture->m_iTexID;
+    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
+    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
+    m_success = m_texture->m_iTexID;
 
-    if UNLIKELY (!success)
+    if UNLIKELY (!m_success)
         Debug::log(ERR, "Failed to create a dmabuf: texture is null");
 }
 
 CDMABuffer::~CDMABuffer() {
-    if (resource)
-        resource->sendRelease();
+    if (m_resource)
+        m_resource->sendRelease();
 
     closeFDs();
 }
@@ -67,7 +67,7 @@ bool CDMABuffer::isSynchronous() {
 }
 
 Aquamarine::SDMABUFAttrs CDMABuffer::dmabuf() {
-    return attrs;
+    return m_attrs;
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CDMABuffer::beginDataPtr(uint32_t flags) {
@@ -80,17 +80,17 @@ void CDMABuffer::endDataPtr() {
 }
 
 bool CDMABuffer::good() {
-    return success;
+    return m_success;
 }
 
 void CDMABuffer::closeFDs() {
-    for (int i = 0; i < attrs.planes; ++i) {
-        if (attrs.fds[i] == -1)
+    for (int i = 0; i < m_attrs.planes; ++i) {
+        if (m_attrs.fds[i] == -1)
             continue;
-        close(attrs.fds[i]);
-        attrs.fds[i] = -1;
+        close(m_attrs.fds[i]);
+        m_attrs.fds[i] = -1;
     }
-    attrs.planes = 0;
+    m_attrs.planes = 0;
 }
 
 static int doIoctl(int fd, unsigned long request, void* arg) {
@@ -111,8 +111,8 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
 #if !defined(__linux__)
     return {};
 #else
-    std::vector<CFileDescriptor> syncFds(attrs.fds.size());
-    for (const auto& fd : attrs.fds) {
+    std::vector<CFileDescriptor> syncFds(m_attrs.fds.size());
+    for (const auto& fd : m_attrs.fds) {
         if (fd == -1)
             continue;
 

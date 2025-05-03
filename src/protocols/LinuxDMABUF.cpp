@@ -99,20 +99,20 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
 CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
     buffer = makeShared<CDMABuffer>(id, client, attrs);
 
-    buffer->resource->buffer = buffer;
+    buffer->m_resource->m_buffer = buffer;
 
     listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
         listeners.bufferResourceDestroy.reset();
         PROTO::linuxDma->destroyResource(this);
     });
 
-    if (!buffer->success)
+    if (!buffer->m_success)
         LOGM(ERR, "Possibly compositor bug: buffer failed to create");
 }
 
 CLinuxDMABuffer::~CLinuxDMABuffer() {
-    if (buffer && buffer->resource)
-        buffer->resource->sendRelease();
+    if (buffer && buffer->m_resource)
+        buffer->m_resource->sendRelease();
 
     buffer.reset();
     listeners.bufferResourceDestroy.reset();
@@ -219,14 +219,14 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
 
     auto buf = PROTO::linuxDma->m_vBuffers.emplace_back(makeShared<CLinuxDMABuffer>(id, resource->client(), *attrs));
 
-    if UNLIKELY (!buf->good() || !buf->buffer->success) {
+    if UNLIKELY (!buf->good() || !buf->buffer->m_success) {
         resource->sendFailed();
         PROTO::linuxDma->m_vBuffers.pop_back();
         return;
     }
 
     if (!id)
-        resource->sendCreated(PROTO::linuxDma->m_vBuffers.back()->buffer->resource->getResource());
+        resource->sendCreated(PROTO::linuxDma->m_vBuffers.back()->buffer->m_resource->getResource());
 
     createdBuffer = buf;
 }

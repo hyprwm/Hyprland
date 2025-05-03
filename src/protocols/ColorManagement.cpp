@@ -74,7 +74,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        const auto PMONITOR = OUTPUTRESOURCE->monitor.lock();
+        const auto PMONITOR = OUTPUTRESOURCE->m_monitor.lock();
 
         if UNLIKELY (!PMONITOR) {
             r->error(-1, "Invalid output (2)");
@@ -102,7 +102,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        if (SURF->colorManagement) {
+        if (SURF->m_colorManagement) {
             r->error(WP_COLOR_MANAGER_V1_ERROR_SURFACE_EXISTS, "CM Surface already exists");
             return;
         }
@@ -117,7 +117,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         RESOURCE->self = RESOURCE;
 
-        SURF->colorManagement = RESOURCE;
+        SURF->m_colorManagement = RESOURCE;
     });
     m_resource->setGetSurfaceFeedback([](CWpColorManagerV1* r, uint32_t id, wl_resource* surface) {
         LOGM(TRACE, "Get feedback surface for id={}, surface={}", id, (uintptr_t)surface);

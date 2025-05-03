@@ -131,9 +131,9 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
     damageIfSoftware();
 
     if (surf == m_currentCursorImage.surface) {
-        if (hotspot != m_currentCursorImage.hotspot || (surf && surf->resource() ? surf->resource()->current.scale : 1.F) != m_currentCursorImage.scale) {
+        if (hotspot != m_currentCursorImage.hotspot || (surf && surf->resource() ? surf->resource()->m_current.scale : 1.F) != m_currentCursorImage.scale) {
             m_currentCursorImage.hotspot = hotspot;
-            m_currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->current.scale : 1.F;
+            m_currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->m_current.scale : 1.F;
             updateCursorBackend();
             damageIfSoftware();
         }
@@ -145,22 +145,22 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
 
     if (surf) {
         m_currentCursorImage.surface = surf;
-        m_currentCursorImage.scale   = surf->resource()->current.scale;
+        m_currentCursorImage.scale   = surf->resource()->m_current.scale;
 
         surf->resource()->map();
 
         m_currentCursorImage.destroySurface = surf->m_events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
-        m_currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
+        m_currentCursorImage.commitSurface  = surf->resource()->m_events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
-            m_currentCursorImage.size  = m_currentCursorImage.surface->resource()->current.texture ? m_currentCursorImage.surface->resource()->current.bufferSize : Vector2D{};
-            m_currentCursorImage.scale = m_currentCursorImage.surface ? m_currentCursorImage.surface->resource()->current.scale : 1.F;
+            m_currentCursorImage.size  = m_currentCursorImage.surface->resource()->m_current.texture ? m_currentCursorImage.surface->resource()->m_current.bufferSize : Vector2D{};
+            m_currentCursorImage.scale = m_currentCursorImage.surface ? m_currentCursorImage.surface->resource()->m_current.scale : 1.F;
             recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
         });
 
-        if (surf->resource()->current.texture) {
-            m_currentCursorImage.size = surf->resource()->current.bufferSize;
+        if (surf->resource()->m_current.texture) {
+            m_currentCursorImage.size = surf->resource()->m_current.bufferSize;
             surf->resource()->frame(Time::steadyNow());
         }
     }
@@ -464,18 +464,18 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         // get the texture data if available.
         auto texData = texture->dataCopy();
         if (texData.empty()) {
-            if (m_currentCursorImage.surface && m_currentCursorImage.surface->resource()->role->role() == SURFACE_ROLE_CURSOR) {
+            if (m_currentCursorImage.surface && m_currentCursorImage.surface->resource()->m_role->role() == SURFACE_ROLE_CURSOR) {
                 const auto SURFACE   = m_currentCursorImage.surface->resource();
                 auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
 
                 bool       flipRB = false;
 
-                if (SURFACE->current.texture) {
-                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
-                    if (SURFACE->current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
+                if (SURFACE->m_current.texture) {
+                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->m_current.texture->m_iDrmFormat));
+                    if (SURFACE->m_current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
                         Debug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
                         flipRB = true;
-                    } else if (SURFACE->current.texture->m_iDrmFormat != DRM_FORMAT_ARGB8888) {
+                    } else if (SURFACE->m_current.texture->m_iDrmFormat != DRM_FORMAT_ARGB8888) {
                         Debug::log(TRACE, "Cursor CPU surface format rejected, falling back to sw");
                         return nullptr;
                     }
@@ -869,7 +869,7 @@ void CPointerManager::onMonitorLayoutChange() {
 }
 
 SP<CTexture> CPointerManager::getCurrentCursorTexture() {
-    if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->current.texture))
+    if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
         return nullptr;
 
     if (m_currentCursorImage.pBuffer) {
@@ -878,7 +878,7 @@ SP<CTexture> CPointerManager::getCurrentCursorTexture() {
         return m_currentCursorImage.bufferTex;
     }
 
-    return m_currentCursorImage.surface->resource()->current.texture;
+    return m_currentCursorImage.surface->resource()->m_current.texture;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {

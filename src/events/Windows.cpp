@@ -892,8 +892,9 @@ void Events::listener_commitWindow(void* owner, void* data) {
     }
 
     // tearing: if solitary, redraw it. This still might be a single surface window
-    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->m_tearingState.canTear && PWINDOW->m_wlSurface->resource()->current.texture) {
-        CRegion damageBox{PWINDOW->m_wlSurface->resource()->current.accumulateBufferDamage()};
+    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->m_tearingState.canTear &&
+        PWINDOW->m_wlSurface->resource()->m_current.texture) {
+        CRegion damageBox{PWINDOW->m_wlSurface->resource()->m_current.accumulateBufferDamage()};
 
         if (!damageBox.empty()) {
             if (PMONITOR->m_tearingState.busy) {

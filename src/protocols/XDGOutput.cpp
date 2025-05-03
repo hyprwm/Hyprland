@@ -42,7 +42,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
     const auto  OUTPUT   = CWLOutputResource::fromResource(outputResource);
-    const auto  PMONITOR = OUTPUT->monitor.lock();
+    const auto  PMONITOR = OUTPUT->m_monitor.lock();
     const auto  CLIENT   = mgr->client();
 
     CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(makeUnique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
@@ -52,7 +52,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 #endif
     pXDGOutput->client = CLIENT;
 
-    pXDGOutput->outputProto = OUTPUT->owner;
+    pXDGOutput->outputProto = OUTPUT->m_owner;
 
     if UNLIKELY (!pXDGOutput->resource->resource()) {
         m_vXDGOutputs.pop_back();

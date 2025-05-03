@@ -1568,7 +1568,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     }
 
     const auto imageDescription =
-        m_RenderData.surface.valid() && m_RenderData.surface->colorManagement.valid() ? m_RenderData.surface->colorManagement->imageDescription() : SImageDescription{};
+        m_RenderData.surface.valid() && m_RenderData.surface->m_colorManagement.valid() ? m_RenderData.surface->m_colorManagement->imageDescription() : SImageDescription{};
 
     const bool skipCM = !*PENABLECM || !m_bCMSupported                     /* CM unsupported or disabled */
         || (imageDescription == m_RenderData.pMonitor->m_imageDescription) /* Source and target have the same image description */
@@ -2088,9 +2088,9 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
 
             CRegion        inverseOpaque;
 
-            pixman_box32_t surfbox = {0, 0, PSURFACE->current.size.x, PSURFACE->current.size.y};
-            CRegion        opaqueRegion{PSURFACE->current.opaque};
-            inverseOpaque.set(opaqueRegion).invert(&surfbox).intersect(0, 0, PSURFACE->current.size.x, PSURFACE->current.size.y);
+            pixman_box32_t surfbox = {0, 0, PSURFACE->m_current.size.x, PSURFACE->m_current.size.y};
+            CRegion        opaqueRegion{PSURFACE->m_current.opaque};
+            inverseOpaque.set(opaqueRegion).invert(&surfbox).intersect(0, 0, PSURFACE->m_current.size.x, PSURFACE->m_current.size.y);
 
             if (inverseOpaque.empty())
                 return false;
@@ -2224,11 +2224,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
 
     // amazing hack: the surface has an opaque region!
     CRegion inverseOpaque;
-    if (a >= 1.f && std::round(pSurface->current.size.x * m_RenderData.pMonitor->m_scale) == box.w &&
-        std::round(pSurface->current.size.y * m_RenderData.pMonitor->m_scale) == box.h) {
-        pixman_box32_t surfbox = {0, 0, pSurface->current.size.x * pSurface->current.scale, pSurface->current.size.y * pSurface->current.scale};
-        inverseOpaque          = pSurface->current.opaque;
-        inverseOpaque.invert(&surfbox).intersect(0, 0, pSurface->current.size.x * pSurface->current.scale, pSurface->current.size.y * pSurface->current.scale);
+    if (a >= 1.f && std::round(pSurface->m_current.size.x * m_RenderData.pMonitor->m_scale) == box.w &&
+        std::round(pSurface->m_current.size.y * m_RenderData.pMonitor->m_scale) == box.h) {
+        pixman_box32_t surfbox = {0, 0, pSurface->m_current.size.x * pSurface->m_current.scale, pSurface->m_current.size.y * pSurface->m_current.scale};
+        inverseOpaque          = pSurface->m_current.opaque;
+        inverseOpaque.invert(&surfbox).intersect(0, 0, pSurface->m_current.size.x * pSurface->m_current.scale, pSurface->m_current.size.y * pSurface->m_current.scale);
 
         if (inverseOpaque.empty()) {
             renderTexture(tex, box, a, round, roundingPower, false, true);

@@ -25,7 +25,7 @@ class CSubsurfaceRole : public ISurfaceRole {
         return SURFACE_ROLE_SUBSURFACE;
     }
 
-    WP<CWLSubsurfaceResource> subsurface;
+    WP<CWLSubsurfaceResource> m_subsurface;
 };
 
 class CWLSubsurfaceResource {
@@ -37,28 +37,28 @@ class CWLSubsurfaceResource {
     bool                      good();
     SP<CWLSurfaceResource>    t1Parent();
 
-    bool                      sync = false;
-    Vector2D                  position;
+    bool                      m_sync = false;
+    Vector2D                  m_position;
 
-    WP<CWLSurfaceResource>    surface;
-    WP<CWLSurfaceResource>    parent;
+    WP<CWLSurfaceResource>    m_surface;
+    WP<CWLSurfaceResource>    m_parent;
 
-    WP<CWLSubsurfaceResource> self;
+    WP<CWLSubsurfaceResource> m_self;
 
-    int                       zIndex = 1; // by default, it's above
+    int                       m_zIndex = 1; // by default, it's above
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
   private:
-    SP<CWlSubsurface> resource;
+    SP<CWlSubsurface> m_resource;
 
     void              destroy();
 
     struct {
         CHyprSignalListener commitSurface;
-    } listeners;
+    } m_listeners;
 };
 
 class CWLSubcompositorResource {
@@ -68,7 +68,7 @@ class CWLSubcompositorResource {
     bool good();
 
   private:
-    SP<CWlSubcompositor> resource;
+    SP<CWlSubcompositor> m_resource;
 };
 
 class CWLSubcompositorProtocol : public IWaylandProtocol {
@@ -82,8 +82,8 @@ class CWLSubcompositorProtocol : public IWaylandProtocol {
     void destroyResource(CWLSubsurfaceResource* resource);
 
     //
-    std::vector<SP<CWLSubcompositorResource>> m_vManagers;
-    std::vector<SP<CWLSubsurfaceResource>>    m_vSurfaces;
+    std::vector<SP<CWLSubcompositorResource>> m_managers;
+    std::vector<SP<CWLSubsurfaceResource>>    m_surfaces;
 
     friend class CWLSubcompositorResource;
     friend class CWLSubsurfaceResource;

@@ -88,7 +88,7 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : resource(res
             return;
         }
 
-        if (SURF->colorManagement) {
+        if (SURF->m_colorManagement) {
             r->error(XX_COLOR_MANAGER_V4_ERROR_SURFACE_EXISTS, "CM Surface already exists");
             return;
         }
@@ -195,7 +195,7 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
 
     pClient = resource->client();
 
-    if (!surface->colorManagement.valid()) {
+    if (!surface->m_colorManagement.valid()) {
         const auto RESOURCE = PROTO::colorManagement->m_vSurfaces.emplace_back(makeShared<CColorManagementSurface>(surface_));
         if UNLIKELY (!RESOURCE) {
             resource->noMemory();
@@ -205,12 +205,12 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
 
         RESOURCE->self = RESOURCE;
 
-        surface->colorManagement = RESOURCE;
+        surface->m_colorManagement = RESOURCE;
 
         resource->setOnDestroy([this](CXxColorManagementSurfaceV4* r) {
             LOGM(TRACE, "Destroy wp cm and xx cm for surface {}", (uintptr_t)surface);
             if (surface.valid())
-                PROTO::colorManagement->destroyResource(surface->colorManagement.get());
+                PROTO::colorManagement->destroyResource(surface->m_colorManagement.get());
             PROTO::xxColorManagement->destroyResource(this);
         });
     } else
@@ -245,16 +245,16 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
         }
 
         if (surface.valid()) {
-            surface->colorManagement->m_imageDescription = imageDescription->get()->settings;
-            surface->colorManagement->setHasImageDescription(true);
+            surface->m_colorManagement->m_imageDescription = imageDescription->get()->settings;
+            surface->m_colorManagement->setHasImageDescription(true);
         } else
             LOGM(ERR, "Set image description for invalid surface");
     });
     resource->setUnsetImageDescription([this](CXxColorManagementSurfaceV4* r) {
         LOGM(TRACE, "Unset image description for surface={}", (uintptr_t)r);
         if (surface.valid()) {
-            surface->colorManagement->m_imageDescription = SImageDescription{};
-            surface->colorManagement->setHasImageDescription(false);
+            surface->m_colorManagement->m_imageDescription = SImageDescription{};
+            surface->m_colorManagement->setHasImageDescription(false);
         } else
             LOGM(ERR, "Unset image description for invalid surface");
     });

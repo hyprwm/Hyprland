@@ -52,7 +52,7 @@ void CXWaylandSurface::ensureListeners() {
         listeners.destroySurface.reset();
         listeners.commitSurface.reset();
     } else if (!connected && surface) {
-        listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+        listeners.destroySurface = surface->m_events.destroy.registerListener([this](std::any d) {
             if (mapped)
                 unmap();
 
@@ -62,13 +62,13 @@ void CXWaylandSurface::ensureListeners() {
             events.resourceChange.emit();
         });
 
-        listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-            if (surface->current.texture && !mapped) {
+        listeners.commitSurface = surface->m_events.commit.registerListener([this](std::any d) {
+            if (surface->m_current.texture && !mapped) {
                 map();
                 return;
             }
 
-            if (!surface->current.texture && mapped) {
+            if (!surface->m_current.texture && mapped) {
                 unmap();
                 return;
             }
@@ -132,7 +132,7 @@ void CXWaylandSurface::considerMap() {
         return;
     }
 
-    if (surface->current.texture) {
+    if (surface->m_current.texture) {
         Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;

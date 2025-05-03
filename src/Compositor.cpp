@@ -1288,14 +1288,14 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
                                                          bool aboveLockscreen) {
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->mapped) || ls->m_alpha->value() == 0.f ||
+        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->m_mapped) || ls->m_alpha->value() == 0.f ||
             (aboveLockscreen && (!ls->m_aboveLockscreen || !ls->m_aboveLockscreenInteractable)))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->surface->at(pos - ls->m_geometry.pos(), true);
 
         if (surf) {
-            if (surf->current.input.empty())
+            if (surf->m_current.input.empty())
                 continue;
 
             *ppLayerSurfaceFound = ls.lock();
@@ -1310,10 +1310,10 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
 }
 
 PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
-    if (!pSurface || !pSurface->hlSurface)
+    if (!pSurface || !pSurface->m_hlSurface)
         return nullptr;
 
-    return pSurface->hlSurface->getWindow();
+    return pSurface->m_hlSurface->getWindow();
 }
 
 PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {

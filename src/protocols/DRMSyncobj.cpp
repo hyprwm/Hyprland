@@ -74,38 +74,38 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         pendingRelease = {timeline->timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
-    listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!surface->pending.updated.buffer || !surface->pending.buffer) {
+    listeners.surfacePrecommit = surface->m_events.precommit.registerListener([this](std::any d) {
+        if (!surface->m_pending.updated.buffer || !surface->m_pending.buffer) {
             if (pendingAcquire.timeline() || pendingRelease.timeline()) {
                 resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
-                surface->pending.rejected = true;
+                surface->m_pending.rejected = true;
             }
             return;
         }
 
         if (!pendingAcquire.timeline()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing acquire timeline");
-            surface->pending.rejected = true;
+            surface->m_pending.rejected = true;
             return;
         }
 
         if (!pendingRelease.timeline()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT, "Missing release timeline");
-            surface->pending.rejected = true;
+            surface->m_pending.rejected = true;
             return;
         }
 
         if (pendingAcquire.timeline() == pendingRelease.timeline() && pendingAcquire.point() >= pendingRelease.point()) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
-            surface->pending.rejected = true;
+            surface->m_pending.rejected = true;
             return;
         }
 
-        surface->pending.updated.acquire = true;
-        surface->pending.acquire         = pendingAcquire;
-        pendingAcquire                   = {};
+        surface->m_pending.updated.acquire = true;
+        surface->m_pending.acquire         = pendingAcquire;
+        pendingAcquire                     = {};
 
-        surface->pending.buffer->addReleasePoint(pendingRelease);
+        surface->m_pending.buffer->addReleasePoint(pendingRelease);
         pendingRelease = {};
     });
 }
@@ -163,7 +163,7 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjMana
             return;
         }
 
-        if UNLIKELY (SURF->syncobj) {
+        if UNLIKELY (SURF->m_syncobj) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_SURFACE_EXISTS, "Surface already has a syncobj attached");
             return;
         }
@@ -176,7 +176,7 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjMana
             return;
         }
 
-        SURF->syncobj = RESOURCE;
+        SURF->m_syncobj = RESOURCE;
 
         LOGM(LOG, "New linux_syncobj at {:x} for surface {:x}", (uintptr_t)RESOURCE.get(), (uintptr_t)SURF.get());
     });

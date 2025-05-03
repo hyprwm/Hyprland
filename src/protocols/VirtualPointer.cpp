@@ -121,7 +121,7 @@ void CVirtualPointerProtocol::bindManager(wl_client* client, void* data, uint32_
                 return;
             }
 
-            this->onCreatePointer(pMgr, seat, id, RES->monitor);
+            this->onCreatePointer(pMgr, seat, id, RES->m_monitor);
         } else
             this->onCreatePointer(pMgr, seat, id, {});
     });

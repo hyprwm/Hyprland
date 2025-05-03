@@ -25,7 +25,7 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
         if UNLIKELY (!OUTPUTRESOURCE)
             return; // ?!
 
-        const auto PMONITOR = OUTPUTRESOURCE->monitor.lock();
+        const auto PMONITOR = OUTPUTRESOURCE->m_monitor.lock();
 
         if UNLIKELY (!PMONITOR)
             return; // ?!?!

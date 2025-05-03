@@ -118,7 +118,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PWINDOWSURFACE = pWindow->m_wlSurface->resource();
-        *pWindow->m_realSize      = PWINDOWSURFACE->current.size;
+        *pWindow->m_realSize      = PWINDOWSURFACE->m_current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_isX11 &&
             pWindow->isX11OverrideRedirect()) { // XDG windows should be fine. TODO: check for weird atoms?

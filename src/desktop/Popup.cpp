@@ -93,7 +93,7 @@ void CPopup::onMap() {
         return;
 
     m_mapped   = true;
-    m_lastSize = m_resource->surface->surface->current.size;
+    m_lastSize = m_resource->surface->surface->m_current.size;
 
     const auto COORDS   = coordsGlobal();
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
@@ -128,7 +128,7 @@ void CPopup::onUnmap() {
 
     m_mapped = false;
 
-    m_lastSize = m_resource->surface->surface->current.size;
+    m_lastSize = m_resource->surface->surface->m_current.size;
 
     const auto COORDS = coordsGlobal();
 
@@ -172,7 +172,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
     }
 
     if (!m_windowOwner.expired() && (!m_windowOwner->m_isMapped || !m_windowOwner->m_workspace->m_visible)) {
-        m_lastSize = m_resource->surface->surface->current.size;
+        m_lastSize = m_resource->surface->surface->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -186,10 +186,10 @@ void CPopup::onCommit(bool ignoreSiblings) {
     const auto COORDS      = coordsGlobal();
     const auto COORDSLOCAL = coordsRelativeToParent();
 
-    if (m_lastSize != m_resource->surface->surface->current.size || m_requestedReposition || m_lastPos != COORDSLOCAL) {
+    if (m_lastSize != m_resource->surface->surface->m_current.size || m_requestedReposition || m_lastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_lastPos), m_lastSize};
         g_pHyprRenderer->damageBox(box);
-        m_lastSize = m_resource->surface->surface->current.size;
+        m_lastSize = m_resource->surface->surface->m_current.size;
         box        = {COORDS, m_lastSize};
         g_pHyprRenderer->damageBox(box);
 
@@ -246,7 +246,7 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     while (current->m_parent && current->m_resource) {
 
-        offset += current->m_wlSurface->resource()->current.offset;
+        offset += current->m_wlSurface->resource()->m_current.offset;
         offset += current->m_resource->geometry.pos();
 
         current = current->m_parent;
@@ -363,7 +363,7 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const auto REGION = CRegion{p->m_wlSurface->resource()->current.input}.intersect(CBox{{}, p->m_wlSurface->resource()->current.size}).translate(p->coordsGlobal());
+            const auto REGION = CRegion{p->m_wlSurface->resource()->m_current.input}.intersect(CBox{{}, p->m_wlSurface->resource()->m_current.size}).translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

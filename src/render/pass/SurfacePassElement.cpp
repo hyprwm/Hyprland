@@ -72,12 +72,12 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         return;
     }
 
-    const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->m_scale) != data.pMonitor->m_scale /* Fractional */ && data.surface->current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != data.surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, data.surface->current.bufferSize.x, 3) &&
-        DELTALESSTHAN(windowBox.height, data.surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
+    const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->m_scale) != data.pMonitor->m_scale /* Fractional */ && data.surface->m_current.scale == 1 /* fs protocol */ &&
+        windowBox.size() != data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, data.surface->m_current.bufferSize.x, 3) &&
+        DELTALESSTHAN(windowBox.height, data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!data.pWindow || (!data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
-    if (data.surface->colorManagement.valid())
+    if (data.surface->m_colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->m_self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
@@ -131,8 +131,8 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here
-    if (data.surface->current.buffer && !data.surface->current.buffer->isSynchronous())
-        g_pHyprRenderer->usedAsyncBuffers.emplace_back(data.surface->current.buffer);
+    if (data.surface->m_current.buffer && !data.surface->m_current.buffer->isSynchronous())
+        g_pHyprRenderer->usedAsyncBuffers.emplace_back(data.surface->m_current.buffer);
 
     g_pHyprOpenGL->blend(true);
 }
@@ -167,8 +167,8 @@ CBox CSurfacePassElement::getTexBox() {
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->current.size.x, 2.F),
-                     std::max((float)data.surface->current.size.y, 2.F)};
+        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->m_current.size.x, 2.F),
+                     std::max((float)data.surface->m_current.size.y, 2.F)};
         if (data.pWindow && data.pWindow->m_realSize->isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
             windowBox.width  = (windowBox.width / data.pWindow->m_reportedSize.x) * data.pWindow->m_realSize->value().x;
@@ -226,8 +226,8 @@ CRegion CSurfacePassElement::opaqueRegion() {
     if (ALPHA < 1.F)
         return {};
 
-    if (data.surface && data.surface->current.size == Vector2D{data.w, data.h}) {
-        CRegion    opaqueSurf = data.surface->current.opaque.copy().intersect(CBox{{}, {data.w, data.h}});
+    if (data.surface && data.surface->m_current.size == Vector2D{data.w, data.h}) {
+        CRegion    opaqueSurf = data.surface->m_current.opaque.copy().intersect(CBox{{}, {data.w, data.h}});
         const auto texBox     = getTexBox();
         opaqueSurf.scale(texBox.size() / Vector2D{data.w, data.h});
         return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->m_position).expand(-data.rounding);
@@ -241,7 +241,7 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     if (!PSURFACE)
         return {};
 
-    const auto& bufferSize = data.surface->current.bufferSize;
+    const auto& bufferSize = data.surface->m_current.bufferSize;
 
     auto        visibleRegion = PSURFACE->m_visibleRegion.copy();
     if (visibleRegion.empty())

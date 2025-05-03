@@ -184,11 +184,11 @@ SBoxExtents CWindow::getFullWindowExtents() {
         if (-surfaceExtents.y > maxExtents.topLeft.y)
             maxExtents.topLeft.y = -surfaceExtents.y;
 
-        if (surfaceExtents.x + surfaceExtents.width > m_wlSurface->resource()->current.size.x + maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_wlSurface->resource()->current.size.x;
+        if (surfaceExtents.x + surfaceExtents.width > m_wlSurface->resource()->m_current.size.x + maxExtents.bottomRight.x)
+            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_wlSurface->resource()->m_current.size.x;
 
-        if (surfaceExtents.y + surfaceExtents.height > m_wlSurface->resource()->current.size.y + maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_wlSurface->resource()->current.size.y;
+        if (surfaceExtents.y + surfaceExtents.height > m_wlSurface->resource()->m_current.size.y + maxExtents.bottomRight.y)
+            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_wlSurface->resource()->m_current.size.y;
     }
 
     return maxExtents;
@@ -1159,18 +1159,18 @@ bool CWindow::opaque() {
     if (PWORKSPACE->m_alpha->value() != 1.f)
         return false;
 
-    if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->surface && m_xwaylandSurface->surface->current.texture)
-        return m_xwaylandSurface->surface->current.texture->m_bOpaque;
+    if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->surface && m_xwaylandSurface->surface->m_current.texture)
+        return m_xwaylandSurface->surface->m_current.texture->m_bOpaque;
 
-    if (!m_wlSurface->resource() || !m_wlSurface->resource()->current.texture)
+    if (!m_wlSurface->resource() || !m_wlSurface->resource()->m_current.texture)
         return false;
 
     // TODO: this is wrong
-    const auto EXTENTS = m_xdgSurface->surface->current.opaque.getExtents();
-    if (EXTENTS.w >= m_xdgSurface->surface->current.bufferSize.x && EXTENTS.h >= m_xdgSurface->surface->current.bufferSize.y)
+    const auto EXTENTS = m_xdgSurface->surface->m_current.opaque.getExtents();
+    if (EXTENTS.w >= m_xdgSurface->surface->m_current.bufferSize.x && EXTENTS.h >= m_xdgSurface->surface->m_current.bufferSize.y)
         return true;
 
-    return m_wlSurface->resource()->current.texture->m_bOpaque;
+    return m_wlSurface->resource()->m_current.texture->m_bOpaque;
 }
 
 float CWindow::rounding() {
@@ -1772,19 +1772,19 @@ void CWindow::sendWindowSize(bool force) {
 }
 
 NContentType::eContentType CWindow::getContentType() {
-    if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->contentType.valid())
+    if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->m_contentType.valid())
         return CONTENT_TYPE_NONE;
 
-    return m_wlSurface->resource()->contentType->value;
+    return m_wlSurface->resource()->m_contentType->value;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {
-    if (!m_wlSurface->resource()->contentType.valid())
-        m_wlSurface->resource()->contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
+    if (!m_wlSurface->resource()->m_contentType.valid())
+        m_wlSurface->resource()->m_contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
     // else disallow content type change if proto is used?
 
     Debug::log(INFO, "ContentType for window {}", (int)contentType);
-    m_wlSurface->resource()->contentType->value = contentType;
+    m_wlSurface->resource()->m_contentType->value = contentType;
 }
 
 void CWindow::deactivateGroupMembers() {

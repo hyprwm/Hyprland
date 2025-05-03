@@ -88,7 +88,7 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
 
     pSurface = surface;
 
-    listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+    listeners.destroySurface = surface->m_events.destroy.registerListener([this](std::any d) {
         if (mapped)
             events.unmap.emit();
 
@@ -101,15 +101,15 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
         pSurface.reset();
     });
 
-    listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-        if (pSurface->current.texture && !mapped) {
+    listeners.commitSurface = surface->m_events.commit.registerListener([this](std::any d) {
+        if (pSurface->m_current.texture && !mapped) {
             mapped = true;
             pSurface->map();
             events.map.emit();
             return;
         }
 
-        if (!pSurface->current.texture && mapped) {
+        if (!pSurface->m_current.texture && mapped) {
             mapped = false;
             pSurface->unmap();
             events.unmap.emit();

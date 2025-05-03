@@ -41,7 +41,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         }
 
         if (output) {
-            const auto wpMonitor = CWLOutputResource::fromResource(output)->monitor;
+            const auto wpMonitor = CWLOutputResource::fromResource(output)->m_monitor;
 
             if (!wpMonitor.expired()) {
                 const auto monitor = wpMonitor.lock();

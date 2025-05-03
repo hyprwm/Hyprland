@@ -265,7 +265,7 @@ void CTabletTool::setSurface(SP<CWLSurfaceResource> surf) {
     m_surface = surf;
 
     if (surf) {
-        m_listeners.destroySurface = surf->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = surf->m_events.destroy.registerListener([this](std::any d) {
             PROTO::tablet->proximityOut(m_self.lock());
             m_surface.reset();
             m_listeners.destroySurface.reset();

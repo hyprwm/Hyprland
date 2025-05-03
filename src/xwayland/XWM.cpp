@@ -957,7 +957,7 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
     setActiveWindow(XCB_WINDOW_NONE);
     initSelection();
 
-    listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
+    listeners.newWLSurface     = PROTO::compositor->m_events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
     listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();

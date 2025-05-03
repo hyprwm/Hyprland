@@ -19,7 +19,7 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
             return;
         }
 
-        if (SURF->colorManagement) {
+        if (SURF->m_colorManagement) {
             r->error(WP_CONTENT_TYPE_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED, "CT manager already exists");
             return;
         }
@@ -33,7 +33,7 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
 
         RESOURCE->self = RESOURCE;
 
-        SURF->contentType = RESOURCE;
+        SURF->m_contentType = RESOURCE;
     });
 }
 
@@ -42,7 +42,7 @@ bool CContentTypeManager::good() {
 }
 
 CContentType::CContentType(WP<CWLSurfaceResource> surface) {
-    destroy = surface->events.destroy.registerListener([this](std::any d) { PROTO::contentType->destroyResource(this); });
+    destroy = surface->m_events.destroy.registerListener([this](std::any d) { PROTO::contentType->destroyResource(this); });
 }
 
 CContentType::CContentType(SP<CWpContentTypeV1> resource) : m_resource(resource) {
@@ -80,8 +80,8 @@ void CContentTypeProtocol::bindManager(wl_client* client, void* data, uint32_t v
 }
 
 SP<CContentType> CContentTypeProtocol::getContentType(WP<CWLSurfaceResource> surface) {
-    if (surface->contentType.valid())
-        return surface->contentType.lock();
+    if (surface->m_contentType.valid())
+        return surface->m_contentType.lock();
 
     return m_vContentTypes.emplace_back(makeShared<CContentType>(surface));
 }

@@ -22,7 +22,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
 
     overlayCursor = !!overlay_cursor;
-    pMonitor      = CWLOutputResource::fromResource(output)->monitor;
+    pMonitor      = CWLOutputResource::fromResource(output)->m_monitor;
 
     if (!pMonitor) {
         LOGM(ERR, "Client requested sharing of a monitor that doesnt exist");

@@ -238,7 +238,7 @@ void CLayerSurface::onUnmap() {
 
     // refocus if needed
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
-    if (WASLASTFOCUS || (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->hlSurface && !g_pCompositor->m_lastFocus->hlSurface->keyboardFocusable())) {
+    if (WASLASTFOCUS || (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->m_hlSurface && !g_pCompositor->m_lastFocus->m_hlSurface->keyboardFocusable())) {
         if (!g_pInputManager->refocusLastWindow(PMONITOR))
             g_pInputManager->refocus();
     } else if (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus != m_surface->resource())
@@ -247,8 +247,8 @@ void CLayerSurface::onUnmap() {
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
 
-    geomFixed = {m_geometry.x + (int)PMONITOR->m_position.x, m_geometry.y + (int)PMONITOR->m_position.y, (int)m_layerSurface->surface->current.size.x,
-                 (int)m_layerSurface->surface->current.size.y};
+    geomFixed = {m_geometry.x + (int)PMONITOR->m_position.x, m_geometry.y + (int)PMONITOR->m_position.y, (int)m_layerSurface->surface->m_current.size.x,
+                 (int)m_layerSurface->surface->m_current.size.y};
     g_pHyprRenderer->damageBox(geomFixed);
 
     g_pInputManager->simulateMouseMovement();
@@ -262,7 +262,7 @@ void CLayerSurface::onCommit() {
 
     if (!m_mapped) {
         // we're re-mapping if this is the case
-        if (m_layerSurface->surface && !m_layerSurface->surface->current.texture) {
+        if (m_layerSurface->surface && !m_layerSurface->surface->m_current.texture) {
             m_fadingOut = false;
             m_geometry  = {};
             g_pHyprRenderer->arrangeLayersForMonitor(monitorID());
@@ -308,12 +308,12 @@ void CLayerSurface::onCommit() {
         m_position = Vector2D(m_geometry.x, m_geometry.y);
 
         // update geom if it changed
-        if (m_layerSurface->surface->current.scale == 1 && PMONITOR->m_scale != 1.f && m_layerSurface->surface->current.viewport.hasDestination) {
+        if (m_layerSurface->surface->m_current.scale == 1 && PMONITOR->m_scale != 1.f && m_layerSurface->surface->m_current.viewport.hasDestination) {
             // fractional scaling. Dirty hack.
-            m_geometry = {m_geometry.pos(), m_layerSurface->surface->current.viewport.destination};
+            m_geometry = {m_geometry.pos(), m_layerSurface->surface->m_current.viewport.destination};
         } else {
             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
-            m_geometry = {m_geometry.pos(), m_layerSurface->surface->current.size};
+            m_geometry = {m_geometry.pos(), m_layerSurface->surface->m_current.size};
         }
     }
 

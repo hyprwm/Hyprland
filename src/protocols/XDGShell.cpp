@@ -195,7 +195,7 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
 
     resource->setSetFullscreen([this](CXdgToplevel* r, wl_resource* output) {
         if (output)
-            if (const auto PM = CWLOutputResource::fromResource(output)->monitor; PM)
+            if (const auto PM = CWLOutputResource::fromResource(output)->m_monitor; PM)
                 state.requestsFullscreenMonitor = PM->m_id;
 
         state.requestsFullscreen = true;
@@ -372,7 +372,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         PROTO::xdgShell->destroyResource(this);
     });
 
-    listeners.surfaceDestroy = surface->events.destroy.registerListener([this](std::any d) {
+    listeners.surfaceDestroy = surface->m_events.destroy.registerListener([this](std::any d) {
         LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
         listeners.surfaceDestroy.reset();
         listeners.surfaceCommit.reset();
@@ -385,17 +385,17 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         events.destroy.emit();
     });
 
-    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+    listeners.surfaceCommit = surface->m_events.commit.registerListener([this](std::any d) {
         current = pending;
         if (toplevel)
             toplevel->current = toplevel->pending;
 
-        if UNLIKELY (initialCommit && surface->pending.buffer) {
+        if UNLIKELY (initialCommit && surface->m_pending.buffer) {
             resource->error(-1, "Buffer attached before initial commit");
             return;
         }
 
-        if (surface->current.texture && !mapped) {
+        if (surface->m_current.texture && !mapped) {
             // this forces apps to not draw CSD.
             if (toplevel)
                 toplevel->setMaximized(true);
@@ -406,7 +406,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
             return;
         }
 
-        if (!surface->current.texture && mapped) {
+        if (!surface->m_current.texture && mapped) {
             mapped = false;
             events.unmap.emit();
             surface->unmap();
@@ -723,7 +723,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
             return;
         }
 
-        if UNLIKELY (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+        if UNLIKELY (SURF->m_role->role() != SURFACE_ROLE_UNASSIGNED) {
             r->error(-1, "Surface already has a different role");
             return;
         }
@@ -738,7 +738,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
 
         RESOURCE->self    = RESOURCE;
         RESOURCE->surface = SURF;
-        SURF->role        = makeShared<CXDGSurfaceRole>(RESOURCE);
+        SURF->m_role      = makeShared<CXDGSurfaceRole>(RESOURCE);
 
         surfaces.emplace_back(RESOURCE);
 

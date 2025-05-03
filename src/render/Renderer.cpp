@@ -1686,7 +1686,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             continue;
 
         const auto PLAYER = ls->m_layerSurface;
-        const auto PSTATE = &PLAYER->current;
+        const auto PSTATE = &PLAYER->m_current;
         if (exclusiveZone != (PSTATE->exclusive > 0))
             continue;
 

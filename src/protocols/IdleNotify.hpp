@@ -19,12 +19,12 @@ class CExtIdleNotification {
     bool inhibitorsAreObeyed() const;
 
   private:
-    SP<CExtIdleNotificationV1> resource;
-    uint32_t                   timeoutMs = 0;
-    SP<CEventLoopTimer>        timer;
+    SP<CExtIdleNotificationV1> m_resource;
+    uint32_t                   m_timeoutMs = 0;
+    SP<CEventLoopTimer>        m_timer;
 
-    bool                       idled          = false;
-    bool                       obeyInhibitors = false;
+    bool                       m_idled          = false;
+    bool                       m_obeyInhibitors = false;
 
     void                       updateTimer();
 };
@@ -46,8 +46,8 @@ class CIdleNotifyProtocol : public IWaylandProtocol {
     bool isInhibited = false;
 
     //
-    std::vector<UP<CExtIdleNotifierV1>>   m_vManagers;
-    std::vector<SP<CExtIdleNotification>> m_vNotifications;
+    std::vector<UP<CExtIdleNotifierV1>>   m_managers;
+    std::vector<SP<CExtIdleNotification>> m_notifications;
 
     friend class CExtIdleNotification;
 };

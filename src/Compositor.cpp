@@ -1268,7 +1268,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->mapped) || ls->m_alpha->value() == 0.f)
+            if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_mapped) || ls->m_alpha->value() == 0.f)
                 continue;
 
             auto SURFACEAT = ls->m_popupHead->at(pos, true);
@@ -1288,11 +1288,11 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
                                                          bool aboveLockscreen) {
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->surface->m_mapped) || ls->m_alpha->value() == 0.f ||
+        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_surface->m_mapped) || ls->m_alpha->value() == 0.f ||
             (aboveLockscreen && (!ls->m_aboveLockscreen || !ls->m_aboveLockscreenInteractable)))
             continue;
 
-        auto [surf, local] = ls->m_layerSurface->surface->at(pos - ls->m_geometry.pos(), true);
+        auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
 
         if (surf) {
             if (surf->m_current.input.empty())
@@ -2554,13 +2554,13 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto const& ls : m_layers) {
-        if (ls->m_layerSurface && ls->m_layerSurface->surface == pSurface)
+        if (ls->m_layerSurface && ls->m_layerSurface->m_surface == pSurface)
             return ls;
 
         if (!ls->m_layerSurface || !ls->m_mapped)
             continue;
 
-        ls->m_layerSurface->surface->breadthfirst(
+        ls->m_layerSurface->m_surface->breadthfirst(
             [&result](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                 if (surf == result.first) {
                     result.second = true;

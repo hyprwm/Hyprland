@@ -593,7 +593,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
-    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
+    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_noInitialFocus = true;
 
     if (PWINDOW->m_workspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !PWINDOW->m_isFloating) {

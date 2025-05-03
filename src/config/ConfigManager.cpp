@@ -1536,15 +1536,15 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->m_targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_targetNamespace)
                 continue;
-        } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->layerNamespace))
+        } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->m_layerNamespace))
             continue;
 
         // hit
         returns.emplace_back(lr);
     }
 
-    if (shouldBlurLS(pLS->m_layerSurface->layerNamespace))
-        returns.emplace_back(makeShared<CLayerRule>(pLS->m_layerSurface->layerNamespace, "blur"));
+    if (shouldBlurLS(pLS->m_layerSurface->m_layerNamespace))
+        returns.emplace_back(makeShared<CLayerRule>(pLS->m_layerSurface->m_layerNamespace, "blur"));
 
     return returns;
 }

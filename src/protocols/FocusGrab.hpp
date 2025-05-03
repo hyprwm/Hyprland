@@ -21,12 +21,12 @@ class CFocusGrabSurfaceState {
         PendingAddition,
         PendingRemoval,
         Comitted,
-    } state = PendingAddition;
+    } m_state = PendingAddition;
 
   private:
     struct {
         CHyprSignalListener destroy;
-    } listeners;
+    } m_listeners;
 };
 
 class CFocusGrab {
@@ -47,11 +47,11 @@ class CFocusGrab {
     void                                                                   refocusKeyboard();
     void                                                                   commit(bool removeOnly = false);
 
-    SP<CHyprlandFocusGrabV1>                                               resource;
-    std::unordered_map<WP<CWLSurfaceResource>, UP<CFocusGrabSurfaceState>> m_mSurfaces;
-    SP<CSeatGrab>                                                          grab;
+    SP<CHyprlandFocusGrabV1>                                               m_resource;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CFocusGrabSurfaceState>> m_surfaces;
+    SP<CSeatGrab>                                                          m_grab;
 
-    bool                                                                   m_bGrabActive = false;
+    bool                                                                   m_grabActive = false;
 
     friend class CFocusGrabSurfaceState;
 };
@@ -67,8 +67,8 @@ class CFocusGrabProtocol : public IWaylandProtocol {
     void                                         destroyGrab(CFocusGrab* grab);
     void                                         onCreateGrab(CHyprlandFocusGrabManagerV1* pMgr, uint32_t id);
 
-    std::vector<UP<CHyprlandFocusGrabManagerV1>> m_vManagers;
-    std::vector<UP<CFocusGrab>>                  m_vGrabs;
+    std::vector<UP<CHyprlandFocusGrabManagerV1>> m_managers;
+    std::vector<UP<CFocusGrab>>                  m_grabs;
 
     friend class CFocusGrab;
 };

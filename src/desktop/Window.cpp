@@ -1775,7 +1775,7 @@ NContentType::eContentType CWindow::getContentType() {
     if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->m_contentType.valid())
         return CONTENT_TYPE_NONE;
 
-    return m_wlSurface->resource()->m_contentType->value;
+    return m_wlSurface->resource()->m_contentType->m_value;
 }
 
 void CWindow::setContentType(NContentType::eContentType contentType) {
@@ -1784,7 +1784,7 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
     // else disallow content type change if proto is used?
 
     Debug::log(INFO, "ContentType for window {}", (int)contentType);
-    m_wlSurface->resource()->m_contentType->value = contentType;
+    m_wlSurface->resource()->m_contentType->m_value = contentType;
 }
 
 void CWindow::deactivateGroupMembers() {

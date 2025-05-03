@@ -26,18 +26,16 @@ class CDRMLeaseResource {
 
     bool                                        good();
 
-    WP<CDRMLeaseDeviceResource>                 parent;
-    std::vector<WP<CDRMLeaseConnectorResource>> requested;
-    SP<Aquamarine::CDRMLease>                   lease;
-
-    int                                         leaseFD = -1;
+    WP<CDRMLeaseDeviceResource>                 m_parent;
+    std::vector<WP<CDRMLeaseConnectorResource>> m_requested;
+    SP<Aquamarine::CDRMLease>                   m_lease;
 
     struct {
         CHyprSignalListener destroyLease;
-    } listeners;
+    } m_listeners;
 
   private:
-    SP<CWpDrmLeaseV1> resource;
+    SP<CWpDrmLeaseV1> m_resource;
 };
 
 class CDRMLeaseRequestResource {
@@ -46,12 +44,12 @@ class CDRMLeaseRequestResource {
 
     bool                                        good();
 
-    WP<CDRMLeaseDeviceResource>                 parent;
-    WP<CDRMLeaseRequestResource>                self;
-    std::vector<WP<CDRMLeaseConnectorResource>> requested;
+    WP<CDRMLeaseDeviceResource>                 m_parent;
+    WP<CDRMLeaseRequestResource>                m_self;
+    std::vector<WP<CDRMLeaseConnectorResource>> m_requested;
 
   private:
-    SP<CWpDrmLeaseRequestV1> resource;
+    SP<CWpDrmLeaseRequestV1> m_resource;
 };
 
 class CDRMLeaseConnectorResource {
@@ -62,17 +60,17 @@ class CDRMLeaseConnectorResource {
     bool                                  good();
     void                                  sendData();
 
-    WP<CDRMLeaseConnectorResource>        self;
-    WP<CDRMLeaseDeviceResource>           parent;
-    PHLMONITORREF                         monitor;
-    bool                                  dead = false;
+    WP<CDRMLeaseConnectorResource>        m_self;
+    WP<CDRMLeaseDeviceResource>           m_parent;
+    PHLMONITORREF                         m_monitor;
+    bool                                  m_dead = false;
 
   private:
-    SP<CWpDrmLeaseConnectorV1> resource;
+    SP<CWpDrmLeaseConnectorV1> m_resource;
 
     struct {
         CHyprSignalListener destroyMonitor;
-    } listeners;
+    } m_listeners;
 
     friend class CDRMLeaseDeviceResource;
 };
@@ -84,12 +82,12 @@ class CDRMLeaseDeviceResource {
     bool                                        good();
     void                                        sendConnector(PHLMONITOR monitor);
 
-    std::vector<WP<CDRMLeaseConnectorResource>> connectorsSent;
+    std::vector<WP<CDRMLeaseConnectorResource>> m_connectorsSent;
 
-    WP<CDRMLeaseDeviceResource>                 self;
+    WP<CDRMLeaseDeviceResource>                 m_self;
 
   private:
-    SP<CWpDrmLeaseDeviceV1> resource;
+    SP<CWpDrmLeaseDeviceV1> m_resource;
 
     friend class CDRMLeaseProtocol;
 };
@@ -98,11 +96,11 @@ class CDRMLeaseDevice {
   public:
     CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend);
 
-    std::string                 name    = "";
-    bool                        success = false;
-    SP<Aquamarine::CDRMBackend> backend;
+    std::string                 m_name    = "";
+    bool                        m_success = false;
+    SP<Aquamarine::CDRMBackend> m_backend;
 
-    std::vector<PHLMONITORREF>  offeredOutputs;
+    std::vector<PHLMONITORREF>  m_offeredOutputs;
 };
 
 class CDRMLeaseProtocol : public IWaylandProtocol {
@@ -120,12 +118,12 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
     void destroyResource(CDRMLeaseResource* resource);
 
     //
-    std::vector<SP<CDRMLeaseDeviceResource>>    m_vManagers;
-    std::vector<SP<CDRMLeaseConnectorResource>> m_vConnectors;
-    std::vector<SP<CDRMLeaseRequestResource>>   m_vRequests;
-    std::vector<SP<CDRMLeaseResource>>          m_vLeases;
+    std::vector<SP<CDRMLeaseDeviceResource>>    m_managers;
+    std::vector<SP<CDRMLeaseConnectorResource>> m_connectors;
+    std::vector<SP<CDRMLeaseRequestResource>>   m_requests;
+    std::vector<SP<CDRMLeaseResource>>          m_leases;
 
-    SP<CDRMLeaseDevice>                         primaryDevice;
+    SP<CDRMLeaseDevice>                         m_primaryDevice;
 
     friend class CDRMLeaseDeviceResource;
     friend class CDRMLeaseConnectorResource;

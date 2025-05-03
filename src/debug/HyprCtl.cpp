@@ -1052,7 +1052,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "plugins:\n";
     if (g_pPluginSystem) {
         for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
-            result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+            result += std::format("  {} by {} ver {}\n", pl->m_name, pl->m_author, pl->m_version);
         }
     } else
         result += "\tunknown: not runtime\n";
@@ -1548,7 +1548,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
     "version": "{}",
     "description": "{}"
 }},)#",
-                    escapeJSONStrings(p->name), escapeJSONStrings(p->author), (uintptr_t)p->m_pHandle, escapeJSONStrings(p->version), escapeJSONStrings(p->description));
+                    escapeJSONStrings(p->m_name), escapeJSONStrings(p->m_author), (uintptr_t)p->m_handle, escapeJSONStrings(p->m_version), escapeJSONStrings(p->m_description));
             }
             trimTrailingComma(result);
             result += "]";
@@ -1557,8 +1557,8 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
                 return "no plugins loaded";
 
             for (auto const& p : PLUGINS) {
-                result +=
-                    std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->name, p->author, (uintptr_t)p->m_pHandle, p->version, p->description);
+                result += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->m_name, p->m_author, (uintptr_t)p->m_handle, p->m_version,
+                                      p->m_description);
             }
         }
 

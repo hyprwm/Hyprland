@@ -14,12 +14,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) : m_pSource(source), m_pDestination(destination), m_pOwner(owner) {
+CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) : m_source(source), m_destination(destination), m_owner(owner) {
     ;
 }
 
 CFunctionHook::~CFunctionHook() {
-    if (m_bActive)
+    if (m_active)
         unhook();
 }
 
@@ -70,7 +70,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
     SAssembly returns;
 
     // analyze the code and fix what we know how to.
-    uint64_t currentAddress = (uint64_t)m_pSource;
+    uint64_t currentAddress = (uint64_t)m_source;
     // actually newline + 1
     size_t lastAsmNewline = 0;
     // needle for destination binary
@@ -106,7 +106,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             if (ADDREND == std::string::npos || ADDRSTART == std::string::npos)
                 return {};
 
-            const uint64_t PREDICTEDRIP = (uint64_t)m_pTrampolineAddr + currentDestinationOffset + len;
+            const uint64_t PREDICTEDRIP = (uint64_t)m_trampolineAddr + currentDestinationOffset + len;
             const int32_t  NEWRIPOFFSET = DESTINATION - PREDICTEDRIP;
 
             size_t         ripOffset = 0;
@@ -157,12 +157,12 @@ bool CFunctionHook::hook() {
 
     // alloc trampoline
     const auto MAX_TRAMPOLINE_SIZE = HOOK_TRAMPOLINE_MAX_SIZE; // we will never need more.
-    m_pTrampolineAddr              = (void*)g_pFunctionHookSystem->getAddressForTrampo();
+    m_trampolineAddr               = (void*)g_pFunctionHookSystem->getAddressForTrampo();
 
     // probe instructions to be trampolin'd
     SInstructionProbe probe;
     try {
-        probe = probeMinimumJumpSize(m_pSource, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
+        probe = probeMinimumJumpSize(m_source, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
     } catch (std::exception& e) { return false; }
 
     const auto PROBEFIXEDASM = fixInstructionProbeRIPCalls(probe);
@@ -182,42 +182,42 @@ bool CFunctionHook::hook() {
         return false;
     }
 
-    m_pOriginalBytes = malloc(ORIGSIZE);
-    memcpy(m_pOriginalBytes, m_pSource, ORIGSIZE);
+    m_originalBytes = malloc(ORIGSIZE);
+    memcpy(m_originalBytes, m_source, ORIGSIZE);
 
     // populate trampoline
-    memcpy(m_pTrampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
-    memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
-    memcpy((uint8_t*)m_pTrampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
+    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
+    memcpy((uint8_t*)m_trampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
+    memcpy((uint8_t*)m_trampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 
     // fixup trampoline addr
-    *(uint64_t*)((uint8_t*)m_pTrampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
-        (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
+    *(uint64_t*)((uint8_t*)m_trampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
+        (uint64_t)((uint8_t*)m_source + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
     const auto     PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
-    const uint8_t* PROTSTART    = (uint8_t*)m_pSource - ((uint64_t)m_pSource % PAGESIZE_VAR);
-    const size_t   PROTLEN      = std::ceil((float)(ORIGSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE_VAR) * PAGESIZE_VAR;
+    const uint8_t* PROTSTART    = (uint8_t*)m_source - ((uint64_t)m_source % PAGESIZE_VAR);
+    const size_t   PROTLEN      = std::ceil((float)(ORIGSIZE + ((uint64_t)m_source - (uint64_t)PROTSTART)) / (float)PAGESIZE_VAR) * PAGESIZE_VAR;
     mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy((uint8_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    memcpy((uint8_t*)m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
-    memcpy((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
+    memcpy((uint8_t*)m_source + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
     size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
-    memset((uint8_t*)m_pSource + currentOp, NOP, ORIGSIZE - currentOp);
+    memset((uint8_t*)m_source + currentOp, NOP, ORIGSIZE - currentOp);
 
     // fixup jump addr
-    *(uint64_t*)((uint8_t*)m_pSource + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_pDestination);
+    *(uint64_t*)((uint8_t*)m_source + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_destination);
 
     // revert mprot
     mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_EXEC);
 
     // set original addr to trampo addr
-    m_pOriginal = m_pTrampolineAddr;
+    m_original = m_trampolineAddr;
 
-    m_bActive    = true;
-    m_iHookLen   = ORIGSIZE;
-    m_iTrampoLen = TRAMPOLINE_SIZE;
+    m_active    = true;
+    m_hookLen   = ORIGSIZE;
+    m_trampoLen = TRAMPOLINE_SIZE;
 
     return true;
 }
@@ -228,41 +228,41 @@ bool CFunctionHook::unhook() {
     return false;
 #endif
 
-    if (!m_bActive)
+    if (!m_active)
         return false;
 
     // allow write to src
-    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
-    memcpy(m_pSource, m_pOriginalBytes, m_iHookLen);
+    memcpy(m_source, m_originalBytes, m_hookLen);
 
     // revert mprot
-    mprotect((uint8_t*)m_pSource - ((uint64_t)m_pSource) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // reset vars
-    m_bActive         = false;
-    m_iHookLen        = 0;
-    m_iTrampoLen      = 0;
-    m_pTrampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
-    m_pOriginalBytes  = nullptr;
+    m_active         = false;
+    m_hookLen        = 0;
+    m_trampoLen      = 0;
+    m_trampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
+    m_originalBytes  = nullptr;
 
-    free(m_pOriginalBytes);
+    free(m_originalBytes);
 
     return true;
 }
 
 CFunctionHook* CHookSystem::initHook(HANDLE owner, void* source, void* destination) {
-    return m_vHooks.emplace_back(makeUnique<CFunctionHook>(owner, source, destination)).get();
+    return m_hooks.emplace_back(makeUnique<CFunctionHook>(owner, source, destination)).get();
 }
 
 bool CHookSystem::removeHook(CFunctionHook* hook) {
-    std::erase_if(m_vHooks, [&](const auto& other) { return other.get() == hook; });
+    std::erase_if(m_hooks, [&](const auto& other) { return other.get() == hook; });
     return true; // todo: make false if not found
 }
 
 void CHookSystem::removeAllHooksFrom(HANDLE handle) {
-    std::erase_if(m_vHooks, [&](const auto& other) { return other->m_pOwner == handle; });
+    std::erase_if(m_hooks, [&](const auto& other) { return other->m_owner == handle; });
 }
 
 static uintptr_t seekNewPageAddr() {
@@ -334,7 +334,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
     // Nobody will hook 100k times, and even if, that's only 6.4 MB. Nothing.
 
     SAllocatedPage* page = nullptr;
-    for (auto& p : pages) {
+    for (auto& p : m_pages) {
         if (p.used + HOOK_TRAMPOLINE_MAX_SIZE > p.len)
             continue;
 
@@ -343,7 +343,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
     }
 
     if (!page)
-        page = &pages.emplace_back();
+        page = &m_pages.emplace_back();
 
     if (!page->addr) {
         // allocate it

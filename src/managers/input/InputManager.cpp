@@ -270,6 +270,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             foundSurface  = foundLockSurface;
         }
 
+        if (refocus) {
+            m_foundLSToFocus      = pFoundLayerSurface;
+            m_foundWindowToFocus  = pFoundWindow;
+            m_foundSurfaceToFocus = foundSurface;
+        }
+
         g_pSeatManager->setPointerFocus(foundSurface, surfaceCoords);
         g_pSeatManager->sendPointerMotion(time, surfaceCoords);
 

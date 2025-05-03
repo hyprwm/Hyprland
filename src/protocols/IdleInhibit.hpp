@@ -14,10 +14,10 @@ class CIdleInhibitor {
 
     struct {
         CHyprSignalListener destroy;
-    } listeners;
+    } m_listeners;
 
-    WP<CIdleInhibitorResource> resource;
-    WP<CWLSurfaceResource>     surface;
+    WP<CIdleInhibitorResource> m_resource;
+    WP<CWLSurfaceResource>     m_surface;
 };
 
 class CIdleInhibitorResource {
@@ -25,20 +25,20 @@ class CIdleInhibitorResource {
     CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_, SP<CWLSurfaceResource> surface_);
     ~CIdleInhibitorResource();
 
-    SP<CIdleInhibitor> inhibitor;
+    SP<CIdleInhibitor> m_inhibitor;
 
     struct {
         CSignal destroy;
-    } events;
+    } m_events;
 
   private:
-    SP<CZwpIdleInhibitorV1> resource;
-    WP<CWLSurfaceResource>  surface;
-    bool                    destroySent = false;
+    SP<CZwpIdleInhibitorV1> m_resource;
+    WP<CWLSurfaceResource>  m_surface;
+    bool                    m_destroySent = false;
 
     struct {
         CHyprSignalListener destroySurface;
-    } listeners;
+    } m_listeners;
 };
 
 class CIdleInhibitProtocol : public IWaylandProtocol {
@@ -49,7 +49,7 @@ class CIdleInhibitProtocol : public IWaylandProtocol {
 
     struct {
         CSignal newIdleInhibitor; // data: SP<CIdleInhibitor>
-    } events;
+    } m_events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
@@ -58,8 +58,8 @@ class CIdleInhibitProtocol : public IWaylandProtocol {
     void removeInhibitor(CIdleInhibitorResource*);
 
     //
-    std::vector<UP<CZwpIdleInhibitManagerV1>> m_vManagers;
-    std::vector<SP<CIdleInhibitorResource>>   m_vInhibitors;
+    std::vector<UP<CZwpIdleInhibitManagerV1>> m_managers;
+    std::vector<SP<CIdleInhibitorResource>>   m_inhibitors;
 
     friend class CIdleInhibitorResource;
 };

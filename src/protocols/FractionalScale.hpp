@@ -49,9 +49,9 @@ class CFractionalScaleProtocol : public IWaylandProtocol {
 
     //
 
-    std::unordered_map<WP<CWLSurfaceResource>, float>                     m_mSurfaceScales;
-    std::unordered_map<WP<CWLSurfaceResource>, UP<CFractionalScaleAddon>> m_mAddons;
-    std::vector<UP<CWpFractionalScaleManagerV1>>                          m_vManagers;
+    std::unordered_map<WP<CWLSurfaceResource>, float>                     m_surfaceScales;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CFractionalScaleAddon>> m_addons;
+    std::vector<UP<CWpFractionalScaleManagerV1>>                          m_managers;
 
     friend class CFractionalScaleAddon;
 };

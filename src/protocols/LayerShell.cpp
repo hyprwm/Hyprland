@@ -17,107 +17,107 @@ void CLayerShellResource::SState::reset() {
 }
 
 CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, PHLMONITOR pMonitor,
-                                         zwlrLayerShellV1Layer layer) : layerNamespace(namespace_), surface(surf_), resource(resource_) {
+                                         zwlrLayerShellV1Layer layer) : m_layerNamespace(namespace_), m_surface(surf_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    current.layer = layer;
-    monitor       = pMonitor ? pMonitor->m_name : "";
+    m_current.layer = layer;
+    m_monitor       = pMonitor ? pMonitor->m_name : "";
 
-    resource->setDestroy([this](CZwlrLayerSurfaceV1* r) {
-        events.destroy.emit();
+    m_resource->setDestroy([this](CZwlrLayerSurfaceV1* r) {
+        m_events.destroy.emit();
         PROTO::layerShell->destroyResource(this);
     });
-    resource->setOnDestroy([this](CZwlrLayerSurfaceV1* r) {
-        events.destroy.emit();
-        PROTO::layerShell->destroyResource(this);
-    });
-
-    listeners.destroySurface = surf_->m_events.destroy.registerListener([this](std::any d) {
-        events.destroy.emit();
+    m_resource->setOnDestroy([this](CZwlrLayerSurfaceV1* r) {
+        m_events.destroy.emit();
         PROTO::layerShell->destroyResource(this);
     });
 
-    listeners.unmapSurface = surf_->m_events.unmap.registerListener([this](std::any d) { events.unmap.emit(); });
+    m_listeners.destroySurface = surf_->m_events.destroy.registerListener([this](std::any d) {
+        m_events.destroy.emit();
+        PROTO::layerShell->destroyResource(this);
+    });
 
-    listeners.commitSurface = surf_->m_events.commit.registerListener([this](std::any d) {
-        current           = pending;
-        pending.committed = 0;
+    m_listeners.unmapSurface = surf_->m_events.unmap.registerListener([this](std::any d) { m_events.unmap.emit(); });
 
-        bool attachedBuffer = surface->m_current.texture;
+    m_listeners.commitSurface = surf_->m_events.commit.registerListener([this](std::any d) {
+        m_current           = m_pending;
+        m_pending.committed = 0;
 
-        if (attachedBuffer && !configured) {
-            surface->error(-1, "layerSurface was not configured, but a buffer was attached");
+        bool attachedBuffer = m_surface->m_current.texture;
+
+        if (attachedBuffer && !m_configured) {
+            m_surface->error(-1, "layerSurface was not configured, but a buffer was attached");
             return;
         }
 
         constexpr uint32_t horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
         constexpr uint32_t vert  = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
 
-        if (current.desiredSize.x <= 0 && (current.anchor & horiz) != horiz) {
-            surface->error(-1, "x == 0 but anchor doesn't have left and right");
+        if (m_current.desiredSize.x <= 0 && (m_current.anchor & horiz) != horiz) {
+            m_surface->error(-1, "x == 0 but anchor doesn't have left and right");
             return;
         }
 
-        if (current.desiredSize.y <= 0 && (current.anchor & vert) != vert) {
-            surface->error(-1, "y == 0 but anchor doesn't have top and bottom");
+        if (m_current.desiredSize.y <= 0 && (m_current.anchor & vert) != vert) {
+            m_surface->error(-1, "y == 0 but anchor doesn't have top and bottom");
             return;
         }
 
-        if (attachedBuffer && !mapped) {
-            mapped = true;
-            surface->map();
-            events.map.emit();
+        if (attachedBuffer && !m_mapped) {
+            m_mapped = true;
+            m_surface->map();
+            m_events.map.emit();
             return;
         }
 
-        if (!attachedBuffer && mapped) {
-            mapped = false;
-            events.unmap.emit();
-            surface->unmap();
-            configured = false;
+        if (!attachedBuffer && m_mapped) {
+            m_mapped = false;
+            m_events.unmap.emit();
+            m_surface->unmap();
+            m_configured = false;
             return;
         }
 
-        events.commit.emit();
+        m_events.commit.emit();
     });
 
-    resource->setSetSize([this](CZwlrLayerSurfaceV1* r, uint32_t x, uint32_t y) {
-        pending.committed |= STATE_SIZE;
-        pending.desiredSize = {(int)x, (int)y};
+    m_resource->setSetSize([this](CZwlrLayerSurfaceV1* r, uint32_t x, uint32_t y) {
+        m_pending.committed |= STATE_SIZE;
+        m_pending.desiredSize = {(int)x, (int)y};
     });
 
-    resource->setSetAnchor([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
+    m_resource->setSetAnchor([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
         if (anchor > (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_ANCHOR, "Invalid anchor");
             return;
         }
 
-        pending.committed |= STATE_ANCHOR;
-        pending.anchor = anchor;
+        m_pending.committed |= STATE_ANCHOR;
+        m_pending.anchor = anchor;
     });
 
-    resource->setSetExclusiveZone([this](CZwlrLayerSurfaceV1* r, int32_t zone) {
-        pending.committed |= STATE_EXCLUSIVE;
-        pending.exclusive = zone;
+    m_resource->setSetExclusiveZone([this](CZwlrLayerSurfaceV1* r, int32_t zone) {
+        m_pending.committed |= STATE_EXCLUSIVE;
+        m_pending.exclusive = zone;
     });
 
-    resource->setSetMargin([this](CZwlrLayerSurfaceV1* r, int32_t top, int32_t right, int32_t bottom, int32_t left) {
-        pending.committed |= STATE_MARGIN;
-        pending.margin = {left, right, top, bottom};
+    m_resource->setSetMargin([this](CZwlrLayerSurfaceV1* r, int32_t top, int32_t right, int32_t bottom, int32_t left) {
+        m_pending.committed |= STATE_MARGIN;
+        m_pending.margin = {left, right, top, bottom};
     });
 
-    resource->setSetKeyboardInteractivity([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1KeyboardInteractivity kbi) {
+    m_resource->setSetKeyboardInteractivity([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1KeyboardInteractivity kbi) {
         if (kbi > ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_KEYBOARD_INTERACTIVITY, "Invalid keyboard interactivity");
             return;
         }
 
-        pending.committed |= STATE_INTERACTIVITY;
-        pending.interactivity = kbi;
+        m_pending.committed |= STATE_INTERACTIVITY;
+        m_pending.interactivity = kbi;
     });
 
-    resource->setGetPopup([this](CZwlrLayerSurfaceV1* r, wl_resource* popup_) {
+    m_resource->setGetPopup([this](CZwlrLayerSurfaceV1* r, wl_resource* popup_) {
         auto popup = CXDGPopupResource::fromResource(popup_);
 
         if (popup->taken) {
@@ -126,74 +126,74 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         }
 
         popup->taken = true;
-        events.newPopup.emit(popup);
+        m_events.newPopup.emit(popup);
     });
 
-    resource->setAckConfigure([this](CZwlrLayerSurfaceV1* r, uint32_t serial) {
-        auto serialFound = std::find_if(serials.begin(), serials.end(), [serial](const auto& e) { return e.first == serial; });
+    m_resource->setAckConfigure([this](CZwlrLayerSurfaceV1* r, uint32_t serial) {
+        auto serialFound = std::find_if(m_serials.begin(), m_serials.end(), [serial](const auto& e) { return e.first == serial; });
 
-        if (serialFound == serials.end()) {
+        if (serialFound == m_serials.end()) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_SURFACE_STATE, "Serial invalid in ack_configure");
             return;
         }
 
-        configured = true;
-        size       = serialFound->second;
+        m_configured = true;
+        m_size       = serialFound->second;
 
-        serials.erase(serialFound);
+        m_serials.erase(serialFound);
     });
 
-    resource->setSetLayer([this](CZwlrLayerSurfaceV1* r, uint32_t layer) {
+    m_resource->setSetLayer([this](CZwlrLayerSurfaceV1* r, uint32_t layer) {
         if (layer > ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY) {
             r->error(ZWLR_LAYER_SHELL_V1_ERROR_INVALID_LAYER, "Invalid layer");
             return;
         }
 
-        pending.committed |= STATE_LAYER;
-        pending.layer = (zwlrLayerShellV1Layer)layer;
+        m_pending.committed |= STATE_LAYER;
+        m_pending.layer = (zwlrLayerShellV1Layer)layer;
     });
 
-    resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
+    m_resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
         if (anchor > (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Invalid exclusive edge");
             return;
         }
 
-        if (anchor && (!pending.anchor || !(pending.anchor & anchor))) {
+        if (anchor && (!m_pending.anchor || !(m_pending.anchor & anchor))) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Exclusive edge doesn't align with anchor");
             return;
         }
 
-        pending.committed |= STATE_EDGE;
-        pending.exclusiveEdge = anchor;
+        m_pending.committed |= STATE_EDGE;
+        m_pending.exclusiveEdge = anchor;
     });
 }
 
 CLayerShellResource::~CLayerShellResource() {
-    events.destroy.emit();
-    if (surface)
-        surface->resetRole();
+    m_events.destroy.emit();
+    if (m_surface)
+        m_surface->resetRole();
 }
 
 bool CLayerShellResource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CLayerShellResource::sendClosed() {
-    if (closed)
+    if (m_closed)
         return;
-    closed = true;
-    resource->sendClosed();
+    m_closed = true;
+    m_resource->sendClosed();
 }
 
 void CLayerShellResource::configure(const Vector2D& size_) {
-    size = size_;
+    m_size = size_;
 
     auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
-    serials.push_back({serial, size_});
+    m_serials.push_back({serial, size_});
 
-    resource->sendConfigure(serial, size_.x, size_.y);
+    m_resource->sendConfigure(serial, size_.x, size_.y);
 }
 
 CLayerShellProtocol::CLayerShellProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -201,7 +201,7 @@ CLayerShellProtocol::CLayerShellProtocol(const wl_interface* iface, const int& v
 }
 
 void CLayerShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwlrLayerShellV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CZwlrLayerShellV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwlrLayerShellV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwlrLayerShellV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -211,11 +211,11 @@ void CLayerShellProtocol::bindManager(wl_client* client, void* data, uint32_t ve
 }
 
 void CLayerShellProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CLayerShellProtocol::destroyResource(CLayerShellResource* surf) {
-    std::erase_if(m_vLayers, [&](const auto& other) { return other.get() == surf; });
+    std::erase_if(m_layers, [&](const auto& other) { return other.get() == surf; });
 }
 
 void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_) {
@@ -238,11 +238,11 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
-    const auto RESOURCE = m_vLayers.emplace_back(makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), SURF, namespace_, PMONITOR, layer));
+    const auto RESOURCE = m_layers.emplace_back(makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), SURF, namespace_, PMONITOR, layer));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vLayers.pop_back();
+        m_layers.pop_back();
         return;
     }
 
@@ -252,6 +252,6 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
 }
 
-CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : layerSurface(ls) {
+CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : m_layerSurface(ls) {
     ;
 }

@@ -57,7 +57,7 @@ void CPopup::initAllSignals() {
             m_listeners.newPopup = m_windowOwner->m_xdgSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else if (!m_layerOwner.expired())
             m_listeners.newPopup =
-                m_layerOwner->m_layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+                m_layerOwner->m_layerSurface->m_events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else
             ASSERT(false);
 

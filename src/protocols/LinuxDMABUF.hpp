@@ -22,11 +22,11 @@ class CLinuxDMABuffer {
     bool good();
 
   private:
-    SP<CDMABuffer> buffer;
+    SP<CDMABuffer> m_buffer;
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
+    } m_listeners;
 
     friend class CLinuxDMABUFParamsResource;
 };
@@ -51,10 +51,10 @@ class CDMABUFFormatTable {
     CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
     ~CDMABUFFormatTable() = default;
 
-    Hyprutils::OS::CFileDescriptor                        tableFD;
-    size_t                                                tableSize = 0;
-    SDMABUFTranche                                        rendererTranche;
-    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;
+    Hyprutils::OS::CFileDescriptor                        m_tableFD;
+    size_t                                                m_tableSize = 0;
+    SDMABUFTranche                                        m_rendererTranche;
+    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> m_monitorTranches;
 };
 
 class CLinuxDMABUFParamsResource {
@@ -65,12 +65,12 @@ class CLinuxDMABUFParamsResource {
     bool                         good();
     void                         create(uint32_t id); // 0 means not immed
 
-    SP<Aquamarine::SDMABUFAttrs> attrs;
-    WP<CLinuxDMABuffer>          createdBuffer;
-    bool                         used = false;
+    SP<Aquamarine::SDMABUFAttrs> m_attrs;
+    WP<CLinuxDMABuffer>          m_createdBuffer;
+    bool                         m_used = false;
 
   private:
-    SP<CZwpLinuxBufferParamsV1> resource;
+    SP<CZwpLinuxBufferParamsV1> m_resource;
 
     bool                        verify();
     bool                        commence();
@@ -85,11 +85,11 @@ class CLinuxDMABUFFeedbackResource {
     void                   sendDefaultFeedback();
     void                   sendTranche(SDMABUFTranche& tranche);
 
-    SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
+    SP<CWLSurfaceResource> m_surface; // optional, for surface feedbacks
 
   private:
-    SP<CZwpLinuxDmabufFeedbackV1> resource;
-    bool                          lastFeedbackWasScanout = false;
+    SP<CZwpLinuxDmabufFeedbackV1> m_resource;
+    bool                          m_lastFeedbackWasScanout = false;
 
     friend class CLinuxDMABufV1Protocol;
 };
@@ -103,7 +103,7 @@ class CLinuxDMABUFResource {
     void sendMods();
 
   private:
-    SP<CZwpLinuxDmabufV1> resource;
+    SP<CZwpLinuxDmabufV1> m_resource;
 };
 
 class CLinuxDMABufV1Protocol : public IWaylandProtocol {
@@ -123,14 +123,14 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     void resetFormatTable();
 
     //
-    std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
-    std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
-    std::vector<SP<CLinuxDMABUFParamsResource>>   m_vParams;
-    std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
+    std::vector<SP<CLinuxDMABUFResource>>         m_managers;
+    std::vector<SP<CLinuxDMABUFFeedbackResource>> m_feedbacks;
+    std::vector<SP<CLinuxDMABUFParamsResource>>   m_params;
+    std::vector<SP<CLinuxDMABuffer>>              m_buffers;
 
-    UP<CDMABUFFormatTable>                        formatTable;
-    dev_t                                         mainDevice;
-    Hyprutils::OS::CFileDescriptor                mainDeviceFD;
+    UP<CDMABUFFormatTable>                        m_formatTable;
+    dev_t                                         m_mainDevice;
+    Hyprutils::OS::CFileDescriptor                m_mainDeviceFD;
 
     friend class CLinuxDMABUFResource;
     friend class CLinuxDMABUFFeedbackResource;

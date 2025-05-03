@@ -266,38 +266,38 @@ void CTextInput::updateIMEState(SP<CInputMethodV2> ime) {
     if (isV3()) {
         const auto INPUT = m_v3Input.lock();
 
-        if (ime->current.preeditString.committed)
-            INPUT->preeditString(ime->current.preeditString.string, ime->current.preeditString.begin, ime->current.preeditString.end);
+        if (ime->m_current.preeditString.committed)
+            INPUT->preeditString(ime->m_current.preeditString.string, ime->m_current.preeditString.begin, ime->m_current.preeditString.end);
 
-        if (ime->current.committedString.committed)
-            INPUT->commitString(ime->current.committedString.string);
+        if (ime->m_current.committedString.committed)
+            INPUT->commitString(ime->m_current.committedString.string);
 
-        if (ime->current.deleteSurrounding.committed)
-            INPUT->deleteSurroundingText(ime->current.deleteSurrounding.before, ime->current.deleteSurrounding.after);
+        if (ime->m_current.deleteSurrounding.committed)
+            INPUT->deleteSurroundingText(ime->m_current.deleteSurrounding.before, ime->m_current.deleteSurrounding.after);
 
         INPUT->sendDone();
     } else {
         const auto INPUT = m_v1Input.lock();
 
-        if (ime->current.preeditString.committed) {
-            INPUT->preeditCursor(ime->current.preeditString.begin);
-            INPUT->preeditStyling(0, std::string(ime->current.preeditString.string).length(), ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
-            INPUT->preeditString(m_v1Input->serial, ime->current.preeditString.string.c_str(), "");
+        if (ime->m_current.preeditString.committed) {
+            INPUT->preeditCursor(ime->m_current.preeditString.begin);
+            INPUT->preeditStyling(0, std::string(ime->m_current.preeditString.string).length(), ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
+            INPUT->preeditString(m_v1Input->serial, ime->m_current.preeditString.string.c_str(), "");
         } else {
             INPUT->preeditCursor(0);
             INPUT->preeditStyling(0, 0, ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
             INPUT->preeditString(m_v1Input->serial, "", "");
         }
 
-        if (ime->current.committedString.committed)
-            INPUT->commitString(m_v1Input->serial, ime->current.committedString.string.c_str());
+        if (ime->m_current.committedString.committed)
+            INPUT->commitString(m_v1Input->serial, ime->m_current.committedString.string.c_str());
 
-        if (ime->current.deleteSurrounding.committed) {
-            INPUT->deleteSurroundingText(std::string(ime->current.preeditString.string).length() - ime->current.deleteSurrounding.before,
-                                         ime->current.deleteSurrounding.after + ime->current.deleteSurrounding.before);
+        if (ime->m_current.deleteSurrounding.committed) {
+            INPUT->deleteSurroundingText(std::string(ime->m_current.preeditString.string).length() - ime->m_current.deleteSurrounding.before,
+                                         ime->m_current.deleteSurrounding.after + ime->m_current.deleteSurrounding.before);
 
-            if (ime->current.preeditString.committed)
-                INPUT->commitString(m_v1Input->serial, ime->current.preeditString.string.c_str());
+            if (ime->m_current.preeditString.committed)
+                INPUT->commitString(m_v1Input->serial, ime->m_current.preeditString.string.c_str());
         }
     }
 }

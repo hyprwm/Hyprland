@@ -196,14 +196,14 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
     pClient = resource->client();
 
     if (!surface->m_colorManagement.valid()) {
-        const auto RESOURCE = PROTO::colorManagement->m_vSurfaces.emplace_back(makeShared<CColorManagementSurface>(surface_));
+        const auto RESOURCE = PROTO::colorManagement->m_surfaces.emplace_back(makeShared<CColorManagementSurface>(surface_));
         if UNLIKELY (!RESOURCE) {
             resource->noMemory();
-            PROTO::colorManagement->m_vSurfaces.pop_back();
+            PROTO::colorManagement->m_surfaces.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
 
         surface->m_colorManagement = RESOURCE;
 

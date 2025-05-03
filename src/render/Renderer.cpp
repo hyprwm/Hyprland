@@ -2290,13 +2290,13 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     UP<CEGLSync> eglSync = CEGLSync::create();
     if (eglSync && eglSync->isValid()) {
         for (auto const& buf : usedAsyncBuffers) {
-            for (const auto& releaser : buf->syncReleasers) {
+            for (const auto& releaser : buf->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());
             }
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(usedAsyncBuffers, [](const auto& buf) { return !buf->syncReleasers.empty(); });
+        std::erase_if(usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
         g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(usedAsyncBuffers)]() mutable {

@@ -10,13 +10,13 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    opaque = col_.a >= 1.F;
+    m_opaque = col_.a >= 1.F;
 
-    texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, (uint8_t*)&color, 4, Vector2D{1, 1});
+    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, (uint8_t*)&color, 4, Vector2D{1, 1});
 
-    resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
+    m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    success = texture->m_iTexID;
+    success = m_texture->m_iTexID;
 
     size = {1, 1};
 
@@ -25,8 +25,8 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 }
 
 CSinglePixelBuffer::~CSinglePixelBuffer() {
-    if (resource)
-        resource->sendRelease();
+    if (m_resource)
+        m_resource->sendRelease();
 }
 
 Aquamarine::eBufferCapability CSinglePixelBuffer::caps() {
@@ -58,7 +58,7 @@ void CSinglePixelBuffer::endDataPtr() {
 }
 
 bool CSinglePixelBuffer::good() {
-    return resource->good();
+    return m_resource->good();
 }
 
 CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* client, CHyprColor color) {
@@ -67,7 +67,7 @@ CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* c
     if UNLIKELY (!buffer->good())
         return;
 
-    buffer->resource->buffer = buffer;
+    buffer->m_resource->m_buffer = buffer;
 
     listeners.bufferResourceDestroy = buffer->events.destroy.registerListener([this](std::any d) {
         listeners.bufferResourceDestroy.reset();

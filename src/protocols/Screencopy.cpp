@@ -100,7 +100,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    if UNLIKELY (PBUFFER->buffer->size != box.size()) {
+    if UNLIKELY (PBUFFER->m_buffer->size != box.size()) {
         LOGM(ERR, "Invalid dimensions in {:x}", (uintptr_t)this);
         resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::screencopy->destroyResource(this);
@@ -114,7 +114,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
+    if (auto attrs = PBUFFER->m_buffer->dmabuf(); attrs.success) {
         bufferDMA = true;
 
         if (attrs.format != dmabufFormat) {
@@ -123,7 +123,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
             PROTO::screencopy->destroyResource(this);
             return;
         }
-    } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
+    } else if (auto attrs = PBUFFER->m_buffer->shm(); attrs.success) {
         if (attrs.format != shmFormat) {
             LOGM(ERR, "Invalid buffer shm format in {:x}", (uintptr_t)pFrame);
             resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
@@ -142,7 +142,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    buffer = CHLBufferReference(PBUFFER->buffer.lock());
+    buffer = CHLBufferReference(PBUFFER->m_buffer.lock());
 
     PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
 
@@ -193,7 +193,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer, nullptr, true)) {
+    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.m_buffer, nullptr, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering to dma frame");
         callback(false);
         return;

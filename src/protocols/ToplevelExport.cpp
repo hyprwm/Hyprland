@@ -155,7 +155,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if UNLIKELY (PBUFFER->buffer->size != box.size()) {
+    if UNLIKELY (PBUFFER->m_buffer->size != box.size()) {
         resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         PROTO::toplevelExport->destroyResource(this);
         return;
@@ -167,7 +167,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
+    if (auto attrs = PBUFFER->m_buffer->dmabuf(); attrs.success) {
         bufferDMA = true;
 
         if (attrs.format != dmabufFormat) {
@@ -175,7 +175,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
             PROTO::toplevelExport->destroyResource(this);
             return;
         }
-    } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
+    } else if (auto attrs = PBUFFER->m_buffer->shm(); attrs.success) {
         if (attrs.format != shmFormat) {
             resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::toplevelExport->destroyResource(this);
@@ -191,7 +191,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    buffer = CHLBufferReference(PBUFFER->buffer.lock());
+    buffer = CHLBufferReference(PBUFFER->m_buffer.lock());
 
     m_ignoreDamage = ignoreDamage;
 
@@ -340,7 +340,7 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.buffer))
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.m_buffer))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));

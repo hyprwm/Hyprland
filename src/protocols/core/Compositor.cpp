@@ -82,11 +82,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         auto buf = buffer ? CWLBufferResource::fromResource(buffer) : nullptr;
 
-        if (buf && buf->buffer) {
-            m_pending.buffer     = CHLBufferReference(buf->buffer.lock());
-            m_pending.texture    = buf->buffer->texture;
-            m_pending.size       = buf->buffer->size;
-            m_pending.bufferSize = buf->buffer->size;
+        if (buf && buf->m_buffer) {
+            m_pending.buffer     = CHLBufferReference(buf->m_buffer.lock());
+            m_pending.texture    = buf->m_buffer->m_texture;
+            m_pending.size       = buf->m_buffer->size;
+            m_pending.bufferSize = buf->m_buffer->size;
         } else {
             m_pending.buffer = {};
             m_pending.texture.reset();
@@ -157,7 +157,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             whenReadable();
         } else if (state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
             // async buffer and is dmabuf, then we can wait on implicit fences
-            auto syncFd = dynamic_cast<CDMABuffer*>(state->buffer.buffer.get())->exportSyncFile();
+            auto syncFd = dynamic_cast<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
 
             if (syncFd.isValid())
                 g_pEventLoopManager->doOnReadable(std::move(syncFd), whenReadable);

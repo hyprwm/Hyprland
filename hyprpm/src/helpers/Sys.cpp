@@ -69,18 +69,6 @@ static std::optional<std::pair<std::string, int>> execAndGet(std::string_view cm
     return {{proc.stdOut(), proc.exitCode()}};
 }
 
-static std::string shellEscape(const std::string& input) {
-    std::string escaped = "'";
-    for (char c : input) {
-        if (c == '\'')
-            escaped += "'\\''";
-        else
-            escaped += c;
-    }
-    escaped += "'";
-    return escaped;
-}
-
 int NSys::getUID() {
     const auto UID   = getuid();
     const auto PWUID = getpwuid(UID);
@@ -98,13 +86,11 @@ bool NSys::isSuperuser() {
 }
 
 std::string NSys::runAsSuperuser(const std::string& cmd) {
-    const std::string escapedCmd = shellEscape(cmd);
-
     for (const auto& BIN : SUPERUSER_BINARIES) {
         if (!executableExistsInPath(std::string{BIN}))
             continue;
 
-        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c " + escapedCmd, true);
+        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c " + cmd, true);
         if (!result.has_value() || result->second != 0)
             Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
 

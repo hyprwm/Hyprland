@@ -24,7 +24,7 @@ std::string                         escapeJSONStrings(const std::string& str);
 bool                                isDirection(const std::string&);
 bool                                isDirection(const char&);
 SWorkspaceIDName                    getWorkspaceIDNameFromString(const std::string&);
-std::optional<bool>                 isWorkspaceChangeDirectionLeft(const std::string&);
+bool                                shouldWraparound(const WORKSPACEID, const WORKSPACEID);
 std::optional<std::string>          cleanCmdForWorkspace(const std::string&, std::string);
 float                               vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 void                                logSystemInfo();

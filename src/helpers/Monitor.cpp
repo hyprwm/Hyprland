@@ -1092,7 +1092,7 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
-void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bool noMouseMove, bool noFocus, std::optional<bool> animateLeftOverride) {
+void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bool noMouseMove, bool noFocus) {
     if (!pWorkspace)
         return;
 
@@ -1115,7 +1115,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     m_activeWorkspace = pWorkspace;
 
     if (!internal) {
-        const auto ANIMTOLEFT = POLDWORKSPACE && animateLeftOverride.value_or(pWorkspace->m_id > POLDWORKSPACE->m_id);
+        const auto ANIMTOLEFT = POLDWORKSPACE && (shouldWraparound(pWorkspace->m_id, POLDWORKSPACE->m_id) ^ (pWorkspace->m_id > POLDWORKSPACE->m_id));
         if (POLDWORKSPACE)
             POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
         pWorkspace->startAnim(true, ANIMTOLEFT);
@@ -1167,8 +1167,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         g_pCompositor->updateFullscreenFadeOnWorkspace(m_activeSpecialWorkspace);
 }
 
-void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus, std::optional<bool> animateLeftOverride) {
-    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus, animateLeftOverride);
+void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
+    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {

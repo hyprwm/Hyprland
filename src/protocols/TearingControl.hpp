@@ -16,19 +16,19 @@ class CTearingControl {
     bool good();
 
     bool operator==(const wl_resource* other) const {
-        return other == resource->resource();
+        return other == m_resource->resource();
     }
 
     bool operator==(const CTearingControl* other) const {
-        return other->resource == resource;
+        return other->m_resource == m_resource;
     }
 
   private:
     void                               updateWindow();
 
-    SP<CWpTearingControlV1>            resource;
-    PHLWINDOWREF                       pWindow;
-    wpTearingControlV1PresentationHint hint = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
+    SP<CWpTearingControlV1>            m_resource;
+    PHLWINDOWREF                       m_window;
+    wpTearingControlV1PresentationHint m_hint = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
 
     friend class CTearingControlProtocol;
 };
@@ -46,8 +46,8 @@ class CTearingControlProtocol : public IWaylandProtocol {
     void onWindowDestroy(PHLWINDOW pWindow);
 
     //
-    std::vector<UP<CWpTearingControlManagerV1>> m_vManagers;
-    std::vector<UP<CTearingControl>>            m_vTearingControllers;
+    std::vector<UP<CWpTearingControlManagerV1>> m_managers;
+    std::vector<UP<CTearingControl>>            m_tearingControllers;
 
     friend class CTearingControl;
 };

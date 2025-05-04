@@ -9,7 +9,7 @@ class CToplevelWindowMappingHandle {
     CToplevelWindowMappingHandle(SP<CHyprlandToplevelWindowMappingHandleV1> resource_);
 
   private:
-    SP<CHyprlandToplevelWindowMappingHandleV1> resource;
+    SP<CHyprlandToplevelWindowMappingHandleV1> m_resource;
 
     friend class CToplevelMappingManager;
     friend class CToplevelMappingProtocol;
@@ -22,7 +22,7 @@ class CToplevelMappingManager {
     bool good() const;
 
   private:
-    SP<CHyprlandToplevelMappingManagerV1> resource;
+    SP<CHyprlandToplevelMappingManagerV1> m_resource;
 };
 
 class CToplevelMappingProtocol : IWaylandProtocol {
@@ -35,8 +35,8 @@ class CToplevelMappingProtocol : IWaylandProtocol {
     void                                          onManagerResourceDestroy(CToplevelMappingManager* mgr);
     void                                          destroyHandle(CHyprlandToplevelWindowMappingHandleV1* handle);
 
-    std::vector<UP<CToplevelMappingManager>>      m_vManagers;
-    std::vector<SP<CToplevelWindowMappingHandle>> m_vHandles;
+    std::vector<UP<CToplevelMappingManager>>      m_managers;
+    std::vector<SP<CToplevelWindowMappingHandle>> m_handles;
 
     friend class CToplevelMappingManager;
 };

@@ -5,60 +5,60 @@
 #include "../config/ConfigValue.hpp"
 using namespace Hyprutils::OS;
 
-CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
+CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : m_source(source_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
-    resource->setOnDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
+    m_resource->setDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwpPrimarySelectionOfferV1* r) { PROTO::primarySelection->destroyResource(this); });
 
-    resource->setReceive([this](CZwpPrimarySelectionOfferV1* r, const char* mime, int32_t fd) {
+    m_resource->setReceive([this](CZwpPrimarySelectionOfferV1* r, const char* mime, int32_t fd) {
         CFileDescriptor sendFd{fd};
-        if (!source) {
+        if (!m_source) {
             LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
-        if (dead) {
+        if (m_dead) {
             LOGM(WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
+        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
-        source->send(mime, std::move(sendFd));
+        m_source->send(mime, std::move(sendFd));
     });
 }
 
 bool CPrimarySelectionOffer::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CPrimarySelectionOffer::sendData() {
-    if UNLIKELY (!source)
+    if UNLIKELY (!m_source)
         return;
 
-    for (auto const& m : source->mimes()) {
-        resource->sendOffer(m.c_str());
+    for (auto const& m : m_source->mimes()) {
+        m_resource->sendOffer(m.c_str());
     }
 }
 
-CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1> resource_, SP<CPrimarySelectionDevice> device_) : device(device_), resource(resource_) {
+CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1> resource_, SP<CPrimarySelectionDevice> device_) : m_device(device_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setData(this);
+    m_resource->setData(this);
 
-    resource->setDestroy([this](CZwpPrimarySelectionSourceV1* r) {
+    m_resource->setDestroy([this](CZwpPrimarySelectionSourceV1* r) {
         m_events.destroy.emit();
         PROTO::primarySelection->destroyResource(this);
     });
-    resource->setOnDestroy([this](CZwpPrimarySelectionSourceV1* r) {
+    m_resource->setOnDestroy([this](CZwpPrimarySelectionSourceV1* r) {
         m_events.destroy.emit();
         PROTO::primarySelection->destroyResource(this);
     });
 
-    resource->setOffer([this](CZwpPrimarySelectionSourceV1* r, const char* mime) { mimeTypes.emplace_back(mime); });
+    m_resource->setOffer([this](CZwpPrimarySelectionSourceV1* r, const char* mime) { m_mimeTypes.emplace_back(mime); });
 }
 
 CPrimarySelectionSource::~CPrimarySelectionSource() {
@@ -67,51 +67,51 @@ CPrimarySelectionSource::~CPrimarySelectionSource() {
 
 SP<CPrimarySelectionSource> CPrimarySelectionSource::fromResource(wl_resource* res) {
     auto data = (CPrimarySelectionSource*)(((CZwpPrimarySelectionSourceV1*)wl_resource_get_user_data(res))->data());
-    return data ? data->self.lock() : nullptr;
+    return data ? data->m_self.lock() : nullptr;
 }
 
 bool CPrimarySelectionSource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 std::vector<std::string> CPrimarySelectionSource::mimes() {
-    return mimeTypes;
+    return m_mimeTypes;
 }
 
 void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) {
-    if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
+    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd.get());
+    m_resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CPrimarySelectionSource::accepted(const std::string& mime) {
-    if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end())
+    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end())
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAccepted with non-existent mime");
 
     // primary sel has no accepted
 }
 
 void CPrimarySelectionSource::cancelled() {
-    resource->sendCancelled();
+    m_resource->sendCancelled();
 }
 
 void CPrimarySelectionSource::error(uint32_t code, const std::string& msg) {
-    resource->error(code, msg);
+    m_resource->error(code, msg);
 }
 
-CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1> resource_) : resource(resource_) {
+CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    pClient = resource->client();
+    m_client = m_resource->client();
 
-    resource->setDestroy([this](CZwpPrimarySelectionDeviceV1* r) { PROTO::primarySelection->destroyResource(this); });
-    resource->setOnDestroy([this](CZwpPrimarySelectionDeviceV1* r) { PROTO::primarySelection->destroyResource(this); });
+    m_resource->setDestroy([this](CZwpPrimarySelectionDeviceV1* r) { PROTO::primarySelection->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwpPrimarySelectionDeviceV1* r) { PROTO::primarySelection->destroyResource(this); });
 
-    resource->setSetSelection([](CZwpPrimarySelectionDeviceV1* r, wl_resource* sourceR, uint32_t serial) {
+    m_resource->setSetSelection([](CZwpPrimarySelectionDeviceV1* r, wl_resource* sourceR, uint32_t serial) {
         static auto PPRIMARYSEL = CConfigValue<Hyprlang::INT>("misc:middle_click_paste");
 
         if (!*PPRIMARYSEL) {
@@ -138,77 +138,77 @@ CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1
 }
 
 bool CPrimarySelectionDevice::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 wl_client* CPrimarySelectionDevice::client() {
-    return pClient;
+    return m_client;
 }
 
 void CPrimarySelectionDevice::sendDataOffer(SP<CPrimarySelectionOffer> offer) {
-    resource->sendDataOffer(offer->resource.get());
+    m_resource->sendDataOffer(offer->m_resource.get());
 }
 
 void CPrimarySelectionDevice::sendSelection(SP<CPrimarySelectionOffer> selection) {
     if (!selection)
-        resource->sendSelectionRaw(nullptr);
+        m_resource->sendSelectionRaw(nullptr);
     else
-        resource->sendSelection(selection->resource.get());
+        m_resource->sendSelection(selection->m_resource.get());
 }
 
-CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDeviceManagerV1> resource_) : resource(resource_) {
+CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDeviceManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setOnDestroy([this](CZwpPrimarySelectionDeviceManagerV1* r) { PROTO::primarySelection->destroyResource(this); });
+    m_resource->setOnDestroy([this](CZwpPrimarySelectionDeviceManagerV1* r) { PROTO::primarySelection->destroyResource(this); });
 
-    resource->setGetDevice([this](CZwpPrimarySelectionDeviceManagerV1* r, uint32_t id, wl_resource* seat) {
+    m_resource->setGetDevice([this](CZwpPrimarySelectionDeviceManagerV1* r, uint32_t id, wl_resource* seat) {
         const auto RESOURCE =
-            PROTO::primarySelection->m_vDevices.emplace_back(makeShared<CPrimarySelectionDevice>(makeShared<CZwpPrimarySelectionDeviceV1>(r->client(), r->version(), id)));
+            PROTO::primarySelection->m_devices.emplace_back(makeShared<CPrimarySelectionDevice>(makeShared<CZwpPrimarySelectionDeviceV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::primarySelection->m_vDevices.pop_back();
+            PROTO::primarySelection->m_devices.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
-        device         = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
+        m_device         = RESOURCE;
 
-        for (auto const& s : sources) {
+        for (auto const& s : m_sources) {
             if (!s)
                 continue;
-            s->device = RESOURCE;
+            s->m_device = RESOURCE;
         }
 
         LOGM(LOG, "New primary selection data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
-    resource->setCreateSource([this](CZwpPrimarySelectionDeviceManagerV1* r, uint32_t id) {
-        std::erase_if(sources, [](const auto& e) { return e.expired(); });
+    m_resource->setCreateSource([this](CZwpPrimarySelectionDeviceManagerV1* r, uint32_t id) {
+        std::erase_if(m_sources, [](const auto& e) { return e.expired(); });
 
-        const auto RESOURCE = PROTO::primarySelection->m_vSources.emplace_back(
-            makeShared<CPrimarySelectionSource>(makeShared<CZwpPrimarySelectionSourceV1>(r->client(), r->version(), id), device.lock()));
+        const auto RESOURCE = PROTO::primarySelection->m_sources.emplace_back(
+            makeShared<CPrimarySelectionSource>(makeShared<CZwpPrimarySelectionSourceV1>(r->client(), r->version(), id), m_device.lock()));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::primarySelection->m_vSources.pop_back();
+            PROTO::primarySelection->m_sources.pop_back();
             return;
         }
 
-        if (!device)
+        if (!m_device)
             LOGM(WARN, "New data source before a device was created");
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
 
-        sources.emplace_back(RESOURCE);
+        m_sources.emplace_back(RESOURCE);
 
         LOGM(LOG, "New primary selection data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
 bool CPrimarySelectionManager::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 CPrimarySelectionProtocol::CPrimarySelectionProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -216,35 +216,35 @@ CPrimarySelectionProtocol::CPrimarySelectionProtocol(const wl_interface* iface, 
 }
 
 void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CPrimarySelectionManager>(makeShared<CZwpPrimarySelectionDeviceManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CPrimarySelectionManager>(makeShared<CZwpPrimarySelectionDeviceManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
-        m_vManagers.pop_back();
+        m_managers.pop_back();
         return;
     }
 
     LOGM(LOG, "New primary_seletion_manager at {:x}", (uintptr_t)RESOURCE.get());
 
     // we need to do it here because protocols come before seatMgr
-    if (!listeners.onPointerFocusChange)
-        listeners.onPointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
+    if (!m_listeners.onPointerFocusChange)
+        m_listeners.onPointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionManager* resource) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionSource* resource) {
-    std::erase_if(m_vSources, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_sources, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionDevice* resource) {
-    std::erase_if(m_vDevices, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_devices, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionOffer* resource) {
-    std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_offers, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice> dev, SP<IDataSource> sel) {
@@ -254,11 +254,11 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
     }
 
     const auto OFFER =
-        m_vOffers.emplace_back(makeShared<CPrimarySelectionOffer>(makeShared<CZwpPrimarySelectionOfferV1>(dev->resource->client(), dev->resource->version(), 0), sel));
+        m_offers.emplace_back(makeShared<CPrimarySelectionOffer>(makeShared<CZwpPrimarySelectionOfferV1>(dev->m_resource->client(), dev->m_resource->version(), 0), sel));
 
     if (!OFFER->good()) {
-        dev->resource->noMemory();
-        m_vOffers.pop_back();
+        dev->m_resource->noMemory();
+        m_offers.pop_back();
         return;
     }
 
@@ -270,10 +270,10 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
 }
 
 void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
-    for (auto const& o : m_vOffers) {
-        if (o->source && o->source->hasDnd())
+    for (auto const& o : m_offers) {
+        if (o->m_source && o->m_source->hasDnd())
             continue;
-        o->dead = true;
+        o->m_dead = true;
     }
 
     if (!source) {
@@ -319,16 +319,16 @@ void CPrimarySelectionProtocol::updateSelection() {
 }
 
 void CPrimarySelectionProtocol::onPointerFocus() {
-    for (auto const& o : m_vOffers) {
-        o->dead = true;
+    for (auto const& o : m_offers) {
+        o->m_dead = true;
     }
 
     updateSelection();
 }
 
 SP<CPrimarySelectionDevice> CPrimarySelectionProtocol::dataDeviceForClient(wl_client* c) {
-    auto it = std::find_if(m_vDevices.begin(), m_vDevices.end(), [c](const auto& e) { return e->client() == c; });
-    if (it == m_vDevices.end())
+    auto it = std::find_if(m_devices.begin(), m_devices.end(), [c](const auto& e) { return e->client() == c; });
+    if (it == m_devices.end())
         return nullptr;
     return *it;
 }

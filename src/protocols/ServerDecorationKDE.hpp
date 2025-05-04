@@ -14,7 +14,7 @@ class CServerDecorationKDE {
     bool good();
 
   private:
-    SP<COrgKdeKwinServerDecoration> resource;
+    SP<COrgKdeKwinServerDecoration> m_resource;
 };
 
 class CServerDecorationKDEProtocol : public IWaylandProtocol {
@@ -30,8 +30,8 @@ class CServerDecorationKDEProtocol : public IWaylandProtocol {
     void createDecoration(COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* surf);
 
     //
-    std::vector<UP<COrgKdeKwinServerDecorationManager>> m_vManagers;
-    std::vector<UP<CServerDecorationKDE>>               m_vDecos;
+    std::vector<UP<COrgKdeKwinServerDecorationManager>> m_managers;
+    std::vector<UP<CServerDecorationKDE>>               m_decos;
 
     friend class CServerDecorationKDE;
 };

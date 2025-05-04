@@ -8,99 +8,99 @@
 #include "../helpers/Monitor.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
-    resource(resource_), sessionLock(owner_), pSurface(surface_), pMonitor(pMonitor_) {
-    if UNLIKELY (!resource->resource())
+    m_resource(resource_), m_sessionLock(owner_), m_surface(surface_), m_monitor(pMonitor_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setDestroy([this](CExtSessionLockSurfaceV1* r) {
-        events.destroy.emit();
+    m_resource->setDestroy([this](CExtSessionLockSurfaceV1* r) {
+        m_events.destroy.emit();
         PROTO::sessionLock->destroyResource(this);
     });
-    resource->setOnDestroy([this](CExtSessionLockSurfaceV1* r) {
-        events.destroy.emit();
+    m_resource->setOnDestroy([this](CExtSessionLockSurfaceV1* r) {
+        m_events.destroy.emit();
         PROTO::sessionLock->destroyResource(this);
     });
 
-    resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) { ackdConfigure = true; });
+    m_resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) { m_ackdConfigure = true; });
 
-    listeners.surfaceCommit = pSurface->m_events.commit.registerListener([this](std::any d) {
-        if (!pSurface->m_current.texture) {
+    m_listeners.surfaceCommit = m_surface->m_events.commit.registerListener([this](std::any d) {
+        if (!m_surface->m_current.texture) {
             LOGM(ERR, "SessionLock attached a null buffer");
-            resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
+            m_resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
             return;
         }
 
-        if (!ackdConfigure) {
+        if (!m_ackdConfigure) {
             LOGM(ERR, "SessionLock committed without an ack");
-            resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_COMMIT_BEFORE_FIRST_ACK, "Committed surface before first ack");
+            m_resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_COMMIT_BEFORE_FIRST_ACK, "Committed surface before first ack");
             return;
         }
 
-        if (committed)
-            events.commit.emit();
+        if (m_committed)
+            m_events.commit.emit();
         else {
-            pSurface->map();
-            events.map.emit();
+            m_surface->map();
+            m_events.map.emit();
         }
-        committed = true;
+        m_committed = true;
     });
 
-    listeners.surfaceDestroy = pSurface->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = m_surface->m_events.destroy.registerListener([this](std::any d) {
         LOGM(WARN, "SessionLockSurface object remains but surface is being destroyed???");
-        pSurface->unmap();
-        listeners.surfaceCommit.reset();
-        listeners.surfaceDestroy.reset();
-        if (g_pCompositor->m_lastFocus == pSurface)
+        m_surface->unmap();
+        m_listeners.surfaceCommit.reset();
+        m_listeners.surfaceDestroy.reset();
+        if (g_pCompositor->m_lastFocus == m_surface)
             g_pCompositor->m_lastFocus.reset();
 
-        pSurface.reset();
+        m_surface.reset();
     });
 
     PROTO::fractional->sendScale(surface_, pMonitor_->m_scale);
 
     sendConfigure();
 
-    listeners.monitorMode = pMonitor->m_events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
+    m_listeners.monitorMode = m_monitor->m_events.modeChanged.registerListener([this](std::any data) { sendConfigure(); });
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
-    if (pSurface && pSurface->m_mapped)
-        pSurface->unmap();
-    listeners.surfaceCommit.reset();
-    listeners.surfaceDestroy.reset();
-    events.destroy.emit(); // just in case.
+    if (m_surface && m_surface->m_mapped)
+        m_surface->unmap();
+    m_listeners.surfaceCommit.reset();
+    m_listeners.surfaceDestroy.reset();
+    m_events.destroy.emit(); // just in case.
 }
 
 void CSessionLockSurface::sendConfigure() {
-    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(resource->client()));
-    resource->sendConfigure(SERIAL, pMonitor->m_size.x, pMonitor->m_size.y);
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
+    m_resource->sendConfigure(SERIAL, m_monitor->m_size.x, m_monitor->m_size.y);
 }
 
 bool CSessionLockSurface::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 bool CSessionLockSurface::inert() {
-    return sessionLock.expired();
+    return m_sessionLock.expired();
 }
 
 PHLMONITOR CSessionLockSurface::monitor() {
-    return pMonitor.lock();
+    return m_monitor.lock();
 }
 
 SP<CWLSurfaceResource> CSessionLockSurface::surface() {
-    return pSurface.lock();
+    return m_surface.lock();
 }
 
-CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setDestroy([this](CExtSessionLockV1* r) { PROTO::sessionLock->destroyResource(this); });
-    resource->setOnDestroy([this](CExtSessionLockV1* r) { PROTO::sessionLock->destroyResource(this); });
+    m_resource->setDestroy([this](CExtSessionLockV1* r) { PROTO::sessionLock->destroyResource(this); });
+    m_resource->setOnDestroy([this](CExtSessionLockV1* r) { PROTO::sessionLock->destroyResource(this); });
 
-    resource->setGetLockSurface([this](CExtSessionLockV1* r, uint32_t id, wl_resource* surf, wl_resource* output) {
-        if (inert) {
+    m_resource->setGetLockSurface([this](CExtSessionLockV1* r, uint32_t id, wl_resource* surf, wl_resource* output) {
+        if (m_inert) {
             LOGM(ERR, "Lock is trying to send getLockSurface after it's inert");
             return;
         }
@@ -108,39 +108,39 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_
         PROTO::sessionLock->onGetLockSurface(r, id, surf, output);
     });
 
-    resource->setUnlockAndDestroy([this](CExtSessionLockV1* r) {
-        if (inert) {
+    m_resource->setUnlockAndDestroy([this](CExtSessionLockV1* r) {
+        if (m_inert) {
             PROTO::sessionLock->destroyResource(this);
             return;
         }
 
-        PROTO::sessionLock->locked = false;
+        PROTO::sessionLock->m_locked = false;
 
         PROTO::lockNotify->onUnlocked();
 
-        events.unlockAndDestroy.emit();
+        m_events.unlockAndDestroy.emit();
 
-        inert = true;
+        m_inert = true;
         PROTO::sessionLock->destroyResource(this);
     });
 }
 
 CSessionLock::~CSessionLock() {
-    events.destroyed.emit();
+    m_events.destroyed.emit();
 }
 
 void CSessionLock::sendLocked() {
-    resource->sendLocked();
+    m_resource->sendLocked();
     PROTO::lockNotify->onLocked();
 }
 
 bool CSessionLock::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CSessionLock::sendDenied() {
-    inert = true;
-    resource->sendFinished();
+    m_inert = true;
+    m_resource->sendFinished();
 }
 
 CSessionLockProtocol::CSessionLockProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -148,7 +148,7 @@ CSessionLockProtocol::CSessionLockProtocol(const wl_interface* iface, const int&
 }
 
 void CSessionLockProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CExtSessionLockManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CExtSessionLockManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CExtSessionLockManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CExtSessionLockManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -156,15 +156,15 @@ void CSessionLockProtocol::bindManager(wl_client* client, void* data, uint32_t v
 }
 
 void CSessionLockProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CSessionLockProtocol::destroyResource(CSessionLock* lock) {
-    std::erase_if(m_vLocks, [&](const auto& other) { return other.get() == lock; });
+    std::erase_if(m_locks, [&](const auto& other) { return other.get() == lock; });
 }
 
 void CSessionLockProtocol::destroyResource(CSessionLockSurface* surf) {
-    std::erase_if(m_vLockSurfaces, [&](const auto& other) { return other.get() == surf; });
+    std::erase_if(m_lockSurfaces, [&](const auto& other) { return other.get() == surf; });
 }
 
 void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
@@ -172,17 +172,17 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
     LOGM(LOG, "New sessionLock with id {}", id);
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vLocks.emplace_back(makeShared<CSessionLock>(makeShared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
+    const auto RESOURCE = m_locks.emplace_back(makeShared<CSessionLock>(makeShared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vLocks.pop_back();
+        m_locks.pop_back();
         return;
     }
 
-    events.newLock.emit(RESOURCE);
+    m_events.newLock.emit(RESOURCE);
 
-    locked = true;
+    m_locked = true;
 }
 
 void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output) {
@@ -192,25 +192,25 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
     auto             PMONITOR = CWLOutputResource::fromResource(output)->m_monitor.lock();
 
     SP<CSessionLock> sessionLock;
-    for (auto const& l : m_vLocks) {
-        if (l->resource.get() == lock) {
+    for (auto const& l : m_locks) {
+        if (l->m_resource.get() == lock) {
             sessionLock = l;
             break;
         }
     }
 
     const auto RESOURCE =
-        m_vLockSurfaces.emplace_back(makeShared<CSessionLockSurface>(makeShared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
+        m_lockSurfaces.emplace_back(makeShared<CSessionLockSurface>(makeShared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
 
     if UNLIKELY (!RESOURCE->good()) {
         lock->noMemory();
-        m_vLockSurfaces.pop_back();
+        m_lockSurfaces.pop_back();
         return;
     }
 
-    sessionLock->events.newLockSurface.emit(RESOURCE);
+    sessionLock->m_events.newLockSurface.emit(RESOURCE);
 }
 
 bool CSessionLockProtocol::isLocked() {
-    return locked;
+    return m_locked;
 }

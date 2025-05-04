@@ -9,100 +9,100 @@ void CTextInputV3::SState::reset() {
     box.updated         = false;
 }
 
-CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
     LOGM(LOG, "New tiv3 at {:016x}", (uintptr_t)this);
 
-    resource->setDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
-    resource->setOnDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
+    m_resource->setDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
+    m_resource->setOnDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
 
-    resource->setCommit([this](CZwpTextInputV3* r) {
-        bool wasEnabled = current.enabled.value;
+    m_resource->setCommit([this](CZwpTextInputV3* r) {
+        bool wasEnabled = m_current.enabled.value;
 
-        current = pending;
-        serial++;
+        m_current = m_pending;
+        m_serial++;
 
-        if (wasEnabled && !current.enabled.value)
-            events.disable.emit();
-        else if (!wasEnabled && current.enabled.value)
-            events.enable.emit();
-        else if (current.enabled.value && current.enabled.isEnablePending && current.enabled.isDisablePending)
-            events.reset.emit();
+        if (wasEnabled && !m_current.enabled.value)
+            m_events.disable.emit();
+        else if (!wasEnabled && m_current.enabled.value)
+            m_events.enable.emit();
+        else if (m_current.enabled.value && m_current.enabled.isEnablePending && m_current.enabled.isDisablePending)
+            m_events.reset.emit();
         else
-            events.onCommit.emit();
+            m_events.onCommit.emit();
 
-        pending.enabled.isEnablePending  = false;
-        pending.enabled.isDisablePending = false;
+        m_pending.enabled.isEnablePending  = false;
+        m_pending.enabled.isDisablePending = false;
     });
 
-    resource->setSetSurroundingText([this](CZwpTextInputV3* r, const char* text, int32_t cursor, int32_t anchor) {
-        pending.surrounding.updated = true;
-        pending.surrounding.anchor  = anchor;
-        pending.surrounding.cursor  = cursor;
-        pending.surrounding.text    = text;
+    m_resource->setSetSurroundingText([this](CZwpTextInputV3* r, const char* text, int32_t cursor, int32_t anchor) {
+        m_pending.surrounding.updated = true;
+        m_pending.surrounding.anchor  = anchor;
+        m_pending.surrounding.cursor  = cursor;
+        m_pending.surrounding.text    = text;
     });
 
-    resource->setSetTextChangeCause([this](CZwpTextInputV3* r, zwpTextInputV3ChangeCause cause) { pending.cause = cause; });
+    m_resource->setSetTextChangeCause([this](CZwpTextInputV3* r, zwpTextInputV3ChangeCause cause) { m_pending.cause = cause; });
 
-    resource->setSetContentType([this](CZwpTextInputV3* r, zwpTextInputV3ContentHint hint, zwpTextInputV3ContentPurpose purpose) {
-        pending.contentType.updated = true;
-        pending.contentType.hint    = hint;
-        pending.contentType.purpose = purpose;
+    m_resource->setSetContentType([this](CZwpTextInputV3* r, zwpTextInputV3ContentHint hint, zwpTextInputV3ContentPurpose purpose) {
+        m_pending.contentType.updated = true;
+        m_pending.contentType.hint    = hint;
+        m_pending.contentType.purpose = purpose;
     });
 
-    resource->setSetCursorRectangle([this](CZwpTextInputV3* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        pending.box.updated   = true;
-        pending.box.cursorBox = {x, y, w, h};
+    m_resource->setSetCursorRectangle([this](CZwpTextInputV3* r, int32_t x, int32_t y, int32_t w, int32_t h) {
+        m_pending.box.updated   = true;
+        m_pending.box.cursorBox = {x, y, w, h};
     });
 
-    resource->setEnable([this](CZwpTextInputV3* r) {
-        pending.reset();
-        pending.enabled.value           = true;
-        pending.enabled.isEnablePending = true;
+    m_resource->setEnable([this](CZwpTextInputV3* r) {
+        m_pending.reset();
+        m_pending.enabled.value           = true;
+        m_pending.enabled.isEnablePending = true;
     });
 
-    resource->setDisable([this](CZwpTextInputV3* r) {
-        pending.enabled.value            = false;
-        pending.enabled.isDisablePending = true;
+    m_resource->setDisable([this](CZwpTextInputV3* r) {
+        m_pending.enabled.value            = false;
+        m_pending.enabled.isDisablePending = true;
     });
 }
 
 CTextInputV3::~CTextInputV3() {
-    events.destroy.emit();
+    m_events.destroy.emit();
 }
 
 void CTextInputV3::enter(SP<CWLSurfaceResource> surf) {
-    resource->sendEnter(surf->getResource()->resource());
+    m_resource->sendEnter(surf->getResource()->resource());
 }
 
 void CTextInputV3::leave(SP<CWLSurfaceResource> surf) {
-    resource->sendLeave(surf->getResource()->resource());
+    m_resource->sendLeave(surf->getResource()->resource());
 }
 
 void CTextInputV3::preeditString(const std::string& text, int32_t cursorBegin, int32_t cursorEnd) {
-    resource->sendPreeditString(text.c_str(), cursorBegin, cursorEnd);
+    m_resource->sendPreeditString(text.c_str(), cursorBegin, cursorEnd);
 }
 
 void CTextInputV3::commitString(const std::string& text) {
-    resource->sendCommitString(text.c_str());
+    m_resource->sendCommitString(text.c_str());
 }
 
 void CTextInputV3::deleteSurroundingText(uint32_t beforeLength, uint32_t afterLength) {
-    resource->sendDeleteSurroundingText(beforeLength, afterLength);
+    m_resource->sendDeleteSurroundingText(beforeLength, afterLength);
 }
 
 void CTextInputV3::sendDone() {
-    resource->sendDone(serial);
+    m_resource->sendDone(m_serial);
 }
 
 bool CTextInputV3::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 wl_client* CTextInputV3::client() {
-    return wl_resource_get_client(resource->resource());
+    return wl_resource_get_client(m_resource->resource());
 }
 
 CTextInputV3Protocol::CTextInputV3Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -110,7 +110,7 @@ CTextInputV3Protocol::CTextInputV3Protocol(const wl_interface* iface, const int&
 }
 
 void CTextInputV3Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpTextInputManagerV3>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CZwpTextInputManagerV3>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpTextInputManagerV3* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CZwpTextInputManagerV3* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -118,23 +118,23 @@ void CTextInputV3Protocol::bindManager(wl_client* client, void* data, uint32_t v
 }
 
 void CTextInputV3Protocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CTextInputV3Protocol::destroyTextInput(CTextInputV3* input) {
-    std::erase_if(m_vTextInputs, [&](const auto& other) { return other.get() == input; });
+    std::erase_if(m_textInputs, [&](const auto& other) { return other.get() == input; });
 }
 
 void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t id, wl_resource* seat) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vTextInputs.emplace_back(makeShared<CTextInputV3>(makeShared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
+    const auto RESOURCE = m_textInputs.emplace_back(makeShared<CTextInputV3>(makeShared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vTextInputs.pop_back();
+        m_textInputs.pop_back();
         LOGM(ERR, "Failed to create a tiv3 resource");
         return;
     }
 
-    events.newTextInput.emit(WP<CTextInputV3>(RESOURCE));
+    m_events.newTextInput.emit(WP<CTextInputV3>(RESOURCE));
 }

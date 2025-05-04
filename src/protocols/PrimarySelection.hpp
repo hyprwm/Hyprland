@@ -19,12 +19,12 @@ class CPrimarySelectionOffer {
     bool            good();
     void            sendData();
 
-    bool            dead = false;
+    bool            m_dead = false;
 
-    WP<IDataSource> source;
+    WP<IDataSource> m_source;
 
   private:
-    SP<CZwpPrimarySelectionOfferV1> resource;
+    SP<CZwpPrimarySelectionOfferV1> m_resource;
 
     friend class CPrimarySelectionDevice;
 };
@@ -44,12 +44,12 @@ class CPrimarySelectionSource : public IDataSource {
     virtual void                       cancelled();
     virtual void                       error(uint32_t code, const std::string& msg);
 
-    std::vector<std::string>           mimeTypes;
-    WP<CPrimarySelectionSource>        self;
-    WP<CPrimarySelectionDevice>        device;
+    std::vector<std::string>           m_mimeTypes;
+    WP<CPrimarySelectionSource>        m_self;
+    WP<CPrimarySelectionDevice>        m_device;
 
   private:
-    SP<CZwpPrimarySelectionSourceV1> resource;
+    SP<CZwpPrimarySelectionSourceV1> m_resource;
 };
 
 class CPrimarySelectionDevice {
@@ -62,11 +62,11 @@ class CPrimarySelectionDevice {
     void                        sendDataOffer(SP<CPrimarySelectionOffer> offer);
     void                        sendSelection(SP<CPrimarySelectionOffer> selection);
 
-    WP<CPrimarySelectionDevice> self;
+    WP<CPrimarySelectionDevice> m_self;
 
   private:
-    SP<CZwpPrimarySelectionDeviceV1> resource;
-    wl_client*                       pClient = nullptr;
+    SP<CZwpPrimarySelectionDeviceV1> m_resource;
+    wl_client*                       m_client = nullptr;
 
     friend class CPrimarySelectionProtocol;
 };
@@ -77,11 +77,11 @@ class CPrimarySelectionManager {
 
     bool                                     good();
 
-    WP<CPrimarySelectionDevice>              device;
-    std::vector<WP<CPrimarySelectionSource>> sources;
+    WP<CPrimarySelectionDevice>              m_device;
+    std::vector<WP<CPrimarySelectionSource>> m_sources;
 
   private:
-    SP<CZwpPrimarySelectionDeviceManagerV1> resource;
+    SP<CZwpPrimarySelectionDeviceManagerV1> m_resource;
 };
 
 class CPrimarySelectionProtocol : public IWaylandProtocol {
@@ -97,10 +97,10 @@ class CPrimarySelectionProtocol : public IWaylandProtocol {
     void destroyResource(CPrimarySelectionOffer* resource);
 
     //
-    std::vector<SP<CPrimarySelectionManager>> m_vManagers;
-    std::vector<SP<CPrimarySelectionDevice>>  m_vDevices;
-    std::vector<SP<CPrimarySelectionSource>>  m_vSources;
-    std::vector<SP<CPrimarySelectionOffer>>   m_vOffers;
+    std::vector<SP<CPrimarySelectionManager>> m_managers;
+    std::vector<SP<CPrimarySelectionDevice>>  m_devices;
+    std::vector<SP<CPrimarySelectionSource>>  m_sources;
+    std::vector<SP<CPrimarySelectionOffer>>   m_offers;
 
     //
     void setSelection(SP<IDataSource> source);
@@ -119,7 +119,7 @@ class CPrimarySelectionProtocol : public IWaylandProtocol {
 
     struct {
         CHyprSignalListener onPointerFocusChange;
-    } listeners;
+    } m_listeners;
 };
 
 namespace PROTO {

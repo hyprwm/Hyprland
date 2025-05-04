@@ -59,7 +59,7 @@ CXDGSystemBellProtocol::CXDGSystemBellProtocol(const wl_interface* iface, const 
 }
 
 void CXDGSystemBellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = WP<CXDGSystemBellManagerResource>{m_vManagers.emplace_back(makeUnique<CXDGSystemBellManagerResource>(makeUnique<CXdgSystemBellV1>(client, ver, id)))};
+    const auto RESOURCE = WP<CXDGSystemBellManagerResource>{m_managers.emplace_back(makeUnique<CXDGSystemBellManagerResource>(makeUnique<CXdgSystemBellV1>(client, ver, id)))};
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -68,5 +68,5 @@ void CXDGSystemBellProtocol::bindManager(wl_client* client, void* data, uint32_t
 }
 
 void CXDGSystemBellProtocol::destroyResource(CXDGSystemBellManagerResource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == res; });
 }

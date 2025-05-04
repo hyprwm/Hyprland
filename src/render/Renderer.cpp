@@ -623,7 +623,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_isX11) {
-            CBox geom = pWindow->m_xdgSurface->current.geometry;
+            CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
             renderdata.pos -= geom.pos();
             renderdata.dontRound       = true; // don't round popups
@@ -1108,7 +1108,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (!main || !pWindow)
             return;
 
-        CBox geom = pWindow->m_xdgSurface->current.geometry;
+        CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x || geom.height > projSizeUnscaled.y) {

@@ -13,8 +13,8 @@ class CXDGDecoration {
     wl_resource* toplevelResource();
 
   private:
-    SP<CZxdgToplevelDecorationV1> resource;
-    wl_resource*                  pToplevelResource = nullptr; // READ-ONLY.
+    SP<CZxdgToplevelDecorationV1> m_resource;
+    wl_resource*                  m_toplevelResource = nullptr; // READ-ONLY.
 };
 
 class CXDGDecorationProtocol : public IWaylandProtocol {
@@ -29,8 +29,8 @@ class CXDGDecorationProtocol : public IWaylandProtocol {
     void onGetDecoration(CZxdgDecorationManagerV1* pMgr, uint32_t id, wl_resource* xdgToplevel);
 
     //
-    std::vector<UP<CZxdgDecorationManagerV1>>            m_vManagers;
-    std::unordered_map<wl_resource*, UP<CXDGDecoration>> m_mDecorations; // xdg_toplevel -> deco
+    std::vector<UP<CZxdgDecorationManagerV1>>            m_managers;
+    std::unordered_map<wl_resource*, UP<CXDGDecoration>> m_decorations; // xdg_toplevel -> deco
 
     friend class CXDGDecoration;
 };

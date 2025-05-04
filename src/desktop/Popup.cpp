@@ -36,9 +36,9 @@ UP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
     popup->m_parent      = pOwner;
     popup->m_self        = popup;
     popup->m_wlSurface   = CWLSurface::create();
-    popup->m_wlSurface->assign(resource->surface->surface.lock(), popup.get());
+    popup->m_wlSurface->assign(resource->m_surface->m_surface.lock(), popup.get());
 
-    popup->m_lastSize = resource->surface->current.geometry.size();
+    popup->m_lastSize = resource->m_surface->m_current.geometry.size();
     popup->reposition();
 
     popup->initAllSignals();
@@ -54,7 +54,8 @@ void CPopup::initAllSignals() {
 
     if (!m_resource) {
         if (!m_windowOwner.expired())
-            m_listeners.newPopup = m_windowOwner->m_xdgSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+            m_listeners.newPopup =
+                m_windowOwner->m_xdgSurface->m_events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
         else if (!m_layerOwner.expired())
             m_listeners.newPopup =
                 m_layerOwner->m_layerSurface->m_events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
@@ -64,13 +65,13 @@ void CPopup::initAllSignals() {
         return;
     }
 
-    m_listeners.reposition = m_resource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
-    m_listeners.map        = m_resource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
-    m_listeners.unmap      = m_resource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
-    m_listeners.dismissed  = m_resource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
-    m_listeners.destroy    = m_resource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
-    m_listeners.commit     = m_resource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
-    m_listeners.newPopup   = m_resource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
+    m_listeners.reposition = m_resource->m_events.reposition.registerListener([this](std::any d) { this->onReposition(); });
+    m_listeners.map        = m_resource->m_surface->m_events.map.registerListener([this](std::any d) { this->onMap(); });
+    m_listeners.unmap      = m_resource->m_surface->m_events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.dismissed  = m_resource->m_events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
+    m_listeners.destroy    = m_resource->m_surface->m_events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
+    m_listeners.commit     = m_resource->m_surface->m_events.commit.registerListener([this](std::any d) { this->onCommit(); });
+    m_listeners.newPopup   = m_resource->m_surface->m_events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
@@ -93,7 +94,7 @@ void CPopup::onMap() {
         return;
 
     m_mapped   = true;
-    m_lastSize = m_resource->surface->surface->m_current.size;
+    m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
     const auto COORDS   = coordsGlobal();
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
@@ -110,7 +111,7 @@ void CPopup::onMap() {
 
     //unconstrain();
     sendScale();
-    m_resource->surface->surface->enter(PMONITOR->m_self.lock());
+    m_resource->m_surface->m_surface->enter(PMONITOR->m_self.lock());
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
@@ -120,7 +121,7 @@ void CPopup::onUnmap() {
     if (!m_mapped)
         return;
 
-    if (!m_resource || !m_resource->surface) {
+    if (!m_resource || !m_resource->m_surface) {
         Debug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
         onDestroy();
         return;
@@ -128,7 +129,7 @@ void CPopup::onUnmap() {
 
     m_mapped = false;
 
-    m_lastSize = m_resource->surface->surface->m_current.size;
+    m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
     const auto COORDS = coordsGlobal();
 
@@ -160,19 +161,19 @@ void CPopup::onUnmap() {
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {
-    if (!m_resource || !m_resource->surface) {
+    if (!m_resource || !m_resource->m_surface) {
         Debug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
         onDestroy();
         return;
     }
 
-    if (m_resource->surface->initialCommit) {
-        m_resource->surface->scheduleConfigure();
+    if (m_resource->m_surface->m_initialCommit) {
+        m_resource->m_surface->scheduleConfigure();
         return;
     }
 
     if (!m_windowOwner.expired() && (!m_windowOwner->m_isMapped || !m_windowOwner->m_workspace->m_visible)) {
-        m_lastSize = m_resource->surface->surface->m_current.size;
+        m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -180,16 +181,16 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (!m_resource->surface->mapped)
+    if (!m_resource->m_surface->m_mapped)
         return;
 
     const auto COORDS      = coordsGlobal();
     const auto COORDSLOCAL = coordsRelativeToParent();
 
-    if (m_lastSize != m_resource->surface->surface->m_current.size || m_requestedReposition || m_lastPos != COORDSLOCAL) {
+    if (m_lastSize != m_resource->m_surface->m_surface->m_current.size || m_requestedReposition || m_lastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_lastPos), m_lastSize};
         g_pHyprRenderer->damageBox(box);
-        m_lastSize = m_resource->surface->surface->m_current.size;
+        m_lastSize = m_resource->m_surface->m_surface->m_current.size;
         box        = {COORDS, m_lastSize};
         g_pHyprRenderer->damageBox(box);
 
@@ -242,12 +243,12 @@ Vector2D CPopup::coordsRelativeToParent() {
         return {};
 
     WP<CPopup> current = m_self;
-    offset -= current->m_resource->surface->current.geometry.pos();
+    offset -= current->m_resource->m_surface->m_current.geometry.pos();
 
     while (current->m_parent && current->m_resource) {
 
         offset += current->m_wlSurface->resource()->m_current.offset;
-        offset += current->m_resource->geometry.pos();
+        offset += current->m_resource->m_geometry.pos();
 
         current = current->m_parent;
     }
@@ -351,10 +352,10 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             continue;
 
         if (!allowsInput) {
-            const bool HASSURFACE = p->m_resource && p->m_resource->surface;
+            const bool HASSURFACE = p->m_resource && p->m_resource->m_surface;
 
-            Vector2D   offset = HASSURFACE ? p->m_resource->surface->current.geometry.pos() : Vector2D{};
-            Vector2D   size   = HASSURFACE ? p->m_resource->surface->current.geometry.size() : p->size();
+            Vector2D   offset = HASSURFACE ? p->m_resource->m_surface->m_current.geometry.pos() : Vector2D{};
+            Vector2D   size   = HASSURFACE ? p->m_resource->m_surface->m_current.geometry.size() : p->size();
 
             if (size == Vector2D{})
                 size = p->size();

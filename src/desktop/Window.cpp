@@ -62,8 +62,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(resource));
 
-    pWindow->m_self            = pWindow;
-    resource->toplevel->window = pWindow;
+    pWindow->m_self                = pWindow;
+    resource->m_toplevel->m_window = pWindow;
 
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -80,7 +80,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
-    pWindow->m_wlSurface->assign(pWindow->m_xdgSurface->surface.lock(), pWindow);
+    pWindow->m_wlSurface->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
     return pWindow;
 }
@@ -88,13 +88,13 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_xdgSurface(resource) {
     m_wlSurface = CWLSurface::create();
 
-    m_listeners.map            = m_xdgSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
-    m_listeners.ack            = m_xdgSurface->events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
-    m_listeners.unmap          = m_xdgSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
-    m_listeners.destroy        = m_xdgSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
-    m_listeners.commit         = m_xdgSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
-    m_listeners.updateState    = m_xdgSurface->toplevel->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
-    m_listeners.updateMetadata = m_xdgSurface->toplevel->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
+    m_listeners.map            = m_xdgSurface->m_events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    m_listeners.ack            = m_xdgSurface->m_events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
+    m_listeners.unmap          = m_xdgSurface->m_events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    m_listeners.destroy        = m_xdgSurface->m_events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    m_listeners.commit         = m_xdgSurface->m_events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    m_listeners.updateState    = m_xdgSurface->m_toplevel->m_events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
 }
 
 CWindow::CWindow(SP<CXWaylandSurface> surface) : m_xwaylandSurface(surface) {
@@ -344,10 +344,10 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
 pid_t CWindow::getPID() {
     pid_t PID = -1;
     if (!m_isX11) {
-        if (!m_xdgSurface || !m_xdgSurface->owner /* happens at unmap */)
+        if (!m_xdgSurface || !m_xdgSurface->m_owner /* happens at unmap */)
             return -1;
 
-        wl_client_get_credentials(m_xdgSurface->owner->client(), &PID, nullptr, nullptr);
+        wl_client_get_credentials(m_xdgSurface->m_owner->client(), &PID, nullptr, nullptr);
     } else {
         if (!m_xwaylandSurface)
             return -1;
@@ -1166,8 +1166,8 @@ bool CWindow::opaque() {
         return false;
 
     // TODO: this is wrong
-    const auto EXTENTS = m_xdgSurface->surface->m_current.opaque.getExtents();
-    if (EXTENTS.w >= m_xdgSurface->surface->m_current.bufferSize.x && EXTENTS.h >= m_xdgSurface->surface->m_current.bufferSize.y)
+    const auto EXTENTS = m_xdgSurface->m_surface->m_current.opaque.getExtents();
+    if (EXTENTS.w >= m_xdgSurface->m_surface->m_current.bufferSize.x && EXTENTS.h >= m_xdgSurface->m_surface->m_current.bufferSize.y)
         return true;
 
     return m_wlSurface->resource()->m_current.texture->m_bOpaque;
@@ -1238,10 +1238,10 @@ void CWindow::setSuspended(bool suspend) {
     if (suspend == m_suspended)
         return;
 
-    if (m_isX11 || !m_xdgSurface || !m_xdgSurface->toplevel)
+    if (m_isX11 || !m_xdgSurface || !m_xdgSurface->m_toplevel)
         return;
 
-    m_xdgSurface->toplevel->setSuspeneded(suspend);
+    m_xdgSurface->m_toplevel->setSuspeneded(suspend);
     m_suspended = suspend;
 }
 
@@ -1418,9 +1418,9 @@ void CWindow::activate(bool force) {
 }
 
 void CWindow::onUpdateState() {
-    std::optional<bool>      requestsFS = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsFullscreen : m_xwaylandSurface->state.requestsFullscreen;
-    std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsFullscreenMonitor : MONITOR_INVALID;
-    std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->toplevel->state.requestsMaximize : m_xwaylandSurface->state.requestsMaximize;
+    std::optional<bool>      requestsFS = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreen : m_xwaylandSurface->state.requestsFullscreen;
+    std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreenMonitor : MONITOR_INVALID;
+    std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->state.requestsMaximize;
 
     if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
@@ -1491,8 +1491,8 @@ void CWindow::onUpdateMeta() {
 
 std::string CWindow::fetchTitle() {
     if (!m_isX11) {
-        if (m_xdgSurface && m_xdgSurface->toplevel)
-            return m_xdgSurface->toplevel->state.title;
+        if (m_xdgSurface && m_xdgSurface->m_toplevel)
+            return m_xdgSurface->m_toplevel->m_state.title;
     } else {
         if (m_xwaylandSurface)
             return m_xwaylandSurface->state.title;
@@ -1503,8 +1503,8 @@ std::string CWindow::fetchTitle() {
 
 std::string CWindow::fetchClass() {
     if (!m_isX11) {
-        if (m_xdgSurface && m_xdgSurface->toplevel)
-            return m_xdgSurface->toplevel->state.appid;
+        if (m_xdgSurface && m_xdgSurface->m_toplevel)
+            return m_xdgSurface->m_toplevel->m_state.appid;
     } else {
         if (m_xwaylandSurface)
             return m_xwaylandSurface->state.appid;
@@ -1676,10 +1676,10 @@ bool CWindow::isModal() {
 }
 
 Vector2D CWindow::requestedMinSize() {
-    if ((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && !m_xdgSurface->toplevel))
+    if ((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && !m_xdgSurface->m_toplevel))
         return Vector2D(1, 1);
 
-    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->min_width, m_xwaylandSurface->sizeHints->min_height) : m_xdgSurface->toplevel->layoutMinSize();
+    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->min_width, m_xwaylandSurface->sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();
 
     minSize = minSize.clamp({1, 1});
 
@@ -1688,10 +1688,10 @@ Vector2D CWindow::requestedMinSize() {
 
 Vector2D CWindow::requestedMaxSize() {
     constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->toplevel)) || m_windowData.noMaxSize.valueOrDefault()))
+    if (((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel)) || m_windowData.noMaxSize.valueOrDefault()))
         return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
 
-    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->max_width, m_xwaylandSurface->sizeHints->max_height) : m_xdgSurface->toplevel->layoutMaxSize();
+    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->max_width, m_xwaylandSurface->sizeHints->max_height) : m_xdgSurface->m_toplevel->layoutMaxSize();
 
     if (maxSize.x < 5)
         maxSize.x = NO_MAX_SIZE_LIMIT;
@@ -1767,8 +1767,8 @@ void CWindow::sendWindowSize(bool force) {
 
     if (m_isX11 && m_xwaylandSurface)
         m_xwaylandSurface->configure({REPORTPOS, REPORTSIZE});
-    else if (m_xdgSurface && m_xdgSurface->toplevel)
-        m_pendingSizeAcks.emplace_back(m_xdgSurface->toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
+    else if (m_xdgSurface && m_xdgSurface->m_toplevel)
+        m_pendingSizeAcks.emplace_back(m_xdgSurface->m_toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
 }
 
 NContentType::eContentType CWindow::getContentType() {
@@ -1795,8 +1795,8 @@ void CWindow::deactivateGroupMembers() {
             // because X is weird, keep the behavior for wayland windows
             // also its not really needed for xwayland windows
             // ref: #9760 #9294
-            if (!curr->m_isX11 && curr->m_xdgSurface && curr->m_xdgSurface->toplevel)
-                curr->m_xdgSurface->toplevel->setActive(false);
+            if (!curr->m_isX11 && curr->m_xdgSurface && curr->m_xdgSurface->m_toplevel)
+                curr->m_xdgSurface->m_toplevel->setActive(false);
         }
 
         curr = curr->m_groupData.pNextWindow.lock();
@@ -1810,15 +1810,15 @@ bool CWindow::isNotResponding() {
 }
 
 std::optional<std::string> CWindow::xdgTag() {
-    if (!m_xdgSurface || !m_xdgSurface->toplevel)
+    if (!m_xdgSurface || !m_xdgSurface->m_toplevel)
         return std::nullopt;
 
-    return m_xdgSurface->toplevel->m_toplevelTag;
+    return m_xdgSurface->m_toplevel->m_toplevelTag;
 }
 
 std::optional<std::string> CWindow::xdgDescription() {
-    if (!m_xdgSurface || !m_xdgSurface->toplevel)
+    if (!m_xdgSurface || !m_xdgSurface->m_toplevel)
         return std::nullopt;
 
-    return m_xdgSurface->toplevel->m_toplevelDescription;
+    return m_xdgSurface->m_toplevel->m_toplevelDescription;
 }

@@ -66,11 +66,11 @@ CInputManager::CInputManager() {
     });
 
     m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
+    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->m_events.newKeyboard.registerListener([this](std::any data) {
         this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
         updateCapabilities();
     });
-    m_listeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
+    m_listeners.newVirtualMouse    = PROTO::virtualPointer->m_events.newPointer.registerListener([this](std::any data) {
         this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
         updateCapabilities();
     });
@@ -491,7 +491,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (pFoundWindow && !pFoundWindow->m_isX11 && surfacePos != Vector2D(-1337, -1337)) {
         // calc for oversized windows... fucking bullshit.
-        CBox geom = pFoundWindow->m_xdgSurface->current.geometry;
+        CBox geom = pFoundWindow->m_xdgSurface->m_current.geometry;
 
         surfaceLocal = mouseCoords - surfacePos + geom.pos();
     }

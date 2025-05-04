@@ -161,9 +161,9 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         // TODO: detect a popup in a more consistent way.
         if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_isX11) {
             // if the pos isn't set, fall back to the center placement if it's not a child, otherwise middle of parent if available
-            if (!pWindow->m_isX11 && pWindow->m_xdgSurface->toplevel->parent && validMapped(pWindow->m_xdgSurface->toplevel->parent->window))
-                *pWindow->m_realPosition = pWindow->m_xdgSurface->toplevel->parent->window->m_realPosition->goal() +
-                    pWindow->m_xdgSurface->toplevel->parent->window->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
+            if (!pWindow->m_isX11 && pWindow->m_xdgSurface->m_toplevel->m_parent && validMapped(pWindow->m_xdgSurface->m_toplevel->m_parent->m_window))
+                *pWindow->m_realPosition = pWindow->m_xdgSurface->m_toplevel->m_parent->m_window->m_realPosition->goal() +
+                    pWindow->m_xdgSurface->m_toplevel->m_parent->m_window->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
             else
                 *pWindow->m_realPosition = PMONITOR->m_position + PMONITOR->m_size / 2.F - desiredGeometry.size() / 2.F;
         } else {
@@ -933,7 +933,7 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     else
         sizePredicted = predictSizeForNewWindowFloating(pWindow);
 
-    Vector2D maxSize = pWindow->m_xdgSurface->toplevel->pending.maxSize;
+    Vector2D maxSize = pWindow->m_xdgSurface->m_toplevel->m_pending.maxSize;
 
     if ((maxSize.x > 0 && maxSize.x < sizePredicted.x) || (maxSize.y > 0 && maxSize.y < sizePredicted.y))
         sizePredicted = {};

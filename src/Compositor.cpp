@@ -1050,7 +1050,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
         },
         &iterData);
 
-    CBox geom = pWindow->m_xdgSurface->current.geometry;
+    CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
     if (std::get<1>(iterData) == Vector2D{-1337, -1337})
         return vec - pWindow->m_realPosition->goal();
@@ -1879,7 +1879,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
         *pWindow->m_borderFadeAnimationProgress = 1.f;
     };
 
-    const bool IS_SHADOWED_BY_MODAL = pWindow->m_xdgSurface && pWindow->m_xdgSurface->toplevel && pWindow->m_xdgSurface->toplevel->anyChildModal();
+    const bool IS_SHADOWED_BY_MODAL = pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal();
 
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);

@@ -40,7 +40,7 @@ class CXDGPositionerRules {
     CBox getPosition(CBox constraint, const Vector2D& parentPos);
 
   private:
-    SXDGPositionerState state;
+    SXDGPositionerState m_state;
 };
 
 class CXDGPopupResource {
@@ -54,19 +54,19 @@ class CXDGPopupResource {
 
     void                         applyPositioning(const CBox& availableBox, const Vector2D& t1coord /* relative to box */);
 
-    WP<CXDGSurfaceResource>      surface;
-    WP<CXDGSurfaceResource>      parent;
-    WP<CXDGPopupResource>        self;
+    WP<CXDGSurfaceResource>      m_surface;
+    WP<CXDGSurfaceResource>      m_parent;
+    WP<CXDGPopupResource>        m_self;
 
-    bool                         taken = false;
+    bool                         m_taken = false;
 
-    CBox                         geometry;
+    CBox                         m_geometry;
 
     struct {
         CSignal reposition;
         CSignal dismissed;
         CSignal destroy; // only the role
-    } events;
+    } m_events;
 
     // schedules a configure event
     void configure(const CBox& box);
@@ -75,13 +75,13 @@ class CXDGPopupResource {
     void repositioned();
 
   private:
-    SP<CXdgPopup>       resource;
+    SP<CXdgPopup>       m_resource;
 
-    uint32_t            lastRepositionToken = 0;
+    uint32_t            m_lastRepositionToken = 0;
 
     Vector2D            accumulateParentOffset();
 
-    CXDGPositionerRules positionerRules;
+    CXDGPositionerRules m_positionerRules;
 };
 
 class CXDGToplevelResource {
@@ -91,10 +91,10 @@ class CXDGToplevelResource {
 
     static SP<CXDGToplevelResource> fromResource(wl_resource*);
 
-    WP<CXDGSurfaceResource>         owner;
-    WP<CXDGToplevelResource>        self;
+    WP<CXDGSurfaceResource>         m_owner;
+    WP<CXDGToplevelResource>        m_self;
 
-    PHLWINDOWREF                    window;
+    PHLWINDOWREF                    m_window;
 
     bool                            good();
 
@@ -115,7 +115,7 @@ class CXDGToplevelResource {
         CSignal stateChanged;    // maximized, fs, minimized, etc.
         CSignal metadataChanged; // title, appid
         CSignal destroy;         // only the role
-    } events;
+    } m_events;
 
     struct {
         std::string title;
@@ -126,29 +126,30 @@ class CXDGToplevelResource {
         std::optional<bool>      requestsFullscreen;
         std::optional<MONITORID> requestsFullscreenMonitor;
         std::optional<bool>      requestsMinimize;
-    } state;
+    } m_state;
 
     struct {
         Vector2D                      size;
         std::vector<xdgToplevelState> states;
-    } pendingApply;
+    } m_pendingApply;
 
     struct {
         Vector2D minSize = {1, 1};
         Vector2D maxSize = {1337420, 694200};
-    } pending, current;
+    } m_pending, m_current;
 
-    WP<CXDGToplevelResource>              parent;
-    WP<CXDGDialogV1Resource>              dialog;
+    WP<CXDGToplevelResource>              m_parent;
+    WP<CXDGDialogV1Resource>              m_dialog;
 
-    std::optional<std::string>            m_toplevelTag, m_toplevelDescription;
+    std::optional<std::string>            m_toplevelTag;
+    std::optional<std::string>            m_toplevelDescription;
 
     bool                                  anyChildModal();
 
-    std::vector<WP<CXDGToplevelResource>> children;
+    std::vector<WP<CXDGToplevelResource>> m_children;
 
   private:
-    SP<CXdgToplevel> resource;
+    SP<CXdgToplevel> m_resource;
     void             applyState();
 };
 
@@ -160,7 +161,7 @@ class CXDGSurfaceRole : public ISurfaceRole {
         return SURFACE_ROLE_XDG_SHELL;
     }
 
-    WP<CXDGSurfaceResource> xdgSurface;
+    WP<CXDGSurfaceResource> m_xdgSurface;
 };
 
 class CXDGSurfaceResource {
@@ -172,17 +173,17 @@ class CXDGSurfaceResource {
 
     bool                           good();
 
-    WP<CXDGWMBase>                 owner;
-    WP<CWLSurfaceResource>         surface;
+    WP<CXDGWMBase>                 m_owner;
+    WP<CWLSurfaceResource>         m_surface;
 
-    WP<CXDGToplevelResource>       toplevel;
-    WP<CXDGPopupResource>          popup;
+    WP<CXDGToplevelResource>       m_toplevel;
+    WP<CXDGPopupResource>          m_popup;
 
-    WP<CXDGSurfaceResource>        self;
+    WP<CXDGSurfaceResource>        m_self;
 
     struct {
         CBox geometry;
-    } pending, current;
+    } m_pending, m_current;
 
     struct {
         CSignal ack;
@@ -191,30 +192,30 @@ class CXDGSurfaceResource {
         CSignal unmap;
         CSignal destroy;
         CSignal newPopup; // SP<CXDGPopupResource>
-    } events;
+    } m_events;
 
-    bool     initialCommit = true;
-    bool     mapped        = false;
+    bool     m_initialCommit = true;
+    bool     m_mapped        = false;
 
     uint32_t scheduleConfigure();
     // do not call directly
     void configure();
 
   private:
-    SP<CXdgSurface>  resource;
+    SP<CXdgSurface>  m_resource;
 
-    uint32_t         lastConfigureSerial = 0;
-    uint32_t         scheduledSerial     = 0;
+    uint32_t         m_lastConfigureSerial = 0;
+    uint32_t         m_scheduledSerial     = 0;
 
-    wl_event_source* configureSource = nullptr;
+    wl_event_source* m_configureSource = nullptr;
 
     //
-    std::vector<WP<CXDGPopupResource>> popups;
+    std::vector<WP<CXDGPopupResource>> m_popups;
 
     struct {
         CHyprSignalListener surfaceDestroy;
         CHyprSignalListener surfaceCommit;
-    } listeners;
+    } m_listeners;
 
     friend class CXDGPopupResource;
     friend class CXDGToplevelResource;
@@ -228,13 +229,13 @@ class CXDGPositionerResource {
 
     bool                              good();
 
-    SXDGPositionerState               state;
+    SXDGPositionerState               m_state;
 
-    WP<CXDGWMBase>                    owner;
-    WP<CXDGPositionerResource>        self;
+    WP<CXDGWMBase>                    m_owner;
+    WP<CXDGPositionerResource>        m_self;
 
   private:
-    SP<CXdgPositioner> resource;
+    SP<CXdgPositioner> m_resource;
 };
 
 class CXDGWMBase {
@@ -245,18 +246,18 @@ class CXDGWMBase {
     wl_client*                              client();
     void                                    ping();
 
-    std::vector<WP<CXDGPositionerResource>> positioners;
-    std::vector<WP<CXDGSurfaceResource>>    surfaces;
+    std::vector<WP<CXDGPositionerResource>> m_positioners;
+    std::vector<WP<CXDGSurfaceResource>>    m_surfaces;
 
-    WP<CXDGWMBase>                          self;
+    WP<CXDGWMBase>                          m_self;
 
     struct {
         CSignal pong;
-    } events;
+    } m_events;
 
   private:
-    SP<CXdgWmBase> resource;
-    wl_client*     pClient = nullptr;
+    SP<CXdgWmBase> m_resource;
+    wl_client*     m_client = nullptr;
 };
 
 class CXDGShellProtocol : public IWaylandProtocol {
@@ -273,16 +274,16 @@ class CXDGShellProtocol : public IWaylandProtocol {
     void destroyResource(CXDGPopupResource* resource);
 
     //
-    std::vector<SP<CXDGWMBase>>             m_vWMBases;
-    std::vector<SP<CXDGPositionerResource>> m_vPositioners;
-    std::vector<SP<CXDGSurfaceResource>>    m_vSurfaces;
-    std::vector<SP<CXDGToplevelResource>>   m_vToplevels;
-    std::vector<SP<CXDGPopupResource>>      m_vPopups;
+    std::vector<SP<CXDGWMBase>>             m_wmBases;
+    std::vector<SP<CXDGPositionerResource>> m_positioners;
+    std::vector<SP<CXDGSurfaceResource>>    m_surfaces;
+    std::vector<SP<CXDGToplevelResource>>   m_toplevels;
+    std::vector<SP<CXDGPopupResource>>      m_popups;
 
     // current popup grab
-    WP<CXDGPopupResource>              grabOwner;
-    SP<CSeatGrab>                      grab;
-    std::vector<WP<CXDGPopupResource>> grabbed;
+    WP<CXDGPopupResource>              m_grabOwner;
+    SP<CSeatGrab>                      m_grab;
+    std::vector<WP<CXDGPopupResource>> m_grabbed;
 
     void                               addOrStartGrab(SP<CXDGPopupResource> popup);
     void                               onPopupDestroy(WP<CXDGPopupResource> popup);

@@ -62,7 +62,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(resource));
 
-    pWindow->m_self              = pWindow;
+    pWindow->m_self                = pWindow;
     resource->m_toplevel->m_window = pWindow;
 
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);

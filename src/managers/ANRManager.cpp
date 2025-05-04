@@ -150,7 +150,8 @@ SP<CANRManager::SANRData> CANRManager::dataFor(SP<CXWaylandSurface> pXwaylandSur
     return it == m_data.end() ? nullptr : *it;
 }
 
-CANRManager::SANRData::SANRData(PHLWINDOW pWindow) : xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->m_owner : WP<CXDGWMBase>{}) {
+CANRManager::SANRData::SANRData(PHLWINDOW pWindow) :
+    xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->m_owner : WP<CXDGWMBase>{}) {
     ;
 }
 

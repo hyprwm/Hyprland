@@ -852,12 +852,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_self.lock();
 
-    if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->initialCommit) {
+    if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->m_initialCommit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
 
         Debug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
 
-        PWINDOW->m_xdgSurface->toplevel->setSize(predSize);
+        PWINDOW->m_xdgSurface->m_toplevel->setSize(predSize);
         return;
     }
 
@@ -867,8 +867,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_isX11 && !PWINDOW->isFullscreen() && PWINDOW->m_isFloating) {
-        const auto MINSIZE = PWINDOW->m_xdgSurface->toplevel->layoutMinSize();
-        const auto MAXSIZE = PWINDOW->m_xdgSurface->toplevel->layoutMaxSize();
+        const auto MINSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMinSize();
+        const auto MAXSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMaxSize();
 
         PWINDOW->clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
         g_pHyprRenderer->damageWindow(PWINDOW);

@@ -4,47 +4,47 @@
 #include "../helpers/time/Time.hpp"
 using namespace Hyprutils::OS;
 
-CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
+CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
+    m_resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
         releasePressed();
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
-    resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) {
+    m_resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) {
         releasePressed();
-        events.destroy.emit();
+        m_events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
 
-    resource->setKey([this](CZwpVirtualKeyboardV1* r, uint32_t timeMs, uint32_t key, uint32_t state) {
-        if UNLIKELY (!hasKeymap) {
+    m_resource->setKey([this](CZwpVirtualKeyboardV1* r, uint32_t timeMs, uint32_t key, uint32_t state) {
+        if UNLIKELY (!m_hasKeymap) {
             r->error(ZWP_VIRTUAL_KEYBOARD_V1_ERROR_NO_KEYMAP, "Key event received before a keymap was set");
             return;
         }
 
-        events.key.emit(IKeyboard::SKeyEvent{
+        m_events.key.emit(IKeyboard::SKeyEvent{
             .timeMs  = timeMs,
             .keycode = key,
             .state   = (wl_keyboard_key_state)state,
         });
 
-        const bool CONTAINS = std::find(pressed.begin(), pressed.end(), key) != pressed.end();
+        const bool CONTAINS = std::find(m_pressed.begin(), m_pressed.end(), key) != m_pressed.end();
         if (state && !CONTAINS)
-            pressed.emplace_back(key);
+            m_pressed.emplace_back(key);
         else if (!state && CONTAINS)
-            std::erase(pressed, key);
+            std::erase(m_pressed, key);
     });
 
-    resource->setModifiers([this](CZwpVirtualKeyboardV1* r, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-        if UNLIKELY (!hasKeymap) {
+    m_resource->setModifiers([this](CZwpVirtualKeyboardV1* r, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
+        if UNLIKELY (!m_hasKeymap) {
             r->error(ZWP_VIRTUAL_KEYBOARD_V1_ERROR_NO_KEYMAP, "Mods event received before a keymap was set");
             return;
         }
 
-        events.modifiers.emit(IKeyboard::SModifiersEvent{
+        m_events.modifiers.emit(IKeyboard::SModifiersEvent{
             .depressed = depressed,
             .latched   = latched,
             .locked    = locked,
@@ -52,7 +52,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         });
     });
 
-    resource->setKeymap([this](CZwpVirtualKeyboardV1* r, uint32_t fmt, int32_t fd, uint32_t len) {
+    m_resource->setKeymap([this](CZwpVirtualKeyboardV1* r, uint32_t fmt, int32_t fd, uint32_t len) {
         auto            xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
         CFileDescriptor keymapFd{fd};
         if UNLIKELY (!xkbContext) {
@@ -79,40 +79,40 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        events.keymap.emit(IKeyboard::SKeymapEvent{
+        m_events.keymap.emit(IKeyboard::SKeymapEvent{
             .keymap = xkbKeymap,
         });
-        hasKeymap = true;
+        m_hasKeymap = true;
 
         xkb_keymap_unref(xkbKeymap);
         xkb_context_unref(xkbContext);
     });
 
-    name = "hl-virtual-keyboard";
+    m_name = "hl-virtual-keyboard";
 }
 
 CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {
-    events.destroy.emit();
+    m_events.destroy.emit();
 }
 
 bool CVirtualKeyboardV1Resource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 wl_client* CVirtualKeyboardV1Resource::client() {
-    return resource->resource() ? resource->client() : nullptr;
+    return m_resource->resource() ? m_resource->client() : nullptr;
 }
 
 void CVirtualKeyboardV1Resource::releasePressed() {
-    for (auto const& p : pressed) {
-        events.key.emit(IKeyboard::SKeyEvent{
+    for (auto const& p : m_pressed) {
+        m_events.key.emit(IKeyboard::SKeyEvent{
             .timeMs  = Time::millis(Time::steadyNow()),
             .keycode = p,
             .state   = WL_KEYBOARD_KEY_STATE_RELEASED,
         });
     }
 
-    pressed.clear();
+    m_pressed.clear();
 }
 
 CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -120,31 +120,31 @@ CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, co
 }
 
 void CVirtualKeyboardProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpVirtualKeyboardManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CZwpVirtualKeyboardManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpVirtualKeyboardManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setCreateVirtualKeyboard([this](CZwpVirtualKeyboardManagerV1* pMgr, wl_resource* seat, uint32_t id) { this->onCreateKeeb(pMgr, seat, id); });
 }
 
 void CVirtualKeyboardProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CVirtualKeyboardProtocol::destroyResource(CVirtualKeyboardV1Resource* keeb) {
-    std::erase_if(m_vKeyboards, [&](const auto& other) { return other.get() == keeb; });
+    std::erase_if(m_keyboards, [&](const auto& other) { return other.get() == keeb; });
 }
 
 void CVirtualKeyboardProtocol::onCreateKeeb(CZwpVirtualKeyboardManagerV1* pMgr, wl_resource* seat, uint32_t id) {
 
-    const auto RESOURCE = m_vKeyboards.emplace_back(makeShared<CVirtualKeyboardV1Resource>(makeShared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_keyboards.emplace_back(makeShared<CVirtualKeyboardV1Resource>(makeShared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        m_vKeyboards.pop_back();
+        m_keyboards.pop_back();
         return;
     }
 
     LOGM(LOG, "New VKeyboard at id {}", id);
 
-    events.newKeyboard.emit(RESOURCE);
+    m_events.newKeyboard.emit(RESOURCE);
 }

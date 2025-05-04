@@ -136,7 +136,7 @@ SP<CANRManager::SANRData> CANRManager::dataFor(PHLWINDOW pWindow) {
     if (pWindow->m_xwaylandSurface)
         it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xwaylandSurface && data->xwaylandSurface == pWindow->m_xwaylandSurface; });
     else if (pWindow->m_xdgSurface)
-        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xdgBase && data->xdgBase == pWindow->m_xdgSurface->owner; });
+        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xdgBase && data->xdgBase == pWindow->m_xdgSurface->m_owner; });
     return it == m_data.end() ? nullptr : *it;
 }
 
@@ -150,7 +150,7 @@ SP<CANRManager::SANRData> CANRManager::dataFor(SP<CXWaylandSurface> pXwaylandSur
     return it == m_data.end() ? nullptr : *it;
 }
 
-CANRManager::SANRData::SANRData(PHLWINDOW pWindow) : xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->owner : WP<CXDGWMBase>{}) {
+CANRManager::SANRData::SANRData(PHLWINDOW pWindow) : xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->m_owner : WP<CXDGWMBase>{}) {
     ;
 }
 
@@ -201,7 +201,7 @@ bool CANRManager::SANRData::fitsWindow(PHLWINDOW pWindow) const {
     if (pWindow->m_xwaylandSurface)
         return pWindow->m_xwaylandSurface == xwaylandSurface;
     else if (pWindow->m_xdgSurface)
-        return pWindow->m_xdgSurface->owner == xdgBase && xdgBase;
+        return pWindow->m_xdgSurface->m_owner == xdgBase && xdgBase;
     return false;
 }
 

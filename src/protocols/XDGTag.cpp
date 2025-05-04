@@ -41,7 +41,7 @@ CXDGToplevelTagProtocol::CXDGToplevelTagProtocol(const wl_interface* iface, cons
 
 void CXDGToplevelTagProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE =
-        WP<CXDGToplevelTagManagerResource>{m_vManagers.emplace_back(makeUnique<CXDGToplevelTagManagerResource>(makeUnique<CXdgToplevelTagManagerV1>(client, ver, id)))};
+        WP<CXDGToplevelTagManagerResource>{m_managers.emplace_back(makeUnique<CXDGToplevelTagManagerResource>(makeUnique<CXdgToplevelTagManagerV1>(client, ver, id)))};
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -50,5 +50,5 @@ void CXDGToplevelTagProtocol::bindManager(wl_client* client, void* data, uint32_
 }
 
 void CXDGToplevelTagProtocol::destroyResource(CXDGToplevelTagManagerResource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == res; });
 }

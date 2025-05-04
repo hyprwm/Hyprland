@@ -120,12 +120,12 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
     m_resource->setGetPopup([this](CZwlrLayerSurfaceV1* r, wl_resource* popup_) {
         auto popup = CXDGPopupResource::fromResource(popup_);
 
-        if (popup->taken) {
+        if (popup->m_taken) {
             r->error(-1, "Parent already exists!");
             return;
         }
 
-        popup->taken = true;
+        popup->m_taken = true;
         m_events.newPopup.emit(popup);
     });
 

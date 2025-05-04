@@ -32,21 +32,21 @@ class CVirtualPointerV1Resource {
 
         CSignal holdBegin;
         CSignal holdEnd;
-    } events;
+    } m_events;
 
     bool          good();
     wl_client*    client();
 
-    std::string   name;
+    std::string   m_name;
 
-    PHLMONITORREF boundOutput;
+    PHLMONITORREF m_boundOutput;
 
   private:
-    SP<CZwlrVirtualPointerV1>           resource;
+    SP<CZwlrVirtualPointerV1>           m_resource;
 
-    uint32_t                            axis = 0;
+    uint32_t                            m_axis = 0;
 
-    std::array<IPointer::SAxisEvent, 2> axisEvents;
+    std::array<IPointer::SAxisEvent, 2> m_axisEvents;
 };
 
 class CVirtualPointerProtocol : public IWaylandProtocol {
@@ -57,7 +57,7 @@ class CVirtualPointerProtocol : public IWaylandProtocol {
 
     struct {
         CSignal newPointer; // SP<CVirtualPointerV1Resource>
-    } events;
+    } m_events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
@@ -65,8 +65,8 @@ class CVirtualPointerProtocol : public IWaylandProtocol {
     void onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id, PHLMONITORREF output);
 
     //
-    std::vector<UP<CZwlrVirtualPointerManagerV1>> m_vManagers;
-    std::vector<SP<CVirtualPointerV1Resource>>    m_vPointers;
+    std::vector<UP<CZwlrVirtualPointerManagerV1>> m_managers;
+    std::vector<SP<CVirtualPointerV1Resource>>    m_pointers;
 
     friend class CVirtualPointerV1Resource;
 };

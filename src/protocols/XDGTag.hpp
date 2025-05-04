@@ -26,7 +26,7 @@ class CXDGToplevelTagProtocol : public IWaylandProtocol {
     void destroyResource(CXDGToplevelTagManagerResource* res);
 
     //
-    std::vector<UP<CXDGToplevelTagManagerResource>> m_vManagers;
+    std::vector<UP<CXDGToplevelTagManagerResource>> m_managers;
 
     friend class CXDGToplevelTagManagerResource;
 };

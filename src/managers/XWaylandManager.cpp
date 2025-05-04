@@ -48,8 +48,8 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
             }
             PWINDOW->m_xwaylandSurface->activate(activate);
         }
-    } else if (PWINDOW->m_xdgSurface && PWINDOW->m_xdgSurface->toplevel)
-        PWINDOW->m_xdgSurface->toplevel->setActive(activate);
+    } else if (PWINDOW->m_xdgSurface && PWINDOW->m_xdgSurface->m_toplevel)
+        PWINDOW->m_xdgSurface->m_toplevel->setActive(activate);
 }
 
 void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
@@ -65,8 +65,8 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
 
         pWindow->m_xwaylandSurface->activate(activate);
 
-    } else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->toplevel)
-        pWindow->m_xdgSurface->toplevel->setActive(activate);
+    } else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel)
+        pWindow->m_xdgSurface->m_toplevel->setActive(activate);
 
     if (activate) {
         g_pCompositor->m_lastFocus  = getWindowSurface(pWindow);
@@ -86,7 +86,7 @@ CBox CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow) {
     if (pWindow->m_isX11)
         box = pWindow->m_xwaylandSurface->geometry;
     else if (pWindow->m_xdgSurface)
-        box = pWindow->m_xdgSurface->current.geometry;
+        box = pWindow->m_xdgSurface->m_current.geometry;
 
     return box;
 }
@@ -94,8 +94,8 @@ CBox CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow) {
 void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {
     if (pWindow->m_isX11)
         pWindow->m_xwaylandSurface->close();
-    else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->toplevel)
-        pWindow->m_xdgSurface->toplevel->close();
+    else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel)
+        pWindow->m_xdgSurface->m_toplevel->close();
 }
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
@@ -124,11 +124,11 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
             (SIZEHINTS && (SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height)))
             return true;
     } else {
-        if (!pWindow->m_xdgSurface || !pWindow->m_xdgSurface->toplevel)
+        if (!pWindow->m_xdgSurface || !pWindow->m_xdgSurface->m_toplevel)
             return false;
 
-        const auto PSTATE = pending ? &pWindow->m_xdgSurface->toplevel->pending : &pWindow->m_xdgSurface->toplevel->current;
-        if (pWindow->m_xdgSurface->toplevel->parent ||
+        const auto PSTATE = pending ? &pWindow->m_xdgSurface->m_toplevel->m_pending : &pWindow->m_xdgSurface->m_toplevel->m_current;
+        if (pWindow->m_xdgSurface->m_toplevel->m_parent ||
             (PSTATE->minSize.x != 0 && PSTATE->minSize.y != 0 && (PSTATE->minSize.x == PSTATE->maxSize.x || PSTATE->minSize.y == PSTATE->maxSize.y)))
             return true;
     }
@@ -160,8 +160,8 @@ void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscree
 
     if (pWindow->m_isX11)
         pWindow->m_xwaylandSurface->setFullscreen(fullscreen);
-    else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->toplevel)
-        pWindow->m_xdgSurface->toplevel->setFullscreen(fullscreen);
+    else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel)
+        pWindow->m_xdgSurface->m_toplevel->setFullscreen(fullscreen);
 }
 
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {

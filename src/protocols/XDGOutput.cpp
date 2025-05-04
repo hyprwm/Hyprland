@@ -14,15 +14,15 @@
 //
 
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagerResources, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managerResources, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CXDGOutputProtocol::onOutputResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vXDGOutputs, [&](const auto& other) { return other->resource->resource() == res; });
+    std::erase_if(m_xdgOutputs, [&](const auto& other) { return other->m_resource->resource() == res; });
 }
 
 void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagerResources.emplace_back(makeUnique<CZxdgOutputManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managerResources.emplace_back(makeUnique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
     if UNLIKELY (!RESOURCE->resource()) {
         LOGM(LOG, "Couldn't bind XDGOutputMgr");
@@ -45,34 +45,34 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
     const auto  PMONITOR = OUTPUT->m_monitor.lock();
     const auto  CLIENT   = mgr->client();
 
-    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(makeUnique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
+    CXDGOutput* pXDGOutput = m_xdgOutputs.emplace_back(makeUnique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
     if (g_pXWayland && g_pXWayland->pServer && g_pXWayland->pServer->xwaylandClient == CLIENT)
-        pXDGOutput->isXWayland = true;
+        pXDGOutput->m_isXWayland = true;
 #endif
-    pXDGOutput->client = CLIENT;
+    pXDGOutput->m_client = CLIENT;
 
-    pXDGOutput->outputProto = OUTPUT->m_owner;
+    pXDGOutput->m_outputProto = OUTPUT->m_owner;
 
-    if UNLIKELY (!pXDGOutput->resource->resource()) {
-        m_vXDGOutputs.pop_back();
+    if UNLIKELY (!pXDGOutput->m_resource->resource()) {
+        m_xdgOutputs.pop_back();
         mgr->noMemory();
         return;
     }
 
     if UNLIKELY (!PMONITOR) {
-        LOGM(ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
+        LOGM(ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
         return;
     }
 
-    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
+    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
 
-    const auto XDGVER = pXDGOutput->resource->version();
+    const auto XDGVER = pXDGOutput->m_resource->version();
 
     if (XDGVER >= OUTPUT_NAME_SINCE_VERSION)
-        pXDGOutput->resource->sendName(PMONITOR->m_name.c_str());
+        pXDGOutput->m_resource->sendName(PMONITOR->m_name.c_str());
     if (XDGVER >= OUTPUT_DESCRIPTION_SINCE_VERSION && !PMONITOR->m_output->description.empty())
-        pXDGOutput->resource->sendDescription(PMONITOR->m_output->description.c_str());
+        pXDGOutput->m_resource->sendDescription(PMONITOR->m_output->description.c_str());
 
     pXDGOutput->sendDetails();
 
@@ -84,40 +84,40 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 void CXDGOutputProtocol::updateAllOutputs() {
     LOGM(LOG, "updating all xdg_output heads");
 
-    for (auto const& o : m_vXDGOutputs) {
-        if (!o->monitor)
+    for (auto const& o : m_xdgOutputs) {
+        if (!o->m_monitor)
             continue;
 
         o->sendDetails();
 
-        o->monitor->scheduleDone();
+        o->m_monitor->scheduleDone();
     }
 }
 
 //
 
-CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : m_monitor(monitor_), m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
-    resource->setOnDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
+    m_resource->setDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
+    m_resource->setOnDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
 }
 
 void CXDGOutput::sendDetails() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    if UNLIKELY (!monitor || !outputProto || outputProto->isDefunct())
+    if UNLIKELY (!m_monitor || !m_outputProto || m_outputProto->isDefunct())
         return;
 
-    const auto POS = isXWayland ? monitor->m_xwaylandPosition : monitor->m_position;
-    resource->sendLogicalPosition(POS.x, POS.y);
+    const auto POS = m_isXWayland ? m_monitor->m_xwaylandPosition : m_monitor->m_position;
+    m_resource->sendLogicalPosition(POS.x, POS.y);
 
-    if (*PXWLFORCESCALEZERO && isXWayland)
-        resource->sendLogicalSize(monitor->m_transformedSize.x, monitor->m_transformedSize.y);
+    if (*PXWLFORCESCALEZERO && m_isXWayland)
+        m_resource->sendLogicalSize(m_monitor->m_transformedSize.x, m_monitor->m_transformedSize.y);
     else
-        resource->sendLogicalSize(monitor->m_size.x, monitor->m_size.y);
+        m_resource->sendLogicalSize(m_monitor->m_size.x, m_monitor->m_size.y);
 
-    if (resource->version() < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
-        resource->sendDone();
+    if (m_resource->version() < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
+        m_resource->sendDone();
 }

@@ -361,10 +361,10 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
             if (!res)
                 continue;
 
-            if (res->serial != XSURF->wlSerial || !XSURF->wlSerial)
+            if (res->m_serial != XSURF->wlSerial || !XSURF->wlSerial)
                 continue;
 
-            associate(XSURF, res->surface.lock());
+            associate(XSURF, res->m_surface.lock());
             break;
         }
 
@@ -958,7 +958,7 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
     initSelection();
 
     listeners.newWLSurface     = PROTO::compositor->m_events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
-    listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
+    listeners.newXShellSurface = PROTO::xwaylandShell->m_events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();
 
@@ -1067,10 +1067,10 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
     shellResources.emplace_back(resource);
 
     for (auto const& surf : surfaces) {
-        if (surf->resource || surf->wlSerial != resource->serial)
+        if (surf->resource || surf->wlSerial != resource->m_serial)
             continue;
 
-        associate(surf, resource->surface.lock());
+        associate(surf, resource->m_surface.lock());
         break;
     }
 }

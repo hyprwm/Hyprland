@@ -28,20 +28,20 @@ class CScreencopyClient {
 
     bool                  good();
 
-    WP<CScreencopyClient> self;
-    eClientOwners         clientOwner = CLIENT_SCREENCOPY;
+    WP<CScreencopyClient> m_self;
+    eClientOwners         m_clientOwner = CLIENT_SCREENCOPY;
 
-    CTimer                lastFrame;
-    int                   frameCounter = 0;
+    CTimer                m_lastFrame;
+    int                   m_frameCounter = 0;
 
   private:
-    SP<CZwlrScreencopyManagerV1> resource;
+    SP<CZwlrScreencopyManagerV1> m_resource;
 
-    int                          framesInLastHalfSecond = 0;
-    CTimer                       lastMeasure;
-    bool                         sentScreencast = false;
+    int                          m_framesInLastHalfSecond = 0;
+    CTimer                       m_lastMeasure;
+    bool                         m_sentScreencast = false;
 
-    SP<HOOK_CALLBACK_FN>         tickCallback;
+    SP<HOOK_CALLBACK_FN>         m_tickCallback;
     void                         onTick();
 
     void                         captureOutput(uint32_t frame, int32_t overlayCursor, wl_resource* output, CBox box);
@@ -55,23 +55,22 @@ class CScreencopyFrame {
 
     bool                  good();
 
-    WP<CScreencopyFrame>  self;
-    WP<CScreencopyClient> client;
+    WP<CScreencopyFrame>  m_self;
+    WP<CScreencopyClient> m_client;
 
   private:
-    SP<CZwlrScreencopyFrameV1> resource;
+    SP<CZwlrScreencopyFrameV1> m_resource;
 
-    PHLMONITORREF              pMonitor;
-    bool                       overlayCursor   = false;
-    bool                       withDamage      = false;
-    bool                       lockedSWCursors = false;
+    PHLMONITORREF              m_monitor;
+    bool                       m_overlayCursor = false;
+    bool                       m_withDamage    = false;
 
-    CHLBufferReference         buffer;
-    bool                       bufferDMA    = false;
-    uint32_t                   shmFormat    = 0;
-    uint32_t                   dmabufFormat = 0;
-    int                        shmStride    = 0;
-    CBox                       box          = {};
+    CHLBufferReference         m_buffer;
+    bool                       m_bufferDMA    = false;
+    uint32_t                   m_shmFormat    = 0;
+    uint32_t                   m_dmabufFormat = 0;
+    int                        m_shmStride    = 0;
+    CBox                       m_box          = {};
 
     void                       copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
     void                       copyDmabuf(std::function<void(bool)> callback);
@@ -92,9 +91,9 @@ class CScreencopyProtocol : public IWaylandProtocol {
     void         onOutputCommit(PHLMONITOR pMonitor);
 
   private:
-    std::vector<SP<CScreencopyFrame>>  m_vFrames;
-    std::vector<WP<CScreencopyFrame>>  m_vFramesAwaitingWrite;
-    std::vector<SP<CScreencopyClient>> m_vClients;
+    std::vector<SP<CScreencopyFrame>>  m_frames;
+    std::vector<WP<CScreencopyFrame>>  m_framesAwaitingWrite;
+    std::vector<SP<CScreencopyClient>> m_clients;
 
     void                               shareAllFrames(PHLMONITOR pMonitor);
     void                               shareFrame(CScreencopyFrame* frame);

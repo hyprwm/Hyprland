@@ -16,8 +16,8 @@ class CRelativePointer {
     wl_client* client();
 
   private:
-    SP<CZwpRelativePointerV1> resource;
-    wl_client*                pClient = nullptr;
+    SP<CZwpRelativePointerV1> m_resource;
+    wl_client*                m_client = nullptr;
 };
 
 class CRelativePointerProtocol : public IWaylandProtocol {
@@ -34,8 +34,8 @@ class CRelativePointerProtocol : public IWaylandProtocol {
     void onGetRelativePointer(CZwpRelativePointerManagerV1* pMgr, uint32_t id, wl_resource* pointer);
 
     //
-    std::vector<UP<CZwpRelativePointerManagerV1>> m_vManagers;
-    std::vector<UP<CRelativePointer>>             m_vRelativePointers;
+    std::vector<UP<CZwpRelativePointerManagerV1>> m_managers;
+    std::vector<UP<CRelativePointer>>             m_relativePointers;
 
     friend class CRelativePointer;
 };

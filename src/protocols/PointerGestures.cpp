@@ -3,40 +3,40 @@
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 
-CPointerGestureSwipe::CPointerGestureSwipe(SP<CZwpPointerGestureSwipeV1> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CPointerGestureSwipe::CPointerGestureSwipe(SP<CZwpPointerGestureSwipeV1> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setOnDestroy([this](CZwpPointerGestureSwipeV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
-    resource->setDestroy([this](CZwpPointerGestureSwipeV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setOnDestroy([this](CZwpPointerGestureSwipeV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setDestroy([this](CZwpPointerGestureSwipeV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
 }
 
 bool CPointerGestureSwipe::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
-CPointerGestureHold::CPointerGestureHold(SP<CZwpPointerGestureHoldV1> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CPointerGestureHold::CPointerGestureHold(SP<CZwpPointerGestureHoldV1> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setOnDestroy([this](CZwpPointerGestureHoldV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
-    resource->setDestroy([this](CZwpPointerGestureHoldV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setOnDestroy([this](CZwpPointerGestureHoldV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setDestroy([this](CZwpPointerGestureHoldV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
 }
 
 bool CPointerGestureHold::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
-CPointerGesturePinch::CPointerGesturePinch(SP<CZwpPointerGesturePinchV1> resource_) : resource(resource_) {
-    if UNLIKELY (!resource->resource())
+CPointerGesturePinch::CPointerGesturePinch(SP<CZwpPointerGesturePinchV1> resource_) : m_resource(resource_) {
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    resource->setOnDestroy([this](CZwpPointerGesturePinchV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
-    resource->setDestroy([this](CZwpPointerGesturePinchV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setOnDestroy([this](CZwpPointerGesturePinchV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
+    m_resource->setDestroy([this](CZwpPointerGesturePinchV1* p) { PROTO::pointerGestures->onGestureDestroy(this); });
 }
 
 bool CPointerGesturePinch::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 CPointerGesturesProtocol::CPointerGesturesProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -44,7 +44,7 @@ CPointerGesturesProtocol::CPointerGesturesProtocol(const wl_interface* iface, co
 }
 
 void CPointerGesturesProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CZwpPointerGesturesV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CZwpPointerGesturesV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CZwpPointerGesturesV1* p) { this->onManagerResourceDestroy(p->resource()); });
     RESOURCE->setRelease([this](CZwpPointerGesturesV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
 
@@ -54,24 +54,24 @@ void CPointerGesturesProtocol::bindManager(wl_client* client, void* data, uint32
 }
 
 void CPointerGesturesProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other->resource() == res; });
 }
 
 void CPointerGesturesProtocol::onGestureDestroy(CPointerGestureSwipe* gesture) {
-    std::erase_if(m_vSwipes, [&](const auto& other) { return other.get() == gesture; });
+    std::erase_if(m_swipes, [&](const auto& other) { return other.get() == gesture; });
 }
 
 void CPointerGesturesProtocol::onGestureDestroy(CPointerGesturePinch* gesture) {
-    std::erase_if(m_vPinches, [&](const auto& other) { return other.get() == gesture; });
+    std::erase_if(m_pinches, [&](const auto& other) { return other.get() == gesture; });
 }
 
 void CPointerGesturesProtocol::onGestureDestroy(CPointerGestureHold* gesture) {
-    std::erase_if(m_vHolds, [&](const auto& other) { return other.get() == gesture; });
+    std::erase_if(m_holds, [&](const auto& other) { return other.get() == gesture; });
 }
 
 void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vPinches.emplace_back(makeUnique<CPointerGesturePinch>(makeShared<CZwpPointerGesturePinchV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_pinches.emplace_back(makeUnique<CPointerGesturePinch>(makeShared<CZwpPointerGesturePinchV1>(CLIENT, pMgr->version(), id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -82,7 +82,7 @@ void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, ui
 
 void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vSwipes.emplace_back(makeUnique<CPointerGestureSwipe>(makeShared<CZwpPointerGestureSwipeV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_swipes.emplace_back(makeUnique<CPointerGestureSwipe>(makeShared<CZwpPointerGestureSwipeV1>(CLIENT, pMgr->version(), id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -93,7 +93,7 @@ void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, ui
 
 void CPointerGesturesProtocol::onGetHoldGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vHolds.emplace_back(makeUnique<CPointerGestureHold>(makeShared<CZwpPointerGestureHoldV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_holds.emplace_back(makeUnique<CPointerGestureHold>(makeShared<CZwpPointerGestureHoldV1>(CLIENT, pMgr->version(), id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -110,11 +110,11 @@ void CPointerGesturesProtocol::swipeBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vSwipes) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_swipes) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
+        sw->m_resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 
@@ -124,11 +124,11 @@ void CPointerGesturesProtocol::swipeUpdate(uint32_t timeMs, const Vector2D& delt
 
     const auto FOCUSEDCLIENT = g_pSeatManager->m_state.pointerFocusResource->client();
 
-    for (auto const& sw : m_vSwipes) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_swipes) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendUpdate(timeMs, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y));
+        sw->m_resource->sendUpdate(timeMs, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y));
     }
 }
 
@@ -140,11 +140,11 @@ void CPointerGesturesProtocol::swipeEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vSwipes) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_swipes) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendEnd(SERIAL, timeMs, cancelled);
+        sw->m_resource->sendEnd(SERIAL, timeMs, cancelled);
     }
 }
 
@@ -156,11 +156,11 @@ void CPointerGesturesProtocol::pinchBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vPinches) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_pinches) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
+        sw->m_resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 
@@ -170,11 +170,11 @@ void CPointerGesturesProtocol::pinchUpdate(uint32_t timeMs, const Vector2D& delt
 
     const auto FOCUSEDCLIENT = g_pSeatManager->m_state.pointerFocusResource->client();
 
-    for (auto const& sw : m_vPinches) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_pinches) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendUpdate(timeMs, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y), wl_fixed_from_double(scale), wl_fixed_from_double(rotation));
+        sw->m_resource->sendUpdate(timeMs, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y), wl_fixed_from_double(scale), wl_fixed_from_double(rotation));
     }
 }
 
@@ -186,11 +186,11 @@ void CPointerGesturesProtocol::pinchEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vPinches) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_pinches) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendEnd(SERIAL, timeMs, cancelled);
+        sw->m_resource->sendEnd(SERIAL, timeMs, cancelled);
     }
 }
 
@@ -202,11 +202,11 @@ void CPointerGesturesProtocol::holdBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vHolds) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_holds) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
+        sw->m_resource->sendBegin(SERIAL, timeMs, g_pSeatManager->m_state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 
@@ -218,10 +218,10 @@ void CPointerGesturesProtocol::holdEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->m_state.pointerFocusResource.lock());
 
-    for (auto const& sw : m_vHolds) {
-        if (sw->resource->client() != FOCUSEDCLIENT)
+    for (auto const& sw : m_holds) {
+        if (sw->m_resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendEnd(SERIAL, timeMs, cancelled);
+        sw->m_resource->sendEnd(SERIAL, timeMs, cancelled);
     }
 }

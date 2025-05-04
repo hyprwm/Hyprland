@@ -20,14 +20,14 @@ class CXWaylandSurfaceResource {
         CSignal destroy;
     } events;
 
-    uint64_t                     serial = 0;
-    WP<CWLSurfaceResource>       surface;
+    uint64_t                     m_serial = 0;
+    WP<CWLSurfaceResource>       m_surface;
 
-    WP<CXWaylandSurfaceResource> self;
+    WP<CXWaylandSurfaceResource> m_self;
 
   private:
-    SP<CXwaylandSurfaceV1> resource;
-    wl_client*             pClient = nullptr;
+    SP<CXwaylandSurfaceV1> m_resource;
+    wl_client*             m_client = nullptr;
 };
 
 class CXWaylandShellResource {
@@ -37,7 +37,7 @@ class CXWaylandShellResource {
     bool good();
 
   private:
-    SP<CXwaylandShellV1> resource;
+    SP<CXwaylandShellV1> m_resource;
 };
 
 class CXWaylandShellProtocol : public IWaylandProtocol {
@@ -48,15 +48,15 @@ class CXWaylandShellProtocol : public IWaylandProtocol {
 
     struct {
         CSignal newSurface; // SP<CXWaylandSurfaceResource>. Fired when it sets a serial, otherwise it's useless
-    } events;
+    } m_events;
 
   private:
     void destroyResource(CXWaylandSurfaceResource* resource);
     void destroyResource(CXWaylandShellResource* resource);
 
     //
-    std::vector<SP<CXWaylandShellResource>>   m_vManagers;
-    std::vector<SP<CXWaylandSurfaceResource>> m_vSurfaces;
+    std::vector<SP<CXWaylandShellResource>>   m_managers;
+    std::vector<SP<CXWaylandSurfaceResource>> m_surfaces;
 
     friend class CXWaylandSurfaceResource;
     friend class CXWaylandShellResource;

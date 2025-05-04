@@ -14,17 +14,17 @@ static void displayDestroyInternal(struct wl_listener* listener, void* data) {
 void IWaylandProtocol::onDisplayDestroy() {
     wl_list_remove(&m_liDisplayDestroy.listener.link);
     wl_list_init(&m_liDisplayDestroy.listener.link);
-    if (m_pGlobal) {
-        wl_global_destroy(m_pGlobal);
-        m_pGlobal = nullptr;
+    if (m_global) {
+        wl_global_destroy(m_global);
+        m_global = nullptr;
     }
 }
 
 IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
-    m_szName(name), m_pGlobal(wl_global_create(g_pCompositor->m_wlDisplay, iface, ver, this, &bindManagerInternal)) {
+    m_name(name), m_global(wl_global_create(g_pCompositor->m_wlDisplay, iface, ver, this, &bindManagerInternal)) {
 
-    if UNLIKELY (!m_pGlobal) {
-        LOGM(ERR, "could not create a global [{}]", m_szName);
+    if UNLIKELY (!m_global) {
+        LOGM(ERR, "could not create a global [{}]", m_name);
         return;
     }
 
@@ -33,7 +33,7 @@ IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, co
     m_liDisplayDestroy.parent          = this;
     wl_display_add_destroy_listener(g_pCompositor->m_wlDisplay, &m_liDisplayDestroy.listener);
 
-    LOGM(LOG, "Registered global [{}]", m_szName);
+    LOGM(LOG, "Registered global [{}]", m_name);
 }
 
 IWaylandProtocol::~IWaylandProtocol() {
@@ -41,10 +41,10 @@ IWaylandProtocol::~IWaylandProtocol() {
 }
 
 void IWaylandProtocol::removeGlobal() {
-    if (m_pGlobal)
-        wl_global_remove(m_pGlobal);
+    if (m_global)
+        wl_global_remove(m_global);
 }
 
 wl_global* IWaylandProtocol::getGlobal() {
-    return m_pGlobal;
+    return m_global;
 }

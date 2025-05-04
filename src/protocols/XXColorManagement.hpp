@@ -20,7 +20,7 @@ class CXXColorManager {
     bool good();
 
   private:
-    SP<CXxColorManagerV4> resource;
+    SP<CXxColorManagerV4> m_resource;
 };
 
 class CXXColorManagementOutput {
@@ -30,12 +30,12 @@ class CXXColorManagementOutput {
     bool                                   good();
     wl_client*                             client();
 
-    WP<CXXColorManagementOutput>           self;
-    WP<CXXColorManagementImageDescription> imageDescription;
+    WP<CXXColorManagementOutput>           m_self;
+    WP<CXXColorManagementImageDescription> m_imageDescription;
 
   private:
-    SP<CXxColorManagementOutputV4> resource;
-    wl_client*                     pClient = nullptr;
+    SP<CXxColorManagementOutputV4> m_resource;
+    wl_client*                     m_client = nullptr;
 
     friend class CXXColorManagementProtocol;
     friend class CXXColorManagementImageDescription;
@@ -49,8 +49,8 @@ class CXXColorManagementSurface {
     bool                                       good();
     wl_client*                                 client();
 
-    WP<CXXColorManagementSurface>              self;
-    WP<CWLSurfaceResource>                     surface;
+    WP<CXXColorManagementSurface>              m_self;
+    WP<CWLSurfaceResource>                     m_surface;
 
     const NColorManagement::SImageDescription& imageDescription();
     bool                                       hasImageDescription();
@@ -60,8 +60,8 @@ class CXXColorManagementSurface {
     bool                                       needsHdrMetadataUpdate();
 
   private:
-    SP<CXxColorManagementSurfaceV4>     resource;
-    wl_client*                          pClient = nullptr;
+    SP<CXxColorManagementSurfaceV4>     m_resource;
+    wl_client*                          m_client = nullptr;
     NColorManagement::SImageDescription m_imageDescription;
     bool                                m_hasImageDescription = false;
     bool                                m_needsNewMetadata    = false;
@@ -77,12 +77,12 @@ class CXXColorManagementFeedbackSurface {
     bool                                  good();
     wl_client*                            client();
 
-    WP<CXXColorManagementFeedbackSurface> self;
-    WP<CWLSurfaceResource>                surface;
+    WP<CXXColorManagementFeedbackSurface> m_self;
+    WP<CWLSurfaceResource>                m_surface;
 
   private:
-    SP<CXxColorManagementFeedbackSurfaceV4> resource;
-    wl_client*                              pClient = nullptr;
+    SP<CXxColorManagementFeedbackSurfaceV4> m_resource;
+    wl_client*                              m_client = nullptr;
 
     WP<CXXColorManagementImageDescription>  m_currentPreferred;
 
@@ -96,9 +96,9 @@ class CXXColorManagementParametricCreator {
     bool                                    good();
     wl_client*                              client();
 
-    WP<CXXColorManagementParametricCreator> self;
+    WP<CXXColorManagementParametricCreator> m_self;
 
-    NColorManagement::SImageDescription     settings;
+    NColorManagement::SImageDescription     m_settings;
 
   private:
     enum eValuesSet : uint32_t { // NOLINT
@@ -112,9 +112,9 @@ class CXXColorManagementParametricCreator {
         PC_FALL                 = (1 << 7),
     };
 
-    SP<CXxImageDescriptionCreatorParamsV4> resource;
-    wl_client*                             pClient   = nullptr;
-    uint32_t                               valuesSet = 0; // enum eValuesSet
+    SP<CXxImageDescriptionCreatorParamsV4> m_resource;
+    wl_client*                             m_client    = nullptr;
+    uint32_t                               m_valuesSet = 0; // enum eValuesSet
 };
 
 class CXXColorManagementImageDescription {
@@ -125,13 +125,13 @@ class CXXColorManagementImageDescription {
     wl_client*                             client();
     SP<CXxImageDescriptionV4>              resource();
 
-    WP<CXXColorManagementImageDescription> self;
+    WP<CXXColorManagementImageDescription> m_self;
 
-    NColorManagement::SImageDescription    settings;
+    NColorManagement::SImageDescription    m_settings;
 
   private:
     SP<CXxImageDescriptionV4> m_resource;
-    wl_client*                pClient               = nullptr;
+    wl_client*                m_client              = nullptr;
     bool                      m_allowGetInformation = false;
 
     friend class CXXColorManagementOutput;
@@ -146,8 +146,8 @@ class CXXColorManagementImageDescriptionInfo {
 
   private:
     SP<CXxImageDescriptionInfoV4>       m_resource;
-    wl_client*                          pClient = nullptr;
-    NColorManagement::SImageDescription settings;
+    wl_client*                          m_client = nullptr;
+    NColorManagement::SImageDescription m_settings;
 };
 
 class CXXColorManagementProtocol : public IWaylandProtocol {
@@ -166,12 +166,12 @@ class CXXColorManagementProtocol : public IWaylandProtocol {
     void                                                 destroyResource(CXXColorManagementParametricCreator* resource);
     void                                                 destroyResource(CXXColorManagementImageDescription* resource);
 
-    std::vector<SP<CXXColorManager>>                     m_vManagers;
-    std::vector<SP<CXXColorManagementOutput>>            m_vOutputs;
-    std::vector<SP<CXXColorManagementSurface>>           m_vSurfaces;
-    std::vector<SP<CXXColorManagementFeedbackSurface>>   m_vFeedbackSurfaces;
-    std::vector<SP<CXXColorManagementParametricCreator>> m_vParametricCreators;
-    std::vector<SP<CXXColorManagementImageDescription>>  m_vImageDescriptions;
+    std::vector<SP<CXXColorManager>>                     m_managers;
+    std::vector<SP<CXXColorManagementOutput>>            m_outputs;
+    std::vector<SP<CXXColorManagementSurface>>           m_surfaces;
+    std::vector<SP<CXXColorManagementFeedbackSurface>>   m_feedbackSurfaces;
+    std::vector<SP<CXXColorManagementParametricCreator>> m_parametricCreators;
+    std::vector<SP<CXXColorManagementImageDescription>>  m_imageDescriptions;
 
     friend class CXXColorManager;
     friend class CXXColorManagementOutput;

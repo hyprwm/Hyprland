@@ -1092,6 +1092,25 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
+static bool shouldWraparound(const WORKSPACEID id1, const WORKSPACEID id2) {
+    static auto PWORKSPACEWRAPAROUND = CConfigValue<Hyprlang::INT>("animations:workspace_wraparound");
+
+    if (!*PWORKSPACEWRAPAROUND)
+        return false;
+
+    WORKSPACEID lowestID  = INT64_MAX;
+    WORKSPACEID highestID = INT64_MIN;
+
+    for (auto const& w : g_pCompositor->m_workspaces) {
+        if (w->m_id < 0 || w->m_isSpecialWorkspace)
+            continue;
+        lowestID  = std::min(w->m_id, lowestID);
+        highestID = std::max(w->m_id, highestID);
+    }
+
+    return std::min(id1, id2) == lowestID && std::max(id1, id2) == highestID;
+}
+
 void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bool noMouseMove, bool noFocus) {
     if (!pWorkspace)
         return;

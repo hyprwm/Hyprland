@@ -12,7 +12,7 @@ class CPointerGestureSwipe {
     bool good();
 
   private:
-    SP<CZwpPointerGestureSwipeV1> resource;
+    SP<CZwpPointerGestureSwipeV1> m_resource;
 
     friend class CPointerGesturesProtocol;
 };
@@ -24,7 +24,7 @@ class CPointerGesturePinch {
     bool good();
 
   private:
-    SP<CZwpPointerGesturePinchV1> resource;
+    SP<CZwpPointerGesturePinchV1> m_resource;
 
     friend class CPointerGesturesProtocol;
 };
@@ -36,7 +36,7 @@ class CPointerGestureHold {
     bool good();
 
   private:
-    SP<CZwpPointerGestureHoldV1> resource;
+    SP<CZwpPointerGestureHoldV1> m_resource;
 
     friend class CPointerGesturesProtocol;
 };
@@ -68,10 +68,10 @@ class CPointerGesturesProtocol : public IWaylandProtocol {
     void onGetHoldGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer);
 
     //
-    std::vector<UP<CZwpPointerGesturesV1>> m_vManagers;
-    std::vector<UP<CPointerGestureSwipe>>  m_vSwipes;
-    std::vector<UP<CPointerGesturePinch>>  m_vPinches;
-    std::vector<UP<CPointerGestureHold>>   m_vHolds;
+    std::vector<UP<CZwpPointerGesturesV1>> m_managers;
+    std::vector<UP<CPointerGestureSwipe>>  m_swipes;
+    std::vector<UP<CPointerGesturePinch>>  m_pinches;
+    std::vector<UP<CPointerGestureHold>>   m_holds;
 
     friend class CPointerGestureHold;
     friend class CPointerGesturePinch;

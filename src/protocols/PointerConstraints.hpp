@@ -31,26 +31,26 @@ class CPointerConstraint {
     Vector2D       logicPositionHint();
 
   private:
-    SP<CZwpLockedPointerV1>         resourceL;
-    SP<CZwpConfinedPointerV1>       resourceC;
+    SP<CZwpLockedPointerV1>         m_resourceLocked;
+    SP<CZwpConfinedPointerV1>       m_resourceConfined;
 
-    WP<CWLSurface>                  pHLSurface;
+    WP<CWLSurface>                  m_hlSurface;
 
-    CRegion                         region;
-    bool                            hintSet             = false;
-    Vector2D                        positionHint        = {-1, -1};
-    Vector2D                        cursorPosOnActivate = {-1, -1};
-    bool                            active              = false;
-    bool                            locked              = false;
-    bool                            dead                = false;
-    zwpPointerConstraintsV1Lifetime lifetime            = ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT;
+    CRegion                         m_region;
+    bool                            m_hintSet             = false;
+    Vector2D                        m_positionHint        = {-1, -1};
+    Vector2D                        m_cursorPosOnActivate = {-1, -1};
+    bool                            m_active              = false;
+    bool                            m_locked              = false;
+    bool                            m_dead                = false;
+    zwpPointerConstraintsV1Lifetime m_lifetime            = ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT;
 
     void                            sharedConstructions();
     void                            onSetRegion(wl_resource* region);
 
     struct {
         CHyprSignalListener destroySurface;
-    } listeners;
+    } m_listeners;
 };
 
 class CPointerConstraintsProtocol : public IWaylandProtocol {
@@ -67,8 +67,8 @@ class CPointerConstraintsProtocol : public IWaylandProtocol {
     void onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr);
 
     //
-    std::vector<UP<CZwpPointerConstraintsV1>> m_vManagers;
-    std::vector<SP<CPointerConstraint>>       m_vConstraints;
+    std::vector<UP<CZwpPointerConstraintsV1>> m_managers;
+    std::vector<SP<CPointerConstraint>>       m_constraints;
 
     friend class CPointerConstraint;
 };

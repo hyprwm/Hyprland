@@ -15,15 +15,15 @@ class COutputPower {
     bool good();
 
   private:
-    SP<CZwlrOutputPowerV1> resource;
+    SP<CZwlrOutputPowerV1> m_resource;
 
-    PHLMONITORREF          pMonitor;
+    PHLMONITORREF          m_monitor;
 
     struct {
         CHyprSignalListener monitorDestroy;
         CHyprSignalListener monitorState;
         CHyprSignalListener monitorDpms;
-    } listeners;
+    } m_listeners;
 };
 
 class COutputPowerProtocol : public IWaylandProtocol {
@@ -38,8 +38,8 @@ class COutputPowerProtocol : public IWaylandProtocol {
     void onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uint32_t id, wl_resource* output);
 
     //
-    std::vector<UP<CZwlrOutputPowerManagerV1>> m_vManagers;
-    std::vector<UP<COutputPower>>              m_vOutputPowers;
+    std::vector<UP<CZwlrOutputPowerManagerV1>> m_managers;
+    std::vector<UP<COutputPower>>              m_outputPowers;
 
     friend class COutputPower;
 };

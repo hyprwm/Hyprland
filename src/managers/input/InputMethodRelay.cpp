@@ -11,8 +11,8 @@ CInputMethodRelay::CInputMethodRelay() {
     static auto P =
         g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
 
-    m_listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
-    m_listeners.newTIV1 = PROTO::textInputV1->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
+    m_listeners.newTIV3 = PROTO::textInputV3->m_events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
+    m_listeners.newTIV1 = PROTO::textInputV1->m_events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
     m_listeners.newIME  = PROTO::ime->m_events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
 }
 

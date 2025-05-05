@@ -3058,7 +3058,7 @@ void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {
 }
 
 std::optional<Vector2D> CConfigManager::getStoredFloatingSize(PHLWINDOW window) {
-    // At startup, m_initialClass and m_initialTitle are undefined 
+    // At startup, m_initialClass and m_initialTitle are undefined
     // and m_class and m_title are just "initial" ones.
     // false -> use m_class and m_title
     SFloatCache id{window, false};

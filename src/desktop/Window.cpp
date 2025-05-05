@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
@@ -137,25 +138,22 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     if (m_windowData.dimAround.valueOrDefault()) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            return {{m_realPosition->value().x - PMONITOR->m_position.x, m_realPosition->value().y - PMONITOR->m_position.y},
-                    {PMONITOR->m_size.x - (m_realPosition->value().x - PMONITOR->m_position.x), PMONITOR->m_size.y - (m_realPosition->value().y - PMONITOR->m_position.y)}};
+            return {.topLeft     = {m_realPosition->value().x - PMONITOR->m_position.x, m_realPosition->value().y - PMONITOR->m_position.y},
+                    .bottomRight = {PMONITOR->m_size.x - (m_realPosition->value().x - PMONITOR->m_position.x),
+                                    PMONITOR->m_size.y - (m_realPosition->value().y - PMONITOR->m_position.y)}};
     }
 
-    SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
+    SBoxExtents maxExtents = {.topLeft = {BORDERSIZE + 2, BORDERSIZE + 2}, .bottomRight = {BORDERSIZE + 2, BORDERSIZE + 2}};
 
     const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock());
 
-    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-        maxExtents.topLeft.x = EXTENTS.topLeft.x;
+    maxExtents.topLeft.x = std::max(EXTENTS.topLeft.x, maxExtents.topLeft.x);
 
-    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-        maxExtents.topLeft.y = EXTENTS.topLeft.y;
+    maxExtents.topLeft.y = std::max(EXTENTS.topLeft.y, maxExtents.topLeft.y);
 
-    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
+    maxExtents.bottomRight.x = std::max(EXTENTS.bottomRight.x, maxExtents.bottomRight.x);
 
-    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
+    maxExtents.bottomRight.y = std::max(EXTENTS.bottomRight.y, maxExtents.bottomRight.y);
 
     if (m_wlSurface->exists() && !m_isX11 && m_popupHead) {
         CBox surfaceExtents = {0, 0, 0, 0};
@@ -167,10 +165,8 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
                 CBox* pSurfaceExtents = (CBox*)data;
                 CBox  surf            = CBox{popup->coordsRelativeToParent(), popup->size()};
-                if (surf.x < pSurfaceExtents->x)
-                    pSurfaceExtents->x = surf.x;
-                if (surf.y < pSurfaceExtents->y)
-                    pSurfaceExtents->y = surf.y;
+                pSurfaceExtents->x    = std::min(surf.x, pSurfaceExtents->x);
+                pSurfaceExtents->y    = std::min(surf.y, pSurfaceExtents->y);
                 if (surf.x + surf.w > pSurfaceExtents->width)
                     pSurfaceExtents->width = surf.x + surf.w - pSurfaceExtents->x;
                 if (surf.y + surf.h > pSurfaceExtents->height)
@@ -178,11 +174,9 @@ SBoxExtents CWindow::getFullWindowExtents() {
             },
             &surfaceExtents);
 
-        if (-surfaceExtents.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = -surfaceExtents.x;
+        maxExtents.topLeft.x = std::max(-surfaceExtents.x, maxExtents.topLeft.x);
 
-        if (-surfaceExtents.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = -surfaceExtents.y;
+        maxExtents.topLeft.y = std::max(-surfaceExtents.y, maxExtents.topLeft.y);
 
         if (surfaceExtents.x + surfaceExtents.width > m_wlSurface->resource()->m_current.size.x + maxExtents.bottomRight.x)
             maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_wlSurface->resource()->m_current.size.x;
@@ -249,7 +243,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    SBoxExtents EXTENTS = {{0, 0}, {0, 0}};
+    SBoxExtents EXTENTS = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
     if (properties & RESERVED_EXTENTS)
         EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
     if (properties & INPUT_EXTENTS)
@@ -297,7 +291,7 @@ void CWindow::updateWindowDecos() {
     }
 
     for (auto const& wd : decos) {
-        if (std::find_if(m_windowDecorations.begin(), m_windowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
+        if (std::ranges::find_if(m_windowDecorations.begin(), m_windowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
             continue;
         wd->updateWindow(m_self.lock());
     }
@@ -452,8 +446,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_name)});
-        g_pEventManager->postEvent(SHyprIPCEvent{"movewindowv2", std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_id, pWorkspace->m_name)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_name)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
     }
 
@@ -479,7 +473,7 @@ PHLWINDOW CWindow::x11TransientFor() {
     while (s) {
         // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
         // TODO: we should reject loops being created in the first place.
-        if (std::find(visited.begin(), visited.end(), s) != visited.end())
+        if (std::ranges::find(visited.begin(), visited.end(), s) != visited.end())
             break;
 
         visited.emplace_back(s.lock());
@@ -647,18 +641,18 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 
                     if (r == "override") {
                         if (opacityIDX == 1)
-                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{m_windowData.alpha.value().alpha, true}, priority);
+                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{.alpha = m_windowData.alpha.value().alpha, .overridden = true}, priority);
                         else if (opacityIDX == 2)
-                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{m_windowData.alphaInactive.value().alpha, true}, priority);
+                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{.alpha = m_windowData.alphaInactive.value().alpha, .overridden = true}, priority);
                         else if (opacityIDX == 3)
-                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{m_windowData.alphaFullscreen.value().alpha, true}, priority);
+                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{.alpha = m_windowData.alphaFullscreen.value().alpha, .overridden = true}, priority);
                     } else {
                         if (opacityIDX == 0) {
-                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alpha = CWindowOverridableVar(SAlphaValue{.alpha = std::stof(r), .overridden = false}, priority);
                         } else if (opacityIDX == 1) {
-                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alphaInactive = CWindowOverridableVar(SAlphaValue{.alpha = std::stof(r), .overridden = false}, priority);
                         } else if (opacityIDX == 2) {
-                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
+                            m_windowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{.alpha = std::stof(r), .overridden = false}, priority);
                         } else {
                             throw std::runtime_error("more than 3 alpha values");
                         }
@@ -702,9 +696,9 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                     } else if (token.contains("deg"))
                         inactiveBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                     else if (active)
-                        activeBorderGradient.m_colors.push_back(configStringToInt(token).value_or(0));
+                        activeBorderGradient.m_colors.emplace_back(configStringToInt(token).value_or(0));
                     else
-                        inactiveBorderGradient.m_colors.push_back(configStringToInt(token).value_or(0));
+                        inactiveBorderGradient.m_colors.emplace_back(configStringToInt(token).value_or(0));
                 }
 
                 activeBorderGradient.updateColorsOk();
@@ -902,7 +896,7 @@ void CWindow::createGroup() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("1,{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", (uintptr_t)this)});
     }
 }
 
@@ -922,7 +916,7 @@ void CWindow::destroyGroup() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", (uintptr_t)this)});
         return;
     }
 
@@ -962,7 +956,7 @@ void CWindow::destroyGroup() {
 
     if (!addresses.empty())
         addresses.pop_back();
-    g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{}", addresses)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{}", addresses)});
 }
 
 PHLWINDOW CWindow::getGroupHead() {
@@ -1399,7 +1393,7 @@ void CWindow::activate(bool force) {
 
     m_isUrgent = true;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "urgent", .data = std::format("{:x}", (uintptr_t)this)});
     EMIT_HOOK_EVENT("urgent", m_self.lock());
 
     if (!force && (!m_windowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_suppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_suppressedEvents & SUPPRESS_ACTIVATE)))
@@ -1454,13 +1448,13 @@ void CWindow::onUpdateMeta() {
 
     if (m_title != NEWTITLE) {
         m_title = NEWTITLE;
-        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)this)});
-        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitlev2", std::format("{:x},{}", (uintptr_t)this, m_title)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitle", .data = std::format("{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", (uintptr_t)this, m_title)});
         EMIT_HOOK_EVENT("windowTitle", m_self.lock());
 
         if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", (uintptr_t)this)});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
@@ -1473,8 +1467,8 @@ void CWindow::onUpdateMeta() {
         m_class = NEWCLASS;
 
         if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", (uintptr_t)this)});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
@@ -1514,7 +1508,7 @@ std::string CWindow::fetchClass() {
 }
 
 void CWindow::onAck(uint32_t serial) {
-    const auto SERIAL = std::find_if(m_pendingSizeAcks.rbegin(), m_pendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
+    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks.rbegin(), m_pendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
 
     if (SERIAL == m_pendingSizeAcks.rend())
         return;
@@ -1647,7 +1641,7 @@ PHLWINDOW CWindow::getSwallower() {
         if (!w)
             continue;
 
-        if (std::find(candidates.begin(), candidates.end(), w.lock()) != candidates.end())
+        if (std::ranges::find(candidates.begin(), candidates.end(), w.lock()) != candidates.end())
             return w.lock();
     }
 

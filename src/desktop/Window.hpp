@@ -6,8 +6,6 @@
 
 #include "../config/ConfigDataValues.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-#include "../helpers/math/Math.hpp"
-#include "../helpers/signal/Signal.hpp"
 #include "../helpers/TagKeeper.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
@@ -79,9 +77,9 @@ struct SAlphaValue {
 };
 
 struct SWindowData {
-    CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{1.f, false};
-    CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{1.f, false};
-    CWindowOverridableVar<SAlphaValue>        alphaFullscreen = SAlphaValue{1.f, false};
+    CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{.alpha = 1.f, .overridden = false};
+    CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{.alpha = 1.f, .overridden = false};
+    CWindowOverridableVar<SAlphaValue>        alphaFullscreen = SAlphaValue{.alpha = 1.f, .overridden = false};
 
     CWindowOverridableVar<bool>               allowsInput        = false;
     CWindowOverridableVar<bool>               dimAround          = false;

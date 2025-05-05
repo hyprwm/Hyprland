@@ -8,7 +8,7 @@ static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur
 static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order", "abovelock"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_targetNamespace(ns_), m_rule(rule_) {
-    const bool VALID = RULES.contains(m_rule) || std::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
+    const bool VALID = RULES.contains(m_rule) || std::ranges::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
 
     if (!VALID)
         return;

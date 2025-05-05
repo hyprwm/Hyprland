@@ -13,12 +13,26 @@ static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "suppressevent", "tag",         "workspace",  "xray",
 };
 
-CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) : m_value(value), m_rule(rule), m_v2(isV2), m_execRule(isExecRule) {
+static std::string resolveRule(const std::string& rule) {
+    const CVarList VARS(rule, 0, 's', true);
+    // check if this is a prop.
+    const bool ISPROP = NWindowProperties::intWindowProperties.contains(VARS[0]) || NWindowProperties::boolWindowProperties.contains(VARS[0]) ||
+        NWindowProperties::floatWindowProperties.contains(VARS[0]);
+
+    if (ISPROP) {
+        Debug::log(LOG, "CWindowRule: direct prop rule found, rewritten {} -> {}", rule, "prop " + rule);
+        return "prop " + rule;
+    }
+
+    return rule;
+}
+
+CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) :
+    m_value(value), m_rule(resolveRule(rule)), m_v2(isV2), m_execRule(isExecRule) {
     const auto VALS  = CVarList(rule, 2, ' ');
-    const bool VALID = RULES.contains(rule) || std::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule](auto prefix) { return rule.starts_with(prefix); }) ||
-        (NWindowProperties::boolWindowProperties.find(VALS[0]) != NWindowProperties::boolWindowProperties.end()) ||
-        (NWindowProperties::intWindowProperties.find(VALS[0]) != NWindowProperties::intWindowProperties.end()) ||
-        (NWindowProperties::floatWindowProperties.find(VALS[0]) != NWindowProperties::floatWindowProperties.end());
+    const bool VALID = RULES.contains(rule) || std::ranges::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule](auto prefix) { return rule.starts_with(prefix); }) ||
+        (NWindowProperties::boolWindowProperties.contains(VALS[0])) || (NWindowProperties::intWindowProperties.contains(VALS[0])) ||
+        (NWindowProperties::floatWindowProperties.contains(VALS[0]));
 
     if (!VALID)
         return;
@@ -82,17 +96,7 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
     else if (rule.starts_with("noclosefor"))
         m_ruleType = RULE_NOCLOSEFOR;
     else {
-        // check if this is a prop.
-        const CVarList VARS(rule, 0, 's', true);
-        if (NWindowProperties::intWindowProperties.find(VARS[0]) != NWindowProperties::intWindowProperties.end() ||
-            NWindowProperties::boolWindowProperties.find(VARS[0]) != NWindowProperties::boolWindowProperties.end() ||
-            NWindowProperties::floatWindowProperties.find(VARS[0]) != NWindowProperties::floatWindowProperties.end()) {
-            *const_cast<std::string*>(&m_rule) = "prop " + rule;
-            m_ruleType                         = RULE_PROP;
-            Debug::log(LOG, "CWindowRule: direct prop rule found, rewritten {} -> {}", rule, m_rule);
-        } else {
-            Debug::log(ERR, "CWindowRule: didn't match a rule that was found valid?!");
-            m_ruleType = RULE_INVALID;
-        }
+        Debug::log(ERR, "CWindowRule: didn't match a rule that was found valid?!");
+        m_ruleType = RULE_INVALID;
     }
 }

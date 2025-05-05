@@ -235,7 +235,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
     m_texture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
+    glBindTexture(GL_TEXTURE_2D, m_texture->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -251,7 +251,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
 }
 
 bool CHyprNotificationOverlay::hasAny() {

@@ -87,8 +87,8 @@ class CDecorationPositioner {
         bool        needsRecalc    = false;
     };
 
-    std::map<PHLWINDOWREF, SWindowData>     m_mWindowDatas;
-    std::vector<UP<SWindowPositioningData>> m_vWindowPositioningDatas;
+    std::map<PHLWINDOWREF, SWindowData>     m_windowDatas;
+    std::vector<UP<SWindowPositioningData>> m_windowPositioningDatas;
 
     SWindowPositioningData*                 getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
     void                                    onWindowUnmap(PHLWINDOW pWindow);

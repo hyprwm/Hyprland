@@ -22,5 +22,5 @@ class CRendererHintsPassElement : public IPassElement {
     }
 
   private:
-    SData data;
+    SData m_data;
 };

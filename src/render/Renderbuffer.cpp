@@ -15,62 +15,62 @@ CRenderbuffer::~CRenderbuffer() {
     g_pHyprRenderer->makeEGLCurrent();
 
     unbind();
-    m_sFramebuffer.release();
-    glDeleteRenderbuffers(1, &m_iRBO);
+    m_framebuffer.release();
+    glDeleteRenderbuffers(1, &m_rbo);
 
-    g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(g_pHyprOpenGL->m_pEglDisplay, m_iImage);
+    g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_image);
 }
 
-CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_pHLBuffer(buffer), m_uDrmFormat(format) {
+CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_hlBuffer(buffer), m_drmFormat(format) {
     auto dma = buffer->dmabuf();
 
-    m_iImage = g_pHyprOpenGL->createEGLImage(dma);
-    if (m_iImage == EGL_NO_IMAGE_KHR) {
+    m_image = g_pHyprOpenGL->createEGLImage(dma);
+    if (m_image == EGL_NO_IMAGE_KHR) {
         Debug::log(ERR, "rb: createEGLImage failed");
         return;
     }
 
-    glGenRenderbuffers(1, &m_iRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_iRBO);
-    g_pHyprOpenGL->m_sProc.glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, (GLeglImageOES)m_iImage);
+    glGenRenderbuffers(1, &m_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+    g_pHyprOpenGL->m_proc.glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, (GLeglImageOES)m_image);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-    glGenFramebuffers(1, &m_sFramebuffer.m_iFb);
-    m_sFramebuffer.m_iFbAllocated = true;
-    m_sFramebuffer.m_vSize        = buffer->size;
-    m_sFramebuffer.bind();
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_iRBO);
+    glGenFramebuffers(1, &m_framebuffer.m_fb);
+    m_framebuffer.m_fbAllocated = true;
+    m_framebuffer.m_size        = buffer->size;
+    m_framebuffer.bind();
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         Debug::log(ERR, "rbo: glCheckFramebufferStatus failed");
         return;
     }
 
-    m_sFramebuffer.unbind();
+    m_framebuffer.unbind();
 
-    listeners.destroyBuffer = buffer->events.destroy.registerListener([this](std::any d) { g_pHyprRenderer->onRenderbufferDestroy(this); });
+    m_listeners.destroyBuffer = buffer->events.destroy.registerListener([this](std::any d) { g_pHyprRenderer->onRenderbufferDestroy(this); });
 
-    m_bGood = true;
+    m_good = true;
 }
 
 bool CRenderbuffer::good() {
-    return m_bGood;
+    return m_good;
 }
 
 void CRenderbuffer::bind() {
-    glBindRenderbuffer(GL_RENDERBUFFER, m_iRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
     bindFB();
 }
 
 void CRenderbuffer::bindFB() {
-    m_sFramebuffer.bind();
+    m_framebuffer.bind();
 }
 
 void CRenderbuffer::unbind() {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    m_sFramebuffer.unbind();
+    m_framebuffer.unbind();
 }
 
 CFramebuffer* CRenderbuffer::getFB() {
-    return &m_sFramebuffer;
+    return &m_framebuffer;
 }

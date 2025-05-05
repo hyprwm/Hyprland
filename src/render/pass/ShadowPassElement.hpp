@@ -22,5 +22,5 @@ class CShadowPassElement : public IPassElement {
     }
 
   private:
-    SShadowData data;
+    SShadowData m_data;
 };

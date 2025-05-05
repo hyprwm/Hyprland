@@ -19,14 +19,14 @@ class CFramebuffer {
     SP<CTexture> getStencilTex();
     GLuint       getFBID();
 
-    Vector2D     m_vSize;
+    Vector2D     m_size;
 
   private:
-    SP<CTexture> m_cTex;
-    GLuint       m_iFb          = -1;
-    bool         m_iFbAllocated = false;
+    SP<CTexture> m_tex;
+    GLuint       m_fb          = -1;
+    bool         m_fbAllocated = false;
 
-    SP<CTexture> m_pStencilTex;
+    SP<CTexture> m_stencilTex;
 
     friend class CRenderbuffer;
 };

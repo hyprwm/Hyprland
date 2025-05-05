@@ -16,7 +16,7 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    m_success = m_texture->m_iTexID;
+    m_success = m_texture->m_texID;
 
     size = {1, 1};
 

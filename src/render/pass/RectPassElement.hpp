@@ -27,5 +27,5 @@ class CRectPassElement : public IPassElement {
     }
 
   private:
-    SRectData data;
+    SRectData m_data;
 };

@@ -78,7 +78,4 @@ class CShader {
     GLint noise      = -1;
 
     void  destroy();
-
-  private:
-    std::unordered_map<std::string, GLint> m_muUniforms;
 };

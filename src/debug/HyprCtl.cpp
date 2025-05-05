@@ -1128,10 +1128,10 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
     if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
-        g_pHyprOpenGL->m_bReloadScreenShader = true;
+        g_pHyprOpenGL->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
+        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
             rd.blurFBDirty = true;
         }
     }
@@ -1821,9 +1821,9 @@ std::string CHyprCtl::getReply(std::string request) {
 
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
-        g_pHyprOpenGL->m_bReloadScreenShader = true;
+        g_pHyprOpenGL->m_reloadScreenShader = true;
 
-        for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
+        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
             rd.blurFBDirty = true;
         }
 

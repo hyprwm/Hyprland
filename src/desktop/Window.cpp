@@ -126,7 +126,7 @@ CWindow::~CWindow() {
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == this; });
+    std::erase_if(g_pHyprOpenGL->m_windowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == this; });
 }
 
 SBoxExtents CWindow::getFullWindowExtents() {
@@ -1160,7 +1160,7 @@ bool CWindow::opaque() {
         return false;
 
     if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->surface && m_xwaylandSurface->surface->m_current.texture)
-        return m_xwaylandSurface->surface->m_current.texture->m_bOpaque;
+        return m_xwaylandSurface->surface->m_current.texture->m_opaque;
 
     if (!m_wlSurface->resource() || !m_wlSurface->resource()->m_current.texture)
         return false;
@@ -1170,7 +1170,7 @@ bool CWindow::opaque() {
     if (EXTENTS.w >= m_xdgSurface->m_surface->m_current.bufferSize.x && EXTENTS.h >= m_xdgSurface->m_surface->m_current.bufferSize.y)
         return true;
 
-    return m_wlSurface->resource()->m_current.texture->m_bOpaque;
+    return m_wlSurface->resource()->m_current.texture->m_opaque;
 }
 
 float CWindow::rounding() {

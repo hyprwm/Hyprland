@@ -2,12 +2,12 @@
 #include "../OpenGL.hpp"
 #include "../decorations/CHyprDropShadowDecoration.hpp"
 
-CShadowPassElement::CShadowPassElement(const CShadowPassElement::SShadowData& data_) : data(data_) {
+CShadowPassElement::CShadowPassElement(const CShadowPassElement::SShadowData& data_) : m_data(data_) {
     ;
 }
 
 void CShadowPassElement::draw(const CRegion& damage) {
-    data.deco->render(g_pHyprOpenGL->m_RenderData.pMonitor.lock(), data.a);
+    m_data.deco->render(g_pHyprOpenGL->m_renderData.pMonitor.lock(), m_data.a);
 }
 
 bool CShadowPassElement::needsLiveBlur() {

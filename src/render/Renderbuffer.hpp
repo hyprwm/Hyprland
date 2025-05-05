@@ -19,16 +19,16 @@ class CRenderbuffer {
     CFramebuffer*           getFB();
     uint32_t                getFormat();
 
-    WP<Aquamarine::IBuffer> m_pHLBuffer;
+    WP<Aquamarine::IBuffer> m_hlBuffer;
 
   private:
-    void*        m_iImage = nullptr;
-    GLuint       m_iRBO   = 0;
-    CFramebuffer m_sFramebuffer;
-    uint32_t     m_uDrmFormat = 0;
-    bool         m_bGood      = false;
+    void*        m_image = nullptr;
+    GLuint       m_rbo   = 0;
+    CFramebuffer m_framebuffer;
+    uint32_t     m_drmFormat = 0;
+    bool         m_good      = false;
 
     struct {
         CHyprSignalListener destroyBuffer;
-    } listeners;
+    } m_listeners;
 };

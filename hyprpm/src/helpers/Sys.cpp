@@ -90,7 +90,7 @@ std::string NSys::runAsSuperuser(const std::string& cmd) {
         if (!executableExistsInPath(std::string{BIN}))
             continue;
 
-        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c " + cmd, true);
+        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c \"" + cmd + "\"", true);
         if (!result.has_value() || result->second != 0)
             Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
 

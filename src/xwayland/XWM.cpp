@@ -361,10 +361,10 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
             if (!res)
                 continue;
 
-            if (res->serial != XSURF->wlSerial || !XSURF->wlSerial)
+            if (res->m_serial != XSURF->wlSerial || !XSURF->wlSerial)
                 continue;
 
-            associate(XSURF, res->surface.lock());
+            associate(XSURF, res->m_surface.lock());
             break;
         }
 
@@ -650,7 +650,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
         return;
     }
 
-    if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient) {
+    if (!g_pSeatManager->m_state.keyboardFocusResource || g_pSeatManager->m_state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient) {
         Debug::log(TRACE, "[xwm] Ignoring clipboard access: xwayland not in focus");
         selectionSendNotify(e, false);
         return;
@@ -659,8 +659,8 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
     if (e->target == HYPRATOMS["TARGETS"]) {
         // send mime types
         std::vector<std::string> mimes;
-        if (sel == &clipboard && g_pSeatManager->selection.currentSelection)
-            mimes = g_pSeatManager->selection.currentSelection->mimes();
+        if (sel == &clipboard && g_pSeatManager->m_selection.currentSelection)
+            mimes = g_pSeatManager->m_selection.currentSelection->mimes();
         else if (sel == &dndSelection && !dndDataOffers.empty() && dndDataOffers.at(0)->source)
             mimes = dndDataOffers.at(0)->source->mimes();
 
@@ -957,8 +957,8 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
     setActiveWindow(XCB_WINDOW_NONE);
     initSelection();
 
-    listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
-    listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
+    listeners.newWLSurface     = PROTO::compositor->m_events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
+    listeners.newXShellSurface = PROTO::xwaylandShell->m_events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();
 
@@ -1067,10 +1067,10 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
     shellResources.emplace_back(resource);
 
     for (auto const& surf : surfaces) {
-        if (surf->resource || surf->wlSerial != resource->serial)
+        if (surf->resource || surf->wlSerial != resource->m_serial)
             continue;
 
-        associate(surf, resource->surface.lock());
+        associate(surf, resource->m_surface.lock());
         break;
     }
 }
@@ -1179,8 +1179,8 @@ void CXWM::initSelection() {
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
     xcb_xfixes_select_selection_input(connection, clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
-    clipboard.listeners.setSelection        = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
-    clipboard.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
+    clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
+    clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { clipboard.onKeyboardFocus(); });
 
     primarySelection.window = xcb_generate_id(connection);
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, primarySelection.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual,
@@ -1189,8 +1189,8 @@ void CXWM::initSelection() {
 
     xcb_xfixes_select_selection_input(connection, primarySelection.window, HYPRATOMS["PRIMARY"], mask2);
 
-    primarySelection.listeners.setSelection        = g_pSeatManager->events.setPrimarySelection.registerListener([this](std::any d) { primarySelection.onSelection(); });
-    primarySelection.listeners.keyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { primarySelection.onKeyboardFocus(); });
+    primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any d) { primarySelection.onSelection(); });
+    primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { primarySelection.onKeyboardFocus(); });
 
     dndSelection.window = xcb_generate_id(connection);
     xcb_create_window(connection, XCB_COPY_FROM_PARENT, dndSelection.window, screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, screen->root_visual, XCB_CW_EVENT_MASK,
@@ -1330,16 +1330,16 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if ((this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
-        (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection &&
-         g_pSeatManager->selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
+    if ((this == &g_pXWayland->pWM->clipboard && g_pSeatManager->m_selection.currentSelection && g_pSeatManager->m_selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
+        (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->m_selection.currentPrimarySelection &&
+         g_pSeatManager->m_selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
         return;
 
-    if (this == &g_pXWayland->pWM->clipboard && g_pSeatManager->selection.currentSelection) {
+    if (this == &g_pXWayland->pWM->clipboard && g_pSeatManager->m_selection.currentSelection) {
         xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->clipboard.notifyOnFocus = true;
-    } else if (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->selection.currentPrimarySelection) {
+    } else if (this == &g_pXWayland->pWM->primarySelection && g_pSeatManager->m_selection.currentPrimarySelection) {
         xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
         xcb_flush(g_pXWayland->pWM->connection);
         g_pXWayland->pWM->primarySelection.notifyOnFocus = true;
@@ -1347,7 +1347,7 @@ void SXSelection::onSelection() {
 }
 
 void SXSelection::onKeyboardFocus() {
-    if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient)
+    if (!g_pSeatManager->m_state.keyboardFocusResource || g_pSeatManager->m_state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient)
         return;
 
     if (this == &g_pXWayland->pWM->clipboard && g_pXWayland->pWM->clipboard.notifyOnFocus) {
@@ -1404,9 +1404,9 @@ static int readDataSource(int fd, uint32_t mask, void* data) {
 bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     WP<IDataSource> selection;
     if (this == &g_pXWayland->pWM->clipboard)
-        selection = g_pSeatManager->selection.currentSelection;
+        selection = g_pSeatManager->m_selection.currentSelection;
     else if (this == &g_pXWayland->pWM->primarySelection)
-        selection = g_pSeatManager->selection.currentPrimarySelection;
+        selection = g_pSeatManager->m_selection.currentPrimarySelection;
     else if (!g_pXWayland->pWM->dndDataOffers.empty())
         selection = g_pXWayland->pWM->dndDataOffers.at(0)->getSource();
 

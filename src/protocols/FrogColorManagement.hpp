@@ -12,7 +12,7 @@ class CFrogColorManager {
     bool good();
 
   private:
-    SP<CFrogColorManagementFactoryV1> resource;
+    SP<CFrogColorManagementFactoryV1> m_resource;
 };
 
 class CFrogColorManagementSurface {
@@ -22,14 +22,14 @@ class CFrogColorManagementSurface {
     bool                            good();
     wl_client*                      client();
 
-    WP<CFrogColorManagementSurface> self;
-    WP<CWLSurfaceResource>          surface;
+    WP<CFrogColorManagementSurface> m_self;
+    WP<CWLSurfaceResource>          m_surface;
 
-    bool                            pqIntentSent = false;
+    bool                            m_pqIntentSent = false;
 
   private:
-    SP<CFrogColorManagedSurface> resource;
-    wl_client*                   pClient = nullptr;
+    SP<CFrogColorManagedSurface> m_resource;
+    wl_client*                   m_client = nullptr;
 };
 
 class CFrogColorManagementProtocol : public IWaylandProtocol {
@@ -42,8 +42,8 @@ class CFrogColorManagementProtocol : public IWaylandProtocol {
     void                                         destroyResource(CFrogColorManager* resource);
     void                                         destroyResource(CFrogColorManagementSurface* resource);
 
-    std::vector<SP<CFrogColorManager>>           m_vManagers;
-    std::vector<SP<CFrogColorManagementSurface>> m_vSurfaces;
+    std::vector<SP<CFrogColorManager>>           m_managers;
+    std::vector<SP<CFrogColorManagementSurface>> m_surfaces;
 
     friend class CFrogColorManager;
     friend class CFrogColorManagementSurface;

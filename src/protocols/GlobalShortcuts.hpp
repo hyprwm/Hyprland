@@ -17,8 +17,8 @@ class CShortcutClient {
     bool good();
 
   private:
-    SP<CHyprlandGlobalShortcutsManagerV1> resource;
-    std::vector<SP<SShortcut>>            shortcuts;
+    SP<CHyprlandGlobalShortcutsManagerV1> m_resource;
+    std::vector<SP<SShortcut>>            m_shortcuts;
 
     friend class CGlobalShortcutsProtocol;
 };
@@ -35,7 +35,7 @@ class CGlobalShortcutsProtocol : IWaylandProtocol {
     std::vector<SShortcut> getAllShortcuts();
 
   private:
-    std::vector<SP<CShortcutClient>> m_vClients;
+    std::vector<SP<CShortcutClient>> m_clients;
 };
 
 namespace PROTO {

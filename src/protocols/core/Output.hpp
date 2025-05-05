@@ -19,13 +19,13 @@ class CWLOutputResource {
     SP<CWlOutput>                getResource();
     void                         updateState();
 
-    PHLMONITORREF                monitor;
-    WP<CWLOutputProtocol>        owner;
-    WP<CWLOutputResource>        self;
+    PHLMONITORREF                m_monitor;
+    WP<CWLOutputProtocol>        m_owner;
+    WP<CWLOutputResource>        m_self;
 
   private:
-    SP<CWlOutput> resource;
-    wl_client*    pClient = nullptr;
+    SP<CWlOutput> m_resource;
+    wl_client*    m_client = nullptr;
 
     friend class CWLOutputProtocol;
 };
@@ -39,8 +39,8 @@ class CWLOutputProtocol : public IWaylandProtocol {
     SP<CWLOutputResource> outputResourceFrom(wl_client* client);
     void                  sendDone();
 
-    PHLMONITORREF         monitor;
-    WP<CWLOutputProtocol> self;
+    PHLMONITORREF         m_monitor;
+    WP<CWLOutputProtocol> m_self;
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();
@@ -50,13 +50,13 @@ class CWLOutputProtocol : public IWaylandProtocol {
     void destroyResource(CWLOutputResource* resource);
 
     //
-    std::vector<SP<CWLOutputResource>> m_vOutputs;
-    bool                               defunct = false;
-    std::string                        szName  = "";
+    std::vector<SP<CWLOutputResource>> m_outputs;
+    bool                               m_defunct = false;
+    std::string                        m_name    = "";
 
     struct {
         CHyprSignalListener modeChanged;
-    } listeners;
+    } m_listeners;
 
     friend class CWLOutputResource;
 };

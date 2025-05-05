@@ -17,7 +17,7 @@ static int onCloseFdEvent(int fd, uint32_t mask, void* data) {
 
 SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(CFileDescriptor clientFD_) {
     auto p = SP<CSecurityContextSandboxedClient>(new CSecurityContextSandboxedClient(std::move(clientFD_)));
-    if (!p->client)
+    if (!p->m_client)
         return nullptr;
     return p;
 }
@@ -28,95 +28,95 @@ static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
     client->onDestroy();
 }
 
-CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(CFileDescriptor clientFD_) : clientFD(std::move(clientFD_)) {
-    client = wl_client_create(g_pCompositor->m_wlDisplay, clientFD.get());
-    if (!client)
+CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(CFileDescriptor clientFD_) : m_clientFD(std::move(clientFD_)) {
+    m_client = wl_client_create(g_pCompositor->m_wlDisplay, m_clientFD.get());
+    if (!m_client)
         return;
 
-    wl_list_init(&destroyListener.listener.link);
-    destroyListener.listener.notify = ::onSecurityContextClientDestroy;
-    destroyListener.parent          = this;
-    wl_client_add_destroy_late_listener(client, &destroyListener.listener);
+    wl_list_init(&m_destroyListener.listener.link);
+    m_destroyListener.listener.notify = ::onSecurityContextClientDestroy;
+    m_destroyListener.parent          = this;
+    wl_client_add_destroy_late_listener(m_client, &m_destroyListener.listener);
 }
 
 CSecurityContextSandboxedClient::~CSecurityContextSandboxedClient() {
-    wl_list_remove(&destroyListener.listener.link);
-    wl_list_init(&destroyListener.listener.link);
+    wl_list_remove(&m_destroyListener.listener.link);
+    wl_list_init(&m_destroyListener.listener.link);
 }
 
 void CSecurityContextSandboxedClient::onDestroy() {
-    std::erase_if(PROTO::securityContext->m_vSandboxedClients, [this](const auto& e) { return e.get() == this; });
+    std::erase_if(PROTO::securityContext->m_sandboxedClients, [this](const auto& e) { return e.get() == this; });
 }
 
-CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int listenFD_, int closeFD_) : listenFD(listenFD_), closeFD(closeFD_), resource(resource_) {
+CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int listenFD_, int closeFD_) : m_listenFD(listenFD_), m_closeFD(closeFD_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CWpSecurityContextV1* r) {
+    m_resource->setDestroy([this](CWpSecurityContextV1* r) {
         LOGM(LOG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
-        resource = nullptr;
+        m_resource = nullptr;
     });
-    resource->setOnDestroy([this](CWpSecurityContextV1* r) {
+    m_resource->setOnDestroy([this](CWpSecurityContextV1* r) {
         LOGM(LOG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
-        resource = nullptr;
+        m_resource = nullptr;
     });
 
     LOGM(LOG, "New security_context at 0x{:x}", (uintptr_t)this);
 
-    resource->setSetSandboxEngine([this](CWpSecurityContextV1* r, const char* engine) {
-        if UNLIKELY (!sandboxEngine.empty()) {
+    m_resource->setSetSandboxEngine([this](CWpSecurityContextV1* r, const char* engine) {
+        if UNLIKELY (!m_sandboxEngine.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox engine already set");
             return;
         }
 
-        if UNLIKELY (committed) {
+        if UNLIKELY (m_committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
 
-        sandboxEngine = engine ? engine : "(null)";
-        LOGM(LOG, "security_context at 0x{:x} sets engine to {}", (uintptr_t)this, sandboxEngine);
+        m_sandboxEngine = engine ? engine : "(null)";
+        LOGM(LOG, "security_context at 0x{:x} sets engine to {}", (uintptr_t)this, m_sandboxEngine);
     });
 
-    resource->setSetAppId([this](CWpSecurityContextV1* r, const char* appid) {
-        if UNLIKELY (!appID.empty()) {
+    m_resource->setSetAppId([this](CWpSecurityContextV1* r, const char* appid) {
+        if UNLIKELY (!m_appID.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox appid already set");
             return;
         }
 
-        if UNLIKELY (committed) {
+        if UNLIKELY (m_committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
 
-        appID = appid ? appid : "(null)";
-        LOGM(LOG, "security_context at 0x{:x} sets appid to {}", (uintptr_t)this, appID);
+        m_appID = appid ? appid : "(null)";
+        LOGM(LOG, "security_context at 0x{:x} sets appid to {}", (uintptr_t)this, m_appID);
     });
 
-    resource->setSetInstanceId([this](CWpSecurityContextV1* r, const char* instance) {
-        if UNLIKELY (!instanceID.empty()) {
+    m_resource->setSetInstanceId([this](CWpSecurityContextV1* r, const char* instance) {
+        if UNLIKELY (!m_instanceID.empty()) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_SET, "Sandbox instance already set");
             return;
         }
 
-        if UNLIKELY (committed) {
+        if UNLIKELY (m_committed) {
             r->error(WP_SECURITY_CONTEXT_V1_ERROR_ALREADY_USED, "Context already committed");
             return;
         }
 
-        instanceID = instance ? instance : "(null)";
-        LOGM(LOG, "security_context at 0x{:x} sets instance to {}", (uintptr_t)this, instanceID);
+        m_instanceID = instance ? instance : "(null)";
+        LOGM(LOG, "security_context at 0x{:x} sets instance to {}", (uintptr_t)this, m_instanceID);
     });
 
-    resource->setCommit([this](CWpSecurityContextV1* r) {
-        committed = true;
+    m_resource->setCommit([this](CWpSecurityContextV1* r) {
+        m_committed = true;
 
         LOGM(LOG, "security_context at 0x{:x} commits", (uintptr_t)this);
 
-        listenSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
-        closeSource  = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, closeFD.get(), 0, ::onCloseFdEvent, this);
+        m_listenSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
+        m_closeSource  = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_closeFD.get(), 0, ::onCloseFdEvent, this);
 
-        if (!listenSource || !closeSource) {
+        if (!m_listenSource || !m_closeSource) {
             r->noMemory();
             return;
         }
@@ -124,14 +124,14 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
 }
 
 CSecurityContext::~CSecurityContext() {
-    if (listenSource)
-        wl_event_source_remove(listenSource);
-    if (closeSource)
-        wl_event_source_remove(closeSource);
+    if (m_listenSource)
+        wl_event_source_remove(m_listenSource);
+    if (m_closeSource)
+        wl_event_source_remove(m_closeSource);
 }
 
 bool CSecurityContext::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CSecurityContext::onListen(uint32_t mask) {
@@ -144,7 +144,7 @@ void CSecurityContext::onListen(uint32_t mask) {
     if (!(mask & WL_EVENT_READABLE))
         return;
 
-    CFileDescriptor clientFD{accept(listenFD.get(), nullptr, nullptr)};
+    CFileDescriptor clientFD{accept(m_listenFD.get(), nullptr, nullptr)};
     if UNLIKELY (!clientFD.isValid()) {
         LOGM(ERR, "security_context at 0x{:x} couldn't accept", (uintptr_t)this);
         return;
@@ -156,9 +156,9 @@ void CSecurityContext::onListen(uint32_t mask) {
         return;
     }
 
-    PROTO::securityContext->m_vSandboxedClients.emplace_back(newClient);
+    PROTO::securityContext->m_sandboxedClients.emplace_back(newClient);
 
-    LOGM(LOG, "security_context at 0x{:x} got a new wl_client 0x{:x}", (uintptr_t)this, (uintptr_t)newClient->client);
+    LOGM(LOG, "security_context at 0x{:x} got a new wl_client 0x{:x}", (uintptr_t)this, (uintptr_t)newClient->m_client);
 }
 
 void CSecurityContext::onClose(uint32_t mask) {
@@ -168,27 +168,27 @@ void CSecurityContext::onClose(uint32_t mask) {
     PROTO::securityContext->destroyContext(this);
 }
 
-CSecurityContextManagerResource::CSecurityContextManagerResource(SP<CWpSecurityContextManagerV1> resource_) : resource(resource_) {
+CSecurityContextManagerResource::CSecurityContextManagerResource(SP<CWpSecurityContextManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([this](CWpSecurityContextManagerV1* r) { PROTO::securityContext->destroyResource(this); });
-    resource->setOnDestroy([this](CWpSecurityContextManagerV1* r) { PROTO::securityContext->destroyResource(this); });
+    m_resource->setDestroy([this](CWpSecurityContextManagerV1* r) { PROTO::securityContext->destroyResource(this); });
+    m_resource->setOnDestroy([this](CWpSecurityContextManagerV1* r) { PROTO::securityContext->destroyResource(this); });
 
-    resource->setCreateListener([](CWpSecurityContextManagerV1* r, uint32_t id, int32_t lfd, int32_t cfd) {
+    m_resource->setCreateListener([](CWpSecurityContextManagerV1* r, uint32_t id, int32_t lfd, int32_t cfd) {
         const auto RESOURCE =
-            PROTO::securityContext->m_vContexts.emplace_back(makeShared<CSecurityContext>(makeShared<CWpSecurityContextV1>(r->client(), r->version(), id), lfd, cfd));
+            PROTO::securityContext->m_contexts.emplace_back(makeShared<CSecurityContext>(makeShared<CWpSecurityContextV1>(r->client(), r->version(), id), lfd, cfd));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::securityContext->m_vContexts.pop_back();
+            PROTO::securityContext->m_contexts.pop_back();
             return;
         }
     });
 }
 
 bool CSecurityContextManagerResource::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 CSecurityContextProtocol::CSecurityContextProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -196,23 +196,23 @@ CSecurityContextProtocol::CSecurityContextProtocol(const wl_interface* iface, co
 }
 
 void CSecurityContextProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CSecurityContextManagerResource>(makeShared<CWpSecurityContextManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CSecurityContextManagerResource>(makeShared<CWpSecurityContextManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
-        m_vManagers.pop_back();
+        m_managers.pop_back();
         return;
     }
 }
 
 void CSecurityContextProtocol::destroyResource(CSecurityContextManagerResource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == res; });
 }
 
 void CSecurityContextProtocol::destroyContext(CSecurityContext* context) {
-    std::erase_if(m_vContexts, [&](const auto& other) { return other.get() == context; });
+    std::erase_if(m_contexts, [&](const auto& other) { return other.get() == context; });
 }
 
 bool CSecurityContextProtocol::isClientSandboxed(const wl_client* client) {
-    return std::find_if(m_vSandboxedClients.begin(), m_vSandboxedClients.end(), [client](const auto& e) { return e->client == client; }) != m_vSandboxedClients.end();
+    return std::find_if(m_sandboxedClients.begin(), m_sandboxedClients.end(), [client](const auto& e) { return e->m_client == client; }) != m_sandboxedClients.end();
 }

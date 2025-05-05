@@ -866,7 +866,7 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
 static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& kb : g_pKeybindManager->m_vKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_keybinds) {
             ret += "bind";
             if (kb->locked)
                 ret += "l";
@@ -887,7 +887,7 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     } else {
         // json
         ret += "[";
-        for (auto const& kb : g_pKeybindManager->m_vKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_keybinds) {
             ret += std::format(
                 R"#(
 {{
@@ -1052,7 +1052,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "plugins:\n";
     if (g_pPluginSystem) {
         for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
-            result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+            result += std::format("  {} by {} ver {}\n", pl->m_name, pl->m_author, pl->m_version);
         }
     } else
         result += "\tunknown: not runtime\n";
@@ -1076,8 +1076,8 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
     if ((int)in.find_first_of(' ') != -1)
         DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
-    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(DISPATCHSTR);
-    if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())
+    const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(DISPATCHSTR);
+    if (DISPATCHER == g_pKeybindManager->m_dispatchers.end())
         return "Invalid dispatcher";
 
     SDispatchResult res = DISPATCHER->second(DISPATCHARG);
@@ -1352,7 +1352,7 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
 }
 
 static std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
-    auto result = g_pKeybindManager->m_mDispatchers["setprop"](request.substr(request.find_first_of(' ') + 1));
+    auto result = g_pKeybindManager->m_dispatchers["setprop"](request.substr(request.find_first_of(' ') + 1));
     return "DEPRECATED: use hyprctl dispatch setprop instead" + (result.success ? "" : "\n" + result.error);
 }
 
@@ -1548,7 +1548,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
     "version": "{}",
     "description": "{}"
 }},)#",
-                    escapeJSONStrings(p->name), escapeJSONStrings(p->author), (uintptr_t)p->m_pHandle, escapeJSONStrings(p->version), escapeJSONStrings(p->description));
+                    escapeJSONStrings(p->m_name), escapeJSONStrings(p->m_author), (uintptr_t)p->m_handle, escapeJSONStrings(p->m_version), escapeJSONStrings(p->m_description));
             }
             trimTrailingComma(result);
             result += "]";
@@ -1557,8 +1557,8 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
                 return "no plugins loaded";
 
             for (auto const& p : PLUGINS) {
-                result +=
-                    std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->name, p->author, (uintptr_t)p->m_pHandle, p->version, p->description);
+                result += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->m_name, p->m_author, (uintptr_t)p->m_handle, p->m_version,
+                                      p->m_description);
             }
         }
 

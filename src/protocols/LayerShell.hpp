@@ -21,8 +21,9 @@ class CLayerShellRole : public ISurfaceRole {
         return SURFACE_ROLE_LAYER_SHELL;
     }
 
-    WP<CLayerShellResource> layerSurface;
+    WP<CLayerShellResource> m_layerSurface;
 };
+
 class CLayerShellResource {
   public:
     CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, PHLMONITOR pMonitor, zwlrLayerShellV1Layer layer);
@@ -48,7 +49,7 @@ class CLayerShellResource {
         CSignal map;
         CSignal unmap;
         CSignal newPopup; // wlr_xdg_popup*
-    } events;
+    } m_events;
 
     struct SState {
         uint32_t                                anchor    = 0;
@@ -64,27 +65,27 @@ class CLayerShellResource {
         } margin;
 
         void reset();
-    } current, pending;
+    } m_current, m_pending;
 
-    Vector2D               size;
-    std::string            layerNamespace;
-    std::string            monitor = "";
-    WP<CWLSurfaceResource> surface;
-    bool                   mapped     = false;
-    bool                   configured = false;
+    Vector2D               m_size;
+    std::string            m_layerNamespace;
+    std::string            m_monitor = "";
+    WP<CWLSurfaceResource> m_surface;
+    bool                   m_mapped     = false;
+    bool                   m_configured = false;
 
   private:
-    SP<CZwlrLayerSurfaceV1> resource;
+    SP<CZwlrLayerSurfaceV1> m_resource;
 
     struct {
         CHyprSignalListener commitSurface;
         CHyprSignalListener destroySurface;
         CHyprSignalListener unmapSurface;
-    } listeners;
+    } m_listeners;
 
-    bool                                       closed = false;
+    bool                                       m_closed = false;
 
-    std::vector<std::pair<uint32_t, Vector2D>> serials;
+    std::vector<std::pair<uint32_t, Vector2D>> m_serials;
 };
 
 class CLayerShellProtocol : public IWaylandProtocol {
@@ -99,8 +100,8 @@ class CLayerShellProtocol : public IWaylandProtocol {
     void onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_);
 
     //
-    std::vector<UP<CZwlrLayerShellV1>>   m_vManagers;
-    std::vector<SP<CLayerShellResource>> m_vLayers;
+    std::vector<UP<CZwlrLayerShellV1>>   m_managers;
+    std::vector<SP<CLayerShellResource>> m_layers;
 
     friend class CLayerShellResource;
 };

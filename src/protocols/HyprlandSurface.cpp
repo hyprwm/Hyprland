@@ -6,83 +6,83 @@
 #include <hyprutils/math/Region.hpp>
 #include <wayland-server.h>
 
-CHyprlandSurface::CHyprlandSurface(SP<CHyprlandSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_pSurface(surface) {
+CHyprlandSurface::CHyprlandSurface(SP<CHyprlandSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_surface(surface) {
     setResource(std::move(resource));
 }
 
 bool CHyprlandSurface::good() const {
-    return m_pResource->resource();
+    return m_resource->resource();
 }
 
 void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
-    m_pResource = std::move(resource);
+    m_resource = std::move(resource);
 
-    if UNLIKELY (!m_pResource->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
-    m_pResource->setDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
-    m_pResource->setOnDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
+    m_resource->setDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
+    m_resource->setOnDestroy([this](CHyprlandSurfaceV1* resource) { destroy(); });
 
-    m_pResource->setSetOpacity([this](CHyprlandSurfaceV1* resource, uint32_t opacity) {
-        if UNLIKELY (!m_pSurface) {
-            m_pResource->error(HYPRLAND_SURFACE_V1_ERROR_NO_SURFACE, "set_opacity called for destroyed wl_surface");
+    m_resource->setSetOpacity([this](CHyprlandSurfaceV1* resource, uint32_t opacity) {
+        if UNLIKELY (!m_surface) {
+            m_resource->error(HYPRLAND_SURFACE_V1_ERROR_NO_SURFACE, "set_opacity called for destroyed wl_surface");
             return;
         }
 
         auto fOpacity = wl_fixed_to_double(opacity);
         if UNLIKELY (fOpacity < 0.0 || fOpacity > 1.0) {
-            m_pResource->error(HYPRLAND_SURFACE_V1_ERROR_OUT_OF_RANGE, "set_opacity called with an opacity value larger than 1.0 or smaller than 0.0.");
+            m_resource->error(HYPRLAND_SURFACE_V1_ERROR_OUT_OF_RANGE, "set_opacity called with an opacity value larger than 1.0 or smaller than 0.0.");
             return;
         }
 
-        m_fOpacity = fOpacity;
+        m_opacity = fOpacity;
     });
 
-    m_pResource->setSetVisibleRegion([this](CHyprlandSurfaceV1* resource, wl_resource* region) {
+    m_resource->setSetVisibleRegion([this](CHyprlandSurfaceV1* resource, wl_resource* region) {
         if (!region) {
             if (!m_visibleRegion.empty())
-                m_bVisibleRegionChanged = true;
+                m_visibleRegionChanged = true;
 
             m_visibleRegion.clear();
             return;
         }
 
-        m_bVisibleRegionChanged = true;
-        m_visibleRegion         = CWLRegionResource::fromResource(region)->region;
+        m_visibleRegionChanged = true;
+        m_visibleRegion        = CWLRegionResource::fromResource(region)->m_region;
     });
 
-    listeners.surfaceCommitted = m_pSurface->events.commit.registerListener([this](std::any data) {
-        auto surface = CWLSurface::fromResource(m_pSurface.lock());
+    m_listeners.surfaceCommitted = m_surface->m_events.commit.registerListener([this](std::any data) {
+        auto surface = CWLSurface::fromResource(m_surface.lock());
 
-        if (surface && (surface->m_overallOpacity != m_fOpacity || m_bVisibleRegionChanged)) {
-            surface->m_overallOpacity = m_fOpacity;
+        if (surface && (surface->m_overallOpacity != m_opacity || m_visibleRegionChanged)) {
+            surface->m_overallOpacity = m_opacity;
             surface->m_visibleRegion  = m_visibleRegion;
             auto box                  = surface->getSurfaceBoxGlobal();
 
             if (box.has_value())
                 g_pHyprRenderer->damageBox(*box);
 
-            if (!m_pResource)
+            if (!m_resource)
                 PROTO::hyprlandSurface->destroySurface(this);
         }
     });
 
-    listeners.surfaceDestroyed = m_pSurface->events.destroy.registerListener([this](std::any data) {
-        if (!m_pResource)
+    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.registerListener([this](std::any data) {
+        if (!m_resource)
             PROTO::hyprlandSurface->destroySurface(this);
     });
 }
 
 void CHyprlandSurface::destroy() {
-    m_pResource.reset();
-    m_fOpacity = 1.F;
+    m_resource.reset();
+    m_opacity = 1.F;
 
     if (!m_visibleRegion.empty())
-        m_bVisibleRegionChanged = true;
+        m_visibleRegionChanged = true;
 
     m_visibleRegion.clear();
 
-    if (!m_pSurface)
+    if (!m_surface)
         PROTO::hyprlandSurface->destroySurface(this);
 }
 
@@ -91,7 +91,7 @@ CHyprlandSurfaceProtocol::CHyprlandSurfaceProtocol(const wl_interface* iface, co
 }
 
 void CHyprlandSurfaceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    auto manager = m_vManagers.emplace_back(makeUnique<CHyprlandSurfaceManagerV1>(client, ver, id)).get();
+    auto manager = m_managers.emplace_back(makeUnique<CHyprlandSurfaceManagerV1>(client, ver, id)).get();
     manager->setOnDestroy([this](CHyprlandSurfaceManagerV1* manager) { destroyManager(manager); });
 
     manager->setDestroy([this](CHyprlandSurfaceManagerV1* manager) { destroyManager(manager); });
@@ -100,19 +100,19 @@ void CHyprlandSurfaceProtocol::bindManager(wl_client* client, void* data, uint32
 }
 
 void CHyprlandSurfaceProtocol::destroyManager(CHyprlandSurfaceManagerV1* manager) {
-    std::erase_if(m_vManagers, [&](const auto& p) { return p.get() == manager; });
+    std::erase_if(m_managers, [&](const auto& p) { return p.get() == manager; });
 }
 
 void CHyprlandSurfaceProtocol::destroySurface(CHyprlandSurface* surface) {
-    std::erase_if(m_mSurfaces, [&](const auto& entry) { return entry.second.get() == surface; });
+    std::erase_if(m_surfaces, [&](const auto& entry) { return entry.second.get() == surface; });
 }
 
 void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, uint32_t id, SP<CWLSurfaceResource> surface) {
     CHyprlandSurface* hyprlandSurface = nullptr;
-    auto              iter            = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [&](const auto& entry) { return entry.second->m_pSurface == surface; });
+    auto              iter            = std::find_if(m_surfaces.begin(), m_surfaces.end(), [&](const auto& entry) { return entry.second->m_surface == surface; });
 
-    if (iter != m_mSurfaces.end()) {
-        if (iter->second->m_pResource) {
+    if (iter != m_surfaces.end()) {
+        if (iter->second->m_resource) {
             LOGM(ERR, "HyprlandSurface already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(HYPRLAND_SURFACE_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED, "HyprlandSurface already present");
             return;
@@ -122,11 +122,11 @@ void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, ui
         }
     } else {
         hyprlandSurface =
-            m_mSurfaces.emplace(surface, makeUnique<CHyprlandSurface>(makeShared<CHyprlandSurfaceV1>(manager->client(), manager->version(), id), surface)).first->second.get();
+            m_surfaces.emplace(surface, makeUnique<CHyprlandSurface>(makeShared<CHyprlandSurfaceV1>(manager->client(), manager->version(), id), surface)).first->second.get();
     }
 
     if UNLIKELY (!hyprlandSurface->good()) {
         manager->noMemory();
-        m_mSurfaces.erase(surface);
+        m_surfaces.erase(surface);
     }
 }

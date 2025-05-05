@@ -6,17 +6,17 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/EventManager.hpp"
 
-CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
+CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : m_resource(resource_), m_window(pWindow_) {
     if UNLIKELY (!resource_->resource())
         return;
 
-    resource->setData(this);
+    m_resource->setData(this);
 
-    resource->setOnDestroy([this](CZwlrForeignToplevelHandleV1* h) { PROTO::foreignToplevelWlr->destroyHandle(this); });
-    resource->setDestroy([this](CZwlrForeignToplevelHandleV1* h) { PROTO::foreignToplevelWlr->destroyHandle(this); });
+    m_resource->setOnDestroy([this](CZwlrForeignToplevelHandleV1* h) { PROTO::foreignToplevelWlr->destroyHandle(this); });
+    m_resource->setDestroy([this](CZwlrForeignToplevelHandleV1* h) { PROTO::foreignToplevelWlr->destroyHandle(this); });
 
-    resource->setActivate([this](CZwlrForeignToplevelHandleV1* p, wl_resource* seat) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setActivate([this](CZwlrForeignToplevelHandleV1* p, wl_resource* seat) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -26,8 +26,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         PWINDOW->activate(true);
     });
 
-    resource->setSetFullscreen([this](CZwlrForeignToplevelHandleV1* p, wl_resource* output) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setSetFullscreen([this](CZwlrForeignToplevelHandleV1* p, wl_resource* output) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -41,7 +41,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         }
 
         if (output) {
-            const auto wpMonitor = CWLOutputResource::fromResource(output)->monitor;
+            const auto wpMonitor = CWLOutputResource::fromResource(output)->m_monitor;
 
             if (!wpMonitor.expired()) {
                 const auto monitor = wpMonitor.lock();
@@ -57,8 +57,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pHyprRenderer->damageWindow(PWINDOW);
     });
 
-    resource->setUnsetFullscreen([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setUnsetFullscreen([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -69,8 +69,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, false);
     });
 
-    resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -86,8 +86,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, true);
     });
 
-    resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -98,8 +98,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);
     });
 
-    resource->setSetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setSetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -110,8 +110,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},1", (uintptr_t)PWINDOW.get())});
     });
 
-    resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -122,8 +122,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},0", (uintptr_t)PWINDOW.get())});
     });
 
-    resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
-        const auto PWINDOW = pWindow.lock();
+    m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
+        const auto PWINDOW = m_window.lock();
 
         if UNLIKELY (!PWINDOW)
             return;
@@ -133,42 +133,42 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
 }
 
 bool CForeignToplevelHandleWlr::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 PHLWINDOW CForeignToplevelHandleWlr::window() {
-    return pWindow.lock();
+    return m_window.lock();
 }
 
 wl_resource* CForeignToplevelHandleWlr::res() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
-    if (lastMonitorID == pMonitor->m_id)
+    if (m_lastMonitorID == pMonitor->m_id)
         return;
 
-    const auto CLIENT = resource->client();
+    const auto CLIENT = m_resource->client();
 
-    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
+    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
         const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->m_name)->outputResourceFrom(CLIENT);
 
         if LIKELY (OLDRESOURCE)
-            resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
+            m_resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
     }
 
     if (PROTO::outputs.contains(pMonitor->m_name)) {
         const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->m_name)->outputResourceFrom(CLIENT);
 
         if LIKELY (NEWRESOURCE)
-            resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
+            m_resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
     }
 
-    lastMonitorID = pMonitor->m_id;
+    m_lastMonitorID = pMonitor->m_id;
 }
 
 void CForeignToplevelHandleWlr::sendState() {
-    const auto PWINDOW = pWindow.lock();
+    const auto PWINDOW = m_window.lock();
 
     if UNLIKELY (!PWINDOW || !PWINDOW->m_workspace || !PWINDOW->m_isMapped)
         return;
@@ -189,20 +189,20 @@ void CForeignToplevelHandleWlr::sendState() {
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;
     }
 
-    resource->sendState(&state);
+    m_resource->sendState(&state);
 
     wl_array_release(&state);
 }
 
-CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelManagerV1> resource_) : resource(resource_) {
+CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!resource_->resource())
         return;
 
-    resource->setOnDestroy([this](CZwlrForeignToplevelManagerV1* h) { PROTO::foreignToplevelWlr->onManagerResourceDestroy(this); });
+    m_resource->setOnDestroy([this](CZwlrForeignToplevelManagerV1* h) { PROTO::foreignToplevelWlr->onManagerResourceDestroy(this); });
 
-    resource->setStop([this](CZwlrForeignToplevelManagerV1* h) {
-        resource->sendFinished();
-        finished = true;
+    m_resource->setStop([this](CZwlrForeignToplevelManagerV1* h) {
+        m_resource->sendFinished();
+        m_finished = true;
         LOGM(LOG, "CForeignToplevelWlrManager: finished");
         PROTO::foreignToplevelWlr->onManagerResourceDestroy(this);
     });
@@ -214,84 +214,84 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
         onMap(w);
     }
 
-    lastFocus = g_pCompositor->m_lastWindow;
+    m_lastFocus = g_pCompositor->m_lastWindow;
 }
 
 void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
-    const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_vHandles.emplace_back(
-        makeShared<CForeignToplevelHandleWlr>(makeShared<CZwlrForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
+    const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_handles.emplace_back(
+        makeShared<CForeignToplevelHandleWlr>(makeShared<CZwlrForeignToplevelHandleV1>(m_resource->client(), m_resource->version(), 0), pWindow));
 
     if UNLIKELY (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
-        resource->noMemory();
-        PROTO::foreignToplevelWlr->m_vHandles.pop_back();
+        m_resource->noMemory();
+        PROTO::foreignToplevelWlr->m_handles.pop_back();
         return;
     }
 
     LOGM(LOG, "Newly mapped window {:016x}", (uintptr_t)pWindow.get());
-    resource->sendToplevel(NEWHANDLE->resource.get());
-    NEWHANDLE->resource->sendAppId(pWindow->m_class.c_str());
-    NEWHANDLE->resource->sendTitle(pWindow->m_title.c_str());
+    m_resource->sendToplevel(NEWHANDLE->m_resource.get());
+    NEWHANDLE->m_resource->sendAppId(pWindow->m_class.c_str());
+    NEWHANDLE->m_resource->sendTitle(pWindow->m_title.c_str());
     if LIKELY (const auto PMONITOR = pWindow->m_monitor.lock(); PMONITOR)
         NEWHANDLE->sendMonitor(PMONITOR);
     NEWHANDLE->sendState();
-    NEWHANDLE->resource->sendDone();
+    NEWHANDLE->m_resource->sendDone();
 
-    handles.push_back(NEWHANDLE);
+    m_handles.push_back(NEWHANDLE);
 }
 
 SP<CForeignToplevelHandleWlr> CForeignToplevelWlrManager::handleForWindow(PHLWINDOW pWindow) {
-    std::erase_if(handles, [](const auto& wp) { return wp.expired(); });
-    const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h->window() == pWindow; });
-    return IT == handles.end() ? SP<CForeignToplevelHandleWlr>{} : IT->lock();
+    std::erase_if(m_handles, [](const auto& wp) { return wp.expired(); });
+    const auto IT = std::find_if(m_handles.begin(), m_handles.end(), [pWindow](const auto& h) { return h->window() == pWindow; });
+    return IT == m_handles.end() ? SP<CForeignToplevelHandleWlr>{} : IT->lock();
 }
 
 void CForeignToplevelWlrManager::onTitle(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->closed)
+    if UNLIKELY (!H || H->m_closed)
         return;
 
-    H->resource->sendTitle(pWindow->m_title.c_str());
-    H->resource->sendDone();
+    H->m_resource->sendTitle(pWindow->m_title.c_str());
+    H->m_resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onClass(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->closed)
+    if UNLIKELY (!H || H->m_closed)
         return;
 
-    H->resource->sendAppId(pWindow->m_class.c_str());
-    H->resource->sendDone();
+    H->m_resource->sendAppId(pWindow->m_class.c_str());
+    H->m_resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onUnmap(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
     if UNLIKELY (!H)
         return;
 
-    H->resource->sendClosed();
-    H->resource->sendDone();
-    H->closed = true;
+    H->m_resource->sendClosed();
+    H->m_resource->sendDone();
+    H->m_closed = true;
 }
 
 void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->closed)
+    if UNLIKELY (!H || H->m_closed)
         return;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
@@ -300,42 +300,42 @@ void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
         return;
 
     H->sendMonitor(PMONITOR);
-    H->resource->sendDone();
+    H->m_resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onFullscreen(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->closed)
+    if UNLIKELY (!H || H->m_closed)
         return;
 
     H->sendState();
-    H->resource->sendDone();
+    H->m_resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onNewFocus(PHLWINDOW pWindow) {
-    if UNLIKELY (finished)
+    if UNLIKELY (m_finished)
         return;
 
-    if LIKELY (const auto HOLD = handleForWindow(lastFocus.lock()); HOLD) {
+    if LIKELY (const auto HOLD = handleForWindow(m_lastFocus.lock()); HOLD) {
         HOLD->sendState();
-        HOLD->resource->sendDone();
+        HOLD->m_resource->sendDone();
     }
 
-    lastFocus = pWindow;
+    m_lastFocus = pWindow;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->closed)
+    if UNLIKELY (!H || H->m_closed)
         return;
 
     H->sendState();
-    H->resource->sendDone();
+    H->m_resource->sendDone();
 }
 
 bool CForeignToplevelWlrManager::good() {
-    return resource->resource();
+    return m_resource->resource();
 }
 
 CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -345,7 +345,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         if (!windowValidForForeign(PWINDOW))
             return;
 
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onMap(PWINDOW);
         }
     });
@@ -356,7 +356,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         if (!windowValidForForeign(PWINDOW))
             return;
 
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onUnmap(PWINDOW);
         }
     });
@@ -367,7 +367,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         if (!windowValidForForeign(PWINDOW))
             return;
 
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onTitle(PWINDOW);
         }
     });
@@ -378,14 +378,14 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         if (PWINDOW && !windowValidForForeign(PWINDOW))
             return;
 
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onNewFocus(PWINDOW);
         }
     });
 
     static auto P4 = g_pHookSystem->hookDynamic("moveWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(std::any_cast<std::vector<std::any>>(data).at(0));
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onMoveMonitor(PWINDOW);
         }
     });
@@ -396,29 +396,29 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         if (!windowValidForForeign(PWINDOW))
             return;
 
-        for (auto const& m : m_vManagers) {
+        for (auto const& m : m_managers) {
             m->onFullscreen(PWINDOW);
         }
     });
 }
 
 void CForeignToplevelWlrProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");
         wl_client_post_no_memory(client);
-        m_vManagers.pop_back();
+        m_managers.pop_back();
         return;
     }
 }
 
 void CForeignToplevelWlrProtocol::onManagerResourceDestroy(CForeignToplevelWlrManager* mgr) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == mgr; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == mgr; });
 }
 
 void CForeignToplevelWlrProtocol::destroyHandle(CForeignToplevelHandleWlr* handle) {
-    std::erase_if(m_vHandles, [&](const auto& other) { return other.get() == handle; });
+    std::erase_if(m_handles, [&](const auto& other) { return other.get() == handle; });
 }
 
 PHLWINDOW CForeignToplevelWlrProtocol::windowFromHandleResource(wl_resource* res) {

@@ -1239,12 +1239,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             w->setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_isFloating && !VECINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
+            if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_realPosition->goal();
-                if (!VECINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
-                               PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
+                if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
+                                 PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
                     // not on any monitor, center
                     pos = middle() / 2.f - w->m_realSize->goal() / 2.f;
                 } else
@@ -1368,20 +1368,20 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    if (!PSURFACE || !PSURFACE->current.texture || !PSURFACE->current.buffer)
+    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer)
         return false;
 
-    if (PSURFACE->current.bufferSize != m_pixelSize || PSURFACE->current.transform != m_transform)
+    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform)
         return false;
 
     // we can't scanout shm buffers.
-    const auto params = PSURFACE->current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
+    const auto params = PSURFACE->m_current.buffer->dmabuf();
+    if (!params.success || !PSURFACE->m_current.texture->m_pEglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->current.buffer.buffer.get());
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());
 
-    auto PBUFFER = PSURFACE->current.buffer.buffer;
+    auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
@@ -1427,7 +1427,7 @@ bool CMonitor::attemptDirectScanout() {
 
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-    m_output->state->addDamage(PSURFACE->current.accumulateBufferDamage());
+    m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
     m_output->state->resetExplicitFences();
 
     // no need to do explicit sync here as surface current can only ever be ready to read
@@ -1447,7 +1447,7 @@ bool CMonitor::attemptDirectScanout() {
 
     m_scanoutNeedsCursorUpdate = false;
 
-    if (!PBUFFER->lockedByBackend || PBUFFER->hlEvents.backendRelease)
+    if (!PBUFFER->lockedByBackend || PBUFFER->m_hlEvents.backendRelease)
         return true;
 
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then

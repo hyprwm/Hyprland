@@ -238,19 +238,19 @@ void CRenderPass::renderDebugData() {
         offsets[surface.get()] += texture->m_vSize.y;
     };
 
-    renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
-    renderHLSurface(debugData.pointerFocusText, g_pSeatManager->state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
+    renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->m_state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
+    renderHLSurface(debugData.pointerFocusText, g_pSeatManager->m_state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
     if (g_pCompositor->m_lastWindow)
         renderHLSurface(debugData.lastWindowText, g_pCompositor->m_lastWindow->m_wlSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
-    if (g_pSeatManager->state.pointerFocus) {
-        if (g_pSeatManager->state.pointerFocus->current.input.intersect(CBox{{}, g_pSeatManager->state.pointerFocus->current.size}).getExtents().size() !=
-            g_pSeatManager->state.pointerFocus->current.size) {
-            auto hlSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+    if (g_pSeatManager->m_state.pointerFocus) {
+        if (g_pSeatManager->m_state.pointerFocus->m_current.input.intersect(CBox{{}, g_pSeatManager->m_state.pointerFocus->m_current.size}).getExtents().size() !=
+            g_pSeatManager->m_state.pointerFocus->m_current.size) {
+            auto hlSurface = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
             if (hlSurface) {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
                 if (BOX) {
-                    auto region = g_pSeatManager->state.pointerFocus->current.input.copy()
+                    auto region = g_pSeatManager->m_state.pointerFocus->m_current.input.copy()
                                       .scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale)
                                       .translate(BOX->pos() - g_pHyprOpenGL->m_RenderData.pMonitor->m_position);
                     g_pHyprOpenGL->renderRectWithDamage(box, CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}, region);

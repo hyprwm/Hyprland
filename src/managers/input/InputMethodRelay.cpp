@@ -11,9 +11,9 @@ CInputMethodRelay::CInputMethodRelay() {
     static auto P =
         g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
 
-    m_listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
-    m_listeners.newTIV1 = PROTO::textInputV1->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
-    m_listeners.newIME  = PROTO::ime->events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
+    m_listeners.newTIV3 = PROTO::textInputV3->m_events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
+    m_listeners.newTIV1 = PROTO::textInputV1->m_events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
+    m_listeners.newIME  = PROTO::ime->m_events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
 }
 
 void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
@@ -27,7 +27,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
 
     m_inputMethod = pIME;
 
-    m_listeners.commitIME = pIME->events.onCommit.registerListener([this](std::any d) {
+    m_listeners.commitIME = pIME->m_events.onCommit.registerListener([this](std::any d) {
         const auto PTI = getFocusedTextInput();
 
         if (!PTI) {
@@ -38,7 +38,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         PTI->updateIMEState(m_inputMethod.lock());
     });
 
-    m_listeners.destroyIME = pIME->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyIME = pIME->m_events.destroy.registerListener([this](std::any d) {
         const auto PTI = getFocusedTextInput();
 
         Debug::log(LOG, "IME Destroy");
@@ -49,7 +49,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         m_inputMethod.reset();
     });
 
-    m_listeners.newPopup = pIME->events.newPopup.registerListener([this](std::any d) {
+    m_listeners.newPopup = pIME->m_events.newPopup.registerListener([this](std::any d) {
         m_inputMethodPopups.emplace_back(makeUnique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
 
         Debug::log(LOG, "New input popup");

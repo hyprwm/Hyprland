@@ -68,13 +68,13 @@ class IWindowTransformer;
 
 struct SAlphaValue {
     float alpha;
-    bool  override;
+    bool  overridden;
 
-    float applyAlpha(float alpha) const {
-        if (override)
+    float applyAlpha(float a) const {
+        if (overridden)
             return alpha;
         else
-            return alpha * alpha;
+            return alpha * a;
     };
 };
 

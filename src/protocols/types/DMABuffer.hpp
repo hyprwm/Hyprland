@@ -19,12 +19,12 @@ class CDMABuffer : public IHLBuffer {
     void                                           closeFDs();
     Hyprutils::OS::CFileDescriptor                 exportSyncFile();
 
-    bool                                           success = false;
+    bool                                           m_success = false;
 
   private:
-    Aquamarine::SDMABUFAttrs attrs;
+    Aquamarine::SDMABUFAttrs m_attrs;
 
     struct {
         CHyprSignalListener resourceDestroy;
-    } listeners;
+    } m_listeners;
 };

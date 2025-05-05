@@ -8,10 +8,10 @@
 #include "../../render/Renderer.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : m_popup(popup_) {
-    m_listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
-    m_listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
-    m_listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    m_listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    m_listeners.commit  = popup_->m_events.commit.registerListener([this](std::any d) { onCommit(); });
+    m_listeners.map     = popup_->m_events.map.registerListener([this](std::any d) { onMap(); });
+    m_listeners.unmap   = popup_->m_events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    m_listeners.destroy = popup_->m_events.destroy.registerListener([this](std::any d) { onDestroy(); });
     m_surface           = CWLSurface::create();
     m_surface->assign(popup_->surface());
 }
@@ -77,7 +77,7 @@ void CInputPopup::damageSurface() {
 }
 
 void CInputPopup::updateBox() {
-    if (!m_popup->mapped)
+    if (!m_popup->m_mapped)
         return;
 
     const auto OWNER      = queryOwner();
@@ -102,7 +102,7 @@ void CInputPopup::updateBox() {
         cursorBoxParent = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->current.scale;
+    Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->m_current.scale;
 
     PHLMONITOR pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 

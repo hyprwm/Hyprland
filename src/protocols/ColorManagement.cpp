@@ -74,7 +74,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        const auto PMONITOR = OUTPUTRESOURCE->monitor.lock();
+        const auto PMONITOR = OUTPUTRESOURCE->m_monitor.lock();
 
         if UNLIKELY (!PMONITOR) {
             r->error(-1, "Invalid output (2)");
@@ -82,15 +82,15 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         const auto RESOURCE =
-            PROTO::colorManagement->m_vOutputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id), PMONITOR));
+            PROTO::colorManagement->m_outputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id), PMONITOR));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vOutputs.pop_back();
+            PROTO::colorManagement->m_outputs.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
     });
     m_resource->setGetSurface([](CWpColorManagerV1* r, uint32_t id, wl_resource* surface) {
         LOGM(TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
@@ -102,22 +102,22 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        if (SURF->colorManagement) {
+        if (SURF->m_colorManagement) {
             r->error(WP_COLOR_MANAGER_V1_ERROR_SURFACE_EXISTS, "CM Surface already exists");
             return;
         }
 
         const auto RESOURCE =
-            PROTO::colorManagement->m_vSurfaces.emplace_back(makeShared<CColorManagementSurface>(makeShared<CWpColorManagementSurfaceV1>(r->client(), r->version(), id), SURF));
+            PROTO::colorManagement->m_surfaces.emplace_back(makeShared<CColorManagementSurface>(makeShared<CWpColorManagementSurfaceV1>(r->client(), r->version(), id), SURF));
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vSurfaces.pop_back();
+            PROTO::colorManagement->m_surfaces.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
 
-        SURF->colorManagement = RESOURCE;
+        SURF->m_colorManagement = RESOURCE;
     });
     m_resource->setGetSurfaceFeedback([](CWpColorManagerV1* r, uint32_t id, wl_resource* surface) {
         LOGM(TRACE, "Get feedback surface for id={}, surface={}", id, (uintptr_t)surface);
@@ -129,16 +129,16 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        const auto RESOURCE = PROTO::colorManagement->m_vFeedbackSurfaces.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_feedbackSurfaces.emplace_back(
             makeShared<CColorManagementFeedbackSurface>(makeShared<CWpColorManagementSurfaceFeedbackV1>(r->client(), r->version(), id), SURF));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vFeedbackSurfaces.pop_back();
+            PROTO::colorManagement->m_feedbackSurfaces.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
     });
     m_resource->setCreateIccCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(WARN, "New ICC creator for id={} (unsupported)", id);
@@ -148,29 +148,29 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         const auto RESOURCE =
-            PROTO::colorManagement->m_vIccCreators.emplace_back(makeShared<CColorManagementIccCreator>(makeShared<CWpImageDescriptionCreatorIccV1>(r->client(), r->version(), id)));
+            PROTO::colorManagement->m_iccCreators.emplace_back(makeShared<CColorManagementIccCreator>(makeShared<CWpImageDescriptionCreatorIccV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vIccCreators.pop_back();
+            PROTO::colorManagement->m_iccCreators.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
     });
     m_resource->setCreateParametricCreator([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(TRACE, "New parametric creator for id={}", id);
 
-        const auto RESOURCE = PROTO::colorManagement->m_vParametricCreators.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_parametricCreators.emplace_back(
             makeShared<CColorManagementParametricCreator>(makeShared<CWpImageDescriptionCreatorParamsV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vParametricCreators.pop_back();
+            PROTO::colorManagement->m_parametricCreators.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
     });
     m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(WARN, "New Windows scRGB description id={} (unsupported)", id);
@@ -179,23 +179,23 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
-        RESOURCE->self                          = RESOURCE;
-        RESOURCE->settings.windowsScRGB         = true;
-        RESOURCE->settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
-        RESOURCE->settings.primariesNameSet     = true;
-        RESOURCE->settings.primaries            = NColorPrimaries::BT709;
-        RESOURCE->settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
-        RESOURCE->settings.luminances.reference = 203;
-        RESOURCE->resource()->sendReady(RESOURCE->settings.updateId());
+        RESOURCE->m_self                          = RESOURCE;
+        RESOURCE->m_settings.windowsScRGB         = true;
+        RESOURCE->m_settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
+        RESOURCE->m_settings.primariesNameSet     = true;
+        RESOURCE->m_settings.primaries            = NColorPrimaries::BT709;
+        RESOURCE->m_settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
+        RESOURCE->m_settings.luminances.reference = 203;
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings.updateId());
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -211,7 +211,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
     if UNLIKELY (!good())
         return;
 
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementOutputV1* r) { PROTO::colorManagement->destroyResource(this); });
     m_resource->setOnDestroy([this](CWpColorManagementOutputV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -219,24 +219,24 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
     m_resource->setGetImageDescription([this](CWpColorManagementOutputV1* r, uint32_t id) {
         LOGM(TRACE, "Get image description for output={}, id={}", (uintptr_t)r, id);
 
-        if (imageDescription.valid())
-            PROTO::colorManagement->destroyResource(imageDescription.get());
+        if (m_imageDescription.valid())
+            PROTO::colorManagement->destroyResource(m_imageDescription.get());
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
-        RESOURCE->self = RESOURCE;
+        RESOURCE->m_self = RESOURCE;
         if (!m_monitor.valid())
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
-            RESOURCE->settings = m_monitor->m_imageDescription;
-            RESOURCE->m_resource->sendReady(RESOURCE->settings.updateId());
+            RESOURCE->m_settings = m_monitor->m_imageDescription;
+            RESOURCE->m_resource->sendReady(RESOURCE->m_settings.updateId());
         }
     });
 }
@@ -246,25 +246,25 @@ bool CColorManagementOutput::good() {
 }
 
 wl_client* CColorManagementOutput::client() {
-    return pClient;
+    return m_client;
 }
 
-CColorManagementSurface::CColorManagementSurface(SP<CWLSurfaceResource> surface_) : surface(surface_) {
+CColorManagementSurface::CColorManagementSurface(SP<CWLSurfaceResource> surface_) : m_surface(surface_) {
     // only for frog cm untill wayland cm is adopted
 }
 
-CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1> resource, SP<CWLSurfaceResource> surface_) : surface(surface_), m_resource(resource) {
+CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1> resource, SP<CWLSurfaceResource> surface_) : m_surface(surface_), m_resource(resource) {
     if UNLIKELY (!good())
         return;
 
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)surface);
+        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)surface);
+        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
 
@@ -281,15 +281,15 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
             return;
         }
 
-        const auto imageDescription = std::find_if(PROTO::colorManagement->m_vImageDescriptions.begin(), PROTO::colorManagement->m_vImageDescriptions.end(),
+        const auto imageDescription = std::find_if(PROTO::colorManagement->m_imageDescriptions.begin(), PROTO::colorManagement->m_imageDescriptions.end(),
                                                    [&](const auto& other) { return other->resource()->resource() == image_description; });
-        if (imageDescription == PROTO::colorManagement->m_vImageDescriptions.end()) {
+        if (imageDescription == PROTO::colorManagement->m_imageDescriptions.end()) {
             r->error(WP_COLOR_MANAGEMENT_SURFACE_V1_ERROR_IMAGE_DESCRIPTION, "Image description not found");
             return;
         }
 
         setHasImageDescription(true);
-        m_imageDescription = imageDescription->get()->settings;
+        m_imageDescription = imageDescription->get()->m_settings;
     });
     m_resource->setUnsetImageDescription([this](CWpColorManagementSurfaceV1* r) {
         LOGM(TRACE, "Unset image description for surface={}", (uintptr_t)r);
@@ -303,7 +303,7 @@ bool CColorManagementSurface::good() {
 }
 
 wl_client* CColorManagementSurface::client() {
-    return pClient;
+    return m_client;
 }
 
 const SImageDescription& CColorManagementSurface::imageDescription() {
@@ -340,20 +340,20 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :
-    surface(surface_), m_resource(resource) {
+    m_surface(surface_), m_resource(resource) {
     if UNLIKELY (!good())
         return;
 
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
+        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
+        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
@@ -365,20 +365,20 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
-        RESOURCE->self     = RESOURCE;
+        RESOURCE->m_self   = RESOURCE;
         m_currentPreferred = RESOURCE;
 
-        m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
-        RESOURCE->resource()->sendReady(m_currentPreferred->settings.updateId());
+        m_currentPreferred->m_settings = g_pCompositor->getPreferredImageDescription();
+        RESOURCE->resource()->sendReady(m_currentPreferred->m_settings.updateId());
     });
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
@@ -392,26 +392,26 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
-        RESOURCE->self     = RESOURCE;
+        RESOURCE->m_self   = RESOURCE;
         m_currentPreferred = RESOURCE;
 
-        m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
-        if (!PROTO::colorManagement->m_debug && m_currentPreferred->settings.icc.fd) {
+        m_currentPreferred->m_settings = g_pCompositor->getPreferredImageDescription();
+        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd) {
             LOGM(ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
             return;
         }
 
-        RESOURCE->resource()->sendReady(m_currentPreferred->settings.updateId());
+        RESOURCE->resource()->sendReady(m_currentPreferred->m_settings.updateId());
     });
 }
 
@@ -420,14 +420,14 @@ bool CColorManagementFeedbackSurface::good() {
 }
 
 wl_client* CColorManagementFeedbackSurface::client() {
-    return pClient;
+    return m_client;
 }
 
 CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCreatorIccV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
     //
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setOnDestroy([this](CWpImageDescriptionCreatorIccV1* r) { PROTO::colorManagement->destroyResource(this); });
 
@@ -435,39 +435,39 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
         LOGM(TRACE, "Create image description from icc for id {}", id);
 
         // FIXME actually check completeness
-        if (settings.icc.fd < 0 || !settings.icc.length) {
+        if (m_settings.icc.fd < 0 || !m_settings.icc.length) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INCOMPLETE_SET, "Missing required settings");
             return;
         }
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
-        LOGM(ERR, "FIXME: Parse icc file {}({},{}) for id {}", settings.icc.fd, settings.icc.offset, settings.icc.length, id);
+        LOGM(ERR, "FIXME: Parse icc file {}({},{}) for id {}", m_settings.icc.fd, m_settings.icc.offset, m_settings.icc.length, id);
 
         // FIXME actually check support
-        if (settings.icc.fd < 0 || !settings.icc.length) {
+        if (m_settings.icc.fd < 0 || !m_settings.icc.length) {
             RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "unsupported");
             return;
         }
 
-        RESOURCE->self     = RESOURCE;
-        RESOURCE->settings = settings;
-        RESOURCE->resource()->sendReady(settings.updateId());
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = m_settings;
+        RESOURCE->resource()->sendReady(m_settings.updateId());
 
         PROTO::colorManagement->destroyResource(this);
     });
 
     m_resource->setSetIccFile([this](CWpImageDescriptionCreatorIccV1* r, int fd, uint32_t offset, uint32_t length) {
-        settings.icc.fd     = fd;
-        settings.icc.offset = offset;
-        settings.icc.length = length;
+        m_settings.icc.fd     = fd;
+        m_settings.icc.offset = offset;
+        m_settings.icc.length = length;
     });
 }
 
@@ -476,14 +476,14 @@ bool CColorManagementIccCreator::good() {
 }
 
 wl_client* CColorManagementIccCreator::client() {
-    return pClient;
+    return m_client;
 }
 
 CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImageDescriptionCreatorParamsV1> resource) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
     //
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setOnDestroy([this](CWpImageDescriptionCreatorParamsV1* r) { PROTO::colorManagement->destroyResource(this); });
 
@@ -491,35 +491,35 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         LOGM(TRACE, "Create image description from params for id {}", id);
 
         // FIXME actually check completeness
-        if (!valuesSet) {
+        if (!m_valuesSet) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INCOMPLETE_SET, "Missing required settings");
             return;
         }
 
-        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
-            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
         // FIXME actually check support
-        if (!valuesSet) {
+        if (!m_valuesSet) {
             RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "unsupported");
             return;
         }
 
-        RESOURCE->self     = RESOURCE;
-        RESOURCE->settings = settings;
-        RESOURCE->resource()->sendReady(settings.updateId());
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = m_settings;
+        RESOURCE->resource()->sendReady(m_settings.updateId());
 
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setSetTfNamed([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t tf) {
         LOGM(TRACE, "Set image description transfer function to {}", tf);
-        if (valuesSet & PC_TF) {
+        if (m_valuesSet & PC_TF) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Transfer function already set");
             return;
         }
@@ -534,12 +534,12 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
-        settings.transferFunction = convertTransferFunction((wpColorManagerV1TransferFunction)tf);
-        valuesSet |= PC_TF;
+        m_settings.transferFunction = convertTransferFunction((wpColorManagerV1TransferFunction)tf);
+        m_valuesSet |= PC_TF;
     });
     m_resource->setSetTfPower([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t eexp) {
         LOGM(TRACE, "Set image description tf power to {}", eexp);
-        if (valuesSet & PC_TF_POWER) {
+        if (m_valuesSet & PC_TF_POWER) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Transfer function power already set");
             return;
         }
@@ -547,16 +547,16 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "TF power is not supported");
             return;
         }
-        settings.transferFunctionPower = eexp / 10000.0f;
-        if (settings.transferFunctionPower < 1.0 || settings.transferFunctionPower > 10.0) {
+        m_settings.transferFunctionPower = eexp / 10000.0f;
+        if (m_settings.transferFunctionPower < 1.0 || m_settings.transferFunctionPower > 10.0) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Power should be between 1.0 and 10.0");
             return;
         }
-        valuesSet |= PC_TF_POWER;
+        m_valuesSet |= PC_TF_POWER;
     });
     m_resource->setSetPrimariesNamed([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t primaries) {
         LOGM(TRACE, "Set image description primaries by name {}", primaries);
-        if (valuesSet & PC_PRIMARIES) {
+        if (m_valuesSet & PC_PRIMARIES) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Primaries already set");
             return;
         }
@@ -578,15 +578,15 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 }
         }
 
-        settings.primariesNameSet = true;
-        settings.primariesNamed   = convertPrimaries((wpColorManagerV1Primaries)primaries);
-        settings.primaries        = getPrimaries(settings.primariesNamed);
-        valuesSet |= PC_PRIMARIES;
+        m_settings.primariesNameSet = true;
+        m_settings.primariesNamed   = convertPrimaries((wpColorManagerV1Primaries)primaries);
+        m_settings.primaries        = getPrimaries(m_settings.primariesNamed);
+        m_valuesSet |= PC_PRIMARIES;
     });
     m_resource->setSetPrimaries(
         [this](CWpImageDescriptionCreatorParamsV1* r, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {
             LOGM(TRACE, "Set image description primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
-            if (valuesSet & PC_PRIMARIES) {
+            if (m_valuesSet & PC_PRIMARIES) {
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Primaries already set");
                 return;
             }
@@ -594,17 +594,17 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Custom primaries aren't supported");
                 return;
             }
-            settings.primariesNameSet = false;
-            settings.primaries        = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
-                                                     .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
-                                                     .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
-                                                     .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
-            valuesSet |= PC_PRIMARIES;
+            m_settings.primariesNameSet = false;
+            m_settings.primaries        = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
+                                                       .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
+                                                       .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
+                                                       .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
+            m_valuesSet |= PC_PRIMARIES;
         });
     m_resource->setSetLuminances([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
         auto min = min_lum / 10000.0f;
         LOGM(TRACE, "Set image description luminances to {} - {} ({})", min, max_lum, reference_lum);
-        if (valuesSet & PC_LUMINANCES) {
+        if (m_valuesSet & PC_LUMINANCES) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Luminances already set");
             return;
         }
@@ -612,13 +612,13 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        settings.luminances = SImageDescription::SPCLuminances{.min = min, .max = max_lum, .reference = reference_lum};
-        valuesSet |= PC_LUMINANCES;
+        m_settings.luminances = SImageDescription::SPCLuminances{.min = min, .max = max_lum, .reference = reference_lum};
+        m_valuesSet |= PC_LUMINANCES;
     });
     m_resource->setSetMasteringDisplayPrimaries(
         [this](CWpImageDescriptionCreatorParamsV1* r, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {
             LOGM(TRACE, "Set image description mastering primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
-            if (valuesSet & PC_MASTERING_PRIMARIES) {
+            if (m_valuesSet & PC_MASTERING_PRIMARIES) {
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
                 return;
             }
@@ -626,11 +626,11 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering primaries are not supported");
                 return;
             }
-            settings.masteringPrimaries = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
-                                                       .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
-                                                       .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
-                                                       .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
-            valuesSet |= PC_MASTERING_PRIMARIES;
+            m_settings.masteringPrimaries = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
+                                                         .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
+                                                         .blue  = {.x = b_x / 1000000.0f, .y = b_y / 1000000.0f},
+                                                         .white = {.x = w_x / 1000000.0f, .y = w_y / 1000000.0f}};
+            m_valuesSet |= PC_MASTERING_PRIMARIES;
 
             // FIXME:
             // If a compositor additionally supports target color volume exceeding the primary color volume, it must advertise wp_color_manager_v1.feature.extended_target_volume.
@@ -652,8 +652,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering luminances are not supported");
             return;
         }
-        settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};
-        valuesSet |= PC_MASTERING_LUMINANCES;
+        m_settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};
+        m_valuesSet |= PC_MASTERING_LUMINANCES;
     });
     m_resource->setSetMaxCll([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t max_cll) {
         LOGM(TRACE, "Set image description max content light level to {}", max_cll);
@@ -661,8 +661,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         //     r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Max CLL already set");
         //     return;
         // }
-        settings.maxCLL = max_cll;
-        valuesSet |= PC_CLL;
+        m_settings.maxCLL = max_cll;
+        m_valuesSet |= PC_CLL;
     });
     m_resource->setSetMaxFall([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t max_fall) {
         LOGM(TRACE, "Set image description max frame-average light level to {}", max_fall);
@@ -670,8 +670,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         //     r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Max FALL already set");
         //     return;
         // }
-        settings.maxFALL = max_fall;
-        valuesSet |= PC_FALL;
+        m_settings.maxFALL = max_fall;
+        m_valuesSet |= PC_FALL;
     });
 }
 
@@ -680,7 +680,7 @@ bool CColorManagementParametricCreator::good() {
 }
 
 wl_client* CColorManagementParametricCreator::client() {
-    return pClient;
+    return m_client;
 }
 
 CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation) :
@@ -688,7 +688,7 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDe
     if UNLIKELY (!good())
         return;
 
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpImageDescriptionV1* r) { PROTO::colorManagement->destroyResource(this); });
     m_resource->setOnDestroy([this](CWpImageDescriptionV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -700,7 +700,7 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDe
             return;
         }
 
-        auto RESOURCE = makeShared<CColorManagementImageDescriptionInfo>(makeShared<CWpImageDescriptionInfoV1>(r->client(), r->version(), id), settings);
+        auto RESOURCE = makeShared<CColorManagementImageDescriptionInfo>(makeShared<CWpImageDescriptionInfoV1>(r->client(), r->version(), id), m_settings);
 
         if UNLIKELY (!RESOURCE->good())
             r->noMemory();
@@ -715,7 +715,7 @@ bool CColorManagementImageDescription::good() {
 }
 
 wl_client* CColorManagementImageDescription::client() {
-    return pClient;
+    return m_client;
 }
 
 SP<CWpImageDescriptionV1> CColorManagementImageDescription::resource() {
@@ -723,33 +723,34 @@ SP<CWpImageDescriptionV1> CColorManagementImageDescription::resource() {
 }
 
 CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CWpImageDescriptionInfoV1> resource, const SImageDescription& settings_) :
-    m_resource(resource), settings(settings_) {
+    m_resource(resource), m_settings(settings_) {
     if UNLIKELY (!good())
         return;
 
-    pClient = m_resource->client();
+    m_client = m_resource->client();
 
     const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
 
-    if (settings.icc.fd >= 0)
-        m_resource->sendIccFile(settings.icc.fd, settings.icc.length);
+    if (m_settings.icc.fd >= 0)
+        m_resource->sendIccFile(m_settings.icc.fd, m_settings.icc.length);
 
     // send preferred client paramateres
-    m_resource->sendPrimaries(toProto(settings.primaries.red.x), toProto(settings.primaries.red.y), toProto(settings.primaries.green.x), toProto(settings.primaries.green.y),
-                              toProto(settings.primaries.blue.x), toProto(settings.primaries.blue.y), toProto(settings.primaries.white.x), toProto(settings.primaries.white.y));
-    if (settings.primariesNameSet)
-        m_resource->sendPrimariesNamed(settings.primariesNamed);
-    m_resource->sendTfPower(std::round(settings.transferFunctionPower * 10000));
-    m_resource->sendTfNamed(settings.transferFunction);
-    m_resource->sendLuminances(std::round(settings.luminances.min * 10000), settings.luminances.max, settings.luminances.reference);
+    m_resource->sendPrimaries(toProto(m_settings.primaries.red.x), toProto(m_settings.primaries.red.y), toProto(m_settings.primaries.green.x),
+                              toProto(m_settings.primaries.green.y), toProto(m_settings.primaries.blue.x), toProto(m_settings.primaries.blue.y),
+                              toProto(m_settings.primaries.white.x), toProto(m_settings.primaries.white.y));
+    if (m_settings.primariesNameSet)
+        m_resource->sendPrimariesNamed(m_settings.primariesNamed);
+    m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));
+    m_resource->sendTfNamed(m_settings.transferFunction);
+    m_resource->sendLuminances(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max, m_settings.luminances.reference);
 
     // send expexted display paramateres
-    m_resource->sendTargetPrimaries(toProto(settings.masteringPrimaries.red.x), toProto(settings.masteringPrimaries.red.y), toProto(settings.masteringPrimaries.green.x),
-                                    toProto(settings.masteringPrimaries.green.y), toProto(settings.masteringPrimaries.blue.x), toProto(settings.masteringPrimaries.blue.y),
-                                    toProto(settings.masteringPrimaries.white.x), toProto(settings.masteringPrimaries.white.y));
-    m_resource->sendTargetLuminance(std::round(settings.masteringLuminances.min * 10000), settings.masteringLuminances.max);
-    m_resource->sendTargetMaxCll(settings.maxCLL);
-    m_resource->sendTargetMaxFall(settings.maxFALL);
+    m_resource->sendTargetPrimaries(toProto(m_settings.masteringPrimaries.red.x), toProto(m_settings.masteringPrimaries.red.y), toProto(m_settings.masteringPrimaries.green.x),
+                                    toProto(m_settings.masteringPrimaries.green.y), toProto(m_settings.masteringPrimaries.blue.x), toProto(m_settings.masteringPrimaries.blue.y),
+                                    toProto(m_settings.masteringPrimaries.white.x), toProto(m_settings.masteringPrimaries.white.y));
+    m_resource->sendTargetLuminance(std::round(m_settings.masteringLuminances.min * 10000), m_settings.masteringLuminances.max);
+    m_resource->sendTargetMaxCll(m_settings.maxCLL);
+    m_resource->sendTargetMaxFall(m_settings.maxFALL);
 
     m_resource->sendDone();
 }
@@ -759,7 +760,7 @@ bool CColorManagementImageDescriptionInfo::good() {
 }
 
 wl_client* CColorManagementImageDescriptionInfo::client() {
-    return pClient;
+    return m_client;
 }
 
 CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug) :
@@ -768,11 +769,11 @@ CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, co
 }
 
 void CColorManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeShared<CColorManager>(makeShared<CWpColorManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CColorManager>(makeShared<CWpColorManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
-        m_vManagers.pop_back();
+        m_managers.pop_back();
         return;
     }
 
@@ -780,42 +781,42 @@ void CColorManagementProtocol::bindManager(wl_client* client, void* data, uint32
 }
 
 void CColorManagementProtocol::onImagePreferredChanged(uint32_t preferredId) {
-    for (auto const& feedback : m_vFeedbackSurfaces) {
+    for (auto const& feedback : m_feedbackSurfaces) {
         feedback->m_resource->sendPreferredChanged(preferredId);
     }
 }
 
 void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> monitor) {
-    for (auto const& output : m_vOutputs) {
+    for (auto const& output : m_outputs) {
         if (output->m_monitor == monitor)
             output->m_resource->sendImageDescriptionChanged();
     }
 }
 
 void CColorManagementProtocol::destroyResource(CColorManager* resource) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementOutput* resource) {
-    std::erase_if(m_vOutputs, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_outputs, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementSurface* resource) {
-    std::erase_if(m_vSurfaces, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_surfaces, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementFeedbackSurface* resource) {
-    std::erase_if(m_vFeedbackSurfaces, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_feedbackSurfaces, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementIccCreator* resource) {
-    std::erase_if(m_vIccCreators, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_iccCreators, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementParametricCreator* resource) {
-    std::erase_if(m_vParametricCreators, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_parametricCreators, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManagementImageDescription* resource) {
-    std::erase_if(m_vImageDescriptions, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_imageDescriptions, [&](const auto& other) { return other.get() == resource; });
 }

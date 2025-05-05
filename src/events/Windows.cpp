@@ -169,7 +169,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto PMONITORFROMID = PWINDOW->m_monitor.lock();
 
                     if (PWINDOW->m_monitor != PMONITOR) {
-                        g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+                        g_pKeybindManager->m_dispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
                         PMONITOR = PMONITORFROMID;
                     }
                     PWINDOW->m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -337,19 +337,28 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_pinned && !PWINDOW->m_isFloating)
         PWINDOW->m_pinned = false;
 
-    const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
+    CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
-        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].starts_with("silent"))
+        WORKSPACEID requestedWorkspaceID;
+        std::string requestedWorkspaceName;
+        if (WORKSPACEARGS.contains("silent"))
             workspaceSilent = true;
 
-        const auto& [REQUESTEDWORKSPACEID, requestedWorkspaceName] = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
+        if (WORKSPACEARGS.contains("empty") && PWORKSPACE->getWindows() <= 1) {
+            requestedWorkspaceID   = PWORKSPACE->m_id;
+            requestedWorkspaceName = PWORKSPACE->m_name;
+        } else {
+            auto result            = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
+            requestedWorkspaceID   = result.id;
+            requestedWorkspaceName = result.name;
+        }
 
-        if (REQUESTEDWORKSPACEID != WORKSPACE_INVALID) {
-            auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
+        if (requestedWorkspaceID != WORKSPACE_INVALID) {
+            auto pWorkspace = g_pCompositor->getWorkspaceByID(requestedWorkspaceID);
 
             if (!pWorkspace)
-                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->monitorID(), requestedWorkspaceName, false);
+                pWorkspace = g_pCompositor->createNewWorkspace(requestedWorkspaceID, PWINDOW->monitorID(), requestedWorkspaceName, false);
 
             PWORKSPACE = pWorkspace;
 
@@ -362,8 +371,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
             if (!workspaceSilent) {
                 if (pWorkspace->m_isSpecialWorkspace)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID && !PWINDOW->m_noInitialFocus)
-                    g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
+                else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !PWINDOW->m_noInitialFocus)
+                    g_pKeybindManager->m_dispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_lastMonitor.lock();
             }
@@ -382,7 +391,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         const auto PMONITORFROMID = PWINDOW->m_monitor.lock();
 
         if (PWINDOW->m_monitor != PMONITOR) {
-            g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+            g_pKeybindManager->m_dispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
             PMONITOR = PMONITORFROMID;
         }
         PWINDOW->m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -593,7 +602,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
-    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
+    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_noInitialFocus = true;
 
     if (PWINDOW->m_workspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !PWINDOW->m_isFloating) {
@@ -690,7 +699,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_transform);
 
-    if (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())
+    if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely
@@ -843,12 +852,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_self.lock();
 
-    if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->initialCommit) {
+    if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->m_initialCommit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
 
         Debug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
 
-        PWINDOW->m_xdgSurface->toplevel->setSize(predSize);
+        PWINDOW->m_xdgSurface->m_toplevel->setSize(predSize);
         return;
     }
 
@@ -858,8 +867,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_isX11 && !PWINDOW->isFullscreen() && PWINDOW->m_isFloating) {
-        const auto MINSIZE = PWINDOW->m_xdgSurface->toplevel->layoutMinSize();
-        const auto MAXSIZE = PWINDOW->m_xdgSurface->toplevel->layoutMaxSize();
+        const auto MINSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMinSize();
+        const auto MAXSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMaxSize();
 
         PWINDOW->clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
         g_pHyprRenderer->damageWindow(PWINDOW);
@@ -871,19 +880,19 @@ void Events::listener_commitWindow(void* owner, void* data) {
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 
     if (PMONITOR)
-        PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
+        PMONITOR->debugLastPresentation(g_pSeatManager->m_isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
 
-    if (g_pSeatManager->isPointerFrameCommit) {
-        g_pSeatManager->isPointerFrameSkipped = false;
-        g_pSeatManager->isPointerFrameCommit  = false;
+    if (g_pSeatManager->m_isPointerFrameCommit) {
+        g_pSeatManager->m_isPointerFrameSkipped = false;
+        g_pSeatManager->m_isPointerFrameCommit  = false;
     } else
         g_pHyprRenderer->damageSurface(PWINDOW->m_wlSurface->resource(), PWINDOW->m_realPosition->goal().x, PWINDOW->m_realPosition->goal().y,
                                        PWINDOW->m_isX11 ? 1.0 / PWINDOW->m_X11SurfaceScaledBy : 1.0);
 
-    if (g_pSeatManager->isPointerFrameSkipped) {
+    if (g_pSeatManager->m_isPointerFrameSkipped) {
         g_pPointerManager->sendStoredMovement();
         g_pSeatManager->sendPointerFrame();
-        g_pSeatManager->isPointerFrameCommit = true;
+        g_pSeatManager->m_isPointerFrameCommit = true;
     }
 
     if (!PWINDOW->m_isX11) {
@@ -892,8 +901,9 @@ void Events::listener_commitWindow(void* owner, void* data) {
     }
 
     // tearing: if solitary, redraw it. This still might be a single surface window
-    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->m_tearingState.canTear && PWINDOW->m_wlSurface->resource()->current.texture) {
-        CRegion damageBox{PWINDOW->m_wlSurface->resource()->current.accumulateBufferDamage()};
+    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->m_tearingState.canTear &&
+        PWINDOW->m_wlSurface->resource()->m_current.texture) {
+        CRegion damageBox{PWINDOW->m_wlSurface->resource()->m_current.accumulateBufferDamage()};
 
         if (!damageBox.empty()) {
             if (PMONITOR->m_tearingState.busy) {

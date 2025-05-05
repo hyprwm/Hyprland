@@ -7,15 +7,15 @@ CCursorShapeProtocol::CCursorShapeProtocol(const wl_interface* iface, const int&
 }
 
 void CCursorShapeProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [res](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_managers, [res](const auto& other) { return other->resource() == res; });
 }
 
 void CCursorShapeProtocol::onDeviceResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vDevices, [res](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_devices, [res](const auto& other) { return other->resource() == res; });
 }
 
 void CCursorShapeProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(makeUnique<CWpCursorShapeManagerV1>(client, ver, id)).get();
+    const auto RESOURCE = m_managers.emplace_back(makeUnique<CWpCursorShapeManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CWpCursorShapeManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
@@ -33,7 +33,7 @@ void CCursorShapeProtocol::onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint
 
 void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vDevices.emplace_back(makeShared<CWpCursorShapeDeviceV1>(CLIENT, pMgr->version(), id));
+    const auto RESOURCE = m_devices.emplace_back(makeShared<CWpCursorShapeDeviceV1>(CLIENT, pMgr->version(), id));
     RESOURCE->setOnDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
@@ -51,5 +51,5 @@ void CCursorShapeProtocol::onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t ser
     event.shape     = shape;
     event.shapeName = CURSOR_SHAPE_NAMES.at(shape);
 
-    events.setShape.emit(event);
+    m_events.setShape.emit(event);
 }

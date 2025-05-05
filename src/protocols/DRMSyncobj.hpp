@@ -43,15 +43,15 @@ class CDRMSyncobjSurfaceResource {
     bool good();
 
   private:
-    WP<CWLSurfaceResource>          surface;
-    UP<CWpLinuxDrmSyncobjSurfaceV1> resource;
+    WP<CWLSurfaceResource>          m_surface;
+    UP<CWpLinuxDrmSyncobjSurfaceV1> m_resource;
 
-    CDRMSyncPointState              pendingAcquire;
-    CDRMSyncPointState              pendingRelease;
+    CDRMSyncPointState              m_pendingAcquire;
+    CDRMSyncPointState              m_pendingRelease;
 
     struct {
         CHyprSignalListener surfacePrecommit;
-    } listeners;
+    } m_listeners;
 };
 
 class CDRMSyncobjTimelineResource {
@@ -62,11 +62,11 @@ class CDRMSyncobjTimelineResource {
 
     bool                                   good();
 
-    Hyprutils::OS::CFileDescriptor         fd;
-    SP<CSyncTimeline>                      timeline;
+    Hyprutils::OS::CFileDescriptor         m_fd;
+    SP<CSyncTimeline>                      m_timeline;
 
   private:
-    UP<CWpLinuxDrmSyncobjTimelineV1> resource;
+    UP<CWpLinuxDrmSyncobjTimelineV1> m_resource;
 };
 
 class CDRMSyncobjManagerResource {
@@ -77,7 +77,7 @@ class CDRMSyncobjManagerResource {
     bool good();
 
   private:
-    UP<CWpLinuxDrmSyncobjManagerV1> resource;
+    UP<CWpLinuxDrmSyncobjManagerV1> m_resource;
 };
 
 class CDRMSyncobjProtocol : public IWaylandProtocol {
@@ -93,12 +93,12 @@ class CDRMSyncobjProtocol : public IWaylandProtocol {
     void destroyResource(CDRMSyncobjSurfaceResource* resource);
 
     //
-    std::vector<UP<CDRMSyncobjManagerResource>>  m_vManagers;
-    std::vector<UP<CDRMSyncobjTimelineResource>> m_vTimelines;
-    std::vector<UP<CDRMSyncobjSurfaceResource>>  m_vSurfaces;
+    std::vector<UP<CDRMSyncobjManagerResource>>  m_managers;
+    std::vector<UP<CDRMSyncobjTimelineResource>> m_timelines;
+    std::vector<UP<CDRMSyncobjSurfaceResource>>  m_surfaces;
 
     //
-    int drmFD = -1;
+    int m_drmFD = -1;
 
     friend class CDRMSyncobjManagerResource;
     friend class CDRMSyncobjTimelineResource;

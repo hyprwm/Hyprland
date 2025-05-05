@@ -36,7 +36,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceRes
 }
 
 static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
-    const auto LASTHLSURFACE = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+    const auto LASTHLSURFACE = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
     if (!LASTHLSURFACE || !tool->m_active) {
         if (tool->getSurface())
@@ -56,7 +56,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
-    focusTool(tool, tab, g_pSeatManager->state.pointerFocus.lock());
+    focusTool(tool, tab, g_pSeatManager->m_state.pointerFocus.lock());
 
     if (!motion)
         return;

@@ -24,7 +24,7 @@ class CXDGSystemBellProtocol : public IWaylandProtocol {
     void destroyResource(CXDGSystemBellManagerResource* res);
 
     //
-    std::vector<UP<CXDGSystemBellManagerResource>> m_vManagers;
+    std::vector<UP<CXDGSystemBellManagerResource>> m_managers;
 
     friend class CXDGSystemBellManagerResource;
 };

@@ -62,7 +62,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
         if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->m_refreshRate)
             m_lastAnimationTicks.pop_front();
 
-        m_lastAnimationTicks.push_back(g_pAnimationManager->m_fLastTickTime);
+        m_lastAnimationTicks.push_back(g_pAnimationManager->m_lastTickTimeMs);
     }
 }
 

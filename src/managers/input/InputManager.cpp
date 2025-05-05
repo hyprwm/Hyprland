@@ -42,16 +42,16 @@
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {
-    m_listeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+    m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.registerListener([this](std::any data) {
         if (!cursorImageUnlocked())
             return;
 
         auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
 
-        if (!g_pSeatManager->state.pointerFocusResource)
+        if (!g_pSeatManager->m_state.pointerFocusResource)
             return;
 
-        if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->state.pointerFocusResource->client())
+        if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->m_state.pointerFocusResource->client())
             return;
 
         Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
@@ -65,16 +65,16 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
     });
 
-    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
+    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->m_events.newKeyboard.registerListener([this](std::any data) {
         this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
         updateCapabilities();
     });
-    m_listeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
+    m_listeners.newVirtualMouse    = PROTO::virtualPointer->m_events.newPointer.registerListener([this](std::any data) {
         this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
         updateCapabilities();
     });
-    m_listeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
+    m_listeners.setCursor          = g_pSeatManager->m_events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
 
     m_cursorSurfaceInfo.wlSurface = CWLSurface::create();
 }
@@ -112,7 +112,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
-    if (g_pSeatManager->isPointerFrameSkipped)
+    if (g_pSeatManager->m_isPointerFrameSkipped)
         g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, unaccel);
     else
         g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, unaccel);
@@ -221,7 +221,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
-    if (!g_pSeatManager->mouse.expired() && isConstrained()) {
+    if (!g_pSeatManager->m_mouse.expired() && isConstrained()) {
         const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_lastFocus.lock());
         const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
@@ -270,6 +270,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             foundSurface  = foundLockSurface;
         }
 
+        if (refocus) {
+            m_foundLSToFocus      = pFoundLayerSurface;
+            m_foundWindowToFocus  = pFoundWindow;
+            m_foundSurfaceToFocus = foundSurface;
+        }
+
         g_pSeatManager->setPointerFocus(foundSurface, surfaceCoords);
         g_pSeatManager->sendPointerMotion(time, surfaceCoords);
 
@@ -289,9 +295,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // if we are holding a pointer button,
     // and we're not dnd-ing, don't refocus. Keep focus on last surface.
-    if (!PROTO::data->dndActive() && !m_currentlyHeldButtons.empty() && g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->mapped && g_pSeatManager->state.pointerFocus &&
-        !m_hardInput) {
-        foundSurface = g_pSeatManager->state.pointerFocus.lock();
+    if (!PROTO::data->dndActive() && !m_currentlyHeldButtons.empty() && g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->m_mapped &&
+        g_pSeatManager->m_state.pointerFocus && !m_hardInput) {
+        foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
 
         // IME popups aren't desktop-like elements
         // TODO: make them.
@@ -436,13 +442,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
     // xdg-popup grabs should be keyboard-only, while they are absolute in our case...
-    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface) && !PROTO::data->dndActive()) {
+    if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(foundSurface) && !PROTO::data->dndActive()) {
         if (m_hardInput || refocus) {
             g_pSeatManager->setGrab(nullptr);
             return; // setGrab will refocus
         } else {
             // we need to grab the last surface.
-            foundSurface = g_pSeatManager->state.pointerFocus.lock();
+            foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
 
             auto HLSurface = CWLSurface::fromResource(foundSurface);
 
@@ -485,7 +491,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (pFoundWindow && !pFoundWindow->m_isX11 && surfacePos != Vector2D(-1337, -1337)) {
         // calc for oversized windows... fucking bullshit.
-        CBox geom = pFoundWindow->m_xdgSurface->current.geometry;
+        CBox geom = pFoundWindow->m_xdgSurface->m_current.geometry;
 
         surfaceLocal = mouseCoords - surfacePos + geom.pos();
     }
@@ -498,7 +504,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (!refocus && g_pCompositor->m_lastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
 
-        if (PLS && PLS->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+        if (PLS && PLS->m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
             allowKeyboardRefocus = false;
     }
 
@@ -516,7 +522,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (pFoundWindow && foundSurface == pFoundWindow->m_wlSurface->resource() && !m_cursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
-        if (!VECINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
+        if (VECNOTINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
             setCursorImageOverride("left_ptr");
         else
             restoreCursorIconToApp();
@@ -548,7 +554,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_lastWindow)
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
-            if (g_pSeatManager->state.pointerFocus == foundSurface)
+            if (g_pSeatManager->m_state.pointerFocus == foundSurface)
                 g_pSeatManager->sendPointerMotion(time, surfaceLocal);
 
             m_lastFocusOnLS = false;
@@ -573,7 +579,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             }
         }
 
-        if (g_pSeatManager->state.keyboardFocus == nullptr)
+        if (g_pSeatManager->m_state.keyboardFocus == nullptr)
             g_pCompositor->focusWindow(pFoundWindow, foundSurface);
 
         m_lastFocusOnLS = false;
@@ -583,8 +589,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             unsetCursorImage();
         }
 
-        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
+        if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
+            (allowKeyboardRefocus || pFoundLayerSurface->m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 
@@ -761,7 +767,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if ((g_pSeatManager->mouse.expired() || !isConstrained()) /* No constraints */
+            if ((g_pSeatManager->m_mouse.expired() || !isConstrained()) /* No constraints */
                 && (w && g_pCompositor->m_lastWindow.lock() != w) /* window should change */) {
                 // a bit hacky
                 // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
@@ -775,10 +781,10 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
             }
 
             // if clicked on a floating window make it top
-            if (!g_pSeatManager->state.pointerFocus)
+            if (!g_pSeatManager->m_state.pointerFocus)
                 break;
 
-            auto HLSurf = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+            auto HLSurf = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
             if (HLSurf && HLSurf->getWindow())
                 g_pCompositor->changeWindowZOrder(HLSurf->getWindow(), true);
@@ -794,7 +800,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_lastMonitor && PMON)
         g_pCompositor->setActiveMonitor(PMON);
 
-    if (g_pSeatManager->seatGrab && e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+    if (g_pSeatManager->m_seatGrab && e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_hardInput = true;
         simulateMouseMovement();
         m_hardInput = false;
@@ -870,8 +876,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
                 }
             }
 
-            if (g_pSeatManager->state.pointerFocus) {
-                const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pSeatManager->state.pointerFocus.lock());
+            if (g_pSeatManager->m_state.pointerFocus) {
+                const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pSeatManager->m_state.pointerFocus.lock());
 
                 if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                     simulateMouseMovement();
@@ -995,9 +1001,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto       PKEEB  = ((IKeyboard*)owner)->m_self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 
-            if (PKEEB == g_pSeatManager->keyboard) {
+            if (PKEEB == g_pSeatManager->m_keyboard) {
                 g_pSeatManager->updateActiveKeyboardData();
-                g_pKeybindManager->m_mKeyToCodeCache.clear();
+                g_pKeybindManager->m_keyToCodeCache.clear();
             }
 
             g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
@@ -1323,7 +1329,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
 
     g_pSeatManager->setMouse(m_pointers.size() > 0 ? m_pointers.front() : nullptr);
 
-    if (!g_pSeatManager->mouse.expired())
+    if (!g_pSeatManager->m_mouse.expired())
         unconstrainMouse();
 
     removeFromHIDs(mouse);
@@ -1490,7 +1496,7 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     } else {
         // otherwise fall back to a normal refocus.
 
-        if (foundSurface && !foundSurface->hlSurface->keyboardFocusable()) {
+        if (foundSurface && !foundSurface->m_hlSurface->keyboardFocusable()) {
             const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
             g_pCompositor->focusWindow(PLASTWINDOW);
         }
@@ -1502,7 +1508,7 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
 }
 
 void CInputManager::unconstrainMouse() {
-    if (g_pSeatManager->mouse.expired())
+    if (g_pSeatManager->m_mouse.expired())
         return;
 
     for (auto const& c : m_constraints) {

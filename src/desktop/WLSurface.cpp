@@ -59,12 +59,12 @@ bool CWLSurface::small() const {
     if (!validMapped(m_windowOwner) || !exists())
         return false;
 
-    if (!m_resource->current.texture)
+    if (!m_resource->m_current.texture)
         return false;
 
     const auto O = m_windowOwner.lock();
 
-    return O->m_reportedSize.x > m_resource->current.size.x + 1 || O->m_reportedSize.y > m_resource->current.size.y + 1;
+    return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -78,36 +78,37 @@ Vector2D CWLSurface::correctSmallVec() const {
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
-    if (!exists() || !small() || m_fillIgnoreSmall || !m_resource->current.texture)
+    if (!exists() || !small() || m_fillIgnoreSmall || !m_resource->m_current.texture)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
-    const auto BS   = m_resource->current.bufferSize;
+    const auto BS   = m_resource->m_current.bufferSize;
 
     return Vector2D{(BS.x - SIZE.x) / 2, (BS.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY});
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
-    if (!exists() || !m_resource->current.texture)
+    if (!exists() || !m_resource->m_current.texture)
         return {};
 
-    return m_resource->current.viewport.hasDestination ? m_resource->current.viewport.destination : m_resource->current.bufferSize;
+    return m_resource->m_current.viewport.hasDestination ? m_resource->m_current.viewport.destination : m_resource->m_current.bufferSize;
 }
 
 CRegion CWLSurface::computeDamage() const {
-    if (!m_resource->current.texture)
+    if (!m_resource->m_current.texture)
         return {};
 
-    CRegion damage = m_resource->current.accumulateBufferDamage();
-    damage.transform(wlTransformToHyprutils(m_resource->current.transform), m_resource->current.bufferSize.x, m_resource->current.bufferSize.y);
+    CRegion damage = m_resource->m_current.accumulateBufferDamage();
+    damage.transform(wlTransformToHyprutils(m_resource->m_current.transform), m_resource->m_current.bufferSize.x, m_resource->m_current.bufferSize.y);
 
-    const auto BUFSIZE    = m_resource->current.bufferSize;
+    const auto BUFSIZE    = m_resource->m_current.bufferSize;
     const auto CORRECTVEC = correctSmallVecBuf();
 
-    if (m_resource->current.viewport.hasSource)
-        damage.intersect(m_resource->current.viewport.source);
+    if (m_resource->m_current.viewport.hasSource)
+        damage.intersect(m_resource->m_current.viewport.source);
 
-    const auto SCALEDSRCSIZE = m_resource->current.viewport.hasSource ? m_resource->current.viewport.source.size() * m_resource->current.scale : m_resource->current.bufferSize;
+    const auto SCALEDSRCSIZE =
+        m_resource->m_current.viewport.hasSource ? m_resource->m_current.viewport.source.size() * m_resource->m_current.scale : m_resource->m_current.bufferSize;
 
     damage.scale({BUFSIZE.x / SCALEDSRCSIZE.x, BUFSIZE.y / SCALEDSRCSIZE.y});
     damage.translate(CORRECTVEC);
@@ -115,8 +116,8 @@ CRegion CWLSurface::computeDamage() const {
     // go from buffer coords in the damage to hl logical
 
     const auto     BOX   = getSurfaceBoxGlobal();
-    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_resource->current.bufferSize :
-                                             Vector2D{1.0 / m_resource->current.scale, 1.0 / m_resource->current.scale /* Wrong... but we can't really do better */};
+    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_resource->m_current.bufferSize :
+                                             Vector2D{1.0 / m_resource->m_current.scale, 1.0 / m_resource->m_current.scale /* Wrong... but we can't really do better */};
 
     damage.scale(SCALE);
 
@@ -135,7 +136,7 @@ void CWLSurface::destroy() {
     m_constraint.reset();
 
     m_listeners.destroy.reset();
-    m_resource->hlSurface.reset();
+    m_resource->m_hlSurface.reset();
     m_windowOwner.reset();
     m_layerOwner.reset();
     m_popupOwner      = nullptr;
@@ -154,11 +155,11 @@ void CWLSurface::init() {
     if (!m_resource)
         return;
 
-    RASSERT(!m_resource->hlSurface, "Attempted to duplicate CWLSurface ownership!");
+    RASSERT(!m_resource->m_hlSurface, "Attempted to duplicate CWLSurface ownership!");
 
-    m_resource->hlSurface = m_self.lock();
+    m_resource->m_hlSurface = m_self.lock();
 
-    m_listeners.destroy = m_resource->events.destroy.registerListener([this](std::any d) { destroy(); });
+    m_listeners.destroy = m_resource->m_events.destroy.registerListener([this](std::any d) { destroy(); });
 
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
@@ -222,13 +223,13 @@ bool CWLSurface::visible() {
 SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return nullptr;
-    return pSurface->hlSurface.lock();
+    return pSurface->m_hlSurface.lock();
 }
 
 bool CWLSurface::keyboardFocusable() const {
     if (m_windowOwner || m_popupOwner || m_subsurfaceOwner)
         return true;
     if (m_layerOwner && m_layerOwner->m_layerSurface)
-        return m_layerOwner->m_layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+        return m_layerOwner->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
 }

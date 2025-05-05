@@ -1536,15 +1536,15 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->m_targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_targetNamespace)
                 continue;
-        } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->layerNamespace))
+        } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->m_layerNamespace))
             continue;
 
         // hit
         returns.emplace_back(lr);
     }
 
-    if (shouldBlurLS(pLS->m_layerSurface->layerNamespace))
-        returns.emplace_back(makeShared<CLayerRule>(pLS->m_layerSurface->layerNamespace, "blur"));
+    if (shouldBlurLS(pLS->m_layerSurface->m_layerNamespace))
+        returns.emplace_back(makeShared<CLayerRule>(pLS->m_layerSurface->m_layerNamespace, "blur"));
 
     return returns;
 }
@@ -1639,6 +1639,9 @@ void* const* CConfigManager::getConfigValuePtr(const std::string& val) {
 Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat) {
     if (!specialCat.empty())
         return m_config->getSpecialConfigValuePtr(specialCat.c_str(), name.c_str(), nullptr);
+
+    if (name.starts_with("plugin:"))
+        return m_config->getSpecialConfigValuePtr("plugin", name.substr(7).c_str(), nullptr);
 
     return m_config->getConfigValuePtr(name.c_str());
 }
@@ -2359,9 +2362,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // to lower
     std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
 
-    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
+    const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(HANDLER);
 
-    if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {
+    if (DISPATCHER == g_pKeybindManager->m_dispatchers.end()) {
         Debug::log(ERR, "Invalid dispatcher: {}", HANDLER);
         return "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
     }

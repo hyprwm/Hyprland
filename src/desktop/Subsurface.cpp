@@ -32,9 +32,9 @@ UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWI
     subsurface->m_subsurface   = pSubsurface;
     subsurface->m_self         = subsurface;
     subsurface->m_wlSurface    = CWLSurface::create();
-    subsurface->m_wlSurface->assign(pSubsurface->surface.lock(), subsurface.get());
+    subsurface->m_wlSurface->assign(pSubsurface->m_surface.lock(), subsurface.get());
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pSubsurface->surface.lock());
+    subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
     return subsurface;
 }
 
@@ -44,27 +44,27 @@ UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<CP
     subsurface->m_subsurface  = pSubsurface;
     subsurface->m_self        = subsurface;
     subsurface->m_wlSurface   = CWLSurface::create();
-    subsurface->m_wlSurface->assign(pSubsurface->surface.lock(), subsurface.get());
+    subsurface->m_wlSurface->assign(pSubsurface->m_surface.lock(), subsurface.get());
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pSubsurface->surface.lock());
+    subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
     return subsurface;
 }
 
 void CSubsurface::initSignals() {
     if (m_subsurface) {
-        m_listeners.commitSubsurface  = m_subsurface->surface->events.commit.registerListener([this](std::any d) { onCommit(); });
-        m_listeners.destroySubsurface = m_subsurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
-        m_listeners.mapSubsurface     = m_subsurface->surface->events.map.registerListener([this](std::any d) { onMap(); });
-        m_listeners.unmapSubsurface   = m_subsurface->surface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+        m_listeners.commitSubsurface  = m_subsurface->m_surface->m_events.commit.registerListener([this](std::any d) { onCommit(); });
+        m_listeners.destroySubsurface = m_subsurface->m_events.destroy.registerListener([this](std::any d) { onDestroy(); });
+        m_listeners.mapSubsurface     = m_subsurface->m_surface->m_events.map.registerListener([this](std::any d) { onMap(); });
+        m_listeners.unmapSubsurface   = m_subsurface->m_surface->m_events.unmap.registerListener([this](std::any d) { onUnmap(); });
         m_listeners.newSubsurface =
-            m_subsurface->surface->events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
+            m_subsurface->m_surface->m_events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
     } else {
         if (m_windowParent)
-            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->events.newSubsurface.registerListener(
+            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->m_events.newSubsurface.registerListener(
                 [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else if (m_popupParent)
-            m_listeners.newSubsurface =
-                m_popupParent->m_wlSurface->resource()->events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
+            m_listeners.newSubsurface = m_popupParent->m_wlSurface->resource()->m_events.newSubsurface.registerListener(
+                [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else
             ASSERT(false);
     }
@@ -95,7 +95,7 @@ void CSubsurface::recheckDamageForSubsurfaces() {
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
     if (!m_windowParent.expired() && (!m_windowParent->m_isMapped || !m_windowParent->m_workspace->m_visible)) {
-        m_lastSize = m_wlSurface->resource()->current.size;
+        m_lastSize = m_wlSurface->resource()->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -115,10 +115,10 @@ void CSubsurface::onCommit() {
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
 
-    if (m_lastSize != m_wlSurface->resource()->current.size || m_lastPosition != m_subsurface->position) {
+    if (m_lastSize != m_wlSurface->resource()->m_current.size || m_lastPosition != m_subsurface->m_position) {
         damageLastArea();
-        m_lastSize     = m_wlSurface->resource()->current.size;
-        m_lastPosition = m_subsurface->position;
+        m_lastSize     = m_wlSurface->resource()->m_current.size;
+        m_lastPosition = m_subsurface->m_position;
     }
 }
 
@@ -151,8 +151,8 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
 }
 
 void CSubsurface::onMap() {
-    m_lastSize     = m_wlSurface->resource()->current.size;
-    m_lastPosition = m_subsurface->position;
+    m_lastSize     = m_wlSurface->resource()->m_current.size;
+    m_lastPosition = m_subsurface->m_position;
 
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_lastSize};
@@ -175,7 +175,7 @@ void CSubsurface::onUnmap() {
 }
 
 void CSubsurface::damageLastArea() {
-    const auto COORDS = coordsGlobal() + m_lastPosition - m_subsurface->position;
+    const auto COORDS = coordsGlobal() + m_lastPosition - m_subsurface->m_position;
     CBox       box{COORDS, m_lastSize};
     box.expand(4);
     g_pHyprRenderer->damageBox(box);
@@ -199,15 +199,15 @@ Vector2D CSubsurface::coordsGlobal() {
 }
 
 void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {
-    for (auto const& s : pSurface->subsurfaces) {
-        if (!s || s->surface->hlSurface /* already assigned */)
+    for (auto const& s : pSurface->m_subsurfaces) {
+        if (!s || s->m_surface->m_hlSurface /* already assigned */)
             continue;
         onNewSubsurface(s.lock());
     }
 }
 
 Vector2D CSubsurface::size() {
-    return m_wlSurface->resource()->current.size;
+    return m_wlSurface->resource()->m_current.size;
 }
 
 bool CSubsurface::visible() {

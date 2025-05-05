@@ -14,9 +14,9 @@ class CForeignToplevelHandle {
     PHLWINDOW window();
 
   private:
-    SP<CExtForeignToplevelHandleV1> resource;
-    PHLWINDOWREF                    pWindow;
-    bool                            closed = false;
+    SP<CExtForeignToplevelHandleV1> m_resource;
+    PHLWINDOWREF                    m_window;
+    bool                            m_closed = false;
 
     friend class CForeignToplevelList;
     friend class CForeignToplevelProtocol;
@@ -34,12 +34,12 @@ class CForeignToplevelList {
     bool good();
 
   private:
-    SP<CExtForeignToplevelListV1>           resource;
-    bool                                    finished = false;
+    SP<CExtForeignToplevelListV1>           m_resource;
+    bool                                    m_finished = false;
 
     SP<CForeignToplevelHandle>              handleForWindow(PHLWINDOW pWindow);
 
-    std::vector<WP<CForeignToplevelHandle>> handles;
+    std::vector<WP<CForeignToplevelHandle>> m_handles;
 };
 
 class CForeignToplevelProtocol : public IWaylandProtocol {
@@ -55,8 +55,8 @@ class CForeignToplevelProtocol : public IWaylandProtocol {
     bool windowValidForForeign(PHLWINDOW pWindow);
 
     //
-    std::vector<UP<CForeignToplevelList>>   m_vManagers;
-    std::vector<SP<CForeignToplevelHandle>> m_vHandles;
+    std::vector<UP<CForeignToplevelList>>   m_managers;
+    std::vector<SP<CForeignToplevelHandle>> m_handles;
 
     friend class CForeignToplevelList;
     friend class CForeignToplevelHandle;

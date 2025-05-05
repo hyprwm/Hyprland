@@ -32,7 +32,7 @@ class CTextInputV3 {
         CSignal disable;
         CSignal reset;
         CSignal destroy;
-    } events;
+    } m_events;
 
     struct SState {
         struct {
@@ -63,12 +63,14 @@ class CTextInputV3 {
 
         void                      reset();
     };
-    SState pending, current;
+
+    SState m_pending;
+    SState m_current;
 
   private:
-    SP<CZwpTextInputV3> resource;
+    SP<CZwpTextInputV3> m_resource;
 
-    int                 serial = 0;
+    int                 m_serial = 0;
 };
 
 class CTextInputV3Protocol : public IWaylandProtocol {
@@ -79,7 +81,7 @@ class CTextInputV3Protocol : public IWaylandProtocol {
 
     struct {
         CSignal newTextInput; // WP<CTextInputV3>
-    } events;
+    } m_events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
@@ -87,8 +89,8 @@ class CTextInputV3Protocol : public IWaylandProtocol {
     void onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t id, wl_resource* seat);
 
     //
-    std::vector<UP<CZwpTextInputManagerV3>> m_vManagers;
-    std::vector<SP<CTextInputV3>>           m_vTextInputs;
+    std::vector<UP<CZwpTextInputManagerV3>> m_managers;
+    std::vector<SP<CTextInputV3>>           m_textInputs;
 
     friend class CTextInputV3;
 };

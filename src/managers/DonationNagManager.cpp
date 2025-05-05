@@ -102,7 +102,7 @@ CDonationNagManager::CDonationNagManager() {
         break;
     }
 
-    if (!m_bFired)
+    if (!m_fired)
         Debug::log(LOG, "DonationNag: didn't hit any nagging periods, checking update");
 
     if (state.major < currentMajor) {
@@ -115,18 +115,18 @@ CDonationNagManager::CDonationNagManager() {
         writeState(state);
     }
 
-    if (!m_bFired)
+    if (!m_fired)
         Debug::log(LOG, "DonationNag: didn't hit nagging conditions");
 }
 
 bool CDonationNagManager::fired() {
-    return m_bFired;
+    return m_fired;
 }
 
 void CDonationNagManager::fire() {
     static const auto DATAROOT = NFsUtils::getDataHome();
 
-    m_bFired = true;
+    m_fired = true;
 
     g_pEventLoopManager->doLater([] {
         CProcess proc("hyprland-donate-screen", {});

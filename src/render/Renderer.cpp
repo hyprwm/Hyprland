@@ -589,7 +589,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         pWindow->m_wlSurface->resource()->breadthfirst(
             [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 renderdata.localPos    = offset;
-                renderdata.texture     = s->current.texture;
+                renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pWindow->m_wlSurface->resource();
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -623,7 +623,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_isX11) {
-            CBox geom = pWindow->m_xdgSurface->current.geometry;
+            CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
             renderdata.pos -= geom.pos();
             renderdata.dontRound       = true; // don't round popups
@@ -657,7 +657,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                     popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                             renderdata.localPos    = offset;
-                            renderdata.texture     = s->current.texture;
+                            renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
                             m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -739,7 +739,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         pLayer->m_surface->resource()->breadthfirst(
             [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 renderdata.localPos    = offset;
-                renderdata.texture     = s->current.texture;
+                renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pLayer->m_surface->resource();
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -760,7 +760,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
                 Vector2D pos           = popup->coordsRelativeToParent();
                 renderdata.localPos    = pos;
-                renderdata.texture     = popup->m_wlSurface->resource()->current.texture;
+                renderdata.texture     = popup->m_wlSurface->resource()->m_current.texture;
                 renderdata.surface     = popup->m_wlSurface->resource();
                 renderdata.mainSurface = false;
                 m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -779,8 +779,8 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
 
     renderdata.surface  = SURF;
     renderdata.decorate = false;
-    renderdata.w        = SURF->current.size.x;
-    renderdata.h        = SURF->current.size.y;
+    renderdata.w        = SURF->m_current.size.x;
+    renderdata.h        = SURF->m_current.size.y;
 
     static auto PBLUR        = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     static auto PBLURIMES    = CConfigValue<Hyprlang::INT>("decoration:blur:input_methods");
@@ -795,7 +795,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
     SURF->breadthfirst(
         [this, &renderdata, &SURF](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
             renderdata.localPos    = offset;
-            renderdata.texture     = s->current.texture;
+            renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == SURF;
             m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -816,7 +816,7 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
     renderdata.surface->breadthfirst(
         [this, &renderdata, &pSurface](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
             renderdata.localPos    = offset;
-            renderdata.texture     = s->current.texture;
+            renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == pSurface->surface->surface();
             m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
@@ -1053,10 +1053,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         Vector2D    uvTL;
         Vector2D    uvBR = Vector2D(1, 1);
 
-        if (pSurface->current.viewport.hasSource) {
+        if (pSurface->m_current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
-            Vector2D const& bufferSize   = pSurface->current.bufferSize;
-            auto const&     bufferSource = pSurface->current.viewport.source;
+            Vector2D const& bufferSize   = pSurface->m_current.bufferSize;
+            auto const&     bufferSource = pSurface->m_current.viewport.source;
 
             // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);
@@ -1071,8 +1071,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (projSize != Vector2D{} && fixMisalignedFSV1) {
             // instead of nearest_neighbor (we will repeat / skip)
             // just cut off / expand surface
-            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.bufferSize;
-            const Vector2D MISALIGNMENT = pSurface->current.bufferSize - projSize;
+            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->m_current.bufferSize;
+            const Vector2D MISALIGNMENT = pSurface->m_current.bufferSize - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
         }
@@ -1083,9 +1083,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // there is no way to fix this if that's the case
         if (*PEXPANDEDGES) {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->m_current.scale && !pSurface->m_current.viewport.hasDestination;
             const auto EXPECTED_SIZE =
-                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->m_scale)
+                ((pSurface->m_current.viewport.hasDestination ? pSurface->m_current.viewport.destination : pSurface->m_current.bufferSize / pSurface->m_current.scale) *
+                 pMonitor->m_scale)
                     .round();
             if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
                 // this will not work with shm AFAIK, idk why.
@@ -1107,14 +1108,14 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (!main || !pWindow)
             return;
 
-        CBox geom = pWindow->m_xdgSurface->current.geometry;
+        CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x || geom.height > projSizeUnscaled.y) {
-            const auto XPERC = (double)geom.x / (double)pSurface->current.size.x;
-            const auto YPERC = (double)geom.y / (double)pSurface->current.size.y;
-            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.size.x;
-            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.size.y;
+            const auto XPERC = (double)geom.x / (double)pSurface->m_current.size.x;
+            const auto YPERC = (double)geom.y / (double)pSurface->m_current.size.y;
+            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->m_current.size.x;
+            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->m_current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
@@ -1501,18 +1502,18 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto WINDOW    = pMonitor->m_activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_wlSurface->resource();
             const auto SURF =
-                ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
+                ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->m_colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
 
             wantHDR = PHDR && *PPASS == 2;
 
             // we have a surface with image description and it's allowed by wantHDR
-            if (SURF && SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription() &&
-                (!wantHDR || SURF->colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) {
-                bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
-                if (SURF->colorManagement->needsHdrMetadataUpdate())
-                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement->imageDescription(), pMonitor->m_output->parsedEDID));
+            if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription() &&
+                (!wantHDR || SURF->m_colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) {
+                bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
+                if (SURF->m_colorManagement->needsHdrMetadataUpdate())
+                    SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor->m_output->parsedEDID));
                 if (needsHdrMetadataUpdate)
-                    pMonitor->m_output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
+                    pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
                 hdrIsHandled = true;
             }
 
@@ -1685,7 +1686,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             continue;
 
         const auto PLAYER = ls->m_layerSurface;
-        const auto PSTATE = &PLAYER->current;
+        const auto PSTATE = &PLAYER->m_current;
         if (exclusiveZone != (PSTATE->exclusive > 0))
             continue;
 
@@ -2289,13 +2290,13 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     UP<CEGLSync> eglSync = CEGLSync::create();
     if (eglSync && eglSync->isValid()) {
         for (auto const& buf : usedAsyncBuffers) {
-            for (const auto& releaser : buf->syncReleasers) {
+            for (const auto& releaser : buf->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());
             }
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(usedAsyncBuffers, [](const auto& buf) { return !buf->syncReleasers.empty(); });
+        std::erase_if(usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
         g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(usedAsyncBuffers)]() mutable {

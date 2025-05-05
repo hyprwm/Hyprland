@@ -20,10 +20,10 @@ class CTabletPadStripV2Resource {
 
     bool     good();
 
-    uint32_t id = 0;
+    uint32_t m_id = 0;
 
   private:
-    SP<CZwpTabletPadStripV2> resource;
+    SP<CZwpTabletPadStripV2> m_resource;
 
     friend class CTabletSeat;
     friend class CTabletPadGroupV2Resource;
@@ -36,10 +36,10 @@ class CTabletPadRingV2Resource {
 
     bool     good();
 
-    uint32_t id = 0;
+    uint32_t m_id = 0;
 
   private:
-    SP<CZwpTabletPadRingV2> resource;
+    SP<CZwpTabletPadRingV2> m_resource;
 
     friend class CTabletSeat;
     friend class CTabletPadGroupV2Resource;
@@ -50,16 +50,13 @@ class CTabletPadGroupV2Resource {
   public:
     CTabletPadGroupV2Resource(SP<CZwpTabletPadGroupV2> resource_, size_t idx);
 
-    bool                                       good();
-    void                                       sendData(SP<CTabletPad> pad, SP<Aquamarine::ITabletPad::STabletPadGroup> group);
+    bool   good();
+    void   sendData(SP<CTabletPad> pad, SP<Aquamarine::ITabletPad::STabletPadGroup> group);
 
-    std::vector<WP<CTabletPadRingV2Resource>>  rings;
-    std::vector<WP<CTabletPadStripV2Resource>> strips;
-
-    size_t                                     idx = 0;
+    size_t m_idx = 0;
 
   private:
-    SP<CZwpTabletPadGroupV2> resource;
+    SP<CZwpTabletPadGroupV2> m_resource;
 
     friend class CTabletSeat;
     friend class CTabletPadV2Resource;
@@ -73,15 +70,15 @@ class CTabletPadV2Resource {
     bool                                       good();
     void                                       sendData();
 
-    std::vector<WP<CTabletPadGroupV2Resource>> groups;
+    std::vector<WP<CTabletPadGroupV2Resource>> m_groups;
 
-    WP<CTabletPad>                             pad;
-    WP<CTabletSeat>                            seat;
+    WP<CTabletPad>                             m_pad;
+    WP<CTabletSeat>                            m_seat;
 
-    bool                                       inert = false; // removed was sent
+    bool                                       m_inert = false; // removed was sent
 
   private:
-    SP<CZwpTabletPadV2> resource;
+    SP<CZwpTabletPadV2> m_resource;
 
     void                createGroup(SP<Aquamarine::ITabletPad::STabletPadGroup> group, size_t idx);
 
@@ -96,13 +93,13 @@ class CTabletV2Resource {
     bool            good();
     void            sendData();
 
-    WP<CTablet>     tablet;
-    WP<CTabletSeat> seat;
+    WP<CTablet>     m_tablet;
+    WP<CTabletSeat> m_seat;
 
-    bool            inert = false; // removed was sent
+    bool            m_inert = false; // removed was sent
 
   private:
-    SP<CZwpTabletV2> resource;
+    SP<CZwpTabletV2> m_resource;
 
     friend class CTabletSeat;
     friend class CTabletV2Protocol;
@@ -118,17 +115,17 @@ class CTabletToolV2Resource {
     void                   queueFrame();
     void                   sendFrame(bool removeSource = true);
 
-    bool                   current = false;
-    WP<CWLSurfaceResource> lastSurf;
+    bool                   m_current = false;
+    WP<CWLSurfaceResource> m_lastSurf;
 
-    WP<CTabletTool>        tool;
-    WP<CTabletSeat>        seat;
-    wl_event_source*       frameSource = nullptr;
+    WP<CTabletTool>        m_tool;
+    WP<CTabletSeat>        m_seat;
+    wl_event_source*       m_frameSource = nullptr;
 
-    bool                   inert = false; // removed was sent
+    bool                   m_inert = false; // removed was sent
 
   private:
-    SP<CZwpTabletToolV2> resource;
+    SP<CZwpTabletToolV2> m_resource;
 
     friend class CTabletSeat;
     friend class CTabletV2Protocol;
@@ -141,17 +138,17 @@ class CTabletSeat {
     bool                                   good();
     void                                   sendData();
 
-    std::vector<WP<CTabletToolV2Resource>> tools;
-    std::vector<WP<CTabletPadV2Resource>>  pads;
-    std::vector<WP<CTabletV2Resource>>     tablets;
+    std::vector<WP<CTabletToolV2Resource>> m_tools;
+    std::vector<WP<CTabletPadV2Resource>>  m_pads;
+    std::vector<WP<CTabletV2Resource>>     m_tablets;
 
     void                                   sendTool(SP<CTabletTool> tool);
     void                                   sendPad(SP<CTabletPad> pad);
     void                                   sendTablet(SP<CTablet> tablet);
 
   private:
-    SP<CZwpTabletSeatV2> resource;
-    WP<CTabletSeat>      self;
+    SP<CZwpTabletSeatV2> m_resource;
+    WP<CTabletSeat>      m_self;
 
     friend class CTabletV2Protocol;
 };
@@ -204,19 +201,19 @@ class CTabletV2Protocol : public IWaylandProtocol {
     void onGetSeat(CZwpTabletManagerV2* pMgr, uint32_t id, wl_resource* seat);
 
     //
-    std::vector<UP<CZwpTabletManagerV2>>       m_vManagers;
-    std::vector<SP<CTabletSeat>>               m_vSeats;
-    std::vector<SP<CTabletToolV2Resource>>     m_vTools;
-    std::vector<SP<CTabletV2Resource>>         m_vTablets;
-    std::vector<SP<CTabletPadV2Resource>>      m_vPads;
-    std::vector<SP<CTabletPadGroupV2Resource>> m_vGroups;
-    std::vector<SP<CTabletPadRingV2Resource>>  m_vRings;
-    std::vector<SP<CTabletPadStripV2Resource>> m_vStrips;
+    std::vector<UP<CZwpTabletManagerV2>>       m_managers;
+    std::vector<SP<CTabletSeat>>               m_seats;
+    std::vector<SP<CTabletToolV2Resource>>     m_tools;
+    std::vector<SP<CTabletV2Resource>>         m_tablets;
+    std::vector<SP<CTabletPadV2Resource>>      m_pads;
+    std::vector<SP<CTabletPadGroupV2Resource>> m_groups;
+    std::vector<SP<CTabletPadRingV2Resource>>  m_rings;
+    std::vector<SP<CTabletPadStripV2Resource>> m_strips;
 
     // registered
-    std::vector<WP<CTablet>>     tablets;
-    std::vector<WP<CTabletTool>> tools;
-    std::vector<WP<CTabletPad>>  pads;
+    std::vector<WP<CTablet>>     m_tabletDevices;
+    std::vector<WP<CTabletTool>> m_toolDevices;
+    std::vector<WP<CTabletPad>>  m_padDevices;
 
     // FIXME: rings and strips are broken, I don't understand how this shit works.
     // It's 2am.

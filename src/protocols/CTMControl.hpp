@@ -19,10 +19,10 @@ class CHyprlandCTMControlResource {
     void block();
 
   private:
-    SP<CHyprlandCtmControlManagerV1>        resource;
+    SP<CHyprlandCtmControlManagerV1>        m_resource;
 
-    std::unordered_map<std::string, Mat3x3> ctms;
-    bool                                    blocked = false;
+    std::unordered_map<std::string, Mat3x3> m_ctms;
+    bool                                    m_blocked = false;
 };
 
 class CHyprlandCTMControlProtocol : public IWaylandProtocol {
@@ -38,8 +38,8 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
     bool isCTMAnimationEnabled();
 
     //
-    std::vector<SP<CHyprlandCTMControlResource>> m_vManagers;
-    WP<CHyprlandCTMControlResource>              m_pManager;
+    std::vector<SP<CHyprlandCTMControlResource>> m_managers;
+    WP<CHyprlandCTMControlResource>              m_manager;
 
     //
     struct SCTMData {
@@ -47,7 +47,7 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
         Mat3x3            ctmFrom = Mat3x3::identity(), ctmTo = Mat3x3::identity();
         PHLANIMVAR<float> progress;
     };
-    std::map<PHLMONITORREF, UP<SCTMData>> m_mCTMDatas;
+    std::map<PHLMONITORREF, UP<SCTMData>> m_ctmDatas;
 
     friend class CHyprlandCTMControlResource;
 };

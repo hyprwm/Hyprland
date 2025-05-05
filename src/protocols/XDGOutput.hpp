@@ -15,14 +15,12 @@ class CXDGOutput {
     void sendDetails();
 
   private:
-    PHLMONITORREF           monitor;
-    SP<CZxdgOutputV1>       resource;
-    WP<CWLOutputProtocol>   outputProto;
+    PHLMONITORREF         m_monitor;
+    SP<CZxdgOutputV1>     m_resource;
+    WP<CWLOutputProtocol> m_outputProto;
 
-    std::optional<Vector2D> overridePosition;
-
-    wl_client*              client     = nullptr;
-    bool                    isXWayland = false;
+    wl_client*            m_client     = nullptr;
+    bool                  m_isXWayland = false;
 
     friend class CXDGOutputProtocol;
 };
@@ -40,8 +38,8 @@ class CXDGOutputProtocol : public IWaylandProtocol {
     void onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource);
 
     //
-    std::vector<UP<CZxdgOutputManagerV1>> m_vManagerResources;
-    std::vector<UP<CXDGOutput>>           m_vXDGOutputs;
+    std::vector<UP<CZxdgOutputManagerV1>> m_managerResources;
+    std::vector<UP<CXDGOutput>>           m_xdgOutputs;
 
     friend class CXDGOutput;
 };

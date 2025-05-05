@@ -124,13 +124,6 @@ void CMonitor::onConnect(bool noRule) {
 
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
-    if (m_enabled) {
-        m_output->state->resetExplicitFences();
-        m_output->state->setEnabled(true);
-        m_state.commit();
-        return;
-    }
-
     m_name = m_output->name;
 
     m_description = m_output->description;
@@ -146,6 +139,15 @@ void CMonitor::onConnect(bool noRule) {
 
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(m_self.lock());
+
+    if (m_enabled && !monitorRule.disabled) {
+        applyMonitorRule(&monitorRule, m_pixelSize == Vector2D{});
+
+        m_output->state->resetExplicitFences();
+        m_output->state->setEnabled(true);
+        m_state.commit();
+        return;
+    }
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
@@ -437,10 +439,15 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     // Check if the rule isn't already applied
     // TODO: clean this up lol
-    if (!force && DELTALESSTHAN(m_pixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(m_pixelSize.y, RULE->resolution.y, 1) &&
-        DELTALESSTHAN(m_refreshRate, RULE->refreshRate, 1) && m_setScale == RULE->scale &&
-        ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
-        m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
+    if (!force && DELTALESSTHAN(m_pixelSize.x, RULE->resolution.x, 1) /* ↓ */
+        && DELTALESSTHAN(m_pixelSize.y, RULE->resolution.y, 1)        /* Resolution is the same */
+        && m_pixelSize.x > 1 && m_pixelSize.y > 1                     /* Active resolution is not invalid */
+        && DELTALESSTHAN(m_refreshRate, RULE->refreshRate, 1)         /* Refresh rate is the same */
+        && m_setScale == RULE->scale                                  /* Scale is the same */
+        /* position is set correctly */
+        && ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX))
+        /* other properties hadnt changed */
+        && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
         RULE->sdrBrightness == m_sdrBrightness && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", m_name);

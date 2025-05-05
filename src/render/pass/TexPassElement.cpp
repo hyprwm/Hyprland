@@ -13,7 +13,7 @@ void CTexPassElement::draw(const CRegion& damage) {
 
     CScopeGuard x = {[]() {
         //
-        g_pHyprOpenGL->m_endFrame          = false;
+        g_pHyprOpenGL->m_endFrame           = false;
         g_pHyprOpenGL->m_renderData.clipBox = {};
     }};
 

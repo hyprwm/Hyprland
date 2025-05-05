@@ -27,5 +27,5 @@ class CBorderPassElement : public IPassElement {
     }
 
   private:
-    SBorderData data;
+    SBorderData m_data;
 };

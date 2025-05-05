@@ -143,7 +143,7 @@ void CHyprError::createQueued() {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     m_texture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
+    glBindTexture(GL_TEXTURE_2D, m_texture->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -194,7 +194,7 @@ void CHyprError::draw() {
         }
     }
 
-    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
+    const auto PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
 
     CBox       monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
@@ -211,7 +211,7 @@ void CHyprError::draw() {
     data.box = monbox;
     data.a   = m_fadeOpacity->value();
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
 }
 
 void CHyprError::destroy() {

@@ -1,13 +1,13 @@
 #include "RendererHintsPassElement.hpp"
 #include "../OpenGL.hpp"
 
-CRendererHintsPassElement::CRendererHintsPassElement(const CRendererHintsPassElement::SData& data_) : data(data_) {
+CRendererHintsPassElement::CRendererHintsPassElement(const CRendererHintsPassElement::SData& data_) : m_data(data_) {
     ;
 }
 
 void CRendererHintsPassElement::draw(const CRegion& damage) {
-    if (data.renderModif.has_value())
-        g_pHyprOpenGL->m_RenderData.renderModif = *data.renderModif;
+    if (m_data.renderModif.has_value())
+        g_pHyprOpenGL->m_renderData.renderModif = *m_data.renderModif;
 }
 
 bool CRendererHintsPassElement::needsLiveBlur() {

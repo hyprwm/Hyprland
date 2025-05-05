@@ -136,21 +136,21 @@ static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
 }
 
 void CCompositor::bumpNofile() {
-    if (!getrlimit(RLIMIT_NOFILE, &m_sOriginalNofile))
-        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", m_sOriginalNofile.rlim_cur, m_sOriginalNofile.rlim_max);
+    if (!getrlimit(RLIMIT_NOFILE, &m_originalNofile))
+        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", m_originalNofile.rlim_cur, m_originalNofile.rlim_max);
     else {
         Debug::log(ERR, "Failed to get NOFILE rlimits");
-        m_sOriginalNofile.rlim_max = 0;
+        m_originalNofile.rlim_max = 0;
         return;
     }
 
-    rlimit newLimit = m_sOriginalNofile;
+    rlimit newLimit = m_originalNofile;
 
     newLimit.rlim_cur = newLimit.rlim_max;
 
     if (setrlimit(RLIMIT_NOFILE, &newLimit) < 0) {
         Debug::log(ERR, "Failed bumping NOFILE limits higher");
-        m_sOriginalNofile.rlim_max = 0;
+        m_originalNofile.rlim_max = 0;
         return;
     }
 
@@ -159,10 +159,10 @@ void CCompositor::bumpNofile() {
 }
 
 void CCompositor::restoreNofile() {
-    if (m_sOriginalNofile.rlim_max <= 0)
+    if (m_originalNofile.rlim_max <= 0)
         return;
 
-    if (setrlimit(RLIMIT_NOFILE, &m_sOriginalNofile) < 0)
+    if (setrlimit(RLIMIT_NOFILE, &m_originalNofile) < 0)
         Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
@@ -176,7 +176,7 @@ void CCompositor::setMallocThreshold() {
 #endif
 }
 
-CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig), m_iHyprlandPID(getpid()) {
+CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig), m_hyprlandPID(getpid()) {
     if (onlyConfig)
         return;
 
@@ -225,7 +225,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     Debug::log(LOG, "Runtime directory: {}", m_instancePath);
 
-    Debug::log(LOG, "Hyprland PID: {}", m_iHyprlandPID);
+    Debug::log(LOG, "Hyprland PID: {}", m_hyprlandPID);
 
     Debug::log(LOG, "===== SYSTEM INFO: =====");
 
@@ -710,7 +710,7 @@ void CCompositor::createLockFile() {
 
     std::ofstream ofs(PATH, std::ios::trunc);
 
-    ofs << m_iHyprlandPID << "\n" << m_wlDisplaySocket << "\n";
+    ofs << m_hyprlandPID << "\n" << m_wlDisplaySocket << "\n";
 
     ofs.close();
 }
@@ -2706,9 +2706,9 @@ void CCompositor::performUserChecks() {
         }
     }
 
-    if (g_pHyprOpenGL->failedAssetsNo > 0) {
+    if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
         g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
-                                                                g_pHyprOpenGL->failedAssetsNo, g_pHyprOpenGL->failedAssetsNo > 1 ? "s" : ""),
+                                                                g_pHyprOpenGL->m_failedAssetsNo, g_pHyprOpenGL->m_failedAssetsNo > 1 ? "s" : ""),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 }
@@ -3033,8 +3033,8 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     // ready to process if we have a real monitor
 
-    if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->m_refreshRate > g_pHyprRenderer->m_pMostHzMonitor->m_refreshRate) && PNEWMONITOR->m_enabled)
-        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
+    if ((!g_pHyprRenderer->m_mostHzMonitor || PNEWMONITOR->m_refreshRate > g_pHyprRenderer->m_mostHzMonitor->m_refreshRate) && PNEWMONITOR->m_enabled)
+        g_pHyprRenderer->m_mostHzMonitor = PNEWMONITOR;
 
     g_pCompositor->m_readyToProcess = true;
 

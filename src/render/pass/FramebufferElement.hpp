@@ -21,5 +21,5 @@ class CFramebufferElement : public IPassElement {
     }
 
   private:
-    SFramebufferElementData data;
+    SFramebufferElementData m_data;
 };

@@ -146,7 +146,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
 
     PROTO::screencopy->m_framesAwaitingWrite.emplace_back(m_self);
 
-    g_pHyprRenderer->m_bDirectScanoutBlocked = true;
+    g_pHyprRenderer->m_directScanoutBlocked = true;
 
     if (!m_withDamage)
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -215,12 +215,11 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox =
-            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, 1);
     }
 
-    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
+    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([callback]() {
         LOGM(TRACE, "Copied frame via dma");
@@ -261,9 +260,8 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox =
-            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize}.translate(-g_pHyprOpenGL->m_pScreencopyDeniedTexture->m_vSize / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pScreencopyDeniedTexture, texbox, 1);
+        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, 1);
     }
 
 #ifndef GLES2
@@ -281,11 +279,11 @@ bool CScreencopyFrame::copyShm() {
 
     auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
 
-    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
+    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_RenderData.pMonitor = m_monitor;
+    g_pHyprOpenGL->m_renderData.pMonitor = m_monitor;
     fb.bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -304,7 +302,7 @@ bool CScreencopyFrame::copyShm() {
         }
     }
 
-    g_pHyprOpenGL->m_RenderData.pMonitor.reset();
+    g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
 #ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -414,7 +412,7 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
 
 void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_framesAwaitingWrite.empty()) {
-        g_pHyprRenderer->m_bDirectScanoutBlocked = false;
+        g_pHyprRenderer->m_directScanoutBlocked = false;
         return; // nothing to share
     }
 

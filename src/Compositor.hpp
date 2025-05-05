@@ -152,7 +152,7 @@ class CCompositor {
     NColorManagement::SImageDescription getPreferredImageDescription();
     bool                                shouldChangePreferredImageDescription();
 
-    std::string                         explicitConfigPath;
+    std::string                         m_explicitConfigPath;
 
   private:
     void             initAllSignals();
@@ -165,9 +165,9 @@ class CCompositor {
     void             removeLockFile();
     void             setMallocThreshold();
 
-    uint64_t         m_iHyprlandPID    = 0;
-    wl_event_source* m_critSigSource   = nullptr;
-    rlimit           m_sOriginalNofile = {};
+    uint64_t         m_hyprlandPID    = 0;
+    wl_event_source* m_critSigSource  = nullptr;
+    rlimit           m_originalNofile = {};
 };
 
 inline UP<CCompositor> g_pCompositor;

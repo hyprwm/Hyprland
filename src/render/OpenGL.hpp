@@ -239,24 +239,24 @@ class CHyprOpenGLImpl {
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
     bool                                        initShaders();
-    bool                                        m_bShadersInitialized = false;
+    bool                                        m_shadersInitialized = false;
     SP<SPreparedShaders>                        m_shaders;
 
-    SCurrentRenderData                          m_RenderData;
+    SCurrentRenderData                          m_renderData;
 
-    Hyprutils::OS::CFileDescriptor              m_iGBMFD;
-    gbm_device*                                 m_pGbmDevice   = nullptr;
-    EGLContext                                  m_pEglContext  = nullptr;
-    EGLDisplay                                  m_pEglDisplay  = nullptr;
-    EGLDeviceEXT                                m_pEglDevice   = nullptr;
-    uint                                        failedAssetsNo = 0;
+    Hyprutils::OS::CFileDescriptor              m_gbmFD;
+    gbm_device*                                 m_gbmDevice      = nullptr;
+    EGLContext                                  m_eglContext     = nullptr;
+    EGLDisplay                                  m_eglDisplay     = nullptr;
+    EGLDeviceEXT                                m_eglDevice      = nullptr;
+    uint                                        m_failedAssetsNo = 0;
 
-    bool                                        m_bReloadScreenShader = true; // at launch it can be set
+    bool                                        m_reloadScreenShader = true; // at launch it can be set
 
-    std::map<PHLWINDOWREF, CFramebuffer>        m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>            m_mLayerFramebuffers;
-    std::map<PHLMONITORREF, SMonitorRenderData> m_mMonitorRenderResources;
-    std::map<PHLMONITORREF, CFramebuffer>       m_mMonitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer>        m_windowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>            m_layerFramebuffers;
+    std::map<PHLMONITORREF, SMonitorRenderData> m_monitorRenderResources;
+    std::map<PHLMONITORREF, CFramebuffer>       m_monitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -274,7 +274,7 @@ class CHyprOpenGLImpl {
         PFNEGLDESTROYSYNCKHRPROC                      eglDestroySyncKHR                      = nullptr;
         PFNEGLDUPNATIVEFENCEFDANDROIDPROC             eglDupNativeFenceFDANDROID             = nullptr;
         PFNEGLWAITSYNCKHRPROC                         eglWaitSyncKHR                         = nullptr;
-    } m_sProc;
+    } m_proc;
 
     struct {
         bool EXT_read_format_bgra               = false;
@@ -283,9 +283,9 @@ class CHyprOpenGLImpl {
         bool KHR_display_reference              = false;
         bool IMG_context_priority               = false;
         bool EXT_create_context_robustness      = false;
-    } m_sExts;
+    } m_exts;
 
-    SP<CTexture> m_pScreencopyDeniedTexture;
+    SP<CTexture> m_screencopyDeniedTexture;
 
   private:
     enum eEGLContextVersion : uint8_t {
@@ -296,26 +296,27 @@ class CHyprOpenGLImpl {
 
     eEGLContextVersion      m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 
-    std::list<GLuint>       m_lBuffers;
-    std::list<GLuint>       m_lTextures;
+    std::vector<SDRMFormat> m_drmFormats;
+    bool                    m_hasModifiers = false;
 
-    std::vector<SDRMFormat> drmFormats;
-    bool                    m_bHasModifiers = false;
+    int                     m_drmFD = -1;
+    std::string             m_extensions;
 
-    int                     m_iDRMFD = -1;
-    std::string             m_szExtensions;
+    bool                    m_fakeFrame            = false;
+    bool                    m_endFrame             = false;
+    bool                    m_applyFinalShader     = false;
+    bool                    m_blend                = false;
+    bool                    m_offloadedFramebuffer = false;
+    bool                    m_cmSupported          = true;
 
-    bool                    m_bFakeFrame            = false;
-    bool                    m_bEndFrame             = false;
-    bool                    m_bApplyFinalShader     = false;
-    bool                    m_bBlend                = false;
-    bool                    m_bOffloadedFramebuffer = false;
-    bool                    m_bCMSupported          = true;
+    CShader                 m_finalScreenShader;
+    CTimer                  m_globalTimer;
 
-    CShader                 m_sFinalScreenShader;
-    CTimer                  m_tGlobalTimer;
-
-    SP<CTexture>            m_pMissingAssetTexture, m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture; // TODO: don't always load lock
+    SP<CTexture>            m_missingAssetTexture;
+    SP<CTexture>            m_backgroundTexture;
+    SP<CTexture>            m_lockDeadTexture;
+    SP<CTexture>            m_lockDead2Texture;
+    SP<CTexture>            m_lockTtyTextTexture; // TODO: don't always load lock
 
     void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);

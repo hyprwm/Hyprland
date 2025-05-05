@@ -12,59 +12,59 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 
-CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData& data_) : data(data_) {
+CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData& data_) : m_data(data_) {
     ;
 }
 
 void CSurfacePassElement::draw(const CRegion& damage) {
-    g_pHyprOpenGL->m_RenderData.currentWindow      = data.pWindow;
-    g_pHyprOpenGL->m_RenderData.surface            = data.surface;
-    g_pHyprOpenGL->m_RenderData.currentLS          = data.pLS;
-    g_pHyprOpenGL->m_RenderData.clipBox            = data.clipBox;
-    g_pHyprOpenGL->m_RenderData.discardMode        = data.discardMode;
-    g_pHyprOpenGL->m_RenderData.discardOpacity     = data.discardOpacity;
-    g_pHyprOpenGL->m_RenderData.useNearestNeighbor = data.useNearestNeighbor;
-    g_pHyprOpenGL->m_bEndFrame                     = data.flipEndFrame;
+    g_pHyprOpenGL->m_renderData.currentWindow      = m_data.pWindow;
+    g_pHyprOpenGL->m_renderData.surface            = m_data.surface;
+    g_pHyprOpenGL->m_renderData.currentLS          = m_data.pLS;
+    g_pHyprOpenGL->m_renderData.clipBox            = m_data.clipBox;
+    g_pHyprOpenGL->m_renderData.discardMode        = m_data.discardMode;
+    g_pHyprOpenGL->m_renderData.discardOpacity     = m_data.discardOpacity;
+    g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
+    g_pHyprOpenGL->m_endFrame                      = m_data.flipEndFrame;
 
     CScopeGuard x = {[]() {
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->m_RenderData.clipBox                     = {};
-        g_pHyprOpenGL->m_RenderData.clipRegion                  = {};
-        g_pHyprOpenGL->m_RenderData.discardMode                 = 0;
-        g_pHyprOpenGL->m_RenderData.discardOpacity              = 0;
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->m_bEndFrame                              = false;
-        g_pHyprOpenGL->m_RenderData.currentWindow.reset();
-        g_pHyprOpenGL->m_RenderData.surface.reset();
-        g_pHyprOpenGL->m_RenderData.currentLS.reset();
+        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
+        g_pHyprOpenGL->m_renderData.clipBox                     = {};
+        g_pHyprOpenGL->m_renderData.clipRegion                  = {};
+        g_pHyprOpenGL->m_renderData.discardMode                 = 0;
+        g_pHyprOpenGL->m_renderData.discardOpacity              = 0;
+        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
+        g_pHyprOpenGL->m_endFrame                               = false;
+        g_pHyprOpenGL->m_renderData.currentWindow.reset();
+        g_pHyprOpenGL->m_renderData.surface.reset();
+        g_pHyprOpenGL->m_renderData.currentLS.reset();
     }};
 
-    if (!data.texture)
+    if (!m_data.texture)
         return;
 
-    const auto& TEXTURE = data.texture;
+    const auto& TEXTURE = m_data.texture;
 
     // this is bad, probably has been logged elsewhere. Means the texture failed
     // uploading to the GPU.
-    if (!TEXTURE->m_iTexID)
+    if (!TEXTURE->m_texID)
         return;
 
-    const auto INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
+    const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 
-    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+    auto        PSURFACE = CWLSurface::fromResource(m_data.surface);
 
-    const float ALPHA         = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier : 1.F);
+    const float ALPHA         = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier : 1.F);
     const float OVERALL_ALPHA = PSURFACE ? PSURFACE->m_overallOpacity : 1.F;
-    const bool  BLUR          = data.blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
+    const bool  BLUR          = m_data.blur && (!TEXTURE->m_opaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
 
     auto        windowBox = getTexBox();
 
     const auto  PROJSIZEUNSCALED = windowBox.size();
 
-    windowBox.scale(data.pMonitor->m_scale);
+    windowBox.scale(m_data.pMonitor->m_scale);
     windowBox.round();
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
@@ -72,17 +72,17 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         return;
     }
 
-    const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->m_scale) != data.pMonitor->m_scale /* Fractional */ && data.surface->m_current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, data.surface->m_current.bufferSize.x, 3) &&
-        DELTALESSTHAN(windowBox.height, data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!data.pWindow || (!data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
+    const bool MISALIGNEDFSV1 = std::floor(m_data.pMonitor->m_scale) != m_data.pMonitor->m_scale /* Fractional */ && m_data.surface->m_current.scale == 1 /* fs protocol */ &&
+        windowBox.size() != m_data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, m_data.surface->m_current.bufferSize.x, 3) &&
+        DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
+        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
-    if (data.surface->m_colorManagement.valid())
+    if (m_data.surface->m_colorManagement.valid())
         Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
-    g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->m_self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+    g_pHyprRenderer->calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;
-    g_pHyprOpenGL->m_RenderData.clipRegion = visibleRegion(cancelRender);
+    g_pHyprOpenGL->m_renderData.clipRegion = visibleRegion(cancelRender);
     if (cancelRender)
         return;
 
@@ -91,19 +91,19 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // as long as the window is not animated. During those it'd look weird.
     // UV will fixup it as well
     if (MISALIGNEDFSV1)
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+        g_pHyprOpenGL->m_renderData.useNearestNeighbor = true;
 
-    float rounding      = data.rounding;
-    float roundingPower = data.roundingPower;
+    float rounding      = m_data.rounding;
+    float roundingPower = m_data.roundingPower;
 
     rounding -= 1; // to fix a border issue
 
-    if (data.dontRound) {
+    if (m_data.dontRound) {
         rounding      = 0;
         roundingPower = 2.0f;
     }
 
-    const bool WINDOWOPAQUE    = data.pWindow && data.pWindow->m_wlSurface->resource() == data.surface ? data.pWindow->opaque() : false;
+    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->m_wlSurface->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
@@ -114,38 +114,38 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // FIXME: This is wrong and will bug the blur out as shit if the first surface
     // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
-    if (data.surfaceCounter == 0 && !data.popup) {
+    if (m_data.surfaceCounter == 0 && !m_data.popup) {
         if (BLUR)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, data.surface, rounding, roundingPower, data.blockBlurOptimization, data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, m_data.surface, rounding, roundingPower, m_data.blockBlurOptimization, m_data.fadeAlpha, OVERALL_ALPHA);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     } else {
-        if (BLUR && data.popup)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, data.surface, rounding, roundingPower, true, data.fadeAlpha, OVERALL_ALPHA);
+        if (BLUR && m_data.popup)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, m_data.surface, rounding, roundingPower, true, m_data.fadeAlpha, OVERALL_ALPHA);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        data.surface->presentFeedback(data.when, data.pMonitor->m_self.lock());
+        m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock());
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here
-    if (data.surface->m_current.buffer && !data.surface->m_current.buffer->isSynchronous())
-        g_pHyprRenderer->usedAsyncBuffers.emplace_back(data.surface->m_current.buffer);
+    if (m_data.surface->m_current.buffer && !m_data.surface->m_current.buffer->isSynchronous())
+        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(m_data.surface->m_current.buffer);
 
     g_pHyprOpenGL->blend(true);
 }
 
 CBox CSurfacePassElement::getTexBox() {
-    const double outputX = -data.pMonitor->m_position.x, outputY = -data.pMonitor->m_position.y;
+    const double outputX = -m_data.pMonitor->m_position.x, outputY = -m_data.pMonitor->m_position.y;
 
-    const auto   INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
-    auto         PSURFACE                    = CWLSurface::fromResource(data.surface);
+    const auto   INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
+    auto         PSURFACE                    = CWLSurface::fromResource(m_data.surface);
 
     CBox         windowBox;
-    if (data.surface && data.mainSurface) {
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, data.w, data.h};
+    if (m_data.surface && m_data.mainSurface) {
+        windowBox = {(int)outputX + m_data.pos.x + m_data.localPos.x, (int)outputY + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them
         const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
@@ -167,49 +167,49 @@ CBox CSurfacePassElement::getTexBox() {
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->m_current.size.x, 2.F),
-                     std::max((float)data.surface->m_current.size.y, 2.F)};
-        if (data.pWindow && data.pWindow->m_realSize->isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
+        windowBox = {(int)outputX + m_data.pos.x + m_data.localPos.x, (int)outputY + m_data.pos.y + m_data.localPos.y, std::max((float)m_data.surface->m_current.size.x, 2.F),
+                     std::max((float)m_data.surface->m_current.size.y, 2.F)};
+        if (m_data.pWindow && m_data.pWindow->m_realSize->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / data.pWindow->m_reportedSize.x) * data.pWindow->m_realSize->value().x;
-            windowBox.height = (windowBox.height / data.pWindow->m_reportedSize.y) * data.pWindow->m_realSize->value().y;
+            windowBox.width  = (windowBox.width / m_data.pWindow->m_reportedSize.x) * m_data.pWindow->m_realSize->value().x;
+            windowBox.height = (windowBox.height / m_data.pWindow->m_reportedSize.y) * m_data.pWindow->m_realSize->value().y;
         }
     }
 
-    if (data.squishOversized) {
-        if (data.localPos.x + windowBox.width > data.w)
-            windowBox.width = data.w - data.localPos.x;
-        if (data.localPos.y + windowBox.height > data.h)
-            windowBox.height = data.h - data.localPos.y;
+    if (m_data.squishOversized) {
+        if (m_data.localPos.x + windowBox.width > m_data.w)
+            windowBox.width = m_data.w - m_data.localPos.x;
+        if (m_data.localPos.y + windowBox.height > m_data.h)
+            windowBox.height = m_data.h - m_data.localPos.y;
     }
 
     return windowBox;
 }
 
 bool CSurfacePassElement::needsLiveBlur() {
-    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+    auto        PSURFACE = CWLSurface::fromResource(m_data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
-    const bool  BLUR  = data.blur && (!data.texture || !data.texture->m_bOpaque || ALPHA < 1.F);
+    const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
+    const bool  BLUR  = m_data.blur && (!m_data.texture || !m_data.texture->m_opaque || ALPHA < 1.F);
 
-    if (!data.pLS && !data.pWindow)
+    if (!m_data.pLS && !m_data.pWindow)
         return BLUR;
 
-    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(data.pLS, data.pWindow);
+    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
     return BLUR && !NEWOPTIM;
 }
 
 bool CSurfacePassElement::needsPrecomputeBlur() {
-    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+    auto        PSURFACE = CWLSurface::fromResource(m_data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
-    const bool  BLUR  = data.blur && (!data.texture || !data.texture->m_bOpaque || ALPHA < 1.F);
+    const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
+    const bool  BLUR  = m_data.blur && (!m_data.texture || !m_data.texture->m_opaque || ALPHA < 1.F);
 
-    if (!data.pLS && !data.pWindow)
+    if (!m_data.pLS && !m_data.pWindow)
         return BLUR;
 
-    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(data.pLS, data.pWindow);
+    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
     return BLUR && NEWOPTIM;
 }
@@ -219,29 +219,29 @@ std::optional<CBox> CSurfacePassElement::boundingBox() {
 }
 
 CRegion CSurfacePassElement::opaqueRegion() {
-    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+    auto        PSURFACE = CWLSurface::fromResource(m_data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
+    const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
 
     if (ALPHA < 1.F)
         return {};
 
-    if (data.surface && data.surface->m_current.size == Vector2D{data.w, data.h}) {
-        CRegion    opaqueSurf = data.surface->m_current.opaque.copy().intersect(CBox{{}, {data.w, data.h}});
+    if (m_data.surface && m_data.surface->m_current.size == Vector2D{m_data.w, m_data.h}) {
+        CRegion    opaqueSurf = m_data.surface->m_current.opaque.copy().intersect(CBox{{}, {m_data.w, m_data.h}});
         const auto texBox     = getTexBox();
-        opaqueSurf.scale(texBox.size() / Vector2D{data.w, data.h});
-        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->m_position).expand(-data.rounding);
+        opaqueSurf.scale(texBox.size() / Vector2D{m_data.w, m_data.h});
+        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding);
     }
 
-    return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};
+    return m_data.texture && m_data.texture->m_opaque ? boundingBox()->expand(-m_data.rounding) : CRegion{};
 }
 
 CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
-    auto PSURFACE = CWLSurface::fromResource(data.surface);
+    auto PSURFACE = CWLSurface::fromResource(m_data.surface);
     if (!PSURFACE)
         return {};
 
-    const auto& bufferSize = data.surface->m_current.bufferSize;
+    const auto& bufferSize = m_data.surface->m_current.bufferSize;
 
     auto        visibleRegion = PSURFACE->m_visibleRegion.copy();
     if (visibleRegion.empty())
@@ -257,8 +257,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     // deal with any rounding errors that might come from scaling
     visibleRegion.expand(1);
 
-    auto uvTL = g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft;
-    auto uvBR = g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight;
+    auto uvTL = g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft;
+    auto uvBR = g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight;
 
     if (uvTL == Vector2D(-1, -1))
         uvTL = Vector2D(0, 0);
@@ -269,11 +269,11 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     visibleRegion.translate(-uvTL * bufferSize);
 
     auto texBox = getTexBox();
-    texBox.scale(data.pMonitor->m_scale);
+    texBox.scale(m_data.pMonitor->m_scale);
     texBox.round();
 
     visibleRegion.scale((Vector2D(1, 1) / (uvBR - uvTL)) * (texBox.size() / bufferSize));
-    visibleRegion.translate((data.pos + data.localPos) * data.pMonitor->m_scale - data.pMonitor->m_position);
+    visibleRegion.translate((m_data.pos + m_data.localPos) * m_data.pMonitor->m_scale - m_data.pMonitor->m_position);
 
     return visibleRegion;
 }
@@ -281,6 +281,6 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
 void CSurfacePassElement::discard() {
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
         Debug::log(TRACE, "discard for invisible surface");
-        data.surface->presentFeedback(data.when, data.pMonitor->m_self.lock(), true);
+        m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock(), true);
     }
 }

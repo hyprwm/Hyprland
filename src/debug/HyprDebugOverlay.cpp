@@ -57,7 +57,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
         m_monitor = pMonitor;
 
     // anim data too
-    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
+    const auto PMONITORFORTICKS = g_pHyprRenderer->m_mostHzMonitor ? g_pHyprRenderer->m_mostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
     if (PMONITORFORTICKS) {
         if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->m_refreshRate)
             m_lastAnimationTicks.pop_front();
@@ -260,7 +260,7 @@ void CHyprDebugOverlay::draw() {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
     m_texture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
+    glBindTexture(GL_TEXTURE_2D, m_texture->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -274,5 +274,5 @@ void CHyprDebugOverlay::draw() {
     CTexPassElement::SRenderData data;
     data.tex = m_texture;
     data.box = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
 }

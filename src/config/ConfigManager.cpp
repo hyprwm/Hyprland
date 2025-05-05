@@ -857,8 +857,8 @@ std::optional<std::string> CConfigManager::generateConfig(std::string configPath
 
 std::string CConfigManager::getMainConfigPath() {
     static std::string CONFIG_PATH = [this]() -> std::string {
-        if (!g_pCompositor->explicitConfigPath.empty())
-            return g_pCompositor->explicitConfigPath;
+        if (!g_pCompositor->m_explicitConfigPath.empty())
+            return g_pCompositor->m_explicitConfigPath;
 
         if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
             return CFG_ENV;
@@ -1025,7 +1025,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
 
-        g_pHyprOpenGL->m_bReloadScreenShader = true;
+        g_pHyprOpenGL->m_reloadScreenShader = true;
 
         g_pHyprOpenGL->ensureBackgroundTexturePresence();
     }

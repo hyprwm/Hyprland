@@ -388,7 +388,7 @@ void CMonitor::onDisconnect(bool destroy) {
     if (g_pCompositor->m_lastMonitor == m_self)
         g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
 
-    if (g_pHyprRenderer->m_pMostHzMonitor == m_self) {
+    if (g_pHyprRenderer->m_mostHzMonitor == m_self) {
         int        mostHz         = 0;
         PHLMONITOR pMonitorMostHz = nullptr;
 
@@ -399,7 +399,7 @@ void CMonitor::onDisconnect(bool destroy) {
             }
         }
 
-        g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
+        g_pHyprRenderer->m_mostHzMonitor = pMonitorMostHz;
     }
     std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
@@ -1362,7 +1362,7 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
+    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
     if (g_pPointerManager->softwareLockedFor(m_self.lock()))
@@ -1383,7 +1383,7 @@ bool CMonitor::attemptDirectScanout() {
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_pEglImage /* dmabuf */)
+    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
         return false;
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());

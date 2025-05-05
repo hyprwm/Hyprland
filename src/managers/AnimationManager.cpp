@@ -255,7 +255,7 @@ void CHyprAnimationManager::scheduleTick() {
 
     m_tickScheduled = true;
 
-    const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
+    const auto PMOSTHZ = g_pHyprRenderer->m_mostHzMonitor;
 
     if (!PMOSTHZ) {
         m_animationTimer->updateTimeout(std::chrono::milliseconds(16));

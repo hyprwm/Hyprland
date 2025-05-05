@@ -4,27 +4,27 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 
-CTexPassElement::CTexPassElement(const CTexPassElement::SRenderData& data_) : data(data_) {
+CTexPassElement::CTexPassElement(const CTexPassElement::SRenderData& data_) : m_data(data_) {
     ;
 }
 
 void CTexPassElement::draw(const CRegion& damage) {
-    g_pHyprOpenGL->m_bEndFrame = data.flipEndFrame;
+    g_pHyprOpenGL->m_endFrame = m_data.flipEndFrame;
 
     CScopeGuard x = {[]() {
         //
-        g_pHyprOpenGL->m_bEndFrame          = false;
-        g_pHyprOpenGL->m_RenderData.clipBox = {};
+        g_pHyprOpenGL->m_endFrame           = false;
+        g_pHyprOpenGL->m_renderData.clipBox = {};
     }};
 
-    if (!data.clipBox.empty())
-        g_pHyprOpenGL->m_RenderData.clipBox = data.clipBox;
+    if (!m_data.clipBox.empty())
+        g_pHyprOpenGL->m_renderData.clipBox = m_data.clipBox;
 
-    if (data.replaceProjection)
-        g_pHyprOpenGL->m_RenderData.monitorProjection = *data.replaceProjection;
-    g_pHyprOpenGL->renderTextureInternalWithDamage(data.tex, data.box, data.a, data.damage.empty() ? damage : data.damage, data.round, data.roundingPower);
-    if (data.replaceProjection)
-        g_pHyprOpenGL->m_RenderData.monitorProjection = g_pHyprOpenGL->m_RenderData.pMonitor->m_projMatrix;
+    if (m_data.replaceProjection)
+        g_pHyprOpenGL->m_renderData.monitorProjection = *m_data.replaceProjection;
+    g_pHyprOpenGL->renderTextureInternalWithDamage(m_data.tex, m_data.box, m_data.a, m_data.damage.empty() ? damage : m_data.damage, m_data.round, m_data.roundingPower);
+    if (m_data.replaceProjection)
+        g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprOpenGL->m_renderData.pMonitor->m_projMatrix;
 }
 
 bool CTexPassElement::needsLiveBlur() {
@@ -36,7 +36,7 @@ bool CTexPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CTexPassElement::boundingBox() {
-    return data.box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->m_scale).round();
+    return m_data.box.copy().scale(1.F / g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
 }
 
 CRegion CTexPassElement::opaqueRegion() {

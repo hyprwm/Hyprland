@@ -2,7 +2,7 @@
 
 class CWindow;
 
-IHyprWindowDecoration::IHyprWindowDecoration(PHLWINDOW pWindow) : m_pWindow(pWindow) {
+IHyprWindowDecoration::IHyprWindowDecoration(PHLWINDOW pWindow) : m_window(pWindow) {
     ;
 }
 

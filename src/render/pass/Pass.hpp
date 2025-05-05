@@ -18,9 +18,9 @@ class CRenderPass {
     CRegion render(const CRegion& damage_);
 
   private:
-    CRegion              damage;
-    std::vector<CRegion> occludedRegions;
-    CRegion              totalLiveBlurRegion;
+    CRegion              m_damage;
+    std::vector<CRegion> m_occludedRegions;
+    CRegion              m_totalLiveBlurRegion;
 
     struct SPassElementData {
         CRegion          elementDamage;
@@ -28,9 +28,7 @@ class CRenderPass {
         bool             discard = false;
     };
 
-    std::vector<SP<SPassElementData>> m_vPassElements;
-
-    SP<IPassElement>                  currentPassInfo = nullptr;
+    std::vector<SP<SPassElementData>> m_passElements;
 
     void                              simplify();
     float                             oneBlurRadius();
@@ -39,7 +37,7 @@ class CRenderPass {
     struct {
         bool         present = false;
         SP<CTexture> keyboardFocusText, pointerFocusText, lastWindowText;
-    } debugData;
+    } m_debugData;
 
     friend class CHyprOpenGLImpl;
 };

@@ -471,11 +471,11 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 bool       flipRB = false;
 
                 if (SURFACE->m_current.texture) {
-                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->m_current.texture->m_iDrmFormat));
-                    if (SURFACE->m_current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
+                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->m_current.texture->m_drmFormat));
+                    if (SURFACE->m_current.texture->m_drmFormat == DRM_FORMAT_ABGR8888) {
                         Debug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
                         flipRB = true;
-                    } else if (SURFACE->m_current.texture->m_iDrmFormat != DRM_FORMAT_ARGB8888) {
+                    } else if (SURFACE->m_current.texture->m_drmFormat != DRM_FORMAT_ARGB8888) {
                         Debug::log(TRACE, "Cursor CPU surface format rejected, falling back to sw");
                         return nullptr;
                     }
@@ -484,7 +484,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 if (shmBuffer.data())
                     texData = shmBuffer;
                 else {
-                    texData.resize(texture->m_vSize.x * 4 * texture->m_vSize.y);
+                    texData.resize(texture->m_size.x * 4 * texture->m_size.y);
                     memset(texData.data(), 0x00, texData.size());
                 }
 
@@ -506,13 +506,13 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
         auto CAIRODATASURFACE =
-            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_vSize.x, texture->m_vSize.y, texture->m_vSize.x * 4);
+            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
 
         auto CAIRO = cairo_create(CAIROSURFACE);
 
         cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
         cairo_set_source_rgba(CAIRO, 0, 0, 0, 0);
-        cairo_rectangle(CAIRO, 0, 0, texture->m_vSize.x, texture->m_vSize.y);
+        cairo_rectangle(CAIRO, 0, 0, texture->m_size.x, texture->m_size.y);
         cairo_fill(CAIRO);
 
         const auto PATTERNPRE = cairo_pattern_create_for_surface(CAIRODATASURFACE);
@@ -523,7 +523,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         const auto TR = state->monitor->m_transform;
 
         // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
-        const auto SCALE = texture->m_vSize / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
+        const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
         cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
 
         if (TR) {
@@ -564,7 +564,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     }
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor;
+    g_pHyprOpenGL->m_renderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
@@ -585,7 +585,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     g_pHyprOpenGL->end();
     glFlush();
-    g_pHyprOpenGL->m_RenderData.pMonitor.reset();
+    g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
     g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 
@@ -625,7 +625,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
 
     if (m_currentCursorImage.surface)
         m_currentCursorImage.surface->resource()->frame(now);

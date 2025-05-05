@@ -39,7 +39,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);
         auto stride = bufferSize.y ? size / bufferSize.y : 0;
-        if (lastTexture && lastTexture->m_isSynchronous && lastTexture->m_vSize == bufferSize) {
+        if (lastTexture && lastTexture->m_isSynchronous && lastTexture->m_size == bufferSize) {
             texture = lastTexture;
             texture->update(drmFmt, dataPtr, stride, accumulateBufferDamage());
         } else

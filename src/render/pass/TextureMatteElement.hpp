@@ -25,5 +25,5 @@ class CTextureMatteElement : public IPassElement {
     }
 
   private:
-    STextureMatteData data;
+    STextureMatteData m_data;
 };

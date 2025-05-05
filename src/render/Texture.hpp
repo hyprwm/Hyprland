@@ -35,21 +35,21 @@ class CTexture {
     void                        update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage);
     const std::vector<uint8_t>& dataCopy();
 
-    eTextureType                m_iType         = TEXTURE_RGBA;
-    GLenum                      m_iTarget       = GL_TEXTURE_2D;
-    GLuint                      m_iTexID        = 0;
-    Vector2D                    m_vSize         = {};
-    void*                       m_pEglImage     = nullptr;
-    eTransform                  m_eTransform    = HYPRUTILS_TRANSFORM_NORMAL;
-    bool                        m_bOpaque       = false;
-    uint32_t                    m_iDrmFormat    = 0; // for shm
+    eTextureType                m_type          = TEXTURE_RGBA;
+    GLenum                      m_target        = GL_TEXTURE_2D;
+    GLuint                      m_texID         = 0;
+    Vector2D                    m_size          = {};
+    void*                       m_eglImage      = nullptr;
+    eTransform                  m_transform     = HYPRUTILS_TRANSFORM_NORMAL;
+    bool                        m_opaque        = false;
+    uint32_t                    m_drmFormat     = 0; // for shm
     bool                        m_isSynchronous = false;
 
   private:
     void                 createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
     void                 createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
 
-    bool                 m_bKeepDataCopy = false;
+    bool                 m_keepDataCopy = false;
 
-    std::vector<uint8_t> m_vDataCopy;
+    std::vector<uint8_t> m_dataCopy;
 };

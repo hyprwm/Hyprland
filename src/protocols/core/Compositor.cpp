@@ -495,7 +495,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     }
 
     if (m_current.texture)
-        m_current.texture->m_eTransform = wlTransformToHyprutils(m_current.transform);
+        m_current.texture->m_transform = wlTransformToHyprutils(m_current.transform);
 
     if (m_role->role() == SURFACE_ROLE_SUBSURFACE) {
         auto subsurface = ((CSubsurfaceRole*)m_role.get())->m_subsurface.lock();

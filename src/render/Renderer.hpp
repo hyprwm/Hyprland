@@ -91,29 +91,29 @@ class CHyprRenderer {
 
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
-    PHLMONITORREF                   m_pMostHzMonitor;
-    bool                            m_bDirectScanoutBlocked = false;
+    PHLMONITORREF                   m_mostHzMonitor;
+    bool                            m_directScanoutBlocked = false;
 
     void                            setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                            initiateManualCrash();
 
-    bool                            m_bCrashingInProgress = false;
-    float                           m_fCrashingDistort    = 0.5f;
-    wl_event_source*                m_pCrashingLoop       = nullptr;
-    wl_event_source*                m_pCursorTicker       = nullptr;
+    bool                            m_crashingInProgress = false;
+    float                           m_crashingDistort    = 0.5f;
+    wl_event_source*                m_crashingLoop       = nullptr;
+    wl_event_source*                m_cursorTicker       = nullptr;
 
-    CTimer                          m_tRenderTimer;
+    CTimer                          m_renderTimer;
 
-    std::vector<CHLBufferReference> usedAsyncBuffers;
+    std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {
         int                           hotspotX = 0;
         int                           hotspotY = 0;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;
-    } m_sLastCursorData;
+    } m_lastCursorData;
 
-    CRenderPass m_sRenderPass = {};
+    CRenderPass m_renderPass = {};
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
@@ -131,23 +131,23 @@ class CHyprRenderer {
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    bool m_bCursorHidden                           = false;
-    bool m_bCursorHasSurface                       = false;
-    SP<CRenderbuffer>       m_pCurrentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_pCurrentBuffer       = nullptr;
-    eRenderMode             m_eRenderMode          = RENDER_MODE_NORMAL;
-    bool                    m_bNvidia              = false;
+    bool m_cursorHidden                           = false;
+    bool m_cursorHasSurface                       = false;
+    SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
+    SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
+    eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
+    bool                    m_nvidia              = false;
 
     struct {
         bool hiddenOnTouch    = false;
         bool hiddenOnTimeout  = false;
         bool hiddenOnKeyboard = false;
-    } m_sCursorHiddenConditions;
+    } m_cursorHiddenConditions;
 
     SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
-    std::vector<SP<CRenderbuffer>> m_vRenderbuffers;
-    std::vector<PHLWINDOWREF>      m_vRenderUnfocused;
-    SP<CEventLoopTimer>            m_tRenderUnfocusedTimer;
+    std::vector<SP<CRenderbuffer>> m_renderbuffers;
+    std::vector<PHLWINDOWREF>      m_renderUnfocused;
+    SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

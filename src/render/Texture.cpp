@@ -15,7 +15,7 @@ CTexture::~CTexture() {
     destroyTexture();
 }
 
-CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_iDrmFormat(drmFormat), m_bKeepDataCopy(keepDataCopy) {
+CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_drmFormat(drmFormat), m_keepDataCopy(keepDataCopy) {
     createFromShm(drmFormat, pixels, stride, size_);
 }
 
@@ -23,11 +23,11 @@ CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     createFromDma(attrs, image);
 }
 
-CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
+CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_keepDataCopy(keepDataCopy) {
     if (!buffer)
         return;
 
-    m_bOpaque = buffer->opaque;
+    m_opaque = buffer->opaque;
 
     auto attrs = buffer->dmabuf();
 
@@ -42,7 +42,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
 
         auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
 
-        m_iDrmFormat = fmt;
+        m_drmFormat = fmt;
 
         createFromShm(fmt, pixelData, bufLen, shm.size);
         return;
@@ -64,12 +64,12 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    m_iType         = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    m_vSize         = size_;
+    m_type          = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
+    m_size          = size_;
     m_isSynchronous = true;
     allocate();
 
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_iTexID));
+    GLCALL(glBindTexture(GL_TEXTURE_2D, m_texID));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 #ifndef GLES2
@@ -83,30 +83,30 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
 
-    if (m_bKeepDataCopy) {
-        m_vDataCopy.resize(stride * size_.y);
-        memcpy(m_vDataCopy.data(), pixels, stride * size_.y);
+    if (m_keepDataCopy) {
+        m_dataCopy.resize(stride * size_.y);
+        memcpy(m_dataCopy.data(), pixels, stride * size_.y);
     }
 }
 
 void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
-    if (!g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES) {
+    if (!g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES) {
         Debug::log(ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
         return;
     }
 
-    m_bOpaque = NFormatUtils::isFormatOpaque(attrs.format);
-    m_iTarget = GL_TEXTURE_2D;
-    m_iType   = TEXTURE_RGBA;
-    m_vSize   = attrs.size;
-    m_iType   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
+    m_target = GL_TEXTURE_2D;
+    m_type   = TEXTURE_RGBA;
+    m_size   = attrs.size;
+    m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
     allocate();
-    m_pEglImage = image;
+    m_eglImage = image;
 
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_iTexID));
+    GLCALL(glBindTexture(GL_TEXTURE_2D, m_texID));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GLCALL(g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES(m_iTarget, image));
+    GLCALL(g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES(m_target, image));
     GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
@@ -116,9 +116,9 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    glBindTexture(GL_TEXTURE_2D, m_iTexID);
+    glBindTexture(GL_TEXTURE_2D, m_texID);
 
-    auto rects = damage.copy().intersect(CBox{{}, m_vSize}).getRects();
+    auto rects = damage.copy().intersect(CBox{{}, m_size}).getRects();
 
 #ifndef GLES2
     if (format->flipRB) {
@@ -143,28 +143,28 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    if (m_bKeepDataCopy) {
-        m_vDataCopy.resize(stride * m_vSize.y);
-        memcpy(m_vDataCopy.data(), pixels, stride * m_vSize.y);
+    if (m_keepDataCopy) {
+        m_dataCopy.resize(stride * m_size.y);
+        memcpy(m_dataCopy.data(), pixels, stride * m_size.y);
     }
 }
 
 void CTexture::destroyTexture() {
-    if (m_iTexID) {
-        GLCALL(glDeleteTextures(1, &m_iTexID));
-        m_iTexID = 0;
+    if (m_texID) {
+        GLCALL(glDeleteTextures(1, &m_texID));
+        m_texID = 0;
     }
 
-    if (m_pEglImage)
-        g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(g_pHyprOpenGL->m_pEglDisplay, m_pEglImage);
-    m_pEglImage = nullptr;
+    if (m_eglImage)
+        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_eglImage);
+    m_eglImage = nullptr;
 }
 
 void CTexture::allocate() {
-    if (!m_iTexID)
-        GLCALL(glGenTextures(1, &m_iTexID));
+    if (!m_texID)
+        GLCALL(glGenTextures(1, &m_texID));
 }
 
 const std::vector<uint8_t>& CTexture::dataCopy() {
-    return m_vDataCopy;
+    return m_dataCopy;
 }

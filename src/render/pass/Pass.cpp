@@ -15,11 +15,11 @@ bool CRenderPass::empty() const {
 }
 
 bool CRenderPass::single() const {
-    return m_vPassElements.size() == 1;
+    return m_passElements.size() == 1;
 }
 
 void CRenderPass::add(SP<IPassElement> el) {
-    m_vPassElements.emplace_back(makeShared<SPassElementData>(CRegion{}, el));
+    m_passElements.emplace_back(makeShared<SPassElementData>(CRegion{}, el));
 }
 
 void CRenderPass::simplify() {
@@ -28,10 +28,10 @@ void CRenderPass::simplify() {
     // TODO: use precompute blur for instances where there is nothing in between
 
     // if there is live blur, we need to NOT occlude any area where it will be influenced
-    const auto WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+    const auto WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
 
-    CRegion    newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->m_transformedSize});
-    for (auto& el : m_vPassElements | std::views::reverse) {
+    CRegion    newDamage = m_damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize});
+    for (auto& el : m_passElements | std::views::reverse) {
 
         if (newDamage.empty() && !el->element->undiscardable()) {
             el->discard = true;
@@ -43,7 +43,7 @@ void CRenderPass::simplify() {
         if (!bb1 || newDamage.empty())
             continue;
 
-        auto bb = bb1->scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+        auto bb = bb1->scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
 
         // drop if empty
         if (CRegion copy = newDamage.copy(); copy.intersect(bb).empty()) {
@@ -54,13 +54,13 @@ void CRenderPass::simplify() {
         auto opaque = el->element->opaqueRegion();
 
         if (!opaque.empty()) {
-            opaque.scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+            opaque.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
 
             // if this intersects the liveBlur region, allow live blur to operate correctly.
             // do not occlude a border near it.
             if (WILLBLUR) {
                 CRegion liveBlurRegion;
-                for (auto& el2 : m_vPassElements) {
+                for (auto& el2 : m_passElements) {
                     // if we reach self, no problem, we can break.
                     // if the blur is above us, we don't care, it will work fine.
                     if (el2 == el)
@@ -76,7 +76,7 @@ void CRenderPass::simplify() {
                 }
 
                 // expand the region: this area needs to be proper to blur it right.
-                liveBlurRegion.scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale).expand(oneBlurRadius() * 2.F);
+                liveBlurRegion.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).expand(oneBlurRadius() * 2.F);
 
                 if (auto infringement = opaque.copy().intersect(liveBlurRegion); !infringement.empty()) {
                     // eh, this is not the correct solution, but it will do...
@@ -86,57 +86,57 @@ void CRenderPass::simplify() {
             }
             newDamage.subtract(opaque);
             if (*PDEBUGPASS)
-                occludedRegions.emplace_back(opaque);
+                m_occludedRegions.emplace_back(opaque);
         }
     }
 
     if (*PDEBUGPASS) {
-        for (auto& el2 : m_vPassElements) {
+        for (auto& el2 : m_passElements) {
             if (!el2->element->needsLiveBlur())
                 continue;
 
             const auto BB = el2->element->boundingBox();
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
-            totalLiveBlurRegion.add(BB->copy().scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale));
+            m_totalLiveBlurRegion.add(BB->copy().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale));
         }
     }
 }
 
 void CRenderPass::clear() {
-    m_vPassElements.clear();
+    m_passElements.clear();
 }
 
 CRegion CRenderPass::render(const CRegion& damage_) {
     static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
-    const auto  WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+    const auto  WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
 
-    damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : damage_.copy();
+    m_damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : damage_.copy();
     if (*PDEBUGPASS) {
-        occludedRegions.clear();
-        totalLiveBlurRegion = CRegion{};
+        m_occludedRegions.clear();
+        m_totalLiveBlurRegion = CRegion{};
     }
 
-    if (damage.empty()) {
-        g_pHyprOpenGL->m_RenderData.damage      = damage;
-        g_pHyprOpenGL->m_RenderData.finalDamage = damage;
-        return damage;
+    if (m_damage.empty()) {
+        g_pHyprOpenGL->m_renderData.damage      = m_damage;
+        g_pHyprOpenGL->m_renderData.finalDamage = m_damage;
+        return m_damage;
     }
 
-    if (!*PDEBUGPASS && debugData.present)
-        debugData = {false};
-    else if (*PDEBUGPASS && !debugData.present) {
-        debugData.present           = true;
-        debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", Colors::WHITE, 12);
-        debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", Colors::WHITE, 12);
-        debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", Colors::WHITE, 12);
+    if (!*PDEBUGPASS && m_debugData.present)
+        m_debugData = {false};
+    else if (*PDEBUGPASS && !m_debugData.present) {
+        m_debugData.present           = true;
+        m_debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", Colors::WHITE, 12);
+        m_debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", Colors::WHITE, 12);
+        m_debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", Colors::WHITE, 12);
     }
 
     if (WILLBLUR && !*PDEBUGPASS) {
         // combine blur regions into one that will be expanded
         CRegion blurRegion;
-        for (auto& el : m_vPassElements) {
+        for (auto& el : m_passElements) {
             if (!el->element->needsLiveBlur())
                 continue;
 
@@ -146,40 +146,40 @@ CRegion CRenderPass::render(const CRegion& damage_) {
             blurRegion.add(*BB);
         }
 
-        blurRegion.scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+        blurRegion.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
 
-        blurRegion.intersect(damage).expand(oneBlurRadius());
+        blurRegion.intersect(m_damage).expand(oneBlurRadius());
 
-        g_pHyprOpenGL->m_RenderData.finalDamage = blurRegion.copy().add(damage);
+        g_pHyprOpenGL->m_renderData.finalDamage = blurRegion.copy().add(m_damage);
 
         // FIXME: why does this break on * 1.F ?
         // used to work when we expand all the damage... I think? Well, before pass.
         // moving a window over blur shows the edges being wonk.
         blurRegion.expand(oneBlurRadius() * 1.5F);
 
-        damage = blurRegion.copy().add(damage);
+        m_damage = blurRegion.copy().add(m_damage);
     } else
-        g_pHyprOpenGL->m_RenderData.finalDamage = damage;
+        g_pHyprOpenGL->m_renderData.finalDamage = m_damage;
 
-    if (std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->disableSimplification(); })) {
-        for (auto& el : m_vPassElements) {
-            el->elementDamage = damage;
+    if (std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->disableSimplification(); })) {
+        for (auto& el : m_passElements) {
+            el->elementDamage = m_damage;
         }
     } else
         simplify();
 
-    g_pHyprOpenGL->m_RenderData.pCurrentMonData->blurFBShouldRender = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
+    g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
 
-    if (m_vPassElements.empty())
+    if (m_passElements.empty())
         return {};
 
-    for (auto& el : m_vPassElements) {
+    for (auto& el : m_passElements) {
         if (el->discard) {
             el->element->discard();
             continue;
         }
 
-        g_pHyprOpenGL->m_RenderData.damage = el->elementDamage;
+        g_pHyprOpenGL->m_renderData.damage = el->elementDamage;
         el->element->draw(el->elementDamage);
     }
 
@@ -192,16 +192,16 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         });
     }
 
-    g_pHyprOpenGL->m_RenderData.damage = damage;
-    return damage;
+    g_pHyprOpenGL->m_renderData.damage = m_damage;
+    return m_damage;
 }
 
 void CRenderPass::renderDebugData() {
-    CBox box = {{}, g_pHyprOpenGL->m_RenderData.pMonitor->m_transformedSize};
-    for (const auto& rg : occludedRegions) {
+    CBox box = {{}, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize};
+    for (const auto& rg : m_occludedRegions) {
         g_pHyprOpenGL->renderRectWithDamage(box, Colors::RED.modifyA(0.1F), rg);
     }
-    g_pHyprOpenGL->renderRectWithDamage(box, Colors::GREEN.modifyA(0.1F), totalLiveBlurRegion);
+    g_pHyprOpenGL->renderRectWithDamage(box, Colors::GREEN.modifyA(0.1F), m_totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
@@ -219,9 +219,9 @@ void CRenderPass::renderDebugData() {
         if (!bb.has_value())
             return;
 
-        CBox box = bb->copy().translate(-g_pHyprOpenGL->m_RenderData.pMonitor->m_position).scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+        CBox box = bb->copy().translate(-g_pHyprOpenGL->m_renderData.pMonitor->m_position).scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
 
-        if (box.intersection(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->m_size}).empty())
+        if (box.intersection(CBox{{}, g_pHyprOpenGL->m_renderData.pMonitor->m_size}).empty())
             return;
 
         g_pHyprOpenGL->renderRectWithDamage(box, color, CRegion{0, 0, INT32_MAX, INT32_MAX});
@@ -231,17 +231,17 @@ void CRenderPass::renderDebugData() {
         else
             offsets[surface.get()] = 0;
 
-        box = {box.pos(), texture->m_vSize};
+        box = {box.pos(), texture->m_size};
         g_pHyprOpenGL->renderRectWithDamage(box, CHyprColor{0.F, 0.F, 0.F, 0.2F}, CRegion{0, 0, INT32_MAX, INT32_MAX}, std::min(5.0, box.size().y));
         g_pHyprOpenGL->renderTexture(texture, box, 1.F);
 
-        offsets[surface.get()] += texture->m_vSize.y;
+        offsets[surface.get()] += texture->m_size.y;
     };
 
-    renderHLSurface(debugData.keyboardFocusText, g_pSeatManager->m_state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
-    renderHLSurface(debugData.pointerFocusText, g_pSeatManager->m_state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
+    renderHLSurface(m_debugData.keyboardFocusText, g_pSeatManager->m_state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
+    renderHLSurface(m_debugData.pointerFocusText, g_pSeatManager->m_state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
     if (g_pCompositor->m_lastWindow)
-        renderHLSurface(debugData.lastWindowText, g_pCompositor->m_lastWindow->m_wlSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
+        renderHLSurface(m_debugData.lastWindowText, g_pCompositor->m_lastWindow->m_wlSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->m_state.pointerFocus) {
         if (g_pSeatManager->m_state.pointerFocus->m_current.input.intersect(CBox{{}, g_pSeatManager->m_state.pointerFocus->m_current.size}).getExtents().size() !=
@@ -251,28 +251,28 @@ void CRenderPass::renderDebugData() {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
                 if (BOX) {
                     auto region = g_pSeatManager->m_state.pointerFocus->m_current.input.copy()
-                                      .scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale)
-                                      .translate(BOX->pos() - g_pHyprOpenGL->m_RenderData.pMonitor->m_position);
+                                      .scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale)
+                                      .translate(BOX->pos() - g_pHyprOpenGL->m_renderData.pMonitor->m_position);
                     g_pHyprOpenGL->renderRectWithDamage(box, CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}, region);
                 }
             }
         }
     }
 
-    const auto DISCARDED_ELEMENTS = std::count_if(m_vPassElements.begin(), m_vPassElements.end(), [](const auto& e) { return e->discard; });
-    auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", occludedRegions.size(), m_vPassElements.size(),
-                                                     DISCARDED_ELEMENTS, g_pHyprOpenGL->m_RenderData.pMonitor->m_pixelSize),
+    const auto DISCARDED_ELEMENTS = std::count_if(m_passElements.begin(), m_passElements.end(), [](const auto& e) { return e->discard; });
+    auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
+                                                     DISCARDED_ELEMENTS, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize),
                                          Colors::WHITE, 12);
 
     if (tex) {
-        box = CBox{{0.F, g_pHyprOpenGL->m_RenderData.pMonitor->m_size.y - tex->m_vSize.y}, tex->m_vSize}.scale(g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+        box = CBox{{0.F, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
         g_pHyprOpenGL->renderTexture(tex, box, 1.F);
     }
 
     std::string passStructure;
     auto        yn   = [](const bool val) -> const char* { return val ? "yes" : "no"; };
     auto        tick = [](const bool val) -> const char* { return val ? "✔" : "✖"; };
-    for (const auto& el : m_vPassElements | std::views::reverse) {
+    for (const auto& el : m_passElements | std::views::reverse) {
         passStructure += std::format("{} {} (bb: {} op: {})\n", tick(!el->discard), el->element->passName(), yn(el->element->boundingBox().has_value()),
                                      yn(!el->element->opaqueRegion().empty()));
     }
@@ -282,8 +282,8 @@ void CRenderPass::renderDebugData() {
 
     tex = g_pHyprOpenGL->renderText(passStructure, Colors::WHITE, 12);
     if (tex) {
-        box = CBox{{g_pHyprOpenGL->m_RenderData.pMonitor->m_size.x - tex->m_vSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->m_size.y - tex->m_vSize.y}, tex->m_vSize}.scale(
-            g_pHyprOpenGL->m_RenderData.pMonitor->m_scale);
+        box = CBox{{g_pHyprOpenGL->m_renderData.pMonitor->m_size.x - tex->m_size.x, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(
+            g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
         g_pHyprOpenGL->renderTexture(tex, box, 1.F);
     }
 }
@@ -296,5 +296,5 @@ float CRenderPass::oneBlurRadius() {
 }
 
 void CRenderPass::removeAllOfType(const std::string& type) {
-    std::erase_if(m_vPassElements, [&type](const auto& e) { return e->element->passName() == type; });
+    std::erase_if(m_passElements, [&type](const auto& e) { return e->element->passName() == type; });
 }

@@ -143,8 +143,8 @@ void CWLSurface::destroy() {
     m_subsurfaceOwner = nullptr;
     m_inert           = true;
 
-    if (g_pHyprRenderer && g_pHyprRenderer->m_sLastCursorData.surf && g_pHyprRenderer->m_sLastCursorData.surf->get() == this)
-        g_pHyprRenderer->m_sLastCursorData.surf.reset();
+    if (g_pHyprRenderer && g_pHyprRenderer->m_lastCursorData.surf && g_pHyprRenderer->m_lastCursorData.surf->get() == this)
+        g_pHyprRenderer->m_lastCursorData.surf.reset();
 
     m_resource.reset();
 

@@ -17,8 +17,7 @@
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
 
-    const bool HASPERSISTENTSIZE =
-        std::any_of(pWindow->m_matchedRules.begin(), pWindow->m_matchedRules.end(), [](const auto& rule) { return rule->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
+    const bool HASPERSISTENTSIZE = std::ranges::any_of(pWindow->m_matchedRules, [](const auto& rule) { return rule->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
 
     const auto STOREDSIZE = HASPERSISTENTSIZE ? g_pConfigManager->getStoredFloatingSize(pWindow) : std::nullopt;
 
@@ -886,6 +885,17 @@ void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_lastMonitor) {
+
+        // If `persistentsize` is set, use the stored size if available.
+        const bool HASPERSISTENTSIZE = std::ranges::any_of(pWindow->m_matchedRules, [](const auto& rule) { return rule->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
+
+        const auto STOREDSIZE = HASPERSISTENTSIZE ? g_pConfigManager->getStoredFloatingSize(pWindow) : std::nullopt;
+
+        if (STOREDSIZE.has_value()) {
+            Debug::log(LOG, "using stored size {}x{} for new floating window {}::{}", STOREDSIZE->x, STOREDSIZE->y, pWindow->m_class, pWindow->m_title);
+            return STOREDSIZE.value();
+        }
+
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r->m_ruleType != CWindowRule::RULE_SIZE)
                 continue;

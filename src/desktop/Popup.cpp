@@ -129,12 +129,20 @@ void CPopup::onUnmap() {
 
     m_mapped = false;
 
+    // if the popup committed a different size right now, we also need to damage the old size.
+    const Vector2D MAX_DAMAGE_SIZE = {std::max(m_lastSize.x, m_resource->m_surface->m_surface->m_current.size.x),
+                                      std::max(m_lastSize.y, m_resource->m_surface->m_surface->m_current.size.y)};
+
     m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
     const auto COORDS = coordsGlobal();
 
     CBox       box = m_wlSurface->resource()->extends();
     box.translate(COORDS).expand(4);
+    g_pHyprRenderer->damageBox(box);
+
+    // damage the last popup's explicit max size as well
+    box = CBox{COORDS, MAX_DAMAGE_SIZE}.expand(4);
     g_pHyprRenderer->damageBox(box);
 
     m_subsurfaceHead.reset();

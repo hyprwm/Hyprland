@@ -3,10 +3,36 @@
 #include <toml++/toml.hpp>
 #include <print>
 #include <sstream>
+#include <fstream>
 #include "PluginManager.hpp"
 #include "../helpers/Die.hpp"
 #include "../helpers/Sys.hpp"
 #include "../helpers/StringUtils.hpp"
+
+static std::string getTempRoot() {
+    static auto ENV = getenv("XDG_RUNTIME_DIR");
+    if (!ENV) {
+        std::cerr << "\nERROR: XDG_RUNTIME_DIR not set!\n";
+        exit(1);
+    }
+
+    const auto STR = ENV + std::string{"/hyprpm/"};
+
+    return STR;
+}
+
+// write the state to a file
+static bool writeState(const std::string& str, const std::string& to) {
+    // create temp file in a safe temp root
+    std::ofstream of(getTempRoot() + ".temp-state", std::ios::trunc);
+    if (!of.good())
+        return false;
+
+    of << str;
+    of.close();
+
+    return NSys::root::install(getTempRoot() + ".temp-state", to, "644");
+}
 
 std::filesystem::path DataState::getDataStatePath() {
     return std::filesystem::path("/var/cache/hyprpm/" + g_pPluginManager->m_szUsername);
@@ -37,11 +63,16 @@ void DataState::ensureStateStoreExists() {
     std::error_code ec;
     if (!std::filesystem::exists(getHeadersPath(), ec) || ec) {
         std::println("{}", infoString("The hyprpm state store doesn't exist. Creating now..."));
-        if (!std::filesystem::exists("/var/cache/hyprpm/", ec) || ec)
-            NSys::runAsSuperuser("mkdir -p -m 755 '/var/cache/hyprpm/'");
-        if (!std::filesystem::exists(getDataStatePath(), ec) || ec)
-            NSys::runAsSuperuser("mkdir -p -m 755 '" + getDataStatePath().string() + "'");
-        NSys::runAsSuperuser("mkdir -p -m 755 '" + getHeadersPath() + "'");
+        if (!std::filesystem::exists("/var/cache/hyprpm/", ec) || ec) {
+            if (!NSys::root::createDirectory("/var/cache/hyprpm", "755"))
+                Debug::die("ensureStateStoreExists: Failed to run a superuser cmd");
+        }
+        if (!std::filesystem::exists(getDataStatePath(), ec) || ec) {
+            if (!NSys::root::createDirectory(getDataStatePath().string(), "755"))
+                Debug::die("ensureStateStoreExists: Failed to run a superuser cmd");
+        }
+        if (!NSys::root::createDirectory(getHeadersPath(), "755"))
+            Debug::die("ensureStateStoreExists: Failed to run a superuser cmd");
     }
 }
 
@@ -51,8 +82,10 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     const auto      PATH = getDataStatePath() / repo.name;
 
     std::error_code ec;
-    if (!std::filesystem::exists(PATH, ec) || ec)
-        NSys::runAsSuperuser("mkdir -p -m 755 '" + PATH.string() + "'");
+    if (!std::filesystem::exists(PATH, ec) || ec) {
+        if (!NSys::root::createDirectory(PATH.string(), "755"))
+            Debug::die("addNewPluginRepo: failed to create cache dir");
+    }
     // clang-format off
     auto DATA = toml::table{
         {"repository", toml::table{
@@ -66,8 +99,10 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         const auto filename = p.name + ".so";
 
         // copy .so to the good place and chmod 755
-        if (std::filesystem::exists(p.filename))
-            NSys::runAsSuperuser("cp '" + p.filename + "' '" + (PATH / filename).string() + "' && chmod 755 '" + (PATH / filename).string() + "'");
+        if (std::filesystem::exists(p.filename)) {
+            if (!NSys::root::install(p.filename, (PATH / filename).string(), "0755"))
+                Debug::die("addNewPluginRepo: failed to install so file");
+        }
 
         DATA.emplace(p.name, toml::table{
             {"filename", filename},
@@ -80,8 +115,8 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     std::stringstream ss;
     ss << DATA;
 
-    NSys::runAsSuperuser("cat << EOF > " + (PATH / "state.toml").string() + "\n" + ss.str() + "\nEOF");
-    NSys::runAsSuperuser("chmod 644 '" + (PATH / "state.toml").string() + "'");
+    if (!writeState(ss.str(), (PATH / "state.toml").string()))
+        Debug::die("{}", failureString("Failed to write plugin state"));
 }
 
 bool DataState::pluginRepoExists(const std::string& urlOrName) {
@@ -123,7 +158,8 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
                 return; // WTF?
 
             // scary!
-            NSys::runAsSuperuser("rm -r '" + PATH + "'");
+            if (!NSys::root::removeRecursive(PATH))
+                Debug::die("removePluginRepo: failed to remove dir");
             return;
         }
     }
@@ -135,8 +171,10 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     const auto      PATH = getDataStatePath();
 
     std::error_code ec;
-    if (!std::filesystem::exists(PATH, ec) || ec)
-        NSys::runAsSuperuser("mkdir -p -m 755 '" + PATH.string() + "'");
+    if (!std::filesystem::exists(PATH, ec) || ec) {
+        if (!NSys::root::createDirectory(PATH.string(), "755"))
+            Debug::die("updateGlobalState: failed to create dir");
+    }
     // clang-format off
     auto DATA = toml::table{
         {"state", toml::table{
@@ -149,8 +187,8 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     std::stringstream ss;
     ss << DATA;
 
-    NSys::runAsSuperuser("cat << EOF > " + (PATH / "state.toml").string() + "\n" + ss.str() + "\nEOF");
-    NSys::runAsSuperuser("chmod 644 '" + (PATH / "state.toml").string() + "'");
+    if (!writeState(ss.str(), (PATH / "state.toml").string()))
+        Debug::die("{}", failureString("Failed to write plugin state"));
 }
 
 SGlobalState DataState::getGlobalState() {
@@ -229,8 +267,8 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
             std::stringstream ss;
             ss << modifiedState;
 
-            NSys::runAsSuperuser("cat << EOF > " + stateFile.string() + "\n" + ss.str() + "\nEOF");
-            NSys::runAsSuperuser("chmod 644 '" + stateFile.string() + "'");
+            if (!writeState(ss.str(), stateFile.string()))
+                Debug::die("{}", failureString("Failed to write plugin state"));
 
             return true;
         }
@@ -250,5 +288,6 @@ void DataState::purgeAllCache() {
     if (PATH.contains('\''))
         return;
     // scary!
-    NSys::runAsSuperuser("rm -r '" + PATH + "'");
+    if (!NSys::root::removeRecursive(PATH))
+        Debug::die("Failed to run a superuser cmd");
 }

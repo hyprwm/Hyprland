@@ -118,5 +118,6 @@ void NSys::dropSudo() {
             // note the superuser binary that is being dropped
             std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", BIN));
         }
+        return;
     }
 }

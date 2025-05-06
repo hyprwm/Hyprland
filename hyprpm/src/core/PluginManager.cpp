@@ -236,14 +236,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         return false;
     }
 
-    if (!pManifest->m_bGood) {
+    if (!pManifest->m_good) {
         std::println(stderr, "\n{}", failureString("The provided plugin repository has a corrupted manifest"));
         return false;
     }
 
     progress.m_iSteps = 2;
-    progress.printMessageAbove(successString("parsed manifest, found " + std::to_string(pManifest->m_vPlugins.size()) + " plugins:"));
-    for (auto const& pl : pManifest->m_vPlugins) {
+    progress.printMessageAbove(successString("parsed manifest, found " + std::to_string(pManifest->m_plugins.size()) + " plugins:"));
+    for (auto const& pl : pManifest->m_plugins) {
         std::string message = "→ " + pl.name + " by ";
         for (auto const& a : pl.authors) {
             message += a + ", ";
@@ -256,12 +256,12 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(message);
     }
 
-    if (!pManifest->m_sRepository.commitPins.empty()) {
+    if (!pManifest->m_repository.commitPins.empty()) {
         // check commit pins
 
-        progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_sRepository.commitPins.size()));
+        progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_repository.commitPins.size()));
 
-        for (auto const& [hl, plugin] : pManifest->m_sRepository.commitPins) {
+        for (auto const& [hl, plugin] : pManifest->m_repository.commitPins) {
             if (hl != HLVER.hash)
                 continue;
 
@@ -293,7 +293,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     progress.m_szCurrentMessage = "Building plugin(s)";
     progress.print();
 
-    for (auto& p : pManifest->m_vPlugins) {
+    for (auto& p : pManifest->m_plugins) {
         std::string out;
 
         if (p.since > HLVER.commits && HLVER.commits >= 1 /* for --depth 1 clones, we can't check this. */) {
@@ -336,11 +336,11 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     std::string       repohash = execAndGet("cd " + m_szWorkingPluginDirectory + " && git rev-parse HEAD");
     if (repohash.length() > 0)
         repohash.pop_back();
-    repo.name = pManifest->m_sRepository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_sRepository.name;
+    repo.name = pManifest->m_repository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_repository.name;
     repo.url  = url;
     repo.rev  = rev;
     repo.hash = repohash;
-    for (auto const& p : pManifest->m_vPlugins) {
+    for (auto const& p : pManifest->m_plugins) {
         repo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, false, p.failed});
     }
     DataState::addNewPluginRepo(repo);
@@ -701,17 +701,17 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             continue;
         }
 
-        if (!pManifest->m_bGood) {
-            std::println(stderr, "\n{}", failureString("The provided plugin repository has a corrupted manifest"));
+        if (!pManifest->m_good) {
+            std::println(stderr, "\n{}", failureString("The provided plugin repository has a bad manifest"));
             continue;
         }
 
-        if (repo.rev.empty() && !pManifest->m_sRepository.commitPins.empty()) {
+        if (repo.rev.empty() && !pManifest->m_repository.commitPins.empty()) {
             // check commit pins unless a revision is specified
 
-            progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_sRepository.commitPins.size()));
+            progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_repository.commitPins.size()));
 
-            for (auto const& [hl, plugin] : pManifest->m_sRepository.commitPins) {
+            for (auto const& [hl, plugin] : pManifest->m_repository.commitPins) {
                 if (hl != HLVER.hash)
                     continue;
 
@@ -721,7 +721,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             }
         }
 
-        for (auto& p : pManifest->m_vPlugins) {
+        for (auto& p : pManifest->m_plugins) {
             std::string out;
 
             if (p.since > HLVER.commits && HLVER.commits >= 1000 /* for shallow clones, we can't check this. 1000 is an arbitrary number I chose. */) {
@@ -763,7 +763,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         if (repohash.length() > 0)
             repohash.pop_back();
         newrepo.hash = repohash;
-        for (auto const& p : pManifest->m_vPlugins) {
+        for (auto const& p : pManifest->m_plugins) {
             const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
             newrepo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }

@@ -131,7 +131,7 @@ bool NSys::root::removeRecursive(const std::string& path) {
     if (!verifyStringValid(path))
         return false;
 
-    std::error_code ec;
+    std::error_code   ec;
     const std::string PATH_ABSOLUTE = std::filesystem::canonical(path, ec);
 
     if (ec)
@@ -152,7 +152,7 @@ bool NSys::root::install(const std::string& what, const std::string& where, cons
     if (!std::ranges::all_of(mode, [](const char& c) { return c >= '0' && c <= '9'; }))
         return false;
 
-    CProcess proc(subin(), {"install", "-m" + mode, "-o", "root", "-g", "root", what, where });
+    CProcess proc(subin(), {"install", "-m" + mode, "-o", "root", "-g", "root", what, where});
 
     return proc.runSync() && proc.exitCode() == 0;
 }

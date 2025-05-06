@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <print>
 #include <filesystem>
-#include <optional>
+#include <algorithm>
 
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -20,7 +20,7 @@ inline constexpr std::array<std::string_view, 3> SUPERUSER_BINARIES = {
     "run0",
 };
 
-static std::string fetchSuperuserBins() {
+static std::string validSubinsAsStr() {
     std::ostringstream oss;
     auto               it = SUPERUSER_BINARIES.begin();
     if (it != SUPERUSER_BINARIES.end()) {
@@ -56,17 +56,30 @@ static bool executableExistsInPath(const std::string& exe) {
     return false;
 }
 
-static std::optional<std::pair<std::string, int>> execAndGet(std::string_view cmd, bool noRedirect = false) {
-    std::string command = std::string{cmd};
-    if (!noRedirect)
-        command += " 2>&1";
+static std::string subin() {
+    static std::string bin;
+    static bool        once = true;
+    if (!once)
+        return bin;
 
-    CProcess proc("/bin/sh", {"-c", command});
-    if (!proc.runSync())
-        // optional handles nullopt gracefully
-        return std::nullopt;
+    for (const auto& BIN : SUPERUSER_BINARIES) {
+        if (!executableExistsInPath(std::string{BIN}))
+            continue;
 
-    return {{proc.stdOut(), proc.exitCode()}};
+        bin = BIN;
+        break;
+    }
+
+    once = false;
+
+    if (bin.empty())
+        Debug::die("{}", failureString("No valid superuser binary present. Supported: {}", validSubinsAsStr()));
+
+    return bin;
+}
+
+static bool verifyStringValid(const std::string& s) {
+    return std::ranges::none_of(s, [](const char& c) { return c == '`' || c == '$' || c == '(' || c == ')' || c == '\'' || c == '"'; });
 }
 
 int NSys::getUID() {
@@ -85,39 +98,70 @@ bool NSys::isSuperuser() {
     return getuid() != geteuid() || geteuid() == 0;
 }
 
-std::string NSys::runAsSuperuser(const std::string& cmd) {
-    for (const auto& BIN : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(std::string{BIN}))
-            continue;
-
-        const auto result = execAndGet(std::string{BIN} + " /bin/sh -c \"" + cmd + "\"", true);
-        if (!result.has_value() || result->second != 0)
-            Debug::die("Failed to run a command as sudo. This could be due to an invalid password, or a hyprpm bug.");
-
-        return result->first;
-    }
-
-    Debug::die("{} {}", "Failed to find a superuser binary. Supported: ", fetchSuperuserBins());
-    return "";
-}
-
-void NSys::cacheSudo() {
+void NSys::root::cacheSudo() {
     // "caches" the sudo so that the prompt later doesn't pop up in a weird spot
     // sudo will not ask us again for a moment
-    runAsSuperuser("echo e > /dev/null");
+    CProcess proc(subin(), {"echo", "hyprland"});
+    proc.runSync();
 }
 
-void NSys::dropSudo() {
-    for (const auto& BIN : SUPERUSER_BINARIES) {
-        if (!executableExistsInPath(std::string{BIN}))
-            continue;
-
-        if (BIN == "sudo")
-            execAndGet("sudo -k");
-        else {
-            // note the superuser binary that is being dropped
-            std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", BIN));
-        }
+void NSys::root::dropSudo() {
+    if (subin() != "sudo") {
+        std::println("{}", infoString("Don't know how to drop timestamp for '{}', ignoring.", subin()));
         return;
     }
+
+    CProcess proc(subin(), {"-k"});
+    proc.runSync();
+}
+
+bool NSys::root::createDirectory(const std::string& path, const std::string& mode) {
+    if (!verifyStringValid(path))
+        return false;
+
+    if (!std::ranges::all_of(mode, [](const char& c) { return c >= '0' && c <= '9'; }))
+        return false;
+
+    CProcess proc(subin(), {"mkdir", "-p", "-m", mode, path});
+
+    return proc.runSync() && proc.exitCode() == 0;
+}
+
+bool NSys::root::removeRecursive(const std::string& path) {
+    if (!verifyStringValid(path))
+        return false;
+
+    std::error_code ec;
+    const std::string PATH_ABSOLUTE = std::filesystem::canonical(path, ec);
+
+    if (ec)
+        return false;
+
+    if (!PATH_ABSOLUTE.starts_with("/var/cache/hyprpm"))
+        return false;
+
+    CProcess proc(subin(), {"rm", "-fr", PATH_ABSOLUTE});
+
+    return proc.runSync() && proc.exitCode() == 0;
+}
+
+bool NSys::root::install(const std::string& what, const std::string& where, const std::string& mode) {
+    if (!verifyStringValid(what) || !verifyStringValid(where))
+        return false;
+
+    if (!std::ranges::all_of(mode, [](const char& c) { return c >= '0' && c <= '9'; }))
+        return false;
+
+    CProcess proc(subin(), {"install", "-m" + mode, "-o", "root", "-g", "root", what, where });
+
+    return proc.runSync() && proc.exitCode() == 0;
+}
+
+std::string NSys::root::runAsSuperuserUnsafe(const std::string& cmd) {
+    CProcess proc(subin(), {"/bin/sh", "-c", cmd});
+
+    if (!proc.runSync())
+        return "";
+
+    return proc.stdOut();
 }

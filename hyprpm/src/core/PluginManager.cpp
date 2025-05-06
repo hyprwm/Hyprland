@@ -566,13 +566,14 @@ bool CPluginManager::updateHeaders(bool force) {
 
     ret = execAndGet(cmd);
 
-    cmd = std::format("cd {} && make installheaders && chmod -R 644 {} && find {} -type d -exec chmod o+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
+    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod o+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
                       DataState::getHeadersPath());
 
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("install will run as sudo: {}", cmd));
 
-    ret = NSys::runAsSuperuser(cmd);
+    // WORKINGDIR and headersPath should not contain anything unsafe. Usernames can't contain cmd exec parts.
+    ret = NSys::root::runAsSuperuserUnsafe(cmd);
 
     if (m_bVerbose)
         std::println("{}", verboseString("installer returned: {}", ret));

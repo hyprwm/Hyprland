@@ -27,8 +27,8 @@ class CManifest {
         std::string                                      name;
         std::vector<std::string>                         authors;
         std::vector<std::pair<std::string, std::string>> commitPins;
-    } m_sRepository;
+    } m_repository;
 
-    std::vector<SManifestPlugin> m_vPlugins;
-    bool                         m_bGood = true;
+    std::vector<SManifestPlugin> m_plugins;
+    bool                         m_good = true;
 };

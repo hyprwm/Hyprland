@@ -610,6 +610,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:first_launch_animation", Hyprlang::INT{1});
+    registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});
 
     registerConfigVar("input:follow_mouse", Hyprlang::INT{1});
     registerConfigVar("input:follow_mouse_threshold", Hyprlang::FLOAT{0});

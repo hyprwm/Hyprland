@@ -53,6 +53,7 @@ enum eGetWindowProperties : uint8_t {
     ALLOW_FLOATING           = 1 << 4,
     USE_PROP_TILED           = 1 << 5,
     SKIP_FULLSCREEN_PRIORITY = 1 << 6,
+    FOLLOW_MOUSE_CHECK       = 1 << 7,
 };
 
 enum eSuppressEvents : uint8_t {

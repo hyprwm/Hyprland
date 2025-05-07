@@ -83,20 +83,20 @@ struct SPreparedShaders {
     std::string TEXVERTSRC;
     std::string TEXVERTSRC300;
     std::string TEXVERTSRC320;
-    CShader     m_shQUAD;
-    CShader     m_shRGBA;
-    CShader     m_shPASSTHRURGBA;
-    CShader     m_shMATTE;
-    CShader     m_shRGBX;
-    CShader     m_shEXT;
-    CShader     m_shBLUR1;
-    CShader     m_shBLUR2;
-    CShader     m_shBLURPREPARE;
-    CShader     m_shBLURFINISH;
-    CShader     m_shSHADOW;
-    CShader     m_shBORDER1;
-    CShader     m_shGLITCH;
-    CShader     m_shCM;
+    SShader     m_shQUAD;
+    SShader     m_shRGBA;
+    SShader     m_shPASSTHRURGBA;
+    SShader     m_shMATTE;
+    SShader     m_shRGBX;
+    SShader     m_shEXT;
+    SShader     m_shBLUR1;
+    SShader     m_shBLUR2;
+    SShader     m_shBLURPREPARE;
+    SShader     m_shBLURFINISH;
+    SShader     m_shSHADOW;
+    SShader     m_shBORDER1;
+    SShader     m_shGLITCH;
+    SShader     m_shCM;
 };
 
 struct SMonitorRenderData {
@@ -309,7 +309,7 @@ class CHyprOpenGLImpl {
     bool                    m_offloadedFramebuffer = false;
     bool                    m_cmSupported          = true;
 
-    CShader                 m_finalScreenShader;
+    SShader                 m_finalScreenShader;
     CTimer                  m_globalTimer;
 
     SP<CTexture>            m_missingAssetTexture;
@@ -334,9 +334,9 @@ class CHyprOpenGLImpl {
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
-    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
+    void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
                                  bool modifySDR = false);
-    void          passCMUniforms(const CShader&, const NColorManagement::SImageDescription& imageDescription);
+    void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);

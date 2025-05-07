@@ -519,10 +519,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
+    const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
+
     if (*PDIMAROUND && pWindow->m_windowData.dimAround.valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox                        monbox = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
         CRectPassElement::SRectData data;
-        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha);
+        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
         data.box   = monbox;
         m_renderPass.add(makeShared<CRectPassElement>(data));
     }
@@ -555,14 +557,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
+                wd->draw(pMonitor, fullAlpha);
             }
 
             for (auto const& wd : pWindow->m_windowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
+                wd->draw(pMonitor, fullAlpha);
             }
         }
 
@@ -603,7 +605,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
+                wd->draw(pMonitor, fullAlpha);
             }
         }
 
@@ -674,7 +676,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
+                wd->draw(pMonitor, fullAlpha);
             }
         }
     }

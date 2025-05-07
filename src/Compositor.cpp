@@ -872,6 +872,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     static auto PFOLLOWMSHRINK    = CConfigValue<Hyprlang::INT>("input:follow_mouse_shrink");
     const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
     const auto  HITBOX_SHRINK     = *PFOLLOWMSHRINK;
+    const auto  LASTFOCUSED       = m_lastWindow.lock();
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
@@ -880,7 +881,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
 
-                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0)
+                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
                     box = box.copy().expand(-HITBOX_SHRINK);
 
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -923,7 +924,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     const auto BB  = w->getWindowBoxUnified(properties);
                     CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
 
-                    if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0)
+                    if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
                         box = box.copy().expand(-HITBOX_SHRINK);
 
                     if (box.containsPoint(g_pPointerManager->position())) {
@@ -993,7 +994,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 w != pIgnoreWindow) {
                 CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
 
-                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0)
+                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
                     box = box.copy().expand(-HITBOX_SHRINK);
 
                 if (box.containsPoint(pos))

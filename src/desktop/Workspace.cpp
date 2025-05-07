@@ -47,7 +47,6 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            // static member called with class rather than using g_pKeybindManager
             CKeybindManager::spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});

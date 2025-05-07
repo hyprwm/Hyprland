@@ -30,7 +30,7 @@ static std::string resolveRule(const std::string& rule) {
 CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) :
     m_value(value), m_rule(resolveRule(rule)), m_v2(isV2), m_execRule(isExecRule) {
     const auto VALS  = CVarList(rule, 2, ' ');
-    const bool VALID = RULES.contains(rule) || std::ranges::any_of(RULES_PREFIX.begin(), RULES_PREFIX.end(), [&rule](auto prefix) { return rule.starts_with(prefix); }) ||
+    const bool VALID = RULES.contains(rule) || std::ranges::any_of(RULES_PREFIX, [&rule](auto prefix) { return rule.starts_with(prefix); }) ||
         (NWindowProperties::boolWindowProperties.contains(VALS[0])) || (NWindowProperties::intWindowProperties.contains(VALS[0])) ||
         (NWindowProperties::floatWindowProperties.contains(VALS[0]));
 

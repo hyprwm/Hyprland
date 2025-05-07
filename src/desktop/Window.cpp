@@ -5,7 +5,6 @@
 #include <any>
 #include <bit>
 #include <string_view>
-#include <algorithm>
 #include "Window.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprDropShadowDecoration.hpp"
@@ -291,7 +290,7 @@ void CWindow::updateWindowDecos() {
     }
 
     for (auto const& wd : decos) {
-        if (std::ranges::find_if(m_windowDecorations.begin(), m_windowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
+        if (std::ranges::find_if(m_windowDecorations, [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
             continue;
         wd->updateWindow(m_self.lock());
     }

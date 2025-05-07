@@ -218,7 +218,7 @@ pid_t CANRManager::SANRData::getPid() const {
     }
 
     if (xwaylandSurface)
-        return xwaylandSurface->pid;
+        return xwaylandSurface->m_pid;
 
     return 0;
 }

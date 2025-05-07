@@ -7,12 +7,12 @@
 #include <fcntl.h>
 using namespace Hyprutils::OS;
 
-CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
-    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection,
+CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
+    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->m_wm->m_connection,
                                                         1, // delete
-                                                        selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
+                                                        m_selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
 
-    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection, cookie, nullptr);
+    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, cookie, nullptr);
     if (!reply)
         return;
 
@@ -24,28 +24,28 @@ CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
     auto value = (xcb_atom_t*)xcb_get_property_value(reply);
     for (uint32_t i = 0; i < reply->value_len; i++) {
         if (value[i] == HYPRATOMS["UTF8_STRING"])
-            mimeTypes.emplace_back("text/plain;charset=utf-8");
+            m_mimeTypes.emplace_back("text/plain;charset=utf-8");
         else if (value[i] == HYPRATOMS["TEXT"])
-            mimeTypes.emplace_back("text/plain");
+            m_mimeTypes.emplace_back("text/plain");
         else if (value[i] != HYPRATOMS["TARGETS"] && value[i] != HYPRATOMS["TIMESTAMP"]) {
 
-            auto type = g_pXWayland->pWM->mimeFromAtom(value[i]);
+            auto type = g_pXWayland->m_wm->mimeFromAtom(value[i]);
 
             if (type == "INVALID")
                 continue;
 
-            mimeTypes.push_back(type);
+            m_mimeTypes.push_back(type);
         } else
             continue;
 
-        mimeAtoms.push_back(value[i]);
+        m_mimeAtoms.push_back(value[i]);
     }
 
     free(reply);
 }
 
 std::vector<std::string> CXDataSource::mimes() {
-    return mimeTypes;
+    return m_mimeTypes;
 }
 
 void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
@@ -56,9 +56,9 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     else if (mime == "text/plain;charset=utf-8")
         mimeAtom = HYPRATOMS["UTF8_STRING"];
     else {
-        for (size_t i = 0; i < mimeTypes.size(); ++i) {
-            if (mimeTypes[i] == mime) {
-                mimeAtom = mimeAtoms[i];
+        for (size_t i = 0; i < m_mimeTypes.size(); ++i) {
+            if (m_mimeTypes[i] == mime) {
+                mimeAtom = m_mimeAtoms[i];
                 break;
             }
         }
@@ -71,26 +71,26 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
 
     Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
 
-    auto transfer            = makeUnique<SXTransfer>(selection);
-    transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
+    auto transfer            = makeUnique<SXTransfer>(m_selection);
+    transfer->incomingWindow = xcb_generate_id(g_pXWayland->m_wm->m_connection);
     const uint32_t MASK      = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                      g_pXWayland->pWM->screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
+    xcb_create_window(g_pXWayland->m_wm->m_connection, XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->m_wm->m_screen->root, 0, 0, 10, 10, 0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT, g_pXWayland->m_wm->m_screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
 
     xcb_atom_t selection_atom = HYPRATOMS["CLIPBOARD"];
-    if (&selection == &g_pXWayland->pWM->primarySelection)
+    if (&m_selection == &g_pXWayland->m_wm->m_primarySelection)
         selection_atom = HYPRATOMS["PRIMARY"];
-    else if (&selection == &g_pXWayland->pWM->dndSelection)
+    else if (&m_selection == &g_pXWayland->m_wm->m_dndSelection)
         selection_atom = HYPRATOMS["XdndSelection"];
 
-    xcb_convert_selection(g_pXWayland->pWM->connection, transfer->incomingWindow, selection_atom, mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
+    xcb_convert_selection(g_pXWayland->m_wm->m_connection, transfer->incomingWindow, selection_atom, mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 
     //TODO: make CFileDescriptor setflags take SETFL aswell
     fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);
     transfer->wlFD = std::move(fd);
-    selection.transfers.emplace_back(std::move(transfer));
+    m_selection.transfers.emplace_back(std::move(transfer));
 }
 
 void CXDataSource::accepted(const std::string& mime) {

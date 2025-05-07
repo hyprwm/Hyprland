@@ -26,9 +26,9 @@ CXWayland::CXWayland(const bool wantsEnabled) {
 
     Debug::log(LOG, "Starting up the XWayland server");
 
-    pServer = makeUnique<CXWaylandServer>();
+    m_server = makeUnique<CXWaylandServer>();
 
-    if (!pServer->create()) {
+    if (!m_server->create()) {
         Debug::log(ERR, "XWayland failed to start: it will not work.");
         return;
     }
@@ -41,12 +41,12 @@ CXWayland::CXWayland(const bool wantsEnabled) {
 
 void CXWayland::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot) {
 #ifndef NO_XWAYLAND
-    if (!pWM) {
+    if (!m_wm) {
         Debug::log(ERR, "Couldn't set XCursor: no XWM yet");
         return;
     }
 
-    pWM->setCursor(pixData, stride, size, hotspot);
+    m_wm->setCursor(pixData, stride, size, hotspot);
 #endif
 }
 

@@ -36,15 +36,15 @@ void CX11DataDevice::sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xc
         .data          = data,
     };
 
-    xcb_send_event(g_pXWayland->pWM->connection, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_send_event(g_pXWayland->m_wm->m_connection, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 }
 
 xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
     xcb_window_t              targetWindow = window;
     xcb_get_property_cookie_t proxyCookie =
-        xcb_get_property(g_pXWayland->pWM->connection, PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
-    xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->pWM->connection, proxyCookie, nullptr);
+        xcb_get_property(g_pXWayland->m_wm->m_connection, PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
+    xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, proxyCookie, nullptr);
 
     const auto                isValidPropertyReply = [](xcb_get_property_reply_t* reply) {
         return reply && reply->type == XCB_ATOM_WINDOW && reply->format == PROPERTY_FORMAT_32BIT && xcb_get_property_value_length(reply) == sizeof(xcb_window_t);
@@ -54,8 +54,8 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
         xcb_window_t              proxyWindow = *(xcb_window_t*)xcb_get_property_value(proxyReply);
 
         xcb_get_property_cookie_t proxyVerifyCookie =
-            xcb_get_property(g_pXWayland->pWM->connection, PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
-        xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->pWM->connection, proxyVerifyCookie, nullptr);
+            xcb_get_property(g_pXWayland->m_wm->m_connection, PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
+        xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, proxyVerifyCookie, nullptr);
 
         if (isValidPropertyReply(proxyVerifyReply)) {
             xcb_window_t verifyWindow = *(xcb_window_t*)xcb_get_property_value(proxyVerifyReply);
@@ -81,16 +81,16 @@ SP<CWLDataOfferResource> CX11DataOffer::getWayland() {
 }
 
 SP<CX11DataOffer> CX11DataOffer::getX11() {
-    return self.lock();
+    return m_self.lock();
 }
 
 SP<IDataSource> CX11DataOffer::getSource() {
-    return source.lock();
+    return m_source.lock();
 }
 
 void CX11DataOffer::markDead() {
 #ifndef NO_XWAYLAND
-    std::erase(g_pXWayland->pWM->dndDataOffers, self);
+    std::erase(g_pXWayland->m_wm->m_dndDataOffers, m_self);
 #endif
 }
 
@@ -100,7 +100,7 @@ void CX11DataDevice::sendDataOffer(SP<IDataOffer> offer) {
 
 void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
 #ifndef NO_XWAYLAND
-    auto XSURF = g_pXWayland->pWM->windowForWayland(surf);
+    auto XSURF = g_pXWayland->m_wm->windowForWayland(surf);
 
     if (!XSURF) {
         Debug::log(ERR, "CX11DataDevice::sendEnter: No xwayland surface for destination");
@@ -118,54 +118,54 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
     // reserve to avoid reallocations
     targets.reserve(SOURCE->mimes().size());
     for (auto const& m : SOURCE->mimes()) {
-        targets.push_back(g_pXWayland->pWM->mimeToAtom(m));
+        targets.push_back(g_pXWayland->m_wm->mimeToAtom(m));
     }
 
-    xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndTypeList"], XCB_ATOM_ATOM, 32, targets.size(),
-                        targets.data());
+    xcb_change_property(g_pXWayland->m_wm->m_connection, XCB_PROP_MODE_REPLACE, g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndTypeList"], XCB_ATOM_ATOM, 32,
+                        targets.size(), targets.data());
 
-    xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 
-    xcb_window_t              targetWindow = getProxyWindow(XSURF->xID);
+    xcb_window_t              targetWindow = getProxyWindow(XSURF->m_xID);
 
     xcb_client_message_data_t data = {{0}};
-    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
+    data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;
     data.data32[1]                 = XDND_VERSION << 24;
     data.data32[1] |= 1;
 
     sendDndEvent(targetWindow, HYPRATOMS["XdndEnter"], data);
 
-    lastSurface = XSURF;
-    lastOffer   = offer;
+    m_lastSurface = XSURF;
+    m_lastOffer   = offer;
 
-    auto hlSurface = XSURF->surface.lock();
+    auto hlSurface = XSURF->m_surface.lock();
     if (!hlSurface) {
         Debug::log(ERR, "CX11DataDevice::sendEnter: Non desktop x surface?!");
-        lastSurfaceCoords = {};
+        m_lastSurfaceCoords = {};
         return;
     }
 
-    lastSurfaceCoords = g_pXWaylandManager->xwaylandToWaylandCoords(XSURF->geometry.pos());
+    m_lastSurfaceCoords = g_pXWaylandManager->xwaylandToWaylandCoords(XSURF->m_geometry.pos());
 #endif
 }
 
 void CX11DataDevice::cleanupState() {
-    lastSurface.reset();
-    lastOffer.reset();
-    lastSurfaceCoords = {};
-    lastTime          = 0;
+    m_lastSurface.reset();
+    m_lastOffer.reset();
+    m_lastSurfaceCoords = {};
+    m_lastTime          = 0;
 }
 
 void CX11DataDevice::sendLeave() {
 #ifndef NO_XWAYLAND
-    if (!lastSurface)
+    if (!m_lastSurface)
         return;
 
-    xcb_window_t              targetWindow = getProxyWindow(lastSurface->xID);
+    xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
     xcb_client_message_data_t data = {{0}};
-    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
+    data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;
 
     sendDndEvent(targetWindow, HYPRATOMS["XdndLeave"], data);
 
@@ -175,38 +175,38 @@ void CX11DataDevice::sendLeave() {
 
 void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 #ifndef NO_XWAYLAND
-    if (!lastSurface || !lastOffer || !lastOffer->getSource())
+    if (!m_lastSurface || !m_lastOffer || !m_lastOffer->getSource())
         return;
 
-    xcb_window_t              targetWindow = getProxyWindow(lastSurface->xID);
+    xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
-    const auto                XCOORDS = g_pXWaylandManager->waylandToXWaylandCoords(lastSurfaceCoords + local);
+    const auto                XCOORDS = g_pXWaylandManager->waylandToXWaylandCoords(m_lastSurfaceCoords + local);
     const uint32_t            coords  = ((uint32_t)XCOORDS.x << 16) | (uint32_t)XCOORDS.y;
 
     xcb_client_message_data_t data = {{0}};
-    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
+    data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;
     data.data32[2]                 = coords;
     data.data32[3]                 = timeMs;
-    data.data32[4]                 = dndActionToAtom(lastOffer->getSource()->actions());
+    data.data32[4]                 = dndActionToAtom(m_lastOffer->getSource()->actions());
 
     sendDndEvent(targetWindow, HYPRATOMS["XdndPosition"], data);
 
-    lastTime = timeMs;
+    m_lastTime = timeMs;
 #endif
 }
 
 void CX11DataDevice::sendDrop() {
 #ifndef NO_XWAYLAND
-    if (!lastSurface || !lastOffer) {
+    if (!m_lastSurface || !m_lastOffer) {
         Debug::log(ERR, "CX11DataDevice::sendDrop: No surface or offer");
         return;
     }
 
-    xcb_window_t              targetWindow = getProxyWindow(lastSurface->xID);
+    xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
     xcb_client_message_data_t data = {{0}};
-    data.data32[0]                 = g_pXWayland->pWM->dndSelection.window;
-    data.data32[2]                 = lastTime;
+    data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;
+    data.data32[2]                 = m_lastTime;
 
     sendDndEvent(targetWindow, HYPRATOMS["XdndDrop"], data);
 
@@ -227,11 +227,11 @@ SP<CWLDataDeviceResource> CX11DataDevice::getWayland() {
 }
 
 SP<CX11DataDevice> CX11DataDevice::getX11() {
-    return self.lock();
+    return m_self.lock();
 }
 
 std::vector<std::string> CX11DataSource::mimes() {
-    return mimeTypes;
+    return m_mimeTypes;
 }
 
 void CX11DataSource::send(const std::string& mime, CFileDescriptor fd) {
@@ -243,30 +243,30 @@ void CX11DataSource::accepted(const std::string& mime) {
 }
 
 void CX11DataSource::cancelled() {
-    dndSuccess = false;
-    dropped    = false;
+    m_dndSuccess = false;
+    m_dropped    = false;
 }
 
 bool CX11DataSource::hasDnd() {
-    return dnd;
+    return m_dnd;
 }
 
 bool CX11DataSource::dndDone() {
-    return dropped;
+    return m_dropped;
 }
 
 void CX11DataSource::error(uint32_t code, const std::string& msg) {
     Debug::log(ERR, "CX11DataSource error: code {} msg {}", code, msg);
-    dndSuccess = false;
-    dropped    = false;
+    m_dndSuccess = false;
+    m_dropped    = false;
 }
 
 void CX11DataSource::sendDndFinished() {
-    dndSuccess = true;
+    m_dndSuccess = true;
 }
 
 uint32_t CX11DataSource::actions() {
-    return supportedActions;
+    return m_supportedActions;
 }
 
 eDataSourceType CX11DataSource::type() {
@@ -274,7 +274,7 @@ eDataSourceType CX11DataSource::type() {
 }
 
 void CX11DataSource::sendDndDropPerformed() {
-    dropped = true;
+    m_dropped = true;
 }
 
 void CX11DataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
@@ -283,16 +283,16 @@ void CX11DataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
 
 void CX11DataDevice::forceCleanupDnd() {
 #ifndef NO_XWAYLAND
-    if (lastOffer) {
-        auto source = lastOffer->getSource();
+    if (m_lastOffer) {
+        auto source = m_lastOffer->getSource();
         if (source) {
             source->cancelled();
             source->sendDndFinished();
         }
     }
 
-    xcb_set_selection_owner(g_pXWayland->pWM->connection, XCB_ATOM_NONE, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, XCB_ATOM_NONE, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 
     cleanupState();
 

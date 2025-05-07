@@ -131,8 +131,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
         if (pWindow->m_isX11 && pWindow->isX11OverrideRedirect()) {
 
-            if (pWindow->m_xwaylandSurface->geometry.x != 0 && pWindow->m_xwaylandSurface->geometry.y != 0)
-                *pWindow->m_realPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_xwaylandSurface->geometry.pos());
+            if (pWindow->m_xwaylandSurface->m_geometry.x != 0 && pWindow->m_xwaylandSurface->m_geometry.y != 0)
+                *pWindow->m_realPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_xwaylandSurface->m_geometry.pos());
             else
                 *pWindow->m_realPosition = Vector2D(PMONITOR->m_position.x + (PMONITOR->m_size.x - pWindow->m_realSize->goal().x) / 2.f,
                                                     PMONITOR->m_position.y + (PMONITOR->m_size.y - pWindow->m_realSize->goal().y) / 2.f);

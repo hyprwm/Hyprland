@@ -172,12 +172,12 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
 }
 
 static void startServer(void* data) {
-    if (!g_pXWayland->pServer->start())
+    if (!g_pXWayland->m_server->start())
         Debug::log(ERR, "The XWayland server could not start! XWayland will not work...");
 }
 
 static int xwaylandReady(int fd, uint32_t mask, void* data) {
-    return g_pXWayland->pServer->ready(fd, mask);
+    return g_pXWayland->m_server->ready(fd, mask);
 }
 
 static bool safeRemove(const std::string& path) {
@@ -194,7 +194,7 @@ bool CXWaylandServer::tryOpenSockets() {
         CFileDescriptor fd{open(lockPath.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, LOCK_FILE_MODE)};
         if (fd.isValid()) {
             // we managed to open the lock
-            if (!openSockets(xFDs, i)) {
+            if (!openSockets(m_xFDs, i)) {
                 safeRemove(lockPath);
                 continue;
             }
@@ -205,8 +205,8 @@ bool CXWaylandServer::tryOpenSockets() {
                 continue;
             }
 
-            display     = i;
-            displayName = std::format(":{}", display);
+            m_display     = i;
+            m_displayName = std::format(":{}", m_display);
             break;
         }
 
@@ -230,12 +230,12 @@ bool CXWaylandServer::tryOpenSockets() {
         }
     }
 
-    if (display < 0) {
+    if (m_display < 0) {
         Debug::log(ERR, "Failed to find a suitable socket for XWayland");
         return false;
     }
 
-    Debug::log(LOG, "XWayland found a suitable display socket at DISPLAY: {}", displayName);
+    Debug::log(LOG, "XWayland found a suitable display socket at DISPLAY: {}", m_displayName);
     return true;
 }
 
@@ -245,63 +245,63 @@ CXWaylandServer::CXWaylandServer() {
 
 CXWaylandServer::~CXWaylandServer() {
     die();
-    if (display < 0)
+    if (m_display < 0)
         return;
 
-    std::string lockPath = std::format("/tmp/.X{}-lock", display);
+    std::string lockPath = std::format("/tmp/.X{}-lock", m_display);
     safeRemove(lockPath);
 
     std::string path;
     for (bool isLinux : {true, false}) {
-        path = getSocketPath(display, isLinux);
+        path = getSocketPath(m_display, isLinux);
         safeRemove(path);
     }
 }
 
 void CXWaylandServer::die() {
-    if (display < 0)
+    if (m_display < 0)
         return;
 
-    if (xFDReadEvents[0]) {
-        wl_event_source_remove(xFDReadEvents[0]);
-        wl_event_source_remove(xFDReadEvents[1]);
-        xFDReadEvents = {nullptr, nullptr};
+    if (m_xFDReadEvents[0]) {
+        wl_event_source_remove(m_xFDReadEvents[0]);
+        wl_event_source_remove(m_xFDReadEvents[1]);
+        m_xFDReadEvents = {nullptr, nullptr};
     }
 
-    if (pipeSource)
-        wl_event_source_remove(pipeSource);
+    if (m_pipeSource)
+        wl_event_source_remove(m_pipeSource);
 
     // possible crash. Better to leak a bit.
     //if (xwaylandClient)
     //    wl_client_destroy(xwaylandClient);
 
-    xwaylandClient = nullptr;
+    m_xwaylandClient = nullptr;
 }
 
 bool CXWaylandServer::create() {
     if (!tryOpenSockets())
         return false;
 
-    setenv("DISPLAY", displayName.c_str(), true);
+    setenv("DISPLAY", m_displayName.c_str(), true);
 
     // TODO: lazy mode
 
-    idleSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, ::startServer, nullptr);
+    m_idleSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, ::startServer, nullptr);
 
     return true;
 }
 
 void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
-    if (!xFDs[0].setFlags(xFDs[0].getFlags() & ~FD_CLOEXEC) || !xFDs[1].setFlags(xFDs[1].getFlags() & ~FD_CLOEXEC) ||
-        !waylandFDs[1].setFlags(waylandFDs[1].getFlags() & ~FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() & ~FD_CLOEXEC)) {
+    if (!m_xFDs[0].setFlags(m_xFDs[0].getFlags() & ~FD_CLOEXEC) || !m_xFDs[1].setFlags(m_xFDs[1].getFlags() & ~FD_CLOEXEC) ||
+        !m_waylandFDs[1].setFlags(m_waylandFDs[1].getFlags() & ~FD_CLOEXEC) || !m_xwmFDs[1].setFlags(m_xwmFDs[1].getFlags() & ~FD_CLOEXEC)) {
         Debug::log(ERR, "Failed to unset cloexec on fds");
         _exit(EXIT_FAILURE);
     }
 
-    auto cmd =
-        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.get(), xwmFDs[1].get());
+    auto cmd = std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", m_displayName, m_xFDs[0].get(), m_xFDs[1].get(), notifyFD.get(),
+                           m_xwmFDs[1].get());
 
-    auto waylandSocket = std::format("{}", waylandFDs[1].get());
+    auto waylandSocket = std::format("{}", m_waylandFDs[1].get());
     setenv("WAYLAND_SOCKET", waylandSocket.c_str(), true);
 
     Debug::log(LOG, "Starting XWayland with \"{}\", bon voyage!", cmd);
@@ -313,17 +313,17 @@ void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
 }
 
 bool CXWaylandServer::start() {
-    idleSource    = nullptr;
+    m_idleSource  = nullptr;
     int wlPair[2] = {-1, -1};
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, wlPair) != 0) {
         Debug::log(ERR, "socketpair failed (1)");
         die();
         return false;
     }
-    waylandFDs[0] = CFileDescriptor{wlPair[0]};
-    waylandFDs[1] = CFileDescriptor{wlPair[1]};
+    m_waylandFDs[0] = CFileDescriptor{wlPair[0]};
+    m_waylandFDs[1] = CFileDescriptor{wlPair[1]};
 
-    if (!waylandFDs[0].setFlags(waylandFDs[0].getFlags() | FD_CLOEXEC) || !waylandFDs[1].setFlags(waylandFDs[1].getFlags() | FD_CLOEXEC)) {
+    if (!m_waylandFDs[0].setFlags(m_waylandFDs[0].getFlags() | FD_CLOEXEC) || !m_waylandFDs[1].setFlags(m_waylandFDs[1].getFlags() | FD_CLOEXEC)) {
         Debug::log(ERR, "set_cloexec failed (1)");
         die();
         return false;
@@ -336,23 +336,23 @@ bool CXWaylandServer::start() {
         return false;
     }
 
-    xwmFDs[0] = CFileDescriptor{xwmPair[0]};
-    xwmFDs[1] = CFileDescriptor{xwmPair[1]};
+    m_xwmFDs[0] = CFileDescriptor{xwmPair[0]};
+    m_xwmFDs[1] = CFileDescriptor{xwmPair[1]};
 
-    if (!xwmFDs[0].setFlags(xwmFDs[0].getFlags() | FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() | FD_CLOEXEC)) {
+    if (!m_xwmFDs[0].setFlags(m_xwmFDs[0].getFlags() | FD_CLOEXEC) || !m_xwmFDs[1].setFlags(m_xwmFDs[1].getFlags() | FD_CLOEXEC)) {
         Debug::log(ERR, "set_cloexec failed (2)");
         die();
         return false;
     }
 
-    xwaylandClient = wl_client_create(g_pCompositor->m_wlDisplay, waylandFDs[0].get());
-    if (!xwaylandClient) {
+    m_xwaylandClient = wl_client_create(g_pCompositor->m_wlDisplay, m_waylandFDs[0].get());
+    if (!m_xwaylandClient) {
         Debug::log(ERR, "wl_client_create failed");
         die();
         return false;
     }
 
-    waylandFDs[0].take(); // wl_client owns this fd now
+    m_waylandFDs[0].take(); // wl_client owns this fd now
 
     int notify[2] = {-1, -1};
     if (pipe(notify) < 0) {
@@ -369,8 +369,8 @@ bool CXWaylandServer::start() {
         return false;
     }
 
-    pipeSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, notifyFds[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
-    pipeFd     = std::move(notifyFds[0]);
+    m_pipeSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, notifyFds[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
+    m_pipeFd     = std::move(notifyFds[0]);
 
     auto serverPID = fork();
     if (serverPID < 0) {
@@ -400,19 +400,19 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
     // if we don't have readable here, it failed
     if (!(mask & WL_EVENT_READABLE)) {
         Debug::log(ERR, "Xwayland: startup failed, not setting up xwm");
-        g_pXWayland->pServer.reset();
+        g_pXWayland->m_server.reset();
         return 1;
     }
 
     Debug::log(LOG, "XWayland is ready");
 
-    wl_event_source_remove(pipeSource);
-    pipeFd.reset();
-    pipeSource = nullptr;
+    wl_event_source_remove(m_pipeSource);
+    m_pipeFd.reset();
+    m_pipeSource = nullptr;
 
     // start the wm
-    if (!g_pXWayland->pWM)
-        g_pXWayland->pWM = makeUnique<CXWM>();
+    if (!g_pXWayland->m_wm)
+        g_pXWayland->m_wm = makeUnique<CXWM>();
 
     g_pCursorManager->setXWaylandCursor();
 

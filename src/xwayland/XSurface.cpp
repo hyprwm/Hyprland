@@ -9,19 +9,19 @@
 
 #include <ranges>
 
-CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
+CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_xID(xID_), m_geometry(geometry_), m_overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};
-    if (g_pXWayland->pWM->xres) {
-        xcb_res_client_id_spec_t spec = {.client = xID, .mask = XCB_RES_CLIENT_ID_MASK_LOCAL_CLIENT_PID};
-        client_id_cookie              = xcb_res_query_client_ids(g_pXWayland->pWM->connection, 1, &spec);
+    if (g_pXWayland->m_wm->m_xres) {
+        xcb_res_client_id_spec_t spec = {.client = m_xID, .mask = XCB_RES_CLIENT_ID_MASK_LOCAL_CLIENT_PID};
+        client_id_cookie              = xcb_res_query_client_ids(g_pXWayland->m_wm->m_connection, 1, &spec);
     }
 
     uint32_t values[1];
     values[0] = XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes(g_pXWayland->pWM->connection, xID, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(g_pXWayland->m_wm->m_connection, m_xID, XCB_CW_EVENT_MASK, values);
 
-    if (g_pXWayland->pWM->xres) {
-        xcb_res_query_client_ids_reply_t* reply = xcb_res_query_client_ids_reply(g_pXWayland->pWM->connection, client_id_cookie, nullptr);
+    if (g_pXWayland->m_wm->m_xres) {
+        xcb_res_query_client_ids_reply_t* reply = xcb_res_query_client_ids_reply(g_pXWayland->m_wm->m_connection, client_id_cookie, nullptr);
         if (!reply)
             return;
 
@@ -38,101 +38,101 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
             free(reply);
             return;
         }
-        pid = *ppid;
+        m_pid = *ppid;
         free(reply);
     }
 
-    events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensureListeners(); }, nullptr);
+    m_events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensureListeners(); }, nullptr);
 }
 
 void CXWaylandSurface::ensureListeners() {
-    bool connected = listeners.destroySurface;
+    bool connected = m_listeners.destroySurface;
 
-    if (connected && !surface) {
-        listeners.destroySurface.reset();
-        listeners.commitSurface.reset();
-    } else if (!connected && surface) {
-        listeners.destroySurface = surface->m_events.destroy.registerListener([this](std::any d) {
-            if (mapped)
+    if (connected && !m_surface) {
+        m_listeners.destroySurface.reset();
+        m_listeners.commitSurface.reset();
+    } else if (!connected && m_surface) {
+        m_listeners.destroySurface = m_surface->m_events.destroy.registerListener([this](std::any d) {
+            if (m_mapped)
                 unmap();
 
-            surface.reset();
-            listeners.destroySurface.reset();
-            listeners.commitSurface.reset();
-            events.resourceChange.emit();
+            m_surface.reset();
+            m_listeners.destroySurface.reset();
+            m_listeners.commitSurface.reset();
+            m_events.resourceChange.emit();
         });
 
-        listeners.commitSurface = surface->m_events.commit.registerListener([this](std::any d) {
-            if (surface->m_current.texture && !mapped) {
+        m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {
+            if (m_surface->m_current.texture && !m_mapped) {
                 map();
                 return;
             }
 
-            if (!surface->m_current.texture && mapped) {
+            if (!m_surface->m_current.texture && m_mapped) {
                 unmap();
                 return;
             }
 
-            events.commit.emit();
+            m_events.commit.emit();
         });
     }
 
-    if (resource) {
-        listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
+    if (m_resource) {
+        m_listeners.destroyResource = m_resource->events.destroy.registerListener([this](std::any d) {
             unmap();
-            surface.reset();
-            events.resourceChange.emit();
+            m_surface.reset();
+            m_events.resourceChange.emit();
         });
     }
 }
 
 void CXWaylandSurface::map() {
-    if (mapped)
+    if (m_mapped)
         return;
 
-    ASSERT(surface);
+    ASSERT(m_surface);
 
-    g_pXWayland->pWM->mappedSurfaces.emplace_back(self);
-    g_pXWayland->pWM->mappedSurfacesStacking.emplace_back(self);
+    g_pXWayland->m_wm->m_mappedSurfaces.emplace_back(m_self);
+    g_pXWayland->m_wm->m_mappedSurfacesStacking.emplace_back(m_self);
 
-    mapped = true;
-    surface->map();
+    m_mapped = true;
+    m_surface->map();
 
     Debug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
 
-    events.map.emit();
+    m_events.map.emit();
 
-    g_pXWayland->pWM->updateClientList();
+    g_pXWayland->m_wm->updateClientList();
 }
 
 void CXWaylandSurface::unmap() {
-    if (!mapped)
+    if (!m_mapped)
         return;
 
-    ASSERT(surface);
+    ASSERT(m_surface);
 
-    std::erase(g_pXWayland->pWM->mappedSurfaces, self);
-    std::erase(g_pXWayland->pWM->mappedSurfacesStacking, self);
+    std::erase(g_pXWayland->m_wm->m_mappedSurfaces, m_self);
+    std::erase(g_pXWayland->m_wm->m_mappedSurfacesStacking, m_self);
 
-    mapped = false;
-    events.unmap.emit();
-    surface->unmap();
+    m_mapped = false;
+    m_events.unmap.emit();
+    m_surface->unmap();
 
     Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
 
-    g_pXWayland->pWM->updateClientList();
+    g_pXWayland->m_wm->updateClientList();
 }
 
 void CXWaylandSurface::considerMap() {
-    if (mapped)
+    if (m_mapped)
         return;
 
-    if (!surface) {
+    if (!m_surface) {
         Debug::log(LOG, "XWayland surface: considerMap, nope, no surface");
         return;
     }
 
-    if (surface->m_current.texture) {
+    if (m_surface->m_current.texture) {
         Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;
@@ -142,7 +142,7 @@ void CXWaylandSurface::considerMap() {
 }
 
 bool CXWaylandSurface::wantsFocus() {
-    if (atoms.empty())
+    if (m_atoms.empty())
         return true;
 
     const std::array<uint32_t, 10> search = {
@@ -153,7 +153,7 @@ bool CXWaylandSurface::wantsFocus() {
     };
 
     for (auto const& searched : search) {
-        for (auto const& a : atoms) {
+        for (auto const& a : m_atoms) {
             if (a == searched)
                 return false;
         }
@@ -163,110 +163,110 @@ bool CXWaylandSurface::wantsFocus() {
 }
 
 void CXWaylandSurface::configure(const CBox& box) {
-    Vector2D oldSize = geometry.size();
+    Vector2D oldSize = m_geometry.size();
 
-    geometry = box;
+    m_geometry = box;
 
     uint32_t mask     = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
     uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
-    xcb_configure_window(g_pXWayland->pWM->connection, xID, mask, values);
+    xcb_configure_window(g_pXWayland->m_wm->m_connection, m_xID, mask, values);
 
-    if (geometry.width == box.width && geometry.height == box.height) {
+    if (m_geometry.width == box.width && m_geometry.height == box.height) {
         // ICCCM requires a synthetic event when window size is not changed
         xcb_configure_notify_event_t e;
         e.response_type     = XCB_CONFIGURE_NOTIFY;
-        e.event             = xID;
-        e.window            = xID;
+        e.event             = m_xID;
+        e.window            = m_xID;
         e.x                 = box.x;
         e.y                 = box.y;
         e.width             = box.width;
         e.height            = box.height;
         e.border_width      = 0;
         e.above_sibling     = XCB_NONE;
-        e.override_redirect = overrideRedirect;
-        xcb_send_event(g_pXWayland->pWM->connection, false, xID, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char*)&e);
+        e.override_redirect = m_overrideRedirect;
+        xcb_send_event(g_pXWayland->m_wm->m_connection, false, m_xID, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char*)&e);
     }
 
-    g_pXWayland->pWM->updateClientList();
+    g_pXWayland->m_wm->updateClientList();
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 }
 
 void CXWaylandSurface::activate(bool activate) {
-    if (overrideRedirect && !activate)
+    if (m_overrideRedirect && !activate)
         return;
-    g_pXWayland->pWM->activateSurface(self.lock(), activate);
+    g_pXWayland->m_wm->activateSurface(m_self.lock(), activate);
 }
 
 void CXWaylandSurface::setFullscreen(bool fs) {
-    fullscreen = fs;
-    g_pXWayland->pWM->sendState(self.lock());
+    m_fullscreen = fs;
+    g_pXWayland->m_wm->sendState(m_self.lock());
 }
 
 void CXWaylandSurface::setMinimized(bool mz) {
-    minimized = mz;
-    g_pXWayland->pWM->sendState(self.lock());
+    m_minimized = mz;
+    g_pXWayland->m_wm->sendState(m_self.lock());
 }
 
 void CXWaylandSurface::restackToTop() {
     uint32_t values[1] = {XCB_STACK_MODE_ABOVE};
 
-    xcb_configure_window(g_pXWayland->pWM->connection, xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_configure_window(g_pXWayland->m_wm->m_connection, m_xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
-    auto& stack = g_pXWayland->pWM->mappedSurfacesStacking;
-    auto  it    = std::find(stack.begin(), stack.end(), self);
+    auto& stack = g_pXWayland->m_wm->m_mappedSurfacesStacking;
+    auto  it    = std::find(stack.begin(), stack.end(), m_self);
 
     if (it != stack.end())
         std::rotate(it, it + 1, stack.end());
 
-    g_pXWayland->pWM->updateClientList();
+    g_pXWayland->m_wm->updateClientList();
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->m_wm->m_connection);
 }
 
 void CXWaylandSurface::close() {
     xcb_client_message_data_t msg = {};
     msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
     msg.data32[1]                 = XCB_CURRENT_TIME;
-    g_pXWayland->pWM->sendWMMessage(self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
+    g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
 }
 
 void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
-    withdrawn                   = withdrawn_;
+    m_withdrawn                 = withdrawn_;
     std::vector<uint32_t> props = {XCB_ICCCM_WM_STATE_NORMAL, XCB_WINDOW_NONE};
 
-    if (withdrawn)
+    if (m_withdrawn)
         props[0] = XCB_ICCCM_WM_STATE_WITHDRAWN;
-    else if (minimized)
+    else if (m_minimized)
         props[0] = XCB_ICCCM_WM_STATE_ICONIC;
     else
         props[0] = XCB_ICCCM_WM_STATE_NORMAL;
 
-    xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
+    xcb_change_property(g_pXWayland->m_wm->m_connection, XCB_PROP_MODE_REPLACE, m_xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
 }
 
 void CXWaylandSurface::ping() {
-    bool supportsPing = std::ranges::find(protocols, HYPRATOMS["_NET_WM_PING"]) != protocols.end();
+    bool supportsPing = std::ranges::find(m_protocols, HYPRATOMS["_NET_WM_PING"]) != m_protocols.end();
 
     if (!supportsPing) {
-        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", xID);
-        g_pANRManager->onResponse(self.lock());
+        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
+        g_pANRManager->onResponse(m_self.lock());
         return;
     }
 
     xcb_client_message_data_t msg = {};
     msg.data32[0]                 = HYPRATOMS["_NET_WM_PING"];
     msg.data32[1]                 = Time::millis(Time::steadyNow());
-    msg.data32[2]                 = xID;
+    msg.data32[2]                 = m_xID;
 
-    lastPingSeq = msg.data32[1];
+    m_lastPingSeq = msg.data32[1];
 
-    g_pXWayland->pWM->sendWMMessage(self.lock(), &msg, XCB_EVENT_MASK_PROPERTY_CHANGE);
+    g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_PROPERTY_CHANGE);
 }
 
 #else
 
-CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
+CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_xID(xID_), m_geometry(geometry_), m_overrideRedirect(OR) {
     ;
 }
 

@@ -906,7 +906,7 @@ static std::string processShader(const std::string& filename, const std::map<std
 }
 
 // shader has #include "CM.glsl"
-static void getCMShaderUniforms(CShader& shader) {
+static void getCMShaderUniforms(SShader& shader) {
     shader.skipCM          = glGetUniformLocation(shader.program, "skipCM");
     shader.sourceTF        = glGetUniformLocation(shader.program, "sourceTF");
     shader.targetTF        = glGetUniformLocation(shader.program, "targetTF");
@@ -922,7 +922,7 @@ static void getCMShaderUniforms(CShader& shader) {
 }
 
 // shader has #include "rounding.glsl"
-static void getRoundingShaderUniforms(CShader& shader) {
+static void getRoundingShaderUniforms(SShader& shader) {
     shader.topLeft       = glGetUniformLocation(shader.program, "topLeft");
     shader.fullSize      = glGetUniformLocation(shader.program, "fullSize");
     shader.radius        = glGetUniformLocation(shader.program, "radius");
@@ -1443,7 +1443,7 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box,
 
 static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
 
-void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManagement::SImageDescription& imageDescription,
+void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR) {
     glUniform1i(shader.sourceTF, imageDescription.transferFunction);
     glUniform1i(shader.targetTF, targetImageDescription.transferFunction);
@@ -1487,7 +1487,7 @@ void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const NColorManageme
     glUniformMatrix3fv(shader.convertMatrix, 1, false, &primariesConversionCache[cacheKey][0]);
 }
 
-void CHyprOpenGLImpl::passCMUniforms(const CShader& shader, const SImageDescription& imageDescription) {
+void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const SImageDescription& imageDescription) {
     passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true);
 }
 
@@ -1519,7 +1519,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     Mat3x3     matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = nullptr;
+    SShader*   shader = nullptr;
 
     bool       usingFinalShader = false;
 
@@ -1716,7 +1716,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_shaders->m_shPASSTHRURGBA;
+    SShader*   shader = &m_shaders->m_shPASSTHRURGBA;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_target, tex->m_texID);
@@ -1767,7 +1767,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_shaders->m_shMATTE;
+    SShader*   shader = &m_shaders->m_shMATTE;
 
     glUseProgram(shader->program);
 
@@ -1912,7 +1912,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     }
 
     // declare the draw func
-    auto drawPass = [&](CShader* pShader, CRegion* pDamage) {
+    auto drawPass = [&](SShader* pShader, CRegion* pDamage) {
         if (currentRenderToFB == PMIRRORFB)
             PMIRRORSWAPFB->bind();
         else

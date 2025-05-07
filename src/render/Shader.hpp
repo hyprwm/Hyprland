@@ -3,9 +3,8 @@
 #include "../defines.hpp"
 #include <unordered_map>
 
-class CShader {
-  public:
-    ~CShader();
+struct SShader {
+    ~SShader();
 
     GLuint  program           = 0;
     GLint   proj              = -1;

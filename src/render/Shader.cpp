@@ -1,10 +1,10 @@
 #include "Shader.hpp"
 
-CShader::~CShader() {
+SShader::~SShader() {
     destroy();
 }
 
-void CShader::destroy() {
+void SShader::destroy() {
     if (program == 0)
         return;
 

@@ -39,8 +39,8 @@ typedef struct {
 
 class CXWaylandSurface {
   public:
-    WP<CWLSurfaceResource>       surface;
-    WP<CXWaylandSurfaceResource> resource;
+    WP<CWLSurfaceResource>       m_surface;
+    WP<CXWaylandSurfaceResource> m_resource;
 
     struct {
         CSignal stateChanged;    // maximized, fs, minimized, etc.
@@ -57,7 +57,7 @@ class CXWaylandSurface {
         CSignal commit;
 
         CSignal activate;
-    } events;
+    } m_events;
 
     struct {
         std::string title;
@@ -67,31 +67,32 @@ class CXWaylandSurface {
         std::optional<bool> requestsMaximize;
         std::optional<bool> requestsFullscreen;
         std::optional<bool> requestsMinimize;
-    } state;
+    } m_state;
 
-    uint32_t                          xID         = 0;
-    uint64_t                          wlID        = 0;
-    uint64_t                          wlSerial    = 0;
-    uint32_t                          lastPingSeq = 0;
-    pid_t                             pid         = 0;
-    CBox                              geometry;
-    bool                              overrideRedirect = false;
-    bool                              withdrawn        = false;
-    bool                              fullscreen       = false;
-    bool                              maximized        = false;
-    bool                              minimized        = false;
-    bool                              mapped           = false;
-    bool                              modal            = false;
+    uint32_t                          m_xID         = 0;
+    uint64_t                          m_wlID        = 0;
+    uint64_t                          m_wlSerial    = 0;
+    uint32_t                          m_lastPingSeq = 0;
+    pid_t                             m_pid         = 0;
+    CBox                              m_geometry;
+    bool                              m_overrideRedirect = false;
+    bool                              m_withdrawn        = false;
+    bool                              m_fullscreen       = false;
+    bool                              m_maximized        = false;
+    bool                              m_minimized        = false;
+    bool                              m_mapped           = false;
+    bool                              m_modal            = false;
 
-    WP<CXWaylandSurface>              parent;
-    WP<CXWaylandSurface>              self;
-    std::vector<WP<CXWaylandSurface>> children;
+    WP<CXWaylandSurface>              m_parent;
+    WP<CXWaylandSurface>              m_self;
+    std::vector<WP<CXWaylandSurface>> m_children;
 
-    UP<xcb_icccm_wm_hints_t>          hints;
-    UP<xcb_size_hints_t>              sizeHints;
-    std::vector<uint32_t>             atoms, protocols;
-    std::string                       role      = "";
-    bool                              transient = false;
+    UP<xcb_icccm_wm_hints_t>          m_hints;
+    UP<xcb_size_hints_t>              m_sizeHints;
+    std::vector<uint32_t>             m_atoms;
+    std::vector<uint32_t>             m_protocols;
+    std::string                       m_role      = "";
+    bool                              m_transient = false;
 
     bool                              wantsFocus();
     void                              configure(const CBox& box);
@@ -115,7 +116,7 @@ class CXWaylandSurface {
         CHyprSignalListener destroyResource;
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
-    } listeners;
+    } m_listeners;
 
     friend class CXWM;
 };

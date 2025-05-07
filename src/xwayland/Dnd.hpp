@@ -22,15 +22,9 @@ class CX11DataOffer : public IDataOffer {
     virtual SP<IDataSource>          getSource();
     virtual void                     markDead();
 
-    WP<IDataSource>                  source;
-    WP<CX11DataOffer>                self;
-    WP<CXWaylandSurface>             xwaylandSurface;
-
-    bool                             dead     = false;
-    bool                             accepted = false;
-    bool                             recvd    = false;
-
-    uint32_t                         actions = 0;
+    WP<IDataSource>                  m_source;
+    WP<CX11DataOffer>                m_self;
+    WP<CXWaylandSurface>             m_xwaylandSurface;
 };
 
 class CX11DataSource : public IDataSource {
@@ -51,15 +45,12 @@ class CX11DataSource : public IDataSource {
     virtual void                     sendDndDropPerformed();
     virtual void                     sendDndAction(wl_data_device_manager_dnd_action a);
 
-    bool                             used       = false;
-    bool                             dnd        = true;
-    bool                             dndSuccess = false;
-    bool                             dropped    = false;
+    bool                             m_dnd        = true;
+    bool                             m_dndSuccess = false;
+    bool                             m_dropped    = false;
 
-    WP<CX11DataSource>               self;
-
-    std::vector<std::string>         mimeTypes;
-    uint32_t                         supportedActions = 0;
+    std::vector<std::string>         m_mimeTypes;
+    uint32_t                         m_supportedActions = 0;
 };
 
 class CX11DataDevice : public IDataDevice {
@@ -77,7 +68,7 @@ class CX11DataDevice : public IDataDevice {
     virtual eDataSourceType           type();
     void                              forceCleanupDnd();
 
-    WP<CX11DataDevice>                self;
+    WP<CX11DataDevice>                m_self;
 
   private:
     void cleanupState();
@@ -85,8 +76,8 @@ class CX11DataDevice : public IDataDevice {
     xcb_window_t getProxyWindow(xcb_window_t window);
     void         sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xcb_client_message_data_t& data);
 #endif
-    WP<CXWaylandSurface> lastSurface;
-    WP<IDataOffer>       lastOffer;
-    Vector2D             lastSurfaceCoords;
-    uint32_t             lastTime = 0;
+    WP<CXWaylandSurface> m_lastSurface;
+    WP<IDataOffer>       m_lastOffer;
+    Vector2D             m_lastSurfaceCoords;
+    uint32_t             m_lastTime = 0;
 };

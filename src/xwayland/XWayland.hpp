@@ -19,16 +19,12 @@ class CXWayland {
     CXWayland(const bool wantsEnabled);
 
 #ifndef NO_XWAYLAND
-    UP<CXWaylandServer> pServer;
-    UP<CXWM>            pWM;
+    UP<CXWaylandServer> m_server;
+    UP<CXWM>            m_wm;
 #endif
     bool enabled();
 
     void setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
-
-    struct {
-        CSignal newSurface;
-    } events;
 
   private:
     bool m_enabled = false;

@@ -266,7 +266,7 @@ void CXWaylandSurface::ping() {
 
 #else
 
-CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
+CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_xID(xID_), m_geometry(geometry_), m_overrideRedirect(OR) {
     ;
 }
 

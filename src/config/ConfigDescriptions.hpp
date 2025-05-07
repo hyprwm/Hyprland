@@ -521,7 +521,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:follow_mouse_shrink",
-        .description = "Shrinks the window hitboxes by the specified amount of pixels.",
+        .description = "Shrinks the inactive window hitboxes by the specified amount of pixels.",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{0, 0, 300},
     },

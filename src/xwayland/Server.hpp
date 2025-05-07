@@ -20,29 +20,25 @@ class CXWaylandServer {
     bool start();
 
     // called on ready
-    int  ready(int fd, uint32_t mask);
+    int        ready(int fd, uint32_t mask);
 
-    void die();
+    void       die();
 
-    struct {
-        CSignal ready;
-    } events;
-
-    wl_client* xwaylandClient = nullptr;
+    wl_client* m_xwaylandClient = nullptr;
 
   private:
     bool                                          tryOpenSockets();
     void                                          runXWayland(Hyprutils::OS::CFileDescriptor& notifyFD);
 
-    std::string                                   displayName;
-    int                                           display = -1;
-    std::array<Hyprutils::OS::CFileDescriptor, 2> xFDs;
-    std::array<wl_event_source*, 2>               xFDReadEvents = {nullptr, nullptr};
-    wl_event_source*                              idleSource    = nullptr;
-    wl_event_source*                              pipeSource    = nullptr;
-    Hyprutils::OS::CFileDescriptor                pipeFd;
-    std::array<Hyprutils::OS::CFileDescriptor, 2> xwmFDs;
-    std::array<Hyprutils::OS::CFileDescriptor, 2> waylandFDs;
+    std::string                                   m_displayName;
+    int                                           m_display = -1;
+    std::array<Hyprutils::OS::CFileDescriptor, 2> m_xFDs;
+    std::array<wl_event_source*, 2>               m_xFDReadEvents = {nullptr, nullptr};
+    wl_event_source*                              m_idleSource    = nullptr;
+    wl_event_source*                              m_pipeSource    = nullptr;
+    Hyprutils::OS::CFileDescriptor                m_pipeFd;
+    std::array<Hyprutils::OS::CFileDescriptor, 2> m_xwmFDs;
+    std::array<Hyprutils::OS::CFileDescriptor, 2> m_waylandFDs;
 
     friend class CXWM;
 };

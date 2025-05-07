@@ -100,18 +100,18 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_xdgSurface(resource) {
 CWindow::CWindow(SP<CXWaylandSurface> surface) : m_xwaylandSurface(surface) {
     m_wlSurface = CWLSurface::create();
 
-    m_listeners.map              = m_xwaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
-    m_listeners.unmap            = m_xwaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
-    m_listeners.destroy          = m_xwaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
-    m_listeners.commit           = m_xwaylandSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
-    m_listeners.configureRequest = m_xwaylandSurface->events.configureRequest.registerListener([this](std::any d) { onX11ConfigureRequest(std::any_cast<CBox>(d)); });
-    m_listeners.updateState      = m_xwaylandSurface->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
-    m_listeners.updateMetadata   = m_xwaylandSurface->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
-    m_listeners.resourceChange   = m_xwaylandSurface->events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
-    m_listeners.activate         = m_xwaylandSurface->events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
+    m_listeners.map              = m_xwaylandSurface->m_events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    m_listeners.commit           = m_xwaylandSurface->m_events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    m_listeners.configureRequest = m_xwaylandSurface->m_events.configureRequest.registerListener([this](std::any d) { onX11ConfigureRequest(std::any_cast<CBox>(d)); });
+    m_listeners.updateState      = m_xwaylandSurface->m_events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    m_listeners.updateMetadata   = m_xwaylandSurface->m_events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
+    m_listeners.resourceChange   = m_xwaylandSurface->m_events.resourceChange.registerListener([this](std::any d) { onResourceChangeX11(); });
+    m_listeners.activate         = m_xwaylandSurface->m_events.activate.registerListener([this](std::any d) { Events::listener_activateX11(this, nullptr); });
 
-    if (m_xwaylandSurface->overrideRedirect)
-        m_listeners.setGeometry = m_xwaylandSurface->events.setGeometry.registerListener([this](std::any d) { Events::listener_unmanagedSetGeometry(this, nullptr); });
+    if (m_xwaylandSurface->m_overrideRedirect)
+        m_listeners.setGeometry = m_xwaylandSurface->m_events.setGeometry.registerListener([this](std::any d) { Events::listener_unmanagedSetGeometry(this, nullptr); });
 }
 
 CWindow::~CWindow() {
@@ -352,7 +352,7 @@ pid_t CWindow::getPID() {
         if (!m_xwaylandSurface)
             return -1;
 
-        PID = m_xwaylandSurface->pid;
+        PID = m_xwaylandSurface->m_pid;
     }
 
     return PID;
@@ -471,10 +471,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 PHLWINDOW CWindow::x11TransientFor() {
-    if (!m_xwaylandSurface || !m_xwaylandSurface->parent)
+    if (!m_xwaylandSurface || !m_xwaylandSurface->m_parent)
         return nullptr;
 
-    auto                              s = m_xwaylandSurface->parent;
+    auto                              s = m_xwaylandSurface->m_parent;
     std::vector<SP<CXWaylandSurface>> visited;
     while (s) {
         // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
@@ -483,7 +483,7 @@ PHLWINDOW CWindow::x11TransientFor() {
             break;
 
         visited.emplace_back(s.lock());
-        s = s->parent;
+        s = s->m_parent;
     }
 
     if (s == m_xwaylandSurface)
@@ -1159,8 +1159,8 @@ bool CWindow::opaque() {
     if (PWORKSPACE->m_alpha->value() != 1.f)
         return false;
 
-    if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->surface && m_xwaylandSurface->surface->m_current.texture)
-        return m_xwaylandSurface->surface->m_current.texture->m_opaque;
+    if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->m_surface && m_xwaylandSurface->m_surface->m_current.texture)
+        return m_xwaylandSurface->m_surface->m_current.texture->m_opaque;
 
     if (!m_wlSurface->resource() || !m_wlSurface->resource()->m_current.texture)
         return false;
@@ -1418,9 +1418,9 @@ void CWindow::activate(bool force) {
 }
 
 void CWindow::onUpdateState() {
-    std::optional<bool>      requestsFS = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreen : m_xwaylandSurface->state.requestsFullscreen;
+    std::optional<bool>      requestsFS = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreen : m_xwaylandSurface->m_state.requestsFullscreen;
     std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreenMonitor : MONITOR_INVALID;
-    std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->state.requestsMaximize;
+    std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->m_state.requestsMaximize;
 
     if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
@@ -1495,7 +1495,7 @@ std::string CWindow::fetchTitle() {
             return m_xdgSurface->m_toplevel->m_state.title;
     } else {
         if (m_xwaylandSurface)
-            return m_xwaylandSurface->state.title;
+            return m_xwaylandSurface->m_state.title;
     }
 
     return "";
@@ -1507,7 +1507,7 @@ std::string CWindow::fetchClass() {
             return m_xdgSurface->m_toplevel->m_state.appid;
     } else {
         if (m_xwaylandSurface)
-            return m_xwaylandSurface->state.appid;
+            return m_xwaylandSurface->m_state.appid;
     }
 
     return "";
@@ -1524,9 +1524,9 @@ void CWindow::onAck(uint32_t serial) {
 }
 
 void CWindow::onResourceChangeX11() {
-    if (m_xwaylandSurface->surface && !m_wlSurface->resource())
-        m_wlSurface->assign(m_xwaylandSurface->surface.lock(), m_self.lock());
-    else if (!m_xwaylandSurface->surface && m_wlSurface->resource())
+    if (m_xwaylandSurface->m_surface && !m_wlSurface->resource())
+        m_wlSurface->assign(m_xwaylandSurface->m_surface.lock(), m_self.lock());
+    else if (!m_xwaylandSurface->m_surface && m_wlSurface->resource())
         m_wlSurface->unassign();
 
     // update metadata as well,
@@ -1538,7 +1538,7 @@ void CWindow::onResourceChangeX11() {
 
 void CWindow::onX11ConfigureRequest(CBox box) {
 
-    if (!m_xwaylandSurface->surface || !m_xwaylandSurface->mapped || !m_isMapped) {
+    if (!m_xwaylandSurface->m_surface || !m_xwaylandSurface->m_mapped || !m_isMapped) {
         m_xwaylandSurface->configure(box);
         m_pendingReportedSize = box.size();
         m_reportedSize        = box.size();
@@ -1668,18 +1668,18 @@ void CWindow::unsetWindowData(eOverridePriority priority) {
 }
 
 bool CWindow::isX11OverrideRedirect() {
-    return m_xwaylandSurface && m_xwaylandSurface->overrideRedirect;
+    return m_xwaylandSurface && m_xwaylandSurface->m_overrideRedirect;
 }
 
 bool CWindow::isModal() {
-    return (m_xwaylandSurface && m_xwaylandSurface->modal);
+    return (m_xwaylandSurface && m_xwaylandSurface->m_modal);
 }
 
 Vector2D CWindow::requestedMinSize() {
-    if ((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && !m_xdgSurface->m_toplevel))
+    if ((m_isX11 && !m_xwaylandSurface->m_sizeHints) || (!m_isX11 && !m_xdgSurface->m_toplevel))
         return Vector2D(1, 1);
 
-    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->min_width, m_xwaylandSurface->sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();
+    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->min_width, m_xwaylandSurface->m_sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();
 
     minSize = minSize.clamp({1, 1});
 
@@ -1688,10 +1688,10 @@ Vector2D CWindow::requestedMinSize() {
 
 Vector2D CWindow::requestedMaxSize() {
     constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_isX11 && !m_xwaylandSurface->sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel)) || m_windowData.noMaxSize.valueOrDefault()))
+    if (((m_isX11 && !m_xwaylandSurface->m_sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel)) || m_windowData.noMaxSize.valueOrDefault()))
         return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
 
-    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->sizeHints->max_width, m_xwaylandSurface->sizeHints->max_height) : m_xdgSurface->m_toplevel->layoutMaxSize();
+    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->max_width, m_xwaylandSurface->m_sizeHints->max_height) : m_xdgSurface->m_toplevel->layoutMaxSize();
 
     if (maxSize.x < 5)
         maxSize.x = NO_MAX_SIZE_LIMIT;

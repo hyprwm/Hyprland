@@ -2394,7 +2394,7 @@ PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
         if (!w->m_isX11)
             continue;
 
-        if (w->m_xwaylandSurface == pWindow->m_xwaylandSurface->parent)
+        if (w->m_xwaylandSurface == pWindow->m_xwaylandSurface->m_parent)
             return w;
     }
 

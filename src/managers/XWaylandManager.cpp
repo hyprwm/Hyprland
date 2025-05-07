@@ -84,7 +84,7 @@ CBox CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow) {
     CBox box;
 
     if (pWindow->m_isX11)
-        box = pWindow->m_xwaylandSurface->geometry;
+        box = pWindow->m_xwaylandSurface->m_geometry;
     else if (pWindow->m_xdgSurface)
         box = pWindow->m_xdgSurface->m_current.geometry;
 
@@ -100,7 +100,7 @@ void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
     if (pWindow->m_isX11) {
-        for (const auto& a : pWindow->m_xwaylandSurface->atoms)
+        for (const auto& a : pWindow->m_xwaylandSurface->m_atoms)
             if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] ||
                 a == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
                 a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
@@ -115,12 +115,12 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
                 return true;
             }
 
-        if (pWindow->isModal() || pWindow->m_xwaylandSurface->transient ||
-            (pWindow->m_xwaylandSurface->role.contains("task_dialog") || pWindow->m_xwaylandSurface->role.contains("pop-up")) || pWindow->m_xwaylandSurface->overrideRedirect)
+        if (pWindow->isModal() || pWindow->m_xwaylandSurface->m_transient ||
+            (pWindow->m_xwaylandSurface->m_role.contains("task_dialog") || pWindow->m_xwaylandSurface->m_role.contains("pop-up")) || pWindow->m_xwaylandSurface->m_overrideRedirect)
             return true;
 
-        const auto SIZEHINTS = pWindow->m_xwaylandSurface->sizeHints.get();
-        if (pWindow->m_xwaylandSurface->transient || pWindow->m_xwaylandSurface->parent ||
+        const auto SIZEHINTS = pWindow->m_xwaylandSurface->m_sizeHints.get();
+        if (pWindow->m_xwaylandSurface->m_transient || pWindow->m_xwaylandSurface->m_parent ||
             (SIZEHINTS && (SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height)))
             return true;
     } else {
@@ -140,7 +140,7 @@ void CHyprXWaylandManager::checkBorders(PHLWINDOW pWindow) {
     if (!pWindow->m_isX11)
         return;
 
-    for (auto const& a : pWindow->m_xwaylandSurface->atoms) {
+    for (auto const& a : pWindow->m_xwaylandSurface->m_atoms) {
         if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"]) {

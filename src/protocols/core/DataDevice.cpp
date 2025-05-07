@@ -420,8 +420,8 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
 
 SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
 #ifndef NO_XWAYLAND
-    if (g_pXWayland && g_pXWayland->pServer && c == g_pXWayland->pServer->xwaylandClient)
-        return g_pXWayland->pWM->getDataDevice();
+    if (g_pXWayland && g_pXWayland->m_server && c == g_pXWayland->m_server->m_xwaylandClient)
+        return g_pXWayland->m_wm->getDataDevice();
 #endif
 
     auto it = std::find_if(m_devices.begin(), m_devices.end(), [c](const auto& e) { return e->client() == c; });
@@ -451,7 +451,7 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
     }
 #ifndef NO_XWAYLAND
     else if (const auto X11 = dev->getX11(); X11)
-        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), sel);
+        offer = g_pXWayland->m_wm->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), sel);
 #endif
 
     if UNLIKELY (!offer) {
@@ -669,7 +669,7 @@ void CWLDataDeviceProtocol::updateDrag() {
     }
 #ifndef NO_XWAYLAND
     else if (const auto X11 = m_dnd.focusedDevice->getX11(); X11)
-        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), m_dnd.currentSource.lock());
+        offer = g_pXWayland->m_wm->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), m_dnd.currentSource.lock());
 #endif
 
     if (!offer) {

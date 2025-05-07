@@ -111,7 +111,9 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
 #if !defined(__linux__)
     return {};
 #else
-    std::vector<CFileDescriptor> syncFds(m_attrs.fds.size());
+    std::vector<CFileDescriptor> syncFds;
+    syncFds.reserve(m_attrs.fds.size());
+
     for (const auto& fd : m_attrs.fds) {
         if (fd == -1)
             continue;
@@ -135,11 +137,14 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
             continue;
         }
 
+        const std::string      name = "merged release fence";
         struct sync_merge_data data{
-            .name  = "merged release fence",
+            .name  = {}, // zero-initialize name[]
             .fd2   = fd.get(),
             .fence = -1,
         };
+
+        std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
 
         if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0)
             syncFd = CFileDescriptor(data.fence);

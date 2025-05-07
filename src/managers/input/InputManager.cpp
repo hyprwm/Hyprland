@@ -396,18 +396,22 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
                     if (g_pCompositor->isPointOnReservedArea(mouseCoords, PMONITOR)) {
-                        if (!foundSurface)
+                        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords,
+                                                                           &pFoundLayerSurface);
+                    }
+
+                    if (!foundSurface) {
+                        if (pFoundWindow != PWINDOWIDEAL)
                             pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING | FOLLOW_MOUSE_CHECK);
 
-                        if (pFoundWindow && !g_pCompositor->isPointOnReservedArea(pFoundWindow->middle(), PMONITOR))
+                        if (!(pFoundWindow && pFoundWindow->m_isFloating && pFoundWindow->m_createdOverFullscreen))
                             pFoundWindow = PWORKSPACE->getFullscreenWindow();
-                    } else
-                        pFoundWindow = PWORKSPACE->getFullscreenWindow();
+                    }
                 }
             }
 
         } else {
-            if (!foundSurface)
+            if (pFoundWindow != PWINDOWIDEAL)
                 pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING | FOLLOW_MOUSE_CHECK);
         }
 

@@ -945,7 +945,7 @@ bool CHyprOpenGLImpl::initShaders() {
 
         GLuint prog;
 #ifdef GLES2
-        m_bCMSupported = false;
+        m_cmSupported = false;
 #else
         if (!*PCM)
             m_cmSupported = false;
@@ -1379,7 +1379,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
     glUniformMatrix3fv(m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
     glMatrix.transpose();
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+    glUniformMatrix3fv(m_renderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
     // premultiply the color as well as we don't work with straight alpha

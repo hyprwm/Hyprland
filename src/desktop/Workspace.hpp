@@ -2,7 +2,6 @@
 
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
-#include "../defines.hpp"
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 

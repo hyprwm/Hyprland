@@ -63,7 +63,30 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = g_pCompositor->m_lastMonitor.lock();
     }
-    auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+
+    PHLWINDOW parentWindow = nullptr;
+
+    if (PWINDOW->m_isX11 && PWINDOW->m_xwaylandSurface)
+        parentWindow = PWINDOW->x11TransientFor();
+    else if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface && PWINDOW->m_xdgSurface->m_toplevel) {
+        auto parent = PWINDOW->m_xdgSurface->m_toplevel->m_parent;
+        if (parent) {
+            for (auto const& w : g_pCompositor->m_windows) {
+                if (w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel == parent) {
+                    parentWindow = w;
+                    break;
+                }
+            }
+        }
+    }
+
+    auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    if (parentWindow && parentWindow->m_workspace) {
+        Debug::log(LOG, "New window {:x} is child of {:x}, inheriting workspace: {}", (uintptr_t)PWINDOW, (uintptr_t)parentWindow, parentWindow->m_workspace->m_name);
+        PWORKSPACE = parentWindow->m_workspace;
+        PMONITOR = parentWindow->m_monitor.lock();
+    }
+
     PWINDOW->m_monitor       = PMONITOR;
     PWINDOW->m_workspace     = PWORKSPACE;
     PWINDOW->m_isMapped      = true;

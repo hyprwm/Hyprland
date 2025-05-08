@@ -84,7 +84,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (parentWindow && parentWindow->m_workspace) {
         Debug::log(LOG, "New window {:x} is child of {:x}, inheriting workspace: {}", (uintptr_t)PWINDOW, (uintptr_t)parentWindow, parentWindow->m_workspace->m_name);
         PWORKSPACE = parentWindow->m_workspace;
-        PMONITOR = parentWindow->m_monitor.lock();
+        PMONITOR   = parentWindow->m_monitor.lock();
     }
 
     PWINDOW->m_monitor       = PMONITOR;

@@ -186,7 +186,7 @@ void CLayerSurface::onMap() {
     m_readyToDelete = false;
     m_fadingOut     = false;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", m_namespace});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
     EMIT_HOOK_EVENT("openLayer", m_self.lock());
 
     g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
@@ -196,7 +196,7 @@ void CLayerSurface::onMap() {
 void CLayerSurface::onUnmap() {
     Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)m_layerSurface.get());
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", m_layerSurface->m_layerNamespace});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", m_self.lock());
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });

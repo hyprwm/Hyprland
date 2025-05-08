@@ -47,10 +47,10 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            g_pKeybindManager->spawnWithRules(*cmd, self);
+            CKeybindManager::spawnWithRules(*cmd, self);
 
-    g_pEventManager->postEvent({"createworkspace", m_name});
-    g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_id, m_name)});
+    g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
+    g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
     EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
@@ -66,8 +66,8 @@ CWorkspace::~CWorkspace() {
         g_pHookSystem->unhook(m_focusedWindowHook);
 
     if (g_pEventManager) {
-        g_pEventManager->postEvent({"destroyworkspace", m_name});
-        g_pEventManager->postEvent({"destroyworkspacev2", std::format("{},{}", m_id, m_name)});
+        g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
+        g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
         EMIT_HOOK_EVENT("destroyWorkspace", this);
     }
 }
@@ -604,12 +604,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent)
-            return true;
-    }
-
-    return false;
+    return std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
@@ -654,7 +649,7 @@ void CWorkspace::rename(const std::string& name) {
     if (WORKSPACERULE.isPersistent)
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
-    g_pEventManager->postEvent({"renameworkspace", std::to_string(m_id) + "," + m_name});
+    g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
 }
 
 void CWorkspace::updateWindows() {

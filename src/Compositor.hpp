@@ -7,6 +7,7 @@
 #include "managers/SessionLockManager.hpp"
 #include "desktop/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
+#include "protocols/XDGShell.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
@@ -48,6 +49,7 @@ class CCompositor {
 
     std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
     std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
+    std::unordered_map<CXDGToplevelResource*, PHLWINDOW> m_toplevelToWindow;
 
     void                                         initServer(std::string socketName, int socketFd);
     void                                         startCompositor();

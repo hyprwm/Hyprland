@@ -71,12 +71,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     else if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface && PWINDOW->m_xdgSurface->m_toplevel) {
         auto parent = PWINDOW->m_xdgSurface->m_toplevel->m_parent;
         if (parent) {
-            for (auto const& w : g_pCompositor->m_windows) {
-                if (w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel == parent) {
-                    parentWindow = w;
-                    break;
-                }
-            }
+            auto it = g_pCompositor->m_toplevelToWindow.find(parent.get());
+            if (it != g_pCompositor->m_toplevelToWindow.end())
+                parentWindow = it->second;
         }
     }
 

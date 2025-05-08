@@ -65,6 +65,9 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->m_self                = pWindow;
     resource->m_toplevel->m_window = pWindow;
 
+    if (resource->m_toplevel && resource->m_toplevel.get())
+        g_pCompositor->m_toplevelToWindow[resource->m_toplevel.get()] = pWindow;
+
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
@@ -119,6 +122,9 @@ CWindow::~CWindow() {
         g_pCompositor->m_lastFocus.reset();
         g_pCompositor->m_lastWindow.reset();
     }
+
+    if (!m_isX11 && m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel.get())
+        g_pCompositor->m_toplevelToWindow.erase(m_xdgSurface->m_toplevel.get());
 
     m_events.destroy.emit();
 

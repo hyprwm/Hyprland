@@ -409,6 +409,7 @@ class CWindow {
     bool                       isNotResponding();
     std::optional<std::string> xdgTag();
     std::optional<std::string> xdgDescription();
+    PHLWINDOW                  parent();
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

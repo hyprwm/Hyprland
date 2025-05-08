@@ -1822,3 +1822,24 @@ std::optional<std::string> CWindow::xdgDescription() {
 
     return m_xdgSurface->m_toplevel->m_toplevelDescription;
 }
+
+PHLWINDOW CWindow::parent() {
+    if (m_isX11) {
+        auto t = x11TransientFor();
+
+        // don't return a parent that's not mapped
+        if (!validMapped(t))
+            return nullptr;
+
+        return t;
+    }
+
+    if (!m_xdgSurface || !m_xdgSurface->m_toplevel || !m_xdgSurface->m_toplevel->m_parent)
+        return nullptr;
+
+    // don't return a parent that's not mapped
+    if (!m_xdgSurface->m_toplevel->m_parent->m_window || !validMapped(m_xdgSurface->m_toplevel->m_parent->m_window))
+        return nullptr;
+
+    return m_xdgSurface->m_toplevel->m_parent->m_window.lock();
+}

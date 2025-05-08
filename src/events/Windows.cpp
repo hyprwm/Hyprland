@@ -417,6 +417,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_swallowed)
         PWINDOW->m_swallowed->m_currentlySwallowed = true;
 
+    // emit the IPC event before the layout might focus the window to avoid a focus event first
+    g_pEventManager->postEvent(
+        SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_name, PWINDOW->m_class, PWINDOW->m_title)});
+
     if (PWINDOW->m_isFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
         PWINDOW->m_createdOverFullscreen = true;
@@ -673,8 +677,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, PWINDOW->m_realPosition->goal(), PWINDOW->m_realSize->goal());
 
-    auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_name;
-    g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, PWINDOW->m_class, PWINDOW->m_title)});
+    // emit the hook event here after basic stuff has been initialized
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
     // apply data from default decos. Borders, shadows.

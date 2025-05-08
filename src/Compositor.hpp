@@ -26,54 +26,54 @@ class CCompositor {
     CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
-    wl_display*                                  m_wlDisplay   = nullptr;
-    wl_event_loop*                               m_wlEventLoop = nullptr;
-    int                                          m_drmFD       = -1;
-    bool                                         m_initialized = false;
-    SP<Aquamarine::CBackend>                     m_aqBackend;
+    wl_display*                                          m_wlDisplay   = nullptr;
+    wl_event_loop*                                       m_wlEventLoop = nullptr;
+    int                                                  m_drmFD       = -1;
+    bool                                                 m_initialized = false;
+    SP<Aquamarine::CBackend>                             m_aqBackend;
 
-    std::string                                  m_hyprTempDataRoot = "";
+    std::string                                          m_hyprTempDataRoot = "";
 
-    std::string                                  m_wlDisplaySocket   = "";
-    std::string                                  m_instanceSignature = "";
-    std::string                                  m_instancePath      = "";
-    std::string                                  m_currentSplash     = "error";
+    std::string                                          m_wlDisplaySocket   = "";
+    std::string                                          m_instanceSignature = "";
+    std::string                                          m_instancePath      = "";
+    std::string                                          m_currentSplash     = "error";
 
-    std::vector<PHLMONITOR>                      m_monitors;
-    std::vector<PHLMONITOR>                      m_realMonitors; // for all monitors, even those turned off
-    std::vector<PHLWINDOW>                       m_windows;
-    std::vector<PHLLS>                           m_layers;
-    std::vector<PHLWORKSPACE>                    m_workspaces;
-    std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
-    std::vector<PHLLSREF>                        m_surfacesFadingOut;
+    std::vector<PHLMONITOR>                              m_monitors;
+    std::vector<PHLMONITOR>                              m_realMonitors; // for all monitors, even those turned off
+    std::vector<PHLWINDOW>                               m_windows;
+    std::vector<PHLLS>                                   m_layers;
+    std::vector<PHLWORKSPACE>                            m_workspaces;
+    std::vector<PHLWINDOWREF>                            m_windowsFadingOut;
+    std::vector<PHLLSREF>                                m_surfacesFadingOut;
 
-    std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
-    std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
+    std::unordered_map<std::string, MONITORID>           m_monitorIDMap;
+    std::unordered_map<std::string, WORKSPACEID>         m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
     std::unordered_map<CXDGToplevelResource*, PHLWINDOW> m_toplevelToWindow;
 
-    void                                         initServer(std::string socketName, int socketFd);
-    void                                         startCompositor();
-    void                                         stopCompositor();
-    void                                         cleanup();
-    void                                         bumpNofile();
-    void                                         restoreNofile();
+    void                                                 initServer(std::string socketName, int socketFd);
+    void                                                 startCompositor();
+    void                                                 stopCompositor();
+    void                                                 cleanup();
+    void                                                 bumpNofile();
+    void                                                 restoreNofile();
 
-    WP<CWLSurfaceResource>                       m_lastFocus;
-    PHLWINDOWREF                                 m_lastWindow;
-    PHLMONITORREF                                m_lastMonitor;
+    WP<CWLSurfaceResource>                               m_lastFocus;
+    PHLWINDOWREF                                         m_lastWindow;
+    PHLMONITORREF                                        m_lastMonitor;
 
-    std::vector<PHLWINDOWREF>                    m_windowFocusHistory; // first element is the most recently focused
+    std::vector<PHLWINDOWREF>                            m_windowFocusHistory; // first element is the most recently focused
 
-    bool                                         m_readyToProcess = false;
-    bool                                         m_sessionActive  = true;
-    bool                                         m_dpmsStateOn    = true;
-    bool                                         m_unsafeState    = false; // unsafe state is when there is no monitors
-    PHLMONITORREF                                m_unsafeOutput;           // fallback output for the unsafe state
-    bool                                         m_isShuttingDown         = false;
-    bool                                         m_finalRequests          = false;
-    bool                                         m_desktopEnvSet          = false;
-    bool                                         m_wantsXwayland          = true;
-    bool                                         m_onlyConfigVerification = false;
+    bool                                                 m_readyToProcess = false;
+    bool                                                 m_sessionActive  = true;
+    bool                                                 m_dpmsStateOn    = true;
+    bool                                                 m_unsafeState    = false; // unsafe state is when there is no monitors
+    PHLMONITORREF                                        m_unsafeOutput;           // fallback output for the unsafe state
+    bool                                                 m_isShuttingDown         = false;
+    bool                                                 m_finalRequests          = false;
+    bool                                                 m_desktopEnvSet          = false;
+    bool                                                 m_wantsXwayland          = true;
+    bool                                                 m_onlyConfigVerification = false;
 
     // ------------------------------------------------- //
 

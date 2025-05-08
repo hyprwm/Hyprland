@@ -159,12 +159,19 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
         // TODO: detect a popup in a more consistent way.
         if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_isX11) {
-            // if the pos isn't set, fall back to the center placement if it's not a child, otherwise middle of parent if available
-            if (!pWindow->m_isX11 && pWindow->m_xdgSurface->m_toplevel->m_parent && validMapped(pWindow->m_xdgSurface->m_toplevel->m_parent->m_window))
-                *pWindow->m_realPosition = pWindow->m_xdgSurface->m_toplevel->m_parent->m_window->m_realPosition->goal() +
-                    pWindow->m_xdgSurface->m_toplevel->m_parent->m_window->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
-            else
-                *pWindow->m_realPosition = PMONITOR->m_position + PMONITOR->m_size / 2.F - desiredGeometry.size() / 2.F;
+            // if the pos isn't set, fall back to the center placement if it's not a child
+            auto pos = PMONITOR->m_position + PMONITOR->m_size / 2.F - desiredGeometry.size() / 2.F;
+
+            // otherwise middle of parent if available
+            if (!pWindow->m_isX11) {
+                if (const auto PARENT = pWindow->parent(); PARENT) {
+                    *pWindow->m_realPosition = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
+                    pWindow->m_workspace     = PARENT->m_workspace;
+                    pWindow->m_monitor       = PARENT->m_monitor;
+                }
+            }
+
+            *pWindow->m_realPosition = pos;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups

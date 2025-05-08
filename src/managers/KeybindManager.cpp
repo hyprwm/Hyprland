@@ -1430,9 +1430,11 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (pWorkspace) {
+        const auto FULLSCREENMODE = PWINDOW->m_fullscreenState.internal;
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
         pMonitor = pWorkspace->m_monitor.lock();
         g_pCompositor->setActiveMonitor(pMonitor);
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FULLSCREENMODE);
     } else {
         pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->monitorID(), workspaceName, false);
         pMonitor   = pWorkspace->m_monitor.lock();

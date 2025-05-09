@@ -4,6 +4,7 @@
 
 #include <pwd.h>
 #include <unistd.h>
+#include <sstream>
 #include <print>
 #include <filesystem>
 #include <algorithm>

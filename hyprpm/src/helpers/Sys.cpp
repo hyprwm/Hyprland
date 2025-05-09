@@ -153,7 +153,7 @@ bool NSys::root::install(const std::string& what, const std::string& where, cons
     if (!std::ranges::all_of(mode, [](const char& c) { return c >= '0' && c <= '9'; }))
         return false;
 
-    CProcess proc(subin(), {"install", "-m" + mode, "-o", "root", "-g", "root", what, where});
+    CProcess proc(subin(), {"install", "-m" + mode, "-o", "0", "-g", "0", what, where});
 
     return proc.runSync() && proc.exitCode() == 0;
 }

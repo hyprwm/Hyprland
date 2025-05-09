@@ -12,6 +12,11 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     uint32_t glFormat = NFormatUtils::drmFormatToGL(drmFormat);
     uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
 
+    if (drmFormat != m_drmFormat || m_size != Vector2D{w, h})
+        release();
+
+    m_drmFormat = drmFormat;
+
     if (!m_tex) {
         m_tex = makeShared<CTexture>();
         m_tex->allocate();

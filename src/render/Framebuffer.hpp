@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../helpers/Format.hpp"
 #include "Texture.hpp"
 
 class CFramebuffer {
@@ -20,6 +21,7 @@ class CFramebuffer {
     GLuint       getFBID();
 
     Vector2D     m_size;
+    DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;
 
   private:
     SP<CTexture> m_tex;

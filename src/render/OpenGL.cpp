@@ -1811,13 +1811,16 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 //
 // Dual (or more) kawase blur
 CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
-
     if (!m_renderData.currentFB->getTexture()) {
         Debug::log(ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
         return &m_renderData.pCurrentMonData->mirrorFB; // return something to sample from at least
     }
 
-    TRACY_GPU_ZONE("RenderBlurMainFramebufferWithDamage");
+    return blurFramebufferWithDamage(a, originalDamage, *m_renderData.currentFB);
+}
+
+CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* originalDamage, CFramebuffer& source) {
+    TRACY_GPU_ZONE("RenderBlurFramebufferWithDamage");
 
     const auto BLENDBEFORE = m_blend;
     blend(false);
@@ -1857,7 +1860,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glActiveTexture(GL_TEXTURE0);
 
-        auto currentTex = m_renderData.currentFB->getTexture();
+        auto currentTex = source.getTexture();
 
         glBindTexture(currentTex->m_target, currentTex->m_texID);
 
@@ -2240,7 +2243,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     inverseOpaque.scale(m_renderData.pMonitor->m_scale);
 
     //   vvv TODO: layered blur fbs?
-    const bool    USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !blockBlurOptimization;
+    const bool USENEWOPTIMIZE =
+        shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !blockBlurOptimization && !m_renderData.overrideBlurSourceFB;
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
@@ -2248,7 +2252,10 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
         m_renderData.renderModif.applyToRegion(inverseOpaque);
         inverseOpaque.intersect(texDamage);
 
-        POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
+        if (m_renderData.overrideBlurSourceFB)
+            POUTFB = blurFramebufferWithDamage(a, &inverseOpaque, *m_renderData.overrideBlurSourceFB);
+        else
+            POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
     } else
         POUTFB = &m_renderData.pCurrentMonData->blurFB;
 

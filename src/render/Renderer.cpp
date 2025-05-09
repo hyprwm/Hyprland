@@ -2279,9 +2279,6 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse = true;
     }
 
-    // send all queued opengl commands so rendering starts happening immediately
-    glFlush();
-
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return;
 

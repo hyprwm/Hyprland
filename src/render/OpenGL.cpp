@@ -1375,7 +1375,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
         newBox, wlTransformToHyprutils(invertTransform(!m_endFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    glUseProgram(m_shaders->m_shQUAD.program);
+    useProgram(m_shaders->m_shQUAD.program);
 
 #ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1581,7 +1581,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
         shader = &m_shaders->m_shCM;
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
     if (shader == &m_shaders->m_shCM) {
         glUniform1i(shader->texType, texType);
@@ -1723,7 +1723,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_target, tex->m_texID);
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1771,7 +1771,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     SShader*   shader = &m_shaders->m_shMATTE;
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1865,7 +1865,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_shaders->m_shBLURPREPARE.program);
+        useProgram(m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
@@ -1928,7 +1928,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(pShader->program);
+        useProgram(pShader->program);
 
         // prep two shaders
 #ifndef GLES2
@@ -2006,7 +2006,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_shaders->m_shBLURFINISH.program);
+        useProgram(m_shaders->m_shBLURFINISH.program);
 
 #ifndef GLES2
         glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2350,7 +2350,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    glUseProgram(m_shaders->m_shBORDER1.program);
+    useProgram(m_shaders->m_shBORDER1.program);
 
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
     glUniform1i(m_shaders->m_shBORDER1.skipCM, skipCM);
@@ -2448,7 +2448,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    glUseProgram(m_shaders->m_shBORDER1.program);
+    useProgram(m_shaders->m_shBORDER1.program);
 
 #ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2536,7 +2536,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    glUseProgram(m_shaders->m_shSHADOW.program);
+    useProgram(m_shaders->m_shSHADOW.program);
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
     glUniform1i(m_shaders->m_shSHADOW.skipCM, skipCM);
     if (!skipCM)
@@ -2857,6 +2857,14 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
     cairo_destroy(CAIRO);
 
     m_missingAssetTexture = tex;
+}
+
+void CHyprOpenGLImpl::useProgram(GLuint prog) {
+    if (m_currentProgram == prog)
+        return;
+
+    glUseProgram(prog);
+    m_currentProgram = prog;
 }
 
 void CHyprOpenGLImpl::initAssets() {

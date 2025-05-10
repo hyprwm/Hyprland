@@ -2243,19 +2243,14 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     inverseOpaque.scale(m_renderData.pMonitor->m_scale);
 
     //   vvv TODO: layered blur fbs?
-    const bool USENEWOPTIMIZE =
-        shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !blockBlurOptimization && !m_renderData.overrideBlurSourceFB;
+    const bool    USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !blockBlurOptimization;
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
         inverseOpaque.translate(box.pos());
         m_renderData.renderModif.applyToRegion(inverseOpaque);
         inverseOpaque.intersect(texDamage);
-
-        if (m_renderData.overrideBlurSourceFB)
-            POUTFB = blurFramebufferWithDamage(a, &inverseOpaque, *m_renderData.overrideBlurSourceFB);
-        else
-            POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
+        POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
     } else
         POUTFB = &m_renderData.pCurrentMonData->blurFB;
 

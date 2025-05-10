@@ -153,6 +153,8 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
 
     m_listeners.keyboardSurfaceDestroy = surf->m_events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
 
+    g_pInputManager->updateKeyboardsLeds(m_keyboard.lock());
+
     m_events.keyboardFocusChange.emit();
 }
 

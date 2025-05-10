@@ -120,10 +120,10 @@ struct SCurrentRenderData {
     Mat3x3        monitorProjection;
 
     // FIXME: raw pointer galore!
-    SMonitorRenderData*    pCurrentMonData      = nullptr;
-    CFramebuffer*          currentFB            = nullptr; // current rendering to
-    CFramebuffer*          mainFB               = nullptr; // main to render to
-    CFramebuffer*          outFB                = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData*    pCurrentMonData = nullptr;
+    CFramebuffer*          currentFB       = nullptr; // current rendering to
+    CFramebuffer*          mainFB          = nullptr; // main to render to
+    CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
     CRegion                damage;
     CRegion                finalDamage; // damage used for funal off -> main

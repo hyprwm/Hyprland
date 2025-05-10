@@ -1149,7 +1149,7 @@ bool CWindow::opaque() {
     if (m_wlSurface->small() && !m_wlSurface->m_fillIgnoreSmall)
         return false;
 
-    if (PWORKSPACE->m_alpha->value() != 1.f)
+    if (PWORKSPACE && PWORKSPACE->m_alpha->value() != 1.f)
         return false;
 
     if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->m_surface && m_xwaylandSurface->m_surface->m_current.texture)

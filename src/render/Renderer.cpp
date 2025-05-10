@@ -493,7 +493,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
     const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_monitorMovedFrom != -1 && (!PWORKSPACE || !PWORKSPACE->isVisible());
-    const bool DONT_BLUR                = pWindow->m_windowData.noBlur.valueOrDefault() || pWindow->m_windowData.RGBX.valueOrDefault() || pWindow->opaque();
 
     renderdata.surface   = pWindow->m_wlSurface->resource();
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_windowData.noRounding.valueOrDefault();
@@ -503,7 +502,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
-    renderdata.blur          = !standalone && *PBLUR && !DONT_BLUR;
+    renderdata.blur          = !standalone && shouldBlur(pWindow);
     renderdata.pWindow       = pWindow;
 
     if (standalone) {
@@ -572,7 +571,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_windowData.nearestNeighbor.valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
-        if (!pWindow->m_windowData.noBlur.valueOrDefault() && pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall && renderdata.blur) {
             CBox wb = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->m_scale).round();
             CRectPassElement::SRectData data;
@@ -712,8 +711,6 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         return;
     }
 
-    static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-
     TRACY_GPU_ZONE("RenderLayer");
 
     const auto                       REALPOS = pLayer->m_realPosition->value();
@@ -721,7 +718,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
     renderdata.fadeAlpha                        = pLayer->m_alpha->value();
-    renderdata.blur                             = pLayer->m_forceBlur && *PBLUR;
+    renderdata.blur                             = shouldBlur(pLayer);
     renderdata.surface                          = pLayer->m_surface->resource();
     renderdata.decorate                         = false;
     renderdata.w                                = REALSIZ.x;
@@ -874,12 +871,15 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
@@ -896,6 +896,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
@@ -940,9 +941,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // special
     for (auto const& ws : g_pCompositor->m_workspaces) {
         if (ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
-            if (ws->m_hasFullscreenWindow)
+            if (ws->m_hasFullscreenWindow) {
                 renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
-            else
+            } else
                 renderWorkspaceWindows(pMonitor, ws, time);
         }
     }
@@ -2448,20 +2449,7 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    // this is a hack but it works :P
-    // we need to disable blur or else we will get a black background, as the shader
-    // will try to copy the bg to apply blur.
-    // this isn't entirely correct, but like, oh well.
-    // small todo: maybe make this correct? :P
-    static auto* const PBLUR   = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("decoration:blur:enabled"));
-    const auto         BLURVAL = **PBLUR;
-    **PBLUR                    = 0;
-
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
-
     renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->m_X11DoesntWantBorders, RENDER_PASS_ALL);
-
-    **PBLUR = BLURVAL;
 
     endRender();
 
@@ -2492,13 +2480,8 @@ void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
-    const auto BLURLSSTATUS = pLayer->m_forceBlur;
-    pLayer->m_forceBlur     = false;
-
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());
-
-    pLayer->m_forceBlur = BLURLSSTATUS;
 
     endRender();
 
@@ -2534,7 +2517,6 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
     if (*PDIMAROUND && pWindow->m_windowData.dimAround.valueOrDefault()) {
-
         CRectPassElement::SRectData data;
 
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y};
@@ -2542,6 +2524,19 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 
         m_renderPass.add(makeShared<CRectPassElement>(data));
         damageMonitor(PMONITOR);
+    }
+
+    if (shouldBlur(pWindow)) {
+        CRectPassElement::SRectData data;
+        data.box           = CBox{pWindow->m_realPosition->value(), pWindow->m_realSize->value()}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).round();
+        data.color         = CHyprColor{0, 0, 0, 0};
+        data.blur          = true;
+        data.blurA         = sqrt(pWindow->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+        data.round         = pWindow->rounding();
+        data.roundingPower = pWindow->roundingPower();
+        data.xray          = pWindow->m_windowData.xray.valueOr(false);
+
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     CTexPassElement::SRenderData data;
@@ -2580,12 +2575,35 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 
     CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
+    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+
     CTexPassElement::SRenderData data;
     data.flipEndFrame = true;
     data.tex          = FBDATA->getTexture();
     data.box          = layerBox;
     data.a            = pLayer->m_alpha->value();
     data.damage       = fakeDamage;
+    data.blur         = SHOULD_BLUR;
+    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    if (SHOULD_BLUR)
+        data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
     m_renderPass.add(makeShared<CTexPassElement>(data));
+}
+
+bool CHyprRenderer::shouldBlur(PHLLS ls) {
+    if (m_bRenderingSnapshot)
+        return false;
+
+    static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    return *PBLUR && ls->m_forceBlur;
+}
+
+bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
+    if (m_bRenderingSnapshot)
+        return false;
+
+    static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    const bool  DONT_BLUR = w->m_windowData.noBlur.valueOrDefault() || w->m_windowData.RGBX.valueOrDefault() || w->opaque();
+    return *PBLUR && !DONT_BLUR;
 }

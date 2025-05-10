@@ -869,7 +869,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     static auto PBORDERSIZE       = CConfigValue<Hyprlang::INT>("general:border_size");
     static auto PBORDERGRABEXTEND = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     static auto PSPECIALFALLTHRU  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PFOLLOWMSHRINK    = CConfigValue<Hyprlang::INT>("input:follow_mouse_shrink");
     const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
+    const auto  HITBOX_SHRINK     = *PFOLLOWMSHRINK;
+    const auto  LASTFOCUSED       = m_lastWindow.lock();
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
@@ -877,6 +880,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
+
+                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                    box = box.copy().expand(-HITBOX_SHRINK);
+
                 if (box.containsPoint(g_pPointerManager->position()))
                     return w;
 
@@ -916,6 +923,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
                     const auto BB  = w->getWindowBoxUnified(properties);
                     CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
+
+                    if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                        box = box.copy().expand(-HITBOX_SHRINK);
+
                     if (box.containsPoint(g_pPointerManager->position())) {
 
                         if (w->m_isX11 && w->isX11OverrideRedirect() && !w->m_xwaylandSurface->wantsFocus()) {
@@ -982,6 +993,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_windowData.noFocus.valueOrDefault() &&
                 w != pIgnoreWindow) {
                 CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
+
+                if (properties & FOLLOW_MOUSE_CHECK && HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                    box = box.copy().expand(-HITBOX_SHRINK);
+
                 if (box.containsPoint(pos))
                     return w;
             }

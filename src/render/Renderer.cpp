@@ -175,7 +175,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return false;
 
     if (!pWindow->m_workspace && pWindow->m_fadingOut)
-        return pWindow->workspaceID() == pMonitor->activeWorkspaceID();
+        return pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->workspaceID() == pMonitor->activeSpecialWorkspaceID();
 
     if (pWindow->m_pinned)
         return true;
@@ -2523,7 +2523,6 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_alpha->value());
 
         m_renderPass.add(makeShared<CRectPassElement>(data));
-        damageMonitor(PMONITOR);
     }
 
     if (shouldBlur(pWindow)) {

@@ -114,11 +114,12 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    PHLMONITORREF          pMonitor;
-    Mat3x3                 projection;
-    Mat3x3                 savedProjection;
-    Mat3x3                 monitorProjection;
+    PHLMONITORREF pMonitor;
+    Mat3x3        projection;
+    Mat3x3        savedProjection;
+    Mat3x3        monitorProjection;
 
+    // FIXME: raw pointer galore!
     SMonitorRenderData*    pCurrentMonData = nullptr;
     CFramebuffer*          currentFB       = nullptr; // current rendering to
     CFramebuffer*          mainFB          = nullptr; // main to render to
@@ -333,6 +334,7 @@ class CHyprOpenGLImpl {
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
+    CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
     void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
                                  bool modifySDR = false);

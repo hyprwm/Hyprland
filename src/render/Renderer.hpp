@@ -45,6 +45,11 @@ struct SExplicitSyncSettings {
     bool explicitEnabled = false, explicitKMSEnabled = false;
 };
 
+struct SRenderWorkspaceUntilData {
+    PHLLS     ls;
+    PHLWINDOW w;
+};
+
 class CHyprRenderer {
   public:
     CHyprRenderer();
@@ -117,19 +122,22 @@ class CHyprRenderer {
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
+    void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+    void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
     void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
     void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
     void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
     void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
     void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
-    void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
-    void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
     void renderSessionLockMissing(PHLMONITOR pMonitor);
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
+
+    bool shouldBlur(PHLLS ls);
+    bool shouldBlur(PHLWINDOW w);
 
     bool m_cursorHidden                           = false;
     bool m_cursorHasSurface                       = false;

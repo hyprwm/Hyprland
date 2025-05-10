@@ -603,7 +603,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_windowData.nearestNeighbor.valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
-        if (!pWindow->m_windowData.noBlur.valueOrDefault() && pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall && renderdata.blur) {
             CBox wb = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->m_scale).round();
             CRectPassElement::SRectData data;
@@ -2505,19 +2505,6 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
-    CFramebuffer blurFB;
-
-    if (shouldBlur(pWindow) && (!pWindow->m_windowData.xray.hasValue() || !pWindow->m_windowData.xray.valueOrDefault())) {
-        blurFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
-        beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &blurFB);
-
-        renderAllClientsForWorkspace(PMONITOR, PMONITOR->m_activeWorkspace, Time::steadyNow(), {}, 1.F, {.w = pWindow});
-
-        endRender();
-
-        g_pHyprOpenGL->m_renderData.overrideBlurSourceFB = &blurFB;
-    }
-
     beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
     m_bRenderingSnapshot = true;
@@ -2529,8 +2516,6 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
     endRender();
 
     m_bRenderingSnapshot = false;
-
-    g_pHyprOpenGL->m_renderData.overrideBlurSourceFB = nullptr;
 }
 
 void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
@@ -2551,19 +2536,6 @@ void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
-    CFramebuffer blurFB;
-
-    if (shouldBlur(pLayer) && !pLayer->m_xray) {
-        blurFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
-        beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &blurFB);
-
-        renderAllClientsForWorkspace(PMONITOR, PMONITOR->m_activeWorkspace, Time::steadyNow(), {}, 1.F, {.ls = pLayer});
-
-        endRender();
-
-        g_pHyprOpenGL->m_renderData.overrideBlurSourceFB = &blurFB;
-    }
-
     beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
     m_bRenderingSnapshot = true;
@@ -2576,8 +2548,6 @@ void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
     endRender();
 
     m_bRenderingSnapshot = false;
-
-    g_pHyprOpenGL->m_renderData.overrideBlurSourceFB = nullptr;
 }
 
 void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
@@ -2609,7 +2579,6 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
     if (*PDIMAROUND && pWindow->m_windowData.dimAround.valueOrDefault()) {
-
         CRectPassElement::SRectData data;
 
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y};
@@ -2617,6 +2586,19 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 
         m_renderPass.add(makeShared<CRectPassElement>(data));
         damageMonitor(PMONITOR);
+    }
+
+    if (shouldBlur(pWindow)) {
+        CRectPassElement::SRectData data;
+        data.box           = CBox{pWindow->m_realPosition->value(), pWindow->m_realSize->value()}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).round();
+        data.color         = CHyprColor{0, 0, 0, 0};
+        data.blur          = true;
+        data.blurA         = sqrt(pWindow->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+        data.round         = pWindow->rounding();
+        data.roundingPower = pWindow->roundingPower();
+        data.xray          = pWindow->m_windowData.xray.valueOr(false);
+
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     CTexPassElement::SRenderData data;
@@ -2655,22 +2637,34 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 
     CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
+    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+
     CTexPassElement::SRenderData data;
     data.flipEndFrame = true;
     data.tex          = FBDATA->getTexture();
     data.box          = layerBox;
     data.a            = pLayer->m_alpha->value();
     data.damage       = fakeDamage;
+    data.blur         = SHOULD_BLUR;
+    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    if (SHOULD_BLUR)
+        data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
     m_renderPass.add(makeShared<CTexPassElement>(data));
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {
+    if (m_bRenderingSnapshot)
+        return false;
+
     static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     return *PBLUR && ls->m_forceBlur;
 }
 
 bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
+    if (m_bRenderingSnapshot)
+        return false;
+
     static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     const bool  DONT_BLUR = w->m_windowData.noBlur.valueOrDefault() || w->m_windowData.RGBX.valueOrDefault() || w->opaque();
     return *PBLUR && !DONT_BLUR;

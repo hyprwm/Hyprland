@@ -2227,7 +2227,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
 
     // amazing hack: the surface has an opaque region!
     CRegion inverseOpaque;
-    if (a >= 1.f && std::round(pSurface->m_current.size.x * m_renderData.pMonitor->m_scale) == box.w &&
+    if (a >= 1.f && pSurface && std::round(pSurface->m_current.size.x * m_renderData.pMonitor->m_scale) == box.w &&
         std::round(pSurface->m_current.size.y * m_renderData.pMonitor->m_scale) == box.h) {
         pixman_box32_t surfbox = {0, 0, pSurface->m_current.size.x * pSurface->m_current.scale, pSurface->m_current.size.y * pSurface->m_current.scale};
         inverseOpaque          = pSurface->m_current.opaque;

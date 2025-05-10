@@ -17,6 +17,7 @@ enum eDynamicPermissionType : uint8_t {
     PERMISSION_TYPE_UNKNOWN = 0,
     PERMISSION_TYPE_SCREENCOPY,
     PERMISSION_TYPE_PLUGIN,
+    PERMISSION_TYPE_KEYBOARD,
 };
 
 enum eDynamicPermissionRuleSource : uint8_t {

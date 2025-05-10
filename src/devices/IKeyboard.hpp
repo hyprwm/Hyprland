@@ -78,6 +78,9 @@ class IKeyboard : public IHID {
     bool                    m_enabled    = true;
     bool                    m_allowBinds = true;
 
+    // permission flag: whether this keyboard is allowed to be processed
+    bool m_allowed = true;
+
     // if the keymap is overridden by the implementation,
     // don't try to set keyboard rules anymore, to avoid overwriting the requested one.
     // e.g. Virtual keyboards with custom maps.

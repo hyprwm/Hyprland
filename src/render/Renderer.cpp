@@ -260,8 +260,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     return false;
 }
 
-eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time,
-                                                                  const SRenderWorkspaceUntilData& until) {
+void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -279,9 +278,6 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMo
 
         if (pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
-
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
@@ -302,9 +298,6 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMo
 
         if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
-
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
@@ -327,9 +320,6 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMo
         if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
-
         if (shouldRenderWindow(w, pMonitor))
             renderWindow(w, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
@@ -342,7 +332,7 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMo
     if (!pWorkspaceWindow) {
         // ?? happens sometimes...
         pWorkspace->m_hasFullscreenWindow = false;
-        return RENDER_CALL_FAILED; // this will produce one blank frame. Oh well.
+        return; // this will produce one blank frame. Oh well.
     }
 
     // then render windows over fullscreen.
@@ -357,16 +347,11 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMo
         if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
-
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
-
-    return RENDER_CALL_OK;
 }
 
-eRenderCallResult CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const SRenderWorkspaceUntilData& until) {
+void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW lastWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -408,16 +393,10 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHL
             continue;
         }
 
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
-
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
         w.reset();
     }
-
-    if (lastWindow == until.w && until.w)
-        return RENDER_CALL_BREAK;
 
     if (lastWindow)
         renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
@@ -426,9 +405,6 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHL
 
     // render tiled windows that are fading out after other tiled to not hide them behind
     for (auto& w : tiledFadingOut) {
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
-
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
     }
 
@@ -445,9 +421,6 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHL
 
         if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
-
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
 
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_POPUP);
@@ -471,14 +444,9 @@ eRenderCallResult CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHL
         if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
-        if (w == until.w)
-            return RENDER_CALL_BREAK;
-
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
     }
-
-    return RENDER_CALL_OK;
 }
 
 void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
@@ -855,8 +823,7 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale,
-                                                 const SRenderWorkspaceUntilData& until) {
+void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
@@ -901,29 +868,17 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         else
             g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-        if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND)
-            return;
-
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
-
-        if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-            return;
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
 
-        if ((until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP) || until.w)
-            return;
-
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
-
-        if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
-            return;
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -938,15 +893,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         else
             g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-        if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND)
-            return;
-
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
-
-        if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-            return;
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -956,11 +905,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
 
-    if (pWorkspace->m_hasFullscreenWindow) {
-        if (renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time, until) == RENDER_CALL_BREAK)
-            return;
-    } else if (renderWorkspaceWindows(pMonitor, pWorkspace, time, until) == RENDER_CALL_BREAK)
-        return;
+    if (pWorkspace->m_hasFullscreenWindow)
+        renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
+    else
+        renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
     for (auto const& ws : g_pCompositor->m_workspaces) {
@@ -994,10 +942,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     for (auto const& ws : g_pCompositor->m_workspaces) {
         if (ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
             if (ws->m_hasFullscreenWindow) {
-                if (renderWorkspaceWindowsFullscreen(pMonitor, ws, time, until) == RENDER_CALL_BREAK)
-                    return;
-            } else if (renderWorkspaceWindows(pMonitor, ws, time, until) == RENDER_CALL_BREAK)
-                return;
+                renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
+            } else
+                renderWorkspaceWindows(pMonitor, ws, time);
         }
     }
 
@@ -1012,17 +959,11 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
-        if (w == until.w)
-            return;
-
         // render the bad boy
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
-
-    if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        return;
 
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
@@ -1033,9 +974,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
         renderIMEPopup(imep.get(), pMonitor, time);
     }
-
-    if (until.ls && until.ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
-        return;
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls.lock(), pMonitor, time);

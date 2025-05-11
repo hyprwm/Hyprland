@@ -977,6 +977,7 @@ bool CHyprOpenGLImpl::initShaders() {
                 shaders->m_shCM.applyTint         = glGetUniformLocation(prog, "applyTint");
                 shaders->m_shCM.tint              = glGetUniformLocation(prog, "tint");
                 shaders->m_shCM.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+                shaders->m_shCM.createVao();
             } else
                 Debug::log(ERR,
                            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports "
@@ -1006,6 +1007,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shQUAD.proj      = glGetUniformLocation(prog, "proj");
         shaders->m_shQUAD.color     = glGetUniformLocation(prog, "color");
         shaders->m_shQUAD.posAttrib = glGetAttribLocation(prog, "pos");
+        shaders->m_shQUAD.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic);
         if (!prog)
@@ -1025,6 +1027,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBA.tint              = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.useAlphaMatte     = glGetUniformLocation(prog, "useAlphaMatte");
+        shaders->m_shRGBA.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU, isDynamic);
         if (!prog)
@@ -1034,6 +1037,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shPASSTHRURGBA.tex       = glGetUniformLocation(prog, "tex");
         shaders->m_shPASSTHRURGBA.texAttrib = glGetAttribLocation(prog, "texcoord");
         shaders->m_shPASSTHRURGBA.posAttrib = glGetAttribLocation(prog, "pos");
+        shaders->m_shPASSTHRURGBA.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE, isDynamic);
         if (!prog)
@@ -1044,6 +1048,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shMATTE.alphaMatte = glGetUniformLocation(prog, "texMatte");
         shaders->m_shMATTE.texAttrib  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shMATTE.posAttrib  = glGetAttribLocation(prog, "pos");
+        shaders->m_shMATTE.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGGLITCH, isDynamic);
         if (!prog)
@@ -1056,6 +1061,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shGLITCH.distort   = glGetUniformLocation(prog, "distort");
         shaders->m_shGLITCH.time      = glGetUniformLocation(prog, "time");
         shaders->m_shGLITCH.fullSize  = glGetUniformLocation(prog, "screenSize");
+        shaders->m_shGLITCH.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX, isDynamic);
         if (!prog)
@@ -1072,6 +1078,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
         shaders->m_shRGBX.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.tint              = glGetUniformLocation(prog, "tint");
+        shaders->m_shRGBX.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT, isDynamic);
         if (!prog)
@@ -1088,6 +1095,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.discardAlphaValue = glGetUniformLocation(prog, "discardAlphaValue");
         shaders->m_shEXT.applyTint         = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.tint              = glGetUniformLocation(prog, "tint");
+        shaders->m_shEXT.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR1, isDynamic);
         if (!prog)
@@ -1103,6 +1111,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR1.passes            = glGetUniformLocation(prog, "passes");
         shaders->m_shBLUR1.vibrancy          = glGetUniformLocation(prog, "vibrancy");
         shaders->m_shBLUR1.vibrancy_darkness = glGetUniformLocation(prog, "vibrancy_darkness");
+        shaders->m_shBLUR1.createVao();
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR2, isDynamic);
         if (!prog)
@@ -1115,6 +1124,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.texAttrib = glGetAttribLocation(prog, "texcoord");
         shaders->m_shBLUR2.radius    = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.halfpixel = glGetUniformLocation(prog, "halfpixel");
+        shaders->m_shBLUR2.createVao();
 
         prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
@@ -1129,6 +1139,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.texAttrib  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shBLURPREPARE.contrast   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.brightness = glGetUniformLocation(prog, "brightness");
+        shaders->m_shBLURPREPARE.createVao();
 
         prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
@@ -1142,6 +1153,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.texAttrib  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shBLURFINISH.brightness = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.noise      = glGetUniformLocation(prog, "noise");
+        shaders->m_shBLURFINISH.createVao();
 
         prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
@@ -1157,6 +1169,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.range       = glGetUniformLocation(prog, "range");
         shaders->m_shSHADOW.shadowPower = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.color       = glGetUniformLocation(prog, "color");
+        shaders->m_shSHADOW.createVao();
 
         prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
@@ -1181,6 +1194,8 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBORDER1.angle2                = glGetUniformLocation(prog, "angle2");
         shaders->m_shBORDER1.gradientLerp          = glGetUniformLocation(prog, "gradientLerp");
         shaders->m_shBORDER1.alpha                 = glGetUniformLocation(prog, "alpha");
+        shaders->m_shBORDER1.createVao();
+
     } catch (const std::exception& e) {
         if (!m_shadersInitialized)
             throw e;
@@ -1375,7 +1390,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
         newBox, wlTransformToHyprutils(invertTransform(!m_endFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    glUseProgram(m_shaders->m_shQUAD.program);
+    useProgram(m_shaders->m_shQUAD.program);
 
 #ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1400,9 +1415,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
     glUniform1f(m_shaders->m_shQUAD.radius, round);
     glUniform1f(m_shaders->m_shQUAD.roundingPower, roundingPower);
 
-    glVertexAttribPointer(m_shaders->m_shQUAD.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(m_shaders->m_shQUAD.posAttrib);
+    glBindVertexArray(m_shaders->m_shQUAD.shaderVao);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -1421,7 +1434,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
         }
     }
 
-    glDisableVertexAttribArray(m_shaders->m_shQUAD.posAttrib);
+    glBindVertexArray(0);
 
     scissor(nullptr);
 }
@@ -1581,7 +1594,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
         shader = &m_shaders->m_shCM;
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
     if (shader == &m_shaders->m_shCM) {
         glUniform1i(shader->texType, texType);
@@ -1655,22 +1668,20 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
             glUniform1i(shader->applyTint, 0);
     }
 
-    const float verts[] = {
-        m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     // top right
-        m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVTopLeft.y,     // top left
-        m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVBottomRight.y, // bottom right
-        m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y, // bottom left
-    };
+    glBindVertexArray(shader->shaderVao);
+    if (allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+        const float customUVs[] = {
+            m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVTopLeft.x,
+            m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVBottomRight.y,
+            m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y,
+        };
 
-    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    if (allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1))
-        glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
-    else
-        glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(shader->posAttrib);
-    glEnableVertexAttribArray(shader->texAttrib);
+        glBindBuffer(GL_ARRAY_BUFFER, shader->shaderVboUv);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, shader->shaderVboUv);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
+    }
 
     if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
         CRegion damageClip = m_renderData.clipBox;
@@ -1695,9 +1706,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         }
     }
 
-    glDisableVertexAttribArray(shader->posAttrib);
-    glDisableVertexAttribArray(shader->texAttrib);
-
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(tex->m_target, 0);
 }
 
@@ -1723,7 +1733,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_target, tex->m_texID);
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1733,11 +1743,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
 #endif
     glUniform1i(shader->tex, 0);
 
-    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(shader->posAttrib);
-    glEnableVertexAttribArray(shader->texAttrib);
+    glBindVertexArray(shader->shaderVao);
 
     for (auto const& RECT : m_renderData.damage.getRects()) {
         scissor(&RECT);
@@ -1746,9 +1752,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
 
     scissor(nullptr);
 
-    glDisableVertexAttribArray(shader->posAttrib);
-    glDisableVertexAttribArray(shader->texAttrib);
-
+    glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }
 
@@ -1771,7 +1775,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     SShader*   shader = &m_shaders->m_shMATTE;
 
-    glUseProgram(shader->program);
+    useProgram(shader->program);
 
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -1789,11 +1793,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     auto matteTex = matte.getTexture();
     glBindTexture(matteTex->m_target, matteTex->m_texID);
 
-    glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(shader->posAttrib);
-    glEnableVertexAttribArray(shader->texAttrib);
+    glBindVertexArray(shader->shaderVao);
 
     for (auto const& RECT : m_renderData.damage.getRects()) {
         scissor(&RECT);
@@ -1802,9 +1802,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     scissor(nullptr);
 
-    glDisableVertexAttribArray(shader->posAttrib);
-    glDisableVertexAttribArray(shader->texAttrib);
-
+    glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }
 
@@ -1868,7 +1866,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_shaders->m_shBLURPREPARE.program);
+        useProgram(m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
@@ -1897,11 +1895,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         glUniform1f(m_shaders->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
         glUniform1i(m_shaders->m_shBLURPREPARE.tex, 0);
 
-        glVertexAttribPointer(m_shaders->m_shBLURPREPARE.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(m_shaders->m_shBLURPREPARE.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-        glEnableVertexAttribArray(m_shaders->m_shBLURPREPARE.posAttrib);
-        glEnableVertexAttribArray(m_shaders->m_shBLURPREPARE.texAttrib);
+        glBindVertexArray(m_shaders->m_shBLURPREPARE.shaderVao);
 
         if (!damage.empty()) {
             for (auto const& RECT : damage.getRects()) {
@@ -1910,9 +1904,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
             }
         }
 
-        glDisableVertexAttribArray(m_shaders->m_shBLURPREPARE.posAttrib);
-        glDisableVertexAttribArray(m_shaders->m_shBLURPREPARE.texAttrib);
-
+        glBindVertexArray(0);
         currentRenderToFB = PMIRRORSWAPFB;
     }
 
@@ -1931,7 +1923,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(pShader->program);
+        useProgram(pShader->program);
 
         // prep two shaders
 #ifndef GLES2
@@ -1950,12 +1942,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
             glUniform2f(m_shaders->m_shBLUR2.halfpixel, 0.5f / (m_renderData.pMonitor->m_pixelSize.x * 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y * 2.f));
         glUniform1i(pShader->tex, 0);
 
-        glVertexAttribPointer(pShader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(pShader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-        glEnableVertexAttribArray(pShader->posAttrib);
-        glEnableVertexAttribArray(pShader->texAttrib);
-
+        glBindVertexArray(pShader->shaderVao);
         if (!pDamage->empty()) {
             for (auto const& RECT : pDamage->getRects()) {
                 scissor(&RECT, false /* this region is already transformed */);
@@ -1963,8 +1950,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
             }
         }
 
-        glDisableVertexAttribArray(pShader->posAttrib);
-        glDisableVertexAttribArray(pShader->texAttrib);
+        glBindVertexArray(0);
 
         if (currentRenderToFB != PMIRRORFB)
             currentRenderToFB = PMIRRORFB;
@@ -2009,7 +1995,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        glUseProgram(m_shaders->m_shBLURFINISH.program);
+        useProgram(m_shaders->m_shBLURFINISH.program);
 
 #ifndef GLES2
         glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2022,11 +2008,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glUniform1i(m_shaders->m_shBLURFINISH.tex, 0);
 
-        glVertexAttribPointer(m_shaders->m_shBLURFINISH.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-        glVertexAttribPointer(m_shaders->m_shBLURFINISH.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-        glEnableVertexAttribArray(m_shaders->m_shBLURFINISH.posAttrib);
-        glEnableVertexAttribArray(m_shaders->m_shBLURFINISH.texAttrib);
+        glBindVertexArray(m_shaders->m_shBLURFINISH.shaderVao);
 
         if (!damage.empty()) {
             for (auto const& RECT : damage.getRects()) {
@@ -2035,8 +2017,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
             }
         }
 
-        glDisableVertexAttribArray(m_shaders->m_shBLURFINISH.posAttrib);
-        glDisableVertexAttribArray(m_shaders->m_shBLURFINISH.texAttrib);
+        glBindVertexArray(0);
 
         if (currentRenderToFB != PMIRRORFB)
             currentRenderToFB = PMIRRORFB;
@@ -2352,7 +2333,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    glUseProgram(m_shaders->m_shBORDER1.program);
+    useProgram(m_shaders->m_shBORDER1.program);
 
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
     glUniform1i(m_shaders->m_shBORDER1.skipCM, skipCM);
@@ -2387,11 +2368,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniform1f(m_shaders->m_shBORDER1.roundingPower, roundingPower);
     glUniform1f(m_shaders->m_shBORDER1.thick, scaledBorderSize);
 
-    glVertexAttribPointer(m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
-    glEnableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
+    glBindVertexArray(m_shaders->m_shBORDER1.shaderVao);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -2410,8 +2387,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
         }
     }
 
-    glDisableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
-    glDisableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
+    glBindVertexArray(0);
 
     blend(BLEND);
 }
@@ -2450,7 +2426,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    glUseProgram(m_shaders->m_shBORDER1.program);
+    useProgram(m_shaders->m_shBORDER1.program);
 
 #ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
@@ -2484,11 +2460,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniform1f(m_shaders->m_shBORDER1.roundingPower, roundingPower);
     glUniform1f(m_shaders->m_shBORDER1.thick, scaledBorderSize);
 
-    glVertexAttribPointer(m_shaders->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_shaders->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
-    glEnableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
+    glBindVertexArray(m_shaders->m_shBORDER1.shaderVao);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -2507,9 +2479,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
         }
     }
 
-    glDisableVertexAttribArray(m_shaders->m_shBORDER1.posAttrib);
-    glDisableVertexAttribArray(m_shaders->m_shBORDER1.texAttrib);
-
+    glBindVertexArray(0);
     blend(BLEND);
 }
 
@@ -2538,7 +2508,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    glUseProgram(m_shaders->m_shSHADOW.program);
+    useProgram(m_shaders->m_shSHADOW.program);
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
     glUniform1i(m_shaders->m_shSHADOW.skipCM, skipCM);
     if (!skipCM)
@@ -2565,11 +2535,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     glUniform1f(m_shaders->m_shSHADOW.range, range);
     glUniform1f(m_shaders->m_shSHADOW.shadowPower, SHADOWPOWER);
 
-    glVertexAttribPointer(m_shaders->m_shSHADOW.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-    glVertexAttribPointer(m_shaders->m_shSHADOW.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
-
-    glEnableVertexAttribArray(m_shaders->m_shSHADOW.posAttrib);
-    glEnableVertexAttribArray(m_shaders->m_shSHADOW.texAttrib);
+    glBindVertexArray(m_shaders->m_shSHADOW.shaderVao);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -2588,8 +2554,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
         }
     }
 
-    glDisableVertexAttribArray(m_shaders->m_shSHADOW.posAttrib);
-    glDisableVertexAttribArray(m_shaders->m_shSHADOW.texAttrib);
+    glBindVertexArray(0);
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
@@ -2859,6 +2824,14 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
     cairo_destroy(CAIRO);
 
     m_missingAssetTexture = tex;
+}
+
+void CHyprOpenGLImpl::useProgram(GLuint prog) {
+    if (m_currentProgram == prog)
+        return;
+
+    glUseProgram(prog);
+    m_currentProgram = prog;
 }
 
 void CHyprOpenGLImpl::initAssets() {

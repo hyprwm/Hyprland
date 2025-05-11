@@ -1037,7 +1037,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
         // also render text for the tty number
         if (g_pHyprOpenGL->m_lockTtyTextTexture) {
             CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, 1.F);
+            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, ALPHA);
         }
     }
 

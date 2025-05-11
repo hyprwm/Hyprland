@@ -24,7 +24,7 @@ void CInputCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t 
         g_pHyprRenderer->ensureCursorRenderingMode();
     });
 
-    sendKeymap(g_pSeatManager->keyboard.lock(), RESOURCE);
+    sendKeymap(g_pSeatManager->m_keyboard.lock(), RESOURCE);
 }
 
 bool CInputCaptureProtocol::isCaptured() {
@@ -33,7 +33,7 @@ bool CInputCaptureProtocol::isCaptured() {
 
 void CInputCaptureProtocol::updateKeymap() {
     for (const auto& manager : m_vManagers)
-        sendKeymap(g_pSeatManager->keyboard.lock(), manager);
+        sendKeymap(g_pSeatManager->m_keyboard.lock(), manager);
 }
 
 void CInputCaptureProtocol::sendMotion(const Vector2D& absolutePosition, const Vector2D& delta) {
@@ -45,7 +45,7 @@ void CInputCaptureProtocol::sendMotion(const Vector2D& absolutePosition, const V
 void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const UP<CHyprlandInputCaptureManagerV1>& manager) {
     if (!keyboard)
         return;
-    manager->sendKeymap(HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_XKB_V1, keyboard->xkbKeymapFD.get(), keyboard->xkbKeymapString.length() + 1);
+    manager->sendKeymap(HYPRLAND_INPUT_CAPTURE_MANAGER_V1_KEYMAP_FORMAT_XKB_V1, keyboard->m_xkbKeymapFD.get(), keyboard->m_xkbKeymapString.length() + 1);
 }
 
 void CInputCaptureProtocol::forceRelease() {

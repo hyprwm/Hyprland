@@ -312,6 +312,7 @@ class CHyprOpenGLImpl {
 
     SShader                 m_finalScreenShader;
     CTimer                  m_globalTimer;
+    GLuint                  m_currentProgram;
 
     SP<CTexture>            m_missingAssetTexture;
     SP<CTexture>            m_backgroundTexture;
@@ -328,6 +329,7 @@ class CHyprOpenGLImpl {
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
     void                    initAssets();
     void                    initMissingAssetTexture();
+    void                    useProgram(GLuint prog);
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

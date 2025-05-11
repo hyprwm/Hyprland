@@ -1487,7 +1487,6 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
 
             Debug::log(LOG, "Cleanup: destroyed a layersurface");
 
-            glFlush(); // to free mem NOW.
             return;
         }
     }

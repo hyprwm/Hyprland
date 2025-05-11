@@ -584,7 +584,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->renderTexture(texture, xbox, 1.F);
 
     g_pHyprOpenGL->end();
-    glFlush();
     g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
     g_pHyprRenderer->onRenderbufferDestroy(RBO.get());

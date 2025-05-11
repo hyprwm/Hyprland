@@ -624,7 +624,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (PROTO::inputCapture->isCaptured())
         return;
 
-    m_tmrLastCursorMovement.reset();
+    m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_currentlyHeldButtons.push_back(e.button);
@@ -954,12 +954,12 @@ void CInputManager::onMouseFrame() {
         return;
 
     bool shouldSkip = false;
-    if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
-        auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
-        shouldSkip    = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+    if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
+        auto PMONITOR = g_pCompositor->m_lastMonitor.get();
+        shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
     }
-    g_pSeatManager->isPointerFrameSkipped = shouldSkip;
-    if (!g_pSeatManager->isPointerFrameSkipped)
+    g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
+    if (!g_pSeatManager->m_isPointerFrameSkipped)
         g_pSeatManager->sendPointerFrame();
 }
 

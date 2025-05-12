@@ -240,6 +240,11 @@ class CHyprOpenGLImpl {
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
     bool                                        initShaders();
+
+    GLuint                                      createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
+    GLuint                                      compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
+    void                                        useProgram(GLuint prog);
+
     bool                                        m_shadersInitialized = false;
     SP<SPreparedShaders>                        m_shaders;
 
@@ -321,15 +326,12 @@ class CHyprOpenGLImpl {
     SP<CTexture>            m_lockTtyTextTexture; // TODO: don't always load lock
 
     void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
-    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
-    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                    createBGTextureForMonitor(PHLMONITOR);
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
     void                    initAssets();
     void                    initMissingAssetTexture();
-    void                    useProgram(GLuint prog);
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

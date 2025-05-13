@@ -1262,6 +1262,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     }
     m_finalScreenShader.texAttrib = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
     m_finalScreenShader.posAttrib = glGetAttribLocation(m_finalScreenShader.program, "pos");
+    m_finalScreenShader.createVao();
 }
 
 void CHyprOpenGLImpl::clear(const CHyprColor& color) {

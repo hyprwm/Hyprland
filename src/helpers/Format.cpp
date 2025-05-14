@@ -14,26 +14,18 @@
 */
 inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
-        .drmFormat = DRM_FORMAT_ARGB8888,
-        .flipRB    = true,
-#ifndef GLES2
-        .glFormat = GL_RGBA,
-#else
-        .glFormat = GL_BGRA_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_ARGB8888,
+        .flipRB        = true,
+        .glFormat      = GL_RGBA,
         .glType        = GL_UNSIGNED_BYTE,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XRGB8888,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat = DRM_FORMAT_XRGB8888,
-        .flipRB    = true,
-#ifndef GLES2
-        .glFormat = GL_RGBA,
-#else
-        .glFormat = GL_BGRA_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_XRGB8888,
+        .flipRB        = true,
+        .glFormat      = GL_RGBA,
         .glType        = GL_UNSIGNED_BYTE,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XRGB8888,
@@ -104,96 +96,64 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .bytesPerBlock = 2,
     },
     {
-        .drmFormat = DRM_FORMAT_XBGR2101010,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
-#else
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_XBGR2101010,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat = DRM_FORMAT_ABGR2101010,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
-#else
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_ABGR2101010,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat = DRM_FORMAT_XRGB2101010,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
-#else
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_XRGB2101010,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat = DRM_FORMAT_ARGB2101010,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
-#else
-        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_ARGB2101010,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat = DRM_FORMAT_XBGR16161616F,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_HALF_FLOAT,
-#else
-        .glType = GL_HALF_FLOAT_OES,
-#endif
+        .drmFormat     = DRM_FORMAT_XBGR16161616F,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_HALF_FLOAT,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock = 8,
     },
     {
-        .drmFormat = DRM_FORMAT_ABGR16161616F,
-        .glFormat  = GL_RGBA,
-#ifndef GLES2
-        .glType = GL_HALF_FLOAT,
-#else
-        .glType = GL_HALF_FLOAT_OES,
-#endif
+        .drmFormat     = DRM_FORMAT_ABGR16161616F,
+        .glFormat      = GL_RGBA,
+        .glType        = GL_HALF_FLOAT,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock = 8,
     },
     {
-        .drmFormat = DRM_FORMAT_XBGR16161616,
-#ifndef GLES2
-        .glFormat = GL_RGBA16UI,
-#else
-        .glFormat = GL_RGBA16_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_XBGR16161616,
+        .glFormat      = GL_RGBA16UI,
         .glType        = GL_UNSIGNED_SHORT,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XBGR16161616,
         .bytesPerBlock = 8,
     },
     {
-        .drmFormat = DRM_FORMAT_ABGR16161616,
-#ifndef GLES2
-        .glFormat = GL_RGBA16UI,
-#else
-        .glFormat = GL_RGBA16_EXT,
-#endif
+        .drmFormat     = DRM_FORMAT_ABGR16161616,
+        .glFormat      = GL_RGBA16UI,
         .glType        = GL_UNSIGNED_SHORT,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XBGR16161616,
@@ -290,12 +250,7 @@ uint32_t NFormatUtils::drmFormatToGL(DRMFormat drm) {
         case DRM_FORMAT_XRGB8888:
         case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
         case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010:
-#ifdef GLES2
-            return GL_RGB10_A2_EXT;
-#else
-            return GL_RGB10_A2;
-#endif
+        case DRM_FORMAT_XBGR2101010: return GL_RGB10_A2;
         default: return GL_RGBA;
     }
     UNREACHABLE();
@@ -303,13 +258,7 @@ uint32_t NFormatUtils::drmFormatToGL(DRMFormat drm) {
 }
 
 uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
-    return gl != GL_RGBA ?
-#ifdef GLES2
-        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
-#else
-        GL_UNSIGNED_INT_2_10_10_10_REV :
-#endif
-        GL_UNSIGNED_BYTE;
+    return gl != GL_RGBA ? GL_UNSIGNED_INT_2_10_10_10_REV : GL_UNSIGNED_BYTE;
 }
 
 std::string NFormatUtils::drmFormatName(DRMFormat drm) {

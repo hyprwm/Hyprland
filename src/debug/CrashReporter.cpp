@@ -109,9 +109,6 @@ void NCrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += "\nDate: ";
     finalCrashReport += GIT_COMMIT_DATE;
     finalCrashReport += "\nFlags:\n";
-#ifdef LEGACY_RENDERER
-    finalCrashReport += "legacyrenderer\n";
-#endif
 #if ISDEBUG
     finalCrashReport += "debug\n";
 #endif

@@ -281,10 +281,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
     outFB.bind();
 
-#ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
-#endif
-
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
@@ -318,10 +315,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     }
 
     outFB.unbind();
-
-#ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-#endif
 
     return true;
 }

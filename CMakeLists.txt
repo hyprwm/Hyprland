@@ -99,11 +99,7 @@ message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
 
-if(LEGACY_RENDERER)
-  set(GLES_VERSION "GLES2")
-else()
-  set(GLES_VERSION "GLES3")
-endif()
+set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.8.0)
@@ -214,11 +210,6 @@ check_include_file("sys/inotify.h" HAS_INOTIFY)
 pkg_check_modules(inotify IMPORTED_TARGET libinotify)
 if(NOT HAS_INOTIFY AND inotify_FOUND)
   target_link_libraries(Hyprland PkgConfig::inotify)
-endif()
-
-if(LEGACY_RENDERER)
-  message(STATUS "Using the legacy GLES2 renderer!")
-  add_compile_definitions(LEGACY_RENDERER)
 endif()
 
 if(NO_XWAYLAND)

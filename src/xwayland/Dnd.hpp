@@ -5,7 +5,9 @@
 #include "../managers/input/InputManager.hpp"
 #include <wayland-server-protocol.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#ifndef NO_XWAYLAND
 #include <xcb/xcb.h>
+#endif
 
 #define XDND_VERSION 5
 

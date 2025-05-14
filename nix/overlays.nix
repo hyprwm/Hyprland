@@ -50,9 +50,15 @@ in {
         hyprutils = final.hyprutils.override {debug = true;};
         debug = true;
       };
-      hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
 
       # deprecated packages
+      hyprland-legacy-renderer =
+        builtins.trace ''
+          hyprland-legacy-renderer was removed. Please use the hyprland package.
+          Legacy renderer is no longer supported.
+        ''
+        final.hyprland;
+
       hyprland-nvidia =
         builtins.trace ''
           hyprland-nvidia was removed. Please use the hyprland package.

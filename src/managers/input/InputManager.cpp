@@ -1368,7 +1368,7 @@ void CInputManager::destroyTabletPad(SP<CTabletPad> pad) {
 }
 
 void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
-    if (!pKeyboard)
+    if (!pKeyboard || pKeyboard->isVirtual())
         return;
 
     std::optional<uint32_t> leds = pKeyboard->getLEDs();

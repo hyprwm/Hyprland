@@ -72,12 +72,12 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     GLCALL(glBindTexture(GL_TEXTURE_2D, m_texID));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-#ifndef GLES2
+
     if (format->flipRB) {
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
     }
-#endif
+
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
@@ -120,12 +120,10 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     auto rects = damage.copy().intersect(CBox{{}, m_size}).getRects();
 
-#ifndef GLES2
     if (format->flipRB) {
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
     }
-#endif
 
     for (auto const& rect : rects) {
         GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));

@@ -77,10 +77,6 @@ if (systemd_option.enabled())
   subdir('systemd')
 endif
 
-if get_option('legacy_renderer').enabled()
-  add_project_arguments('-DLEGACY_RENDERER', language: 'cpp')
-endif
-
 if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif

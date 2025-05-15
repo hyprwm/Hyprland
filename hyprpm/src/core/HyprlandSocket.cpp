@@ -5,6 +5,7 @@
 #include <print>
 #include <sys/un.h>
 #include <unistd.h>
+#include <cstring>
 
 static int getUID() {
     const auto UID   = getuid();

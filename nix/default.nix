@@ -41,7 +41,6 @@
   xwayland,
   debug ? false,
   enableXWayland ? true,
-  legacyRenderer ? false,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
   version ? "git",
@@ -52,6 +51,7 @@
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
   hidpiXWayland ? false,
+  legacyRenderer ? false,
 }: let
   inherit (builtins) baseNameOf foldl' readFile;
   inherit (lib.asserts) assertMsg;
@@ -70,6 +70,7 @@ in
   assert assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
   assert assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
   assert assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
+  assert assertMsg (!legacyRenderer) "The option `legacyRenderer` has been removed. Legacy renderer is no longer supported.";
     customStdenv.mkDerivation (finalAttrs: {
       pname = "hyprland${optionalString debug "-debug"}";
       inherit version;
@@ -142,7 +143,7 @@ in
           wayland-scanner
           xorg.libXcursor
         ]
-        (optionals customStdenv.hostPlatform.isBSD [ epoll-shim ])
+        (optionals customStdenv.hostPlatform.isBSD [epoll-shim])
         (optionals customStdenv.hostPlatform.isMusl [libexecinfo])
         (optionals enableXWayland [
           xorg.libxcb
@@ -165,7 +166,6 @@ in
       mesonFlags = flatten [
         (mapAttrsToList mesonEnable {
           "xwayland" = enableXWayland;
-          "legacy_renderer" = legacyRenderer;
           "systemd" = withSystemd;
           "uwsm" = false;
           "hyprpm" = false;

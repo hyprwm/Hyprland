@@ -17,15 +17,9 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 
-#ifdef LEGACY_RENDERER
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#define GLES2
-#else
 #define GLES32
 #include <GLES3/gl32.h>
 #include <GLES3/gl3ext.h>
-#endif
 
 #ifdef NO_XWAYLAND
 #define XWAYLAND false

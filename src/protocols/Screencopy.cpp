@@ -264,11 +264,7 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, 1);
     }
 
-#ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, fb.getFBID());
-#endif
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -304,11 +300,7 @@ bool CScreencopyFrame::copyShm() {
 
     g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
-#ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-#endif
 
     LOGM(TRACE, "Copied frame via shm");
 

@@ -162,24 +162,14 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
 
     auto attrsNoVer = attrs;
 
-#ifndef GLES2
     attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
     attrs.push_back(3);
     attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
     attrs.push_back(2);
-#else
-    attrs.push_back(EGL_CONTEXT_CLIENT_VERSION);
-    attrs.push_back(2);
-    m_eglContextVersion = EGL_CONTEXT_GLES_2_0;
-#endif
-
     attrs.push_back(EGL_NONE);
 
     m_eglContext = eglCreateContext(m_eglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
     if (m_eglContext == EGL_NO_CONTEXT) {
-#ifdef GLES2
-        RASSERT(false, "EGL: failed to create a context with GLES2.0");
-#endif
         Debug::log(WARN, "EGL: Failed to create a context with GLES3.2, retrying 3.0");
 
         attrs = attrsNoVer;
@@ -361,10 +351,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
 #endif
 
     TRACY_GPU_CONTEXT;
-
-#ifdef GLES2
-    Debug::log(WARN, "!RENDERER: Using the legacy GLES2 renderer!");
-#endif
 
     initDRMFormats();
 
@@ -669,7 +655,6 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<CRenderbuffer> rb, CFramebuffer* fb) {
     m_renderData.pMonitor = pMonitor;
 
-#ifndef GLES2
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
         std::string errStr = "";
@@ -682,7 +667,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
         RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
         return;
     }
-#endif
 
     TRACY_GPU_ZONE("RenderBeginSimple");
 
@@ -721,7 +705,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_renderData.pMonitor = pMonitor;
 
-#ifndef GLES2
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
         std::string errStr = "";
@@ -734,7 +717,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
         return;
     }
-#endif
 
     TRACY_GPU_ZONE("RenderBegin");
 
@@ -860,11 +842,7 @@ void CHyprOpenGLImpl::end() {
     // check for gl errors
     const GLenum ERR = glGetError();
 
-#ifdef GLES2
-    if (ERR == GL_CONTEXT_LOST_KHR) /* We don't have infra to recover from this */
-#else
     if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
-#endif
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
@@ -946,9 +924,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
         GLuint prog;
-#ifdef GLES2
-        m_cmSupported = false;
-#else
+
         if (!*PCM)
             m_cmSupported = false;
         else {
@@ -983,7 +959,6 @@ bool CHyprOpenGLImpl::initShaders() {
                            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports "
                            "about this!");
         }
-#endif
 
         const auto FRAGSHADOW             = processShader(m_cmSupported ? "shadow.frag" : "shadow_legacy.frag", includes);
         const auto FRAGBORDER1            = processShader(m_cmSupported ? "border.frag" : "border_legacy.frag", includes);
@@ -1392,13 +1367,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     useProgram(m_shaders->m_shQUAD.program);
-
-#ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(m_renderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
 
     // premultiply the color as well as we don't work with straight alpha
     glUniform4f(m_shaders->m_shQUAD.color, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
@@ -1602,12 +1571,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         passCMUniforms(*shader, imageDescription);
     }
 
-#ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
     glUniform1i(shader->tex, 0);
 
     if ((usingFinalShader && *PDT == 0) || CRASHING) {
@@ -1735,15 +1699,8 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     glBindTexture(tex->m_target, tex->m_texID);
 
     useProgram(shader->program);
-
-#ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
     glUniform1i(shader->tex, 0);
-
     glBindVertexArray(shader->shaderVao);
 
     for (auto const& RECT : m_renderData.damage.getRects()) {
@@ -1777,13 +1734,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     SShader*   shader = &m_shaders->m_shMATTE;
 
     useProgram(shader->program);
-
-#ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
     glUniform1i(shader->tex, 0);
     glUniform1i(shader->alphaMatte, 1);
 
@@ -1886,12 +1837,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
                             1.0f);
         }
 
-#ifndef GLES2
         glUniformMatrix3fv(m_shaders->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-        glMatrix.transpose();
-        glUniformMatrix3fv(m_shaders->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
         glUniform1f(m_shaders->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
         glUniform1f(m_shaders->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
         glUniform1i(m_shaders->m_shBLURPREPARE.tex, 0);
@@ -1927,12 +1873,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         useProgram(pShader->program);
 
         // prep two shaders
-#ifndef GLES2
         glUniformMatrix3fv(pShader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-        glMatrix.transpose();
-        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
         glUniform1f(pShader->radius, *PBLURSIZE * a); // this makes the blursize change with a
         if (pShader == &m_shaders->m_shBLUR1) {
             glUniform2f(m_shaders->m_shBLUR1.halfpixel, 0.5f / (m_renderData.pMonitor->m_pixelSize.x / 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y / 2.f));
@@ -1997,13 +1938,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         useProgram(m_shaders->m_shBLURFINISH.program);
-
-#ifndef GLES2
         glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-        glMatrix.transpose();
-        glUniformMatrix3fv(m_shaders->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
         glUniform1f(m_shaders->m_shBLURFINISH.noise, *PBLURNOISE);
         glUniform1f(m_shaders->m_shBLURFINISH.brightness, *PBLURBRIGHTNESS);
 
@@ -2341,13 +2276,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     if (!skipCM)
         passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
 
-#ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
-
     glUniform4fv(m_shaders->m_shBORDER1.gradient, grad.m_colorsOkLabA.size() / 4, (float*)grad.m_colorsOkLabA.data());
     glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad.m_colorsOkLabA.size() / 4);
     glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
@@ -2428,14 +2357,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(true);
 
     useProgram(m_shaders->m_shBORDER1.program);
-
-#ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(m_shaders->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
-
     glUniform4fv(m_shaders->m_shBORDER1.gradient, grad1.m_colorsOkLabA.size() / 4, (float*)grad1.m_colorsOkLabA.data());
     glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad1.m_colorsOkLabA.size() / 4);
     glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad1.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
@@ -2515,12 +2437,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     if (!skipCM)
         passCMUniforms(m_shaders->m_shSHADOW, SImageDescription{});
 
-#ifndef GLES2
     glUniformMatrix3fv(m_shaders->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
-#else
-    glMatrix.transpose();
-    glUniformMatrix3fv(m_shaders->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
-#endif
     glUniform4f(m_shaders->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
@@ -2675,26 +2592,20 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     tex->allocate();
     tex->m_size = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
 
-    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ?
-#ifdef GLES2
-        GL_RGB32F_EXT :
-#else
-        GL_RGB32F :
-#endif
-        GL_RGBA;
-    const GLint glFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
-    const GLint glType   = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
+    const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
+    const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
     glBindTexture(GL_TEXTURE_2D, tex->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-#ifndef GLES2
+
     if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
-#endif
+
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
@@ -2772,10 +2683,8 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col
     glBindTexture(GL_TEXTURE_2D, tex->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-#ifndef GLES2
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->m_size.x, tex->m_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     cairo_destroy(CAIRO);
@@ -2815,10 +2724,8 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
     glBindTexture(GL_TEXTURE_2D, tex->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-#ifndef GLES2
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
     glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
@@ -2928,10 +2835,8 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     glBindTexture(GL_TEXTURE_2D, tex->m_texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-#ifndef GLES2
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
     glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);

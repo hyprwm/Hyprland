@@ -167,7 +167,9 @@ void CLayerSurface::onMap() {
 
     if (GRABSFOCUS) {
         // TODO: use the new superb really very cool grab
-        g_pSeatManager->setGrab(nullptr);
+        if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_surface->resource()))
+            g_pSeatManager->setGrab(nullptr);
+
         g_pInputManager->releaseAllMouseButtons();
         g_pCompositor->focusSurface(m_surface->resource());
 

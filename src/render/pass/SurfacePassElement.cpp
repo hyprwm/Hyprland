@@ -273,7 +273,7 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     texBox.round();
 
     visibleRegion.scale((Vector2D(1, 1) / (uvBR - uvTL)) * (texBox.size() / bufferSize));
-    visibleRegion.translate((m_data.pos + m_data.localPos) * m_data.pMonitor->m_scale - m_data.pMonitor->m_position);
+    visibleRegion.translate((m_data.pos + m_data.localPos - m_data.pMonitor->m_position) * m_data.pMonitor->m_scale);
 
     return visibleRegion;
 }

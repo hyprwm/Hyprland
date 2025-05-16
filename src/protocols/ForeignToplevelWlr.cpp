@@ -1,6 +1,7 @@
 #include "ForeignToplevelWlr.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "managers/input/InputManager.hpp"
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
@@ -24,6 +25,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         // these requests bypass the config'd stuff cuz it's usually like
         // window switchers and shit
         PWINDOW->activate(true);
+        g_pInputManager->simulateMouseMovement();
     });
 
     m_resource->setSetFullscreen([this](CZwlrForeignToplevelHandleV1* p, wl_resource* output) {

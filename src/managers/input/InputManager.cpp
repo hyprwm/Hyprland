@@ -201,6 +201,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     Vector2D               surfacePos = Vector2D(-1337, -1337);
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
+    bool                   sendExternalMouseEvents = false;
 
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
 
@@ -297,7 +298,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     // and we're not dnd-ing, don't refocus. Keep focus on last surface.
     if (!PROTO::data->dndActive() && !m_currentlyHeldButtons.empty() && g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->m_mapped &&
         g_pSeatManager->m_state.pointerFocus && !m_hardInput) {
-        foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
+        foundSurface            = g_pSeatManager->m_state.pointerFocus.lock();
+        sendExternalMouseEvents = true;
 
         // IME popups aren't desktop-like elements
         // TODO: make them.
@@ -596,6 +598,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
         if (pFoundLayerSurface)
             m_lastFocusOnLS = true;
+    }
+
+    // Don't send events outside of the surface unless holding a mouse button,
+    // except for X11 surfaces which are always sent events in case of potential breakage.
+    if (!sendExternalMouseEvents && foundSurface && (!pFoundWindow || !pFoundWindow->m_isX11)) {
+        if (!foundSurface->at(surfaceLocal, true).first)
+            foundSurface = nullptr;
     }
 
     g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);

@@ -187,9 +187,43 @@ void CScreencopyFrame::share() {
         callback(copyShm());
 }
 
+void CScreencopyFrame::renderMon() {
+    auto    TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+
+    CBox    monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
+                      .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+                      .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
+    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->setRenderModifEnabled(false);
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
+    g_pHyprOpenGL->setRenderModifEnabled(true);
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    if (m_overlayCursor)
+        g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
+                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);
+}
+
+void CScreencopyFrame::storeTempFB() {
+    g_pHyprRenderer->makeEGLCurrent();
+
+    m_tempFb.alloc(m_box.w, m_box.h);
+
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+
+    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &m_tempFb, true)) {
+        LOGM(ERR, "Can't copy: failed to begin rendering to temp fb");
+        return;
+    }
+
+    renderMon();
+
+    g_pHyprRenderer->endRender();
+}
+
 void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
-    const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -200,17 +234,12 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        CBox monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
-                          .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                          .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
-        g_pHyprOpenGL->setMonitorTransformEnabled(true);
-        g_pHyprOpenGL->setRenderModifEnabled(false);
-        g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
-        g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->setMonitorTransformEnabled(false);
-        if (m_overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
-                                                        g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);
+        if (m_tempFb.isAllocated()) {
+            CBox texbox = {{}, m_box.size()};
+            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, 1);
+            m_tempFb.release();
+        } else
+            renderMon();
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
@@ -228,8 +257,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 }
 
 bool CScreencopyFrame::copyShm() {
-    const auto PERM    = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
     auto       shm                = m_buffer->shm();
     auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm
@@ -247,15 +275,12 @@ bool CScreencopyFrame::copyShm() {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        CBox monbox = CBox{0, 0, m_monitor->m_transformedSize.x, m_monitor->m_transformedSize.y}.translate({-m_box.x, -m_box.y});
-        g_pHyprOpenGL->setMonitorTransformEnabled(true);
-        g_pHyprOpenGL->setRenderModifEnabled(false);
-        g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
-        g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->setMonitorTransformEnabled(false);
-        if (m_overlayCursor)
-            g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
-                                                        g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);
+        if (m_tempFb.isAllocated()) {
+            CBox texbox = {{}, m_box.size()};
+            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, 1);
+            m_tempFb.release();
+        } else
+            renderMon();
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
@@ -420,8 +445,12 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
         // check permissions
         const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(f->m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
-        if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            if (!f->m_tempFb.isAllocated())
+                f->storeTempFB(); // make a snapshot before the popup
+
             continue; // pending an answer, don't do anything yet.
+        }
 
         // otherwise share. If it's denied, it will be black.
 

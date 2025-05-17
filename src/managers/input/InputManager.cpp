@@ -36,6 +36,7 @@
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/LayoutManager.hpp"
+#include "../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include "../../helpers/time/Time.hpp"
 
@@ -1054,6 +1055,27 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     pKeyboard->m_resolveBindsBySym = RESOLVEBINDSBYSYM;
     pKeyboard->m_allowBinds        = ALLOWBINDS;
 
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(-1, pKeyboard->m_hlName, PERMISSION_TYPE_KEYBOARD);
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        const auto PROMISE = g_pDynamicPermissionManager->promiseFor(-1, pKeyboard->m_hlName, PERMISSION_TYPE_KEYBOARD);
+        if (!PROMISE)
+            Debug::log(ERR, "BUG THIS: No promise for client permission for keyboard");
+        else {
+            PROMISE->then([k = WP<IKeyboard>{pKeyboard}](SP<CPromiseResult<eDynamicPermissionAllowMode>> r) {
+                if (r->hasError()) {
+                    Debug::log(ERR, "BUG THIS: No permission returned for keyboard");
+                    return;
+                }
+
+                if (!k)
+                    return;
+
+                k->m_allowed = r->result() == PERMISSION_RULE_ALLOW_MODE_ALLOW;
+            });
+        }
+    } else
+        pKeyboard->m_allowed = PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
     try {
         if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES != "" &&
             RULES == pKeyboard->m_currentRules.rules && MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout &&
@@ -1382,7 +1404,7 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
-    if (!pKeyboard->m_enabled)
+    if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);

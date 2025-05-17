@@ -52,6 +52,7 @@ static const char* permissionToString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_UNKNOWN: return "PERMISSION_TYPE_UNKNOWN";
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
         case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
+        case PERMISSION_TYPE_KEYBOARD: return "PERMISSION_TYPE_KEYBOARD";
     }
 
     return "error";
@@ -59,9 +60,10 @@ static const char* permissionToString(eDynamicPermissionType type) {
 
 static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "requesting an unknown permission";
-        case PERMISSION_TYPE_SCREENCOPY: return "trying to capture your screen";
-        case PERMISSION_TYPE_PLUGIN: return "trying to load a plugin";
+        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{}</b> is requesting an unknown permission.";
+        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
+        case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
+        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: {}.<br/><br/>Do you want to allow it to operate?";
     }
 
     return "error";
@@ -184,7 +186,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    // if we are here, we need to ask.
+    // if we are here, we need to ask, that's the fallback for all these (keyboards wont come here)
     askForPermission(client, LOOKUP.value_or(""), permission);
 
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
@@ -232,6 +234,10 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
             } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
                 Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
                 return PERMISSION_RULE_ALLOW_MODE_PENDING;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ASK) {
+                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                askForPermission(nullptr, str, permission, pid);
+                return PERMISSION_RULE_ALLOW_MODE_PENDING;
             } else
                 Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
         }
@@ -246,6 +252,10 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
+
+    // keyboards are allow default
+    if (permission == PERMISSION_TYPE_KEYBOARD)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     // if we are here, we need to ask.
     askForPermission(nullptr, str, permission, pid);
@@ -263,22 +273,20 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
     std::string description = "";
     if (binaryPath.empty())
-        description = std::format("An unknown application (wayland client ID 0x{:x}) is {}.", (uintptr_t)client, permissionToHumanString(type));
+        description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", (uintptr_t)client));
     else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format("An application <b>{}</b> ({}) is {}.", binaryName, binaryPath, permissionToHumanString(type));
+        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}</b> ({})", binaryName, binaryPath));
     } else if (pid >= 0) {
         if (type == PERMISSION_TYPE_PLUGIN) {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format("An application <b>{}</b> is {}:<br/><b>{}</b>", LOOKUP.value_or("Unknown"), permissionToHumanString(type), binaryPath);
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), LOOKUP.value_or("Unknown"), binaryPath);
         } else {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format("An application <b>{}</b> ({}) is {}.", LOOKUP.value_or("Unknown"), binaryPath, permissionToHumanString(type));
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), LOOKUP.value_or("Unknown"), binaryPath);
         }
     } else
-        description = std::format("An application is {}:<br/><b>{}</b>", permissionToHumanString(type), binaryPath);
-
-    description += "<br/><br/>Do you want to allow this?";
+        description = std::format(std::runtime_format(permissionToHumanString(type)), binaryPath);
 
     std::vector<std::string> options;
 

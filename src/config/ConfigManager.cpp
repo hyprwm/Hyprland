@@ -2900,6 +2900,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_SCREENCOPY;
     else if (data[1] == "plugin")
         type = PERMISSION_TYPE_PLUGIN;
+    else if (data[1] == "keyboard" || data[1] == "keeb")
+        type = PERMISSION_TYPE_KEYBOARD;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

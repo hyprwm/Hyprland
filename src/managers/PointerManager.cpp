@@ -16,6 +16,7 @@
 #include "../render/OpenGL.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
+#include "protocols/InputCapture.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -764,6 +765,12 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = m_pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
+    if (!g_pInputManager->isLocked())
+        PROTO::inputCapture->sendMotion(newPos, deltaLogical);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     warpTo(newPos);
 }
 
@@ -935,14 +942,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->m_pointerEvents.frame.registerListener([] (std::any e) {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = g_pCompositor->m_lastMonitor.get();
-            shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
-        }
-        g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->m_isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
+        g_pInputManager->onMouseFrame();
     });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.registerListener([] (std::any e) {

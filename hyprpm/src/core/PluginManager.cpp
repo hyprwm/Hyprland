@@ -566,7 +566,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     ret = execAndGet(cmd);
 
-    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod o+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
+    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod a+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
                       DataState::getHeadersPath());
 
     if (m_bVerbose)

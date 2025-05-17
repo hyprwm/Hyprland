@@ -10,6 +10,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../render/Framebuffer.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
@@ -72,10 +73,15 @@ class CScreencopyFrame {
     int                        m_shmStride    = 0;
     CBox                       m_box          = {};
 
-    void                       copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
-    void                       copyDmabuf(std::function<void(bool)> callback);
-    bool                       copyShm();
-    void                       share();
+    // if we have a pending perm, hold the buffer.
+    CFramebuffer m_tempFb;
+
+    void         copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
+    void         copyDmabuf(std::function<void(bool)> callback);
+    bool         copyShm();
+    void         renderMon();
+    void         storeTempFB();
+    void         share();
 
     friend class CScreencopyProtocol;
 };

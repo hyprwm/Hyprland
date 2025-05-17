@@ -142,7 +142,7 @@ int                        main(int argc, char** argv, char** envp) {
         } else if (notify)
             g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");
     } else if (command[0] == "enable") {
-        if (ARGS.size() < 2) {
+        if (command.size() < 2) {
             std::println(stderr, "{}", failureString("Not enough args for enable."));
             return 1;
         }

@@ -607,6 +607,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             foundSurface = nullptr;
     }
 
+    // Releases any seat grabs after a click outside of them not handled by an earlier case (notably exclusive layers).
+    if ((m_hardInput || refocus) && g_pSeatManager->m_seatGrab && !foundSurface) {
+        g_pSeatManager->setGrab(nullptr);
+        return; // setGrab will refocus
+    }
+
     g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
     g_pSeatManager->sendPointerMotion(time, surfaceLocal);
 }

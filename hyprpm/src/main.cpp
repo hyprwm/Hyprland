@@ -106,7 +106,7 @@ int                        main(int argc, char** argv, char** envp) {
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
-        if (ARGS.size() < 2) {
+        if (command.size() < 2) {
             std::println(stderr, "{}", failureString("Not enough args for remove."));
             return 1;
         }

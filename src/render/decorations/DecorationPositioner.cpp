@@ -42,7 +42,6 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pW
             return wb.pos() + Vector2D{0.0, wb.size().y / 2.0};
         else if (RIGHT)
             return wb.pos() + Vector2D{wb.size().x, wb.size().y / 2.0};
-        UNREACHABLE();
     } else {
         if (TOP && LEFT)
             return wb.pos();
@@ -52,9 +51,8 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pW
             return wb.pos() + wb.size();
         if (BOTTOM && LEFT)
             return wb.pos() + Vector2D{0.0, wb.size().y};
-        UNREACHABLE();
     }
-    UNREACHABLE();
+    Debug::log(ERR, "getEdgeDefinedPoint: invalid configuration of edges");
     return {};
 }
 

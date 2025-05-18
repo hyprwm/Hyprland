@@ -7,7 +7,7 @@
 
 using namespace Hyprutils::OS;
 
-static std::vector<pid_t> asyncDialogBoxes;
+static std::vector<std::pair<pid_t, WP<CAsyncDialogBox>>> asyncDialogBoxes;
 
 //
 SP<CAsyncDialogBox> CAsyncDialogBox::create(const std::string& title, const std::string& description, std::vector<std::string> buttons) {
@@ -24,7 +24,18 @@ SP<CAsyncDialogBox> CAsyncDialogBox::create(const std::string& title, const std:
 }
 
 bool CAsyncDialogBox::isAsyncDialogBox(pid_t pid) {
-    return std::ranges::contains(asyncDialogBoxes, pid);
+    return std::ranges::find_if(asyncDialogBoxes, [pid](const auto& e) { return e.first == pid; }) != asyncDialogBoxes.end();
+}
+
+bool CAsyncDialogBox::isPriorityDialogBox(pid_t pid) {
+    for (const auto& [p, db] : asyncDialogBoxes) {
+        if (p != pid)
+            continue;
+
+        return db && db->m_priority;
+    }
+
+    return false;
 }
 
 CAsyncDialogBox::CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons) :
@@ -68,7 +79,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         Debug::log(LOG, "CAsyncDialogBox: dialog {:x} hung up, closed.");
 
         m_promiseResolver->resolve(m_stdout);
-        std::erase(asyncDialogBoxes, m_dialogPid);
+        std::erase_if(asyncDialogBoxes, [this](const auto& e) { return e.first == m_dialogPid; });
 
         wl_event_source_remove(m_readEventSource);
         m_selfReference.reset();
@@ -112,7 +123,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
     }
 
     m_dialogPid = proc.pid();
-    asyncDialogBoxes.emplace_back(m_dialogPid);
+    asyncDialogBoxes.emplace_back(std::make_pair<>(m_dialogPid, m_selfWeakReference));
 
     // close the write fd, only the dialog owns it now
     close(outPipe[1]);

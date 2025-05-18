@@ -250,7 +250,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (PMONITOR != g_pCompositor->m_lastMonitor && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);
 
-    if (g_pSessionLockManager->isSessionLocked()) {
+    // check for windows that have focus priority like our permission popups
+    pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, FOCUS_PRIORITY);
+    if (pFoundWindow)
+        foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+
+    if (!foundSurface && g_pSessionLockManager->isSessionLocked()) {
 
         // set keyboard focus on session lock surface regardless of layers
         const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->m_id);
@@ -288,7 +293,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (!forcedFocus)
         forcedFocus = g_pCompositor->getForceFocus();
 
-    if (forcedFocus) {
+    if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
         surfacePos   = pFoundWindow->m_realPosition->value();
         foundSurface = pFoundWindow->m_wlSurface->resource();

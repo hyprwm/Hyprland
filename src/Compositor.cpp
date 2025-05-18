@@ -870,10 +870,14 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     static auto PBORDERGRABEXTEND = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     static auto PSPECIALFALLTHRU  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
     const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
+    const bool  ONLY_PRIORITY     = properties & FOCUS_PRIORITY;
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
         for (auto const& w : m_windows | std::views::reverse) {
+            if (ONLY_PRIORITY && !w->priorityFocus())
+                continue;
+
             if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
@@ -896,6 +900,9 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     continue;
 
                 if (!w->m_workspace)
+                    continue;
+
+                if (ONLY_PRIORITY && !w->priorityFocus())
                     continue;
 
                 const auto PWINDOWMONITOR = w->m_monitor.lock();
@@ -950,7 +957,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY))
+        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY)
             return PWORKSPACE->getFullscreenWindow();
 
         auto found = floating(false);
@@ -959,6 +966,9 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
         // for windows, we need to check their extensions too, first.
         for (auto const& w : m_windows) {
+            if (ONLY_PRIORITY && !w->priorityFocus())
+                continue;
+
             if (special != w->onSpecialWorkspace())
                 continue;
 
@@ -973,6 +983,9 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         }
 
         for (auto const& w : m_windows) {
+            if (ONLY_PRIORITY && !w->priorityFocus())
+                continue;
+
             if (special != w->onSpecialWorkspace())
                 continue;
 
@@ -1083,14 +1096,16 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        Debug::log(LOG, "Refusing a keyboard focus to a window because of a sessionlock");
-        return;
-    }
+    if (!pWindow || !pWindow->priorityFocus()) {
+        if (g_pSessionLockManager->isSessionLocked()) {
+            Debug::log(LOG, "Refusing a keyboard focus to a window because of a sessionlock");
+            return;
+        }
 
-    if (!g_pInputManager->m_exclusiveLSes.empty()) {
-        Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
-        return;
+        if (!g_pInputManager->m_exclusiveLSes.empty()) {
+            Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
+            return;
+        }
     }
 
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())

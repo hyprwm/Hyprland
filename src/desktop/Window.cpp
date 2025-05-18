@@ -1836,3 +1836,7 @@ PHLWINDOW CWindow::parent() {
 
     return m_xdgSurface->m_toplevel->m_parent->m_window.lock();
 }
+
+bool CWindow::priorityFocus() {
+    return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
+}

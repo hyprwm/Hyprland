@@ -70,16 +70,20 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
 void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
     auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
 
-    if (waiter->source) {
-        wl_event_source_remove(waiter->source);
-        waiter->source = nullptr;
+    // ???
+    if (it == m_readableWaiters.end())
+        return;
+
+    UP<SReadableWaiter> taken = std::move(*it);
+    m_readableWaiters.erase(it);
+
+    if (taken->source) {
+        wl_event_source_remove(taken->source);
+        taken->source = nullptr;
     }
 
-    if (waiter->fn)
-        waiter->fn();
-
-    if (it != m_readableWaiters.end())
-        m_readableWaiters.erase(it);
+    if (taken->fn)
+        taken->fn();
 }
 
 void CEventLoopManager::enterLoop() {

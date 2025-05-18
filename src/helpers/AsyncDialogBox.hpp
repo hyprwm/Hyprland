@@ -16,6 +16,7 @@ class CAsyncDialogBox {
   public:
     static SP<CAsyncDialogBox> create(const std::string& title, const std::string& description, std::vector<std::string> buttons);
     static bool                isAsyncDialogBox(pid_t pid);
+    static bool                isPriorityDialogBox(pid_t pid);
 
     CAsyncDialogBox(const CAsyncDialogBox&)                     = delete;
     CAsyncDialogBox(CAsyncDialogBox&&)                          = delete;
@@ -26,7 +27,10 @@ class CAsyncDialogBox {
     void                      kill();
     bool                      isRunning() const;
 
-    void                      onWrite(int fd, uint32_t mask);
+    // focus priority, only permission popups
+    bool m_priority = false;
+
+    void onWrite(int fd, uint32_t mask);
 
   private:
     CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons);

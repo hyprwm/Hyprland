@@ -296,7 +296,8 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     } else
         options = {"Deny", "Allow"};
 
-    rule->m_dialogBox = CAsyncDialogBox::create("Permission request", description, options);
+    rule->m_dialogBox             = CAsyncDialogBox::create("Permission request", description, options);
+    rule->m_dialogBox->m_priority = true;
 
     if (!rule->m_dialogBox) {
         Debug::log(ERR, "CDynamicPermissionManager::askForPermission: hyprland-qtutils likely missing, cannot ask! Disabling permission control...");

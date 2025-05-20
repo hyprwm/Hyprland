@@ -200,6 +200,17 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_windowData.noScreenShare.valueOrDefault()) {
+            const auto PWORKSPACE = w->m_workspace;
+            if (!PWORKSPACE) {
+                continue;
+            }
+            const auto REALPOS          = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
+            const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}.scale(m_monitor->m_scale);
+            g_pHyprOpenGL->renderRect(noScreenShareBox, {0, 0, 0, 255});
+        }
+    }
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
                                                     g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);

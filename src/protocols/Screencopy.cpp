@@ -13,6 +13,7 @@
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/time/Time.hpp"
+#include "XDGShell.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -202,8 +203,11 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_windowData.noScreenShare.valueOrDefault()) {
+            if (!g_pHyprRenderer->shouldRenderWindow(w)) {
+                continue;
+            }
             const auto PWORKSPACE = w->m_workspace;
-            if (!PWORKSPACE) {
+            if UNLIKELY (!PWORKSPACE) {
                 continue;
             }
             const auto REALPOS          = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
@@ -211,7 +215,34 @@ void CScreencopyFrame::renderMon() {
                                               .scale(m_monitor->m_scale)
                                               .translate({-m_monitor->m_position.x, -m_monitor->m_position.y})
                                               .translate({-m_box.x, -m_box.y});
-            g_pHyprOpenGL->renderRect(noScreenShareBox, {0, 0, 0, 255});
+
+            const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
+            const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
+            const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+            g_pHyprOpenGL->renderRect(noScreenShareBox, {0, 0, 0, 255}, rounding, roundingPower);
+
+            if (!w->m_isX11 && w->m_popupHead) {
+                const auto     geom            = w->m_xdgSurface->m_current.geometry;
+                const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+                w->m_popupHead->breadthfirst(
+                    [&](WP<CPopup> popup, void*) {
+                        if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+                            return;
+                        const auto popRel = popup->coordsRelativeToParent();
+                        popup->m_wlSurface->resource()->breadthfirst(
+                            [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
+                                const auto size    = surf->m_current.size;
+                                const auto surfBox = CBox{popupBaseOffset.x + popRel.x + localOff.x, popupBaseOffset.y + popRel.y + localOff.y, size.x, size.y}
+                                                         .scale(m_monitor->m_scale)
+                                                         .translate({-m_monitor->m_position.x, -m_monitor->m_position.y})
+                                                         .translate({-m_box.x, -m_box.y});
+                                if LIKELY (surfBox.w > 0 && surfBox.h > 0)
+                                    g_pHyprOpenGL->renderRect(surfBox, {0, 0, 0, 255});
+                            },
+                            nullptr);
+                    },
+                    nullptr);
+            }
         }
     }
     if (m_overlayCursor)

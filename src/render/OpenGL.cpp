@@ -1409,10 +1409,11 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
     scissor(nullptr);
 }
 
-void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, float alpha, int round, float roundingPower, bool discardActive, bool allowCustomUV) {
+void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, float alpha, int round, float roundingPower, bool discardActive, bool allowCustomUV, GLenum wrapX,
+                                    GLenum wrapY) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, box, alpha, m_renderData.damage, round, roundingPower, discardActive, false, allowCustomUV, true);
+    renderTextureInternalWithDamage(tex, box, alpha, m_renderData.damage, round, roundingPower, discardActive, false, allowCustomUV, true, wrapX, wrapY);
 
     scissor(nullptr);
 }
@@ -1477,7 +1478,7 @@ void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const SImageDescript
 }
 
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CBox& box, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive,
-                                                      bool noAA, bool allowCustomUV, bool allowDim) {
+                                                      bool noAA, bool allowCustomUV, bool allowDim, GLenum wrapX, GLenum wrapY) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_texID > 0), "Attempted to draw nullptr texture!");
 
@@ -1541,8 +1542,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_target, tex->m_texID);
 
-    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_S, wrapX);
+    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_T, wrapY);
 
     if (m_renderData.useNearestNeighbor) {
         glTexParameteri(tex->m_target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

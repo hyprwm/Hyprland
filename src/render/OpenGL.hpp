@@ -183,7 +183,8 @@ class CHyprOpenGLImpl {
     void renderRect(const CBox&, const CHyprColor&, int round = 0, float roundingPower = 2.0f);
     void renderRectWithBlur(const CBox&, const CHyprColor&, int round = 0, float roundingPower = 2.0f, float blurA = 1.f, bool xray = false);
     void renderRectWithDamage(const CBox&, const CHyprColor&, const CRegion& damage, int round = 0, float roundingPower = 2.0f);
-    void renderTexture(SP<CTexture>, const CBox&, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false, bool allowCustomUV = false);
+    void renderTexture(SP<CTexture>, const CBox&, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false, bool allowCustomUV = false,
+                       GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);
     void renderTextureWithDamage(SP<CTexture>, const CBox&, const CRegion& damage, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false,
                                  bool allowCustomUV = false);
     void renderTextureWithBlur(SP<CTexture>, const CBox&, float a, SP<CWLSurfaceResource> pSurface, int round = 0, float roundingPower = 2.0f, bool blockBlurOptimization = false,
@@ -344,7 +345,7 @@ class CHyprOpenGLImpl {
                                  bool modifySDR = false);
     void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
-                                         bool noAA = false, bool allowCustomUV = false, bool allowDim = false);
+                                         bool noAA = false, bool allowCustomUV = false, bool allowDim = false, GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 

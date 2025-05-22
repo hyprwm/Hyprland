@@ -256,7 +256,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(message);
     }
 
-    if (!pManifest->m_repository.commitPins.empty()) {
+    if (rev.empty() && !pManifest->m_repository.commitPins.empty()) {
         // check commit pins
 
         progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_repository.commitPins.size()));

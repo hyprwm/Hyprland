@@ -1683,33 +1683,15 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
         if (!m->m_output || m->m_createdByUser)
             return;
 
+        const auto OLDVRRSTATUS = m->m_vrrActive;
+        auto       NEWVRRSTATUS = m->m_vrrActive;
+
         const auto USEVRR = m->m_activeMonitorRule.vrr.has_value() ? m->m_activeMonitorRule.vrr.value() : **PVRR;
 
         if (USEVRR == 0) {
-            if (m->m_vrrActive) {
-                m->m_output->state->resetExplicitFences();
-                m->m_output->state->setAdaptiveSync(false);
-
-                if (!m->m_state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
-            }
-            m->m_vrrActive = false;
-            return;
+            NEWVRRSTATUS = false;
         } else if (USEVRR == 1) {
-            if (!m->m_vrrActive) {
-                m->m_output->state->resetExplicitFences();
-                m->m_output->state->setAdaptiveSync(true);
-
-                if (!m->m_state.test()) {
-                    Debug::log(LOG, "Pending output {} does not accept VRR.", m->m_output->name);
-                    m->m_output->state->setAdaptiveSync(false);
-                }
-
-                if (!m->m_state.commit())
-                    Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
-            }
-            m->m_vrrActive = true;
-            return;
+            NEWVRRSTATUS = true;
         } else if (USEVRR == 2 || USEVRR == 3) {
             const auto PWORKSPACE = m->m_activeWorkspace;
 
@@ -1722,23 +1704,61 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
                 wantVRR                = contentType == CONTENT_TYPE_GAME || contentType == CONTENT_TYPE_VIDEO;
             }
 
-            if (wantVRR) {
-                /* fullscreen */
-                m->m_vrrActive = true;
+            NEWVRRSTATUS = wantVRR;
+        }
 
-                if (!m->m_output->state->state().adaptiveSync) {
-                    m->m_output->state->setAdaptiveSync(true);
+        // search for windows within workspace that should suppress VRR
+        const auto PWORKSPACE = m->m_activeWorkspace;
+        if (PWORKSPACE) {
+            auto                vrrSuppressingWindows       = 0;
+            std::optional<bool> fullscreenWindowSuppressing = std::nullopt;
 
-                    if (!m->m_state.test()) {
-                        Debug::log(LOG, "Pending output {} does not accept VRR.", m->m_output->name);
-                        m->m_output->state->setAdaptiveSync(false);
-                    }
+            for (auto const& w : g_pCompositor->m_windows) {
+                if (w->m_isMapped && w->workspaceID() == PWORKSPACE->m_id && !w->isHidden()) {
+                    if (w->m_suppressVrr)
+                        vrrSuppressingWindows++;
+
+                    if (w->isFullscreen())
+                        fullscreenWindowSuppressing = w->m_suppressVrr;
                 }
-            } else {
-                m->m_vrrActive = false;
+            }
 
+            auto FSWINDOW = PWORKSPACE->getFullscreenWindow();
+
+            // * if there exists a fullscreen window in the workspace, disable VRR solely based on
+            // whether that window is `suppressvrr` or not;
+            // * if there doesn't exist one, then disable VRR for at least one visible window that is `suppressvrr`
+
+            if (fullscreenWindowSuppressing == true || (fullscreenWindowSuppressing == std::nullopt && vrrSuppressingWindows > 0)) {
+                NEWVRRSTATUS = false;
+            }
+        }
+
+        if (OLDVRRSTATUS && !NEWVRRSTATUS) { // VRR ON ~> OFF transition
+            Debug::log(LOG, "VRR ON ~> OFF on output {}", m->m_output->name);
+            m->m_output->state->resetExplicitFences();
+            m->m_output->state->setAdaptiveSync(false);
+
+            if (!m->m_state.commit())
+                Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
+
+            m->m_vrrActive = NEWVRRSTATUS;
+            return;
+        } else if (!OLDVRRSTATUS && NEWVRRSTATUS) { // VRR OFF ~> ON transition
+            Debug::log(LOG, "VRR OFF ~> ON on output {}", m->m_output->name);
+            m->m_output->state->resetExplicitFences();
+            m->m_output->state->setAdaptiveSync(true);
+
+            if (!m->m_state.test()) {
+                Debug::log(LOG, "Pending output {} does not accept VRR.", m->m_output->name);
                 m->m_output->state->setAdaptiveSync(false);
             }
+
+            if (!m->m_state.commit())
+                Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
+
+            m->m_vrrActive = NEWVRRSTATUS;
+            return;
         }
     };
 

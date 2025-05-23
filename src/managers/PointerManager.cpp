@@ -603,6 +603,11 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
         return;
     }
 
+    // don't render cursor if forced but we are already using sw cursors for the monitor
+    // otherwise we draw the cursor again for screencopy when using sw cursors
+    if (forceRender && (state->hardwareFailed || state->softwareLocks != 0))
+        return;
+
     auto box = state->box.copy();
     if (overridePos.has_value()) {
         box.x = overridePos->x;

@@ -607,6 +607,8 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     if (overridePos.has_value()) {
         box.x = overridePos->x;
         box.y = overridePos->y;
+
+        box.translate(-m_currentCursorImage.hotspot);
     }
 
     if (box.intersection(CBox{{}, {pMonitor->m_size}}).empty())

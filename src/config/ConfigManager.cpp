@@ -444,8 +444,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:no_border_on_floating", Hyprlang::INT{0});
     registerConfigVar("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
     registerConfigVar("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
-    registerConfigVar("general:float_gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
-    registerConfigVar("general:float_gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
+    registerConfigVar("general:float_gaps", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "0"});
     registerConfigVar("general:gaps_workspaces", Hyprlang::INT{0});
     registerConfigVar("general:no_focus_fallback", Hyprlang::INT{0});
     registerConfigVar("general:resize_on_border", Hyprlang::INT{0});
@@ -1319,6 +1318,8 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.gapsIn = rule2.gapsIn;
     if (rule2.gapsOut.has_value())
         mergedRule.gapsOut = rule2.gapsOut;
+    if (rule2.float_gaps)
+        mergedRule.float_gaps = rule2.float_gaps;
     if (rule2.borderSize.has_value())
         mergedRule.borderSize = rule2.borderSize;
     if (rule2.noBorder.has_value())

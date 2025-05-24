@@ -1685,10 +1685,13 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
 
     if (PLASTWINDOW->m_isFloating) {
         std::optional<float> vPosx, vPosy;
-        const auto           PMONITOR     = PLASTWINDOW->m_monitor.lock();
-        const auto           BORDERSIZE   = PLASTWINDOW->getRealBorderSize();
-        static auto          PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps_out");
-        auto* const          PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+        const auto           PMONITOR        = PLASTWINDOW->m_monitor.lock();
+        const auto           BORDERSIZE      = PLASTWINDOW->getRealBorderSize();
+        static auto          PGAPSCUSTOMDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps");
+        static auto          PGAPSOUTDATA    = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+        auto*                PGAPSOUT        = (CCssGapData*)PGAPSCUSTOMDATA.ptr()->getData();
+        if (PGAPSOUT->m_left < 0 || PGAPSOUT->m_right < 0 || PGAPSOUT->m_top < 0 || PGAPSOUT->m_bottom < 0)
+            PGAPSOUT = (CCssGapData*)PGAPSOUTDATA.ptr()->getData();
 
         switch (arg) {
             case 'l': vPosx = PMONITOR->m_reservedTopLeft.x + BORDERSIZE + PMONITOR->m_position.x + PGAPSOUT->m_left; break;

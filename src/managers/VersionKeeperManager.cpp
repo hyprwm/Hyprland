@@ -31,6 +31,7 @@ CVersionKeeperManager::CVersionKeeperManager() {
     if (!LASTVER) {
         NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, "0.0.0");
         LASTVER = "0.0.0";
+        return;
     }
 
     if (!isVersionOlderThanRunning(*LASTVER)) {

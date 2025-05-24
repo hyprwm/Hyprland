@@ -945,6 +945,9 @@ pid_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWor
         auto       global    = false;
 
         for (auto const& r : RULESLIST) {
+            Debug::log(CRIT, "PROC = {}", PROC);
+            Debug::log(CRIT, "getProcNameOf(PROC) = {}", getProcNameOf(PROC));
+            Debug::log(CRIT, "getAllPIDOf(getProcNameOf(PROC)) = {}", getAllPIDOf(getProcNameOf(PROC)));
             if (r == "global")
                 global = true;
             else {

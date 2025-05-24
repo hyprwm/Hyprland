@@ -592,6 +592,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:split_bias", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_resizing", Hyprlang::INT{1});
+    registerConfigVar("dwindle:precise_move", Hyprlang::INT{0});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});

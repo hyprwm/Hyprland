@@ -515,12 +515,23 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     } else if (RULE->resolution == Vector2D(-1, -2)) {
         requestedStr = "highres";
 
-        // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
+        // sort prioritizing resolution 1st and refresh rate 2nd, then add best 3
         addBest3Modes([](auto const& a, auto const& b) {
             if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
             else if (DELTALESSTHAN(a->pixelSize.x, b->pixelSize.x, 1) && DELTALESSTHAN(a->pixelSize.y, b->pixelSize.y, 1) &&
                      std::round(a->refreshRate) > std::round(b->refreshRate))
+                return true;
+            return false;
+        });
+    } else if (RULE->resolution == Vector2D(-1, -3)) {
+        requestedStr = "maxwidth";
+
+        // sort prioritizing widest resolution 1st and refresh rate 2nd, then add best 3
+        addBest3Modes([](auto const& a, auto const& b) {
+            if (a->pixelSize.x > b->pixelSize.x)
+                return true;
+            if (a->pixelSize.x == b->pixelSize.x && std::round(a->refreshRate) > std::round(b->refreshRate))
                 return true;
             return false;
         });

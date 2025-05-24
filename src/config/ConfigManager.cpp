@@ -2013,6 +2013,8 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         newrule.resolution = Vector2D(-1, -1);
     } else if (ARGS[1].starts_with("highres")) {
         newrule.resolution = Vector2D(-1, -2);
+    } else if (ARGS[1].starts_with("maxwidth")) {
+        newrule.resolution = Vector2D(-1, -3);
     } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
         newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
         newrule.refreshRate = float(newrule.drmMode.vrefresh) / 1000;

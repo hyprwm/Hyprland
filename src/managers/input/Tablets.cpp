@@ -134,6 +134,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
             }
         }
 
+        m_lastInputTouch = false;
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL, true);
         m_lastCursorMovement.reset();

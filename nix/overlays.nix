@@ -29,7 +29,6 @@ in {
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
     self.overlays.udis86
-    self.overlays.wayland-protocols
 
     # Hyprland packages themselves
     (final: _prev: let
@@ -94,18 +93,6 @@ in {
       };
 
       patches = [];
-    });
-  };
-
-  # TODO: remove when https://github.com/NixOS/nixpkgs/pull/397497 lands in master
-  wayland-protocols = final: prev: {
-    wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
-      version = "1.43";
-
-      src = final.fetchurl {
-        url = "https://gitlab.freedesktop.org/wayland/${self.pname}/-/releases/${self.version}/downloads/${self.pname}-${self.version}.tar.xz";
-        hash = "sha256-ujw0Jd0nxXtSkek9upe+EkeWAeALyrJNJkcZSMtkNlM=";
-      };
     });
   };
 }

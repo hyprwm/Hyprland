@@ -195,6 +195,9 @@ bool CSurfacePassElement::needsLiveBlur() {
     if (!m_data.pLS && !m_data.pWindow)
         return BLUR;
 
+    if (m_data.popup)
+        return BLUR;
+
     const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
     return BLUR && !NEWOPTIM;
@@ -208,6 +211,9 @@ bool CSurfacePassElement::needsPrecomputeBlur() {
 
     if (!m_data.pLS && !m_data.pWindow)
         return BLUR;
+
+    if (m_data.popup)
+        return false;
 
     const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 

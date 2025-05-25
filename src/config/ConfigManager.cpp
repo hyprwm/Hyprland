@@ -2046,10 +2046,20 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
         else if (ARGS[2] == "auto-down")
             newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
+        else if (ARGS[2] == "auto-center-right")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_RIGHT;
+        else if (ARGS[2] == "auto-center-left")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_LEFT;
+        else if (ARGS[2] == "auto-center-up")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_UP;
+        else if (ARGS[2] == "auto-center-down")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_DOWN;
         else {
             Debug::log(WARN,
                        "Invalid auto direction. Valid options are 'auto',"
-                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+                       "'auto-up', 'auto-down', 'auto-left', 'auto-right',"
+                       "'auto-center-up', 'auto-center-down',"
+                       "'auto-center-left', and 'auto-center-right'.");
             error += "invalid auto direction ";
         }
     } else {

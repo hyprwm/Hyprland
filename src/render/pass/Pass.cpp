@@ -273,8 +273,8 @@ void CRenderPass::renderDebugData() {
     auto        yn   = [](const bool val) -> const char* { return val ? "yes" : "no"; };
     auto        tick = [](const bool val) -> const char* { return val ? "✔" : "✖"; };
     for (const auto& el : m_passElements | std::views::reverse) {
-        passStructure += std::format("{} {} (bb: {} op: {})\n", tick(!el->discard), el->element->passName(), yn(el->element->boundingBox().has_value()),
-                                     yn(!el->element->opaqueRegion().empty()));
+        passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el->discard), el->element->passName(), yn(el->element->boundingBox().has_value()),
+                                     yn(!el->element->opaqueRegion().empty()), yn(el->element->needsPrecomputeBlur()), yn(el->element->needsLiveBlur()));
     }
 
     if (!passStructure.empty())

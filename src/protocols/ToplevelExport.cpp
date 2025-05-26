@@ -257,10 +257,11 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
     // render client at 0,0
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible
-        g_pHyprRenderer->renderWindow(m_window, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
-        g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
-
+        if (!m_window->m_windowData.noScreenShare.valueOrDefault()) {
+            g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible
+            g_pHyprRenderer->renderWindow(m_window, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+            g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+        }
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
@@ -338,9 +339,11 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible
-        g_pHyprRenderer->renderWindow(m_window, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
-        g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+        if (!m_window->m_windowData.noScreenShare.valueOrDefault()) {
+            g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible
+            g_pHyprRenderer->renderWindow(m_window, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+            g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+        }
 
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());

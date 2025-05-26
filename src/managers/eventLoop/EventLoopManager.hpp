@@ -5,7 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <wayland-server.h>
-#include "helpers/signal/Signal.hpp"
+#include "../../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
 
 #include "EventLoopTimer.hpp"

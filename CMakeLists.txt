@@ -153,7 +153,7 @@ endif()
 
 add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
 
-set(USE_GPROF ON)
+set(USE_GPROF OFF)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   message(STATUS "Setting debug flags")

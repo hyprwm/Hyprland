@@ -446,14 +446,14 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
 
             const CBox   SURF = other->getWindowMainSurfaceBox();
-            double GAP_OFFSET = 0;
+            double gapOffset = 0;
             if (*SNAPRESPECTGAPS) {
                 static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
                 auto*       PGAPSINPTR   = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-                GAP_OFFSET = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
+                gapOffset = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
             }
-            const SRange SURFBX = {SURF.x - BORDERSIZE - GAP_OFFSET, SURF.x + SURF.w + BORDERSIZE + GAP_OFFSET};
-            const SRange SURFBY = {SURF.y - BORDERSIZE - GAP_OFFSET, SURF.y + SURF.h + BORDERSIZE + GAP_OFFSET};
+            const SRange SURFBX = {SURF.x - BORDERSIZE - gapOffset, SURF.x + SURF.w + BORDERSIZE + gapOffset};
+            const SRange SURFBY = {SURF.y - BORDERSIZE - gapOffset, SURF.y + SURF.h + BORDERSIZE + gapOffset};
 
             // only snap windows if their ranges overlap in the opposite axis
             if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
@@ -504,35 +504,35 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         const double GAPSIZE    = *SNAPMONITORGAP;
         const double BORDERDIFF = OVERLAP ? DRAGGINGBORDERSIZE : 0;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
-        double GAP_OFFSET = 0;
+        double gapOffset = 0;
         if (*SNAPRESPECTGAPS) {
             static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
             auto*       PGAPSOUTPTR  = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
-            GAP_OFFSET = std::max({PGAPSOUTPTR->m_left, PGAPSOUTPTR->m_right, PGAPSOUTPTR->m_top, PGAPSOUTPTR->m_bottom});
+            gapOffset = std::max({PGAPSOUTPTR->m_left, PGAPSOUTPTR->m_right, PGAPSOUTPTR->m_top, PGAPSOUTPTR->m_bottom});
         }
 
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
-            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + GAP_OFFSET, GAPSIZE)) ||
-             canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x - BORDERDIFF + GAP_OFFSET, GAPSIZE))) {
-            SNAP(sourceX.start, sourceX.end, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + GAP_OFFSET);
+            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset, GAPSIZE)) ||
+             canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x - BORDERDIFF + gapOffset, GAPSIZE))) {
+            SNAP(sourceX.start, sourceX.end, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - GAP_OFFSET, GAPSIZE)) ||
-             canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x + BORDERDIFF - GAP_OFFSET, GAPSIZE))) {
-            SNAP(sourceX.end, sourceX.start, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - GAP_OFFSET);
+            ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset, GAPSIZE)) ||
+             canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x + BORDERDIFF - gapOffset, GAPSIZE))) {
+            SNAP(sourceX.end, sourceX.start, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
-            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + GAP_OFFSET, GAPSIZE)) ||
-             canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y - BORDERDIFF + GAP_OFFSET, GAPSIZE))) {
-            SNAP(sourceY.start, sourceY.end, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + GAP_OFFSET);
+            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset, GAPSIZE)) ||
+             canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y - BORDERDIFF + gapOffset, GAPSIZE))) {
+            SNAP(sourceY.start, sourceY.end, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - GAP_OFFSET, GAPSIZE)) ||
-             canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y + BORDERDIFF - GAP_OFFSET, GAPSIZE))) {
-            SNAP(sourceY.end, sourceY.start, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - GAP_OFFSET);
+            ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset, GAPSIZE)) ||
+             canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y + BORDERDIFF - gapOffset, GAPSIZE))) {
+            SNAP(sourceY.end, sourceY.start, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset);
             snaps |= SNAP_DOWN;
         }
     }

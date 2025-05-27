@@ -1318,8 +1318,8 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.gapsIn = rule2.gapsIn;
     if (rule2.gapsOut.has_value())
         mergedRule.gapsOut = rule2.gapsOut;
-    if (rule2.float_gaps)
-        mergedRule.float_gaps = rule2.float_gaps;
+    if (rule2.floatGaps)
+        mergedRule.floatGaps = rule2.floatGaps;
     if (rule2.borderSize.has_value())
         mergedRule.borderSize = rule2.borderSize;
     if (rule2.noBorder.has_value())

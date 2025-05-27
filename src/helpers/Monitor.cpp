@@ -74,11 +74,16 @@ void CMonitor::onConnect(bool noRule) {
         auto      E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
 
         timespec* ts = E.when;
-        if (!ts) {
-            timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(&now), E.refresh, E.seq, E.flags);
-        } else
+
+        if (ts && ts->tv_sec <= 2) {
+            // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
+            // a) it's wrong, b) our translations aren't 100% accurate and risk underflows
+            ts = nullptr;
+        }
+
+        if (!ts)
+            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), E.refresh, E.seq, E.flags);
+        else
             PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(E.when), E.refresh, E.seq, E.flags);
     });
 

@@ -25,7 +25,11 @@ enum eAutoDirs : uint8_t {
     DIR_AUTO_UP,
     DIR_AUTO_DOWN,
     DIR_AUTO_LEFT,
-    DIR_AUTO_RIGHT
+    DIR_AUTO_RIGHT,
+    DIR_AUTO_CENTER_UP,
+    DIR_AUTO_CENTER_DOWN,
+    DIR_AUTO_CENTER_LEFT,
+    DIR_AUTO_CENTER_RIGHT
 };
 
 enum eCMType : uint8_t {

@@ -2890,6 +2890,30 @@ void CCompositor::arrangeMonitors() {
             case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->m_size.x; break;
             case eAutoDirs::DIR_AUTO_RIGHT:
             case eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
+            case eAutoDirs::DIR_AUTO_CENTER_UP: {
+                int width     = maxXOffsetRight - maxXOffsetLeft;
+                newPosition.y = maxYOffsetUp - m->m_size.y;
+                newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
+                break;
+            }
+            case eAutoDirs::DIR_AUTO_CENTER_DOWN: {
+                int width     = maxXOffsetRight - maxXOffsetLeft;
+                newPosition.y = maxYOffsetDown;
+                newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
+                break;
+            }
+            case eAutoDirs::DIR_AUTO_CENTER_LEFT: {
+                int height    = maxYOffsetDown - maxYOffsetUp;
+                newPosition.x = maxXOffsetLeft - m->m_size.x;
+                newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
+                break;
+            }
+            case eAutoDirs::DIR_AUTO_CENTER_RIGHT: {
+                int height    = maxYOffsetDown - maxYOffsetUp;
+                newPosition.x = maxXOffsetRight;
+                newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
+                break;
+            }
             default: UNREACHABLE();
         }
         Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->m_name, m->m_position);

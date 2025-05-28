@@ -1,6 +1,7 @@
 #include "Events.hpp"
 
 #include "../Compositor.hpp"
+#include "../desktop/Window.hpp"
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/AsyncDialogBox.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -49,32 +50,6 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
         PHLWINDOW->m_animatingIn = false;
 }
 
-bool Events::initializeWindow(PHLWINDOW PWINDOW) {
-    if (!PWINDOW)
-        return false;
-    auto PMONITOR = g_pCompositor->m_lastMonitor.lock();
-    if (!PMONITOR) {
-        Debug::log(ERR, "initializeWindow: PMONITOR is null, setting to last monitor");
-        g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = g_pCompositor->m_lastMonitor.lock();
-    }
-    if (!PMONITOR) {
-        Debug::log(ERR, "initializeWindow: PMONITOR is still null after setting last monitor, aborting initialization");
-        return false;
-    }
-    auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-    PWINDOW->m_monitor       = PMONITOR;
-    PWINDOW->m_workspace     = PWORKSPACE;
-    PWINDOW->m_isMapped      = true;
-    PWINDOW->m_readyToDelete = false;
-    PWINDOW->m_fadingOut     = false;
-    PWINDOW->m_title         = PWINDOW->fetchTitle();
-    PWINDOW->m_firstMap      = true;
-    PWINDOW->m_initialTitle  = PWINDOW->m_title;
-    PWINDOW->m_initialClass  = PWINDOW->fetchClass();
-    return true;
-}
-
 void Events::listener_mapWindow(void* owner, void* data) {
     PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_self.lock();
     if (!PWINDOW) {
@@ -82,8 +57,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         return;
     }
 
-    if (!initializeWindow(PWINDOW)) {
-        Debug::log(ERR, "mapWindow: Failed to initialize window, aborting mapping for {}", (void*)PWINDOW.get());
+    if (!PWINDOW->initialize()) {
+        Debug::log(ERR, "mapWindow: Failed to initialize window, aborting mapping for {:c}", PWINDOW);
         return;
     }
 

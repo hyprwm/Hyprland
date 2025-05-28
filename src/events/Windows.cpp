@@ -49,19 +49,18 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
         PHLWINDOW->m_animatingIn = false;
 }
 
-void Events::listener_mapWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_self.lock();
-
-    static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
-
-    auto        PMONITOR = g_pCompositor->m_lastMonitor.lock();
-    if (!g_pCompositor->m_lastMonitor) {
+bool Events::initializeWindow(PHLWINDOW PWINDOW) {
+    if (!PWINDOW)
+        return false;
+    auto PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    if (!PMONITOR) {
+        Debug::log(ERR, "initializeWindow: PMONITOR is null, setting to last monitor");
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    }
+    if (!PMONITOR) {
+        Debug::log(ERR, "initializeWindow: PMONITOR is still null after setting last monitor, aborting initialization");
+        return false;
     }
     auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
     PWINDOW->m_monitor       = PMONITOR;
@@ -73,6 +72,26 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_firstMap      = true;
     PWINDOW->m_initialTitle  = PWINDOW->m_title;
     PWINDOW->m_initialClass  = PWINDOW->fetchClass();
+    return true;
+}
+
+void Events::listener_mapWindow(void* owner, void* data) {
+    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_self.lock();
+    if (!PWINDOW) {
+        Debug::log(ERR, "mapWindow: PWINDOW is null, owner: {}", owner);
+        return;
+    }
+
+    if (!initializeWindow(PWINDOW)) {
+        Debug::log(ERR, "mapWindow: Failed to initialize window, aborting mapping for {}");
+        return;
+    }
+
+    static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
+    static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
+    static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     // check for token
     std::string requestedWorkspace = "";

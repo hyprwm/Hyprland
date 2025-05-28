@@ -1840,3 +1840,33 @@ PHLWINDOW CWindow::parent() {
 bool CWindow::priorityFocus() {
     return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
 }
+
+bool CWindow::initialize() {
+    auto self = m_self.lock();
+    if (!self)
+        return false;
+
+    auto PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    if (!PMONITOR) {
+        Debug::log(ERR, "CWindow::initialize: PMONITOR is null, setting to last monitor");
+        g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
+        PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    }
+    if (!PMONITOR) {
+        Debug::log(ERR, "CWindow::initialize: PMONITOR is still null after setting last monitor, aborting initialization");
+        return false;
+    }
+
+    auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    m_monitor                = PMONITOR;
+    m_workspace              = PWORKSPACE;
+    m_isMapped               = true;
+    m_readyToDelete          = false;
+    m_fadingOut              = false;
+    m_title                  = fetchTitle();
+    m_firstMap               = true;
+    m_initialTitle           = m_title;
+    m_initialClass           = fetchClass();
+
+    return true;
+}

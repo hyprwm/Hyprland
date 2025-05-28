@@ -338,6 +338,7 @@ class CWindow {
     PHLWINDOW                  x11TransientFor();
     void                       onUnmap();
     void                       onMap();
+    bool                       initialize();
     void                       setHidden(bool hidden);
     bool                       isHidden();
     void                       applyDynamicRule(const SP<CWindowRule>& r);

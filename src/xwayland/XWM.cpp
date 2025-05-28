@@ -1332,18 +1332,27 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if ((this == &g_pXWayland->m_wm->m_clipboard && g_pSeatManager->m_selection.currentSelection && g_pSeatManager->m_selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
-        (this == &g_pXWayland->m_wm->m_primarySelection && g_pSeatManager->m_selection.currentPrimarySelection &&
-         g_pSeatManager->m_selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
+    const bool isClipboard = this == &g_pXWayland->m_wm->m_clipboard;
+    const bool isPrimary   = this == &g_pXWayland->m_wm->m_primarySelection;
+
+    auto* currentSel       = g_pSeatManager->m_selection.currentSelection;
+    auto* currentPrimSel   = g_pSeatManager->m_selection.currentPrimarySelection;
+
+    const bool isX11Clipboard = isClipboard && currentSel && currentSel->type() == DATA_SOURCE_TYPE_X11;
+    const bool isX11Primary   = isPrimary && currentPrimSel && currentPrimSel->type() == DATA_SOURCE_TYPE_X11;
+
+    if (isX11Clipboard || isX11Primary)
         return;
 
-    if (this == &g_pXWayland->m_wm->m_clipboard && g_pSeatManager->m_selection.currentSelection) {
-        xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_connection_t* conn = g_pXWayland->m_wm->m_connection;
+
+    if (isClipboard && currentSel) {
+        xcb_set_selection_owner(conn, g_pXWayland->m_wm->m_clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(conn);
         g_pXWayland->m_wm->m_clipboard.notifyOnFocus = true;
-    } else if (this == &g_pXWayland->m_wm->m_primarySelection && g_pSeatManager->m_selection.currentPrimarySelection) {
-        xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->m_wm->m_connection);
+    } else if (isPrimary && currentPrimSel) {
+        xcb_set_selection_owner(conn, g_pXWayland->m_wm->m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(conn);
         g_pXWayland->m_wm->m_primarySelection.notifyOnFocus = true;
     }
 }

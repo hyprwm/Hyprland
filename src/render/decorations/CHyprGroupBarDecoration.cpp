@@ -29,7 +29,6 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT          = CConfigValue<Hyprlang::INT>("group:groupbar:height");
     static auto                PINDICATORGAP    = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
     static auto                PINDICATORHEIGHT = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
-    static auto                PENABLED         = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto                PRENDERTITLES    = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
     static auto                PGRADIENTS       = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto                PPRIORITY        = CConfigValue<Hyprlang::INT>("group:groupbar:priority");
@@ -43,7 +42,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     info.priority = *PPRIORITY;
     info.reserved = true;
 
-    if (*PENABLED && m_window->m_windowData.decorate.valueOrDefault()) {
+    if (visible()) {
         if (*PSTACKED) {
             const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + (*PKEEPUPPERGAP * *POUTERGAP)}, {0, 0}};
@@ -96,11 +95,14 @@ void CHyprGroupBarDecoration::damageEntire() {
 
 void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     // get how many bars we will draw
-    int         barsToDraw = m_dwGroupMembers.size();
+    int        barsToDraw = m_dwGroupMembers.size();
 
-    static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    const bool VISIBLE = visible();
 
-    if (!*PENABLED || !m_window->m_windowData.decorate.valueOrDefault())
+    if (VISIBLE != m_bLastVisibilityStatus)
+        g_pDecorationPositioner->repositionDeco(this);
+
+    if (!VISIBLE)
         return;
 
     static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
@@ -582,4 +584,9 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
         box.translate(PWORKSPACE->m_renderOffset->value());
 
     return box.round();
+}
+
+bool CHyprGroupBarDecoration::visible() {
+    static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    return *PENABLED && m_window->m_windowData.decorate.valueOrDefault();
 }

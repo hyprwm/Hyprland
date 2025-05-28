@@ -4,7 +4,6 @@
 // NOLINTNEXTLINE(readability-identifier-naming)
 namespace Events {
     // Window events
-    DYNLISTENFUNC(initializeWindow);
     DYNLISTENFUNC(commitWindow);
     DYNLISTENFUNC(mapWindow);
     DYNLISTENFUNC(unmapWindow);

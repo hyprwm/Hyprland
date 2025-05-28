@@ -56,10 +56,13 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     float                     m_barWidth;
     float                     m_barHeight;
 
+    bool                      m_bLastVisibilityStatus = true;
+
     CTitleTex*                textureFromTitle(const std::string&);
     void                      invalidateTextures();
 
     CBox                      assignedBoxGlobal();
+    bool                      visible();
 
     bool                      onBeginWindowDragOnDeco(const Vector2D&);
     bool                      onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);

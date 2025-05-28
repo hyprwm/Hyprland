@@ -83,7 +83,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (!initializeWindow(PWINDOW)) {
-        Debug::log(ERR, "mapWindow: Failed to initialize window, aborting mapping for {}");
+        Debug::log(ERR, "mapWindow: Failed to initialize window, aborting mapping for {}", (void*)PWINDOW.get());
         return;
     }
 

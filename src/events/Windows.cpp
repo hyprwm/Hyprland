@@ -75,8 +75,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_monitor   = PMONITOR;
         PWINDOW->m_workspace = PWORKSPACE;
     }
-    PWINDOW->m_monitor       = PMONITOR;
-    PWINDOW->m_workspace     = PWORKSPACE;
     PWINDOW->m_isMapped      = true;
     PWINDOW->m_readyToDelete = false;
     PWINDOW->m_fadingOut     = false;

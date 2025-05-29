@@ -415,7 +415,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     }
 
     // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)
-    if (!linearIsExternal && std::find(mods.begin(), mods.end(), DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.size() == 0)
+    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.size() == 0)
         mods.push_back(DRM_FORMAT_MOD_LINEAR);
 
     return result;
@@ -490,7 +490,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         free(fmtName);
 
         mods.clear();
-        std::sort(modifierData.begin(), modifierData.end(), [](const auto& a, const auto& b) {
+        std::ranges::sort(modifierData, [](const auto& a, const auto& b) {
             if (a.first == 0)
                 return false;
             if (a.second.contains("DCC"))

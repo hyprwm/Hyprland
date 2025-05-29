@@ -123,7 +123,7 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
 }
 
 std::vector<CEventManager::SClient>::iterator CEventManager::findClientByFD(int fd) {
-    return std::find_if(m_clients.begin(), m_clients.end(), [fd](const auto& client) { return client.fd.get() == fd; });
+    return std::ranges::find_if(m_clients, [fd](const auto& client) { return client.fd.get() == fd; });
 }
 
 std::vector<CEventManager::SClient>::iterator CEventManager::removeClientByFD(int fd) {

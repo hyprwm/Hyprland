@@ -59,7 +59,7 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pW
 void CDecorationPositioner::uncacheDecoration(IHyprWindowDecoration* deco) {
     std::erase_if(m_windowPositioningDatas, [&](const auto& data) { return !data->pWindow.lock() || data->pDecoration == deco; });
 
-    const auto WIT = std::find_if(m_windowDatas.begin(), m_windowDatas.end(), [&](const auto& other) { return other.first.lock() == deco->m_window.lock(); });
+    const auto WIT = std::ranges::find_if(m_windowDatas, [&](const auto& other) { return other.first.lock() == deco->m_window.lock(); });
     if (WIT == m_windowDatas.end())
         return;
 
@@ -72,7 +72,7 @@ void CDecorationPositioner::repositionDeco(IHyprWindowDecoration* deco) {
 }
 
 CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow) {
-    auto it = std::find_if(m_windowPositioningDatas.begin(), m_windowPositioningDatas.end(), [&](const auto& el) { return el->pDecoration == pDecoration; });
+    auto it = std::ranges::find_if(m_windowPositioningDatas, [&](const auto& el) { return el->pDecoration == pDecoration; });
 
     if (it != m_windowPositioningDatas.end())
         return it->get();
@@ -97,7 +97,7 @@ void CDecorationPositioner::sanitizeDatas() {
 }
 
 void CDecorationPositioner::forceRecalcFor(PHLWINDOW pWindow) {
-    const auto WIT = std::find_if(m_windowDatas.begin(), m_windowDatas.end(), [&](const auto& other) { return other.first.lock() == pWindow; });
+    const auto WIT = std::ranges::find_if(m_windowDatas, [&](const auto& other) { return other.first.lock() == pWindow; });
     if (WIT == m_windowDatas.end())
         return;
 
@@ -110,7 +110,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     if (!validMapped(pWindow))
         return;
 
-    const auto WIT = std::find_if(m_windowDatas.begin(), m_windowDatas.end(), [&](const auto& other) { return other.first.lock() == pWindow; });
+    const auto WIT = std::ranges::find_if(m_windowDatas, [&](const auto& other) { return other.first.lock() == pWindow; });
     if (WIT == m_windowDatas.end())
         return;
 
@@ -128,8 +128,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     }
 
     if (WINDOWDATA->lastWindowSize == pWindow->m_realSize->value() /* position not changed */
-        && std::all_of(m_windowPositioningDatas.begin(), m_windowPositioningDatas.end(),
-                       [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
+        && std::ranges::all_of(m_windowPositioningDatas, [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
         /* all window datas are either not for this window or don't need a reposition */
         && !WINDOWDATA->needsRecalc /* window doesn't need recalc */
     )
@@ -143,7 +142,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     WINDOWDATA->needsRecalc    = false;
     const bool EPHEMERAL       = pWindow->m_realSize->isBeingAnimated();
 
-    std::sort(datas.begin(), datas.end(), [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
+    std::ranges::sort(datas, [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
 
     CBox wb = pWindow->getWindowMainSurfaceBox();
 

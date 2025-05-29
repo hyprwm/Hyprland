@@ -116,8 +116,7 @@ Vector2D CWLSubsurfaceResource::posRelativeToParent() {
     // surfaces we've visited and if we hit a surface we've visited we bail out.
     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
 
-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
-           std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
         auto subsurface = ((CSubsurfaceRole*)m_parent->m_role.get())->m_subsurface.lock();
         pos += subsurface->m_position;
@@ -134,8 +133,7 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
     SP<CWLSurfaceResource>              surf = m_parent.lock();
     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
 
-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
-           std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
         auto subsurface = ((CSubsurfaceRole*)m_parent->m_role.get())->m_subsurface.lock();
         surf            = subsurface->m_parent.lock();

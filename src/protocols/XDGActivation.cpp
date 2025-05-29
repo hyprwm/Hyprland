@@ -68,7 +68,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setDestroy([this](CXdgActivationV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setGetActivationToken([this](CXdgActivationV1* pMgr, uint32_t id) { this->onGetToken(pMgr, id); });
     RESOURCE->setActivate([this](CXdgActivationV1* pMgr, const char* token, wl_resource* surface) {
-        auto TOKEN = std::find_if(m_sentTokens.begin(), m_sentTokens.end(), [token](const auto& t) { return t.token == token; });
+        auto TOKEN = std::ranges::find_if(m_sentTokens, [token](const auto& t) { return t.token == token; });
 
         if UNLIKELY (TOKEN == m_sentTokens.end()) {
             LOGM(WARN, "activate event for non-existent token {}??", token);

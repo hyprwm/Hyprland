@@ -36,7 +36,7 @@ bool CFocusGrab::good() {
 }
 
 bool CFocusGrab::isSurfaceComitted(SP<CWLSurfaceResource> surface) {
-    auto iter = std::find_if(m_surfaces.begin(), m_surfaces.end(), [surface](const auto& o) { return o.first == surface; });
+    auto iter = std::ranges::find_if(m_surfaces, [surface](const auto& o) { return o.first == surface; });
     if (iter == m_surfaces.end())
         return false;
 
@@ -70,7 +70,7 @@ void CFocusGrab::finish(bool sendCleared) {
 }
 
 void CFocusGrab::addSurface(SP<CWLSurfaceResource> surface) {
-    auto iter = std::find_if(m_surfaces.begin(), m_surfaces.end(), [surface](const auto& e) { return e.first == surface; });
+    auto iter = std::ranges::find_if(m_surfaces, [surface](const auto& e) { return e.first == surface; });
     if (iter == m_surfaces.end())
         m_surfaces.emplace(surface, makeUnique<CFocusGrabSurfaceState>(this, surface));
 }

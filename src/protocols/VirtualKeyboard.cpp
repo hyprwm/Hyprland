@@ -31,7 +31,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             .state   = (wl_keyboard_key_state)state,
         });
 
-        const bool CONTAINS = std::find(m_pressed.begin(), m_pressed.end(), key) != m_pressed.end();
+        const bool CONTAINS = std::ranges::find(m_pressed, key) != m_pressed.end();
         if (state && !CONTAINS)
             m_pressed.emplace_back(key);
         else if (!state && CONTAINS)

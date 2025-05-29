@@ -46,8 +46,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                 });
             } else {
                 // if it wasn't inserted then find its index in vec
-                auto it =
-                    std::find_if(formatsVec.begin(), formatsVec.end(), [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
                 m_rendererTranche.indicies.push_back(it - formatsVec.begin());
             }
         }
@@ -69,8 +68,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                         .modifier = mod,
                     });
                 } else {
-                    auto it = std::find_if(formatsVec.begin(), formatsVec.end(),
-                                           [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                    auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
                     tranche.indicies.push_back(it - formatsVec.begin());
                 }
             }
@@ -89,7 +87,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
         return;
     }
 
-    std::copy(formatsVec.begin(), formatsVec.end(), arr);
+    std::ranges::copy(formatsVec, arr);
 
     munmap(arr, m_tableSize);
 

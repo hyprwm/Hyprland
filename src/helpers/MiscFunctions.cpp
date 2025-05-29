@@ -243,7 +243,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 namedWSes.push_back(ws->m_id);
             }
-            std::sort(namedWSes.begin(), namedWSes.end());
+            std::ranges::sort(namedWSes);
 
             if (absolute) {
                 // 1-index
@@ -388,7 +388,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 validWSes.push_back(ws->m_id);
             }
 
-            std::sort(validWSes.begin(), validWSes.end());
+            std::ranges::sort(validWSes);
 
             ssize_t currentItem = -1;
 

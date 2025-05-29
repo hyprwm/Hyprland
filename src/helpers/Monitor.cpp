@@ -32,6 +32,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
 #include <ranges>
+#include <vector>
 #include <algorithm>
 
 using namespace Hyprutils::String;

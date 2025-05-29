@@ -1842,10 +1842,6 @@ bool CWindow::priorityFocus() {
 }
 
 bool CWindow::initialize() {
-    auto self = m_self.lock();
-    if (!self)
-        return false;
-
     auto PMONITOR = g_pCompositor->m_lastMonitor.lock();
     if (!PMONITOR) {
         Debug::log(ERR, "CWindow::initialize: PMONITOR is null, setting to last monitor");

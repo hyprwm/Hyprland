@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <ranges>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 

@@ -623,7 +623,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 3) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 3) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
@@ -657,7 +657,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 2) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 2) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));

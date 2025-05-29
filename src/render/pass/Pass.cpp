@@ -259,7 +259,7 @@ void CRenderPass::renderDebugData() {
         }
     }
 
-    const auto DISCARDED_ELEMENTS = std::count_if(m_passElements.begin(), m_passElements.end(), [](const auto& e) { return e->discard; });
+    const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e->discard; });
     auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
                                                      DISCARDED_ELEMENTS, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize),
                                          Colors::WHITE, 12);

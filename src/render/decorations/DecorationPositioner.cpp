@@ -89,8 +89,7 @@ void CDecorationPositioner::sanitizeDatas() {
     std::erase_if(m_windowPositioningDatas, [](const auto& other) {
         if (!validMapped(other->pWindow))
             return true;
-        if (std::find_if(other->pWindow->m_windowDecorations.begin(), other->pWindow->m_windowDecorations.end(), [&](const auto& el) { return el.get() == other->pDecoration; }) ==
-            other->pWindow->m_windowDecorations.end())
+        if (std::ranges::find_if(other->pWindow->m_windowDecorations, [&](const auto& el) { return el.get() == other->pDecoration; }) == other->pWindow->m_windowDecorations.end())
             return true;
         return false;
     });

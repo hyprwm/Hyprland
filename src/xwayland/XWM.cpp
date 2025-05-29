@@ -202,7 +202,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         size_t len           = xcb_get_property_value_length(reply);
         char*  string        = (char*)xcb_get_property_value(reply);
         XSURF->m_state.appid = std::string{string, len};
-        if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2)
+        if (std::ranges::count(XSURF->m_state.appid, '\000') == 2)
             XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1); // fuck you X
         if (!XSURF->m_state.appid.empty())
             XSURF->m_state.appid.pop_back();

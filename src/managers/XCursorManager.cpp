@@ -128,7 +128,7 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
             try {
                 auto dirCursors = loadAllFromDir(p, m_lastLoadSize);
                 std::ranges::copy_if(dirCursors, std::back_inserter(m_cursors),
-                                     [this](auto const& p) { return std::none_of(m_cursors.begin(), m_cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
+                                     [this](auto const& p) { return std::ranges::none_of(m_cursors, [&p](auto const& dp) { return dp->shape == p->shape; }); });
             } catch (std::exception& e) { Debug::log(ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
         }
     }

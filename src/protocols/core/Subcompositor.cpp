@@ -30,7 +30,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::find(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), SURF);
+        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeAbove, likely parent");
@@ -43,7 +43,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::sort(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
     });
 
     m_resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -61,7 +61,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::find(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), SURF);
+        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeBelow, likely parent");
@@ -74,7 +74,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::sort(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
     });
 
     m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {

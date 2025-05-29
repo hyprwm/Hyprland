@@ -294,7 +294,7 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
 
 void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
     std::erase_if(m_primaryDevice->m_offeredOutputs, [](const auto& e) { return e.expired(); });
-    if (std::find(m_primaryDevice->m_offeredOutputs.begin(), m_primaryDevice->m_offeredOutputs.end(), monitor) != m_primaryDevice->m_offeredOutputs.end())
+    if (std::ranges::find(m_primaryDevice->m_offeredOutputs, monitor) != m_primaryDevice->m_offeredOutputs.end())
         return;
 
     if (monitor->m_output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)

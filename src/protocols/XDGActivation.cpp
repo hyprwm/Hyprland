@@ -33,8 +33,7 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
 
         PROTO::activation->m_sentTokens.push_back({m_token, m_resource->client()});
 
-        auto count = std::count_if(PROTO::activation->m_sentTokens.begin(), PROTO::activation->m_sentTokens.end(),
-                                   [this](const auto& other) { return other.client == m_resource->client(); });
+        auto count = std::ranges::count_if(PROTO::activation->m_sentTokens, [this](const auto& other) { return other.client == m_resource->client(); });
 
         if UNLIKELY (count > 10) {
             // remove first token. Too many, dear app.

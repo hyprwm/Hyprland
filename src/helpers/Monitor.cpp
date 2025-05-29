@@ -189,7 +189,7 @@ void CMonitor::onConnect(bool noRule) {
 
     RASSERT(thisWrapper->get(), "CMonitor::onConnect: Had no wrapper???");
 
-    if (std::find_if(g_pCompositor->m_monitors.begin(), g_pCompositor->m_monitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end())
+    if (std::ranges::find_if(g_pCompositor->m_monitors, [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end())
         g_pCompositor->m_monitors.push_back(*thisWrapper);
 
     m_enabled = true;
@@ -320,7 +320,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // remove mirror
     if (m_mirrorOf) {
-        m_mirrorOf->m_mirrors.erase(std::find_if(m_mirrorOf->m_mirrors.begin(), m_mirrorOf->m_mirrors.end(), [&](const auto& other) { return other == m_self; }));
+        m_mirrorOf->m_mirrors.erase(std::ranges::find_if(m_mirrorOf->m_mirrors, [&](const auto& other) { return other == m_self; }));
 
         // unlock software for mirrored monitor
         g_pPointerManager->unlockSoftwareForMonitor(m_mirrorOf.lock());
@@ -1019,7 +1019,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         // disable mirroring
 
         if (m_mirrorOf) {
-            m_mirrorOf->m_mirrors.erase(std::find_if(m_mirrorOf->m_mirrors.begin(), m_mirrorOf->m_mirrors.end(), [&](const auto& other) { return other == m_self; }));
+            m_mirrorOf->m_mirrors.erase(std::ranges::find_if(m_mirrorOf->m_mirrors, [&](const auto& other) { return other == m_self; }));
 
             // unlock software for mirrored monitor
             g_pPointerManager->unlockSoftwareForMonitor(m_mirrorOf.lock());
@@ -1046,7 +1046,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         RASSERT(thisWrapper->get(), "CMonitor::setMirror: Had no wrapper???");
 
-        if (std::find_if(g_pCompositor->m_monitors.begin(), g_pCompositor->m_monitors.end(), [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end()) {
+        if (std::ranges::find_if(g_pCompositor->m_monitors, [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end()) {
             g_pCompositor->m_monitors.push_back(*thisWrapper);
         }
 

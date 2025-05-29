@@ -255,7 +255,7 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
 CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
-    Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS);
+    Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
 
     m_exts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
 
@@ -331,7 +331,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     Debug::log(LOG, "Using: {}", (char*)glGetString(GL_VERSION));
     Debug::log(LOG, "Vendor: {}", (char*)glGetString(GL_VENDOR));
     Debug::log(LOG, "Renderer: {}", (char*)glGetString(GL_RENDERER));
-    Debug::log(LOG, "Supported extensions: ({}) {}", std::count(m_extensions.begin(), m_extensions.end(), ' '), m_extensions);
+    Debug::log(LOG, "Supported extensions: ({}) {}", std::ranges::count(m_extensions, ' '), m_extensions);
 
     m_exts.EXT_read_format_bgra = m_extensions.contains("GL_EXT_read_format_bgra");
 

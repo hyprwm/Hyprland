@@ -243,7 +243,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 namedWSes.push_back(ws->m_id);
             }
-            std::ranges::sort(namedWSes);
+            std::sort(namedWSes.begin(), namedWSes.end());
 
             if (absolute) {
                 // 1-index
@@ -388,7 +388,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 validWSes.push_back(ws->m_id);
             }
 
-            std::ranges::sort(validWSes);
+            std::sort(validWSes.begin(), validWSes.end());
 
             ssize_t currentItem = -1;
 
@@ -623,7 +623,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
 
         // try doing it the comma way first
-        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 3) {
+        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 3) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
@@ -657,7 +657,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
 
         // try doing it the comma way first
-        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 2) {
+        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 2) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));

@@ -130,7 +130,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
     });
 
     m_resource->setAckConfigure([this](CZwlrLayerSurfaceV1* r, uint32_t serial) {
-        auto serialFound = std::ranges::find_if(m_serials, [serial](const auto& e) { return e.first == serial; });
+        auto serialFound = std::find_if(m_serials.begin(), m_serials.end(), [serial](const auto& e) { return e.first == serial; });
 
         if (serialFound == m_serials.end()) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_SURFACE_STATE, "Serial invalid in ack_configure");

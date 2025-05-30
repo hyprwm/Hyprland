@@ -216,10 +216,10 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const auto tags = w->m_tags.getTags();
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
-        return std::ranges::fold_left(tags, std::string(),
-                                      [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
+        return std::accumulate(tags.begin(), tags.end(), std::string(),
+                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
     else
-        return std::ranges::fold_left(tags, std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
+        return std::accumulate(tags.begin(), tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
@@ -921,7 +921,7 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
 std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 
     auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-    std::ranges::replace(commitMsg, '#', ' ');
+    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
@@ -1296,7 +1296,8 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         }
         return result.empty() ? "ok" : result;
     } else {
-        auto k = std::ranges::find_if(g_pInputManager->m_keyboards, [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
+        auto k = std::find_if(g_pInputManager->m_keyboards.begin(), g_pInputManager->m_keyboards.end(),
+                              [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
 
         if (k == g_pInputManager->m_keyboards.end())
             return "device not found";

@@ -1651,7 +1651,7 @@ Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::str
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
     auto copy = dev;
-    std::ranges::replace(copy, ' ', '-');
+    std::replace(copy.begin(), copy.end(), ' ', '-');
 
     return m_config->specialCategoryExistsForKey("device", copy.c_str());
 }
@@ -1902,7 +1902,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     auto args = CVarList(modeline, 0, 's');
 
     auto keyword = args[0];
-    std::ranges::transform(keyword, keyword.begin(), ::tolower);
+    std::transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
 
     if (keyword != "modeline")
         return false;
@@ -1938,7 +1938,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     for (; argno < static_cast<int>(args.size()); argno++) {
         auto key = args[argno];
-        std::ranges::transform(key, key.begin(), ::tolower);
+        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
         auto it = flagsmap.find(key);
 
@@ -2375,7 +2375,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         HANDLER = "mouse";
 
     // to lower
-    std::ranges::transform(HANDLER, HANDLER.begin(), ::tolower);
+    std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
 
     const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(HANDLER);
 
@@ -2798,7 +2798,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
 
-    const auto IT = std::ranges::find_if(m_workspaceRules, [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
+    const auto IT = std::find_if(m_workspaceRules.begin(), m_workspaceRules.end(), [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 
     if (IT == m_workspaceRules.end())
         m_workspaceRules.emplace_back(wsRule);
@@ -2896,7 +2896,7 @@ std::optional<std::string> CConfigManager::handleEnv(const std::string& command,
 }
 
 std::optional<std::string> CConfigManager::handlePlugin(const std::string& command, const std::string& path) {
-    if (std::ranges::find(m_declaredPlugins, path) != m_declaredPlugins.end())
+    if (std::find(m_declaredPlugins.begin(), m_declaredPlugins.end(), path) != m_declaredPlugins.end())
         return "plugin '" + path + "' declared twice";
 
     m_declaredPlugins.push_back(path);

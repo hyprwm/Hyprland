@@ -109,7 +109,7 @@ void CHyprlandSurfaceProtocol::destroySurface(CHyprlandSurface* surface) {
 
 void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, uint32_t id, SP<CWLSurfaceResource> surface) {
     CHyprlandSurface* hyprlandSurface = nullptr;
-    auto              iter            = std::ranges::find_if(m_surfaces, [&](const auto& entry) { return entry.second->m_surface == surface; });
+    auto              iter            = std::find_if(m_surfaces.begin(), m_surfaces.end(), [&](const auto& entry) { return entry.second->m_surface == surface; });
 
     if (iter != m_surfaces.end()) {
         if (iter->second->m_resource) {

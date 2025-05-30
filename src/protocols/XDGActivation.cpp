@@ -33,7 +33,8 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
 
         PROTO::activation->m_sentTokens.push_back({m_token, m_resource->client()});
 
-        auto count = std::ranges::count_if(PROTO::activation->m_sentTokens, [this](const auto& other) { return other.client == m_resource->client(); });
+        auto count = std::count_if(PROTO::activation->m_sentTokens.begin(), PROTO::activation->m_sentTokens.end(),
+                                   [this](const auto& other) { return other.client == m_resource->client(); });
 
         if UNLIKELY (count > 10) {
             // remove first token. Too many, dear app.
@@ -67,7 +68,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setDestroy([this](CXdgActivationV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setGetActivationToken([this](CXdgActivationV1* pMgr, uint32_t id) { this->onGetToken(pMgr, id); });
     RESOURCE->setActivate([this](CXdgActivationV1* pMgr, const char* token, wl_resource* surface) {
-        auto TOKEN = std::ranges::find_if(m_sentTokens, [token](const auto& t) { return t.token == token; });
+        auto TOKEN = std::find_if(m_sentTokens.begin(), m_sentTokens.end(), [token](const auto& t) { return t.token == token; });
 
         if UNLIKELY (TOKEN == m_sentTokens.end()) {
             LOGM(WARN, "activate event for non-existent token {}??", token);

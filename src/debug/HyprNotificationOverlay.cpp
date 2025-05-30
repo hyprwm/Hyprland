@@ -13,7 +13,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
-        auto iconsText = std::ranges::fold_left(ICONS_ARRAY[iconID], std::string(), std::plus<>());
+        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
         pango_layout_set_text(layout, iconsText.c_str(), -1);
         if (pango_layout_get_unknown_glyphs_count(layout) == 0)
             return iconID;

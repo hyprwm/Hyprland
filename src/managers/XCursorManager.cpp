@@ -127,8 +127,8 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
         for (auto const& p : paths) {
             try {
                 auto dirCursors = loadAllFromDir(p, m_lastLoadSize);
-                std::ranges::copy_if(dirCursors, std::back_inserter(m_cursors),
-                                     [this](auto const& p) { return std::ranges::none_of(m_cursors, [&p](auto const& dp) { return dp->shape == p->shape; }); });
+                std::copy_if(dirCursors.begin(), dirCursors.end(), std::back_inserter(m_cursors),
+                             [this](auto const& p) { return std::none_of(m_cursors.begin(), m_cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
             } catch (std::exception& e) { Debug::log(ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
         }
     }
@@ -144,14 +144,14 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
         if (legacyName.empty())
             continue;
 
-        auto it = std::ranges::find_if(m_cursors, [&legacyName](auto const& c) { return c->shape == legacyName; });
+        auto it = std::find_if(m_cursors.begin(), m_cursors.end(), [&legacyName](auto const& c) { return c->shape == legacyName; });
 
         if (it == m_cursors.end()) {
             Debug::log(LOG, "XCursor failed to find a legacy shape with name {}, skipping", legacyName);
             continue;
         }
 
-        if (std::ranges::any_of(m_cursors, [&shape](auto const& dp) { return dp->shape == shape; })) {
+        if (std::any_of(m_cursors.begin(), m_cursors.end(), [&shape](auto const& dp) { return dp->shape == shape; })) {
             Debug::log(LOG, "XCursor already has a shape {} loaded, skipping", shape);
             continue;
         }

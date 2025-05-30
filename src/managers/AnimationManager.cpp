@@ -384,7 +384,7 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
     }
 
     std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();
-    std::ranges::transform(ANIMSTYLE, ANIMSTYLE.begin(), ::tolower);
+    transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
     CVarList animList(ANIMSTYLE, 0, 's');
 

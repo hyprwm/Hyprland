@@ -268,7 +268,7 @@ wl_client* CWLSurfaceResource::client() {
 }
 
 void CWLSurfaceResource::enter(PHLMONITOR monitor) {
-    if (std::ranges::find(m_enteredOutputs, monitor) != m_enteredOutputs.end())
+    if (std::find(m_enteredOutputs.begin(), m_enteredOutputs.end(), monitor) != m_enteredOutputs.end())
         return;
 
     if UNLIKELY (!PROTO::outputs.contains(monitor->m_name)) {
@@ -295,7 +295,7 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
 }
 
 void CWLSurfaceResource::leave(PHLMONITOR monitor) {
-    if UNLIKELY (std::ranges::find(m_enteredOutputs, monitor) == m_enteredOutputs.end())
+    if UNLIKELY (std::find(m_enteredOutputs.begin(), m_enteredOutputs.end(), monitor) == m_enteredOutputs.end())
         return;
 
     auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);

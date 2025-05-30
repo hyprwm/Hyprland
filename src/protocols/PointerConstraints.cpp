@@ -229,7 +229,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     const auto OWNER = constraint->owner();
 
-    const auto DUPES = std::ranges::count_if(m_constraints, [OWNER](const auto& c) { return c->owner() == OWNER; });
+    const auto DUPES = std::count_if(m_constraints.begin(), m_constraints.end(), [OWNER](const auto& c) { return c->owner() == OWNER; });
 
     if UNLIKELY (DUPES > 1) {
         LOGM(ERR, "Constraint for surface duped");

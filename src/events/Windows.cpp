@@ -742,7 +742,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
     if (PWINDOW->m_isFloating && !PWINDOW->m_isX11 &&
-        std::ranges::any_of(PWINDOW->m_matchedRules, [](const auto& r) { return r->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; })) {
+        std::any_of(PWINDOW->m_matchedRules.begin(), PWINDOW->m_matchedRules.end(), [](const auto& r) { return r->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; })) {
         Debug::log(LOG, "storing floating size {}x{} for window {}::{} on close", PWINDOW->m_realSize->value().x, PWINDOW->m_realSize->value().y, PWINDOW->m_class,
                    PWINDOW->m_title);
         g_pConfigManager->storeFloatingSize(PWINDOW, PWINDOW->m_realSize->value());

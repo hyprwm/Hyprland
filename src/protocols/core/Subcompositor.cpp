@@ -30,7 +30,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
+        auto it = std::find(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), SURF);
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeAbove, likely parent");
@@ -43,7 +43,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+        std::sort(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
     });
 
     m_resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -61,7 +61,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
+        auto it = std::find(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), SURF);
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeBelow, likely parent");
@@ -74,7 +74,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+        std::sort(m_parent->m_subsurfaces.begin(), m_parent->m_subsurfaces.end(), [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
     });
 
     m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {
@@ -116,7 +116,8 @@ Vector2D CWLSubsurfaceResource::posRelativeToParent() {
     // surfaces we've visited and if we hit a surface we've visited we bail out.
     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
 
-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
+           std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
         auto subsurface = ((CSubsurfaceRole*)m_parent->m_role.get())->m_subsurface.lock();
         pos += subsurface->m_position;
@@ -133,7 +134,8 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
     SP<CWLSurfaceResource>              surf = m_parent.lock();
     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
 
-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
+           std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
         auto subsurface = ((CSubsurfaceRole*)m_parent->m_role.get())->m_subsurface.lock();
         surf            = subsurface->m_parent.lock();

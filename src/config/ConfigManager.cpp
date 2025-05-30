@@ -1403,10 +1403,10 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                         continue;
                 }
 
-				if (rule->m_group != -1) {
-					if (rule->m_group != isGrouped)
-						continue;
-				}
+                if (rule->m_group != -1) {
+                    if (rule->m_group != isGrouped)
+                        continue;
+                }
 
                 if (!rule->m_fullscreenState.empty()) {
                     const auto ARGS = CVarList(rule->m_fullscreenState, 2, ' ');
@@ -2450,7 +2450,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
     const auto CONTENTTYPEPOS     = VALUE.find("content:");
     const auto XDGTAGPOS          = VALUE.find("xdgTag:");
-	const auto GROUPPOS = VALUE.find("group:");
+    const auto GROUPPOS           = VALUE.find("group:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2463,7 +2463,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS, FULLSCREENPOS,
+    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  FULLSCREENPOS,
                                              PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS, GROUPPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
@@ -2507,7 +2507,6 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             min = XDGTAGPOS;
         if (GROUPPOS > pos && GROUPPOS < min)
             min = GROUPPOS;
-
 
         result = result.substr(0, min - pos);
 
@@ -2622,8 +2621,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
 
-				if (rule->m_group != -1 && rule->m_group != other->m_group)
-					return false;
+                if (rule->m_group != -1 && rule->m_group != other->m_group)
+                    return false;
 
                 return true;
             }

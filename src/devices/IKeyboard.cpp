@@ -379,7 +379,7 @@ bool IKeyboard::updateModifiersState() {
 
 void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
 
-    const auto contains = std::find(m_pressedXKB.begin(), m_pressedXKB.end(), xkbKey) != m_pressedXKB.end();
+    const auto contains = std::ranges::find(m_pressedXKB, xkbKey) != m_pressedXKB.end();
 
     if (contains && pressed)
         return;

@@ -258,7 +258,7 @@ uint32_t CXDGToplevelResource::setSize(const Vector2D& size) {
 }
 
 uint32_t CXDGToplevelResource::setMaximized(bool maximized) {
-    bool set = std::find(m_pendingApply.states.begin(), m_pendingApply.states.end(), XDG_TOPLEVEL_STATE_MAXIMIZED) != m_pendingApply.states.end();
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_MAXIMIZED) != m_pendingApply.states.end();
 
     if (maximized == set)
         return m_owner->m_scheduledSerial;
@@ -272,7 +272,7 @@ uint32_t CXDGToplevelResource::setMaximized(bool maximized) {
 }
 
 uint32_t CXDGToplevelResource::setFullscreen(bool fullscreen) {
-    bool set = std::find(m_pendingApply.states.begin(), m_pendingApply.states.end(), XDG_TOPLEVEL_STATE_FULLSCREEN) != m_pendingApply.states.end();
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_FULLSCREEN) != m_pendingApply.states.end();
 
     if (fullscreen == set)
         return m_owner->m_scheduledSerial;
@@ -286,7 +286,7 @@ uint32_t CXDGToplevelResource::setFullscreen(bool fullscreen) {
 }
 
 uint32_t CXDGToplevelResource::setActive(bool active) {
-    bool set = std::find(m_pendingApply.states.begin(), m_pendingApply.states.end(), XDG_TOPLEVEL_STATE_ACTIVATED) != m_pendingApply.states.end();
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_ACTIVATED) != m_pendingApply.states.end();
 
     if (active == set)
         return m_owner->m_scheduledSerial;
@@ -303,7 +303,7 @@ uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
     if (m_resource->version() < 6)
         return m_owner->scheduleConfigure(); // SUSPENDED is since 6
 
-    bool set = std::find(m_pendingApply.states.begin(), m_pendingApply.states.end(), XDG_TOPLEVEL_STATE_SUSPENDED) != m_pendingApply.states.end();
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_SUSPENDED) != m_pendingApply.states.end();
 
     if (sus == set)
         return m_owner->m_scheduledSerial;

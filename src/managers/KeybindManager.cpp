@@ -225,7 +225,7 @@ void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
-    std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
+    std::ranges::transform(mods, mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
         modMask |= HL_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))
@@ -624,10 +624,8 @@ eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> k
     std::set<xkb_keysym_t> boundKeysNotPressed;
     std::set<xkb_keysym_t> pressedKeysNotBound;
 
-    std::set_difference(keybindKeysyms.begin(), keybindKeysyms.end(), pressedKeysyms.begin(), pressedKeysyms.end(),
-                        std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
-    std::set_difference(pressedKeysyms.begin(), pressedKeysyms.end(), keybindKeysyms.begin(), keybindKeysyms.end(),
-                        std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
+    std::ranges::set_difference(keybindKeysyms, pressedKeysyms, std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
+    std::ranges::set_difference(pressedKeysyms, keybindKeysyms, std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
 
     if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
         return MK_FULL_MATCH;
@@ -670,8 +668,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
     for (auto& k : m_keybinds) {
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse";
-        const bool SPECIALTRIGGERED =
-            std::find_if(m_pressedSpecialBinds.begin(), m_pressedSpecialBinds.end(), [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
@@ -1106,7 +1103,7 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
         return {.success = false, .error = "signalWindow: no window"};
     }
 
-    if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
+    if (!std::ranges::all_of(SIGNAL, ::isdigit))
         return {.success = false, .error = "signalWindow: signal has to be int"};
 
     try {

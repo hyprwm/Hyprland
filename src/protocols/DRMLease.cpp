@@ -96,7 +96,7 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> reso
 
         auto CONNECTOR = CDRMLeaseConnectorResource::fromResource(conn);
 
-        if (std::find(m_requested.begin(), m_requested.end(), CONNECTOR) != m_requested.end()) {
+        if (std::ranges::find(m_requested, CONNECTOR) != m_requested.end()) {
             m_resource->error(WP_DRM_LEASE_REQUEST_V1_ERROR_DUPLICATE_CONNECTOR, "Connector already requested");
             return;
         }
@@ -208,7 +208,7 @@ bool CDRMLeaseDeviceResource::good() {
 }
 
 void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
-    if (std::find_if(m_connectorsSent.begin(), m_connectorsSent.end(), [monitor](const auto& e) { return e && !e->m_dead && e->m_monitor == monitor; }) != m_connectorsSent.end())
+    if (std::ranges::find_if(m_connectorsSent, [monitor](const auto& e) { return e && !e->m_dead && e->m_monitor == monitor; }) != m_connectorsSent.end())
         return;
 
     auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(makeShared<CWpDrmLeaseConnectorV1>(m_resource->client(), m_resource->version(), 0), monitor);
@@ -294,7 +294,7 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
 
 void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
     std::erase_if(m_primaryDevice->m_offeredOutputs, [](const auto& e) { return e.expired(); });
-    if (std::find(m_primaryDevice->m_offeredOutputs.begin(), m_primaryDevice->m_offeredOutputs.end(), monitor) != m_primaryDevice->m_offeredOutputs.end())
+    if (std::ranges::find(m_primaryDevice->m_offeredOutputs, monitor) != m_primaryDevice->m_offeredOutputs.end())
         return;
 
     if (monitor->m_output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)

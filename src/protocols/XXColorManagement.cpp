@@ -237,8 +237,8 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
             return;
         }
 
-        const auto imageDescription = std::find_if(PROTO::xxColorManagement->m_imageDescriptions.begin(), PROTO::xxColorManagement->m_imageDescriptions.end(),
-                                                   [&](const auto& other) { return other->resource()->resource() == image_description; });
+        const auto imageDescription =
+            std::ranges::find_if(PROTO::xxColorManagement->m_imageDescriptions, [&](const auto& other) { return other->resource()->resource() == image_description; });
         if (imageDescription == PROTO::xxColorManagement->m_imageDescriptions.end()) {
             r->error(XX_COLOR_MANAGEMENT_SURFACE_V4_ERROR_IMAGE_DESCRIPTION, "Image description not found");
             return;

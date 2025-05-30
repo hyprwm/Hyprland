@@ -137,7 +137,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor
             return;
         }
 
-        if UNLIKELY (std::find(PROTO::shm->m_shmFormats.begin(), PROTO::shm->m_shmFormats.end(), fmt) == PROTO::shm->m_shmFormats.end()) {
+        if UNLIKELY (std::ranges::find(PROTO::shm->m_shmFormats, fmt) == PROTO::shm->m_shmFormats.end()) {
             r->error(WL_SHM_ERROR_INVALID_FORMAT, "Format invalid");
             return;
         }

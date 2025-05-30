@@ -26,7 +26,7 @@ void CLayoutManager::switchToLayout(std::string layout) {
 }
 
 bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
-    if (std::find_if(m_layouts.begin(), m_layouts.end(), [&](const auto& other) { return other.first == name || other.second == layout; }) != m_layouts.end())
+    if (std::ranges::find_if(m_layouts, [&](const auto& other) { return other.first == name || other.second == layout; }) != m_layouts.end())
         return false;
 
     m_layouts.emplace_back(std::make_pair<>(name, layout));
@@ -37,7 +37,7 @@ bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
 }
 
 bool CLayoutManager::removeLayout(IHyprLayout* layout) {
-    const auto IT = std::find_if(m_layouts.begin(), m_layouts.end(), [&](const auto& other) { return other.second == layout; });
+    const auto IT = std::ranges::find_if(m_layouts, [&](const auto& other) { return other.second == layout; });
 
     if (IT == m_layouts.end() || IT->first == "dwindle" || IT->first == "master")
         return false;

@@ -653,7 +653,7 @@ void CSeatManager::resendEnterEvents() {
 }
 
 bool CSeatGrab::accepts(SP<CWLSurfaceResource> surf) {
-    return std::find(m_surfs.begin(), m_surfs.end(), surf) != m_surfs.end();
+    return std::ranges::find(m_surfs, surf) != m_surfs.end();
 }
 
 void CSeatGrab::add(SP<CWLSurfaceResource> surf) {

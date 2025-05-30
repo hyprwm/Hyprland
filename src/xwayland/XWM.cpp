@@ -757,7 +757,7 @@ bool CXWM::handleSelectionEvent(xcb_generic_event_t* e) {
     if (e->response_type - m_xfixes->first_event == XCB_XFIXES_SELECTION_NOTIFY)
         return handleSelectionXFixesNotify((xcb_xfixes_selection_notify_event_t*)e);
 
-    return 0;
+    return false;
 }
 
 int CXWM::onEvent(int fd, uint32_t mask) {
@@ -1335,8 +1335,8 @@ void SXSelection::onSelection() {
     const bool isClipboard = this == &g_pXWayland->m_wm->m_clipboard;
     const bool isPrimary   = this == &g_pXWayland->m_wm->m_primarySelection;
 
-    auto* currentSel       = g_pSeatManager->m_selection.currentSelection;
-    auto* currentPrimSel   = g_pSeatManager->m_selection.currentPrimarySelection;
+    auto       currentSel     = g_pSeatManager->m_selection.currentSelection;
+    auto       currentPrimSel = g_pSeatManager->m_selection.currentPrimarySelection;
 
     const bool isX11Clipboard = isClipboard && currentSel && currentSel->type() == DATA_SOURCE_TYPE_X11;
     const bool isX11Primary   = isPrimary && currentPrimSel && currentPrimSel->type() == DATA_SOURCE_TYPE_X11;

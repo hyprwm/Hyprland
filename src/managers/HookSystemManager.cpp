@@ -46,7 +46,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
 
         m_currentEventPlugin = true;
 
-        if (std::find(faultyHandles.begin(), faultyHandles.end(), cb.handle) != faultyHandles.end())
+        if (std::ranges::find(faultyHandles, cb.handle) != faultyHandles.end())
             continue;
 
         try {

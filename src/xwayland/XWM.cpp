@@ -165,7 +165,7 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
 
         XSURF = XSURF->m_parent.lock();
 
-        if (std::find(visited.begin(), visited.end(), XSURF) != visited.end())
+        if (std::ranges::find(visited, XSURF) != visited.end())
             return false;
     }
 
@@ -206,7 +206,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         XSURF->m_state.appid = std::string{value, valueLen};
         if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2) 
             XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1);
-        
+
         if (!XSURF->m_state.appid.empty())
             XSURF->m_state.appid.pop_back();
         XSURF->m_events.metadataChanged.emit();
@@ -1133,7 +1133,7 @@ void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     if (surf->m_surface)
         return;
 
-    auto existing = std::find_if(m_surfaces.begin(), m_surfaces.end(), [wlSurf](const auto& e) { return e->m_surface == wlSurf; });
+    auto existing = std::ranges::find_if(m_surfaces, [wlSurf](const auto& e) { return e->m_surface == wlSurf; });
 
     if (existing != m_surfaces.end()) {
         Debug::log(WARN, "[xwm] associate() called but surface is already associated to {:x}, ignoring...", (uintptr_t)surf.get());
@@ -1455,7 +1455,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     if (MIMES.empty())
         return false;
 
-    if (std::find(MIMES.begin(), MIMES.end(), mime) == MIMES.end()) {
+    if (std::ranges::find(MIMES, mime) == MIMES.end()) {
         Debug::log(ERR, "[xwm] X Client asked for an invalid MIME, sending the first advertised. THIS SHIT MAY BREAK!");
         mime = *MIMES.begin();
     }

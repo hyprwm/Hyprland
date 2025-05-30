@@ -94,7 +94,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {
             const auto pLastNode = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
             if (pLastNode && !(pLastNode->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
-                auto it = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), *pLastNode);
+                auto it = std::ranges::find(m_masterNodesData, *pLastNode);
                 if (!BNEWBEFOREACTIVE)
                     ++it;
                 return &(*m_masterNodesData.emplace(it));
@@ -117,7 +117,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
     eOrientation orientation   = getDynamicOrientation(pWindow->m_workspace);
-    const auto   NODEIT        = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), *PNODE);
+    const auto   NODEIT        = std::ranges::find(m_masterNodesData, *PNODE);
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
@@ -804,8 +804,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         if (!*PSMARTRESIZING) {
             PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
         } else {
-            const auto  NODEIT    = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), *PNODE);
-            const auto  REVNODEIT = std::find(m_masterNodesData.rbegin(), m_masterNodesData.rend(), *PNODE);
+            const auto  NODEIT    = std::ranges::find(m_masterNodesData, *PNODE);
+            const auto  REVNODEIT = std::ranges::find(m_masterNodesData | std::views::reverse, *PNODE);
 
             const float totalSize       = isStackVertical ? WSSIZE.y : WSSIZE.x;
             const float minSize         = totalSize / nodesInSameColumn * 0.2;
@@ -1026,16 +1026,15 @@ PHLWINDOW CHyprMasterLayout::getNextWindow(PHLWINDOW pWindow, bool next, bool lo
 
     auto       nodes = m_masterNodesData;
     if (!next)
-        std::reverse(nodes.begin(), nodes.end());
+        std::ranges::reverse(nodes);
 
-    const auto NODEIT = std::find(nodes.begin(), nodes.end(), *PNODE);
+    const auto NODEIT = std::ranges::find(nodes, *PNODE);
 
     const bool ISMASTER = PNODE->isMaster;
 
     auto CANDIDATE = std::find_if(NODEIT, nodes.end(), [&](const auto& other) { return other != *PNODE && ISMASTER == other.isMaster && other.workspaceID == PNODE->workspaceID; });
     if (CANDIDATE == nodes.end())
-        CANDIDATE =
-            std::find_if(nodes.begin(), nodes.end(), [&](const auto& other) { return other != *PNODE && ISMASTER != other.isMaster && other.workspaceID == PNODE->workspaceID; });
+        CANDIDATE = std::ranges::find_if(nodes, [&](const auto& other) { return other != *PNODE && ISMASTER != other.isMaster && other.workspaceID == PNODE->workspaceID; });
 
     if (CANDIDATE != nodes.end() && !loop) {
         if (CANDIDATE->isMaster && next)
@@ -1308,12 +1307,12 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!OLDMASTER)
             return 0;
 
-        const auto OLDMASTERIT = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), *OLDMASTER);
+        const auto OLDMASTERIT = std::ranges::find(m_masterNodesData, *OLDMASTER);
 
         for (auto& nd : m_masterNodesData) {
             if (nd.workspaceID == PNODE->workspaceID && !nd.isMaster) {
                 nd.isMaster            = true;
-                const auto NEWMASTERIT = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), nd);
+                const auto NEWMASTERIT = std::ranges::find(m_masterNodesData, nd);
                 m_masterNodesData.splice(OLDMASTERIT, m_masterNodesData, NEWMASTERIT);
                 switchToWindow(nd.pWindow.lock());
                 OLDMASTER->isMaster = false;
@@ -1334,12 +1333,12 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!OLDMASTER)
             return 0;
 
-        const auto OLDMASTERIT = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), *OLDMASTER);
+        const auto OLDMASTERIT = std::ranges::find(m_masterNodesData, *OLDMASTER);
 
         for (auto& nd : m_masterNodesData | std::views::reverse) {
             if (nd.workspaceID == PNODE->workspaceID && !nd.isMaster) {
                 nd.isMaster            = true;
-                const auto NEWMASTERIT = std::find(m_masterNodesData.begin(), m_masterNodesData.end(), nd);
+                const auto NEWMASTERIT = std::ranges::find(m_masterNodesData, nd);
                 m_masterNodesData.splice(OLDMASTERIT, m_masterNodesData, NEWMASTERIT);
                 switchToWindow(nd.pWindow.lock());
                 OLDMASTER->isMaster = false;

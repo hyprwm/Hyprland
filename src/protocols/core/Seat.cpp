@@ -204,10 +204,10 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
         return;
 
-    if (state == WL_POINTER_BUTTON_STATE_RELEASED && std::find(m_pressedButtons.begin(), m_pressedButtons.end(), button) == m_pressedButtons.end()) {
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED && std::ranges::find(m_pressedButtons, button) == m_pressedButtons.end()) {
         LOGM(ERR, "sendButton release on a non-pressed button");
         return;
-    } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::find(m_pressedButtons.begin(), m_pressedButtons.end(), button) != m_pressedButtons.end()) {
+    } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::ranges::find(m_pressedButtons, button) != m_pressedButtons.end()) {
         LOGM(ERR, "sendButton press on a non-pressed button");
         return;
     }

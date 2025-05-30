@@ -93,7 +93,7 @@ using PPLUGIN_API_VERSION_FUNC = REQUIRED std::string (*)();
 
     Keep in mind this is executed synchronously, and as such any blocking calls to hyprland might hang. (e.g. system("hyprctl ..."))
 */
-using PPLUGIN_INIT_FUNC2 = REQUIRED PLUGIN_DESCRIPTION_INFO (*)(HANDLE);
+using PPLUGIN_INIT_FUNC = REQUIRED PLUGIN_DESCRIPTION_INFO (*)(HANDLE);
 #define PLUGIN_INIT          pluginInit
 #define PLUGIN_INIT_FUNC_STR "pluginInit"
 
@@ -103,7 +103,7 @@ using PPLUGIN_INIT_FUNC2 = REQUIRED PLUGIN_DESCRIPTION_INFO (*)(HANDLE);
 
     Hooks are unloaded after exit.
 */
-using PPLUGIN_EXIT_FUNC2 = OPTIONAL void (*)();
+using PPLUGIN_EXIT_FUNC = OPTIONAL void (*)();
 #define PLUGIN_EXIT          pluginExit
 #define PLUGIN_EXIT_FUNC_STR "pluginExit"
 

@@ -158,6 +158,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         }
 
         // TODO: detect a popup in a more consistent way.
+        bool centeredOnParent = false;
         if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_isX11) {
             // if the pos isn't set, fall back to the center placement if it's not a child
             auto pos = PMONITOR->m_position + PMONITOR->m_size / 2.F - desiredGeometry.size() / 2.F;
@@ -168,11 +169,11 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
                     *pWindow->m_realPosition = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
                     pWindow->m_workspace     = PARENT->m_workspace;
                     pWindow->m_monitor       = PARENT->m_monitor;
-                    return;
+                    centeredOnParent = true;
                 }
             }
-
-            *pWindow->m_realPosition = pos;
+            if (!centeredOnParent)
+                *pWindow->m_realPosition = pos;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups

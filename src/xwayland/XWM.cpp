@@ -1,5 +1,6 @@
 #include "helpers/math/Math.hpp"
 #include <cstdint>
+#include <string>
 #ifndef NO_XWAYLAND
 
 #include <ranges>
@@ -198,104 +199,127 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     if (Debug::m_trace)
         propName = getAtomName(atom);
 
-    if (atom == XCB_ATOM_WM_CLASS) {
-        size_t len           = xcb_get_property_value_length(reply);
-        char*  string        = (char*)xcb_get_property_value(reply);
-        XSURF->m_state.appid = std::string{string, len};
-        if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2)
-            XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1); // fuck you X
+    const auto  valueLen = xcb_get_property_value_length(reply);
+    const auto* value    = (const char*)xcb_get_property_value(reply);
+
+    auto        handleWMClass = [&]() {
+        XSURF->m_state.appid = std::string{value, valueLen};
+        if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2) {
+            XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1);
+        }
         if (!XSURF->m_state.appid.empty())
             XSURF->m_state.appid.pop_back();
         XSURF->m_events.metadataChanged.emit();
-    } else if (atom == XCB_ATOM_WM_NAME || atom == HYPRATOMS["_NET_WM_NAME"]) {
-        size_t len    = xcb_get_property_value_length(reply);
-        char*  string = (char*)xcb_get_property_value(reply);
+    };
+
+    auto handleWMName = [&]() {
         if (reply->type != HYPRATOMS["UTF8_STRING"] && reply->type != HYPRATOMS["TEXT"] && reply->type != XCB_ATOM_STRING)
             return;
-        XSURF->m_state.title = std::string{string, len};
+        XSURF->m_state.title = std::string{value, valueLen};
         XSURF->m_events.metadataChanged.emit();
-    } else if (atom == HYPRATOMS["_NET_WM_WINDOW_TYPE"]) {
-        xcb_atom_t* atomsArr = (xcb_atom_t*)xcb_get_property_value(reply);
-        size_t      atomsNo  = reply->value_len;
-        XSURF->m_atoms.clear();
-        for (size_t i = 0; i < atomsNo; ++i) {
-            XSURF->m_atoms.push_back(atomsArr[i]);
-        }
-    } else if (atom == HYPRATOMS["_NET_WM_STATE"]) {
-        xcb_atom_t* atoms = (xcb_atom_t*)xcb_get_property_value(reply);
+    };
+
+    auto handleWindowType = [&]() {
+        auto* atomsArr = (xcb_atom_t*)value;
+        XSURF->m_atoms.assign(atomsArr, atomsArr + reply->value_len);
+    };
+
+    auto handleWMState = [&]() {
+        auto* atoms = (xcb_atom_t*)value;
         for (uint32_t i = 0; i < reply->value_len; i++) {
             if (atoms[i] == HYPRATOMS["_NET_WM_STATE_MODAL"])
                 XSURF->m_modal = true;
         }
-    } else if (atom == HYPRATOMS["WM_HINTS"]) {
-        if (reply->value_len != 0) {
-            XSURF->m_hints = makeUnique<xcb_icccm_wm_hints_t>();
-            xcb_icccm_get_wm_hints_from_reply(XSURF->m_hints.get(), reply);
+    };
 
-            if (!(XSURF->m_hints->flags & XCB_ICCCM_WM_HINT_INPUT))
-                XSURF->m_hints->input = true;
-        }
-    } else if (atom == HYPRATOMS["WM_WINDOW_ROLE"]) {
-        size_t len = xcb_get_property_value_length(reply);
+    auto handleWMHints = [&]() {
+        if (reply->value_len == 0)
+            return;
+        XSURF->m_hints = makeUnique<xcb_icccm_wm_hints_t>();
+        xcb_icccm_get_wm_hints_from_reply(XSURF->m_hints.get(), reply);
+        if (!(XSURF->m_hints->flags & XCB_ICCCM_WM_HINT_INPUT))
+            XSURF->m_hints->input = true;
+    };
 
-        if (len <= 0)
+    auto handleWMRole = [&]() {
+        if (valueLen <= 0) {
             XSURF->m_role = "";
-        else {
-            XSURF->m_role = std::string{(char*)xcb_get_property_value(reply), len};
+        } else {
+            XSURF->m_role = std::string{value, valueLen};
             XSURF->m_role = XSURF->m_role.substr(0, XSURF->m_role.find_first_of('\000'));
         }
-    } else if (atom == XCB_ATOM_WM_TRANSIENT_FOR) {
-        if (reply->type == XCB_ATOM_WINDOW) {
-            const auto XID     = (xcb_window_t*)xcb_get_property_value(reply);
-            XSURF->m_transient = XID;
-            if (XID) {
-                if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
-                    XSURF->m_parent = NEWXSURF;
-                    NEWXSURF->m_children.emplace_back(XSURF);
-                } else
-                    Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
-            }
+    };
+
+    auto handleTransientFor = [&]() {
+        if (reply->type != XCB_ATOM_WINDOW)
+            return;
+        const auto XID     = (xcb_window_t*)value;
+        XSURF->m_transient = XID;
+        if (!XID)
+            return;
+
+        if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
+            XSURF->m_parent = NEWXSURF;
+            NEWXSURF->m_children.emplace_back(XSURF);
+        } else {
+            Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
         }
-    } else if (atom == HYPRATOMS["WM_NORMAL_HINTS"]) {
-        if (reply->type == HYPRATOMS["WM_SIZE_HINTS"] && reply->value_len > 0) {
-            XSURF->m_sizeHints = makeUnique<xcb_size_hints_t>();
-            std::memset(XSURF->m_sizeHints.get(), 0, sizeof(xcb_size_hints_t));
+    };
 
-            xcb_icccm_get_wm_size_hints_from_reply(XSURF->m_sizeHints.get(), reply);
+    auto handleSizeHints = [&]() {
+        if (reply->type != HYPRATOMS["WM_SIZE_HINTS"] || reply->value_len == 0)
+            return;
 
-            const int32_t FLAGS   = XSURF->m_sizeHints->flags;
-            const bool    HASMIN  = (FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE);
-            const bool    HASBASE = (FLAGS & XCB_ICCCM_SIZE_HINT_BASE_SIZE);
+        XSURF->m_sizeHints = makeUnique<xcb_size_hints_t>();
+        std::memset(XSURF->m_sizeHints.get(), 0, sizeof(xcb_size_hints_t));
+        xcb_icccm_get_wm_size_hints_from_reply(XSURF->m_sizeHints.get(), reply);
 
-            if (!HASMIN && !HASBASE) {
-                XSURF->m_sizeHints->min_width   = -1;
-                XSURF->m_sizeHints->min_height  = -1;
-                XSURF->m_sizeHints->base_width  = -1;
-                XSURF->m_sizeHints->base_height = -1;
-            } else if (!HASBASE) {
-                XSURF->m_sizeHints->base_width  = XSURF->m_sizeHints->min_width;
-                XSURF->m_sizeHints->base_height = XSURF->m_sizeHints->min_height;
-            } else if (!HASMIN) {
-                XSURF->m_sizeHints->min_width  = XSURF->m_sizeHints->base_width;
-                XSURF->m_sizeHints->min_height = XSURF->m_sizeHints->base_height;
-            }
+        const int32_t FLAGS   = XSURF->m_sizeHints->flags;
+        const bool    HASMIN  = FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
+        const bool    HASBASE = FLAGS & XCB_ICCCM_SIZE_HINT_BASE_SIZE;
 
-            if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
-                XSURF->m_sizeHints->max_width  = -1;
-                XSURF->m_sizeHints->max_height = -1;
-            }
+        if (!HASMIN && !HASBASE) {
+            XSURF->m_sizeHints->min_width = XSURF->m_sizeHints->min_height = -1;
+            XSURF->m_sizeHints->base_width = XSURF->m_sizeHints->base_height = -1;
+        } else if (!HASBASE) {
+            XSURF->m_sizeHints->base_width  = XSURF->m_sizeHints->min_width;
+            XSURF->m_sizeHints->base_height = XSURF->m_sizeHints->min_height;
+        } else if (!HASMIN) {
+            XSURF->m_sizeHints->min_width  = XSURF->m_sizeHints->base_width;
+            XSURF->m_sizeHints->min_height = XSURF->m_sizeHints->base_height;
         }
-    } else if (atom == HYPRATOMS["WM_PROTOCOLS"]) {
-        if (reply->type == XCB_ATOM_ATOM) {
-            auto                  atoms = (xcb_atom_t*)xcb_get_property_value(reply);
-            std::vector<uint32_t> vec;
-            vec.reserve(reply->value_len);
-            for (size_t i = 0; i < reply->value_len; ++i) {
-                vec.emplace_back(atoms[i]);
-            }
-            XSURF->m_protocols = vec;
+
+        if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
+            XSURF->m_sizeHints->max_width = XSURF->m_sizeHints->max_height = -1;
         }
-    } else {
+    };
+
+    auto handleWMProtocols = [&]() {
+        if (reply->type != XCB_ATOM_ATOM)
+            return;
+        auto* atoms = (xcb_atom_t*)value;
+        XSURF->m_protocols.assign(atoms, atoms + reply->value_len);
+    };
+
+    if (atom == XCB_ATOM_WM_CLASS)
+        handleWMClass();
+    else if (atom == XCB_ATOM_WM_NAME || atom == HYPRATOMS["_NET_WM_NAME"])
+        handleWMName();
+    else if (atom == HYPRATOMS["_NET_WM_WINDOW_TYPE"])
+        handleWindowType();
+    else if (atom == HYPRATOMS["_NET_WM_STATE"])
+        handleWMState();
+    else if (atom == HYPRATOMS["WM_HINTS"])
+        handleWMHints();
+    else if (atom == HYPRATOMS["WM_WINDOW_ROLE"])
+        handleWMRole();
+    else if (atom == XCB_ATOM_WM_TRANSIENT_FOR)
+        handleTransientFor();
+    else if (atom == HYPRATOMS["WM_NORMAL_HINTS"])
+        handleSizeHints();
+    else if (atom == HYPRATOMS["WM_PROTOCOLS"])
+        handleWMProtocols();
+    else {
         Debug::log(TRACE, "[xwm] Unhandled prop {} -> {}", atom, propName);
         return;
     }
@@ -772,14 +796,14 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         return 0;
     }
 
-    int count = 0;
+    int processedEventCount = 0;
 
     while (42069) {
         xcb_generic_event_t* event = xcb_poll_for_event(m_connection);
         if (!event)
             break;
 
-        count++;
+        processedEventCount++;
 
         if (handleSelectionEvent(event)) {
             free(event);
@@ -806,10 +830,10 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         free(event);
     }
 
-    if (count)
+    if (processedEventCount)
         xcb_flush(m_connection);
 
-    return count;
+    return processedEventCount;
 }
 
 void CXWM::gatherResources() {

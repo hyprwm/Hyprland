@@ -1724,13 +1724,13 @@ static PHLWINDOW getWeakWindowPred(Iterator cur, Iterator end, Iterator begin, c
 PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next) {
     const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
     // also m_vWindowFocusHistory has reverse order, so when it is next - we need to reverse again
-    return next ? getWeakWindowPred(std::ranges::find(std::ranges::reverse_view(m_windowFocusHistory), cur), m_windowFocusHistory.rend(), m_windowFocusHistory.rbegin(), FINDER) :
+    return next ? getWeakWindowPred(std::ranges::find(m_windowFocusHistory | std::views::reverse, cur), m_windowFocusHistory.rend(), m_windowFocusHistory.rbegin(), FINDER) :
                   getWeakWindowPred(std::ranges::find(m_windowFocusHistory, cur), m_windowFocusHistory.end(), m_windowFocusHistory.begin(), FINDER);
 }
 
 PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev) {
     const auto FINDER = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
-    return prev ? getWindowPred(std::ranges::find(std::ranges::reverse_view(m_windows), cur), m_windows.rend(), m_windows.rbegin(), FINDER) :
+    return prev ? getWindowPred(std::ranges::find(m_windows | std::views::reverse, cur), m_windows.rend(), m_windows.rbegin(), FINDER) :
                   getWindowPred(std::ranges::find(m_windows, cur), m_windows.end(), m_windows.begin(), FINDER);
 }
 

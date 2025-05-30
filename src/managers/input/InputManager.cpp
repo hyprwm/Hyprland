@@ -619,7 +619,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_currentlyHeldButtons.push_back(e.button);
     } else {
-        if (std::find_if(m_currentlyHeldButtons.begin(), m_currentlyHeldButtons.end(), [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
+        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
             return;
         std::erase_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; });
     }
@@ -1552,7 +1552,7 @@ void CInputManager::unconstrainMouse() {
 }
 
 bool CInputManager::isConstrained() {
-    return std::any_of(m_constraints.begin(), m_constraints.end(), [](auto const& c) {
+    return std::ranges::any_of(m_constraints, [](auto const& c) {
         const auto constraint = c.lock();
         return constraint && constraint->isActive() && constraint->owner()->resource() == g_pCompositor->m_lastFocus;
     });
@@ -1773,9 +1773,9 @@ void CInputManager::unsetCursorImage() {
 }
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {
-    std::replace(in.begin(), in.end(), ' ', '-');
-    std::replace(in.begin(), in.end(), '\n', '-');
-    std::transform(in.begin(), in.end(), in.begin(), ::tolower);
+    std::ranges::replace(in, ' ', '-');
+    std::ranges::replace(in, '\n', '-');
+    std::ranges::transform(in, in.begin(), ::tolower);
     return in;
 }
 
@@ -1786,7 +1786,7 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
 
     auto makeNewName = [&]() { return (proposedNewName.empty() ? "unknown-device" : proposedNewName) + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); };
 
-    while (std::find_if(m_hids.begin(), m_hids.end(), [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_hids.end())
+    while (std::ranges::find_if(m_hids, [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_hids.end())
         dupeno++;
 
     return makeNewName();

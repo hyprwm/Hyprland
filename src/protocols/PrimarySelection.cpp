@@ -79,7 +79,7 @@ std::vector<std::string> CPrimarySelectionSource::mimes() {
 }
 
 void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) {
-    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end()) {
+    if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
         return;
     }
@@ -88,7 +88,7 @@ void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) 
 }
 
 void CPrimarySelectionSource::accepted(const std::string& mime) {
-    if (std::find(m_mimeTypes.begin(), m_mimeTypes.end(), mime) == m_mimeTypes.end())
+    if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end())
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAccepted with non-existent mime");
 
     // primary sel has no accepted
@@ -327,7 +327,7 @@ void CPrimarySelectionProtocol::onPointerFocus() {
 }
 
 SP<CPrimarySelectionDevice> CPrimarySelectionProtocol::dataDeviceForClient(wl_client* c) {
-    auto it = std::find_if(m_devices.begin(), m_devices.end(), [c](const auto& e) { return e->client() == c; });
+    auto it = std::ranges::find_if(m_devices, [c](const auto& e) { return e->client() == c; });
     if (it == m_devices.end())
         return nullptr;
     return *it;

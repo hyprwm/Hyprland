@@ -4,7 +4,7 @@
 #include <optional>
 
 class CWindow; // because clangd
-typedef SP<CWindow> PHLWINDOW;
+using PHLWINDOW = SP<CWindow>;
 class CWLSurfaceResource;
 
 class CHyprXWaylandManager {

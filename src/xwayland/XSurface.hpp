@@ -9,9 +9,9 @@ class CWLSurfaceResource;
 class CXWaylandSurfaceResource;
 
 #ifdef NO_XWAYLAND
-typedef uint32_t xcb_pixmap_t;
-typedef uint32_t xcb_window_t;
-typedef struct {
+using xcb_pixmap_t         = uint32_t;
+using xcb_window_t         = uint32_t;
+using xcb_icccm_wm_hints_t = struct {
     int32_t      flags;
     uint32_t     input;
     int32_t      initial_state;
@@ -20,8 +20,8 @@ typedef struct {
     int32_t      icon_x, icon_y;
     xcb_pixmap_t icon_mask;
     xcb_window_t window_group;
-} xcb_icccm_wm_hints_t;
-typedef struct {
+};
+using xcb_size_hints_t = struct {
     uint32_t flags;
     int32_t  x, y;
     int32_t  width, height;
@@ -32,7 +32,7 @@ typedef struct {
     int32_t  max_aspect_num, max_aspect_den;
     int32_t  base_width, base_height;
     uint32_t win_gravity;
-} xcb_size_hints_t;
+};
 #else
 #include <xcb/xcb_icccm.h>
 #endif

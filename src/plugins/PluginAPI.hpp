@@ -31,12 +31,12 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <string>
 #include <hyprlang.hpp>
 
-typedef struct {
+using PLUGIN_DESCRIPTION_INFO = struct {
     std::string name;
     std::string description;
     std::string author;
     std::string version;
-} PLUGIN_DESCRIPTION_INFO;
+};
 
 struct SFunctionMatch {
     void*       address = nullptr;
@@ -83,7 +83,7 @@ class CWindow;
 
     This function should not be modified, see the example plugin.
 */
-typedef REQUIRED std::string (*PPLUGIN_API_VERSION_FUNC)();
+using PPLUGIN_API_VERSION_FUNC = REQUIRED std::string (*)();
 #define PLUGIN_API_VERSION          pluginAPIVersion
 #define PLUGIN_API_VERSION_FUNC_STR "pluginAPIVersion"
 
@@ -93,7 +93,7 @@ typedef REQUIRED std::string (*PPLUGIN_API_VERSION_FUNC)();
 
     Keep in mind this is executed synchronously, and as such any blocking calls to hyprland might hang. (e.g. system("hyprctl ..."))
 */
-typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
+using PPLUGIN_INIT_FUNC2 = REQUIRED PLUGIN_DESCRIPTION_INFO (*)(HANDLE);
 #define PLUGIN_INIT          pluginInit
 #define PLUGIN_INIT_FUNC_STR "pluginInit"
 
@@ -103,7 +103,7 @@ typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
 
     Hooks are unloaded after exit.
 */
-typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)();
+using PPLUGIN_EXIT_FUNC2 = OPTIONAL void (*)();
 #define PLUGIN_EXIT          pluginExit
 #define PLUGIN_EXIT_FUNC_STR "pluginExit"
 

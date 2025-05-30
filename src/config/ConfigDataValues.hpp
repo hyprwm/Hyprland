@@ -158,7 +158,7 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
 
     void parseWeight(const std::string& strWeight) {
         auto lcWeight{strWeight};
-        transform(strWeight.begin(), strWeight.end(), lcWeight.begin(), ::tolower);
+        std::ranges::transform(strWeight, lcWeight.begin(), ::tolower);
 
         // values taken from Pango weight enums
         const auto WEIGHTS = std::map<std::string, int>{

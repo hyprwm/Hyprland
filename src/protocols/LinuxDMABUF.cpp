@@ -46,8 +46,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                 });
             } else {
                 // if it wasn't inserted then find its index in vec
-                auto it =
-                    std::find_if(formatsVec.begin(), formatsVec.end(), [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
                 m_rendererTranche.indicies.push_back(it - formatsVec.begin());
             }
         }
@@ -69,8 +68,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                         .modifier = mod,
                     });
                 } else {
-                    auto it = std::find_if(formatsVec.begin(), formatsVec.end(),
-                                           [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                    auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
                     tranche.indicies.push_back(it - formatsVec.begin());
                 }
             }
@@ -89,7 +87,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
         return;
     }
 
-    std::copy(formatsVec.begin(), formatsVec.end(), arr);
+    std::ranges::copy(formatsVec, arr);
 
     munmap(arr, m_tableSize);
 
@@ -169,7 +167,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
 
         m_attrs->size   = {w, h};
         m_attrs->format = fmt;
-        m_attrs->planes = 4 - std::count(m_attrs->fds.begin(), m_attrs->fds.end(), -1);
+        m_attrs->planes = 4 - std::ranges::count(m_attrs->fds, -1);
 
         create(0);
     });
@@ -188,7 +186,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV
 
         m_attrs->size   = {w, h};
         m_attrs->format = fmt;
-        m_attrs->planes = 4 - std::count(m_attrs->fds.begin(), m_attrs->fds.end(), -1);
+        m_attrs->planes = 4 - std::ranges::count(m_attrs->fds, -1);
 
         create(id);
     });
@@ -564,8 +562,8 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
         return;
     }
 
-    const auto& monitorTranchePair = std::find_if(m_formatTable->m_monitorTranches.begin(), m_formatTable->m_monitorTranches.end(),
-                                                  [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
+    const auto& monitorTranchePair =
+        std::ranges::find_if(m_formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
 
     if (monitorTranchePair == m_formatTable->m_monitorTranches.end()) {
         LOGM(LOG, "updateScanoutTranche: monitor has no tranche");

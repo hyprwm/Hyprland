@@ -214,5 +214,5 @@ void CSecurityContextProtocol::destroyContext(CSecurityContext* context) {
 }
 
 bool CSecurityContextProtocol::isClientSandboxed(const wl_client* client) {
-    return std::find_if(m_sandboxedClients.begin(), m_sandboxedClients.end(), [client](const auto& e) { return e->m_client == client; }) != m_sandboxedClients.end();
+    return std::ranges::find_if(m_sandboxedClients, [client](const auto& e) { return e->m_client == client; }) != m_sandboxedClients.end();
 }

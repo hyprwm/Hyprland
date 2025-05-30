@@ -1195,35 +1195,37 @@ void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedire
 }
 
 void CXWM::initSelection() {
-    m_clipboard.window = xcb_generate_id(m_connection);
-    uint32_t mask[1]   = {XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE};
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_clipboard.window, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
-    xcb_set_selection_owner(m_connection, m_clipboard.window, HYPRATOMS["CLIPBOARD_MANAGER"], XCB_TIME_CURRENT_TIME);
-
-    uint32_t mask2 =
+    const uint32_t windowMask = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
+    const uint32_t xfixesMask =
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
-    xcb_xfixes_select_selection_input(m_connection, m_clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
-    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any d) { m_clipboard.onSelection(); });
-    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { m_clipboard.onKeyboardFocus(); });
+    auto createSelectionWindow = [&](xcb_window_t& window, const std::string& atomName, bool inputOnly = false) {
+        window                = xcb_generate_id(m_connection);
+        const uint16_t width  = inputOnly ? 8192 : 10;
+        const uint16_t height = inputOnly ? 8192 : 10;
 
-    m_primarySelection.window = xcb_generate_id(m_connection);
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_primarySelection.window, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
-    xcb_set_selection_owner(m_connection, m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, window, m_screen->root, 0, 0, width, height, 0,
+                          inputOnly ? XCB_WINDOW_CLASS_INPUT_ONLY : XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual, XCB_CW_EVENT_MASK, &windowMask);
 
-    xcb_xfixes_select_selection_input(m_connection, m_primarySelection.window, HYPRATOMS["PRIMARY"], mask2);
+        if (!inputOnly) {
+            xcb_set_selection_owner(m_connection, window, HYPRATOMS[atomName], XCB_TIME_CURRENT_TIME);
+            xcb_xfixes_select_selection_input(m_connection, window, HYPRATOMS[atomName], xfixesMask);
+        }
 
-    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any d) { m_primarySelection.onSelection(); });
-    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { m_primarySelection.onKeyboardFocus(); });
+        return window;
+    };
 
-    m_dndSelection.window = xcb_generate_id(m_connection);
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_dndSelection.window, m_screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
+    createSelectionWindow(m_clipboard.window, "CLIPBOARD_MANAGER");
+    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any) { m_clipboard.onSelection(); });
+    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_clipboard.onKeyboardFocus(); });
 
-    uint32_t val1 = XDND_VERSION;
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &val1);
+    createSelectionWindow(m_primarySelection.window, "PRIMARY");
+    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any) { m_primarySelection.onSelection(); });
+    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_primarySelection.onKeyboardFocus(); });
+
+    createSelectionWindow(m_dndSelection.window, "XdndAware", true);
+    const uint32_t xdndVersion = XDND_VERSION;
+    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &xdndVersion);
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {

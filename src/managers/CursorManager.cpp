@@ -186,7 +186,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
         if (m_currentCursorShapeData.images.size() < 1) {
             // try with '_' first (old hc, etc)
             std::string newName = name;
-            std::replace(newName.begin(), newName.end(), '-', '_');
+            std::ranges::replace(newName, '-', '_');
 
             m_currentCursorShapeData = m_hyprcursor->getShape(newName.c_str(), m_currentStyleInfo);
         }

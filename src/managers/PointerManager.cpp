@@ -94,7 +94,7 @@ bool CPointerManager::hasCursor() {
 }
 
 SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(PHLMONITOR mon) {
-    auto it = std::find_if(m_monitorStates.begin(), m_monitorStates.end(), [mon](const auto& other) { return other->monitor == mon; });
+    auto it = std::ranges::find_if(m_monitorStates, [mon](const auto& other) { return other->monitor == mon; });
     if (it == m_monitorStates.end())
         return m_monitorStates.emplace_back(makeShared<CPointerManager::SMonitorPointerState>(mon));
     return *it;

@@ -11,9 +11,9 @@
 
 #define HANDLE void*
 
-// global typedef for hooked functions. Passes itself as a ptr when called, and `data` additionally.
+// global type alias for hooked functions. Passes itself as a ptr when called, and `data` additionally.
 
-typedef std::function<void(void*, SCallbackInfo& info, std::any data)> HOOK_CALLBACK_FN;
+using HOOK_CALLBACK_FN = std::function<void(void*, SCallbackInfo& info, std::any data)>;
 
 struct SCallbackFNPtr {
     WP<HOOK_CALLBACK_FN> fn;

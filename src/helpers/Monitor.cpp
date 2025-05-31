@@ -988,7 +988,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
         PNEWWORKSPACE->startAnim(true, true, true);
     } else {
-        if (newDefaultWorkspaceName == "")
+        if (newDefaultWorkspaceName.empty())
             newDefaultWorkspaceName = std::to_string(wsID);
 
         PNEWWORKSPACE = g_pCompositor->m_workspaces.emplace_back(CWorkspace::create(wsID, m_self.lock(), newDefaultWorkspaceName));

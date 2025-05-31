@@ -493,7 +493,7 @@ void CSeatManager::refocusGrab() {
     if (!m_seatGrab)
         return;
 
-    if (m_seatGrab->m_surfs.size() > 0) {
+    if (!m_seatGrab->m_surfs.empty()) {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
         for (auto const& s : m_seatGrab->m_surfs) {

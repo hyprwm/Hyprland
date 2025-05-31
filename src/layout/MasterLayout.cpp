@@ -1359,7 +1359,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
     if (vars != nullptr)
         buildOrientationCycleVectorFromVars(cycle, *vars);
 
-    if (cycle.size() == 0)
+    if (cycle.empty())
         buildOrientationCycleVectorFromEOperation(cycle);
 
     const auto PWINDOW = header.pWindow;

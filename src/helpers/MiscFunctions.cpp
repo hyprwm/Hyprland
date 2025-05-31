@@ -326,7 +326,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                         finalWSID = curID;
                     }
                     if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
-                        if (namedWSes.size()) {
+                        if (!namedWSes.empty()) {
                             // Go to the named workspaces
                             // Need remainingWSes more
                             auto namedWSIdx = namedWSes.size() - remainingWSes;

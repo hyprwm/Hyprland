@@ -165,8 +165,8 @@ void CHyprError::createQueued() {
 }
 
 void CHyprError::draw() {
-    if (!m_isCreated || m_queued != "") {
-        if (m_queued != "")
+    if (!m_isCreated || !m_queued.empty()) {
+        if (!m_queued.empty())
             createQueued();
         return;
     }

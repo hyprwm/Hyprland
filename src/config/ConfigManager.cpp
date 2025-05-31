@@ -100,7 +100,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         }
     }
 
-    if (DATA->m_colors.size() == 0) {
+    if (DATA->m_colors.empty()) {
         Debug::log(WARN, "Error parsing gradient {}", V);
         if (parseError.empty())
             parseError = "Error parsing gradient " + V + ": No colors?";
@@ -2093,7 +2093,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     int argno = 4;
 
-    while (ARGS[argno] != "") {
+    while (!ARGS[argno].empty()) {
         if (ARGS[argno] == "mirror") {
             newrule.mirrorOf = ARGS[argno + 1];
             argno++;
@@ -2185,23 +2185,23 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     std::string bezierName = ARGS[0];
 
-    if (ARGS[1] == "")
+    if (ARGS[1].empty())
         return "too few arguments";
     float p1x = std::stof(ARGS[1]);
 
-    if (ARGS[2] == "")
+    if (ARGS[2].empty())
         return "too few arguments";
     float p1y = std::stof(ARGS[2]);
 
-    if (ARGS[3] == "")
+    if (ARGS[3].empty())
         return "too few arguments";
     float p2x = std::stof(ARGS[3]);
 
-    if (ARGS[4] == "")
+    if (ARGS[4].empty())
         return "too few arguments";
     float p2y = std::stof(ARGS[4]);
 
-    if (ARGS[5] != "")
+    if (!ARGS[5].empty())
         return "too many arguments";
 
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
@@ -2256,10 +2256,10 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         return "no such bezier";
     }
 
-    if (ARGS[4] != "") {
+    if (!ARGS[4].empty()) {
         auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
-        if (ERR != "")
+        if (!ERR.empty())
             return ERR;
     }
 
@@ -2384,12 +2384,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         return "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
     }
 
-    if (MOD == 0 && MODSTR != "") {
+    if (MOD == 0 && !MODSTR.empty()) {
         Debug::log(ERR, "Invalid mod: {}", MODSTR);
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
-    if ((KEY != "") || multiKey) {
+    if ((!KEY.empty()) || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
         if (parsedKey.catchAll && m_currentSubmap.empty()) {

@@ -1354,6 +1354,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
     // since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_isFloating;
     bool hasFullscreen = pWindow->isFullscreen();
+    bool isGrouped     = pWindow->m_groupData.pNextWindow.lock() != nullptr;
 
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
@@ -1399,6 +1400,11 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
 
                 if (rule->m_focus != -1) {
                     if (rule->m_focus != (g_pCompositor->m_lastWindow.lock() == pWindow))
+                        continue;
+                }
+
+                if (rule->m_group != -1) {
+                    if (rule->m_group != isGrouped)
                         continue;
                 }
 
@@ -2444,6 +2450,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
     const auto CONTENTTYPEPOS     = VALUE.find("content:");
     const auto XDGTAGPOS          = VALUE.find("xdgTag:");
+    const auto GROUPPOS           = VALUE.find("group:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2456,8 +2463,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS, FULLSCREENPOS,
-                                             PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS};
+    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  FULLSCREENPOS,
+                                             PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS, GROUPPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2498,6 +2505,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             min = CONTENTTYPEPOS;
         if (XDGTAGPOS > pos && XDGTAGPOS < min)
             min = XDGTAGPOS;
+        if (GROUPPOS > pos && GROUPPOS < min)
+            min = GROUPPOS;
 
         result = result.substr(0, min - pos);
 
@@ -2562,6 +2571,9 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     if (XDGTAGPOS != std::string::npos)
         rule->m_xdgTag = extract(XDGTAGPOS + 8);
 
+    if (GROUPPOS != std::string::npos)
+        rule->m_group = extract(GROUPPOS + 6) == "1" ? 1 : 0;
+
     if (RULE == "unset") {
         std::erase_if(m_windowRules, [&](const auto& other) {
             if (!other->m_v2)
@@ -2607,6 +2619,9 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                     return false;
 
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
+                    return false;
+
+                if (rule->m_group != -1 && rule->m_group != other->m_group)
                     return false;
 
                 return true;

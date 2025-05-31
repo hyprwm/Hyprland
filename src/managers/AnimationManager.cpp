@@ -306,7 +306,7 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
 
     Vector2D posOffset;
 
-    if (force != "") {
+    if (!force.empty()) {
         if (force == "bottom")
             posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y + PMONITOR->m_size.y);
         else if (force == "left")
@@ -490,7 +490,7 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
             return "";
         return "unknown style";
     } else if (config.starts_with("layers")) {
-        if (style == "fade" || style == "" || style == "slide")
+        if (style.empty() || style == "fade" || style == "slide")
             return "";
         else if (style.starts_with("popin")) {
             // try parsing

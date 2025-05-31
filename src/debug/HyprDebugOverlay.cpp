@@ -83,7 +83,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgFrametime += ft;
     }
     float varFrametime = maxFrametime - minFrametime;
-    avgFrametime /= m_lastFrametimes.size() == 0 ? 1 : m_lastFrametimes.size();
+    avgFrametime /= m_lastFrametimes.empty() ? 1 : m_lastFrametimes.size();
 
     float avgRenderTime = 0;
     float maxRenderTime = 0;
@@ -96,7 +96,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgRenderTime += rt;
     }
     float varRenderTime = maxRenderTime - minRenderTime;
-    avgRenderTime /= m_lastRenderTimes.size() == 0 ? 1 : m_lastRenderTimes.size();
+    avgRenderTime /= m_lastRenderTimes.empty() ? 1 : m_lastRenderTimes.size();
 
     float avgRenderTimeNoOverlay = 0;
     float maxRenderTimeNoOverlay = 0;
@@ -109,7 +109,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgRenderTimeNoOverlay += rt;
     }
     float varRenderTimeNoOverlay = maxRenderTimeNoOverlay - minRenderTimeNoOverlay;
-    avgRenderTimeNoOverlay /= m_lastRenderTimes.size() == 0 ? 1 : m_lastRenderTimes.size();
+    avgRenderTimeNoOverlay /= m_lastRenderTimes.empty() ? 1 : m_lastRenderTimes.size();
 
     float avgAnimMgrTick = 0;
     float maxAnimMgrTick = 0;
@@ -122,7 +122,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         avgAnimMgrTick += at;
     }
     float varAnimMgrTick = maxAnimMgrTick - minAnimMgrTick;
-    avgAnimMgrTick /= m_lastAnimationTicks.size() == 0 ? 1 : m_lastAnimationTicks.size();
+    avgAnimMgrTick /= m_lastAnimationTicks.empty() ? 1 : m_lastAnimationTicks.size();
 
     const float           FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float           idealFPS = m_lastFrametimes.size();

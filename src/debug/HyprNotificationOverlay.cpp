@@ -23,7 +23,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (m_notifications.size() == 0)
+        if (m_notifications.empty())
             return;
 
         g_pHyprRenderer->damageBox(m_lastDamage);
@@ -210,7 +210,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     }
 
     // Draw the notifications
-    if (m_notifications.size() == 0)
+    if (m_notifications.empty())
         return;
 
     // Render to the monitor

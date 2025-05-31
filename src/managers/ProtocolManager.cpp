@@ -209,7 +209,7 @@ CProtocolManager::CProtocolManager() {
         break;
     }
 
-    if (g_pHyprOpenGL->getDRMFormats().size() > 0) {
+    if (!g_pHyprOpenGL->getDRMFormats().empty()) {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else

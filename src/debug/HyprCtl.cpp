@@ -516,7 +516,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
                 trimTrailingComma(result);
 
-                if (level.size() > 0)
+                if (!level.empty())
                     result += "\n        ";
 
                 result += "],";
@@ -1144,7 +1144,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     Debug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
-    if (retval == "")
+    if (retval.empty())
         return "ok";
 
     return retval;
@@ -1528,7 +1528,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
         if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
             result += "[";
 
-            if (PLUGINS.size() == 0)
+            if (PLUGINS.empty())
                 return "[]";
 
             for (auto const& p : PLUGINS) {
@@ -1546,7 +1546,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
             trimTrailingComma(result);
             result += "]";
         } else {
-            if (PLUGINS.size() == 0)
+            if (PLUGINS.empty())
                 return "no plugins loaded";
 
             for (auto const& p : PLUGINS) {

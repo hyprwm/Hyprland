@@ -415,7 +415,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     }
 
     // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)
-    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.size() == 0)
+    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.empty())
         mods.push_back(DRM_FORMAT_MOD_LINEAR);
 
     return result;
@@ -444,7 +444,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, len, formats.data(), &len);
     }
 
-    if (formats.size() == 0) {
+    if (formats.empty()) {
         Debug::log(ERR, "EGL: Failed to get formats, DMABufs will not work.");
         return;
     }
@@ -466,7 +466,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         } else
             mods = {DRM_FORMAT_MOD_LINEAR};
 
-        m_hasModifiers = m_hasModifiers || mods.size() > 0;
+        m_hasModifiers = m_hasModifiers || !mods.empty();
 
         // EGL can always do implicit modifiers.
         mods.push_back(DRM_FORMAT_MOD_INVALID);
@@ -506,7 +506,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
 
     Debug::log(LOG, "EGL: {} formats found in total. Some modifiers may be omitted as they are external-only.", dmaFormats.size());
 
-    if (dmaFormats.size() == 0)
+    if (dmaFormats.empty())
         Debug::log(WARN,
                    "EGL: WARNING: No dmabuf formats were found, dmabuf will be disabled. This will degrade performance, but is most likely a driver issue or a very old GPU.");
 
@@ -1193,7 +1193,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
     m_finalScreenShader.destroy();
 
-    if (path == "" || path == STRVAL_EMPTY)
+    if (path.empty() || path == STRVAL_EMPTY)
         return;
 
     std::ifstream infile(absolutePath(path, g_pConfigManager->getMainConfigPath()));
@@ -2362,7 +2362,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     glUniform4fv(m_shaders->m_shBORDER1.gradient, grad1.m_colorsOkLabA.size() / 4, (float*)grad1.m_colorsOkLabA.data());
     glUniform1i(m_shaders->m_shBORDER1.gradientLength, grad1.m_colorsOkLabA.size() / 4);
     glUniform1f(m_shaders->m_shBORDER1.angle, (int)(grad1.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));
-    if (grad2.m_colorsOkLabA.size() > 0)
+    if (!grad2.m_colorsOkLabA.empty())
         glUniform4fv(m_shaders->m_shBORDER1.gradient2, grad2.m_colorsOkLabA.size() / 4, (float*)grad2.m_colorsOkLabA.data());
     glUniform1i(m_shaders->m_shBORDER1.gradient2Length, grad2.m_colorsOkLabA.size() / 4);
     glUniform1f(m_shaders->m_shBORDER1.angle2, (int)(grad2.m_angle / (PI / 180.0)) % 360 * (PI / 180.0));

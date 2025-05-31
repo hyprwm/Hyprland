@@ -1624,13 +1624,13 @@ PHLWINDOW CWindow::getSwallower() {
     if (!(*PSWALLOWREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_class, *PSWALLOWREGEX); });
 
-    if (candidates.size() == 0)
+    if (candidates.empty())
         return nullptr;
 
     if (!(*PSWALLOWEXREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_title, *PSWALLOWEXREGEX); });
 
-    if (candidates.size() == 0)
+    if (candidates.empty())
         return nullptr;
 
     if (candidates.size() == 1)

@@ -204,7 +204,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
 
     auto        handleWMClass = [&]() {
         XSURF->m_state.appid = std::string{value, valueLen};
-        if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2) 
+        if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2)
             XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1);
 
         if (!XSURF->m_state.appid.empty())
@@ -242,7 +242,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWMRole = [&]() {
-        if (valueLen <= 0) 
+        if (valueLen <= 0)
             XSURF->m_role = "";
         else {
             XSURF->m_role = std::string{value, valueLen};
@@ -261,9 +261,8 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
             XSURF->m_parent = NEWXSURF;
             NEWXSURF->m_children.emplace_back(XSURF);
-        } else 
+        } else
             Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
-        
     };
 
     auto handleSizeHints = [&]() {
@@ -289,9 +288,8 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             XSURF->m_sizeHints->min_height = XSURF->m_sizeHints->base_height;
         }
 
-        if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) 
+        if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE))
             XSURF->m_sizeHints->max_width = XSURF->m_sizeHints->max_height = -1;
-        
     };
 
     auto handleWMProtocols = [&]() {

@@ -286,8 +286,8 @@ void CX11DataDevice::forceCleanupDnd() {
     if (m_lastOffer) {
         auto source = m_lastOffer->getSource();
         if (source) {
-            source->cancelled();
             source->sendDndFinished();
+            source->cancelled();
         }
     }
 

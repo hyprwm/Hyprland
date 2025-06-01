@@ -654,6 +654,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:drag_3fg", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
@@ -789,6 +790,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
     m_config->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
     m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
+    m_config->addSpecialConfigValue("device", "drag_3fg", Hyprlang::INT{0});                 // only for touchpads
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
 
     m_config->addSpecialCategory("monitorv2", {.key = "output"});

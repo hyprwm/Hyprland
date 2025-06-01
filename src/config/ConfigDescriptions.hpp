@@ -645,6 +645,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "input:touchpad:drag_3fg",
+        .description = "Three Finger Drag 0 -> disabled, 1 -> 3 finger, 2 -> 4 finger",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
+    },
 
     /*
      * input:touchdevice:

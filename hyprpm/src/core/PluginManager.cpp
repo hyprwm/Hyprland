@@ -159,6 +159,11 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         DataState::updateGlobalState(GLOBALSTATE);
     }
 
+    if (GLOBALSTATE.headersHashCompiled.empty()) {
+        std::println("\n{}", failureString("Cannot find headers in the global state. Try running hyprpm update first."));
+        return false;
+    }
+
     std::cout << Colors::GREEN << "✔" << Colors::RESET << Colors::RED << " adding a new plugin repository " << Colors::RESET << "from " << url << "\n  " << Colors::RED
               << "MAKE SURE" << Colors::RESET << " that you trust the authors. " << Colors::RED << "DO NOT" << Colors::RESET
               << " install random plugins without verifying the code and author.\n  "

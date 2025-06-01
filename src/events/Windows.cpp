@@ -64,17 +64,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PMONITOR = g_pCompositor->m_lastMonitor.lock();
     }
     auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-    if (const auto PARENT = PWINDOW->parent(); PARENT) {
-        if (PARENT->m_workspace)
-            PWORKSPACE = PARENT->m_workspace;
-        if (!PARENT->m_monitor.expired())
-            PMONITOR = PARENT->m_monitor.lock();
-        PWINDOW->m_workspace = PWORKSPACE;
-        PWINDOW->m_monitor   = PMONITOR;
-    } else {
-        PWINDOW->m_monitor   = PMONITOR;
-        PWINDOW->m_workspace = PWORKSPACE;
-    }
+    PWINDOW->m_monitor       = PMONITOR;
+    PWINDOW->m_workspace     = PWORKSPACE;
     PWINDOW->m_isMapped      = true;
     PWINDOW->m_readyToDelete = false;
     PWINDOW->m_fadingOut     = false;

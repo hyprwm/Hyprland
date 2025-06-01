@@ -1183,7 +1183,6 @@ bool CHyprOpenGLImpl::initShaders() {
     m_shadersInitialized = true;
 
     Debug::log(LOG, "Shaders initialized successfully.");
-    g_pHyprError->destroy();
     return true;
 }
 

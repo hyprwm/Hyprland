@@ -2077,7 +2077,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
             minRenderTime = rt;
         avgRenderTime += rt;
     }
-    avgRenderTime /= POVERLAY->m_lastRenderTimes.size() == 0 ? 1 : POVERLAY->m_lastRenderTimes.size();
+    avgRenderTime /= POVERLAY->m_lastRenderTimes.empty() ? 1 : POVERLAY->m_lastRenderTimes.size();
 
     return std::make_tuple<>(avgRenderTime, maxRenderTime, minRenderTime);
 }

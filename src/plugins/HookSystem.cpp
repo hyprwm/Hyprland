@@ -167,7 +167,7 @@ bool CFunctionHook::hook() {
 
     const auto PROBEFIXEDASM = fixInstructionProbeRIPCalls(probe);
 
-    if (PROBEFIXEDASM.bytes.size() == 0) {
+    if (PROBEFIXEDASM.bytes.empty()) {
         Debug::log(ERR, "[functionhook] failed, unsupported asm / failed assembling:\n{}", probe.assembly);
         return false;
     }

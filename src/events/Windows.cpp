@@ -427,8 +427,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_swallowed->m_currentlySwallowed = true;
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
-    g_pEventManager->postEvent(
-        SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_name, PWINDOW->m_class, PWINDOW->m_title)});
+    g_pEventManager->postEvent(SHyprIPCEvent{
+        "openwindow", std::format("{:x},{},{},{}", PWINDOW, !requestedWorkspace.empty() ? requestedWorkspace : PWORKSPACE->m_name, PWINDOW->m_class, PWINDOW->m_title)});
 
     if (PWINDOW->m_isFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);

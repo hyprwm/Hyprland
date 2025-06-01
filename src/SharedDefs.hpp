@@ -58,8 +58,8 @@ struct SDispatchResult {
     std::string error;
 };
 
-typedef int64_t                                              WINDOWID;
-typedef int64_t                                              MONITORID;
-typedef int64_t                                              WORKSPACEID;
+using WINDOWID    = int64_t;
+using MONITORID   = int64_t;
+using WORKSPACEID = int64_t;
 
-typedef std::function<void(void*, SCallbackInfo&, std::any)> HOOK_CALLBACK_FN;
+using HOOK_CALLBACK_FN = std::function<void(void*, SCallbackInfo&, std::any)>;

@@ -183,7 +183,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     auto setHyprCursor = [this](auto const& name) {
         m_currentCursorShapeData = m_hyprcursor->getShape(name.c_str(), m_currentStyleInfo);
 
-        if (m_currentCursorShapeData.images.size() < 1) {
+        if (m_currentCursorShapeData.images.empty()) {
             // try with '_' first (old hc, etc)
             std::string newName = name;
             std::ranges::replace(newName, '-', '_');
@@ -191,18 +191,18 @@ void CCursorManager::setCursorFromName(const std::string& name) {
             m_currentCursorShapeData = m_hyprcursor->getShape(newName.c_str(), m_currentStyleInfo);
         }
 
-        if (m_currentCursorShapeData.images.size() < 1) {
+        if (m_currentCursorShapeData.images.empty()) {
             // fallback to a default if available
             constexpr const std::array<const char*, 3> fallbackShapes = {"default", "left_ptr", "left-ptr"};
 
             for (auto const& s : fallbackShapes) {
                 m_currentCursorShapeData = m_hyprcursor->getShape(s, m_currentStyleInfo);
 
-                if (m_currentCursorShapeData.images.size() > 0)
+                if (!m_currentCursorShapeData.images.empty())
                     break;
             }
 
-            if (m_currentCursorShapeData.images.size() < 1) {
+            if (m_currentCursorShapeData.images.empty()) {
                 Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
                 return false;
             }

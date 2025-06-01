@@ -413,7 +413,7 @@ static void snapResize(double& start, double& end, const double P) {
     start = P;
 }
 
-typedef std::function<void(double&, double&, const double)> SnapFn;
+using SnapFn = std::function<void(double&, double&, const double)>;
 
 static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
     static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");

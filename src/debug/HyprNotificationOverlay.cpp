@@ -13,7 +13,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
-        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
+        auto iconsText = std::ranges::fold_left(ICONS_ARRAY[iconID], std::string(), std::plus<>());
         pango_layout_set_text(layout, iconsText.c_str(), -1);
         if (pango_layout_get_unknown_glyphs_count(layout) == 0)
             return iconID;
@@ -23,7 +23,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (m_notifications.size() == 0)
+        if (m_notifications.empty())
             return;
 
         g_pHyprRenderer->damageBox(m_lastDamage);
@@ -210,7 +210,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     }
 
     // Draw the notifications
-    if (m_notifications.size() == 0)
+    if (m_notifications.empty())
         return;
 
     // Render to the monitor

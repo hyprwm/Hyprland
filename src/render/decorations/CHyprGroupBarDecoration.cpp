@@ -81,7 +81,7 @@ void CHyprGroupBarDecoration::updateWindow(PHLWINDOW pWindow) {
 
     damageEntire();
 
-    if (m_dwGroupMembers.size() == 0) {
+    if (m_dwGroupMembers.empty()) {
         m_window->removeWindowDeco(this);
         return;
     }

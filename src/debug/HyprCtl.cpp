@@ -216,10 +216,10 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const auto tags = w->m_tags.getTags();
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
-        return std::accumulate(tags.begin(), tags.end(), std::string(),
-                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
+        return std::ranges::fold_left(tags, std::string(),
+                                      [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
     else
-        return std::accumulate(tags.begin(), tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
+        return std::ranges::fold_left(tags, std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
@@ -516,7 +516,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
                 trimTrailingComma(result);
 
-                if (level.size() > 0)
+                if (!level.empty())
                     result += "\n        ";
 
                 result += "],";
@@ -921,7 +921,7 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
 std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 
     auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+    std::ranges::replace(commitMsg, '#', ' ');
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
@@ -1144,7 +1144,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     Debug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
-    if (retval == "")
+    if (retval.empty())
         return "ok";
 
     return retval;
@@ -1296,8 +1296,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         }
         return result.empty() ? "ok" : result;
     } else {
-        auto k = std::find_if(g_pInputManager->m_keyboards.begin(), g_pInputManager->m_keyboards.end(),
-                              [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
+        auto k = std::ranges::find_if(g_pInputManager->m_keyboards, [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
 
         if (k == g_pInputManager->m_keyboards.end())
             return "device not found";
@@ -1529,7 +1528,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
         if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
             result += "[";
 
-            if (PLUGINS.size() == 0)
+            if (PLUGINS.empty())
                 return "[]";
 
             for (auto const& p : PLUGINS) {
@@ -1547,7 +1546,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
             trimTrailingComma(result);
             result += "]";
         } else {
-            if (PLUGINS.size() == 0)
+            if (PLUGINS.empty())
                 return "no plugins loaded";
 
             for (auto const& p : PLUGINS) {

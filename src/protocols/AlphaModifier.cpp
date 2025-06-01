@@ -81,7 +81,7 @@ void CAlphaModifierProtocol::destroyAlphaModifier(CAlphaModifier* modifier) {
 
 void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id, SP<CWLSurfaceResource> surface) {
     CAlphaModifier* alphaModifier = nullptr;
-    auto            iter          = std::find_if(m_alphaModifiers.begin(), m_alphaModifiers.end(), [&](const auto& entry) { return entry.second->m_surface == surface; });
+    auto            iter          = std::ranges::find_if(m_alphaModifiers, [&](const auto& entry) { return entry.second->m_surface == surface; });
 
     if (iter != m_alphaModifiers.end()) {
         if (iter->second->m_resource) {

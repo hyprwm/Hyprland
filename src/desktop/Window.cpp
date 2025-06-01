@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <ranges>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
@@ -1507,7 +1508,7 @@ std::string CWindow::fetchClass() {
 }
 
 void CWindow::onAck(uint32_t serial) {
-    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks.rbegin(), m_pendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
+    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks | std::views::reverse, [serial](const auto& e) { return e.first == serial; });
 
     if (SERIAL == m_pendingSizeAcks.rend())
         return;
@@ -1623,13 +1624,13 @@ PHLWINDOW CWindow::getSwallower() {
     if (!(*PSWALLOWREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_class, *PSWALLOWREGEX); });
 
-    if (candidates.size() == 0)
+    if (candidates.empty())
         return nullptr;
 
     if (!(*PSWALLOWEXREGEX).empty())
         std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_title, *PSWALLOWEXREGEX); });
 
-    if (candidates.size() == 0)
+    if (candidates.empty())
         return nullptr;
 
     if (candidates.size() == 1)

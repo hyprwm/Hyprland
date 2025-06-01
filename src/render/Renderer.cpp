@@ -59,7 +59,7 @@ CHyprRenderer::CHyprRenderer() {
             if (!DRMV)
                 continue;
             std::string name = std::string{DRMV->name, DRMV->name_len};
-            std::transform(name.begin(), name.end(), name.begin(), tolower);
+            std::ranges::transform(name, name.begin(), tolower);
 
             if (name.contains("nvidia"))
                 m_nvidia = true;
@@ -76,7 +76,7 @@ CHyprRenderer::CHyprRenderer() {
 
         if (DRMV) {
             std::string name = std::string{DRMV->name, DRMV->name_len};
-            std::transform(name.begin(), name.end(), name.begin(), tolower);
+            std::ranges::transform(name, name.begin(), tolower);
 
             if (name.contains("nvidia"))
                 m_nvidia = true;
@@ -1794,7 +1794,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     }
 
     for (auto& la : PMONITOR->m_layerSurfaceLayers) {
-        std::stable_sort(la.begin(), la.end(), [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_order > b->m_order; });
+        std::ranges::stable_sort(la, [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_order > b->m_order; });
     }
 
     for (auto const& la : PMONITOR->m_layerSurfaceLayers)
@@ -2077,7 +2077,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
             minRenderTime = rt;
         avgRenderTime += rt;
     }
-    avgRenderTime /= POVERLAY->m_lastRenderTimes.size() == 0 ? 1 : POVERLAY->m_lastRenderTimes.size();
+    avgRenderTime /= POVERLAY->m_lastRenderTimes.empty() ? 1 : POVERLAY->m_lastRenderTimes.size();
 
     return std::make_tuple<>(avgRenderTime, maxRenderTime, minRenderTime);
 }
@@ -2171,7 +2171,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
 }
 
 SP<CRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
-    auto it = std::find_if(m_renderbuffers.begin(), m_renderbuffers.end(), [&](const auto& other) { return other->m_hlBuffer == buffer; });
+    auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
     if (it != m_renderbuffers.end())
         return *it;
@@ -2364,7 +2364,7 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOut
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
     static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
 
-    if (std::find(m_renderUnfocused.begin(), m_renderUnfocused.end(), window) != m_renderUnfocused.end())
+    if (std::ranges::find(m_renderUnfocused, window) != m_renderUnfocused.end())
         return;
 
     m_renderUnfocused.emplace_back(window);

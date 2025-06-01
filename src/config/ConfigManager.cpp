@@ -100,7 +100,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         }
     }
 
-    if (DATA->m_colors.size() == 0) {
+    if (DATA->m_colors.empty()) {
         Debug::log(WARN, "Error parsing gradient {}", V);
         if (parseError.empty())
             parseError = "Error parsing gradient " + V + ": No colors?";
@@ -1657,7 +1657,7 @@ Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::str
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
     auto copy = dev;
-    std::replace(copy.begin(), copy.end(), ' ', '-');
+    std::ranges::replace(copy, ' ', '-');
 
     return m_config->specialCategoryExistsForKey("device", copy.c_str());
 }
@@ -1908,7 +1908,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     auto args = CVarList(modeline, 0, 's');
 
     auto keyword = args[0];
-    std::transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
+    std::ranges::transform(keyword, keyword.begin(), ::tolower);
 
     if (keyword != "modeline")
         return false;
@@ -1944,7 +1944,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     for (; argno < static_cast<int>(args.size()); argno++) {
         auto key = args[argno];
-        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+        std::ranges::transform(key, key.begin(), ::tolower);
 
         auto it = flagsmap.find(key);
 
@@ -2099,7 +2099,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     int argno = 4;
 
-    while (ARGS[argno] != "") {
+    while (!ARGS[argno].empty()) {
         if (ARGS[argno] == "mirror") {
             newrule.mirrorOf = ARGS[argno + 1];
             argno++;
@@ -2191,23 +2191,23 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     std::string bezierName = ARGS[0];
 
-    if (ARGS[1] == "")
+    if (ARGS[1].empty())
         return "too few arguments";
     float p1x = std::stof(ARGS[1]);
 
-    if (ARGS[2] == "")
+    if (ARGS[2].empty())
         return "too few arguments";
     float p1y = std::stof(ARGS[2]);
 
-    if (ARGS[3] == "")
+    if (ARGS[3].empty())
         return "too few arguments";
     float p2x = std::stof(ARGS[3]);
 
-    if (ARGS[4] == "")
+    if (ARGS[4].empty())
         return "too few arguments";
     float p2y = std::stof(ARGS[4]);
 
-    if (ARGS[5] != "")
+    if (!ARGS[5].empty())
         return "too many arguments";
 
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
@@ -2262,10 +2262,10 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         return "no such bezier";
     }
 
-    if (ARGS[4] != "") {
+    if (!ARGS[4].empty()) {
         auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
-        if (ERR != "")
+        if (!ERR.empty())
             return ERR;
     }
 
@@ -2381,7 +2381,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         HANDLER = "mouse";
 
     // to lower
-    std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
+    std::ranges::transform(HANDLER, HANDLER.begin(), ::tolower);
 
     const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(HANDLER);
 
@@ -2390,12 +2390,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         return "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
     }
 
-    if (MOD == 0 && MODSTR != "") {
+    if (MOD == 0 && !MODSTR.empty()) {
         Debug::log(ERR, "Invalid mod: {}", MODSTR);
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
-    if ((KEY != "") || multiKey) {
+    if ((!KEY.empty()) || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
         if (parsedKey.catchAll && m_currentSubmap.empty()) {
@@ -2813,7 +2813,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
 
-    const auto IT = std::find_if(m_workspaceRules.begin(), m_workspaceRules.end(), [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
+    const auto IT = std::ranges::find_if(m_workspaceRules, [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 
     if (IT == m_workspaceRules.end())
         m_workspaceRules.emplace_back(wsRule);
@@ -2911,7 +2911,7 @@ std::optional<std::string> CConfigManager::handleEnv(const std::string& command,
 }
 
 std::optional<std::string> CConfigManager::handlePlugin(const std::string& command, const std::string& path) {
-    if (std::find(m_declaredPlugins.begin(), m_declaredPlugins.end(), path) != m_declaredPlugins.end())
+    if (std::ranges::find(m_declaredPlugins, path) != m_declaredPlugins.end())
         return "plugin '" + path + "' declared twice";
 
     m_declaredPlugins.push_back(path);

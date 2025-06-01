@@ -1,5 +1,6 @@
 #include "helpers/math/Math.hpp"
 #include <cstdint>
+#include <string>
 #ifndef NO_XWAYLAND
 
 #include <ranges>
@@ -164,7 +165,7 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
 
         XSURF = XSURF->m_parent.lock();
 
-        if (std::find(visited.begin(), visited.end(), XSURF) != visited.end())
+        if (std::ranges::find(visited, XSURF) != visited.end())
             return false;
     }
 
@@ -198,104 +199,125 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     if (Debug::m_trace)
         propName = getAtomName(atom);
 
-    if (atom == XCB_ATOM_WM_CLASS) {
-        size_t len           = xcb_get_property_value_length(reply);
-        char*  string        = (char*)xcb_get_property_value(reply);
-        XSURF->m_state.appid = std::string{string, len};
+    const auto  valueLen = xcb_get_property_value_length(reply);
+    const auto* value    = (const char*)xcb_get_property_value(reply);
+
+    auto        handleWMClass = [&]() {
+        XSURF->m_state.appid = std::string{value, valueLen};
         if (std::count(XSURF->m_state.appid.begin(), XSURF->m_state.appid.end(), '\000') == 2)
-            XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1); // fuck you X
+            XSURF->m_state.appid = XSURF->m_state.appid.substr(XSURF->m_state.appid.find_first_of('\000') + 1);
+
         if (!XSURF->m_state.appid.empty())
             XSURF->m_state.appid.pop_back();
         XSURF->m_events.metadataChanged.emit();
-    } else if (atom == XCB_ATOM_WM_NAME || atom == HYPRATOMS["_NET_WM_NAME"]) {
-        size_t len    = xcb_get_property_value_length(reply);
-        char*  string = (char*)xcb_get_property_value(reply);
+    };
+
+    auto handleWMName = [&]() {
         if (reply->type != HYPRATOMS["UTF8_STRING"] && reply->type != HYPRATOMS["TEXT"] && reply->type != XCB_ATOM_STRING)
             return;
-        XSURF->m_state.title = std::string{string, len};
+        XSURF->m_state.title = std::string{value, valueLen};
         XSURF->m_events.metadataChanged.emit();
-    } else if (atom == HYPRATOMS["_NET_WM_WINDOW_TYPE"]) {
-        xcb_atom_t* atomsArr = (xcb_atom_t*)xcb_get_property_value(reply);
-        size_t      atomsNo  = reply->value_len;
-        XSURF->m_atoms.clear();
-        for (size_t i = 0; i < atomsNo; ++i) {
-            XSURF->m_atoms.push_back(atomsArr[i]);
-        }
-    } else if (atom == HYPRATOMS["_NET_WM_STATE"]) {
-        xcb_atom_t* atoms = (xcb_atom_t*)xcb_get_property_value(reply);
+    };
+
+    auto handleWindowType = [&]() {
+        auto* atomsArr = (xcb_atom_t*)value;
+        XSURF->m_atoms.assign(atomsArr, atomsArr + reply->value_len);
+    };
+
+    auto handleWMState = [&]() {
+        auto* atoms = (xcb_atom_t*)value;
         for (uint32_t i = 0; i < reply->value_len; i++) {
             if (atoms[i] == HYPRATOMS["_NET_WM_STATE_MODAL"])
                 XSURF->m_modal = true;
         }
-    } else if (atom == HYPRATOMS["WM_HINTS"]) {
-        if (reply->value_len != 0) {
-            XSURF->m_hints = makeUnique<xcb_icccm_wm_hints_t>();
-            xcb_icccm_get_wm_hints_from_reply(XSURF->m_hints.get(), reply);
+    };
 
-            if (!(XSURF->m_hints->flags & XCB_ICCCM_WM_HINT_INPUT))
-                XSURF->m_hints->input = true;
-        }
-    } else if (atom == HYPRATOMS["WM_WINDOW_ROLE"]) {
-        size_t len = xcb_get_property_value_length(reply);
+    auto handleWMHints = [&]() {
+        if (reply->value_len == 0)
+            return;
+        XSURF->m_hints = makeUnique<xcb_icccm_wm_hints_t>();
+        xcb_icccm_get_wm_hints_from_reply(XSURF->m_hints.get(), reply);
+        if (!(XSURF->m_hints->flags & XCB_ICCCM_WM_HINT_INPUT))
+            XSURF->m_hints->input = true;
+    };
 
-        if (len <= 0)
+    auto handleWMRole = [&]() {
+        if (valueLen <= 0)
             XSURF->m_role = "";
         else {
-            XSURF->m_role = std::string{(char*)xcb_get_property_value(reply), len};
+            XSURF->m_role = std::string{value, valueLen};
             XSURF->m_role = XSURF->m_role.substr(0, XSURF->m_role.find_first_of('\000'));
         }
-    } else if (atom == XCB_ATOM_WM_TRANSIENT_FOR) {
-        if (reply->type == XCB_ATOM_WINDOW) {
-            const auto XID     = (xcb_window_t*)xcb_get_property_value(reply);
-            XSURF->m_transient = XID;
-            if (XID) {
-                if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
-                    XSURF->m_parent = NEWXSURF;
-                    NEWXSURF->m_children.emplace_back(XSURF);
-                } else
-                    Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
-            }
+    };
+
+    auto handleTransientFor = [&]() {
+        if (reply->type != XCB_ATOM_WINDOW)
+            return;
+        const auto XID     = (xcb_window_t*)value;
+        XSURF->m_transient = XID;
+        if (!XID)
+            return;
+
+        if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
+            XSURF->m_parent = NEWXSURF;
+            NEWXSURF->m_children.emplace_back(XSURF);
+        } else
+            Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
+    };
+
+    auto handleSizeHints = [&]() {
+        if (reply->type != HYPRATOMS["WM_SIZE_HINTS"] || reply->value_len == 0)
+            return;
+
+        XSURF->m_sizeHints = makeUnique<xcb_size_hints_t>();
+        std::memset(XSURF->m_sizeHints.get(), 0, sizeof(xcb_size_hints_t));
+        xcb_icccm_get_wm_size_hints_from_reply(XSURF->m_sizeHints.get(), reply);
+
+        const int32_t FLAGS   = XSURF->m_sizeHints->flags;
+        const bool    HASMIN  = FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
+        const bool    HASBASE = FLAGS & XCB_ICCCM_SIZE_HINT_BASE_SIZE;
+
+        if (!HASMIN && !HASBASE) {
+            XSURF->m_sizeHints->min_width = XSURF->m_sizeHints->min_height = -1;
+            XSURF->m_sizeHints->base_width = XSURF->m_sizeHints->base_height = -1;
+        } else if (!HASBASE) {
+            XSURF->m_sizeHints->base_width  = XSURF->m_sizeHints->min_width;
+            XSURF->m_sizeHints->base_height = XSURF->m_sizeHints->min_height;
+        } else if (!HASMIN) {
+            XSURF->m_sizeHints->min_width  = XSURF->m_sizeHints->base_width;
+            XSURF->m_sizeHints->min_height = XSURF->m_sizeHints->base_height;
         }
-    } else if (atom == HYPRATOMS["WM_NORMAL_HINTS"]) {
-        if (reply->type == HYPRATOMS["WM_SIZE_HINTS"] && reply->value_len > 0) {
-            XSURF->m_sizeHints = makeUnique<xcb_size_hints_t>();
-            std::memset(XSURF->m_sizeHints.get(), 0, sizeof(xcb_size_hints_t));
 
-            xcb_icccm_get_wm_size_hints_from_reply(XSURF->m_sizeHints.get(), reply);
+        if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE))
+            XSURF->m_sizeHints->max_width = XSURF->m_sizeHints->max_height = -1;
+    };
 
-            const int32_t FLAGS   = XSURF->m_sizeHints->flags;
-            const bool    HASMIN  = (FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE);
-            const bool    HASBASE = (FLAGS & XCB_ICCCM_SIZE_HINT_BASE_SIZE);
+    auto handleWMProtocols = [&]() {
+        if (reply->type != XCB_ATOM_ATOM)
+            return;
+        auto* atoms = (xcb_atom_t*)value;
+        XSURF->m_protocols.assign(atoms, atoms + reply->value_len);
+    };
 
-            if (!HASMIN && !HASBASE) {
-                XSURF->m_sizeHints->min_width   = -1;
-                XSURF->m_sizeHints->min_height  = -1;
-                XSURF->m_sizeHints->base_width  = -1;
-                XSURF->m_sizeHints->base_height = -1;
-            } else if (!HASBASE) {
-                XSURF->m_sizeHints->base_width  = XSURF->m_sizeHints->min_width;
-                XSURF->m_sizeHints->base_height = XSURF->m_sizeHints->min_height;
-            } else if (!HASMIN) {
-                XSURF->m_sizeHints->min_width  = XSURF->m_sizeHints->base_width;
-                XSURF->m_sizeHints->min_height = XSURF->m_sizeHints->base_height;
-            }
-
-            if (!(FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
-                XSURF->m_sizeHints->max_width  = -1;
-                XSURF->m_sizeHints->max_height = -1;
-            }
-        }
-    } else if (atom == HYPRATOMS["WM_PROTOCOLS"]) {
-        if (reply->type == XCB_ATOM_ATOM) {
-            auto                  atoms = (xcb_atom_t*)xcb_get_property_value(reply);
-            std::vector<uint32_t> vec;
-            vec.reserve(reply->value_len);
-            for (size_t i = 0; i < reply->value_len; ++i) {
-                vec.emplace_back(atoms[i]);
-            }
-            XSURF->m_protocols = vec;
-        }
-    } else {
+    if (atom == XCB_ATOM_WM_CLASS)
+        handleWMClass();
+    else if (atom == XCB_ATOM_WM_NAME || atom == HYPRATOMS["_NET_WM_NAME"])
+        handleWMName();
+    else if (atom == HYPRATOMS["_NET_WM_WINDOW_TYPE"])
+        handleWindowType();
+    else if (atom == HYPRATOMS["_NET_WM_STATE"])
+        handleWMState();
+    else if (atom == HYPRATOMS["WM_HINTS"])
+        handleWMHints();
+    else if (atom == HYPRATOMS["WM_WINDOW_ROLE"])
+        handleWMRole();
+    else if (atom == XCB_ATOM_WM_TRANSIENT_FOR)
+        handleTransientFor();
+    else if (atom == HYPRATOMS["WM_NORMAL_HINTS"])
+        handleSizeHints();
+    else if (atom == HYPRATOMS["WM_PROTOCOLS"])
+        handleWMProtocols();
+    else {
         Debug::log(TRACE, "[xwm] Unhandled prop {} -> {}", atom, propName);
         return;
     }
@@ -757,7 +779,7 @@ bool CXWM::handleSelectionEvent(xcb_generic_event_t* e) {
     if (e->response_type - m_xfixes->first_event == XCB_XFIXES_SELECTION_NOTIFY)
         return handleSelectionXFixesNotify((xcb_xfixes_selection_notify_event_t*)e);
 
-    return 0;
+    return false;
 }
 
 int CXWM::onEvent(int fd, uint32_t mask) {
@@ -772,14 +794,14 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         return 0;
     }
 
-    int count = 0;
+    int processedEventCount = 0;
 
     while (42069) {
         xcb_generic_event_t* event = xcb_poll_for_event(m_connection);
         if (!event)
             break;
 
-        count++;
+        processedEventCount++;
 
         if (handleSelectionEvent(event)) {
             free(event);
@@ -806,10 +828,10 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         free(event);
     }
 
-    if (count)
+    if (processedEventCount)
         xcb_flush(m_connection);
 
-    return count;
+    return processedEventCount;
 }
 
 void CXWM::gatherResources() {
@@ -1109,7 +1131,7 @@ void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     if (surf->m_surface)
         return;
 
-    auto existing = std::find_if(m_surfaces.begin(), m_surfaces.end(), [wlSurf](const auto& e) { return e->m_surface == wlSurf; });
+    auto existing = std::ranges::find_if(m_surfaces, [wlSurf](const auto& e) { return e->m_surface == wlSurf; });
 
     if (existing != m_surfaces.end()) {
         Debug::log(WARN, "[xwm] associate() called but surface is already associated to {:x}, ignoring...", (uintptr_t)surf.get());
@@ -1171,35 +1193,37 @@ void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedire
 }
 
 void CXWM::initSelection() {
-    m_clipboard.window = xcb_generate_id(m_connection);
-    uint32_t mask[1]   = {XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE};
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_clipboard.window, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
-    xcb_set_selection_owner(m_connection, m_clipboard.window, HYPRATOMS["CLIPBOARD_MANAGER"], XCB_TIME_CURRENT_TIME);
-
-    uint32_t mask2 =
+    const uint32_t windowMask = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
+    const uint32_t xfixesMask =
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
-    xcb_xfixes_select_selection_input(m_connection, m_clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
-    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any d) { m_clipboard.onSelection(); });
-    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { m_clipboard.onKeyboardFocus(); });
+    auto createSelectionWindow = [&](xcb_window_t& window, const std::string& atomName, bool inputOnly = false) {
+        window                = xcb_generate_id(m_connection);
+        const uint16_t width  = inputOnly ? 8192 : 10;
+        const uint16_t height = inputOnly ? 8192 : 10;
 
-    m_primarySelection.window = xcb_generate_id(m_connection);
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_primarySelection.window, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
-    xcb_set_selection_owner(m_connection, m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, window, m_screen->root, 0, 0, width, height, 0,
+                          inputOnly ? XCB_WINDOW_CLASS_INPUT_ONLY : XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual, XCB_CW_EVENT_MASK, &windowMask);
 
-    xcb_xfixes_select_selection_input(m_connection, m_primarySelection.window, HYPRATOMS["PRIMARY"], mask2);
+        if (!inputOnly) {
+            xcb_set_selection_owner(m_connection, window, HYPRATOMS[atomName], XCB_TIME_CURRENT_TIME);
+            xcb_xfixes_select_selection_input(m_connection, window, HYPRATOMS[atomName], xfixesMask);
+        }
 
-    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any d) { m_primarySelection.onSelection(); });
-    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { m_primarySelection.onKeyboardFocus(); });
+        return window;
+    };
 
-    m_dndSelection.window = xcb_generate_id(m_connection);
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_dndSelection.window, m_screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, m_screen->root_visual,
-                      XCB_CW_EVENT_MASK, mask);
+    createSelectionWindow(m_clipboard.window, "CLIPBOARD_MANAGER");
+    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any) { m_clipboard.onSelection(); });
+    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_clipboard.onKeyboardFocus(); });
 
-    uint32_t val1 = XDND_VERSION;
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &val1);
+    createSelectionWindow(m_primarySelection.window, "PRIMARY");
+    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any) { m_primarySelection.onSelection(); });
+    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_primarySelection.onKeyboardFocus(); });
+
+    createSelectionWindow(m_dndSelection.window, "XdndAware", true);
+    const uint32_t xdndVersion = XDND_VERSION;
+    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &xdndVersion);
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
@@ -1332,18 +1356,27 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
-    if ((this == &g_pXWayland->m_wm->m_clipboard && g_pSeatManager->m_selection.currentSelection && g_pSeatManager->m_selection.currentSelection->type() == DATA_SOURCE_TYPE_X11) ||
-        (this == &g_pXWayland->m_wm->m_primarySelection && g_pSeatManager->m_selection.currentPrimarySelection &&
-         g_pSeatManager->m_selection.currentPrimarySelection->type() == DATA_SOURCE_TYPE_X11))
+    const bool isClipboard = this == &g_pXWayland->m_wm->m_clipboard;
+    const bool isPrimary   = this == &g_pXWayland->m_wm->m_primarySelection;
+
+    auto       currentSel     = g_pSeatManager->m_selection.currentSelection;
+    auto       currentPrimSel = g_pSeatManager->m_selection.currentPrimarySelection;
+
+    const bool isX11Clipboard = isClipboard && currentSel && currentSel->type() == DATA_SOURCE_TYPE_X11;
+    const bool isX11Primary   = isPrimary && currentPrimSel && currentPrimSel->type() == DATA_SOURCE_TYPE_X11;
+
+    if (isX11Clipboard || isX11Primary)
         return;
 
-    if (this == &g_pXWayland->m_wm->m_clipboard && g_pSeatManager->m_selection.currentSelection) {
-        xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_connection_t* conn = g_pXWayland->m_wm->m_connection;
+
+    if (isClipboard && currentSel) {
+        xcb_set_selection_owner(conn, g_pXWayland->m_wm->m_clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(conn);
         g_pXWayland->m_wm->m_clipboard.notifyOnFocus = true;
-    } else if (this == &g_pXWayland->m_wm->m_primarySelection && g_pSeatManager->m_selection.currentPrimarySelection) {
-        xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
-        xcb_flush(g_pXWayland->m_wm->m_connection);
+    } else if (isPrimary && currentPrimSel) {
+        xcb_set_selection_owner(conn, g_pXWayland->m_wm->m_primarySelection.window, HYPRATOMS["PRIMARY"], XCB_TIME_CURRENT_TIME);
+        xcb_flush(conn);
         g_pXWayland->m_wm->m_primarySelection.notifyOnFocus = true;
     }
 }
@@ -1420,7 +1453,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     if (MIMES.empty())
         return false;
 
-    if (std::find(MIMES.begin(), MIMES.end(), mime) == MIMES.end()) {
+    if (std::ranges::find(MIMES, mime) == MIMES.end()) {
         Debug::log(ERR, "[xwm] X Client asked for an invalid MIME, sending the first advertised. THIS SHIT MAY BREAK!");
         mime = *MIMES.begin();
     }

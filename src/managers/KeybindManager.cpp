@@ -164,7 +164,7 @@ CKeybindManager::CKeybindManager() {
     m_repeatKeyTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
-            if (m_activeKeybinds.size() == 0 || g_pSeatManager->m_keyboard.expired())
+            if (m_activeKeybinds.empty() || g_pSeatManager->m_keyboard.expired())
                 return;
 
             const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
@@ -225,7 +225,7 @@ void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
-    std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
+    std::ranges::transform(mods, mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
         modMask |= HL_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))
@@ -288,7 +288,7 @@ void CKeybindManager::updateXKBTranslationState() {
 
     xkb_rule_names    rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const       KEYMAPFILE = FILEPATH == "" ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
+    FILE* const       KEYMAPFILE = FILEPATH.empty() ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
 
     auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
                                              xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -624,15 +624,13 @@ eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> k
     std::set<xkb_keysym_t> boundKeysNotPressed;
     std::set<xkb_keysym_t> pressedKeysNotBound;
 
-    std::set_difference(keybindKeysyms.begin(), keybindKeysyms.end(), pressedKeysyms.begin(), pressedKeysyms.end(),
-                        std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
-    std::set_difference(pressedKeysyms.begin(), pressedKeysyms.end(), keybindKeysyms.begin(), keybindKeysyms.end(),
-                        std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
+    std::ranges::set_difference(keybindKeysyms, pressedKeysyms, std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
+    std::ranges::set_difference(pressedKeysyms, keybindKeysyms, std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
 
     if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
         return MK_FULL_MATCH;
 
-    if (boundKeysNotPressed.size() && pressedKeysNotBound.empty())
+    if (!boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
         return MK_PARTIAL_MATCH;
 
     return MK_NO_MATCH;
@@ -670,8 +668,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
     for (auto& k : m_keybinds) {
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse";
-        const bool SPECIALTRIGGERED =
-            std::find_if(m_pressedSpecialBinds.begin(), m_pressedSpecialBinds.end(), [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
@@ -1106,7 +1103,7 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
         return {.success = false, .error = "signalWindow: no window"};
     }
 
-    if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
+    if (!std::ranges::all_of(SIGNAL, ::isdigit))
         return {.success = false, .error = "signalWindow: signal has to be int"};
 
     try {
@@ -2401,7 +2398,7 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
 }
 
 SDispatchResult CKeybindManager::setSubmap(std::string submap) {
-    if (submap == "reset" || submap == "") {
+    if (submap == "reset" || submap.empty()) {
         m_currentSelectedSubmap = "";
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
@@ -2579,7 +2576,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 
     //if regexp is not empty, send shortcut to current window
     //else, dont change focus
-    if (regexp != "") {
+    if (!regexp.empty()) {
         PWINDOW = g_pCompositor->getWindowByRegex(regexp);
 
         if (!PWINDOW) {

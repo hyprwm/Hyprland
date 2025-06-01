@@ -54,7 +54,7 @@ namespace NColorManagement {
         return (eTransferFunction)tf;
     }
 
-    typedef Hyprgraphics::SPCPRimaries SPCPRimaries;
+    using SPCPRimaries = Hyprgraphics::SPCPRimaries;
 
     namespace NColorPrimaries {
         static const auto DEFAULT_PRIMARIES = SPCPRimaries{};

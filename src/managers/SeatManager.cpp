@@ -493,7 +493,7 @@ void CSeatManager::refocusGrab() {
     if (!m_seatGrab)
         return;
 
-    if (m_seatGrab->m_surfs.size() > 0) {
+    if (!m_seatGrab->m_surfs.empty()) {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
         for (auto const& s : m_seatGrab->m_surfs) {
@@ -653,7 +653,7 @@ void CSeatManager::resendEnterEvents() {
 }
 
 bool CSeatGrab::accepts(SP<CWLSurfaceResource> surf) {
-    return std::find(m_surfs.begin(), m_surfs.end(), surf) != m_surfs.end();
+    return std::ranges::find(m_surfs, surf) != m_surfs.end();
 }
 
 void CSeatGrab::add(SP<CWLSurfaceResource> surf) {

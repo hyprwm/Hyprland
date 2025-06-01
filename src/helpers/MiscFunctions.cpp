@@ -243,7 +243,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 namedWSes.push_back(ws->m_id);
             }
-            std::sort(namedWSes.begin(), namedWSes.end());
+            std::ranges::sort(namedWSes);
 
             if (absolute) {
                 // 1-index
@@ -326,7 +326,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                         finalWSID = curID;
                     }
                     if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
-                        if (namedWSes.size()) {
+                        if (!namedWSes.empty()) {
                             // Go to the named workspaces
                             // Need remainingWSes more
                             auto namedWSIdx = namedWSes.size() - remainingWSes;
@@ -388,7 +388,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 validWSes.push_back(ws->m_id);
             }
 
-            std::sort(validWSes.begin(), validWSes.end());
+            std::ranges::sort(validWSes);
 
             ssize_t currentItem = -1;
 
@@ -623,7 +623,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 3) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 3) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
@@ -657,7 +657,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 2) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 2) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));

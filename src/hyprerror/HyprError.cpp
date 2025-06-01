@@ -63,7 +63,7 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto   LINECOUNT    = Hyprlang::INT{1} + std::count(m_queued.begin(), m_queued.end(), '\n');
+    const auto   LINECOUNT    = Hyprlang::INT{1} + std::ranges::count(m_queued, '\n');
     static auto  LINELIMIT    = CConfigValue<Hyprlang::INT>("debug:error_limit");
     static auto  BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
 
@@ -165,8 +165,8 @@ void CHyprError::createQueued() {
 }
 
 void CHyprError::draw() {
-    if (!m_isCreated || m_queued != "") {
-        if (m_queued != "")
+    if (!m_isCreated || !m_queued.empty()) {
+        if (!m_queued.empty())
             createQueued();
         return;
     }

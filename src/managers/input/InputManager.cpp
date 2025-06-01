@@ -619,7 +619,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_currentlyHeldButtons.push_back(e.button);
     } else {
-        if (std::find_if(m_currentlyHeldButtons.begin(), m_currentlyHeldButtons.end(), [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
+        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
             return;
         std::erase_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; });
     }
@@ -1082,7 +1082,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         pKeyboard->m_allowed = PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     try {
-        if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES != "" &&
+        if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && !RULES.empty() &&
             RULES == pKeyboard->m_currentRules.rules && MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout &&
             VARIANT == pKeyboard->m_currentRules.variant && OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
@@ -1205,7 +1205,7 @@ void CInputManager::setPointerConfigs() {
                     libinput_device_config_middle_emulation_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
 
                 const auto TAP_MAP = g_pConfigManager->getDeviceString(devname, "tap_button_map", "input:touchpad:tap_button_map");
-                if (TAP_MAP == "" || TAP_MAP == "lrm")
+                if (TAP_MAP.empty() || TAP_MAP == "lrm")
                     libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LRM);
                 else if (TAP_MAP == "lmr")
                     libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LMR);
@@ -1214,7 +1214,7 @@ void CInputManager::setPointerConfigs() {
             }
 
             const auto SCROLLMETHOD = g_pConfigManager->getDeviceString(devname, "scroll_method", "input:scroll_method");
-            if (SCROLLMETHOD == "") {
+            if (SCROLLMETHOD.empty()) {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, libinput_device_config_scroll_get_default_method(LIBINPUTDEV));
             } else if (SCROLLMETHOD == "no_scroll") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_NO_SCROLL);
@@ -1330,7 +1330,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
-    if (m_keyboards.size() > 0) {
+    if (!m_keyboards.empty()) {
         bool found = false;
         for (auto const& k : m_keyboards | std::views::reverse) {
             if (!k)
@@ -1354,7 +1354,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
 
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
 
-    g_pSeatManager->setMouse(m_pointers.size() > 0 ? m_pointers.front() : nullptr);
+    g_pSeatManager->setMouse(!m_pointers.empty() ? m_pointers.front() : nullptr);
 
     if (!g_pSeatManager->m_mouse.expired())
         unconstrainMouse();
@@ -1552,7 +1552,7 @@ void CInputManager::unconstrainMouse() {
 }
 
 bool CInputManager::isConstrained() {
-    return std::any_of(m_constraints.begin(), m_constraints.end(), [](auto const& c) {
+    return std::ranges::any_of(m_constraints, [](auto const& c) {
         const auto constraint = c.lock();
         return constraint && constraint->isActive() && constraint->owner()->resource() == g_pCompositor->m_lastFocus;
     });
@@ -1773,9 +1773,9 @@ void CInputManager::unsetCursorImage() {
 }
 
 std::string CInputManager::deviceNameToInternalString(std::string in) {
-    std::replace(in.begin(), in.end(), ' ', '-');
-    std::replace(in.begin(), in.end(), '\n', '-');
-    std::transform(in.begin(), in.end(), in.begin(), ::tolower);
+    std::ranges::replace(in, ' ', '-');
+    std::ranges::replace(in, '\n', '-');
+    std::ranges::transform(in, in.begin(), ::tolower);
     return in;
 }
 
@@ -1786,7 +1786,7 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
 
     auto makeNewName = [&]() { return (proposedNewName.empty() ? "unknown-device" : proposedNewName) + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); };
 
-    while (std::find_if(m_hids.begin(), m_hids.end(), [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_hids.end())
+    while (std::ranges::find_if(m_hids, [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_hids.end())
         dupeno++;
 
     return makeNewName();

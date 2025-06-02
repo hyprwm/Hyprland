@@ -464,7 +464,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX))
         /* other properties hadnt changed */
         && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
-        RULE->sdrBrightness == m_sdrBrightness && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
+        RULE->sdrBrightness == m_sdrBrightness && RULE->sdrMinLuminance == m_minLuminance && RULE->sdrMaxLuminance == m_maxLuminance &&
+        RULE->supportsWideColor == m_supportsWideColor && RULE->supportsHDR == m_supportsHDR && RULE->minLuminance == m_minLuminance && RULE->maxLuminance == m_maxLuminance &&
+        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", m_name);
 

@@ -1485,10 +1485,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = pMonitor->m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
-    const bool  SUPPORTSPQ = pMonitor->m_output->parsedEDID.hdrMetadata.has_value() ? pMonitor->m_output->parsedEDID.hdrMetadata->supportsPQ : false;
-    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->m_output->parsedEDID.supportsBT2020, SUPPORTSPQ);
-
-    if (pMonitor->m_output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
+    if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
         // PPASS = 0 monitor settings
         // PPASS = 1

@@ -56,8 +56,19 @@ struct SMonitorRule {
     eCMType             cmType        = CM_SRGB;
     float               sdrSaturation = 1.0f; // SDR -> HDR
     float               sdrBrightness = 1.0f; // SDR -> HDR
-    drmModeModeInfo     drmMode       = {};
-    std::optional<int>  vrr;
+
+    bool                supportsWideColor = false; // false does nothing, true overrides EDID
+    bool                supportsHDR       = false; // false does nothing, true overrides EDID
+    float               sdrMinLuminance   = 0.2f;  // SDR -> HDR
+    int                 sdrMaxLuminance   = 80;    // SDR -> HDR
+
+    // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
+    float              minLuminance    = -1.0f; // >= 0 overrides EDID
+    int                maxLuminance    = -1;    // >= 0 overrides EDID
+    int                maxAvgLuminance = -1;    // >= 0 overrides EDID
+
+    drmModeModeInfo    drmMode = {};
+    std::optional<int> vrr;
 };
 
 class CMonitor;
@@ -128,6 +139,8 @@ class CMonitor {
     eCMType                     m_cmType           = CM_SRGB;
     float                       m_sdrSaturation    = 1.0f;
     float                       m_sdrBrightness    = 1.0f;
+    float                       m_sdrMinLuminance  = 0.2f;
+    int                         m_sdrMaxLuminance  = 80;
     bool                        m_createdByUser    = false;
     bool                        m_isUnsafeFallback = false;
 
@@ -214,6 +227,12 @@ class CMonitor {
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();
 
+    bool                                supportsWideColor();
+    bool                                supportsHDR();
+    float                               minLuminance();
+    int                                 maxLuminance();
+    int                                 maxAvgLuminance();
+
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;
@@ -244,4 +263,10 @@ class CMonitor {
         CHyprSignalListener presented;
         CHyprSignalListener commit;
     } m_listeners;
+
+    bool  m_supportsWideColor = false;
+    bool  m_supportsHDR       = false;
+    float m_minLuminance      = -1.0f;
+    int   m_maxLuminance      = -1;
+    int   m_maxAvgLuminance   = -1;
 };

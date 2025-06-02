@@ -734,15 +734,16 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_enabled10bit = set10bit;
 
+    m_supportsWideColor = RULE->supportsHDR;
+    m_supportsHDR       = RULE->supportsHDR;
+
     auto oldImageDescription = m_imageDescription;
     m_cmType                 = RULE->cmType;
     switch (m_cmType) {
-        case CM_AUTO: m_cmType = m_enabled10bit && m_output->parsedEDID.supportsBT2020 ? CM_WIDE : CM_SRGB; break;
+        case CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? CM_WIDE : CM_SRGB; break;
         case CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
         case CM_HDR:
-        case CM_HDR_EDID:
-            m_cmType = m_output->parsedEDID.supportsBT2020 && m_output->parsedEDID.hdrMetadata.has_value() && m_output->parsedEDID.hdrMetadata->supportsPQ ? m_cmType : CM_SRGB;
-            break;
+        case CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : CM_SRGB; break;
         default: break;
     }
     switch (m_cmType) {
@@ -788,6 +789,19 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             break;
         default: UNREACHABLE();
     }
+
+    m_sdrMinLuminance = RULE->sdrMinLuminance;
+    m_sdrMaxLuminance = RULE->sdrMaxLuminance;
+
+    m_minLuminance = RULE->minLuminance;
+    if (m_minLuminance >= 0)
+        m_imageDescription.luminances.min = m_minLuminance;
+    m_maxLuminance = RULE->maxLuminance;
+    if (m_maxLuminance >= 0)
+        m_imageDescription.luminances.max = m_maxLuminance;
+    m_maxAvgLuminance = RULE->maxAvgLuminance;
+    if (m_maxAvgLuminance >= 0)
+        m_imageDescription.luminances.reference = m_maxAvgLuminance;
     if (oldImageDescription != m_imageDescription)
         PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 
@@ -1599,6 +1613,26 @@ void CMonitor::onCursorMovedOnMonitor() {
     // this will throw too but fix it if we use sw cursors
 
     m_tearingState.frameScheduledWhileBusy = true;
+}
+
+bool CMonitor::supportsWideColor() {
+    return m_supportsWideColor || m_output->parsedEDID.supportsBT2020;
+}
+
+bool CMonitor::supportsHDR() {
+    return supportsWideColor() && (m_supportsHDR || (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false));
+}
+
+float CMonitor::minLuminance() {
+    return m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0);
+}
+
+int CMonitor::maxLuminance() {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 80);
+}
+
+int CMonitor::maxAvgLuminance() {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 80);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

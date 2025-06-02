@@ -169,7 +169,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
                     *pWindow->m_realPosition = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
                     pWindow->m_workspace     = PARENT->m_workspace;
                     pWindow->m_monitor       = PARENT->m_monitor;
-                    centeredOnParent = true;
+                    centeredOnParent         = true;
                 }
             }
             if (!centeredOnParent)

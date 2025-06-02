@@ -1354,7 +1354,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
     // since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_isFloating;
     bool hasFullscreen = pWindow->isFullscreen();
-    bool isGrouped     = pWindow->m_groupData.pNextWindow.lock() != nullptr;
+    bool isGrouped     = pWindow->m_groupData.pNextWindow;
 
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;

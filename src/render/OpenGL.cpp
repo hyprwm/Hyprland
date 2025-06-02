@@ -1429,7 +1429,7 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, const CBox& box,
 static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
 
 void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const NColorManagement::SImageDescription& imageDescription,
-                                     const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR) {
+                                     const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     glUniform1i(shader.sourceTF, imageDescription.transferFunction);
     glUniform1i(shader.targetTF, targetImageDescription.transferFunction);
 
@@ -1443,8 +1443,8 @@ void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const NColorManageme
     };
     glUniformMatrix4x2fv(shader.targetPrimaries, 1, false, glTargetPrimaries);
 
-    glUniform2f(shader.srcTFRange, imageDescription.getTFMinLuminance(), imageDescription.getTFMaxLuminance());
-    glUniform2f(shader.dstTFRange, targetImageDescription.getTFMinLuminance(), targetImageDescription.getTFMaxLuminance());
+    glUniform2f(shader.srcTFRange, imageDescription.getTFMinLuminance(sdrMinLuminance), imageDescription.getTFMaxLuminance(sdrMaxLuminance));
+    glUniform2f(shader.dstTFRange, targetImageDescription.getTFMinLuminance(sdrMinLuminance), targetImageDescription.getTFMaxLuminance(sdrMaxLuminance));
 
     const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
     glUniform1f(shader.maxLuminance, maxLuminance * targetImageDescription.luminances.reference / imageDescription.luminances.reference);
@@ -1473,7 +1473,7 @@ void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const NColorManageme
 }
 
 void CHyprOpenGLImpl::passCMUniforms(const SShader& shader, const SImageDescription& imageDescription) {
-    passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true);
+    passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CBox& box, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive,

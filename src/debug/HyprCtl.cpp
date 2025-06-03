@@ -1109,22 +1109,8 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND == "monitor" || COMMAND == "source")
         g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.contains("monitorv2")) {
-        // Updates configs for every monitorv2 rule
-        g_pConfigManager->handleMonitorv2();
-        g_pConfigManager->m_wantsMonitorReload = true;
-        // Use this code to update only specified output (probably needs parser updates to remove parsing from here)
-        // if (COMMAND.contains('[') && COMMAND.contains(']')) {
-        //     const auto L = COMMAND.find_first_of('[');
-        //     const auto R = COMMAND.find_last_of(']');
-
-        //     if (L < R) {
-        //         const auto output = COMMAND.substr(L + 1, R - L - 1);
-        //         g_pConfigManager->handleMonitorv2(output);
-        //         g_pConfigManager->m_wantsMonitorReload = true;
-        //     }
-        // }
-    }
+    if (COMMAND.contains("monitorv2"))
+        g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
 
     if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout

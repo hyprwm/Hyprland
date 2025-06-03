@@ -1681,6 +1681,7 @@ void CConfigManager::dispatchExecShutdown() {
 }
 
 void CConfigManager::performMonitorReload() {
+    handleMonitorv2();
 
     bool overAgain = false;
 
@@ -2049,13 +2050,13 @@ std::optional<std::string> CMonitorRuleParser::getError() {
 }
 
 bool CMonitorRuleParser::parseMode(const std::string& value) {
-    if (value.starts_with("pref")) {
+    if (value.starts_with("pref"))
         m_rule.resolution = Vector2D();
-    } else if (value.starts_with("highrr")) {
+    else if (value.starts_with("highrr"))
         m_rule.resolution = Vector2D(-1, -1);
-    } else if (value.starts_with("highres")) {
+    else if (value.starts_with("highres"))
         m_rule.resolution = Vector2D(-1, -2);
-    } else if (parseModeLine(value, m_rule.drmMode)) {
+    else if (parseModeLine(value, m_rule.drmMode)) {
         m_rule.resolution  = Vector2D(m_rule.drmMode.hdisplay, m_rule.drmMode.vdisplay);
         m_rule.refreshRate = float(m_rule.drmMode.vrefresh) / 1000;
     } else {
@@ -2114,9 +2115,9 @@ bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
 }
 
 bool CMonitorRuleParser::parseScale(const std::string& value) {
-    if (value.starts_with("auto")) {
+    if (value.starts_with("auto"))
         m_rule.scale = -1;
-    } else {
+    else {
         if (!isNumber(value, true)) {
             m_error += "invalid scale ";
             return false;

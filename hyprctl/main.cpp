@@ -75,8 +75,8 @@ std::vector<SInstanceData> instances() {
     std::filesystem::directory_iterator it;
     std::error_code                     ec;
     it = std::filesystem::directory_iterator(getRuntimeDir(), std::filesystem::directory_options::skip_permission_denied, ec);
-    if (ec) return {};
-
+    if (ec)
+        return {};
     for (const auto& el : it) {
         if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
             continue;

@@ -301,20 +301,20 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         Vector2D   ratioPadding;
 
         if (REQUESTED_RATIO.y != 0) {
-            Vector2D defaultBoxSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+            const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
 
-            double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
-            double   monitorRatio   = defaultBoxSize.x / defaultBoxSize.y;
+            const double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
+            const double   originalRatio  = originalSize.x / originalSize.y;
 
-            if (requestedRatio > monitorRatio) {
-                double padding = defaultBoxSize.y - defaultBoxSize.x / requestedRatio;
+            if (requestedRatio > originalRatio) {
+                double padding = originalSize.y - originalSize.x / requestedRatio;
 
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.y)
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.y)
                     ratioPadding = Vector2D{0., padding};
-            } else if (requestedRatio < monitorRatio) {
-                double padding = defaultBoxSize.x - defaultBoxSize.y * requestedRatio;
+            } else if (requestedRatio < originalRatio) {
+                double padding = originalSize.x - originalSize.y * requestedRatio;
 
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.x)
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.x)
                     ratioPadding = Vector2D{padding, 0.};
             }
         }
@@ -567,20 +567,20 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
         Vector2D   ratioPadding;
 
         if (REQUESTED_RATIO.y != 0) {
-            Vector2D defaultBoxSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+            const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
 
-            double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
-            double   monitorRatio   = defaultBoxSize.x / defaultBoxSize.y;
+            const double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
+            const double   originalRatio  = originalSize.x / originalSize.y;
 
-            if (requestedRatio > monitorRatio) {
-                double padding = defaultBoxSize.y - defaultBoxSize.x / requestedRatio;
+            if (requestedRatio > originalRatio) {
+                double padding = originalSize.y - originalSize.x / requestedRatio;
 
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.y)
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.y)
                     ratioPadding = Vector2D{0., padding};
-            } else if (requestedRatio < monitorRatio) {
-                double padding = defaultBoxSize.x - defaultBoxSize.y * requestedRatio;
+            } else if (requestedRatio < originalRatio) {
+                double padding = originalSize.x - originalSize.y * requestedRatio;
 
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.x)
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.x)
                     ratioPadding = Vector2D{padding, 0.};
             }
         }

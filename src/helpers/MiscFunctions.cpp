@@ -662,50 +662,39 @@ std::vector<pid_t> getAllPIDOf(const std::string& name) {
     return results;
 }
 
-std::string getProcNameOf(pid_t pid) {
-#if defined(KERN_PROC_PID)
+std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
+    if (pid <= 0)
+        return std::unexpected("No pid for client");
+
+#if defined(KERN_PROC_PATHNAME)
     int mib[] = {
-        CTL_KERN,           KERN_PROC, KERN_PROC_PID, (int)pid,
-#if defined(__NetBSD__) || defined(__OpenBSD__)
-        sizeof(KINFO_PROC), 1,
+        CTL_KERN,
+#if defined(__NetBSD__)
+        KERN_PROC_ARGS,
+        pid,
+        KERN_PROC_PATHNAME,
+#else
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        pid,
 #endif
     };
-    u_int      miblen = sizeof(mib) / sizeof(mib[0]);
-    KINFO_PROC kp;
-    size_t     sz = sizeof(KINFO_PROC);
-
-    if (sysctl(mib, miblen, &kp, &sz, NULL, 0) != -1) {
-#if defined(__DragonFly__)
-        return std::string(kp.kp_comm);
-#elif defined(__FreeBSD__)
-        return std::string(kp.ki_comm);
-#elif defined(__NetBSD__)
-        return std::string(kp.p_comm);
-#elif defined(__OpenBSD__)
-        return std::string(kp.p_comm);
-#endif
-    }
-
-    return {};
+    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    char   exe[PATH_MAX] = "/nonexistent";
+    size_t sz            = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    std::string path = exe;
 #else
-    const std::string commPath = "/proc/" + std::to_string(pid) + "/comm";
-    CFileDescriptor   fd{open(commPath.c_str(), O_RDONLY | O_CLOEXEC)};
-
-    if (!fd.isValid())
-        return {};
-
-    char       buffer[256] = {0};
-    const auto bytesRead   = read(fd.get(), buffer, sizeof(buffer) - 1);
-
-    if (bytesRead <= 0)
-        return {};
-
-    std::string name{buffer};
-    if (!name.empty() && name.back() == '\n')
-        name.pop_back();
-
-    return name;
+    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
 #endif
+    std::error_code ec;
+
+    std::string     fullPath = std::filesystem::canonical(path, ec);
+
+    if (ec)
+        return std::unexpected("canonical failed");
+
+    return fullPath;
 }
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {

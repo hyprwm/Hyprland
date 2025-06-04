@@ -1778,7 +1778,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "dwindle:single_window_aspect_ratio",
-        .description = "If specified, whenever only a single window os open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
+        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
         .type        = CONFIG_OPTION_VECTOR,
         .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
     },

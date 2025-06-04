@@ -72,9 +72,8 @@ std::vector<SInstanceData> instances() {
             return {};
     } catch (std::exception& e) { return {}; }
 
-    std::filesystem::directory_iterator it;
     std::error_code                     ec;
-    it = std::filesystem::directory_iterator(getRuntimeDir(), std::filesystem::directory_options::skip_permission_denied, ec);
+    std::filesystem::directory_iterator it = std::filesystem::directory_iterator(getRuntimeDir(), std::filesystem::directory_options::skip_permission_denied, ec);
     if (ec)
         return {};
     for (const auto& el : it) {

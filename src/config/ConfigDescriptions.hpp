@@ -1,8 +1,6 @@
 #pragma once
 
 #include "ConfigManager.hpp"
-#include "ConfigManager.hpp"
-#include "ConfigManager.hpp"
 
 inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 

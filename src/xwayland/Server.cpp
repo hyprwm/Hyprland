@@ -199,8 +199,9 @@ bool CXWaylandServer::tryOpenSockets() {
                 continue;
             }
 
-            const std::string pidStr = std::to_string(getpid());
-            if (write(fd.get(), pidStr.c_str(), pidStr.length()) != (long)pidStr.length()) {
+            const std::string pidStr = std::format("{:010d}\n", getpid());
+            ASSERT(pidStr.length() == 11);
+            if (write(fd.get(), pidStr.c_str(), 11) != 11L) {
                 safeRemove(lockPath);
                 continue;
             }

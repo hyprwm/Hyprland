@@ -295,7 +295,32 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow.lock() == pWindow) {
-        PNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
+        const auto REQUESTED_RATIO           = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
+        const auto REQUESTED_RATIO_TOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
+
+        Vector2D   ratioPadding;
+
+        if (REQUESTED_RATIO.y != 0) {
+            Vector2D defaultBoxSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+
+            double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
+            double   monitorRatio   = defaultBoxSize.x / defaultBoxSize.y;
+
+            if (requestedRatio > monitorRatio) {
+                double padding = defaultBoxSize.y - defaultBoxSize.x / requestedRatio;
+
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.y)
+                    ratioPadding = Vector2D{0., padding};
+            } else if (requestedRatio < monitorRatio) {
+                double padding = defaultBoxSize.x - defaultBoxSize.y * requestedRatio;
+
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.x)
+                    ratioPadding = Vector2D{padding, 0.};
+            }
+        }
+
+        PNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft + ratioPadding / 2,
+                          PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight - ratioPadding};
 
         applyNodeDataToWindow(PNODE);
 
@@ -529,8 +554,39 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     const auto TOPNODE = getMasterNodeOnWorkspace(pWorkspace->m_id);
 
-    if (TOPNODE) {
+    if (!TOPNODE)
+        return;
+
+    if (TOPNODE->isNode) {
         TOPNODE->box = {PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
+        TOPNODE->recalcSizePosRecursive();
+    } else {
+        const auto REQUESTED_RATIO           = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
+        const auto REQUESTED_RATIO_TOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
+
+        Vector2D   ratioPadding;
+
+        if (REQUESTED_RATIO.y != 0) {
+            Vector2D defaultBoxSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+
+            double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
+            double   monitorRatio   = defaultBoxSize.x / defaultBoxSize.y;
+
+            if (requestedRatio > monitorRatio) {
+                double padding = defaultBoxSize.y - defaultBoxSize.x / requestedRatio;
+
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.y)
+                    ratioPadding = Vector2D{0., padding};
+            } else if (requestedRatio < monitorRatio) {
+                double padding = defaultBoxSize.x - defaultBoxSize.y * requestedRatio;
+
+                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * defaultBoxSize.x)
+                    ratioPadding = Vector2D{padding, 0.};
+            }
+        }
+
+        TOPNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft + ratioPadding / 2,
+                            PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight - ratioPadding};
         TOPNODE->recalcSizePosRecursive();
     }
 }

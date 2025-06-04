@@ -80,7 +80,7 @@ std::vector<SInstanceData> instances() {
     for (const auto& el : it) {
         if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
             continue;
-        
+    }        
         // read lock
         SInstanceData* data = &result.emplace_back();
         data->id            = el.path().filename().string();

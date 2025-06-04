@@ -1214,6 +1214,7 @@ void CXWM::initSelection() {
     };
 
     createSelectionWindow(m_clipboard.window, "CLIPBOARD_MANAGER");
+    createSelectionWindow(m_clipboard.window, "CLIPBOARD");
     m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any) { m_clipboard.onSelection(); });
     m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_clipboard.onKeyboardFocus(); });
 

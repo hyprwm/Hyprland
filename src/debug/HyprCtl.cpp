@@ -1109,6 +1109,9 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND == "monitor" || COMMAND == "source")
         g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
+    if (COMMAND.contains("monitorv2"))
+        g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
+
     if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs

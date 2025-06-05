@@ -27,6 +27,8 @@
 
 #define HANDLE void*
 
+class CConfigManager;
+
 struct SWorkspaceRule {
     std::string                        monitor         = "";
     std::string                        workspaceString = "";
@@ -170,6 +172,32 @@ namespace std {
     };
 }
 
+class CMonitorRuleParser {
+  public:
+    CMonitorRuleParser(const std::string& name);
+
+    const std::string&         name();
+    SMonitorRule&              rule();
+    std::optional<std::string> getError();
+    bool                       parseMode(const std::string& value);
+    bool                       parsePosition(const std::string& value, bool isFirst = false);
+    bool                       parseScale(const std::string& value);
+    bool                       parseTransform(const std::string& value);
+    bool                       parseBitdepth(const std::string& value);
+    bool                       parseCM(const std::string& value);
+    bool                       parseSDRBrightness(const std::string& value);
+    bool                       parseSDRSaturation(const std::string& value);
+    bool                       parseVRR(const std::string& value);
+
+    void                       setDisabled();
+    void                       setMirror(const std::string& value);
+    bool                       setReserved(const SMonitorAdditionalReservedArea& value);
+
+  private:
+    SMonitorRule m_rule;
+    std::string  m_error = "";
+};
+
 class CConfigManager {
   public:
     CConfigManager();
@@ -257,6 +285,9 @@ class CConfigManager {
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
 
+    std::optional<std::string> handleMonitorv2(const std::string& output);
+    Hyprlang::CParseResult     handleMonitorv2();
+
     std::string                m_configCurrentPath;
 
     bool                       m_wantsMonitorReload                  = false;
@@ -307,6 +338,7 @@ class CConfigManager {
     std::optional<std::string>                resetHLConfig();
     std::optional<std::string>                generateConfig(std::string configPath);
     std::optional<std::string>                verifyConfigExists();
+
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
     SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 
@@ -319,6 +351,7 @@ class CConfigManager {
     std::unordered_map<SFloatCache, Vector2D> m_mStoredFloatingSizes;
 
     friend struct SConfigOptionDescription;
+    friend class CMonitorRuleParser;
 };
 
 inline UP<CConfigManager> g_pConfigManager;

@@ -791,6 +791,20 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
 
+    m_config->addSpecialCategory("monitorv2", {.key = "output"});
+    m_config->addSpecialConfigValue("monitorv2", "disabled", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "mode", {"preferred"});
+    m_config->addSpecialConfigValue("monitorv2", "position", {"auto"});
+    m_config->addSpecialConfigValue("monitorv2", "scale", Hyprlang::FLOAT{1.0});
+    m_config->addSpecialConfigValue("monitorv2", "addreserved", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
+    m_config->addSpecialConfigValue("monitorv2", "cm", {"auto"});
+    m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
+    m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
+    m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "transform", {STRVAL_EMPTY}); // TODO use correct type
+
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});
     m_config->registerHandler(&::handleRawExec, "execr", {false});
@@ -918,8 +932,9 @@ void CConfigManager::reload() {
     resetHLConfig();
     m_configCurrentPath                   = getMainConfigPath();
     const auto ERR                        = m_config->parse();
-    m_lastConfigVerificationWasSuccessful = !ERR.error;
-    postConfigReload(ERR);
+    const auto monitorError               = handleMonitorv2();
+    m_lastConfigVerificationWasSuccessful = !ERR.error && !monitorError.error;
+    postConfigReload(ERR.error || !monitorError.error ? ERR : monitorError);
 }
 
 std::string CConfigManager::verify() {
@@ -1007,6 +1022,68 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 void CConfigManager::updateWatcher() {
     static const auto PDISABLEAUTORELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
     g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : m_configPaths);
+}
+
+std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& output) {
+    auto parser = CMonitorRuleParser(output);
+    auto VAL    = m_config->getSpecialConfigValuePtr("monitorv2", "disabled", output.c_str());
+    if (VAL && VAL->m_bSetByUser && std::any_cast<Hyprlang::INT>(VAL->getValue()))
+        parser.setDisabled();
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mode", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.parseMode(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "position", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.parsePosition(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "scale", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().scale = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
+    if (VAL && VAL->m_bSetByUser) {
+        const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+    }
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.setMirror(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "bitdepth", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.parseBitdepth(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "cm", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrBrightness = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrsaturation", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrSaturation = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "vrr", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().vrr = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.parseTransform(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+
+    auto newrule = parser.rule();
+
+    std::erase_if(m_monitorRules, [&](const auto& other) { return other.name == newrule.name; });
+
+    m_monitorRules.push_back(newrule);
+
+    return parser.getError();
+}
+
+Hyprlang::CParseResult CConfigManager::handleMonitorv2() {
+    Hyprlang::CParseResult result;
+    for (const auto& output : m_config->listKeysForSpecialCategory("monitorv2")) {
+        const auto error = handleMonitorv2(output);
+        if (error.has_value()) {
+            result.setError(error.value().c_str());
+            return result;
+        }
+    }
+    return result;
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
@@ -1607,6 +1684,7 @@ void CConfigManager::dispatchExecShutdown() {
 }
 
 void CConfigManager::performMonitorReload() {
+    handleMonitorv2();
 
     bool overAgain = false;
 
@@ -1956,30 +2034,207 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     return true;
 }
 
+CMonitorRuleParser::CMonitorRuleParser(const std::string& name) {
+    m_rule.name = name;
+}
+
+const std::string& CMonitorRuleParser::name() {
+    return m_rule.name;
+}
+
+SMonitorRule& CMonitorRuleParser::rule() {
+    return m_rule;
+}
+
+std::optional<std::string> CMonitorRuleParser::getError() {
+    if (m_error.empty())
+        return {};
+    return m_error;
+}
+
+bool CMonitorRuleParser::parseMode(const std::string& value) {
+    if (value.starts_with("pref"))
+        m_rule.resolution = Vector2D();
+    else if (value.starts_with("highrr"))
+        m_rule.resolution = Vector2D(-1, -1);
+    else if (value.starts_with("highres"))
+        m_rule.resolution = Vector2D(-1, -2);
+    else if (parseModeLine(value, m_rule.drmMode)) {
+        m_rule.resolution  = Vector2D(m_rule.drmMode.hdisplay, m_rule.drmMode.vdisplay);
+        m_rule.refreshRate = float(m_rule.drmMode.vrefresh) / 1000;
+    } else {
+
+        if (!value.contains("x")) {
+            m_error += "invalid resolution ";
+            m_rule.resolution = Vector2D();
+            return false;
+        } else {
+            try {
+                m_rule.resolution.x = stoi(value.substr(0, value.find_first_of('x')));
+                m_rule.resolution.y = stoi(value.substr(value.find_first_of('x') + 1, value.find_first_of('@')));
+
+                if (value.contains("@"))
+                    m_rule.refreshRate = stof(value.substr(value.find_first_of('@') + 1));
+            } catch (...) {
+                m_error += "invalid resolution ";
+                m_rule.resolution = Vector2D();
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
+    if (value.starts_with("auto")) {
+        m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+        // If this is the first monitor rule needs to be on the right.
+        if (value == "auto-right" || value == "auto" || isFirst)
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
+        else if (value == "auto-left")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_LEFT;
+        else if (value == "auto-up")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_UP;
+        else if (value == "auto-down")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
+        else {
+            Debug::log(WARN,
+                       "Invalid auto direction. Valid options are 'auto',"
+                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+            m_error += "invalid auto direction ";
+            return false;
+        }
+    } else {
+        if (!value.contains("x")) {
+            m_error += "invalid offset ";
+            m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+            return false;
+        } else {
+            m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
+            m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+        }
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parseScale(const std::string& value) {
+    if (value.starts_with("auto"))
+        m_rule.scale = -1;
+    else {
+        if (!isNumber(value, true)) {
+            m_error += "invalid scale ";
+            return false;
+        } else {
+            m_rule.scale = stof(value);
+
+            if (m_rule.scale < 0.25f) {
+                m_error += "invalid scale ";
+                m_rule.scale = 1;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parseTransform(const std::string& value) {
+    const auto TSF = std::stoi(value);
+    if (std::clamp(TSF, 0, 7) != TSF) {
+        Debug::log(ERR, "Invalid transform {} in monitor", TSF);
+        m_error += "invalid transform ";
+        return false;
+    }
+    m_rule.transform = (wl_output_transform)TSF;
+    return true;
+}
+
+bool CMonitorRuleParser::parseBitdepth(const std::string& value) {
+    m_rule.enable10bit = value == "10";
+    return true;
+}
+
+bool CMonitorRuleParser::parseCM(const std::string& value) {
+    if (value == "auto")
+        m_rule.cmType = CM_AUTO;
+    else if (value == "srgb")
+        m_rule.cmType = CM_SRGB;
+    else if (value == "wide")
+        m_rule.cmType = CM_WIDE;
+    else if (value == "edid")
+        m_rule.cmType = CM_EDID;
+    else if (value == "hdr")
+        m_rule.cmType = CM_HDR;
+    else if (value == "hdredid")
+        m_rule.cmType = CM_HDR_EDID;
+    else {
+        m_error += "invalid cm ";
+        return false;
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parseSDRBrightness(const std::string& value) {
+    try {
+        m_rule.sdrBrightness = stof(value);
+    } catch (...) {
+        m_error += "invalid sdrbrightness ";
+        return false;
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parseSDRSaturation(const std::string& value) {
+    try {
+        m_rule.sdrSaturation = stof(value);
+    } catch (...) {
+        m_error += "invalid sdrsaturation ";
+        return false;
+    }
+    return true;
+}
+
+bool CMonitorRuleParser::parseVRR(const std::string& value) {
+    if (!isNumber(value)) {
+        m_error += "invalid vrr ";
+        return false;
+    }
+
+    m_rule.vrr = std::stoi(value);
+    return true;
+}
+
+void CMonitorRuleParser::setDisabled() {
+    m_rule.disabled = true;
+}
+
+void CMonitorRuleParser::setMirror(const std::string& value) {
+    m_rule.mirrorOf = value;
+}
+
+bool CMonitorRuleParser::setReserved(const SMonitorAdditionalReservedArea& value) {
+    g_pConfigManager->m_mAdditionalReservedAreas[name()] = value;
+    return true;
+}
+
 std::optional<std::string> CConfigManager::handleMonitor(const std::string& command, const std::string& args) {
 
     // get the monitor config
-    SMonitorRule newrule;
+    const auto ARGS = CVarList(args);
 
-    const auto   ARGS = CVarList(args);
-
-    newrule.name = ARGS[0];
+    auto       parser = CMonitorRuleParser(ARGS[0]);
 
     if (ARGS[1] == "disable" || ARGS[1] == "disabled" || ARGS[1] == "addreserved" || ARGS[1] == "transform") {
         if (ARGS[1] == "disable" || ARGS[1] == "disabled")
-            newrule.disabled = true;
+            parser.setDisabled();
         else if (ARGS[1] == "transform") {
-            const auto TSF = std::stoi(ARGS[2]);
-            if (std::clamp(TSF, 0, 7) != TSF) {
-                Debug::log(ERR, "Invalid transform {} in monitor", TSF);
-                return "invalid transform";
-            }
+            if (!parser.parseTransform(ARGS[2]))
+                return parser.getError();
 
-            const auto TRANSFORM = (wl_output_transform)TSF;
+            const auto TRANSFORM = parser.rule().transform;
 
             // overwrite if exists
             for (auto& r : m_monitorRules) {
-                if (r.name == newrule.name) {
+                if (r.name == parser.name()) {
                     r.transform = TRANSFORM;
                     return {};
                 }
@@ -1987,179 +2242,53 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-            int top = std::stoi(ARGS[2]);
-
-            int bottom = std::stoi(ARGS[3]);
-
-            int left = std::stoi(ARGS[4]);
-
-            int right = std::stoi(ARGS[5]);
-
-            m_mAdditionalReservedAreas[newrule.name] = {top, bottom, left, right};
-
+            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
             return {};
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
             return "parse error: curitem bogus";
         }
 
-        std::erase_if(m_monitorRules, [&](const auto& other) { return other.name == newrule.name; });
+        std::erase_if(m_monitorRules, [&](const auto& other) { return other.name == parser.name(); });
 
-        m_monitorRules.push_back(newrule);
+        m_monitorRules.push_back(parser.rule());
 
         return {};
     }
 
-    std::string error = "";
-
-    if (ARGS[1].starts_with("pref")) {
-        newrule.resolution = Vector2D();
-    } else if (ARGS[1].starts_with("highrr")) {
-        newrule.resolution = Vector2D(-1, -1);
-    } else if (ARGS[1].starts_with("highres")) {
-        newrule.resolution = Vector2D(-1, -2);
-    } else if (ARGS[1].starts_with("maxwidth")) {
-        newrule.resolution = Vector2D(-1, -3);
-    } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
-        newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
-        newrule.refreshRate = float(newrule.drmMode.vrefresh) / 1000;
-    } else {
-
-        if (!ARGS[1].contains("x")) {
-            error += "invalid resolution ";
-            newrule.resolution = Vector2D();
-        } else {
-            try {
-                newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
-                newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
-
-                if (ARGS[1].contains("@"))
-                    newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
-            } catch (...) {
-                error += "invalid resolution ";
-                newrule.resolution = Vector2D();
-            }
-        }
-    }
-
-    if (ARGS[2].starts_with("auto")) {
-        newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
-        // If this is the first monitor rule needs to be on the right.
-        if (ARGS[2] == "auto-right" || ARGS[2] == "auto" || m_monitorRules.empty())
-            newrule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
-        else if (ARGS[2] == "auto-left")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_LEFT;
-        else if (ARGS[2] == "auto-up")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
-        else if (ARGS[2] == "auto-down")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
-        else if (ARGS[2] == "auto-center-right")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_RIGHT;
-        else if (ARGS[2] == "auto-center-left")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_LEFT;
-        else if (ARGS[2] == "auto-center-up")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_UP;
-        else if (ARGS[2] == "auto-center-down")
-            newrule.autoDir = eAutoDirs::DIR_AUTO_CENTER_DOWN;
-        else {
-            Debug::log(WARN,
-                       "Invalid auto direction. Valid options are 'auto',"
-                       "'auto-up', 'auto-down', 'auto-left', 'auto-right',"
-                       "'auto-center-up', 'auto-center-down',"
-                       "'auto-center-left', and 'auto-center-right'.");
-            error += "invalid auto direction ";
-        }
-    } else {
-        if (!ARGS[2].contains("x")) {
-            error += "invalid offset ";
-            newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
-        } else {
-            newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
-            newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
-        }
-    }
-
-    if (ARGS[3].starts_with("auto")) {
-        newrule.scale = -1;
-    } else {
-        if (!isNumber(ARGS[3], true))
-            error += "invalid scale ";
-        else {
-            newrule.scale = stof(ARGS[3]);
-
-            if (newrule.scale < 0.25f) {
-                error += "invalid scale ";
-                newrule.scale = 1;
-            }
-        }
-    }
+    parser.parseMode(ARGS[1]);
+    parser.parsePosition(ARGS[2]);
+    parser.parseScale(ARGS[3]);
 
     int argno = 4;
 
     while (!ARGS[argno].empty()) {
         if (ARGS[argno] == "mirror") {
-            newrule.mirrorOf = ARGS[argno + 1];
+            parser.setMirror(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "bitdepth") {
-            newrule.enable10bit = ARGS[argno + 1] == "10";
+            parser.parseBitdepth(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "cm") {
-            if (ARGS[argno + 1] == "auto")
-                newrule.cmType = CM_AUTO;
-            else if (ARGS[argno + 1] == "srgb")
-                newrule.cmType = CM_SRGB;
-            else if (ARGS[argno + 1] == "wide")
-                newrule.cmType = CM_WIDE;
-            else if (ARGS[argno + 1] == "edid")
-                newrule.cmType = CM_EDID;
-            else if (ARGS[argno + 1] == "hdr")
-                newrule.cmType = CM_HDR;
-            else if (ARGS[argno + 1] == "hdredid")
-                newrule.cmType = CM_HDR_EDID;
-            else
-                error = "invalid cm ";
+            parser.parseCM(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "sdrsaturation") {
-            try {
-                newrule.sdrSaturation = stof(ARGS[argno + 1]);
-            } catch (...) { error = "invalid sdrsaturation "; }
+            parser.parseSDRSaturation(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "sdrbrightness") {
-            try {
-                newrule.sdrBrightness = stof(ARGS[argno + 1]);
-            } catch (...) { error = "invalid sdrbrightness "; }
+            parser.parseSDRBrightness(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "transform") {
-            if (!isNumber(ARGS[argno + 1])) {
-                error = "invalid transform ";
-                argno++;
-                continue;
-            }
-
-            const auto NUM = std::stoi(ARGS[argno + 1]);
-
-            if (NUM < 0 || NUM > 7) {
-                error = "invalid transform ";
-                argno++;
-                continue;
-            }
-
-            newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
+            parser.parseTransform(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "vrr") {
-            if (!isNumber(ARGS[argno + 1])) {
-                error = "invalid vrr ";
-                argno++;
-                continue;
-            }
-
-            newrule.vrr = std::stoi(ARGS[argno + 1]);
+            parser.parseVRR(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
             const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
-            wsRule.monitor         = newrule.name;
+            wsRule.monitor         = parser.name();
             wsRule.workspaceString = ARGS[argno + 1];
             wsRule.workspaceId     = id;
             wsRule.workspaceName   = name;
@@ -2174,13 +2303,13 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         argno++;
     }
 
+    auto newrule = parser.rule();
+
     std::erase_if(m_monitorRules, [&](const auto& other) { return other.name == newrule.name; });
 
     m_monitorRules.push_back(newrule);
 
-    if (error.empty())
-        return {};
-    return error;
+    return parser.getError();
 }
 
 std::optional<std::string> CConfigManager::handleBezier(const std::string& command, const std::string& args) {

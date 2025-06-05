@@ -206,7 +206,7 @@ void CScreencopyFrame::renderMon() {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
             continue;
 
-        if (!g_pHyprRenderer->shouldRenderWindow(w))
+        if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
             continue;
 
         const auto PWORKSPACE = w->m_workspace;

@@ -125,8 +125,8 @@ std::vector<SInstanceData> instances() {
     if (ec)
         return result;
 
-    for (const auto& entry : it) {
-        if (auto instance = parseInstance(entry))
+    for (const auto& el : it) {
+        if (auto instance = parseInstance(el))
             result.emplace_back(std::move(*instance));
     }
 

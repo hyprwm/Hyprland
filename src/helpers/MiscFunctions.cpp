@@ -652,7 +652,7 @@ std::vector<pid_t> getAllPIDOf(const std::string& name) {
             continue;
 
         const auto  pid      = std::stoll(dirname);
-        std::string procName = getProcNameOf(pid);
+        std::string procName = binaryNameForPid(pid).value_or("");
 
         if (procName == name)
             results.push_back(pid);

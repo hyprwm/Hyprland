@@ -14,6 +14,9 @@
 #include <unistd.h>
 #include <algorithm>
 #include <csignal>
+#include <ranges>
+#include <optional>
+#include <charconv>
 
 #include <iostream>
 #include <string>
@@ -37,7 +40,6 @@ struct SInstanceData {
     uint64_t    time;
     uint64_t    pid;
     std::string wlSocket;
-    bool        valid = true;
 };
 
 void log(const std::string& str) {
@@ -64,50 +66,74 @@ std::string getRuntimeDir() {
     return std::string{XDG} + "/hypr";
 }
 
+static std::optional<uint64_t> toUInt64(const std::string& str) {
+    uint64_t value       = 0;
+    const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+    if (ec != std::errc() || ptr != str.data() + str.size())
+        return std::nullopt;
+    return value;
+}
+
+static std::optional<SInstanceData> parseInstance(const std::filesystem::directory_entry& entry) {
+    if (!entry.is_directory())
+        return std::nullopt;
+
+    const auto    lockPath = entry.path() / "hyprland.lock";
+    std::ifstream ifs(lockPath);
+    if (!ifs.is_open())
+        return std::nullopt;
+
+    SInstanceData data;
+    data.id = entry.path().filename().string();
+
+    const auto first = data.id.find_first_of('_');
+    const auto last  = data.id.find_last_of('_');
+    if (first == std::string::npos || last == std::string::npos || last <= first)
+        return std::nullopt;
+
+    auto time = toUInt64(data.id.substr(first + 1, last - first - 1));
+    if (!time)
+        return std::nullopt;
+    data.time = *time;
+
+    std::string line;
+    if (!std::getline(ifs, line))
+        return std::nullopt;
+
+    auto pid = toUInt64(line);
+    if (!pid)
+        return std::nullopt;
+    data.pid = *pid;
+
+    if (!std::getline(ifs, data.wlSocket))
+        return std::nullopt;
+
+    if (std::getline(ifs, line) && !line.empty())
+        return std::nullopt; // more lines than expected
+
+    return data;
+}
+
 std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
-    try {
-        if (!std::filesystem::exists(getRuntimeDir()))
-            return {};
-    } catch (std::exception& e) { return {}; }
+    std::error_code            ec;
+    const auto                 runtimeDir = getRuntimeDir();
+    if (!std::filesystem::exists(runtimeDir, ec) || ec)
+        return result;
 
-    std::error_code                     ec;
-    std::filesystem::directory_iterator it = std::filesystem::directory_iterator(getRuntimeDir(), std::filesystem::directory_options::skip_permission_denied, ec);
+    std::filesystem::directory_iterator it(runtimeDir, std::filesystem::directory_options::skip_permission_denied, ec);
     if (ec)
-        return {};
+        return result;
+
     for (const auto& el : it) {
-        if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
-            continue;
-        // read lock
-        SInstanceData* data = &result.emplace_back();
-        data->id            = el.path().filename().string();
-
-        try {
-            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1, data->id.find_last_of('_') - (data->id.find_first_of('_') + 1)));
-        } catch (std::exception& e) { continue; }
-
-        // read file
-        std::ifstream ifs(el.path().string() + "/hyprland.lock");
-
-        int           i = 0;
-        for (std::string line; std::getline(ifs, line); ++i) {
-            if (i == 0) {
-                try {
-                    data->pid = std::stoull(line);
-                } catch (std::exception& e) { continue; }
-            } else if (i == 1) {
-                data->wlSocket = line;
-            } else
-                break;
-        }
-
-        ifs.close();
+        if (auto instance = parseInstance(el))
+            result.emplace_back(std::move(*instance));
     }
 
-    std::erase_if(result, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
+    std::erase_if(result, [](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
 
-    std::sort(result.begin(), result.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+    std::ranges::sort(result, {}, &SInstanceData::time);
 
     return result;
 }

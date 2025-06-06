@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <csignal>
 #include <ranges>
+#include <optional>
+#include <charconv>
 
 #include <iostream>
 #include <string>

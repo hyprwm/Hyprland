@@ -91,8 +91,7 @@ static std::optional<SInstanceData> parseInstance(const std::filesystem::directo
     if (first == std::string::npos || last == std::string::npos || last <= first)
         return std::nullopt;
 
-    auto timeStr = data.id.substr(first + 1, last - first - 1);
-    auto time    = toUInt64(timeStr);
+    auto time = toUInt64(data.id.substr(first + 1, last - first - 1));
     if (!time)
         return std::nullopt;
     data.time = *time;

@@ -521,6 +521,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:scrolling", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
     registerConfigVar("group:groupbar:text_color_inactive", {(Hyprlang::INT)INT64_MAX});
+    registerConfigVar("group:groupbar:text_color_locked_active", {(Hyprlang::INT)INT64_MAX});
+    registerConfigVar("group:groupbar:text_color_locked_inactive", {(Hyprlang::INT)INT64_MAX});
     registerConfigVar("group:groupbar:stacked", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:rounding", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gradient_rounding", Hyprlang::INT{2});

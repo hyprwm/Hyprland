@@ -240,7 +240,12 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                                                         pMonitor->m_scale))
                                     .get();
 
-                const auto titleTex = m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? pTitleTex->m_texActive : pTitleTex->m_texInactive;
+                SP<CTexture> titleTex;
+                if (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow)
+                    titleTex = GROUPLOCKED ? pTitleTex->m_texLockedActive : pTitleTex->m_texActive;
+                else
+                    titleTex = GROUPLOCKED ? pTitleTex->m_texLockedInactive : pTitleTex->m_texInactive;
+
                 rect.y += std::ceil(((rect.height - titleTex->m_size.y) / 2.0) - (*PTEXTOFFSET * pMonitor->m_scale));
                 rect.height = titleTex->m_size.y;
                 rect.width  = titleTex->m_size.x;
@@ -284,6 +289,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTSIZE     = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto      PTEXTCOLORACTIVE   = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
     static auto      PTEXTCOLORINACTIVE = CConfigValue<Hyprlang::INT>("group:groupbar:text_color_inactive");
+    static auto      PTEXTCOLORLOCKEDACTIVE   = CConfigValue<Hyprlang::INT>("group:groupbar:text_color_locked_active");
+    static auto      PTEXTCOLORLOCKEDINACTIVE = CConfigValue<Hyprlang::INT>("group:groupbar:text_color_locked_inactive");
 
     static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
     static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
@@ -292,12 +299,16 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const auto       FONTWEIGHTINACTIVE = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
 
     const CHyprColor COLORACTIVE   = CHyprColor(*PTEXTCOLORACTIVE);
-    const CHyprColor COLORINACTIVE = CHyprColor(*PTEXTCOLORINACTIVE != INT64_MAX ? *PTEXTCOLORINACTIVE : *PTEXTCOLORACTIVE);
+    const CHyprColor COLORINACTIVE       = *PTEXTCOLORINACTIVE == INT64_MAX ? COLORACTIVE : CHyprColor(*PTEXTCOLORINACTIVE);
+    const CHyprColor COLORLOCKEDACTIVE   = *PTEXTCOLORLOCKEDACTIVE == INT64_MAX ? COLORACTIVE : CHyprColor(*PTEXTCOLORLOCKEDACTIVE);
+    const CHyprColor COLORLOCKEDINACTIVE = *PTEXTCOLORLOCKEDINACTIVE == INT64_MAX ? COLORINACTIVE : CHyprColor(*PTEXTCOLORLOCKEDINACTIVE);
 
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
     m_texActive   = g_pHyprOpenGL->renderText(pWindow->m_title, COLORACTIVE, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTACTIVE->m_value);
     m_texInactive = g_pHyprOpenGL->renderText(pWindow->m_title, COLORINACTIVE, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTINACTIVE->m_value);
+    m_texLockedActive   = g_pHyprOpenGL->renderText(pWindow->m_title, COLORLOCKEDACTIVE, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTACTIVE->m_value);
+    m_texLockedInactive = g_pHyprOpenGL->renderText(pWindow->m_title, COLORLOCKEDINACTIVE, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTINACTIVE->m_value);
 }
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {

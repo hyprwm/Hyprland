@@ -1025,6 +1025,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:text_color_locked_active",
+        .description = "color for the active window's title in a locked group (if unset, defaults to text_color)",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_color_locked_inactive",
+        .description = "color for inactive windows' titles in locked groups (if unset, defaults to text_color_inactive)",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:col.active",
         .description = "active group border color",
         .type        = CONFIG_OPTION_COLOR,

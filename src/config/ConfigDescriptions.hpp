@@ -1014,15 +1014,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:text_color",
-        .description = "controls the group bar text color for the active window",
+        .description = "color for window titles in the groupbar",
         .type        = CONFIG_OPTION_COLOR,
         .data        = SConfigOptionDescription::SColorData{0xffffffff},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:text_color_inactive",
-        .description = "controls the group bar text color for inactive windows",
+        .description = "color for inactive windows' titles in the groupbar (if unset, defaults to text_color)",
         .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0xff333333},
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:col.active",

@@ -292,7 +292,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const auto       FONTWEIGHTINACTIVE = (CFontWeightConfigValueData*)(PTITLEFONTWEIGHTINACTIVE.ptr())->getData();
 
     const CHyprColor COLORACTIVE   = CHyprColor(*PTEXTCOLORACTIVE);
-    const CHyprColor COLORINACTIVE = CHyprColor(*PTEXTCOLORINACTIVE);
+    const CHyprColor COLORINACTIVE = CHyprColor(*PTEXTCOLORINACTIVE != INT64_MAX ? *PTEXTCOLORINACTIVE : *PTEXTCOLORACTIVE);
+
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
     m_texActive   = g_pHyprOpenGL->renderText(pWindow->m_title, COLORACTIVE, *PTITLEFONTSIZE * monitorScale, false, FONTFAMILY, bufferSize.x - 2, FONTWEIGHTACTIVE->m_value);

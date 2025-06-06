@@ -946,13 +946,13 @@ pid_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWor
 
         for (auto const& r : RULESLIST) {
             Debug::log(CRIT, "PROC = {}", PROC);
-            Debug::log(CRIT, "getProcNameOf(PROC) = {}", getProcNameOf(PROC));
-            Debug::log(CRIT, "getAllPIDOf(getProcNameOf(PROC)) = {}", getAllPIDOf(getProcNameOf(PROC)));
+            Debug::log(CRIT, "getProcNameOf(PROC) = {}", *binaryNameForPid(PROC));
+            Debug::log(CRIT, "getAllPIDOf(getProcNameOf(PROC)) = {}", getAllPIDOf(*binaryNameForPid(PROC)));
             if (r == "global")
                 global = true;
             else {
                 if (global)
-                    for (const auto& pid : getAllPIDOf(binaryNameForPid(PROC)))
+                    for (const auto& pid : getAllPIDOf(*binaryNameForPid(PROC)))
                         g_pConfigManager->addExecRule({r, (unsigned long)pid});
                 else
                     g_pConfigManager->addExecRule({r, (unsigned long)PROC});

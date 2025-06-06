@@ -2103,10 +2103,20 @@ bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
             m_rule.autoDir = eAutoDirs::DIR_AUTO_UP;
         else if (value == "auto-down")
             m_rule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
+        else if (value == "auto-center-right")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_CENTER_RIGHT;
+        else if (value == "auto-center-left")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_CENTER_LEFT;
+        else if (value == "auto-center-up")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_CENTER_UP;
+        else if (value == "auto-center-down")
+            m_rule.autoDir = eAutoDirs::DIR_AUTO_CENTER_DOWN;
         else {
             Debug::log(WARN,
                        "Invalid auto direction. Valid options are 'auto',"
-                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+                       "'auto-up', 'auto-down', 'auto-left', 'auto-right',"
+                       "'auto-center-up', 'auto-center-down',"
+                       "'auto-center-left', and 'auto-center-right'.");
             m_error += "invalid auto direction ";
             return false;
         }

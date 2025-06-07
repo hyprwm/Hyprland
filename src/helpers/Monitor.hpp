@@ -85,6 +85,7 @@ class CMonitor {
 
     Vector2D                    m_position         = Vector2D(-1, -1); // means unset
     Vector2D                    m_xwaylandPosition = Vector2D(-1, -1); // means unset
+    eAutoDirs                   m_autoDir          = DIR_AUTO_NONE;
     Vector2D                    m_size             = Vector2D(0, 0);
     Vector2D                    m_pixelSize        = Vector2D(0, 0);
     Vector2D                    m_transformedSize  = Vector2D(0, 0);

@@ -256,7 +256,7 @@ void CScreencopyFrame::renderMon() {
 
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
-                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);
+                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos() / m_monitor->m_scale, true);
 }
 
 void CScreencopyFrame::storeTempFB() {

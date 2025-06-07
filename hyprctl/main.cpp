@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
             parseArgs = false;
             continue;
         }
-        if (parseArgs && (ARGS[i][0] == '-') && !isNumber(ARGS[i], true) /* For stuff like -2 */) {
+        if (parseArgs && (ARGS[i][0] == '-') && !(isNumber(ARGS[i], true) || isNumber(ARGS[i].substr(0, ARGS[i].length() - 1), true)) /* For stuff like -2 or -2, */) {
             // parse
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";

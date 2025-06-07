@@ -452,6 +452,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && m_pixelSize.x > 1 && m_pixelSize.y > 1                     /* Active resolution is not invalid */
         && DELTALESSTHAN(m_refreshRate, RULE->refreshRate, 1)         /* Refresh rate is the same */
         && m_setScale == RULE->scale                                  /* Scale is the same */
+        && m_autoDir == RULE->autoDir                                 /* Auto direction is the same */
         /* position is set correctly */
         && ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX))
         /* other properties hadnt changed */
@@ -477,6 +478,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_setScale  = m_scale;
     m_transform = RULE->transform;
+    m_autoDir   = RULE->autoDir;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;

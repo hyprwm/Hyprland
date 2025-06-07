@@ -152,15 +152,39 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     PWINDOW->updateWindowDecos();
 
-    auto       calcPos  = PWINDOW->m_position;
-    auto       calcSize = PWINDOW->m_size;
+    auto              calcPos  = PWINDOW->m_position;
+    auto              calcSize = PWINDOW->m_size;
 
-    const auto OFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const static auto REQUESTEDRATIO          = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
+    const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    Vector2D          ratioPadding;
 
-    calcPos  = calcPos + OFFSETTOPLEFT;
-    calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
+    if (REQUESTEDRATIO.y != 0 && !pNode->pParent) {
+        const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+
+        const double   requestedRatio = REQUESTEDRATIO.x / REQUESTEDRATIO.y;
+        const double   originalRatio  = originalSize.x / originalSize.y;
+
+        if (requestedRatio > originalRatio) {
+            double padding = originalSize.y - (originalSize.x / requestedRatio);
+
+            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.y)
+                ratioPadding = Vector2D{0., padding};
+        } else if (requestedRatio < originalRatio) {
+            double padding = originalSize.x - (originalSize.y * requestedRatio);
+
+            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.x)
+                ratioPadding = Vector2D{padding, 0.};
+        }
+    }
+
+    const auto GAPOFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+
+    const auto GAPOFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+
+    calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
+    calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
 
     if (PWINDOW->m_isPseudotiled) {
         // Calculate pseudo
@@ -295,32 +319,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     // if it's the first, it's easy. Make it fullscreen.
     if (!OPENINGON || OPENINGON->pWindow.lock() == pWindow) {
-        const auto REQUESTED_RATIO           = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
-        const auto REQUESTED_RATIO_TOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
-
-        Vector2D   ratioPadding;
-
-        if (REQUESTED_RATIO.y != 0) {
-            const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
-
-            const double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
-            const double   originalRatio  = originalSize.x / originalSize.y;
-
-            if (requestedRatio > originalRatio) {
-                double padding = originalSize.y - originalSize.x / requestedRatio;
-
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.y)
-                    ratioPadding = Vector2D{0., padding};
-            } else if (requestedRatio < originalRatio) {
-                double padding = originalSize.x - originalSize.y * requestedRatio;
-
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.x)
-                    ratioPadding = Vector2D{padding, 0.};
-            }
-        }
-
-        PNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft + ratioPadding / 2,
-                          PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight - ratioPadding};
+        PNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
 
         applyNodeDataToWindow(PNODE);
 
@@ -554,39 +553,8 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     const auto TOPNODE = getMasterNodeOnWorkspace(pWorkspace->m_id);
 
-    if (!TOPNODE)
-        return;
-
-    if (TOPNODE->isNode) {
+    if (TOPNODE) {
         TOPNODE->box = {PMONITOR->m_position + PMONITOR->m_reservedTopLeft, PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight};
-        TOPNODE->recalcSizePosRecursive();
-    } else {
-        const auto REQUESTED_RATIO           = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
-        const auto REQUESTED_RATIO_TOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
-
-        Vector2D   ratioPadding;
-
-        if (REQUESTED_RATIO.y != 0) {
-            const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
-
-            const double   requestedRatio = REQUESTED_RATIO.x / REQUESTED_RATIO.y;
-            const double   originalRatio  = originalSize.x / originalSize.y;
-
-            if (requestedRatio > originalRatio) {
-                double padding = originalSize.y - originalSize.x / requestedRatio;
-
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.y)
-                    ratioPadding = Vector2D{0., padding};
-            } else if (requestedRatio < originalRatio) {
-                double padding = originalSize.x - originalSize.y * requestedRatio;
-
-                if (padding / 2 > (*REQUESTED_RATIO_TOLERANCE) * originalSize.x)
-                    ratioPadding = Vector2D{padding, 0.};
-            }
-        }
-
-        TOPNODE->box = CBox{PMONITOR->m_position + PMONITOR->m_reservedTopLeft + ratioPadding / 2,
-                            PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight - ratioPadding};
         TOPNODE->recalcSizePosRecursive();
     }
 }

@@ -10,4 +10,3 @@ template <typename T>
 using WP = Hyprutils::Memory::CWeakPointer<T>;
 template <typename T>
 using UP = Hyprutils::Memory::CUniquePointer<T>;
-

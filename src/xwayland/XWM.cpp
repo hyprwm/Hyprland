@@ -1,9 +1,11 @@
-#include "helpers/math/Math.hpp"
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <xcb/xfixes.h>
+#include <xcb/xproto.h>
 #ifndef NO_XWAYLAND
 
-#include <ranges>
 #include <fcntl.h>
 #include <cstring>
 #include <algorithm>
@@ -11,7 +13,6 @@
 #include <xcb/xcb_icccm.h>
 
 #include "XWayland.hpp"
-#include "../defines.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
@@ -22,9 +23,9 @@
 using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
-#define INCR_CHUNK_SIZE              (64 * 1024)
+constexpr size_t INCR_CHUNK_SIZE = 64ul * 1024;
 
-static int onX11Event(int fd, uint32_t mask, void* data) {
+static int       onX11Event(int fd, uint32_t mask, void* data) {
     return g_pXWayland->m_wm->onEvent(fd, mask);
 }
 
@@ -181,15 +182,15 @@ std::string CXWM::getAtomName(uint32_t atom) {
     }
 
     // Get the name of the atom
-    auto const atom_name_cookie = xcb_get_atom_name(m_connection, atom);
-    auto*      atom_name_reply  = xcb_get_atom_name_reply(m_connection, atom_name_cookie, nullptr);
+    const auto cookie = xcb_get_atom_name(m_connection, atom);
+    using ReplyPtr    = std::unique_ptr<xcb_get_atom_name_reply_t, decltype(&free)>;
+    ReplyPtr reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr), &free);
 
-    if (!atom_name_reply)
+    if (!reply)
         return "Unknown";
 
-    auto const name_len = xcb_get_atom_name_name_length(atom_name_reply);
-    auto*      name     = xcb_get_atom_name_name(atom_name_reply);
-    free(atom_name_reply);
+    auto const name_len = xcb_get_atom_name_name_length(reply.get());
+    auto*      name     = xcb_get_atom_name_name(reply.get());
 
     return {name, name_len};
 }
@@ -332,15 +333,15 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
         return;
 
     xcb_get_property_cookie_t cookie = xcb_get_property(m_connection, 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
-    xcb_get_property_reply_t* reply  = xcb_get_property_reply(m_connection, cookie, nullptr);
+    using ReplyPtr                   = std::unique_ptr<xcb_get_property_reply_t, decltype(&free)>;
+    ReplyPtr reply(xcb_get_property_reply(m_connection, cookie, nullptr), &free);
+
     if (!reply) {
         Debug::log(ERR, "[xwm] Failed to read property notify cookie");
         return;
     }
 
-    readProp(XSURF, e->atom, reply);
-
-    free(reply);
+    readProp(XSURF, e->atom, reply.get());
 }
 
 void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
@@ -573,11 +574,12 @@ xcb_atom_t CXWM::mimeToAtom(const std::string& mime) {
         return HYPRATOMS["TEXT"];
 
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(m_connection, 0, mime.length(), mime.c_str());
-    xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(m_connection, cookie, nullptr);
-    if (!reply)
+    using ReplyPtr                  = std::unique_ptr<xcb_intern_atom_reply_t, decltype(&free)>;
+    ReplyPtr reply(xcb_intern_atom_reply(m_connection, cookie, nullptr), &free);
+    if (!reply.get())
         return XCB_ATOM_NONE;
-    xcb_atom_t atom = reply->atom;
-    free(reply);
+    xcb_atom_t atom = reply.get()->atom;
+
     return atom;
 }
 
@@ -588,13 +590,13 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
         return "text/plain";
 
     xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(m_connection, atom);
-    xcb_get_atom_name_reply_t* reply  = xcb_get_atom_name_reply(m_connection, cookie, nullptr);
+    using ReplyPtr                    = std::unique_ptr<xcb_get_atom_name_reply_t, decltype(&free)>;
+    ReplyPtr reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr), &free);
     if (!reply)
         return "INVALID";
-    size_t      len = xcb_get_atom_name_name_length(reply);
-    char*       buf = xcb_get_atom_name_name(reply); // not a C string
+    size_t      len = xcb_get_atom_name_name_length(reply.get());
+    char*       buf = xcb_get_atom_name_name(reply.get()); // not a C string
     std::string SZNAME{buf, len};
-    free(reply);
     return SZNAME;
 }
 
@@ -795,37 +797,34 @@ int CXWM::onEvent(int fd, uint32_t mask) {
     }
 
     int processedEventCount = 0;
-
-    while (42069) {
-        xcb_generic_event_t* event = xcb_poll_for_event(m_connection);
+    using XCBEventPtr       = std::unique_ptr<xcb_generic_event_t, decltype(&free)>;
+    while (true) {
+        XCBEventPtr event(xcb_poll_for_event(m_connection), &free);
         if (!event)
             break;
 
         processedEventCount++;
 
-        if (handleSelectionEvent(event)) {
-            free(event);
+        if (handleSelectionEvent(event.get()))
             continue;
-        }
 
         switch (event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
-            case XCB_CREATE_NOTIFY: handleCreate((xcb_create_notify_event_t*)event); break;
-            case XCB_DESTROY_NOTIFY: handleDestroy((xcb_destroy_notify_event_t*)event); break;
-            case XCB_CONFIGURE_REQUEST: handleConfigureRequest((xcb_configure_request_event_t*)event); break;
-            case XCB_CONFIGURE_NOTIFY: handleConfigureNotify((xcb_configure_notify_event_t*)event); break;
-            case XCB_MAP_REQUEST: handleMapRequest((xcb_map_request_event_t*)event); break;
-            case XCB_MAP_NOTIFY: handleMapNotify((xcb_map_notify_event_t*)event); break;
-            case XCB_UNMAP_NOTIFY: handleUnmapNotify((xcb_unmap_notify_event_t*)event); break;
-            case XCB_PROPERTY_NOTIFY: handlePropertyNotify((xcb_property_notify_event_t*)event); break;
-            case XCB_CLIENT_MESSAGE: handleClientMessage((xcb_client_message_event_t*)event); break;
-            case XCB_FOCUS_IN: handleFocusIn((xcb_focus_in_event_t*)event); break;
-            case XCB_FOCUS_OUT: handleFocusOut((xcb_focus_out_event_t*)event); break;
-            case 0: handleError((xcb_value_error_t*)event); break;
+            case XCB_CREATE_NOTIFY: handleCreate((xcb_create_notify_event_t*)event.get()); break;
+            case XCB_DESTROY_NOTIFY: handleDestroy((xcb_destroy_notify_event_t*)event.get()); break;
+            case XCB_CONFIGURE_REQUEST: handleConfigureRequest((xcb_configure_request_event_t*)event.get()); break;
+            case XCB_CONFIGURE_NOTIFY: handleConfigureNotify((xcb_configure_notify_event_t*)event.get()); break;
+            case XCB_MAP_REQUEST: handleMapRequest((xcb_map_request_event_t*)event.get()); break;
+            case XCB_MAP_NOTIFY: handleMapNotify((xcb_map_notify_event_t*)event.get()); break;
+            case XCB_UNMAP_NOTIFY: handleUnmapNotify((xcb_unmap_notify_event_t*)event.get()); break;
+            case XCB_PROPERTY_NOTIFY: handlePropertyNotify((xcb_property_notify_event_t*)event.get()); break;
+            case XCB_CLIENT_MESSAGE: handleClientMessage((xcb_client_message_event_t*)event.get()); break;
+            case XCB_FOCUS_IN: handleFocusIn((xcb_focus_in_event_t*)event.get()); break;
+            case XCB_FOCUS_OUT: handleFocusOut((xcb_focus_out_event_t*)event.get()); break;
+            case 0: handleError((xcb_value_error_t*)event.get()); break;
             default: {
                 Debug::log(TRACE, "[xwm] unhandled event {}", event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK);
             }
         }
-        free(event);
     }
 
     if (processedEventCount)
@@ -841,7 +840,8 @@ void CXWM::gatherResources() {
 
     for (auto& ATOM : HYPRATOMS) {
         xcb_intern_atom_cookie_t cookie = xcb_intern_atom(m_connection, 0, ATOM.first.length(), ATOM.first.c_str());
-        xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(m_connection, cookie, nullptr);
+        using ReplyPtr                  = std::unique_ptr<xcb_intern_atom_reply_t, decltype(&free)>;
+        ReplyPtr reply(xcb_intern_atom_reply(m_connection, cookie, nullptr), &free);
 
         if (!reply) {
             Debug::log(ERR, "[xwm] Atom failed: {}", ATOM.first);
@@ -849,7 +849,6 @@ void CXWM::gatherResources() {
         }
 
         ATOM.second = reply->atom;
-        free(reply);
     }
 
     m_xfixes = xcb_get_extension_data(m_connection, &xcb_xfixes_id);
@@ -858,14 +857,13 @@ void CXWM::gatherResources() {
         Debug::log(WARN, "XFixes not available");
 
     xcb_xfixes_query_version_cookie_t xfixes_cookie;
-    xcb_xfixes_query_version_reply_t* xfixes_reply;
+    using ReplyPtr = std::unique_ptr<xcb_xfixes_query_version_reply_t, decltype(&free)>;
+
     xfixes_cookie = xcb_xfixes_query_version(m_connection, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
-    xfixes_reply  = xcb_xfixes_query_version_reply(m_connection, xfixes_cookie, nullptr);
+    ReplyPtr xfixes_reply(xcb_xfixes_query_version_reply(m_connection, xfixes_cookie, nullptr), &free);
 
     Debug::log(LOG, "xfixes version: {}.{}", xfixes_reply->major_version, xfixes_reply->minor_version);
     m_xfixesMajor = xfixes_reply->major_version;
-
-    free(xfixes_reply);
 
     const xcb_query_extension_reply_t* xresReply1 = xcb_get_extension_data(m_connection, &xcb_res_id);
     if (!xresReply1 || !xresReply1->present)
@@ -912,12 +910,14 @@ void CXWM::getVisual() {
 
 void CXWM::getRenderFormat() {
     xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(m_connection);
-    xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(m_connection, cookie, nullptr);
+    using ReplyPtr                                = std::unique_ptr<xcb_render_query_pict_formats_reply_t, decltype(&free)>;
+    ReplyPtr reply(xcb_render_query_pict_formats_reply(m_connection, cookie, nullptr), &free);
+
     if (!reply) {
         Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
-    xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply);
+    xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply.get());
     xcb_render_pictforminfo_t*         format = nullptr;
     while (iter.rem > 0) {
         if (iter.data->depth == 32) {
@@ -930,12 +930,10 @@ void CXWM::getRenderFormat() {
 
     if (format == nullptr) {
         Debug::log(LOG, "xwm: No 32-bit render format");
-        free(reply);
         return;
     }
 
     m_renderFormatID = format->id;
-    free(reply);
 }
 
 CXWM::CXWM() : m_connection(g_pXWayland->m_server->m_xwmFDs[0].get()) {
@@ -1108,13 +1106,13 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
 
     for (size_t i = 0; i < interestingProps.size(); i++) {
         xcb_get_property_cookie_t cookie = xcb_get_property(m_connection, 0, surf->m_xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
-        xcb_get_property_reply_t* reply  = xcb_get_property_reply(m_connection, cookie, nullptr);
+        using ReplyPtr                   = std::unique_ptr<xcb_get_property_reply_t, decltype(&free)>;
+        ReplyPtr reply(xcb_get_property_reply(m_connection, cookie, nullptr), &free);
         if (!reply) {
             Debug::log(ERR, "[xwm] Failed to get window property");
             continue;
         }
-        readProp(surf, interestingProps[i], reply);
-        free(reply);
+        readProp(surf, interestingProps[i], reply.get());
     }
 }
 
@@ -1285,19 +1283,20 @@ void CXWM::getTransferData(SXSelection& sel) {
         return;
     }
 
-    const size_t pos = std::distance(sel.transfers.begin(), it);
+    const size_t transferIndex = std::distance(sel.transfers.begin(), it);
     sel.onWrite();
 
-    if (pos >= sel.transfers.size())
+    if (transferIndex >= sel.transfers.size())
         return;
 
-    auto newIt = sel.transfers.begin() + pos;
-    if (newIt == sel.transfers.end() || !(*newIt))
+    Hyprutils::Memory::CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
+    if (!updatedTransfer)
         return;
 
-    auto& updatedTransfer = *newIt;
-    if (updatedTransfer->eventSource && updatedTransfer->wlFD.get() != -1)
-        updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
+    if (updatedTransfer->eventSource && updatedTransfer->wlFD.get() == -1)
+        return;
+
+    updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
 }
 
 void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot) {
@@ -1315,7 +1314,7 @@ void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& si
     xcb_create_pixmap(m_connection, CURSOR_DEPTH, pix, m_screen->root, size.x, size.y);
 
     xcb_render_picture_t pic = xcb_generate_id(m_connection);
-    xcb_render_create_picture(m_connection, pic, pix, m_renderFormatID, 0, 0);
+    xcb_render_create_picture(m_connection, pic, pix, m_renderFormatID, 0, nullptr);
 
     xcb_gcontext_t gc = xcb_generate_id(m_connection);
     xcb_create_gc(m_connection, gc, pix, 0, nullptr);
@@ -1397,34 +1396,38 @@ void SXSelection::onKeyboardFocus() {
 
 int SXSelection::onRead(int fd, uint32_t mask) {
     auto it = std::ranges::find_if(transfers, [fd](const auto& t) { return t->wlFD.get() == fd; });
+
     if (it == transfers.end()) {
         Debug::log(ERR, "[xwm] No transfer found for fd {}", fd);
         return 0;
     }
 
-    auto&  transfer = *it;
-    size_t pre      = transfer->data.size();
-    transfer->data.resize(INCR_CHUNK_SIZE + pre);
+    auto&        transfer = *it;
+    const size_t oldSize  = transfer->data.size();
+    transfer->data.resize(oldSize + INCR_CHUNK_SIZE);
 
-    auto len = read(fd, transfer->data.data() + pre, INCR_CHUNK_SIZE - 1);
-    if (len < 0) {
+    ssize_t bytesRead = read(fd, transfer->data.data() + oldSize, INCR_CHUNK_SIZE - 1);
+
+    if (bytesRead < 0) {
         Debug::log(ERR, "[xwm] readDataSource died");
         g_pXWayland->m_wm->selectionSendNotify(&transfer->request, false);
         transfers.erase(it);
         return 0;
     }
 
-    transfer->data.resize(pre + len);
+    transfer->data.resize(oldSize + bytesRead);
 
-    if (len == 0) {
-        Debug::log(LOG, "[xwm] Received all the bytes, final length {}", transfer->data.size());
-        xcb_change_property(g_pXWayland->m_wm->m_connection, XCB_PROP_MODE_REPLACE, transfer->request.requestor, transfer->request.property, transfer->request.target, 8,
-                            transfer->data.size(), transfer->data.data());
-        xcb_flush(g_pXWayland->m_wm->m_connection);
+    if (bytesRead == 0) {
+        Debug::log(LOG, "[xwm] Transfer complete, total size: {}", transfer->data.size());
+        auto conn = g_pXWayland->m_wm->m_connection;
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, transfer->request.requestor, transfer->request.property, transfer->request.target, 8, transfer->data.size(),
+                            transfer->data.data());
+
+        xcb_flush(conn);
         g_pXWayland->m_wm->selectionSendNotify(&transfer->request, true);
         transfers.erase(it);
     } else
-        Debug::log(LOG, "[xwm] Received {} bytes, waiting...", len);
+        Debug::log(LOG, "[xwm] Received {} bytes, awaiting more...", bytesRead);
 
     return 1;
 }

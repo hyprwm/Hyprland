@@ -13,7 +13,7 @@ using namespace Hyprutils::Utils;
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision.
+┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
 ┃                          is optional, when set, commit locks are ignored.
 ┣ remove [url/name]      → Remove an installed plugin repository.
 ┣ enable [name]          → Enable a plugin.

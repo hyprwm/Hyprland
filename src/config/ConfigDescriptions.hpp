@@ -623,9 +623,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:drag_lock",
-        .description = "When enabled, lifting the finger off for a short time while dragging will not drop the dragged item.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "When enabled, lifting the finger off while dragging will not drop the dragged item. 0 -> disabled, 1 -> enabled with timeout, 2 -> enabled sticky."
+                       "dragging will not drop the dragged item.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:tap-and-drag",

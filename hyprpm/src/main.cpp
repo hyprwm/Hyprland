@@ -101,8 +101,18 @@ int                        main(int argc, char** argv, char** envp) {
         if (command.size() >= 3)
             rev = command[2];
 
+        const auto HLVER       = g_pPluginManager->getHyprlandVersion();
+        auto       GLOBALSTATE = DataState::getGlobalState();
+
+        if (GLOBALSTATE.headersHashCompiled != HLVER.hash) {
+            std::println(stderr, "{}", failureString("Headers outdated, please run hyprpm update."));
+            return 1;
+        }
+
         NSys::root::cacheSudo();
         CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        g_pPluginManager->updateHeaders(false);
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {

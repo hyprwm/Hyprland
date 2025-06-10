@@ -595,6 +595,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:smart_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("dwindle:precise_mouse_move", Hyprlang::INT{0});
+    registerConfigVar("dwindle:single_window_aspect_ratio", Hyprlang::VEC2{0, 0});
+    registerConfigVar("dwindle:single_window_aspect_ratio_tolerance", {0.1f});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});

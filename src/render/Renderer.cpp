@@ -1165,6 +1165,11 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
+    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
+        Debug::log(ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
+        return;
+    }
+
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 

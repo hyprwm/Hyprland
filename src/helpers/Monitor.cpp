@@ -21,6 +21,7 @@
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/LayoutManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
@@ -47,7 +48,8 @@ static int ratHandler(void* data) {
 }
 
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
-    ;
+    g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
+    m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -1221,6 +1223,9 @@ void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMous
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
+
+    m_specialFade->setConfig(g_pConfigManager->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
+    *m_specialFade = pWorkspace ? 1.F : 0.F;
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 

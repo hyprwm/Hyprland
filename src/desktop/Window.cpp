@@ -510,6 +510,12 @@ void CWindow::onUnmap() {
 
     m_lastWorkspace = m_workspace->m_id;
 
+    // if the special workspace now has 0 windows, it will be closed, and this
+    // window will no longer pass render checks, cuz the workspace will be nuked.
+    // throw it into the main one for the fadeout.
+    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0)
+        m_lastWorkspace = m_monitor->activeWorkspaceID();
+
     std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_self; });
 
     if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {

@@ -850,9 +850,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (scale != 1.f)
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
-    if (!RENDERMODIFDATA.modifs.empty()) {
+    if (!RENDERMODIFDATA.modifs.empty())
         g_pHyprRenderer->m_renderPass.add(makeShared<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
-    }
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
@@ -911,41 +910,38 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
-    for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_monitor == pMonitor && ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
-            const auto SPECIALANIMPROGRS = ws->m_renderOffset->isBeingAnimated() ? ws->m_renderOffset->getCurveValue() : ws->m_alpha->getCurveValue();
-            const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
+    if (pMonitor->m_specialFade->value() != 0.F) {
+        const auto SPECIALANIMPROGRS = pMonitor->m_specialFade->getCurveValue();
+        const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
 
-            if (*PDIMSPECIAL != 0.f) {
-                CRectPassElement::SRectData data;
-                data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-                data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+        if (*PDIMSPECIAL != 0.f) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
 
-                g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
-            }
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
+        }
 
-            if (*PBLURSPECIAL && *PBLUR) {
-                CRectPassElement::SRectData data;
-                data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-                data.color = CHyprColor(0, 0, 0, 0);
-                data.blur  = true;
-                data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
+        if (*PBLURSPECIAL && *PBLUR) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, 0);
+            data.blur  = true;
+            data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
 
-                g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
-            }
-
-            break;
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
         }
     }
 
     // special
     for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
-            if (ws->m_hasFullscreenWindow) {
-                renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
-            } else
-                renderWorkspaceWindows(pMonitor, ws, time);
-        }
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
+            continue;
+
+        if (ws->m_hasFullscreenWindow)
+            renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
+        else
+            renderWorkspaceWindows(pMonitor, ws, time);
     }
 
     // pinned always above
@@ -2160,6 +2156,13 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
 
     if (pMonitor->m_activeSpecialWorkspace)
         return;
+
+    for (auto const& ws : g_pCompositor->m_workspaces) {
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != pMonitor)
+            continue;
+
+        return;
+    }
 
     // check if it did not open any subsurfaces or shit
     int surfaceCount = 0;

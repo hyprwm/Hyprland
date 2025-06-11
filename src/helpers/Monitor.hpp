@@ -7,6 +7,7 @@
 #include "MiscFunctions.hpp"
 #include "WLClasses.hpp"
 #include <array>
+#include "AnimatedVariable.hpp"
 
 #include <xf86drmMode.h>
 #include "time/Timer.hpp"
@@ -160,6 +161,9 @@ class CMonitor {
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
     bool         m_scanoutNeedsCursorUpdate = false;
+
+    // for special fade/blur
+    PHLANIMVAR<float> m_specialFade;
 
     struct {
         bool canTear         = false;

@@ -336,6 +336,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
+	PROTO::colorManagement ? PROTO::colorManagement->getGlobal() : nullptr,
     };
     // clang-format on
 

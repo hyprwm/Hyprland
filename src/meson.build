@@ -21,7 +21,7 @@ executable(
     dependency('libdrm'),
     dependency('egl'),
     dependency('xkbcommon'),
-    dependency('libinput'),
+    dependency('libinput', version: '>=1.28'),
     dependency('re2'),
     xcb_dep,
     xcb_composite_dep,

@@ -175,8 +175,13 @@ void CMonitor::onConnect(bool noRule) {
 
     if (m_output->nonDesktop) {
         Debug::log(LOG, "Not configuring non-desktop output");
-        if (PROTO::lease)
-            PROTO::lease->offer(m_self.lock());
+
+        for (auto& [name, lease] : PROTO::lease) {
+            if (!lease || m_output->getBackend() != lease->getBackend())
+                continue;
+
+            lease->offer(m_self.lock());
+        }
 
         return;
     }

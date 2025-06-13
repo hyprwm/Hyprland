@@ -1,7 +1,10 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/Monitor.hpp"
+#include "drm-lease-v1.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include "protocols/WaylandProtocol.hpp"
+#include <algorithm>
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>
 using namespace Hyprutils::OS;
@@ -10,11 +13,17 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CWpDrmLeaseV1* r) { PROTO::lease->destroyResource(this); });
-    m_resource->setDestroy([this](CWpDrmLeaseV1* r) { PROTO::lease->destroyResource(this); });
-
     m_parent    = request->m_parent;
     m_requested = request->m_requested;
+
+    m_resource->setOnDestroy([this](CWpDrmLeaseV1* r) {
+        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
+            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+    });
+    m_resource->setDestroy([this](CWpDrmLeaseV1* r) {
+        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
+            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+    });
 
     for (auto const& m : m_requested) {
         if (!m->m_monitor || m->m_monitor->m_isBeingLeased) {
@@ -82,11 +91,14 @@ CDRMLeaseResource::~CDRMLeaseResource() {
     m_listeners.destroyLease.reset();
 }
 
-CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> resource_) : m_resource(resource_) {
+CDRMLeaseRequestResource::CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseRequestV1> resource_) : m_parent(parent_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CWpDrmLeaseRequestV1* r) { PROTO::lease->destroyResource(this); });
+    m_resource->setOnDestroy([this](CWpDrmLeaseRequestV1* r) {
+        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
+            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+    });
 
     m_resource->setRequestConnector([this](CWpDrmLeaseRequestV1* r, wl_resource* conn) {
         if (!conn) {
@@ -101,7 +113,12 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> reso
             return;
         }
 
-        // TODO: when (if) we add multi, make sure this is from the correct device.
+        auto& lease = PROTO::lease.at(m_parent->m_deviceName);
+
+        if (std::ranges::find(lease->m_connectors.begin(), lease->m_connectors.end(), CONNECTOR) == lease->m_connectors.end()) {
+            m_resource->error(WP_DRM_LEASE_REQUEST_V1_ERROR_WRONG_DEVICE, "Connector requested for wrong device");
+            return;
+        }
 
         m_requested.emplace_back(CONNECTOR);
     });
@@ -118,10 +135,10 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> reso
             return;
         }
 
-        PROTO::lease->m_leases.emplace_back(RESOURCE);
+        PROTO::lease.at(m_parent->m_deviceName)->m_leases.emplace_back(RESOURCE);
 
         // per protcol, after submit, this is dead.
-        PROTO::lease->destroyResource(this);
+        PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
     });
 }
 
@@ -134,12 +151,19 @@ SP<CDRMLeaseConnectorResource> CDRMLeaseConnectorResource::fromResource(wl_resou
     return data ? data->m_self.lock() : nullptr;
 }
 
-CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_) : m_monitor(monitor_), m_resource(resource_) {
+CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_) :
+    m_parent(parent_), m_monitor(monitor_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CWpDrmLeaseConnectorV1* r) { PROTO::lease->destroyResource(this); });
-    m_resource->setDestroy([this](CWpDrmLeaseConnectorV1* r) { PROTO::lease->destroyResource(this); });
+    m_resource->setOnDestroy([this](CWpDrmLeaseConnectorV1* r) {
+        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
+            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+    });
+    m_resource->setDestroy([this](CWpDrmLeaseConnectorV1* r) {
+        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
+            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+    });
 
     m_resource->setData(this);
 
@@ -163,15 +187,21 @@ void CDRMLeaseConnectorResource::sendData() {
     m_resource->sendDone();
 }
 
-CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resource_) : m_resource(resource_) {
+CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(std::string deviceName_, SP<CWpDrmLeaseDeviceV1> resource_) : m_deviceName(deviceName_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CWpDrmLeaseDeviceV1* r) { PROTO::lease->destroyResource(this); });
-    m_resource->setRelease([this](CWpDrmLeaseDeviceV1* r) { PROTO::lease->destroyResource(this); });
+    m_resource->setOnDestroy([this](CWpDrmLeaseDeviceV1* r) {
+        if (PROTO::lease.contains(m_deviceName))
+            PROTO::lease.at(m_deviceName)->destroyResource(this);
+    });
+    m_resource->setRelease([this](CWpDrmLeaseDeviceV1* r) {
+        if (PROTO::lease.contains(m_deviceName))
+            PROTO::lease.at(m_deviceName)->destroyResource(this);
+    });
 
     m_resource->setCreateLeaseRequest([this](CWpDrmLeaseDeviceV1* r, uint32_t id) {
-        auto RESOURCE = makeShared<CDRMLeaseRequestResource>(makeShared<CWpDrmLeaseRequestV1>(m_resource->client(), m_resource->version(), id));
+        auto RESOURCE = makeShared<CDRMLeaseRequestResource>(m_self, makeShared<CWpDrmLeaseRequestV1>(m_resource->client(), m_resource->version(), id));
         if UNLIKELY (!RESOURCE) {
             m_resource->noMemory();
             return;
@@ -179,14 +209,14 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
 
         RESOURCE->m_self = RESOURCE;
 
-        PROTO::lease->m_requests.emplace_back(RESOURCE);
+        PROTO::lease.at(m_deviceName)->m_requests.emplace_back(RESOURCE);
 
         LOGM(LOG, "New lease request {}", id);
 
         RESOURCE->m_parent = m_self;
     });
 
-    CFileDescriptor fd{((Aquamarine::CDRMBackend*)PROTO::lease->m_primaryDevice->m_backend.get())->getNonMasterFD()};
+    CFileDescriptor fd{PROTO::lease.at(m_deviceName)->m_backend.get()->getNonMasterFD()};
     if (!fd.isValid()) {
         LOGM(ERR, "Failed to dup fd in lease");
         return;
@@ -195,7 +225,7 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
     LOGM(LOG, "Sending DRMFD {} to new lease device", fd.get());
     m_resource->sendDrmFd(fd.get());
 
-    for (auto const& m : PROTO::lease->m_primaryDevice->m_offeredOutputs) {
+    for (auto const& m : PROTO::lease.at(m_deviceName)->m_offeredOutputs) {
         if (m)
             sendConnector(m.lock());
     }
@@ -211,7 +241,7 @@ void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
     if (std::ranges::find_if(m_connectorsSent, [monitor](const auto& e) { return e && !e->m_dead && e->m_monitor == monitor; }) != m_connectorsSent.end())
         return;
 
-    auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(makeShared<CWpDrmLeaseConnectorV1>(m_resource->client(), m_resource->version(), 0), monitor);
+    auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(m_self, makeShared<CWpDrmLeaseConnectorV1>(m_resource->client(), m_resource->version(), 0), monitor);
     if UNLIKELY (!RESOURCE) {
         m_resource->noMemory();
         return;
@@ -223,46 +253,33 @@ void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
     LOGM(LOG, "Sending new connector {}", monitor->m_name);
 
     m_connectorsSent.emplace_back(RESOURCE);
-    PROTO::lease->m_connectors.emplace_back(RESOURCE);
+    PROTO::lease.at(m_deviceName)->m_connectors.emplace_back(RESOURCE);
 
     m_resource->sendConnector(RESOURCE->m_resource.get());
 
     RESOURCE->sendData();
 }
 
-CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : m_backend(drmBackend) {
-    auto            drm = (Aquamarine::CDRMBackend*)drmBackend.get();
+CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name, SP<Aquamarine::IBackendImplementation> backend_) :
+    IWaylandProtocol(iface, ver, name) {
+    if (backend_->type() != Aquamarine::AQ_BACKEND_DRM)
+        return;
 
-    CFileDescriptor fd{drm->getNonMasterFD()};
+    m_backend    = ((Aquamarine::CDRMBackend*)backend_.get())->self.lock();
+    m_deviceName = m_backend->gpuName;
+
+    CFileDescriptor fd{m_backend->getNonMasterFD()};
 
     if (!fd.isValid()) {
-        LOGM(ERR, "Failed to dup fd for drm node {}", drm->gpuName);
+        LOGM(ERR, "Failed to dup fd for drm node {}", m_deviceName);
         return;
     }
 
     m_success = true;
-    m_name    = drm->gpuName;
-}
-
-CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    for (auto const& b : g_pCompositor->m_aqBackend->getImplementations()) {
-        if (b->type() != Aquamarine::AQ_BACKEND_DRM)
-            continue;
-
-        auto drm = ((Aquamarine::CDRMBackend*)b.get())->self.lock();
-
-        m_primaryDevice = makeShared<CDRMLeaseDevice>(drm);
-
-        if (m_primaryDevice->m_success)
-            break;
-    }
-
-    if (!m_primaryDevice || !m_primaryDevice->m_success)
-        g_pEventLoopManager->doLater([]() { PROTO::lease.reset(); });
 }
 
 void CDRMLeaseProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_managers.emplace_back(makeShared<CDRMLeaseDeviceResource>(makeShared<CWpDrmLeaseDeviceV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CDRMLeaseDeviceResource>(m_deviceName, makeShared<CWpDrmLeaseDeviceV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -293,22 +310,34 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
 }
 
 void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
-    std::erase_if(m_primaryDevice->m_offeredOutputs, [](const auto& e) { return e.expired(); });
-    if (std::ranges::find(m_primaryDevice->m_offeredOutputs, monitor) != m_primaryDevice->m_offeredOutputs.end())
+    std::erase_if(m_offeredOutputs, [](const auto& e) { return e.expired(); });
+    if (std::ranges::find(m_offeredOutputs.begin(), m_offeredOutputs.end(), monitor) != m_offeredOutputs.end())
         return;
 
     if (monitor->m_output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)
         return;
 
-    if (monitor->m_output->getBackend() != m_primaryDevice->m_backend) {
-        LOGM(ERR, "Monitor {} cannot be leased: primaryDevice lease is for a different device", monitor->m_name);
+    if (monitor->m_output->getBackend() != m_backend) {
+        LOGM(ERR, "Monitor {} cannot be leased: lease is for a different device", monitor->m_name);
         return;
     }
 
-    m_primaryDevice->m_offeredOutputs.emplace_back(monitor);
+    m_offeredOutputs.emplace_back(monitor);
 
     for (auto const& m : m_managers) {
         m->sendConnector(monitor);
         m->m_resource->sendDone();
     }
+}
+
+std::string CDRMLeaseProtocol::getDeviceName() {
+    return m_deviceName;
+}
+
+SP<Aquamarine::IBackendImplementation> CDRMLeaseProtocol::getBackend() {
+    return m_backend;
+}
+
+bool CDRMLeaseProtocol::good() {
+    return m_success;
 }

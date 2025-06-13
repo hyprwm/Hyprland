@@ -1233,8 +1233,10 @@ void CInputManager::setPointerConfigs() {
             else
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_ENABLED);
 
-            const auto TAP_DRAG_LOCK = static_cast<libinput_config_drag_lock_state>(g_pConfigManager->getDeviceInt(devname, "drag_lock", "input:touchpad:drag_lock"));
-            libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, TAP_DRAG_LOCK);
+            const auto TAP_DRAG_LOCK = g_pConfigManager->getDeviceInt(devname, "drag_lock", "input:touchpad:drag_lock");
+            if (TAP_DRAG_LOCK >= 0 && TAP_DRAG_LOCK <= 2) {
+                libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, static_cast<libinput_config_drag_lock_state>(TAP_DRAG_LOCK));
+            }
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
                 libinput_device_config_tap_set_enabled(LIBINPUTDEV,

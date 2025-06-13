@@ -236,6 +236,18 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
+SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
+    SBoxExtents extents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
+    if (properties & RESERVED_EXTENTS)
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
+    if (properties & INPUT_EXTENTS)
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
+    if (properties & FULL_EXTENTS)
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
+
+    return extents;
+}
+
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     if (m_windowData.dimAround.valueOrDefault()) {
         const auto PMONITOR = m_monitor.lock();
@@ -243,16 +255,8 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    SBoxExtents EXTENTS = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
-    if (properties & RESERVED_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
-    if (properties & INPUT_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
-    if (properties & FULL_EXTENTS)
-        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
-
     CBox box = {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
-    box.addExtents(EXTENTS);
+    box.addExtents(getWindowExtentsUnified(properties));
 
     return box;
 }

@@ -415,7 +415,7 @@ static void snapResize(double& start, double& end, const double P) {
 
 using SnapFn = std::function<void(double&, double&, const double)>;
 
-static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
+static std::pair<Vector2D, Vector2D> performSnap(const CBox& sourceBox, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
     static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
     static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
@@ -431,8 +431,8 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         double start = 0;
         double end   = 0;
     };
-    SRange sourceX = {sourcePos.x, sourcePos.x + sourceSize.x};
-    SRange sourceY = {sourcePos.y, sourcePos.y + sourceSize.y};
+    SRange sourceX = {sourceBox.x, sourceBox.x + sourceBox.w};
+    SRange sourceY = {sourceBox.y, sourceBox.y + sourceBox.h};
 
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
@@ -444,18 +444,17 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
                 other->isX11OverrideRedirect())
                 continue;
 
-            const int    OTHERBORDERSIZE = other->getRealBorderSize();
-            const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
+            const int  OTHERBORDERSIZE = other->getRealBorderSize();
 
-            const CBox   SURF      = other->getWindowMainSurfaceBox();
-            double       gapOffset = 0;
+            const CBox SURF      = other->getWindowBoxUnified(RESERVED_EXTENTS);
+            double     gapOffset = 0;
             if (*SNAPRESPECTGAPS) {
                 static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
                 auto*       PGAPSINPTR  = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
                 gapOffset               = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
             }
-            const SRange SURFBX = {SURF.x - BORDERSIZE - gapOffset, SURF.x + SURF.w + BORDERSIZE + gapOffset};
-            const SRange SURFBY = {SURF.y - BORDERSIZE - gapOffset, SURF.y + SURF.h + BORDERSIZE + gapOffset};
+            const SRange SURFBX = {SURF.x - gapOffset, SURF.x + SURF.w + gapOffset};
+            const SRange SURFBY = {SURF.y - gapOffset, SURF.y + SURF.h + gapOffset};
 
             // only snap windows if their ranges overlap in the opposite axis
             if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
@@ -557,8 +556,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         }
     }
 
-    sourcePos  = {sourceX.start, sourceY.start};
-    sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
+    return {Vector2D{sourceX.start, sourceY.start} - sourceBox.pos(), Vector2D{sourceX.end - sourceX.start, sourceY.end - sourceY.start} - sourceBox.size()};
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -625,14 +623,12 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->m_dragMode == MBIND_MOVE) {
 
-        Vector2D newPos  = m_beginDragPositionXY + DELTA;
-        Vector2D newSize = DRAGGINGWINDOW->m_realSize->goal();
+        CBox wb = CBox{m_beginDragPositionXY + DELTA, DRAGGINGWINDOW->m_realSize->goal()};
 
-        if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled)
-            performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
-
-        CBox wb = {newPos, newSize};
-        wb.round();
+        if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled) {
+            auto [dp, ds] = performSnap(wb.copy().addExtents(DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS)), DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
+            wb.translate(dp);
+        }
 
         if (*PANIMATEMOUSE)
             *DRAGGINGWINDOW->m_realPosition = wb.pos();
@@ -698,13 +694,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             else if (m_grabbedCorner == CORNER_BOTTOMLEFT)
                 newPos = newPos + Vector2D((m_beginDragSizeXY - newSize).x, 0.0);
 
-            if (*SNAPENABLED) {
-                performSnap(newPos, newSize, DRAGGINGWINDOW, mode, m_grabbedCorner, m_beginDragSizeXY);
-                newSize = newSize.clamp(MINSIZE, MAXSIZE);
-            }
+            CBox wb = CBox{newPos, newSize};
 
-            CBox wb = {newPos, newSize};
-            wb.round();
+            if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled) {
+                auto [dp, ds] =
+                    performSnap(wb.copy().addExtents(DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS)), DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
+                wb.w += ds.x;
+                wb.h += ds.y;
+                wb.translate(dp);
+            }
 
             if (*PANIMATE) {
                 *DRAGGINGWINDOW->m_realSize     = wb.size();

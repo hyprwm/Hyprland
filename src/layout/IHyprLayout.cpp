@@ -626,7 +626,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         CBox wb = CBox{m_beginDragPositionXY + DELTA, DRAGGINGWINDOW->m_realSize->goal()};
 
         if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled) {
-            auto [dp, ds] = performSnap(wb.copy().addExtents(DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS)), DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
+            auto [dp, ds] =
+                performSnap(wb.copy().addExtents(DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS)), DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
             wb.translate(dp);
         }
 

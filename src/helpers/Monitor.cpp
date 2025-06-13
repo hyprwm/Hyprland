@@ -452,6 +452,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         force = true;
     }
 
+    if (m_failedModeRetries > 0 /* 0 = success */ && m_failedModeRetries < 5 /* Arbitrary number I chose as reasonable */)
+        force = true;
+
     // Check if the rule isn't already applied
     // TODO: clean this up lol
     if (!force && DELTALESSTHAN(m_pixelSize.x, RULE->resolution.x, 1) /* ↓ */
@@ -696,8 +699,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     if (!success) {
         Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->resolution, RULE->refreshRate);
+        m_failedModeRetries = 1;
+        g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
         return true;
     }
+
+    m_failedModeRetries = 0;
 
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync

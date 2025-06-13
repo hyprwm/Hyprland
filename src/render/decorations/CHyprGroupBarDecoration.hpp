@@ -14,6 +14,8 @@ class CTitleTex {
 
     SP<CTexture> m_texActive;
     SP<CTexture> m_texInactive;
+    SP<CTexture> m_texLockedActive;
+    SP<CTexture> m_texLockedInactive;
     std::string  m_content;
 
     PHLWINDOWREF m_windowOwner;

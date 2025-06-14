@@ -557,7 +557,7 @@ void logSystemInfo() {
     Debug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
-int64_t getPPIDof(int64_t pid) {
+pid_t getPPIDof(pid_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {
         CTL_KERN,           KERN_PROC, KERN_PROC_PID, (int)pid,
@@ -604,6 +604,97 @@ int64_t getPPIDof(int64_t pid) {
         return std::stoll(pidstr);
     } catch (std::exception& e) { return 0; }
 #endif
+}
+
+std::vector<pid_t> getAllPIDOf(const std::string& name) {
+    std::vector<pid_t> results;
+
+#if defined(KERN_PROC_ALL)
+    int mib[] = {CTL_KERN,
+                 KERN_PROC,
+                 KERN_PROC_ALL,
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+                 0,
+                 sizeof(KINFO_PROC),
+                 0
+#endif
+    };
+    u_int  miblen = sizeof(mib) / sizeof(mib[0]);
+
+    size_t size = 0;
+    if (sysctl(mib, miblen, NULL, &size, NULL, 0) == -1)
+        return results;
+
+    std::vector<KINFO_PROC> kprocList(size / sizeof(KINFO_PROC));
+
+    if (sysctl(mib, miblen, kprocList.data(), &size, NULL, 0) != -1) {
+        for (auto& kproc : kprocList) {
+#if defined(__DragonFly__)
+            if (name == std::string(kproc.kp_comm))
+                results.push_back(kproc.kp_pid);
+#elif defined(__FreeBSD__)
+            if (name == std::string(kproc.ki_comm))
+                results.push_back(kproc.ki_pid);
+#else
+            if (name == std::string(kproc.p_comm))
+                results.push_back(kproc.p_pid);
+#endif
+        }
+    }
+#else
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator("/proc", ec)) {
+        if (!entry.is_directory())
+            continue;
+
+        const auto& dirname = entry.path().filename().string();
+        if (!isNumber(dirname))
+            continue;
+
+        const auto  pid      = std::stoll(dirname);
+        std::string procName = binaryNameForPid(pid).value_or("");
+
+        if (procName == name)
+            results.push_back(pid);
+    }
+#endif
+
+    return results;
+}
+
+std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
+    if (pid <= 0)
+        return std::unexpected("No pid for client");
+
+#if defined(KERN_PROC_PATHNAME)
+    int mib[] = {
+        CTL_KERN,
+#if defined(__NetBSD__)
+        KERN_PROC_ARGS,
+        pid,
+        KERN_PROC_PATHNAME,
+#else
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        pid,
+#endif
+    };
+    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    char   exe[PATH_MAX] = "/nonexistent";
+    size_t sz            = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    std::string path = exe;
+#else
+    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
+#endif
+    std::error_code ec;
+
+    std::string     fullPath = std::filesystem::canonical(path, ec);
+
+    if (ec)
+        return std::unexpected("canonical failed");
+
+    return fullPath;
 }
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {

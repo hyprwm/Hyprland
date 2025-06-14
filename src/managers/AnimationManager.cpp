@@ -372,6 +372,28 @@ void CHyprAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
     }
 }
 
+void CHyprAnimationManager::animationWobbly(PHLWINDOW pWindow, bool close, float intensity) {
+    const auto GOALPOS  = pWindow->m_realPosition->goal();
+    const auto GOALSIZE = pWindow->m_realSize->goal();
+    
+    if (close) {
+        // For closing: animate alpha from current to 0
+        // The shader will handle the wobbly reveal effect based on alpha
+        *pWindow->m_alpha = 0.f;
+        
+        // Keep position and size stable during close
+        pWindow->m_realPosition->setValueAndWarp(GOALPOS);
+        pWindow->m_realSize->setValueAndWarp(GOALSIZE);
+    } else {
+        // For opening: start with alpha 0, animate to 1
+        pWindow->m_alpha->setValueAndWarp(0.f);
+        pWindow->m_realPosition->setValueAndWarp(GOALPOS);
+        pWindow->m_realSize->setValueAndWarp(GOALSIZE);
+        
+        *pWindow->m_alpha = 1.f;
+    }
+}
+
 void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!close) {
         pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
@@ -402,11 +424,23 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
             animationSlide(pWindow, animList2[1], close);
-        } else if (STYLE == "gnomed" || STYLE == "gnome")
+        } else if (STYLE == "gnomed" || STYLE == "gnome") {
             animationGnomed(pWindow, close);
-        else {
+        } else if (STYLE.starts_with("wobbly")) {
+            // Parse intensity parameter if provided
+            float intensity = 1.0f;
+            if (STYLE.find('%') != std::string::npos) {
+                try {
+                    auto percstr = STYLE.substr(STYLE.find_last_of(' ') + 1);
+                    intensity = std::stof(percstr.substr(0, percstr.length() - 1)) / 100.f;
+                    intensity = std::clamp(intensity, 0.1f, 2.0f); // Clamp between 10% and 200%
+                } catch (std::exception& e) {
+                    intensity = 1.0f; // fallback to default
+                }
+            }
+            animationWobbly(pWindow, close, intensity);
+        } else {
             // anim popin, fallback
-
             float minPerc = 0.f;
             if (STYLE.find("%") != std::string::npos) {
                 try {
@@ -416,17 +450,31 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
                     ; // oops
                 }
             }
-
             animationPopin(pWindow, close, minPerc / 100.f);
         }
     } else {
-        if (animList[0] == "slide")
+        if (animList[0] == "slide") {
             animationSlide(pWindow, animList[1], close);
-        else if (animList[0] == "gnomed" || animList[0] == "gnome")
+        } else if (animList[0] == "gnomed" || animList[0] == "gnome") {
             animationGnomed(pWindow, close);
-        else {
+        } else if (animList[0] == "wobbly") {
+            // Parse intensity parameter if provided
+            float intensity = 1.0f;
+            if (animList.size() > 1) {
+                try {
+                    std::string intensityStr = animList[1];
+                    if (intensityStr.ends_with("%")) {
+                        intensityStr = intensityStr.substr(0, intensityStr.length() - 1);
+                        intensity = std::stof(intensityStr) / 100.f;
+                        intensity = std::clamp(intensity, 0.1f, 2.0f);
+                    }
+                } catch (std::exception& e) {
+                    intensity = 1.0f; // fallback
+                }
+            }
+            animationWobbly(pWindow, close, intensity);
+        } else {
             // anim popin, fallback
-
             float minPerc = 0.f;
             if (!ANIMSTYLE.starts_with("%")) {
                 try {
@@ -436,7 +484,6 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
                     ; // oops
                 }
             }
-
             animationPopin(pWindow, close, minPerc / 100.f);
         }
     }
@@ -444,9 +491,23 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
 
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
-        if (style.starts_with("slide") || style == "gnome" || style == "gnomed")
+        if (style.starts_with("slide") || style == "gnome" || style == "gnomed") {
             return "";
-        else if (style.starts_with("popin")) {
+        } else if (style.starts_with("wobbly")) {
+            // Validate wobbly intensity parameter
+            if (style.find('%') != std::string::npos) {
+                try {
+                    auto percstr = style.substr(style.find_last_of(' ') + 1);
+                    float intensity = std::stof(percstr.substr(0, percstr.length() - 1));
+                    if (intensity < 10.0f || intensity > 200.0f) {
+                        return "intensity must be between 10% and 200%";
+                    }
+                } catch (std::exception& e) { 
+                    return "invalid intensity parameter"; 
+                }
+            }
+            return "";
+        } else if (style.starts_with("popin")) {
             // try parsing
             float minPerc = 0.f;
             if (style.find('%') != std::string::npos) {
@@ -509,7 +570,6 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
             return "";
         }
         return "";
-        return "unknown style";
     } else {
         return "animation has no styles";
     }

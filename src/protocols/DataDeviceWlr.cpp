@@ -1,6 +1,8 @@
 #include "DataDeviceWlr.hpp"
 #include <algorithm>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "../managers/SeatManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "core/Seat.hpp"
 using namespace Hyprutils::OS;
 
@@ -20,6 +22,16 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
 
         if (m_dead) {
             LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
+            return;
+        }
+
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::LOG, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::LOG, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
             return;
         }
 
@@ -118,6 +130,16 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
             return;
         }
 
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::LOG, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::LOG, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            return;
+        }
+
         if (source && source->used())
             LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
@@ -132,6 +154,16 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
         if (!source) {
             LOGM(Log::DEBUG, "wlr reset primary selection received");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
+            return;
+        }
+
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::LOG, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::LOG, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
             return;
         }
 

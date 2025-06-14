@@ -87,10 +87,10 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
 
                 if (!m_accepted) {
                     LOGM(WARN, "Offer was never accepted, sending accept first");
-                    m_source->accepted(mime.c_str());
+                    m_source->accepted(mime);
                 }
 
-                m_source->send(mime.c_str(), std::move(*sharedFd));
+                m_source->send(mime, std::move(*sharedFd));
                 m_recvd = true;
             });
             return;

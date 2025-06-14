@@ -91,7 +91,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
                     m_source->accepted(mime.c_str());
                 }
 
-                m_source->send(mime.c_str(), std::move(*sharedFd));
+                m_source->send(mime, std::move(*sharedFd));
                 m_recvd = true;
             });
             return;

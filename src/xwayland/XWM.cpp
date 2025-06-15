@@ -610,11 +610,6 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
             sel->transfers.erase(it);
         }
     } else if (e->target == HYPRATOMS["TARGETS"]) {
-        if (!m_focusedSurface) {
-            Debug::log(TRACE, "[xwm] denying access to write to clipboard because no X client is in focus");
-            return;
-        }
-
         setClipboardToWayland(*sel);
     } else if (!sel->transfers.empty())
         getTransferData(*sel);

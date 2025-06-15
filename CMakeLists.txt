@@ -136,7 +136,7 @@ pkg_check_modules(
   pixman-1
   xcursor
   libdrm
-  libinput
+  libinput>=1.28
   gbm
   gio-2.0
   re2)

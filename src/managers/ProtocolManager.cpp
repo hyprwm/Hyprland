@@ -172,7 +172,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::tablet              = makeUnique<CTabletV2Protocol>(&zwp_tablet_manager_v2_interface, 1, "TabletV2");
     PROTO::layerShell          = makeUnique<CLayerShellProtocol>(&zwlr_layer_shell_v1_interface, 5, "LayerShell");
     PROTO::presentation        = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 1, "Presentation");
-    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 6, "XDGShell");
+    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 7, "XDGShell");
     PROTO::dataWlr             = makeUnique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = makeUnique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = makeUnique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");

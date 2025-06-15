@@ -53,6 +53,8 @@ static const char* permissionToString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
         case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
         case PERMISSION_TYPE_KEYBOARD: return "PERMISSION_TYPE_KEYBOARD";
+        case PERMISSION_TYPE_CLIPBOARD_READ: return "PERMISSION_TYPE_CLIPBOARD_READ";
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: return "PERMISSION_TYPE_CLIPBOARD_WRITE";
     }
 
     return "error";
@@ -64,6 +66,8 @@ static const char* permissionToHumanString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
         case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
         case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: {}.<br/><br/>Do you want to allow it to operate?";
+        case PERMISSION_TYPE_CLIPBOARD_READ: return "An application <b>{}</b> is trying to read from your clipboard.<br/><br/>Do you want to allow it to do so?";
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: return "An application <b>{}</b> is trying to write to your clipboard.<br/><br/>Do you want to allow it to do so?";
     }
 
     return "error";

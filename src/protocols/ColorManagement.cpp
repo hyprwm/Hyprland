@@ -608,7 +608,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Luminances already set");
             return;
         }
-        if (max_lum < reference_lum || reference_lum <= min) {
+        if (max_lum <= min || reference_lum <= min) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }

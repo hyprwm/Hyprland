@@ -221,7 +221,7 @@ void CLayerSurface::onUnmap() {
     m_realSize->warp();
 
     // make a snapshot and start fade
-    g_pHyprRenderer->makeLayerSnapshot(m_self.lock());
+    g_pHyprRenderer->makeSnapshot(m_self.lock());
 
     startAnimation(false);
 

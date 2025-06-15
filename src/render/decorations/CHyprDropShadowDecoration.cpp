@@ -206,11 +206,11 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        g_pHyprOpenGL->setMonitorTransformEnabled(true);
+        g_pHyprOpenGL->pushMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.getTexture(), monbox, alphaFB);
         g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->setMonitorTransformEnabled(false);
+        g_pHyprOpenGL->popMonitorTransformEnabled();
 
         g_pHyprOpenGL->m_renderData.damage = saveDamage;
     } else

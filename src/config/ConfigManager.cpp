@@ -652,7 +652,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:middle_button_emulation", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:tap-to-click", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:tap-and-drag", Hyprlang::INT{1});
-    registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{2});
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
@@ -775,7 +775,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "middle_button_emulation", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "tap-to-click", Hyprlang::INT{1});
     m_config->addSpecialConfigValue("device", "tap-and-drag", Hyprlang::INT{1});
-    m_config->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{2});
     m_config->addSpecialConfigValue("device", "left_handed", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_method", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});

@@ -83,9 +83,8 @@ class CHyprRenderer {
     void                            unsetEGL();
     SExplicitSyncSettings           getExplicitSyncSettings(SP<Aquamarine::IOutput> output);
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
-    void                            makeWindowSnapshot(PHLWINDOW);
-    void                            makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
-    void                            makeLayerSnapshot(PHLLS);
+    void                            makeSnapshot(PHLWINDOW);
+    void                            makeSnapshot(PHLLS);
     void                            renderSnapshot(PHLWINDOW);
     void                            renderSnapshot(PHLLS);
 

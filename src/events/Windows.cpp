@@ -755,7 +755,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // Allow the renderer to catch the last frame.
     if (g_pHyprRenderer->shouldRenderWindow(PWINDOW))
-        g_pHyprRenderer->makeWindowSnapshot(PWINDOW);
+        g_pHyprRenderer->makeSnapshot(PWINDOW);
 
     // swallowing
     if (valid(PWINDOW->m_swallowed)) {

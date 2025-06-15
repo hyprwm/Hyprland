@@ -196,11 +196,11 @@ void CScreencopyFrame::renderMon() {
     CBox    monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
-    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
     g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->popMonitorTransformEnabled();
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())

@@ -24,7 +24,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_renderData.discardMode        = m_data.discardMode;
     g_pHyprOpenGL->m_renderData.discardOpacity     = m_data.discardOpacity;
     g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
-    g_pHyprOpenGL->m_endFrame                      = m_data.flipEndFrame;
+    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -35,7 +35,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.discardMode                 = 0;
         g_pHyprOpenGL->m_renderData.discardOpacity              = 0;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->m_endFrame                               = false;
+        g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();

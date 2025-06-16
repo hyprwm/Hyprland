@@ -1940,7 +1940,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
         if (pWindow == m_lastWindow)
             *pWindow->m_realShadowColor = CHyprColor(*PSHADOWCOL);
         else
-            *pWindow->m_realShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+            *pWindow->m_realShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != -1 ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
     } else {
         pWindow->m_realShadowColor->setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
     }

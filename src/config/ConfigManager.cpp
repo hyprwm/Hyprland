@@ -520,6 +520,9 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:render_titles", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:scrolling", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
+    registerConfigVar("group:groupbar:text_color_inactive", Hyprlang::INT{-1});
+    registerConfigVar("group:groupbar:text_color_locked_active", Hyprlang::INT{-1});
+    registerConfigVar("group:groupbar:text_color_locked_inactive", Hyprlang::INT{-1});
     registerConfigVar("group:groupbar:stacked", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:rounding", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gradient_rounding", Hyprlang::INT{2});
@@ -575,7 +578,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("decoration:shadow:scale", {1.f});
     registerConfigVar("decoration:shadow:sharp", Hyprlang::INT{0});
     registerConfigVar("decoration:shadow:color", Hyprlang::INT{0xee1a1a1a});
-    registerConfigVar("decoration:shadow:color_inactive", {(Hyprlang::INT)INT64_MAX});
+    registerConfigVar("decoration:shadow:color_inactive", Hyprlang::INT{-1});
     registerConfigVar("decoration:dim_inactive", Hyprlang::INT{0});
     registerConfigVar("decoration:dim_strength", {0.5f});
     registerConfigVar("decoration:dim_special", {0.2f});

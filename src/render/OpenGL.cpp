@@ -675,7 +675,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 
     const auto FBO = rb ? rb->getFB() : fb;
 
-    glViewport(0, 0, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
+    setViewPort(0, 0, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
 
     m_renderData.projection = Mat3x3::outputProjection(pMonitor->m_pixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 
@@ -725,7 +725,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     TRACY_GPU_ZONE("RenderBegin");
 
-    glViewport(0, 0, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
+    setViewPort(0, 0, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
 
     m_renderData.projection = Mat3x3::outputProjection(pMonitor->m_pixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 
@@ -2998,6 +2998,14 @@ void CHyprOpenGLImpl::popMonitorTransformEnabled() {
 
 void CHyprOpenGLImpl::setRenderModifEnabled(bool enabled) {
     m_renderData.renderModif.enabled = enabled;
+}
+
+void CHyprOpenGLImpl::setViewPort(GLint x, GLint y, GLsizei width, GLsizei height) {
+    if (m_lastViewport.x == x && m_lastViewport.y == y && m_lastViewport.width == width && m_lastViewport.height == height)
+        return;
+
+    glViewport(x, y, width, height);
+    m_lastViewport = {.x = x, .y = y, .width = width, .height = height};
 }
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {

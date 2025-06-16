@@ -201,6 +201,7 @@ class CHyprOpenGLImpl {
     void popMonitorTransformEnabled();
 
     void setRenderModifEnabled(bool enabled);
+    void setViewPort(GLint x, GLint y, GLsizei width, GLsizei height);
 
     void saveMatrix();
     void setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
@@ -306,6 +307,13 @@ class CHyprOpenGLImpl {
         EGL_CONTEXT_GLES_3_0,
         EGL_CONTEXT_GLES_3_2,
     };
+
+    struct {
+        GLint   x      = 0;
+        GLint   y      = 0;
+        GLsizei width  = 0;
+        GLsizei height = 0;
+    } m_lastViewport;
 
     eEGLContextVersion      m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 

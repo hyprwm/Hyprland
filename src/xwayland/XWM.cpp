@@ -20,6 +20,8 @@
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+using Hyprutils::Memory::CUniquePointer;
+
 using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
@@ -578,7 +580,7 @@ xcb_atom_t CXWM::mimeToAtom(const std::string& mime) {
     ReplyPtr reply(xcb_intern_atom_reply(m_connection, cookie, nullptr), &free);
     if (!reply.get())
         return XCB_ATOM_NONE;
-    xcb_atom_t atom = reply.get()->atom;
+    xcb_atom_t atom = reply->atom;
 
     return atom;
 }
@@ -1289,7 +1291,7 @@ void CXWM::getTransferData(SXSelection& sel) {
     if (transferIndex >= sel.transfers.size())
         return;
 
-    Hyprutils::Memory::CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
+    CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
     if (!updatedTransfer)
         return;
 

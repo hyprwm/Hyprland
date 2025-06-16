@@ -181,7 +181,7 @@ namespace NColorManagement {
             return primaries;
         }
 
-        float getTFMinLuminance() const {
+        float getTFMinLuminance(float sdrMinLuminance = -1.0f) const {
             switch (transferFunction) {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR: return 0;
                 case CM_TRANSFER_FUNCTION_ST2084_PQ:
@@ -196,11 +196,11 @@ namespace NColorManagement {
                 case CM_TRANSFER_FUNCTION_EXT_SRGB:
                 case CM_TRANSFER_FUNCTION_ST428:
                 case CM_TRANSFER_FUNCTION_SRGB:
-                default: return SDR_MIN_LUMINANCE;
+                default: return sdrMinLuminance >= 0 ? sdrMinLuminance : SDR_MIN_LUMINANCE;
             }
         };
 
-        float getTFMaxLuminance() const {
+        float getTFMaxLuminance(int sdrMaxLuminance = -1) const {
             switch (transferFunction) {
                 case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
@@ -214,7 +214,7 @@ namespace NColorManagement {
                 case CM_TRANSFER_FUNCTION_EXT_SRGB:
                 case CM_TRANSFER_FUNCTION_ST428:
                 case CM_TRANSFER_FUNCTION_SRGB:
-                default: return SDR_MAX_LUMINANCE;
+                default: return sdrMaxLuminance >= 0 ? sdrMaxLuminance : SDR_MAX_LUMINANCE;
             }
         };
 

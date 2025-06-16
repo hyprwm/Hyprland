@@ -294,7 +294,8 @@ void CCursorManager::updateTheme() {
             highestScale = m->m_scale;
     }
 
-    m_cursorScale = highestScale;
+    m_cursorScale            = highestScale;
+    m_currentCursorShapeData = {};
 
     if (*PUSEHYPRCURSOR) {
         if (m_currentStyleInfo.size > 0 && m_hyprcursor->valid())

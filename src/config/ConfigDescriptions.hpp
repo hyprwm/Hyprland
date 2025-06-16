@@ -623,9 +623,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:drag_lock",
-        .description = "When enabled, lifting the finger off for a short time while dragging will not drop the dragged item.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "When enabled, lifting the finger off while dragging will not drop the dragged item. 0 -> disabled, 1 -> enabled with timeout, 2 -> enabled sticky."
+                       "dragging will not drop the dragged item.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:tap-and-drag",
@@ -1781,6 +1782,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:single_window_aspect_ratio",
+        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:single_window_aspect_ratio_tolerance",
+        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
     },
 
     /*

@@ -21,6 +21,7 @@
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/LayoutManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
@@ -47,7 +48,8 @@ static int ratHandler(void* data) {
 }
 
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
-    ;
+    g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
+    m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -173,8 +175,13 @@ void CMonitor::onConnect(bool noRule) {
 
     if (m_output->nonDesktop) {
         Debug::log(LOG, "Not configuring non-desktop output");
-        if (PROTO::lease)
-            PROTO::lease->offer(m_self.lock());
+
+        for (auto& [name, lease] : PROTO::lease) {
+            if (!lease || m_output->getBackend() != lease->getBackend())
+                continue;
+
+            lease->offer(m_self.lock());
+        }
 
         return;
     }
@@ -457,7 +464,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX))
         /* other properties hadnt changed */
         && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
-        RULE->sdrBrightness == m_sdrBrightness && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
+        RULE->sdrBrightness == m_sdrBrightness && RULE->sdrMinLuminance == m_minLuminance && RULE->sdrMaxLuminance == m_maxLuminance &&
+        RULE->supportsWideColor == m_supportsWideColor && RULE->supportsHDR == m_supportsHDR && RULE->minLuminance == m_minLuminance && RULE->maxLuminance == m_maxLuminance &&
+        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", m_name);
 
@@ -727,15 +736,16 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_enabled10bit = set10bit;
 
+    m_supportsWideColor = RULE->supportsHDR;
+    m_supportsHDR       = RULE->supportsHDR;
+
     auto oldImageDescription = m_imageDescription;
     m_cmType                 = RULE->cmType;
     switch (m_cmType) {
-        case CM_AUTO: m_cmType = m_enabled10bit && m_output->parsedEDID.supportsBT2020 ? CM_WIDE : CM_SRGB; break;
+        case CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? CM_WIDE : CM_SRGB; break;
         case CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
         case CM_HDR:
-        case CM_HDR_EDID:
-            m_cmType = m_output->parsedEDID.supportsBT2020 && m_output->parsedEDID.hdrMetadata.has_value() && m_output->parsedEDID.hdrMetadata->supportsPQ ? m_cmType : CM_SRGB;
-            break;
+        case CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : CM_SRGB; break;
         default: break;
     }
     switch (m_cmType) {
@@ -781,6 +791,19 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             break;
         default: UNREACHABLE();
     }
+
+    m_sdrMinLuminance = RULE->sdrMinLuminance;
+    m_sdrMaxLuminance = RULE->sdrMaxLuminance;
+
+    m_minLuminance = RULE->minLuminance;
+    if (m_minLuminance >= 0)
+        m_imageDescription.luminances.min = m_minLuminance;
+    m_maxLuminance = RULE->maxLuminance;
+    if (m_maxLuminance >= 0)
+        m_imageDescription.luminances.max = m_maxLuminance;
+    m_maxAvgLuminance = RULE->maxAvgLuminance;
+    if (m_maxAvgLuminance >= 0)
+        m_imageDescription.luminances.reference = m_maxAvgLuminance;
     if (oldImageDescription != m_imageDescription)
         PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 
@@ -1222,6 +1245,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
+    m_specialFade->setConfig(g_pConfigManager->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
+    *m_specialFade = pWorkspace ? 1.F : 0.F;
+
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     if (!pWorkspace) {
@@ -1589,6 +1615,26 @@ void CMonitor::onCursorMovedOnMonitor() {
     // this will throw too but fix it if we use sw cursors
 
     m_tearingState.frameScheduledWhileBusy = true;
+}
+
+bool CMonitor::supportsWideColor() {
+    return m_supportsWideColor || m_output->parsedEDID.supportsBT2020;
+}
+
+bool CMonitor::supportsHDR() {
+    return supportsWideColor() && (m_supportsHDR || (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false));
+}
+
+float CMonitor::minLuminance() {
+    return m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0);
+}
+
+int CMonitor::maxLuminance() {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 80);
+}
+
+int CMonitor::maxAvgLuminance() {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 80);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

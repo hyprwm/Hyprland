@@ -11,6 +11,7 @@
 #include <list>
 #include <string>
 #include <unordered_map>
+#include <stack>
 #include <map>
 
 #include <cairo/cairo.h>
@@ -195,7 +196,9 @@ class CHyprOpenGLImpl {
                       int outerRound = -1 /* use round */);
     void renderTextureMatte(SP<CTexture> tex, const CBox& pBox, CFramebuffer& matte);
 
-    void setMonitorTransformEnabled(bool enabled);
+    void pushMonitorTransformEnabled(bool enabled);
+    void popMonitorTransformEnabled();
+
     void setRenderModifEnabled(bool enabled);
 
     void saveMatrix();
@@ -310,11 +313,13 @@ class CHyprOpenGLImpl {
     std::string             m_extensions;
 
     bool                    m_fakeFrame            = false;
-    bool                    m_endFrame             = false;
     bool                    m_applyFinalShader     = false;
     bool                    m_blend                = false;
     bool                    m_offloadedFramebuffer = false;
     bool                    m_cmSupported          = true;
+
+    bool                    m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>        m_monitorTransformStack;
 
     SShader                 m_finalScreenShader;
     CTimer                  m_globalTimer;
@@ -342,7 +347,7 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
     void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
-                                 bool modifySDR = false);
+                                 bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
     void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false, GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);

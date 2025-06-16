@@ -13,7 +13,7 @@ using namespace Hyprutils::Utils;
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision.
+┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
 ┃                          is optional, when set, commit locks are ignored.
 ┣ remove [url/name]      → Remove an installed plugin repository.
 ┣ enable [name]          → Enable a plugin.
@@ -101,8 +101,18 @@ int                        main(int argc, char** argv, char** envp) {
         if (command.size() >= 3)
             rev = command[2];
 
+        const auto HLVER       = g_pPluginManager->getHyprlandVersion();
+        auto       GLOBALSTATE = DataState::getGlobalState();
+
+        if (GLOBALSTATE.headersHashCompiled != HLVER.hash) {
+            std::println(stderr, "{}", failureString("Headers outdated, please run hyprpm update."));
+            return 1;
+        }
+
         NSys::root::cacheSudo();
         CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        g_pPluginManager->updateHeaders(false);
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {

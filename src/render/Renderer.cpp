@@ -850,9 +850,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (scale != 1.f)
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
-    if (!RENDERMODIFDATA.modifs.empty()) {
+    if (!RENDERMODIFDATA.modifs.empty())
         g_pHyprRenderer->m_renderPass.add(makeShared<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
-    }
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
@@ -911,41 +910,38 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
-    for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_monitor == pMonitor && ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
-            const auto SPECIALANIMPROGRS = ws->m_renderOffset->isBeingAnimated() ? ws->m_renderOffset->getCurveValue() : ws->m_alpha->getCurveValue();
-            const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
+    if (pMonitor->m_specialFade->value() != 0.F) {
+        const auto SPECIALANIMPROGRS = pMonitor->m_specialFade->getCurveValue();
+        const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
 
-            if (*PDIMSPECIAL != 0.f) {
-                CRectPassElement::SRectData data;
-                data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-                data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+        if (*PDIMSPECIAL != 0.f) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
 
-                g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
-            }
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
+        }
 
-            if (*PBLURSPECIAL && *PBLUR) {
-                CRectPassElement::SRectData data;
-                data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-                data.color = CHyprColor(0, 0, 0, 0);
-                data.blur  = true;
-                data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
+        if (*PBLURSPECIAL && *PBLUR) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, 0);
+            data.blur  = true;
+            data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
 
-                g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
-            }
-
-            break;
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
         }
     }
 
     // special
     for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (ws->m_alpha->value() > 0.f && ws->m_isSpecialWorkspace) {
-            if (ws->m_hasFullscreenWindow) {
-                renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
-            } else
-                renderWorkspaceWindows(pMonitor, ws, time);
-        }
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
+            continue;
+
+        if (ws->m_hasFullscreenWindow)
+            renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
+        else
+            renderWorkspaceWindows(pMonitor, ws, time);
     }
 
     // pinned always above
@@ -1164,6 +1160,11 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
+
+    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
+        Debug::log(ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
+        return;
+    }
 
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
@@ -1484,10 +1485,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PPASS = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     const bool  PHDR  = pMonitor->m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
 
-    const bool  SUPPORTSPQ = pMonitor->m_output->parsedEDID.hdrMetadata.has_value() ? pMonitor->m_output->parsedEDID.hdrMetadata->supportsPQ : false;
-    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->m_output->parsedEDID.supportsBT2020, SUPPORTSPQ);
-
-    if (pMonitor->m_output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
+    if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
         // PPASS = 0 monitor settings
         // PPASS = 1
@@ -2156,6 +2154,13 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
     if (pMonitor->m_activeSpecialWorkspace)
         return;
 
+    for (auto const& ws : g_pCompositor->m_workspaces) {
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != pMonitor)
+            continue;
+
+        return;
+    }
+
     // check if it did not open any subsurfaces or shit
     int surfaceCount = 0;
     if (PCANDIDATE->m_isX11)
@@ -2373,51 +2378,7 @@ void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
         m_renderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }
 
-void CHyprRenderer::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFramebuffer) {
-    // we trust the window is valid.
-    const auto PMONITOR = pWindow->m_monitor.lock();
-
-    if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
-        return;
-
-    // we need to "damage" the entire monitor
-    // so that we render the entire window
-    // this is temporary, doesnt mess with the actual damage
-    CRegion fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
-
-    makeEGLCurrent();
-
-    pFramebuffer->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
-    pFramebuffer->addStencil(g_pHyprOpenGL->m_renderData.pCurrentMonData->stencilTex);
-
-    beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, pFramebuffer);
-
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
-
-    // this is a hack but it works :P
-    // we need to disable blur or else we will get a black background, as the shader
-    // will try to copy the bg to apply blur.
-    // this isn't entirely correct, but like, oh well.
-    // small todo: maybe make this correct? :P
-    static auto* const PBLUR   = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("decoration:blur:enabled"));
-    const auto         BLURVAL = **PBLUR;
-    **PBLUR                    = 0;
-
-    // TODO: how can we make this the size of the window? setting it to window's size makes the entire screen render with the wrong res forever more. odd.
-    glViewport(0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
-
-    g_pHyprOpenGL->m_renderData.currentFB = pFramebuffer;
-
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
-
-    renderWindow(pWindow, PMONITOR, Time::steadyNow(), false, RENDER_PASS_ALL, true);
-
-    **PBLUR = BLURVAL;
-
-    endRender();
-}
-
-void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
+void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = pWindow->m_monitor.lock();
 
@@ -2453,7 +2414,7 @@ void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
     m_bRenderingSnapshot = false;
 }
 
-void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
+void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = pLayer->m_monitor.lock();
 

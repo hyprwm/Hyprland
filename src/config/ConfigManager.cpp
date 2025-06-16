@@ -595,6 +595,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:smart_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("dwindle:precise_mouse_move", Hyprlang::INT{0});
+    registerConfigVar("dwindle:single_window_aspect_ratio", Hyprlang::VEC2{0, 0});
+    registerConfigVar("dwindle:single_window_aspect_ratio_tolerance", {0.1f});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});
@@ -650,7 +652,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:middle_button_emulation", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:tap-to-click", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:tap-and-drag", Hyprlang::INT{1});
-    registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{0});
+    registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{2});
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
     registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
@@ -773,7 +775,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "middle_button_emulation", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "tap-to-click", Hyprlang::INT{1});
     m_config->addSpecialConfigValue("device", "tap-and-drag", Hyprlang::INT{1});
-    m_config->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{2});
     m_config->addSpecialConfigValue("device", "left_handed", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_method", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
@@ -806,6 +808,13 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("monitorv2", "transform", {STRVAL_EMPTY}); // TODO use correct type
+    m_config->addSpecialConfigValue("monitorv2", "supports_wide_color", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "supports_hdr", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "sdr_min_luminance", Hyprlang::FLOAT{0.2});
+    m_config->addSpecialConfigValue("monitorv2", "sdr_max_luminance", Hyprlang::INT{80});
+    m_config->addSpecialConfigValue("monitorv2", "min_luminance", Hyprlang::FLOAT{-1.0});
+    m_config->addSpecialConfigValue("monitorv2", "max_luminance", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "max_avg_luminance", Hyprlang::INT{-1});
 
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});
@@ -1066,6 +1075,29 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.parseTransform(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "supports_wide_color", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().supportsWideColor = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "supports_hdr", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().supportsHDR = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_min_luminance", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrMinLuminance = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_max_luminance", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrMaxLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
+
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "min_luminance", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().minLuminance = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "max_luminance", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().maxLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "max_avg_luminance", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().maxAvgLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
 
     auto newrule = parser.rule();
 

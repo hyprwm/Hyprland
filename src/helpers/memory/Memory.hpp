@@ -2,9 +2,11 @@
 
 #include <hyprutils/memory/WeakPtr.hpp>
 
-//NOLINTNEXTLINE
 using namespace Hyprutils::Memory;
 
-#define SP Hyprutils::Memory::CSharedPointer
-#define WP Hyprutils::Memory::CWeakPointer
-#define UP Hyprutils::Memory::CUniquePointer
+template <typename T>
+using SP = Hyprutils::Memory::CSharedPointer<T>;
+template <typename T>
+using WP = Hyprutils::Memory::CWeakPointer<T>;
+template <typename T>
+using UP = Hyprutils::Memory::CUniquePointer<T>;

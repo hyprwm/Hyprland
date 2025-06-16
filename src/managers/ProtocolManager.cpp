@@ -172,7 +172,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::tablet              = makeUnique<CTabletV2Protocol>(&zwp_tablet_manager_v2_interface, 1, "TabletV2");
     PROTO::layerShell          = makeUnique<CLayerShellProtocol>(&zwlr_layer_shell_v1_interface, 5, "LayerShell");
     PROTO::presentation        = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 1, "Presentation");
-    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 6, "XDGShell");
+    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 7, "XDGShell");
     PROTO::dataWlr             = makeUnique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = makeUnique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = makeUnique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
@@ -203,10 +203,14 @@ CProtocolManager::CProtocolManager() {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
-        PROTO::lease = makeUnique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease");
-        if (*PENABLEEXPLICIT)
+        auto lease = makeShared<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b);
+        if (lease->good())
+            PROTO::lease.emplace(lease->getDeviceName(), lease);
+        else
+            lease.reset();
+
+        if (*PENABLEEXPLICIT && !PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
-        break;
     }
 
     if (!g_pHyprOpenGL->getDRMFormats().empty()) {
@@ -281,7 +285,9 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xdgTag.reset();
     PROTO::xdgBell.reset();
 
-    PROTO::lease.reset();
+    for (auto& [_, lease] : PROTO::lease) {
+        lease.reset();
+    }
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();
     PROTO::linuxDma.reset();
@@ -336,6 +342,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
+	PROTO::colorManagement ? PROTO::colorManagement->getGlobal() : nullptr,
     };
     // clang-format on
 

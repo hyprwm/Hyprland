@@ -21,29 +21,26 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         if (!m_parent)
             return;
 
-        auto pushAboveIndex = [this](int idx) -> void {
-            for (auto const& c : m_parent->m_subsurfaces) {
-                if (c->m_zIndex >= idx)
-                    c->m_zIndex++;
-            }
-        };
-
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
+        std::ranges::for_each(m_parent->m_subsurfaces, [](const auto& e) { e->m_zIndex *= 2; });
+
+        auto it = std::ranges::find_if(m_parent->m_subsurfaces, [SURF](const auto& s) { return s->m_surface == SURF; });
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeAbove, likely parent");
-            pushAboveIndex(1);
             m_parent->m_subsurfaces.emplace_back(m_self);
             m_zIndex = 1;
         } else {
-            pushAboveIndex((*it)->m_zIndex);
-            m_zIndex = (*it)->m_zIndex;
+            m_zIndex = (*it)->m_zIndex + 1;
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
         std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+
+        for (size_t i = 0; i < m_parent->m_subsurfaces.size(); ++i) {
+            m_parent->m_subsurfaces.at(i)->m_zIndex = i;
+        }
     });
 
     m_resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -52,29 +49,26 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         if (!m_parent)
             return;
 
-        auto pushBelowIndex = [this](int idx) -> void {
-            for (auto const& c : m_parent->m_subsurfaces) {
-                if (c->m_zIndex <= idx)
-                    c->m_zIndex--;
-            }
-        };
-
         std::erase_if(m_parent->m_subsurfaces, [this](const auto& e) { return e == m_self || !e; });
 
-        auto it = std::ranges::find(m_parent->m_subsurfaces, SURF);
+        std::ranges::for_each(m_parent->m_subsurfaces, [](const auto& e) { e->m_zIndex *= 2; });
+
+        auto it = std::ranges::find_if(m_parent->m_subsurfaces, [SURF](const auto& s) { return s->m_surface == SURF; });
 
         if (it == m_parent->m_subsurfaces.end()) {
             LOGM(ERR, "Invalid surface reference in placeBelow, likely parent");
-            pushBelowIndex(-1);
             m_parent->m_subsurfaces.emplace_back(m_self);
             m_zIndex = -1;
         } else {
-            pushBelowIndex((*it)->m_zIndex);
-            m_zIndex = (*it)->m_zIndex;
+            m_zIndex = (*it)->m_zIndex - 1;
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
         std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+
+        for (size_t i = 0; i < m_parent->m_subsurfaces.size(); ++i) {
+            m_parent->m_subsurfaces.at(i)->m_zIndex = i;
+        }
     });
 
     m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {

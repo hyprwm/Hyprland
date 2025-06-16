@@ -196,11 +196,11 @@ void CScreencopyFrame::renderMon() {
     CBox    monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
-    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
     g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->popMonitorTransformEnabled();
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
@@ -216,15 +216,15 @@ void CScreencopyFrame::renderMon() {
 
         const auto REALPOS          = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
+                                          .translate(-m_monitor->m_position)
                                           .scale(m_monitor->m_scale)
-                                          .translate({-m_monitor->m_position.x, -m_monitor->m_position.y})
-                                          .translate({-m_box.x, -m_box.y});
+                                          .translate(-m_box.pos());
 
         const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
         const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, {0, 0, 0, 255}, rounding, roundingPower);
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, rounding, roundingPower);
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -241,13 +241,10 @@ void CScreencopyFrame::renderMon() {
                 popup->m_wlSurface->resource()->breadthfirst(
                     [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
                         const auto size    = surf->m_current.size;
-                        const auto surfBox = CBox{popupBaseOffset.x + popRel.x + localOff.x, popupBaseOffset.y + popRel.y + localOff.y, size.x, size.y}
-                                                 .scale(m_monitor->m_scale)
-                                                 .translate({-m_monitor->m_position.x, -m_monitor->m_position.y})
-                                                 .translate({-m_box.x, -m_box.y});
+                        const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
 
                         if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                            g_pHyprOpenGL->renderRect(surfBox, {0, 0, 0, 255});
+                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK);
                     },
                     nullptr);
             },
@@ -256,7 +253,7 @@ void CScreencopyFrame::renderMon() {
 
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
-                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos(), true);
+                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos() / m_monitor->m_scale, true);
 }
 
 void CScreencopyFrame::storeTempFB() {

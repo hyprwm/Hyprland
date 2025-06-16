@@ -1,5 +1,6 @@
 #pragma once
 
+#include <aquamarine/backend/Backend.hpp>
 #include <vector>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
@@ -40,7 +41,7 @@ class CDRMLeaseResource {
 
 class CDRMLeaseRequestResource {
   public:
-    CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> resource_);
+    CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseRequestV1> resource_);
 
     bool                                        good();
 
@@ -54,7 +55,7 @@ class CDRMLeaseRequestResource {
 
 class CDRMLeaseConnectorResource {
   public:
-    CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_);
+    CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResource> parent_, SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_);
     static SP<CDRMLeaseConnectorResource> fromResource(wl_resource*);
 
     bool                                  good();
@@ -77,7 +78,7 @@ class CDRMLeaseConnectorResource {
 
 class CDRMLeaseDeviceResource {
   public:
-    CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resource_);
+    CDRMLeaseDeviceResource(std::string deviceName, SP<CWpDrmLeaseDeviceV1> resource_);
 
     bool                                        good();
     void                                        sendConnector(PHLMONITOR monitor);
@@ -85,6 +86,7 @@ class CDRMLeaseDeviceResource {
     std::vector<WP<CDRMLeaseConnectorResource>> m_connectorsSent;
 
     WP<CDRMLeaseDeviceResource>                 m_self;
+    std::string                                 m_deviceName;
 
   private:
     SP<CWpDrmLeaseDeviceV1> m_resource;
@@ -92,24 +94,17 @@ class CDRMLeaseDeviceResource {
     friend class CDRMLeaseProtocol;
 };
 
-class CDRMLeaseDevice {
-  public:
-    CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend);
-
-    std::string                 m_name    = "";
-    bool                        m_success = false;
-    SP<Aquamarine::CDRMBackend> m_backend;
-
-    std::vector<PHLMONITORREF>  m_offeredOutputs;
-};
-
 class CDRMLeaseProtocol : public IWaylandProtocol {
   public:
-    CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name, SP<Aquamarine::IBackendImplementation> backend);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    virtual void                           bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         offer(PHLMONITOR monitor);
+    void                                   offer(PHLMONITOR monitor);
+
+    SP<Aquamarine::IBackendImplementation> getBackend();
+    std::string                            getDeviceName();
+    bool                                   good();
 
   private:
     void destroyResource(CDRMLeaseDeviceResource* resource);
@@ -123,7 +118,10 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
     std::vector<SP<CDRMLeaseRequestResource>>   m_requests;
     std::vector<SP<CDRMLeaseResource>>          m_leases;
 
-    SP<CDRMLeaseDevice>                         m_primaryDevice;
+    std::string                                 m_deviceName = "";
+    bool                                        m_success    = false;
+    SP<Aquamarine::CDRMBackend>                 m_backend;
+    std::vector<PHLMONITORREF>                  m_offeredOutputs;
 
     friend class CDRMLeaseDeviceResource;
     friend class CDRMLeaseConnectorResource;
@@ -132,5 +130,5 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
 };
 
 namespace PROTO {
-    inline UP<CDRMLeaseProtocol> lease;
+    inline std::unordered_map<std::string, SP<CDRMLeaseProtocol>> lease;
 };

@@ -9,11 +9,11 @@ CTexPassElement::CTexPassElement(const CTexPassElement::SRenderData& data_) : m_
 }
 
 void CTexPassElement::draw(const CRegion& damage) {
-    g_pHyprOpenGL->m_endFrame = m_data.flipEndFrame;
+    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[this]() {
         //
-        g_pHyprOpenGL->m_endFrame           = false;
+        g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)
             g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprOpenGL->m_renderData.pMonitor->m_projMatrix;

@@ -35,6 +35,22 @@ CANRManager::CANRManager() {
         m_data.emplace_back(makeShared<SANRData>(window));
     });
 
+    static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        for (const auto& d : m_data) {
+            if (!d->fitsWindow(window))
+                continue;
+
+            // kill the dialog, act as if we got a "ping" in case there's more than one
+            // window from this client, in which case the dialog will re-appear.
+            d->killDialog();
+            d->missedResponses = 0;
+            d->dialogSaidWait  = false;
+            return;
+        }
+    });
+
     m_timer->updateTimeout(TIMER_TIMEOUT);
 }
 

@@ -46,6 +46,9 @@ CAsyncDialogBox::CAsyncDialogBox(const std::string& title, const std::string& de
 static int onFdWrite(int fd, uint32_t mask, void* data) {
     auto box = (CAsyncDialogBox*)data;
 
+    // lock the box to prevent a UAF
+    auto lock = box->lockSelf();
+
     box->onWrite(fd, mask);
 
     return 0;
@@ -142,4 +145,8 @@ void CAsyncDialogBox::kill() {
 
 bool CAsyncDialogBox::isRunning() const {
     return m_readEventSource;
+}
+
+SP<CAsyncDialogBox> CAsyncDialogBox::lockSelf() {
+    return m_selfWeakReference.lock();
 }

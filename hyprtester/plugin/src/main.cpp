@@ -33,14 +33,6 @@ static SDispatchResult test(std::string in) {
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
-    const std::string HASH = __hyprland_api_get_hash();
-
-    if (HASH != GIT_COMMIT_HASH) {
-        HyprlandAPI::addNotification(PHANDLE, "[hyprtestplugin] Failure in initialization: Version mismatch (headers ver is not equal to running hyprland ver)",
-                                     CHyprColor{1.0, 0.2, 0.2, 1.0}, 5000);
-        throw std::runtime_error("[htt] Version mismatch");
-    }
-
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:test", ::test);
 
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};

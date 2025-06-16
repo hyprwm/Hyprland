@@ -77,9 +77,43 @@ struct SShader {
     GLint vibrancy_darkness = -1;
 
     // Blur finish
-    GLint brightness = -1;
-    GLint noise      = -1;
+    GLint                                             brightness = -1;
+    GLint                                             noise      = -1;
 
-    void  createVao();
-    void  destroy();
+    std::unordered_map<GLint, GLint>                  uniformStatusInt;
+    std::unordered_map<GLint, GLfloat>                uniformStatusFloat;
+    std::unordered_map<GLint, std::array<GLfloat, 2>> uniformStatusFloat2;
+    std::unordered_map<GLint, std::array<GLfloat, 3>> uniformStatusFloat3;
+    std::unordered_map<GLint, std::array<GLfloat, 4>> uniformStatusFloat4;
+
+    struct SUniformMatrix3Data {
+        GLsizei                count     = 0;
+        GLboolean              transpose = false;
+        std::array<GLfloat, 9> value     = {};
+    };
+    std::unordered_map<GLint, SUniformMatrix3Data> uniformStatusMatrix3fv;
+
+    struct SUniformMatrix4Data {
+        GLsizei                count     = 0;
+        GLboolean              transpose = false;
+        std::array<GLfloat, 8> value     = {};
+    };
+    std::unordered_map<GLint, SUniformMatrix4Data> uniformStatusMatrix4x2fv;
+
+    struct SUniform4Data {
+        GLsizei            count = 0;
+        std::vector<float> value;
+    };
+    std::unordered_map<GLint, SUniform4Data> uniformStatus4fv;
+
+    void                                     createVao();
+    void                                     setUniformInt(GLint location, GLint v0);
+    void                                     setUniformFloat(GLint location, GLfloat v0);
+    void                                     setUniformFloat2(GLint location, GLfloat v0, GLfloat v1);
+    void                                     setUniformFloat3(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+    void                                     setUniformFloat4(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+    void                                     setUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value);
+    void                                     setUniformMatrix42xfv(GLint location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value);
+    void                                     setUniform4fv(GLint location, GLsizei count, std::vector<float> value);
+    void                                     destroy();
 };

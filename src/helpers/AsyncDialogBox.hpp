@@ -27,6 +27,8 @@ class CAsyncDialogBox {
     void                      kill();
     bool                      isRunning() const;
 
+    SP<CAsyncDialogBox>       lockSelf();
+
     // focus priority, only permission popups
     bool m_priority = false;
 

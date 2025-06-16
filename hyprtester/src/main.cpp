@@ -22,6 +22,7 @@
 
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/memory/WeakPtr.hpp>
 #include <csignal>
 #include <cerrno>
 #include <chrono>
@@ -29,10 +30,13 @@
 #include <print>
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Memory;
 
-static int                     ret = 0;
-static Hyprutils::OS::CProcess hyprlandProc("", {});
-static const std::string       cwd = std::filesystem::current_path().string();
+#define SP CSharedPointer
+
+static int               ret = 0;
+static SP<CProcess>      hyprlandProc;
+static const std::string cwd = std::filesystem::current_path().string();
 
 //
 static bool launchHyprland(std::string configPath, std::string binaryPath) {
@@ -57,16 +61,17 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
     }
 
     std::println("{}Launching Hyprland", Colors::YELLOW);
-    hyprlandProc = CProcess{binaryPath, {"--config", configPath}};
-    hyprlandProc.addEnv("HYPRLAND_HEADLESS_ONLY", "1");
+    hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
+    hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
-    return hyprlandProc.runAsync();
     std::println("{}Launched async process", Colors::YELLOW);
+
+    return hyprlandProc->runAsync();
 }
 
 static bool hyprlandAlive() {
     std::println("{}hyprlandAlive", Colors::YELLOW);
-    kill(hyprlandProc.pid(), 0);
+    kill(hyprlandProc->pid(), 0);
     return errno != ESRCH;
 }
 
@@ -204,8 +209,8 @@ int main(int argc, char** argv, char** envp) {
     getFromSocket("/output create headless");
 
     std::println("{}trying to load plugin", Colors::YELLOW);
-    if (getFromSocket(std::format("/plugin load {}", pluginPath)) != "ok") {
-        std::println("{}Failed to load the test plugin", Colors::RED);
+    if (const auto R = getFromSocket(std::format("/plugin load {}", pluginPath)); R != "ok") {
+        std::println("{}Failed to load the test plugin: {}", Colors::RED, R);
         getFromSocket("/dispatch exit 1");
         return 1;
     }
@@ -230,6 +235,10 @@ int main(int argc, char** argv, char** envp) {
 
     std::println("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,
                  TESTS_FAILED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, (TESTS_FAILED > 0 ? std::string{Colors::RED} + "\nSome tests failed.\n" : ""));
+
+    kill(hyprlandProc->pid(), SIGKILL);
+
+    hyprlandProc.reset();
 
     return ret || TESTS_FAILED;
 }

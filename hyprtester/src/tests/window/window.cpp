@@ -32,7 +32,7 @@ bool testWindows() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::println("{}Keep checking if kitty spawned", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcA.pid()) && Tests::windowCount() != 1) {
+    while (Tests::processAlive(kittyProcA->pid()) && Tests::windowCount() != 1) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -61,7 +61,7 @@ bool testWindows() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::println("{}Keep checking if kitty spawned", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcB.pid()) && Tests::windowCount() != 2) {
+    while (Tests::processAlive(kittyProcB->pid()) && Tests::windowCount() != 2) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

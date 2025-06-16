@@ -202,6 +202,7 @@ class CHyprOpenGLImpl {
 
     void setRenderModifEnabled(bool enabled);
     void setViewPort(GLint x, GLint y, GLsizei width, GLsizei height);
+    void setCapStatus(int cap, bool status);
 
     void saveMatrix();
     void setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
@@ -315,40 +316,40 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    eEGLContextVersion      m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
+    std::unordered_map<int, bool> m_capStatus;
 
-    std::vector<SDRMFormat> m_drmFormats;
-    bool                    m_hasModifiers = false;
+    eEGLContextVersion            m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 
-    int                     m_drmFD = -1;
-    std::string             m_extensions;
+    std::vector<SDRMFormat>       m_drmFormats;
+    bool                          m_hasModifiers = false;
 
-    bool                    m_fakeFrame            = false;
-    bool                    m_applyFinalShader     = false;
-    bool                    m_blend                = false;
-    bool                    m_offloadedFramebuffer = false;
-    bool                    m_cmSupported          = true;
+    int                           m_drmFD = -1;
+    std::string                   m_extensions;
 
-    bool                    m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>        m_monitorTransformStack;
+    bool                          m_fakeFrame            = false;
+    bool                          m_applyFinalShader     = false;
+    bool                          m_blend                = false;
+    bool                          m_offloadedFramebuffer = false;
+    bool                          m_cmSupported          = true;
 
-    SShader                 m_finalScreenShader;
-    CTimer                  m_globalTimer;
-    GLuint                  m_currentProgram;
+    bool                          m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>              m_monitorTransformStack;
+    SP<CTexture>                  m_missingAssetTexture;
+    SP<CTexture>                  m_backgroundTexture;
+    SP<CTexture>                  m_lockDeadTexture;
+    SP<CTexture>                  m_lockDead2Texture;
+    SP<CTexture>                  m_lockTtyTextTexture;
+    SShader                       m_finalScreenShader;
+    CTimer                        m_globalTimer;
+    GLuint                        m_currentProgram;
 
-    SP<CTexture>            m_missingAssetTexture;
-    SP<CTexture>            m_backgroundTexture;
-    SP<CTexture>            m_lockDeadTexture;
-    SP<CTexture>            m_lockDead2Texture;
-    SP<CTexture>            m_lockTtyTextTexture;
-
-    void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
-    void                    createBGTextureForMonitor(PHLMONITOR);
-    void                    initDRMFormats();
-    void                    initEGL(bool gbm);
-    EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
-    void                    initAssets();
-    void                    initMissingAssetTexture();
+    void                          logShaderError(const GLuint&, bool program = false, bool silent = false);
+    void                          createBGTextureForMonitor(PHLMONITOR);
+    void                          initDRMFormats();
+    void                          initEGL(bool gbm);
+    EGLDeviceEXT                  eglDeviceFromDRMFD(int drmFD);
+    void                          initAssets();
+    void                          initMissingAssetTexture();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

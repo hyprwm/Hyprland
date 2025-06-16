@@ -1266,10 +1266,10 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
 void CHyprOpenGLImpl::blend(bool enabled) {
     if (enabled) {
-        glEnable(GL_BLEND);
+        setCapStatus(GL_BLEND, true);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // everything is premultiplied
     } else
-        glDisable(GL_BLEND);
+        setCapStatus(GL_BLEND, false);
 
     m_blend = enabled;
 }
@@ -1282,19 +1282,19 @@ void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
         const auto TR  = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
         box.transform(TR, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y);
         glScissor(box.x, box.y, box.width, box.height);
-        glEnable(GL_SCISSOR_TEST);
+        setCapStatus(GL_SCISSOR_TEST, true);
         return;
     }
 
     glScissor(originalBox.x, originalBox.y, originalBox.width, originalBox.height);
-    glEnable(GL_SCISSOR_TEST);
+    setCapStatus(GL_SCISSOR_TEST, true);
 }
 
 void CHyprOpenGLImpl::scissor(const pixman_box32* pBox, bool transform) {
     RASSERT(m_renderData.pMonitor, "Tried to scissor without begin()!");
 
     if (!pBox) {
-        glDisable(GL_SCISSOR_TEST);
+        setCapStatus(GL_SCISSOR_TEST, false);
         return;
     }
 
@@ -1329,7 +1329,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(const CBox& box, const CHyprColor& col,
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
-    glEnable(GL_STENCIL_TEST);
+    setCapStatus(GL_STENCIL_TEST, true);
 
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -1352,7 +1352,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(const CBox& box, const CHyprColor& col,
 
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
-    glDisable(GL_STENCIL_TEST);
+    setCapStatus(GL_STENCIL_TEST, false);
     glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     scissor(nullptr);
@@ -1784,7 +1784,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
     const auto BLENDBEFORE = m_blend;
     blend(false);
-    glDisable(GL_STENCIL_TEST);
+    setCapStatus(GL_STENCIL_TEST, false);
 
     // get transforms for the full monitor
     const auto TRANSFORM  = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
@@ -2188,7 +2188,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
 
-    glEnable(GL_STENCIL_TEST);
+    setCapStatus(GL_STENCIL_TEST, true);
 
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -2237,7 +2237,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     glClear(GL_STENCIL_BUFFER_BIT);
 
     // draw window
-    glDisable(GL_STENCIL_TEST);
+    setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternalWithDamage(tex, box, a * overallA, texDamage, round, roundingPower, false, false, true, true, wrapX, wrapY);
 
     glStencilMask(0xFF);
@@ -3006,6 +3006,21 @@ void CHyprOpenGLImpl::setViewPort(GLint x, GLint y, GLsizei width, GLsizei heigh
 
     glViewport(x, y, width, height);
     m_lastViewport = {.x = x, .y = y, .width = width, .height = height};
+}
+
+void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
+    // check if the capability status is already set to the desired status
+    auto it            = m_capStatus.find(cap);
+    bool currentStatus = (it != m_capStatus.end()) ? it->second : false; // default to 'false' if not found
+
+    if (currentStatus == status)
+        return;
+
+    m_capStatus[cap] = status;
+
+    // Enable or disable the capability based on status
+    auto func = status ? [](int c) { glEnable(c); } : [](int c) { glDisable(c); };
+    func(cap);
 }
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {

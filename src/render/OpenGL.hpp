@@ -200,7 +200,7 @@ class CHyprOpenGLImpl {
     void popMonitorTransformEnabled();
 
     void setRenderModifEnabled(bool enabled);
-    void setViewPort(GLint x, GLint y, GLsizei width, GLsizei height);
+    void setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void setCapStatus(int cap, bool status);
 
     void saveMatrix();

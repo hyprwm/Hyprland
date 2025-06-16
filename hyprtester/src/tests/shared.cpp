@@ -5,10 +5,11 @@
 #include "../hyprctlCompat.hpp"
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Memory;
 
-CProcess Tests::spawnKitty() {
-    CProcess kitty{"/bin/sh", {"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)}};
-    kitty.runAsync();
+CUniquePointer<CProcess> Tests::spawnKitty() {
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("bin/sh", std::vector<std::string>{"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)});
+    kitty->runAsync();
     return kitty;
 }
 

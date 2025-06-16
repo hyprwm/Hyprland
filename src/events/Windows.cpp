@@ -529,10 +529,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
                             int borderSize = PWINDOW->getRealBorderSize();
 
                             posX = std::clamp(posX, (int)(PMONITOR->m_reservedTopLeft.x + borderSize),
-                                              (int)(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PWINDOW->m_realSize->goal().x - borderSize));
+                                              std::max((int)(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PWINDOW->m_realSize->goal().x - borderSize),
+                                                       (int)(PMONITOR->m_reservedTopLeft.x + borderSize + 1)));
 
                             posY = std::clamp(posY, (int)(PMONITOR->m_reservedTopLeft.y + borderSize),
-                                              (int)(PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PWINDOW->m_realSize->goal().y - borderSize));
+                                              std::max((int)(PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PWINDOW->m_realSize->goal().y - borderSize),
+                                                       (int)(PMONITOR->m_reservedTopLeft.y + borderSize + 1)));
                         }
 
                         Debug::log(LOG, "Rule move, applying to {}", PWINDOW);

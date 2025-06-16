@@ -1277,16 +1277,28 @@ void CHyprOpenGLImpl::blend(bool enabled) {
 void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
     RASSERT(m_renderData.pMonitor, "Tried to scissor without begin()!");
 
+    // only call glScissor if the box has changed
+    static CBox m_lastScissorBox = {};
+
     if (transform) {
         CBox       box = originalBox;
         const auto TR  = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
         box.transform(TR, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y);
-        glScissor(box.x, box.y, box.width, box.height);
+
+        if (box != m_lastScissorBox) {
+            glScissor(box.x, box.y, box.width, box.height);
+            m_lastScissorBox = box;
+        }
+
         setCapStatus(GL_SCISSOR_TEST, true);
         return;
     }
 
-    glScissor(originalBox.x, originalBox.y, originalBox.width, originalBox.height);
+    if (originalBox != m_lastScissorBox) {
+        glScissor(originalBox.x, originalBox.y, originalBox.width, originalBox.height);
+        m_lastScissorBox = originalBox;
+    }
+
     setCapStatus(GL_SCISSOR_TEST, true);
 }
 

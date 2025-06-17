@@ -2374,7 +2374,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     useProgram(m_shaders->m_shSHADOW.program);
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
+    m_shaders->m_shSHADOW.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
         passCMUniforms(m_shaders->m_shSHADOW, SImageDescription{});
 

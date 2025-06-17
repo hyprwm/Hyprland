@@ -927,8 +927,7 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
 
-        shaders->TEXVERTSRC    = processShader("tex.vert", includes);
-        shaders->TEXVERTSRC300 = processShader("tex300.vert", includes);
+        shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
         GLuint prog;
@@ -938,7 +937,7 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-            prog = createProgram(shaders->TEXVERTSRC300, TEXFRAGSRCCM, true, true);
+            prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
             if (m_shadersInitialized && m_cmSupported && prog == 0)
                 g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
 
@@ -968,10 +967,10 @@ bool CHyprOpenGLImpl::initShaders() {
                            "about this!");
         }
 
-        const auto FRAGSHADOW             = processShader(m_cmSupported ? "shadow.frag" : "shadow_legacy.frag", includes);
-        const auto FRAGBORDER1            = processShader(m_cmSupported ? "border.frag" : "border_legacy.frag", includes);
-        const auto FRAGBLURPREPARE        = processShader(m_cmSupported ? "blurprepare.frag" : "blurprepare_legacy.frag", includes);
-        const auto FRAGBLURFINISH         = processShader(m_cmSupported ? "blurfinish.frag" : "blurfinish_legacy.frag", includes);
+        const auto FRAGSHADOW             = processShader("shadow.frag", includes);
+        const auto FRAGBORDER1            = processShader("border.frag", includes);
+        const auto FRAGBLURPREPARE        = processShader("blurprepare.frag", includes);
+        const auto FRAGBLURFINISH         = processShader("blurfinish.frag", includes);
         const auto QUADFRAGSRC            = processShader("quad.frag", includes);
         const auto TEXFRAGSRCRGBA         = processShader("rgba.frag", includes);
         const auto TEXFRAGSRCRGBAPASSTHRU = processShader("passthru.frag", includes);
@@ -1109,7 +1108,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.uniformLocations[SHADER_HALFPIXEL]  = glGetUniformLocation(prog, "halfpixel");
         shaders->m_shBLUR2.createVao();
 
-        prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURPREPARE.program = prog;
@@ -1124,7 +1123,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_BRIGHTNESS] = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURPREPARE.createVao();
 
-        prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBLURFINISH.program = prog;
@@ -1138,7 +1137,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.uniformLocations[SHADER_NOISE]      = glGetUniformLocation(prog, "noise");
         shaders->m_shBLURFINISH.createVao();
 
-        prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
             return false;
         if (m_cmSupported)
@@ -1154,7 +1153,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.uniformLocations[SHADER_COLOR]        = glGetUniformLocation(prog, "color");
         shaders->m_shSHADOW.createVao();
 
-        prog = createProgram(m_cmSupported ? shaders->TEXVERTSRC300 : shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
+        prog = createProgram(shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
             return false;
         shaders->m_shBORDER1.program = prog;
@@ -1216,10 +1215,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         fragmentShader.starts_with("#version 320 es") // do not break existing custom shaders
             ?
             m_shaders->TEXVERTSRC320 :
-            (fragmentShader.starts_with("#version 300 es") // support lower es versions
-                 ?
-                 m_shaders->TEXVERTSRC300 :
-                 m_shaders->TEXVERTSRC),
+            m_shaders->TEXVERTSRC,
         fragmentShader, true);
 
     if (!m_finalScreenShader.program) {
@@ -1320,6 +1316,25 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
     scissor(box, transform);
 }
 
+void CHyprOpenGLImpl::drawArrays(SShader& shader, const CRegion& damage) {
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+        damageClip.intersect(damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+}
+
 void CHyprOpenGLImpl::renderRect(const CBox& box, const CHyprColor& col, int round, float roundingPower) {
     if (!m_renderData.damage.empty())
         renderRectWithDamage(box, col, m_renderData.damage, round, roundingPower);
@@ -1406,26 +1421,9 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
 
     glBindVertexArray(m_shaders->m_shQUAD.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(damage);
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
+    drawArrays(m_shaders->m_shQUAD, damage);
 
     glBindVertexArray(0);
-
-    scissor(nullptr);
 }
 
 void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, float alpha, int round, float roundingPower, bool discardActive, bool allowCustomUV, GLenum wrapX,
@@ -1666,28 +1664,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
     }
 
-    if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
-        CRegion damageClip = m_renderData.clipBox;
-
-        if (!m_renderData.clipRegion.empty()) {
-            if (m_renderData.clipBox.empty())
-                damageClip = m_renderData.clipRegion;
-            else
-                damageClip.intersect(m_renderData.clipRegion);
-        }
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
+    drawArrays(*shader, damage);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1721,13 +1698,9 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     shader->setUniformInt(SHADER_TEX, 0);
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
-    for (auto const& RECT : m_renderData.damage.getRects()) {
-        scissor(&RECT);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
+    drawArrays(*shader, m_renderData.damage);
 
-    scissor(nullptr);
-
+    glBindVertexArray(0);
     glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }
@@ -1765,13 +1738,9 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
-    for (auto const& RECT : m_renderData.damage.getRects()) {
-        scissor(&RECT);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
+    drawArrays(*shader, m_renderData.damage);
 
-    scissor(nullptr);
-
+    glBindVertexArray(0);
     glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }
@@ -1862,13 +1831,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glBindVertexArray(m_shaders->m_shBLURPREPARE.uniformLocations[SHADER_SHADER_VAO]);
 
-        if (!damage.empty()) {
-            for (auto const& RECT : damage.getRects()) {
-                scissor(&RECT, false /* this region is already transformed */);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-
+        drawArrays(m_shaders->m_shBLURPREPARE, damage);
         glBindVertexArray(0);
         currentRenderToFB = PMIRRORSWAPFB;
     }
@@ -1903,13 +1866,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         pShader->setUniformInt(SHADER_TEX, 0);
 
         glBindVertexArray(pShader->uniformLocations[SHADER_SHADER_VAO]);
-        if (!pDamage->empty()) {
-            for (auto const& RECT : pDamage->getRects()) {
-                scissor(&RECT, false /* this region is already transformed */);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-
+        drawArrays(*pShader, damage);
         glBindVertexArray(0);
 
         if (currentRenderToFB != PMIRRORFB)
@@ -1964,12 +1921,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glBindVertexArray(m_shaders->m_shBLURFINISH.uniformLocations[SHADER_SHADER_VAO]);
 
-        if (!damage.empty()) {
-            for (auto const& RECT : damage.getRects()) {
-                scissor(&RECT, false /* this region is already transformed */);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
+        drawArrays(m_shaders->m_shBLURFINISH, damage);
 
         glBindVertexArray(0);
 
@@ -2319,22 +2271,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : m_renderData.damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
+    drawArrays(m_shaders->m_shBORDER1, m_renderData.damage);
 
     glBindVertexArray(0);
 
@@ -2404,22 +2341,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : m_renderData.damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
+    drawArrays(m_shaders->m_shBORDER1, m_renderData.damage);
 
     glBindVertexArray(0);
     blend(BLEND);
@@ -2474,22 +2396,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     glBindVertexArray(m_shaders->m_shSHADOW.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : m_renderData.damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
+    drawArrays(m_shaders->m_shSHADOW, m_renderData.damage);
 
     glBindVertexArray(0);
 }

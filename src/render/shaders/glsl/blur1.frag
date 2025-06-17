@@ -1,6 +1,5 @@
-#version 100
+#version 300 es
 precision            highp float;
-varying highp vec2   v_texcoord; // is in 0-1
 uniform sampler2D    tex;
 
 uniform float        radius;
@@ -8,6 +7,8 @@ uniform vec2         halfpixel;
 uniform int          passes;
 uniform float        vibrancy;
 uniform float        vibrancy_darkness;
+
+in vec2 v_texcoord;
 
 // see http://alienryderflex.com/hsp.html
 const float Pr = 0.299;
@@ -107,6 +108,7 @@ vec3 hsl2rgb(vec3 col) {
     return rgb;
 }
 
+layout(location = 0) out vec4 fragColor;
 void main() {
     vec2 uv = v_texcoord * 2.0;
 
@@ -119,7 +121,7 @@ void main() {
     vec4 color = sum / 8.0;
 
     if (vibrancy == 0.0) {
-        gl_FragColor = color;
+        fragColor = color;
     } else {
         // Invert it so that it correctly maps to the config setting
         float vibrancy_darkness1 = 1.0 - vibrancy_darkness;
@@ -136,6 +138,6 @@ void main() {
 
         vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, hsl[2]));
 
-        gl_FragColor = vec4(newColor, color[3]);
+        fragColor = vec4(newColor, color[3]);
     }
 }

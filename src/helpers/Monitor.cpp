@@ -699,7 +699,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     if (!success) {
         Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->resolution, RULE->refreshRate);
-        m_failedModeRetries = 1;
+        m_failedModeRetries++;
         g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
         return true;
     }

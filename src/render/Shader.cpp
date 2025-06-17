@@ -51,6 +51,10 @@ void SShader::createVao() {
     uniformLocations[SHADER_SHADER_VAO]     = shaderVao;
     uniformLocations[SHADER_SHADER_VBO_POS] = shaderVbo;
     uniformLocations[SHADER_SHADER_VBO_UV]  = shaderVboUv;
+
+    RASSERT(uniformLocations[SHADER_SHADER_VAO] >= 0, "SHADER_SHADER_VAO could not be created");
+    RASSERT(uniformLocations[SHADER_SHADER_VBO_POS] >= 0, "SHADER_SHADER_VBO_POS could not be created");
+    RASSERT(uniformLocations[SHADER_SHADER_VBO_UV] >= 0, "SHADER_SHADER_VBO_UV could not be created");
 }
 
 void SShader::setUniformInt(eShaderUniform location, GLint v0) {

@@ -1,8 +1,10 @@
+#version 300 es
+
 #extension GL_ARB_shading_language_include : enable
 #extension GL_OES_EGL_image_external : require
 
 precision highp float;
-varying vec2 v_texcoord;
+in vec2 v_texcoord;
 uniform samplerExternalOES texture0;
 uniform float alpha;
 
@@ -15,6 +17,7 @@ uniform int discardAlphaValue;
 uniform int applyTint;
 uniform vec3 tint;
 
+layout(location = 0) out vec4 fragColor;
 void main() {
 
     vec4 pixColor = texture2D(texture0, v_texcoord);
@@ -31,5 +34,5 @@ void main() {
     if (radius > 0.0)
 		pixColor = rounding(pixColor);
 
-    gl_FragColor = pixColor * alpha;
+    fragColor = pixColor * alpha;
 }

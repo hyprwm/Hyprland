@@ -1291,7 +1291,7 @@ void CXWM::getTransferData(SXSelection& sel) {
     if (transferIndex >= sel.transfers.size())
         return;
 
-    CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
+    Hyprutils::Memory::CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
     if (!updatedTransfer)
         return;
 

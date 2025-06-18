@@ -322,7 +322,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                     const auto PWINDOW = HLSurface->getWindow();
                     surfacePos         = BOX->pos();
                     pFoundLayerSurface = HLSurface->getLayer();
-                    pFoundWindow       = !PWINDOW || PWINDOW->isHidden() ? g_pCompositor->m_lastWindow.lock() : PWINDOW;
+                    if (!pFoundLayerSurface)
+                        pFoundWindow = !PWINDOW || PWINDOW->isHidden() ? g_pCompositor->m_lastWindow.lock() : PWINDOW;
                 } else // reset foundSurface, find one normally
                     foundSurface = nullptr;
             } else // reset foundSurface, find one normally

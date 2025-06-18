@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/defer/Promise.hpp"
 #include "PluginAPI.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include <csetjmp>
 #include <expected>
 
@@ -32,7 +33,7 @@ class CPluginSystem {
   public:
     CPluginSystem();
 
-    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path);
+    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path, eSpecialPidTypes pidType = SPECIAL_PID_TYPE_NONE);
     void                   unloadPlugin(const CPlugin* plugin, bool eject = false);
     void                   unloadAllPlugins();
     void                   updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
@@ -46,7 +47,7 @@ class CPluginSystem {
 
   private:
     std::vector<UP<CPlugin>>             m_loadedPlugins;
-
+    std::vector<std::string>             m_lastConfigPlugins;
     jmp_buf                              m_pluginFaultJumpBuf;
 
     std::expected<CPlugin*, std::string> loadPluginInternal(const std::string& path);

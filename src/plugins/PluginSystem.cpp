@@ -14,15 +14,15 @@ CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = makeUnique<CHookSystem>();
 }
 
-SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path) {
+SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpecialPidTypes pidType) {
 
     pid_t pid = 0;
 
     if (g_pHyprCtl->m_currentRequestParams.pid > 0)
         pid = g_pHyprCtl->m_currentRequestParams.pid;
 
-    return CPromise<CPlugin*>::make([path, pid, this](SP<CPromiseResolver<CPlugin*>> resolver) {
-        const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(pid, path, PERMISSION_TYPE_PLUGIN);
+    return CPromise<CPlugin*>::make([path, pid, pidType, this](SP<CPromiseResolver<CPlugin*>> resolver) {
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(pidType != SPECIAL_PID_TYPE_NONE ? pidType : pid, path, PERMISSION_TYPE_PLUGIN);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
             Debug::log(LOG, "CPluginSystem: Waiting for user confirmation to load {}", path);
 
@@ -196,6 +196,11 @@ void CPluginSystem::unloadAllPlugins() {
 }
 
 void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
+    if (m_lastConfigPlugins == plugins)
+        return;
+
+    m_lastConfigPlugins = plugins;
+
     // unload all plugins that are no longer present
     for (auto const& p : m_loadedPlugins | std::views::reverse) {
         if (!p->m_loadedWithConfig || std::ranges::find(plugins, p->m_path) != plugins.end())
@@ -215,7 +220,7 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
 
         changed = true;
 
-        loadPlugin(path)->then([path](SP<CPromiseResult<CPlugin*>> result) {
+        loadPlugin(path, SPECIAL_PID_TYPE_CONFIG)->then([path](SP<CPromiseResult<CPlugin*>> result) {
             if (result->hasError()) {
                 const auto NAME = path.contains('/') ? path.substr(path.find_last_of('/') + 1) : path;
                 Debug::log(ERR, "CPluginSystem::updateConfigPlugins: failed to load plugin {}: {}", NAME, result->error());

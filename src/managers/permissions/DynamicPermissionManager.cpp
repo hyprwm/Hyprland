@@ -69,6 +69,13 @@ static const char* permissionToHumanString(eDynamicPermissionType type) {
     return "error";
 }
 
+static const char* specialPidToString(eSpecialPidTypes type) {
+    switch (type) {
+        case SPECIAL_PID_TYPE_CONFIG: return "config";
+        default: return "";
+    }
+}
+
 static std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     if (pid <= 0)
         return std::unexpected("No pid for client");
@@ -198,17 +205,26 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
     if (*PPERM == 0)
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
-    const auto LOOKUP = binaryNameForPid(pid);
+    std::optional<std::string>              binaryName;
+    std::expected<std::string, std::string> lookup;
 
-    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
-               LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
+    if (pid > 0) {
+        lookup = binaryNameForPid(pid);
+
+        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
+                   lookup.has_value() ? lookup.value() : "lookup failed: " + lookup.error());
+
+        if (lookup.has_value())
+            binaryName = *lookup;
+    } else
+        binaryName = specialPidToString((eSpecialPidTypes)pid);
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [str, permission, pid](const auto& e) { return e->m_keyString == str && pid && pid == e->m_pid && e->m_type == permission; });
     if (it == m_rules.end()) {
         Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
 
-        it = std::ranges::find_if(m_rules, [key = str, permission, &LOOKUP](const auto& e) {
+        it = std::ranges::find_if(m_rules, [key = str, permission, &lookup](const auto& e) {
             if (e->m_type != permission)
                 return false; // wrong perm
 
@@ -216,7 +232,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
                 return false; // no regex
 
             // regex match
-            if (RE2::FullMatch(key, *e->m_binaryRegex) || (LOOKUP.has_value() && RE2::FullMatch(LOOKUP.value(), *e->m_binaryRegex)))
+            if (RE2::FullMatch(key, *e->m_binaryRegex) || (lookup.has_value() && RE2::FullMatch(lookup.value(), *e->m_binaryRegex)))
                 return true;
 
             return false;
@@ -277,16 +293,23 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
         description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}</b> ({})", binaryName, binaryPath));
-    } else if (pid >= 0) {
+    } else {
+        std::string lookup = "";
+        if (pid < 0)
+            lookup = specialPidToString((eSpecialPidTypes)pid);
+        else {
+            const auto LOOKUP = binaryNameForPid(pid);
+            lookup            = LOOKUP.value_or("Unknown");
+        }
+
         if (type == PERMISSION_TYPE_PLUGIN) {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), LOOKUP.value_or("Unknown"), binaryPath);
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
         } else {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), LOOKUP.value_or("Unknown"), binaryPath);
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
         }
-    } else
-        description = std::format(std::runtime_format(permissionToHumanString(type)), binaryPath);
+    }
 
     std::vector<std::string> options;
 

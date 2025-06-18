@@ -883,7 +883,6 @@ void CXWM::gatherResources() {
     if (xres_reply->server_major > 1 || (xres_reply->server_major == 1 && xres_reply->server_minor >= 2)) {
         m_xres = xresReply1;
     }
-    free(xres_reply);
 }
 
 void CXWM::getVisual() {

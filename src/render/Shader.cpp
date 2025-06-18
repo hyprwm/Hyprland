@@ -76,8 +76,11 @@ void SShader::setUniformFloat(eShaderUniform location, GLfloat v0) {
 
     auto& cached = uniformStatus.at(location);
 
-    if (cached.index() != 0 && std::get<GLfloat>(cached) == v0)
-        return;
+    if (cached.index() != 0) {
+        auto val = std::get<GLfloat>(cached);
+        if (EPSILON(val, v0))
+            return;
+    }
 
     cached = v0;
     glUniform1f(uniformLocations[location], v0);

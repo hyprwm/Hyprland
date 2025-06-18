@@ -1699,7 +1699,6 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     drawArrays(*shader, m_renderData.damage);
 
     glBindVertexArray(0);
-    glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }
 
@@ -1738,7 +1737,6 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     drawArrays(*shader, m_renderData.damage);
 
-    glBindVertexArray(0);
     glBindVertexArray(0);
     glBindTexture(tex->m_target, 0);
 }

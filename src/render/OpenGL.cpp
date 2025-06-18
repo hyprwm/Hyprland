@@ -1112,8 +1112,7 @@ bool CHyprOpenGLImpl::initShaders() {
         if (!prog)
             return false;
         shaders->m_shBLURPREPARE.program = prog;
-        if (m_cmSupported)
-            getCMShaderUniforms(shaders->m_shBLURPREPARE);
+        getCMShaderUniforms(shaders->m_shBLURPREPARE);
 
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_TEX]        = glGetUniformLocation(prog, "tex");
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_PROJ]       = glGetUniformLocation(prog, "proj");
@@ -1140,8 +1139,8 @@ bool CHyprOpenGLImpl::initShaders() {
         prog = createProgram(shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
             return false;
-        if (m_cmSupported)
-            shaders->m_shSHADOW.program = prog;
+
+        shaders->m_shSHADOW.program = prog;
         getCMShaderUniforms(shaders->m_shSHADOW);
         getRoundingShaderUniforms(shaders->m_shSHADOW);
         shaders->m_shSHADOW.uniformLocations[SHADER_PROJ]         = glGetUniformLocation(prog, "proj");
@@ -1156,10 +1155,9 @@ bool CHyprOpenGLImpl::initShaders() {
         prog = createProgram(shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
             return false;
-        shaders->m_shBORDER1.program = prog;
-        if (m_cmSupported)
-            getCMShaderUniforms(shaders->m_shBORDER1);
 
+        shaders->m_shBORDER1.program = prog;
+        getCMShaderUniforms(shaders->m_shBORDER1);
         getRoundingShaderUniforms(shaders->m_shBORDER1);
         shaders->m_shBORDER1.uniformLocations[SHADER_PROJ]                    = glGetUniformLocation(prog, "proj");
         shaders->m_shBORDER1.uniformLocations[SHADER_THICK]                   = glGetUniformLocation(prog, "thick");

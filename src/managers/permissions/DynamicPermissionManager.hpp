@@ -34,6 +34,12 @@ enum eDynamicPermissionAllowMode : uint8_t {
     PERMISSION_RULE_ALLOW_MODE_PENDING, // popup is open
 };
 
+// NOLINTNEXTLINE
+enum eSpecialPidTypes : int {
+    SPECIAL_PID_TYPE_CONFIG = -3,
+    SPECIAL_PID_TYPE_NONE   = -2,
+};
+
 class CDynamicPermissionRule;
 
 struct SDynamicPermissionRuleDestroyWrapper {

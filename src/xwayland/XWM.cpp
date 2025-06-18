@@ -20,6 +20,8 @@
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+using Hyprutils::Memory::CUniquePointer;
+
 using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
@@ -28,6 +30,15 @@ constexpr size_t INCR_CHUNK_SIZE = 64ul * 1024;
 static int       onX11Event(int fd, uint32_t mask, void* data) {
     return g_pXWayland->m_wm->onEvent(fd, mask);
 }
+
+struct SFreeDeleter {
+    void operator()(void* ptr) const {
+        std::free(ptr);
+    }
+};
+
+template <typename T>
+using XCBReplyPtr = std::unique_ptr<T, SFreeDeleter>;
 
 SP<CXWaylandSurface> CXWM::windowForXID(xcb_window_t wid) {
     for (auto const& s : m_surfaces) {
@@ -182,9 +193,8 @@ std::string CXWM::getAtomName(uint32_t atom) {
     }
 
     // Get the name of the atom
-    const auto cookie = xcb_get_atom_name(m_connection, atom);
-    using ReplyPtr    = std::unique_ptr<xcb_get_atom_name_reply_t, decltype(&free)>;
-    ReplyPtr reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr), &free);
+    const auto                             cookie = xcb_get_atom_name(m_connection, atom);
+    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr));
 
     if (!reply)
         return "Unknown";
@@ -332,9 +342,8 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
     if (!XSURF)
         return;
 
-    xcb_get_property_cookie_t cookie = xcb_get_property(m_connection, 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
-    using ReplyPtr                   = std::unique_ptr<xcb_get_property_reply_t, decltype(&free)>;
-    ReplyPtr reply(xcb_get_property_reply(m_connection, cookie, nullptr), &free);
+    xcb_get_property_cookie_t             cookie = xcb_get_property(m_connection, 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
+    XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(m_connection, cookie, nullptr));
 
     if (!reply) {
         Debug::log(ERR, "[xwm] Failed to read property notify cookie");
@@ -573,12 +582,11 @@ xcb_atom_t CXWM::mimeToAtom(const std::string& mime) {
     if (mime == "text/plain")
         return HYPRATOMS["TEXT"];
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(m_connection, 0, mime.length(), mime.c_str());
-    using ReplyPtr                  = std::unique_ptr<xcb_intern_atom_reply_t, decltype(&free)>;
-    ReplyPtr reply(xcb_intern_atom_reply(m_connection, cookie, nullptr), &free);
+    xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(m_connection, 0, mime.length(), mime.c_str());
+    XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(m_connection, cookie, nullptr));
     if (!reply.get())
         return XCB_ATOM_NONE;
-    xcb_atom_t atom = reply.get()->atom;
+    xcb_atom_t atom = reply->atom;
 
     return atom;
 }
@@ -589,9 +597,8 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
     if (atom == HYPRATOMS["TEXT"])
         return "text/plain";
 
-    xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(m_connection, atom);
-    using ReplyPtr                    = std::unique_ptr<xcb_get_atom_name_reply_t, decltype(&free)>;
-    ReplyPtr reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr), &free);
+    xcb_get_atom_name_cookie_t             cookie = xcb_get_atom_name(m_connection, atom);
+    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr));
     if (!reply)
         return "INVALID";
     size_t      len = xcb_get_atom_name_name_length(reply.get());
@@ -839,9 +846,8 @@ void CXWM::gatherResources() {
     xcb_prefetch_extension_data(m_connection, &xcb_res_id);
 
     for (auto& ATOM : HYPRATOMS) {
-        xcb_intern_atom_cookie_t cookie = xcb_intern_atom(m_connection, 0, ATOM.first.length(), ATOM.first.c_str());
-        using ReplyPtr                  = std::unique_ptr<xcb_intern_atom_reply_t, decltype(&free)>;
-        ReplyPtr reply(xcb_intern_atom_reply(m_connection, cookie, nullptr), &free);
+        xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(m_connection, 0, ATOM.first.length(), ATOM.first.c_str());
+        XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(m_connection, cookie, nullptr));
 
         if (!reply) {
             Debug::log(ERR, "[xwm] Atom failed: {}", ATOM.first);
@@ -856,29 +862,27 @@ void CXWM::gatherResources() {
     if (!m_xfixes || !m_xfixes->present)
         Debug::log(WARN, "XFixes not available");
 
-    xcb_xfixes_query_version_cookie_t xfixes_cookie;
-    using ReplyPtr = std::unique_ptr<xcb_xfixes_query_version_reply_t, decltype(&free)>;
+    auto                                          xfixes_cookie = xcb_xfixes_query_version(m_connection, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
+    XCBReplyPtr<xcb_xfixes_query_version_reply_t> xfixes_reply(xcb_xfixes_query_version_reply(m_connection, xfixes_cookie, nullptr));
 
-    xfixes_cookie = xcb_xfixes_query_version(m_connection, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
-    ReplyPtr xfixes_reply(xcb_xfixes_query_version_reply(m_connection, xfixes_cookie, nullptr), &free);
+    if (xfixes_reply) {
+        Debug::log(LOG, "xfixes version: {}.{}", xfixes_reply->major_version, xfixes_reply->minor_version);
+        m_xfixesMajor = xfixes_reply->major_version;
+    }
 
-    Debug::log(LOG, "xfixes version: {}.{}", xfixes_reply->major_version, xfixes_reply->minor_version);
-    m_xfixesMajor = xfixes_reply->major_version;
-
-    const xcb_query_extension_reply_t* xresReply1 = xcb_get_extension_data(m_connection, &xcb_res_id);
+    const auto* xresReply1 = xcb_get_extension_data(m_connection, &xcb_res_id);
     if (!xresReply1 || !xresReply1->present)
         return;
 
-    xcb_res_query_version_cookie_t xres_cookie = xcb_res_query_version(m_connection, XCB_RES_MAJOR_VERSION, XCB_RES_MINOR_VERSION);
-    xcb_res_query_version_reply_t* xres_reply  = xcb_res_query_version_reply(m_connection, xres_cookie, nullptr);
-    if (xres_reply == nullptr)
+    auto                                       xres_cookie = xcb_res_query_version(m_connection, XCB_RES_MAJOR_VERSION, XCB_RES_MINOR_VERSION);
+    XCBReplyPtr<xcb_res_query_version_reply_t> xres_reply(xcb_res_query_version_reply(m_connection, xres_cookie, nullptr));
+    if (!xres_reply)
         return;
 
     Debug::log(LOG, "xres version: {}.{}", xres_reply->server_major, xres_reply->server_minor);
     if (xres_reply->server_major > 1 || (xres_reply->server_major == 1 && xres_reply->server_minor >= 2)) {
         m_xres = xresReply1;
     }
-    free(xres_reply);
 }
 
 void CXWM::getVisual() {
@@ -909,16 +913,16 @@ void CXWM::getVisual() {
 }
 
 void CXWM::getRenderFormat() {
-    xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(m_connection);
-    using ReplyPtr                                = std::unique_ptr<xcb_render_query_pict_formats_reply_t, decltype(&free)>;
-    ReplyPtr reply(xcb_render_query_pict_formats_reply(m_connection, cookie, nullptr), &free);
+    auto                                               cookie = xcb_render_query_pict_formats(m_connection);
+    XCBReplyPtr<xcb_render_query_pict_formats_reply_t> reply(xcb_render_query_pict_formats_reply(m_connection, cookie, nullptr));
 
     if (!reply) {
         Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
-    xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply.get());
-    xcb_render_pictforminfo_t*         format = nullptr;
+
+    auto                       iter   = xcb_render_query_pict_formats_formats_iterator(reply.get());
+    xcb_render_pictforminfo_t* format = nullptr;
     while (iter.rem > 0) {
         if (iter.data->depth == 32) {
             format = iter.data;
@@ -1105,9 +1109,8 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     };
 
     for (size_t i = 0; i < interestingProps.size(); i++) {
-        xcb_get_property_cookie_t cookie = xcb_get_property(m_connection, 0, surf->m_xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
-        using ReplyPtr                   = std::unique_ptr<xcb_get_property_reply_t, decltype(&free)>;
-        ReplyPtr reply(xcb_get_property_reply(m_connection, cookie, nullptr), &free);
+        xcb_get_property_cookie_t             cookie = xcb_get_property(m_connection, 0, surf->m_xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
+        XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(m_connection, cookie, nullptr));
         if (!reply) {
             Debug::log(ERR, "[xwm] Failed to get window property");
             continue;

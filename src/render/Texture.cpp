@@ -67,21 +67,21 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     m_type          = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
     m_size          = size_;
     m_isSynchronous = true;
+    m_target        = GL_TEXTURE_2D;
     allocate();
-
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_texID));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    bind();
+    setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     if (format->flipRB) {
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
+        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
-    GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+    unbind();
 
     if (m_keepDataCopy) {
         m_dataCopy.resize(stride * size_.y);
@@ -103,11 +103,11 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
     allocate();
     m_eglImage = image;
 
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_texID));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    bind();
+    setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     GLCALL(g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES(m_target, image));
-    GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+    unbind();
 }
 
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
@@ -116,13 +116,13 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    glBindTexture(GL_TEXTURE_2D, m_texID);
+    bind();
 
     auto rects = damage.copy().intersect(CBox{{}, m_size}).getRects();
 
     if (format->flipRB) {
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
+        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 
     for (auto const& rect : rects) {
@@ -139,7 +139,7 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    unbind();
 
     if (m_keepDataCopy) {
         m_dataCopy.resize(stride * m_size.y);
@@ -165,4 +165,26 @@ void CTexture::allocate() {
 
 const std::vector<uint8_t>& CTexture::dataCopy() {
     return m_dataCopy;
+}
+
+void CTexture::bind() {
+    GLCALL(glBindTexture(m_target, m_texID));
+}
+
+void CTexture::unbind() {
+    GLCALL(glBindTexture(m_target, 0));
+}
+
+void CTexture::setTexParameter(GLenum pname, GLint param) {
+    if (textureState.at(pname) == -1) {
+        GLCALL(glTexParameteri(m_target, pname, param));
+        return;
+    }
+
+    auto& cached = textureState.at(pname);
+    if (cached == param)
+        return;
+
+    cached = param;
+    GLCALL(glTexParameteri(m_target, pname, param));
 }

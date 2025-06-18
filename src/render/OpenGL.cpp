@@ -1555,17 +1555,17 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     }
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(tex->m_target, tex->m_texID);
+    tex->bind();
 
-    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_S, wrapX);
-    glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_T, wrapY);
+    tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapX);
+    tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapY);
 
     if (m_renderData.useNearestNeighbor) {
-        glTexParameteri(tex->m_target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(tex->m_target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
-        glTexParameteri(tex->m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(tex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
     const auto imageDescription =
@@ -1666,7 +1666,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(tex->m_target, 0);
+    tex->unbind();
 }
 
 void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) {
@@ -1689,7 +1689,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     SShader*   shader = &m_shaders->m_shPASSTHRURGBA;
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(tex->m_target, tex->m_texID);
+    tex->bind();
 
     useProgram(shader->program);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
@@ -1699,7 +1699,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     drawArrays(*shader, m_renderData.damage);
 
     glBindVertexArray(0);
-    glBindTexture(tex->m_target, 0);
+    tex->unbind();
 }
 
 void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFramebuffer& matte) {
@@ -1727,18 +1727,18 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     shader->setUniformInt(SHADER_ALPHA_MATTE, 1);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(tex->m_target, tex->m_texID);
+    tex->bind();
 
     glActiveTexture(GL_TEXTURE0 + 1);
     auto matteTex = matte.getTexture();
-    glBindTexture(matteTex->m_target, matteTex->m_texID);
+    matteTex->bind();
 
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
     drawArrays(*shader, m_renderData.damage);
 
     glBindVertexArray(0);
-    glBindTexture(tex->m_target, 0);
+    tex->unbind();
 }
 
 // This probably isn't the fastest
@@ -1797,9 +1797,8 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         auto currentTex = source.getTexture();
 
-        glBindTexture(currentTex->m_target, currentTex->m_texID);
-
-        glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        currentTex->bind();
+        currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         useProgram(m_shaders->m_shBLURPREPARE.program);
 
@@ -1843,9 +1842,9 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         auto currentTex = currentRenderToFB->getTexture();
 
-        glBindTexture(currentTex->m_target, currentTex->m_texID);
+        currentTex->bind();
 
-        glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         useProgram(pShader->program);
 
@@ -1874,7 +1873,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     // draw the things.
     // first draw is swap -> mirr
     PMIRRORFB->bind();
-    glBindTexture(PMIRRORSWAPFB->getTexture()->m_target, PMIRRORSWAPFB->getTexture()->m_texID);
+    PMIRRORSWAPFB->getTexture()->bind();
 
     // damage region will be scaled, make a temp
     CRegion tempDamage{damage};
@@ -1904,9 +1903,9 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         auto currentTex = currentRenderToFB->getTexture();
 
-        glBindTexture(currentTex->m_target, currentTex->m_texID);
+        currentTex->bind();
 
-        glTexParameteri(currentTex->m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         useProgram(m_shaders->m_shBLURFINISH.program);
         m_shaders->m_shBLURFINISH.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
@@ -1928,7 +1927,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     }
 
     // finish
-    glBindTexture(PMIRRORFB->getTexture()->m_target, 0);
+    PMIRRORFB->getTexture()->unbind();
 
     blend(BLENDBEFORE);
 
@@ -2519,13 +2518,13 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
@@ -2602,11 +2601,11 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col
     tex->m_size = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
 
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->m_size.x, tex->m_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     cairo_destroy(CAIRO);
@@ -2643,11 +2642,11 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
     const GLint glType   = GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
@@ -2771,11 +2770,12 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     const GLint glType   = GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+
     glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);

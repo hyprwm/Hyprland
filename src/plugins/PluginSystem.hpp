@@ -46,7 +46,7 @@ class CPluginSystem {
 
   private:
     std::vector<UP<CPlugin>>             m_loadedPlugins;
-
+    std::vector<std::string>             m_lastConfigPlugins;
     jmp_buf                              m_pluginFaultJumpBuf;
 
     std::expected<CPlugin*, std::string> loadPluginInternal(const std::string& path);

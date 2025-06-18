@@ -196,6 +196,11 @@ void CPluginSystem::unloadAllPlugins() {
 }
 
 void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed) {
+    if (m_lastConfigPlugins == plugins)
+        return;
+
+    m_lastConfigPlugins = plugins;
+
     // unload all plugins that are no longer present
     for (auto const& p : m_loadedPlugins | std::views::reverse) {
         if (!p->m_loadedWithConfig || std::ranges::find(plugins, p->m_path) != plugins.end())

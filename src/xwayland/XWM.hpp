@@ -181,7 +181,7 @@ class CXWM {
     SXSelection* getSelection(xcb_atom_t atom);
 
     //
-    CXCBConnection                            m_connection;
+    CUniquePointer<CXCBConnection>            m_connection;
     xcb_errors_context_t*                     m_errors = nullptr;
     xcb_screen_t*                             m_screen = nullptr;
 
@@ -213,6 +213,9 @@ class CXWM {
     SP<CX11DataDevice>                        m_dndDataDevice = makeShared<CX11DataDevice>();
     std::vector<SP<CX11DataOffer>>            m_dndDataOffers;
 
+    inline xcb_connection_t*                  getConnection() {
+        return m_connection ? *m_connection : nullptr;
+    }
     struct {
         CHyprSignalListener newWLSurface;
         CHyprSignalListener newXShellSurface;

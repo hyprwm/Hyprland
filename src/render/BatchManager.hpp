@@ -5,6 +5,7 @@
 #include <memory>
 #include "../helpers/Color.hpp"
 #include "../helpers/math/Math.hpp"
+#include "BatchedRectRenderer.hpp"
 
 class CHyprOpenGLImpl;
 
@@ -90,6 +91,8 @@ class CRenderBatchManager {
     
     SBatchMetrics m_metrics;
     CHyprOpenGLImpl* m_gl = nullptr;
+    CBatchedRectRenderer m_rectRenderer;
+    bool m_useOptimizedPath = true;
 
     void executeBatch(const SRenderBatch& batch);
     bool shouldFlush(const SBatchKey& newKey) const;

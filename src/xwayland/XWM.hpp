@@ -11,6 +11,8 @@
 #include <xcb/composite.h>
 #include <xcb/xcb_errors.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <fmt/core.h>
+#include <fmt/format.h>
 
 struct wl_event_source;
 class CXWaylandSurfaceResource;
@@ -68,8 +70,13 @@ class CXCBConnection {
     }
 
     ~CXCBConnection() {
-        if (m_connection)
+        if (m_connection) {
+            Debug::log(LOG, "Disconnecting XCB connection {}", fmt::ptr(m_connection));
             xcb_disconnect(m_connection);
+            m_connection = nullptr;
+        } else {
+            Debug::log(ERR, "Double xcb_disconnect attempt");
+        }
     }
 
     bool hasError() const {

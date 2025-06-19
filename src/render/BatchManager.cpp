@@ -174,13 +174,21 @@ void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
     
     switch (batch.type) {
         case ERenderOperation::RECT:
-            // For now, render individually but count as one draw call
-            // Future optimization: use instanced rendering or vertex buffer updates
-            for (size_t i = 0; i < batch.boxes.size(); ++i) {
-                m_gl->renderRect(batch.boxes[i], batch.colors[i], batch.round, batch.roundingPower);
+            if (m_useOptimizedPath && batch.boxes.size() > 3) {
+                // Use optimized batch renderer for multiple rects
+                m_rectRenderer.beginBatch(batch.round, batch.roundingPower);
+                for (size_t i = 0; i < batch.boxes.size(); ++i) {
+                    m_rectRenderer.addRect(batch.boxes[i], batch.colors[i]);
+                }
+                m_rectRenderer.endBatch();
+                m_metrics.drawCalls++; // Single draw call for entire batch
+            } else {
+                // Fall back to individual rendering for small batches
+                for (size_t i = 0; i < batch.boxes.size(); ++i) {
+                    m_gl->renderRect(batch.boxes[i], batch.colors[i], batch.round, batch.roundingPower);
+                }
+                m_metrics.drawCalls += batch.boxes.size();
             }
-            // Count as single draw call since they share state
-            m_metrics.drawCalls++;
             break;
             
         case ERenderOperation::TEXTURE:
@@ -218,4 +226,11 @@ bool CRenderBatchManager::shouldFlush(const SBatchKey& newKey) const {
 
 CRenderBatchManager::SBatchKey CRenderBatchManager::createKey(ERenderOperation type, int round, float roundingPower, uint32_t textureId) const {
     return SBatchKey{type, round, roundingPower, textureId};
+}
+
+void CRenderBatchManager::setOpenGLContext(CHyprOpenGLImpl* gl) { 
+    m_gl = gl;
+    if (gl) {
+        m_rectRenderer.init(gl);
+    }
 }

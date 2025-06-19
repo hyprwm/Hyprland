@@ -176,15 +176,22 @@ void CTexture::unbind() {
 }
 
 void CTexture::setTexParameter(GLenum pname, GLint param) {
-    if (textureState.at(pname) == -1) {
+    size_t cacheIndex = TEXTURE_LAST;
+    for (size_t i = 0; i < m_supporteCacheStates.size(); i++) {
+        if (m_supporteCacheStates[i] == pname) {
+            cacheIndex = i;
+            break;
+        }
+    }
+
+    if (cacheIndex == TEXTURE_LAST) { // dont cache it.
         GLCALL(glTexParameteri(m_target, pname, param));
         return;
     }
 
-    auto& cached = textureState.at(pname);
-    if (cached == param)
+    if (m_cachedStates[cacheIndex] == param)
         return;
 
-    cached = param;
+    m_cachedStates[cacheIndex] = param;
     GLCALL(glTexParameteri(m_target, pname, param));
 }

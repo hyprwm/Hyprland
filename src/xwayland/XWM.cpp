@@ -796,10 +796,12 @@ int CXWM::onEvent(int fd, uint32_t mask) {
     if ((mask & WL_EVENT_HANGUP) || (mask & WL_EVENT_ERROR)) {
         Debug::log(ERR, "XWayland has yeeten the xwm off?!");
         Debug::log(CRIT, "XWayland has yeeten the xwm off?!");
-        g_pXWayland->m_wm.reset();
-        g_pXWayland->m_server.reset();
         // Attempt to create fresh instance
-        g_pEventLoopManager->doLater([]() { g_pXWayland = makeUnique<CXWayland>(true); });
+        g_pEventLoopManager->doLater([]() {
+            g_pXWayland->m_wm.reset();
+            g_pXWayland->m_server.reset();
+            g_pXWayland = makeUnique<CXWayland>(true);
+        });
         return 0;
     }
 

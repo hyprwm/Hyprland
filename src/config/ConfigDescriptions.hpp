@@ -1440,18 +1440,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
-        .value       = "render:explicit_sync",
-        .description = "Whether to enable explicit sync support. Requires a hyprland restart. 0 - no, 1 - yes, 2 - auto based on the gpu driver",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
-    },
-    SConfigOptionDescription{
-        .value       = "render:explicit_sync_kms",
-        .description = "Whether to enable explicit sync support for the KMS layer. Requires explicit_sync to be enabled. 0 - no, 1 - yes, 2 - auto based on the gpu driver",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
-    },
-    SConfigOptionDescription{
         .value       = "render:direct_scanout",
         .description = "Enables direct scanout. Direct scanout attempts to reduce lag when there is only one fullscreen application on a screen (e.g. game). It is also "
                        "recommended to set this to false if the fullscreen application shows graphical glitches. 0 - off, 1 - on, 2 - auto (on with content type 'game')",

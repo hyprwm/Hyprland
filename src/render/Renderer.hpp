@@ -41,10 +41,6 @@ class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
 
-struct SExplicitSyncSettings {
-    bool explicitEnabled = false, explicitKMSEnabled = false;
-};
-
 struct SRenderWorkspaceUntilData {
     PHLLS     ls;
     PHLWINDOW w;
@@ -81,7 +77,6 @@ class CHyprRenderer {
     bool                            isNvidia();
     void                            makeEGLCurrent();
     void                            unsetEGL();
-    SExplicitSyncSettings           getExplicitSyncSettings(SP<Aquamarine::IOutput> output);
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeSnapshot(PHLWINDOW);
     void                            makeSnapshot(PHLLS);

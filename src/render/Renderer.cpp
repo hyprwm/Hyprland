@@ -2347,33 +2347,6 @@ bool CHyprRenderer::isNvidia() {
     return m_nvidia;
 }
 
-SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOutput> output) {
-    static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
-
-    SExplicitSyncSettings settings;
-    settings.explicitEnabled    = *PENABLEEXPLICIT;
-    settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
-
-    if (!output->supportsExplicit) {
-        settings.explicitEnabled    = false;
-        settings.explicitKMSEnabled = false;
-
-        return settings;
-    }
-
-    if (*PENABLEEXPLICIT == 2 /* auto */)
-        settings.explicitEnabled = true;
-    if (*PENABLEEXPLICITKMS == 2 /* auto */) {
-        if (!m_nvidia)
-            settings.explicitKMSEnabled = true;
-        else {
-            settings.explicitKMSEnabled = isNvidiaDriverVersionAtLeast(560);
-        }
-    }
-    return settings;
-}
-
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
     static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
 

@@ -1,5 +1,7 @@
+#version 300 es
+
 precision highp float;
-varying vec2 v_texcoord;
+in vec2 v_texcoord;
 uniform sampler2D tex;
 uniform float time; // quirk: time is set to 0 at the beginning, should be around 10 when crash.
 uniform float distort;
@@ -24,6 +26,7 @@ float noise(vec2 point) {
     return mixed * mixed;
 }
 
+layout(location = 0) out vec4 fragColor;
 void main() {
     float ABERR_OFFSET = 4.0 * (distort / 5.5) * time;
     float TEAR_AMOUNT = 9000.0 * (1.0 - (distort / 5.5));
@@ -60,5 +63,5 @@ void main() {
 
     pixColor[0] += distort / 90.0;
 
-    gl_FragColor = pixColor;
+    fragColor = pixColor;
 }

@@ -1,6 +1,8 @@
+#version 300 es
+
 #extension GL_ARB_shading_language_include : enable
 precision highp float;
-varying vec2 v_texcoord; // is in 0-1
+in vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 uniform float alpha;
 
@@ -13,6 +15,7 @@ uniform float discardAlphaValue;
 uniform int applyTint;
 uniform vec3 tint;
 
+layout(location = 0) out vec4 fragColor;
 void main() {
 
     vec4 pixColor = texture2D(tex, v_texcoord);
@@ -32,5 +35,5 @@ void main() {
     if (radius > 0.0)
     	pixColor = rounding(pixColor);
 
-    gl_FragColor = pixColor * alpha;
+    fragColor = pixColor * alpha;
 }

@@ -34,6 +34,9 @@ class CTexture {
     void                        allocate();
     void                        update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage);
     const std::vector<uint8_t>& dataCopy();
+    void                        bind();
+    void                        unbind();
+    void                        setTexParameter(GLenum pname, GLint param);
 
     eTextureType                m_type          = TEXTURE_RGBA;
     GLenum                      m_target        = GL_TEXTURE_2D;
@@ -46,10 +49,16 @@ class CTexture {
     bool                        m_isSynchronous = false;
 
   private:
-    void                 createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
-    void                 createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
+    void                                   createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
+    void                                   createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
 
-    bool                 m_keepDataCopy = false;
+    bool                                   m_keepDataCopy = false;
 
-    std::vector<uint8_t> m_dataCopy;
+    std::vector<uint8_t>                   m_dataCopy;
+
+    static constexpr std::array<GLenum, 6> m_supporteCacheStates = {
+        GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER, GL_TEXTURE_SWIZZLE_R, GL_TEXTURE_SWIZZLE_B,
+    };
+    static constexpr size_t                        TEXTURE_LAST = m_supporteCacheStates.size();
+    std::array<std::optional<GLint>, TEXTURE_LAST> m_cachedStates;
 };

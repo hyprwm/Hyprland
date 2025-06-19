@@ -347,11 +347,11 @@ static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     tex->allocate();
-    glBindTexture(GL_TEXTURE_2D, tex->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 

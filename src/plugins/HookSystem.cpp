@@ -182,8 +182,8 @@ bool CFunctionHook::hook() {
         return false;
     }
 
-    m_originalBytes = malloc(ORIGSIZE);
-    memcpy(m_originalBytes, m_source, ORIGSIZE);
+    m_originalBytes.resize(ORIGSIZE);
+    memcpy(m_originalBytes.data(), m_source, ORIGSIZE);
 
     // populate trampoline
     memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
@@ -235,7 +235,7 @@ bool CFunctionHook::unhook() {
     mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
-    memcpy(m_source, m_originalBytes, m_hookLen);
+    memcpy(m_source, m_originalBytes.data(), m_hookLen);
 
     // revert mprot
     mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
@@ -245,9 +245,7 @@ bool CFunctionHook::unhook() {
     m_hookLen        = 0;
     m_trampoLen      = 0;
     m_trampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
-    m_originalBytes  = nullptr;
-
-    free(m_originalBytes);
+    m_originalBytes.clear();
 
     return true;
 }

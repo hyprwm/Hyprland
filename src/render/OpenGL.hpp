@@ -249,6 +249,8 @@ class CHyprOpenGLImpl {
     GLuint                                      compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                                        useProgram(GLuint prog);
 
+    void                                        ensureLockTexturesRendered(bool load);
+
     bool                                        m_shadersInitialized = false;
     SP<SPreparedShaders>                        m_shaders;
 
@@ -329,7 +331,7 @@ class CHyprOpenGLImpl {
     SP<CTexture>            m_backgroundTexture;
     SP<CTexture>            m_lockDeadTexture;
     SP<CTexture>            m_lockDead2Texture;
-    SP<CTexture>            m_lockTtyTextTexture; // TODO: don't always load lock
+    SP<CTexture>            m_lockTtyTextTexture;
 
     void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
     void                    createBGTextureForMonitor(PHLMONITOR);

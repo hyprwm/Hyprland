@@ -11,8 +11,8 @@
 #include <xcb/composite.h>
 #include <xcb/xcb_errors.h>
 #include <hyprutils/os/FileDescriptor.hpp>
-#include <fmt/core.h>
-#include <fmt/format.h>
+#include <cinttypes> // for PRIxPTR
+#include <cstdint>
 
 struct wl_event_source;
 class CXWaylandSurfaceResource;
@@ -71,7 +71,7 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            Debug::log(LOG, "Disconnecting XCB connection {}", fmt::ptr(m_connection));
+            Debug::log(LOG, "Disconnecting XCB connection 0x%" PRIxPTR, reinterpret_cast<uintptr_t>(m_connection));
             xcb_disconnect(m_connection);
             m_connection = nullptr;
         } else {

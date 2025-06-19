@@ -2,10 +2,9 @@
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 
-extern CHyprOpenGLImpl* g_pHyprOpenGL;
-
 CRenderBatchManager::CRenderBatchManager() {
-    m_gl = g_pHyprOpenGL;
+    // OpenGL context will be set when batch manager is used
+    m_gl = nullptr;
 }
 
 CRenderBatchManager::~CRenderBatchManager() {

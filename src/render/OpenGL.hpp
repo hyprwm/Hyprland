@@ -21,6 +21,7 @@
 #include "Framebuffer.hpp"
 #include "Renderbuffer.hpp"
 #include "pass/Pass.hpp"
+#include "BatchManager.hpp"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -299,6 +300,9 @@ class CHyprOpenGLImpl {
 
     SP<CTexture> m_screencopyDeniedTexture;
 
+    // Batch manager for reducing draw calls
+    CRenderBatchManager* getBatchManager() { return &m_batchManager; }
+
   private:
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,
@@ -357,6 +361,8 @@ class CHyprOpenGLImpl {
     void renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 
     void preBlurForCurrentMonitor();
+
+    CRenderBatchManager m_batchManager;
 
     friend class CHyprRenderer;
     friend class CTexPassElement;

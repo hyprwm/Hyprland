@@ -56,6 +56,8 @@ class CRenderBatchManager {
 
     SBatchMetrics getMetrics() const { return m_metrics; }
     void resetMetrics();
+    
+    void setOpenGLContext(CHyprOpenGLImpl* gl) { m_gl = gl; }
 
   private:
     struct SBatchKey {

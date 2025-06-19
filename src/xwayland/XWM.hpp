@@ -71,12 +71,14 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            Debug::log(LOG, "Disconnecting XCB connection 0x%" PRIxPTR, reinterpret_cast<uintptr_t>(m_connection));
+            std::ostringstream oss;
+            oss << "Disconnecting XCB connection 0x" << std::hex << reinterpret_cast<uintptr_t>(m_connection);
+            Debug::log(LOG, oss.str());
             xcb_disconnect(m_connection);
             m_connection = nullptr;
-        } else {
+        } else 
             Debug::log(ERR, "Double xcb_disconnect attempt");
-        }
+        
     }
 
     bool hasError() const {
@@ -181,7 +183,7 @@ class CXWM {
     SXSelection* getSelection(xcb_atom_t atom);
 
     //
-    CUniquePointer<CXCBConnection>            m_connection;
+    UP<CXCBConnection>            m_connection;
     xcb_errors_context_t*                     m_errors = nullptr;
     xcb_screen_t*                             m_screen = nullptr;
 

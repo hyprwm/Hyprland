@@ -115,6 +115,10 @@ void CRenderBatchManager::addBorder(const CBox& box, const CHyprColor& color, in
 
 void CRenderBatchManager::addShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color) {
     if (!m_batching) {
+        // Immediate mode - render directly
+        if (m_gl) {
+            m_gl->renderRoundedShadow(box, round, roundingPower, range, color, 1.0f);
+        }
         return;
     }
     
@@ -206,7 +210,11 @@ void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
             break;
             
         case ERenderOperation::SHADOW:
-            // Shadow rendering would be implemented here  
+            // Render all shadows in the batch
+            for (size_t i = 0; i < batch.boxes.size(); ++i) {
+                m_gl->renderRoundedShadow(batch.boxes[i], batch.round, batch.roundingPower, 
+                                         batch.shadowRanges[i], batch.colors[i], 1.0f);
+            }
             m_metrics.drawCalls++;
             break;
     }

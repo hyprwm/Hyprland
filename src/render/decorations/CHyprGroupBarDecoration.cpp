@@ -144,9 +144,13 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     float xoff = 0;
     float yoff = 0;
 
-    // Start batching for indicator rectangles
+    // Start batching for indicator rectangles if enabled
+    static auto PRENDERBATCHING = CConfigValue<Hyprlang::INT>("misc:render_batching");
     auto* batchManager = g_pHyprOpenGL->getBatchManager();
-    batchManager->beginBatch();
+    const bool USE_BATCHING = *PRENDERBATCHING;
+    
+    if (USE_BATCHING)
+        batchManager->beginBatch();
 
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
@@ -166,7 +170,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         if (!rect.empty()) {
             // Use batch manager for rectangles without complex edge rounding
-            if (!*PROUNDING || (*PROUNDING && !*PROUNDONLYEDGES)) {
+            if (USE_BATCHING && (!*PROUNDING || (*PROUNDING && !*PROUNDONLYEDGES))) {
                 int rounding = *PROUNDING ? *PROUNDING : 0;
                 batchManager->addRect(rect, color, rounding, 2.0f);
             } else {
@@ -277,7 +281,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     }
 
     // End batching and flush all indicator rectangles
-    batchManager->endBatch();
+    if (USE_BATCHING)
+        batchManager->endBatch();
 
     if (*PRENDERTITLES)
         invalidateTextures();

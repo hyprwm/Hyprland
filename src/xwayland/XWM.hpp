@@ -76,9 +76,8 @@ class CXCBConnection {
             Debug::log(LOG, oss.str());
             xcb_disconnect(m_connection);
             m_connection = nullptr;
-        } else 
+        } else
             Debug::log(ERR, "Double xcb_disconnect attempt");
-        
     }
 
     bool hasError() const {
@@ -183,7 +182,7 @@ class CXWM {
     SXSelection* getSelection(xcb_atom_t atom);
 
     //
-    UP<CXCBConnection>            m_connection;
+    UP<CXCBConnection>                        m_connection;
     xcb_errors_context_t*                     m_errors = nullptr;
     xcb_screen_t*                             m_screen = nullptr;
 

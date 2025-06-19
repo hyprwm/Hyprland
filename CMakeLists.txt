@@ -95,6 +95,13 @@ add_compile_options(
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+# Enable testing
+option(BUILD_TESTING "Build tests" OFF)
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
+
 message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)

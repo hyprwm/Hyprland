@@ -363,6 +363,9 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     m_globalTimer.reset();
 
     pushMonitorTransformEnabled(false);
+
+    // Initialize batch manager
+    m_batchManager.setOpenGLContext(this);
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {

@@ -175,3 +175,60 @@ TEST_F(BatchManagerTest, ResetMetrics) {
     EXPECT_EQ(metrics.stateChanges, 0);
     EXPECT_EQ(metrics.textureBinds, 0);
 }
+
+TEST_F(BatchManagerTest, OptimizedPathActivation) {
+    batchManager->beginBatch();
+    
+    CBox box(0, 0, 100, 100);
+    CHyprColor color(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    // Add exactly 4 rectangles (should trigger optimized path)
+    for (int i = 0; i < 4; i++) {
+        batchManager->addRect(CBox(i * 100, 0, 100, 100), color, 0, 2.0f);
+    }
+    
+    batchManager->endBatch();
+    
+    auto metrics = batchManager->getMetrics();
+    // With optimized path, should be 1 draw call instead of 4
+    EXPECT_EQ(metrics.drawCalls, 1);
+    EXPECT_EQ(metrics.stateChanges, 1);
+}
+
+TEST_F(BatchManagerTest, SmallBatchFallback) {
+    batchManager->beginBatch();
+    
+    CBox box(0, 0, 100, 100);
+    CHyprColor color(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    // Add only 2 rectangles (should use fallback path)
+    batchManager->addRect(box, color, 0, 2.0f);
+    batchManager->addRect(box, color, 0, 2.0f);
+    
+    batchManager->endBatch();
+    
+    auto metrics = batchManager->getMetrics();
+    // With fallback path, should be 2 draw calls
+    EXPECT_EQ(metrics.drawCalls, 2);
+    EXPECT_EQ(metrics.stateChanges, 1);
+}
+
+TEST_F(BatchManagerTest, LargeBatchPerformance) {
+    batchManager->beginBatch();
+    
+    CHyprColor color(1.0f, 0.5f, 0.0f, 1.0f);
+    const int RECT_COUNT = 1000;
+    
+    // Add many rectangles
+    for (int i = 0; i < RECT_COUNT; i++) {
+        CBox box(i % 100 * 10, i / 100 * 10, 10, 10);
+        batchManager->addRect(box, color, 0, 2.0f);
+    }
+    
+    batchManager->endBatch();
+    
+    auto metrics = batchManager->getMetrics();
+    // Should be significantly fewer draw calls than rectangles
+    EXPECT_LT(metrics.drawCalls, RECT_COUNT / 10);
+    EXPECT_EQ(metrics.stateChanges, 1);
+}

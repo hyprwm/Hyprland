@@ -146,7 +146,7 @@ regex:
     Regular expression by which a window will be searched
 
 property:
-    See https://wiki.hyprland.org/Configuring/Using-hyprctl/#setprop for list
+    See https://wiki.hypr.land/Configuring/Using-hyprctl/#setprop for list
     of properties
 
 value:

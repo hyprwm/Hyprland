@@ -136,7 +136,7 @@ namespace HyprlandAPI {
     /*
         Get a config value.
 
-        Please see the <hyprlang.hpp> header or https://hyprland.org/hyprlang/ for docs regarding Hyprlang types.
+        Please see the <hyprlang.hpp> header or https://hypr.land/hyprlang/ for docs regarding Hyprlang types.
 
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
                 nullptr on error.

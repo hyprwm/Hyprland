@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cstddef>
 #include "../helpers/memory/Memory.hpp"
 
 #define HANDLE                   void*
@@ -23,15 +24,15 @@ class CFunctionHook {
     void*          m_original = nullptr;
 
   private:
-    void*  m_source         = nullptr;
-    void*  m_trampolineAddr = nullptr;
-    void*  m_destination    = nullptr;
-    size_t m_hookLen        = 0;
-    size_t m_trampoLen      = 0;
-    HANDLE m_owner          = nullptr;
-    bool   m_active         = false;
+    void*                      m_source         = nullptr;
+    void*                      m_trampolineAddr = nullptr;
+    void*                      m_destination    = nullptr;
+    size_t                     m_hookLen        = 0;
+    size_t                     m_trampoLen      = 0;
+    HANDLE                     m_owner          = nullptr;
+    bool                       m_active         = false;
 
-    void*  m_originalBytes = nullptr;
+    std::vector<unsigned char> m_originalBytes;
 
     struct SInstructionProbe {
         size_t              len      = 0;

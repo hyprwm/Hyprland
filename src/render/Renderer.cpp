@@ -835,8 +835,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         return;
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
-        // locked with no exclusive, draw only red
-        renderSessionLockMissing(pMonitor);
+        // do not render anything. We will render a lockscreen anyways later.
         return;
     }
 
@@ -989,12 +988,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
-    if (g_pSessionLockManager->isSessionLocked()) {
+    const bool LOCKED = g_pSessionLockManager->isSessionLocked();
+
+    g_pHyprOpenGL->ensureLockTexturesRendered(                                     //
+        LOCKED &&                                                                  // session is locked AND
+        !g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id) && // no session lock surface AND
+        (g_pSessionLockManager->shallConsiderLockMissing() ||
+         !g_pSessionLockManager->isSessionLockPresent()) // we can consider rendering the lockMissing texture OR there is no client altogether
+    );
+
+    if (LOCKED) {
         Vector2D   translate = {geometry.x, geometry.y};
 
         const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
         if (!PSLS) {
-            if (g_pSessionLockManager->shallConsiderLockMissing())
+            if (g_pSessionLockManager->shallConsiderLockMissing() || !g_pSessionLockManager->isSessionLockPresent())
                 renderSessionLockMissing(pMonitor);
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
@@ -2337,33 +2345,6 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_nvidia;
-}
-
-SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings(SP<Aquamarine::IOutput> output) {
-    static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
-
-    SExplicitSyncSettings settings;
-    settings.explicitEnabled    = *PENABLEEXPLICIT;
-    settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
-
-    if (!output->supportsExplicit) {
-        settings.explicitEnabled    = false;
-        settings.explicitKMSEnabled = false;
-
-        return settings;
-    }
-
-    if (*PENABLEEXPLICIT == 2 /* auto */)
-        settings.explicitEnabled = true;
-    if (*PENABLEEXPLICITKMS == 2 /* auto */) {
-        if (!m_nvidia)
-            settings.explicitKMSEnabled = true;
-        else {
-            settings.explicitKMSEnabled = isNvidiaDriverVersionAtLeast(560);
-        }
-    }
-    return settings;
 }
 
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {

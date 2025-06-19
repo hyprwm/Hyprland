@@ -17,6 +17,7 @@
 #include "../protocols/types/ColorManagement.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
@@ -2752,17 +2753,34 @@ void CHyprOpenGLImpl::useProgram(GLuint prog) {
 void CHyprOpenGLImpl::initAssets() {
     initMissingAssetTexture();
 
-    m_lockDeadTexture  = loadAsset("lockdead.png");
-    m_lockDead2Texture = loadAsset("lockdead2.png");
-
-    m_lockTtyTextTexture = renderText(
-        std::format("Running on tty {}",
-                    g_pCompositor->m_aqBackend->hasSession() && g_pCompositor->m_aqBackend->session->vt > 0 ? std::to_string(g_pCompositor->m_aqBackend->session->vt) : "unknown"),
-        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
-
     m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 
     ensureBackgroundTexturePresence();
+}
+
+void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
+    static bool loaded = false;
+
+    if (loaded == load)
+        return;
+
+    loaded = load;
+
+    if (load) {
+        // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
+        m_lockDeadTexture  = loadAsset("lockdead.png");
+        m_lockDead2Texture = loadAsset("lockdead2.png");
+
+        m_lockTtyTextTexture = renderText(std::format("Running on tty {}",
+                                                      g_pCompositor->m_aqBackend->hasSession() && g_pCompositor->m_aqBackend->session->vt > 0 ?
+                                                          std::to_string(g_pCompositor->m_aqBackend->session->vt) :
+                                                          "unknown"),
+                                          CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+    } else {
+        m_lockDeadTexture.reset();
+        m_lockDead2Texture.reset();
+        m_lockTtyTextTexture.reset();
+    }
 }
 
 void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {

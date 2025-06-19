@@ -100,10 +100,9 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static const auto PENABLECM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
-    static const auto PENABLEXXCM     = CConfigValue<Hyprlang::INT>("experimental:xx_color_management_v4");
-    static const auto PDEBUGCM        = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
+    static const auto PENABLECM   = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PENABLEXXCM = CConfigValue<Hyprlang::INT>("experimental:xx_color_management_v4");
+    static const auto PDEBUGCM    = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -209,7 +208,7 @@ CProtocolManager::CProtocolManager() {
         else
             lease.reset();
 
-        if (*PENABLEEXPLICIT && !PROTO::sync)
+        if (!PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
     }
 

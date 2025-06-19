@@ -71,9 +71,7 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            std::ostringstream oss;
-            oss << "Disconnecting XCB connection 0x" << std::hex << reinterpret_cast<uintptr_t>(m_connection);
-            Debug::log(LOG, oss.str());
+            Debug::log(LOG, "Disconnecting XCB connection {:x}", (uintptr_t)m_connection);
             xcb_disconnect(m_connection);
             m_connection = nullptr;
         } else

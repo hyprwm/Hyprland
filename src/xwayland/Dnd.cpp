@@ -35,16 +35,16 @@ void CX11DataDevice::sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xc
         .type          = type,
         .data          = data,
     };
-
-    xcb_send_event(g_pXWayland->m_wm->m_connection, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
-    xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_connection_t* conn = (g_pXWayland->m_wm->getConnection());
+    xcb_send_event(conn, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_flush(conn);
 }
 
 xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
     xcb_window_t              targetWindow = window;
     xcb_get_property_cookie_t proxyCookie =
-        xcb_get_property(g_pXWayland->m_wm->m_connection, PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
-    xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, proxyCookie, nullptr);
+        xcb_get_property((g_pXWayland->m_wm->getConnection()), PROPERTY_OFFSET, window, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
+    xcb_get_property_reply_t* proxyReply = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), proxyCookie, nullptr);
 
     const auto                isValidPropertyReply = [](xcb_get_property_reply_t* reply) {
         return reply && reply->type == XCB_ATOM_WINDOW && reply->format == PROPERTY_FORMAT_32BIT && xcb_get_property_value_length(reply) == sizeof(xcb_window_t);
@@ -54,8 +54,8 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
         xcb_window_t              proxyWindow = *(xcb_window_t*)xcb_get_property_value(proxyReply);
 
         xcb_get_property_cookie_t proxyVerifyCookie =
-            xcb_get_property(g_pXWayland->m_wm->m_connection, PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
-        xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, proxyVerifyCookie, nullptr);
+            xcb_get_property(g_pXWayland->m_wm->getConnection(), PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
+        xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), proxyVerifyCookie, nullptr);
 
         if (isValidPropertyReply(proxyVerifyReply)) {
             xcb_window_t verifyWindow = *(xcb_window_t*)xcb_get_property_value(proxyVerifyReply);
@@ -121,11 +121,11 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
         targets.push_back(g_pXWayland->m_wm->mimeToAtom(m));
     }
 
-    xcb_change_property(g_pXWayland->m_wm->m_connection, XCB_PROP_MODE_REPLACE, g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndTypeList"], XCB_ATOM_ATOM, 32,
+    xcb_change_property(g_pXWayland->m_wm->getConnection(), XCB_PROP_MODE_REPLACE, g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndTypeList"], XCB_ATOM_ATOM, 32,
                         targets.size(), targets.data());
 
-    xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
-    xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_set_selection_owner(g_pXWayland->m_wm->getConnection(), g_pXWayland->m_wm->m_dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->m_wm->getConnection());
 
     xcb_window_t              targetWindow = getProxyWindow(XSURF->m_xID);
 
@@ -291,8 +291,8 @@ void CX11DataDevice::forceCleanupDnd() {
         }
     }
 
-    xcb_set_selection_owner(g_pXWayland->m_wm->m_connection, XCB_ATOM_NONE, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
-    xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_set_selection_owner(g_pXWayland->m_wm->getConnection(), XCB_ATOM_NONE, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
+    xcb_flush(g_pXWayland->m_wm->getConnection());
 
     cleanupState();
 

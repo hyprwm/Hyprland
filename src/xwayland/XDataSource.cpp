@@ -8,11 +8,11 @@
 using namespace Hyprutils::OS;
 
 CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
-    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->m_wm->m_connection,
+    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->m_wm->getConnection(),
                                                         1, // delete
                                                         m_selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
 
-    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, cookie, nullptr);
+    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), cookie, nullptr);
     if (!reply)
         return;
 
@@ -72,9 +72,9 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
 
     auto transfer            = makeUnique<SXTransfer>(m_selection);
-    transfer->incomingWindow = xcb_generate_id(g_pXWayland->m_wm->m_connection);
+    transfer->incomingWindow = xcb_generate_id(g_pXWayland->m_wm->getConnection());
     const uint32_t MASK      = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_create_window(g_pXWayland->m_wm->m_connection, XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->m_wm->m_screen->root, 0, 0, 10, 10, 0,
+    xcb_create_window(g_pXWayland->m_wm->getConnection(), XCB_COPY_FROM_PARENT, transfer->incomingWindow, g_pXWayland->m_wm->m_screen->root, 0, 0, 10, 10, 0,
                       XCB_WINDOW_CLASS_INPUT_OUTPUT, g_pXWayland->m_wm->m_screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
 
     xcb_atom_t selection_atom = HYPRATOMS["CLIPBOARD"];
@@ -83,9 +83,9 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     else if (&m_selection == &g_pXWayland->m_wm->m_dndSelection)
         selection_atom = HYPRATOMS["XdndSelection"];
 
-    xcb_convert_selection(g_pXWayland->m_wm->m_connection, transfer->incomingWindow, selection_atom, mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
+    xcb_convert_selection(g_pXWayland->m_wm->getConnection(), transfer->incomingWindow, selection_atom, mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
 
-    xcb_flush(g_pXWayland->m_wm->m_connection);
+    xcb_flush(g_pXWayland->m_wm->getConnection());
 
     //TODO: make CFileDescriptor setflags take SETFL aswell
     fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);

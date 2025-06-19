@@ -109,7 +109,7 @@ void CXWM::handleMapRequest(xcb_map_request_event_t* e) {
     if (!XSURF)
         return;
 
-    xcb_map_window(m_connection, e->window);
+    xcb_map_window(getConnection(), e->window);
 
     XSURF->restackToTop();
 
@@ -145,7 +145,7 @@ void CXWM::handleMapNotify(xcb_map_notify_event_t* e) {
 
     XSURF->setWithdrawn(false);
     sendState(XSURF);
-    xcb_flush(m_connection);
+    xcb_flush(getConnection());
 
     XSURF->considerMap();
 }
@@ -164,7 +164,7 @@ void CXWM::handleUnmapNotify(xcb_unmap_notify_event_t* e) {
 
     XSURF->setWithdrawn(true);
     sendState(XSURF);
-    xcb_flush(m_connection);
+    xcb_flush(getConnection());
 }
 
 static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> prospectiveChild) {
@@ -193,8 +193,8 @@ std::string CXWM::getAtomName(uint32_t atom) {
     }
 
     // Get the name of the atom
-    const auto                             cookie = xcb_get_atom_name(m_connection, atom);
-    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr));
+    const auto                             cookie = xcb_get_atom_name(getConnection(), atom);
+    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(getConnection(), cookie, nullptr));
 
     if (!reply)
         return "Unknown";
@@ -342,8 +342,8 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
     if (!XSURF)
         return;
 
-    xcb_get_property_cookie_t             cookie = xcb_get_property(m_connection, 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
-    XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(m_connection, cookie, nullptr));
+    xcb_get_property_cookie_t             cookie = xcb_get_property(getConnection(), 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
+    XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
 
     if (!reply) {
         Debug::log(ERR, "[xwm] Failed to read property notify cookie");
@@ -500,8 +500,8 @@ void CXWM::sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* d
         .data          = *data,
     };
 
-    xcb_send_event(m_connection, 0, surf->m_xID, mask, (const char*)&event);
-    xcb_flush(m_connection);
+    xcb_send_event(getConnection(), 0, surf->m_xID, mask, (const char*)&event);
+    xcb_flush(getConnection());
 }
 
 void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
@@ -520,7 +520,7 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
     }
 
     if (!surf) {
-        xcb_set_input_focus_checked(m_connection, XCB_INPUT_FOCUS_POINTER_ROOT, XCB_NONE, XCB_CURRENT_TIME);
+        xcb_set_input_focus_checked(getConnection(), XCB_INPUT_FOCUS_POINTER_ROOT, XCB_NONE, XCB_CURRENT_TIME);
         return;
     }
 
@@ -536,7 +536,7 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
     else {
         sendWMMessage(surf, &msg, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT);
 
-        xcb_void_cookie_t cookie = xcb_set_input_focus(m_connection, XCB_INPUT_FOCUS_POINTER_ROOT, surf->m_xID, XCB_CURRENT_TIME);
+        xcb_void_cookie_t cookie = xcb_set_input_focus(getConnection(), XCB_INPUT_FOCUS_POINTER_ROOT, surf->m_xID, XCB_CURRENT_TIME);
         m_lastFocusSeq           = cookie.sequence;
     }
 }
@@ -572,8 +572,8 @@ void CXWM::selectionSendNotify(xcb_selection_request_event_t* e, bool success) {
         .property      = success ? e->property : (uint32_t)XCB_ATOM_NONE,
     };
 
-    xcb_send_event(m_connection, 0, e->requestor, XCB_EVENT_MASK_NO_EVENT, (const char*)&selection_notify);
-    xcb_flush(m_connection);
+    xcb_send_event(getConnection(), 0, e->requestor, XCB_EVENT_MASK_NO_EVENT, (const char*)&selection_notify);
+    xcb_flush(getConnection());
 }
 
 xcb_atom_t CXWM::mimeToAtom(const std::string& mime) {
@@ -582,8 +582,8 @@ xcb_atom_t CXWM::mimeToAtom(const std::string& mime) {
     if (mime == "text/plain")
         return HYPRATOMS["TEXT"];
 
-    xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(m_connection, 0, mime.length(), mime.c_str());
-    XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(m_connection, cookie, nullptr));
+    xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(getConnection(), 0, mime.length(), mime.c_str());
+    XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(getConnection(), cookie, nullptr));
     if (!reply.get())
         return XCB_ATOM_NONE;
     xcb_atom_t atom = reply->atom;
@@ -597,8 +597,8 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
     if (atom == HYPRATOMS["TEXT"])
         return "text/plain";
 
-    xcb_get_atom_name_cookie_t             cookie = xcb_get_atom_name(m_connection, atom);
-    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(m_connection, cookie, nullptr));
+    xcb_get_atom_name_cookie_t             cookie = xcb_get_atom_name(getConnection(), atom);
+    XCBReplyPtr<xcb_get_atom_name_reply_t> reply(xcb_get_atom_name_reply(getConnection(), cookie, nullptr));
     if (!reply)
         return "INVALID";
     size_t      len = xcb_get_atom_name_name_length(reply.get());
@@ -709,10 +709,10 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
             atoms.push_back(mimeToAtom(m));
         }
 
-        xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_ATOM, 32, atoms.size(), atoms.data());
+        xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_ATOM, 32, atoms.size(), atoms.data());
         selectionSendNotify(e, true);
     } else if (e->target == HYPRATOMS["TIMESTAMP"]) {
-        xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_INTEGER, 32, 1, &sel->timestamp);
+        xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_INTEGER, 32, 1, &sel->timestamp);
         selectionSendNotify(e, true);
     } else if (e->target == HYPRATOMS["DELETE"]) {
         selectionSendNotify(e, true);
@@ -762,10 +762,10 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
     }
 
     if (sel == &m_clipboard)
-        xcb_convert_selection(m_connection, sel->window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
+        xcb_convert_selection(getConnection(), sel->window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
     else if (sel == &m_primarySelection)
-        xcb_convert_selection(m_connection, sel->window, HYPRATOMS["PRIMARY"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
-    xcb_flush(m_connection);
+        xcb_convert_selection(getConnection(), sel->window, HYPRATOMS["PRIMARY"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
+    xcb_flush(getConnection());
 
     return true;
 }
@@ -796,17 +796,19 @@ int CXWM::onEvent(int fd, uint32_t mask) {
     if ((mask & WL_EVENT_HANGUP) || (mask & WL_EVENT_ERROR)) {
         Debug::log(ERR, "XWayland has yeeten the xwm off?!");
         Debug::log(CRIT, "XWayland has yeeten the xwm off?!");
-        g_pXWayland->m_wm.reset();
-        g_pXWayland->m_server.reset();
         // Attempt to create fresh instance
-        g_pEventLoopManager->doLater([]() { g_pXWayland = makeUnique<CXWayland>(true); });
+        g_pEventLoopManager->doLater([]() {
+            g_pXWayland->m_wm.reset();
+            g_pXWayland->m_server.reset();
+            g_pXWayland = makeUnique<CXWayland>(true);
+        });
         return 0;
     }
 
     int processedEventCount = 0;
     using XCBEventPtr       = std::unique_ptr<xcb_generic_event_t, decltype(&free)>;
     while (true) {
-        XCBEventPtr event(xcb_poll_for_event(m_connection), &free);
+        XCBEventPtr event(xcb_poll_for_event(getConnection()), &free);
         if (!event)
             break;
 
@@ -835,19 +837,19 @@ int CXWM::onEvent(int fd, uint32_t mask) {
     }
 
     if (processedEventCount)
-        xcb_flush(m_connection);
+        xcb_flush(getConnection());
 
     return processedEventCount;
 }
 
 void CXWM::gatherResources() {
-    xcb_prefetch_extension_data(m_connection, &xcb_xfixes_id);
-    xcb_prefetch_extension_data(m_connection, &xcb_composite_id);
-    xcb_prefetch_extension_data(m_connection, &xcb_res_id);
+    xcb_prefetch_extension_data(getConnection(), &xcb_xfixes_id);
+    xcb_prefetch_extension_data(getConnection(), &xcb_composite_id);
+    xcb_prefetch_extension_data(getConnection(), &xcb_res_id);
 
     for (auto& ATOM : HYPRATOMS) {
-        xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(m_connection, 0, ATOM.first.length(), ATOM.first.c_str());
-        XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(m_connection, cookie, nullptr));
+        xcb_intern_atom_cookie_t             cookie = xcb_intern_atom(getConnection(), 0, ATOM.first.length(), ATOM.first.c_str());
+        XCBReplyPtr<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(getConnection(), cookie, nullptr));
 
         if (!reply) {
             Debug::log(ERR, "[xwm] Atom failed: {}", ATOM.first);
@@ -857,25 +859,25 @@ void CXWM::gatherResources() {
         ATOM.second = reply->atom;
     }
 
-    m_xfixes = xcb_get_extension_data(m_connection, &xcb_xfixes_id);
+    m_xfixes = xcb_get_extension_data(getConnection(), &xcb_xfixes_id);
 
     if (!m_xfixes || !m_xfixes->present)
         Debug::log(WARN, "XFixes not available");
 
-    auto                                          xfixes_cookie = xcb_xfixes_query_version(m_connection, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
-    XCBReplyPtr<xcb_xfixes_query_version_reply_t> xfixes_reply(xcb_xfixes_query_version_reply(m_connection, xfixes_cookie, nullptr));
+    auto                                          xfixes_cookie = xcb_xfixes_query_version(getConnection(), XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
+    XCBReplyPtr<xcb_xfixes_query_version_reply_t> xfixes_reply(xcb_xfixes_query_version_reply(getConnection(), xfixes_cookie, nullptr));
 
     if (xfixes_reply) {
         Debug::log(LOG, "xfixes version: {}.{}", xfixes_reply->major_version, xfixes_reply->minor_version);
         m_xfixesMajor = xfixes_reply->major_version;
     }
 
-    const auto* xresReply1 = xcb_get_extension_data(m_connection, &xcb_res_id);
+    const auto* xresReply1 = xcb_get_extension_data(getConnection(), &xcb_res_id);
     if (!xresReply1 || !xresReply1->present)
         return;
 
-    auto                                       xres_cookie = xcb_res_query_version(m_connection, XCB_RES_MAJOR_VERSION, XCB_RES_MINOR_VERSION);
-    XCBReplyPtr<xcb_res_query_version_reply_t> xres_reply(xcb_res_query_version_reply(m_connection, xres_cookie, nullptr));
+    auto                                       xres_cookie = xcb_res_query_version(getConnection(), XCB_RES_MAJOR_VERSION, XCB_RES_MINOR_VERSION);
+    XCBReplyPtr<xcb_res_query_version_reply_t> xres_reply(xcb_res_query_version_reply(getConnection(), xres_cookie, nullptr));
     if (!xres_reply)
         return;
 
@@ -908,13 +910,13 @@ void CXWM::getVisual() {
     }
 
     m_visualID = visualtype->visual_id;
-    m_colormap = xcb_generate_id(m_connection);
-    xcb_create_colormap(m_connection, XCB_COLORMAP_ALLOC_NONE, m_colormap, m_screen->root, m_visualID);
+    m_colormap = xcb_generate_id(getConnection());
+    xcb_create_colormap(getConnection(), XCB_COLORMAP_ALLOC_NONE, m_colormap, m_screen->root, m_visualID);
 }
 
 void CXWM::getRenderFormat() {
-    auto                                               cookie = xcb_render_query_pict_formats(m_connection);
-    XCBReplyPtr<xcb_render_query_pict_formats_reply_t> reply(xcb_render_query_pict_formats_reply(m_connection, cookie, nullptr));
+    auto                                               cookie = xcb_render_query_pict_formats(getConnection());
+    XCBReplyPtr<xcb_render_query_pict_formats_reply_t> reply(xcb_render_query_pict_formats_reply(getConnection(), cookie, nullptr));
 
     if (!reply) {
         Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
@@ -940,14 +942,14 @@ void CXWM::getRenderFormat() {
     m_renderFormatID = format->id;
 }
 
-CXWM::CXWM() : m_connection(g_pXWayland->m_server->m_xwmFDs[0].get()) {
+CXWM::CXWM() : m_connection(makeUnique<CXCBConnection>(g_pXWayland->m_server->m_xwmFDs[0].get())) {
 
-    if (m_connection.hasError()) {
-        Debug::log(ERR, "[xwm] Couldn't start, error {}", m_connection.hasError());
+    if (m_connection->hasError()) {
+        Debug::log(ERR, "[xwm] Couldn't start, error {}", m_connection->hasError());
         return;
     }
 
-    CXCBErrorContext xcbErrCtx(m_connection);
+    CXCBErrorContext xcbErrCtx(getConnection());
     if (!xcbErrCtx.isValid()) {
         Debug::log(ERR, "[xwm] Couldn't allocate errors context");
         return;
@@ -955,7 +957,7 @@ CXWM::CXWM() : m_connection(g_pXWayland->m_server->m_xwmFDs[0].get()) {
 
     m_dndDataDevice->m_self = m_dndDataDevice;
 
-    xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(m_connection));
+    xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(getConnection()));
     m_screen                              = screen_iterator.data;
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, g_pXWayland->m_server->m_xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
@@ -968,16 +970,16 @@ CXWM::CXWM() : m_connection(g_pXWayland->m_server->m_xwmFDs[0].get()) {
     uint32_t values[] = {
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_PROPERTY_CHANGE,
     };
-    xcb_change_window_attributes(m_connection, m_screen->root, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(getConnection(), m_screen->root, XCB_CW_EVENT_MASK, values);
 
-    xcb_composite_redirect_subwindows(m_connection, m_screen->root, XCB_COMPOSITE_REDIRECT_MANUAL);
+    xcb_composite_redirect_subwindows(getConnection(), m_screen->root, XCB_COMPOSITE_REDIRECT_MANUAL);
 
     xcb_atom_t supported[] = {
         HYPRATOMS["_NET_WM_STATE"],        HYPRATOMS["_NET_ACTIVE_WINDOW"],       HYPRATOMS["_NET_WM_MOVERESIZE"],           HYPRATOMS["_NET_WM_STATE_FOCUSED"],
         HYPRATOMS["_NET_WM_STATE_MODAL"],  HYPRATOMS["_NET_WM_STATE_FULLSCREEN"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"],
         HYPRATOMS["_NET_WM_STATE_HIDDEN"], HYPRATOMS["_NET_CLIENT_LIST"],         HYPRATOMS["_NET_CLIENT_LIST_STACKING"],
     };
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
 
     setActiveWindow(XCB_WINDOW_NONE);
     initSelection();
@@ -988,7 +990,7 @@ CXWM::CXWM() : m_connection(g_pXWayland->m_server->m_xwmFDs[0].get()) {
 
     createWMWindow();
 
-    xcb_flush(m_connection);
+    xcb_flush(getConnection());
 }
 
 CXWM::~CXWM() {
@@ -1002,24 +1004,24 @@ CXWM::~CXWM() {
 }
 
 void CXWM::setActiveWindow(xcb_window_t window) {
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_ACTIVE_WINDOW"], HYPRATOMS["WINDOW"], 32, 1, &window);
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_ACTIVE_WINDOW"], HYPRATOMS["WINDOW"], 32, 1, &window);
 }
 
 void CXWM::createWMWindow() {
     constexpr const char* wmName = "Hyprland :D";
-    m_wmWindow                   = xcb_generate_id(m_connection);
-    xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, m_wmWindow, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual, 0, nullptr);
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_wmWindow, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
+    m_wmWindow                   = xcb_generate_id(getConnection());
+    xcb_create_window(getConnection(), XCB_COPY_FROM_PARENT, m_wmWindow, m_screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual, 0, nullptr);
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_wmWindow, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
                         8, // format
                         strlen(wmName), wmName);
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_WINDOW,
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_WINDOW,
                         32, // format
                         1, &m_wmWindow);
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_wmWindow, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_WINDOW,
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_wmWindow, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_WINDOW,
                         32, // format
                         1, &m_wmWindow);
-    xcb_set_selection_owner(m_connection, m_wmWindow, HYPRATOMS["WM_S0"], XCB_CURRENT_TIME);
-    xcb_set_selection_owner(m_connection, m_wmWindow, HYPRATOMS["_NET_WM_CM_S0"], XCB_CURRENT_TIME);
+    xcb_set_selection_owner(getConnection(), m_wmWindow, HYPRATOMS["WM_S0"], XCB_CURRENT_TIME);
+    xcb_set_selection_owner(getConnection(), m_wmWindow, HYPRATOMS["_NET_WM_CM_S0"], XCB_CURRENT_TIME);
 }
 
 void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
@@ -1034,7 +1036,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
         focusWindow(surf);
     }
 
-    xcb_flush(m_connection);
+    xcb_flush(getConnection());
 }
 
 void CXWM::sendState(SP<CXWaylandSurface> surf) {
@@ -1044,7 +1046,7 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
         surf->setWithdrawn(false); // resend normal state
 
     if (surf->m_withdrawn) {
-        xcb_delete_property(m_connection, surf->m_xID, HYPRATOMS["_NET_WM_STATE"]);
+        xcb_delete_property(getConnection(), surf->m_xID, HYPRATOMS["_NET_WM_STATE"]);
         return;
     }
 
@@ -1064,7 +1066,7 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     if (surf == m_focusedSurface)
         props.push_back(HYPRATOMS["_NET_WM_STATE_FOCUSED"]);
 
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, surf->m_xID, HYPRATOMS["_NET_WM_STATE"], XCB_ATOM_ATOM, 32, props.size(), props.data());
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, surf->m_xID, HYPRATOMS["_NET_WM_STATE"], XCB_ATOM_ATOM, 32, props.size(), props.data());
 }
 
 void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
@@ -1109,8 +1111,8 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     };
 
     for (size_t i = 0; i < interestingProps.size(); i++) {
-        xcb_get_property_cookie_t             cookie = xcb_get_property(m_connection, 0, surf->m_xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
-        XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(m_connection, cookie, nullptr));
+        xcb_get_property_cookie_t             cookie = xcb_get_property(getConnection(), 0, surf->m_xID, interestingProps[i], XCB_ATOM_ANY, 0, 2048);
+        XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
         if (!reply) {
             Debug::log(ERR, "[xwm] Failed to get window property");
             continue;
@@ -1169,7 +1171,7 @@ void CXWM::updateClientList() {
             windows.push_back(surf->m_xID);
     }
 
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_CLIENT_LIST"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_CLIENT_LIST"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
 
     windows.clear();
     windows.reserve(m_mappedSurfacesStacking.size());
@@ -1179,7 +1181,7 @@ void CXWM::updateClientList() {
             windows.push_back(surf->m_xID);
     }
 
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_CLIENT_LIST_STACKING"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_CLIENT_LIST_STACKING"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
 }
 
 bool CXWM::isWMWindow(xcb_window_t w) {
@@ -1199,16 +1201,16 @@ void CXWM::initSelection() {
         XCB_XFIXES_SELECTION_EVENT_MASK_SET_SELECTION_OWNER | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_WINDOW_DESTROY | XCB_XFIXES_SELECTION_EVENT_MASK_SELECTION_CLIENT_CLOSE;
 
     auto createSelectionWindow = [&](xcb_window_t& window, const std::string& atomName, bool inputOnly = false) {
-        window                = xcb_generate_id(m_connection);
+        window                = xcb_generate_id(getConnection());
         const uint16_t width  = inputOnly ? 8192 : 10;
         const uint16_t height = inputOnly ? 8192 : 10;
 
-        xcb_create_window(m_connection, XCB_COPY_FROM_PARENT, window, m_screen->root, 0, 0, width, height, 0,
+        xcb_create_window(getConnection(), XCB_COPY_FROM_PARENT, window, m_screen->root, 0, 0, width, height, 0,
                           inputOnly ? XCB_WINDOW_CLASS_INPUT_ONLY : XCB_WINDOW_CLASS_INPUT_OUTPUT, m_screen->root_visual, XCB_CW_EVENT_MASK, &windowMask);
 
         if (!inputOnly) {
-            xcb_set_selection_owner(m_connection, window, HYPRATOMS[atomName], XCB_TIME_CURRENT_TIME);
-            xcb_xfixes_select_selection_input(m_connection, window, HYPRATOMS[atomName], xfixesMask);
+            xcb_set_selection_owner(getConnection(), window, HYPRATOMS[atomName], XCB_TIME_CURRENT_TIME);
+            xcb_xfixes_select_selection_input(getConnection(), window, HYPRATOMS[atomName], xfixesMask);
         }
 
         return window;
@@ -1225,7 +1227,7 @@ void CXWM::initSelection() {
 
     createSelectionWindow(m_dndSelection.window, "XdndAware", true);
     const uint32_t xdndVersion = XDND_VERSION;
-    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &xdndVersion);
+    xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &xdndVersion);
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
@@ -1309,30 +1311,30 @@ void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& si
     }
 
     if (m_cursorXID)
-        xcb_free_cursor(m_connection, m_cursorXID);
+        xcb_free_cursor(getConnection(), m_cursorXID);
 
     constexpr int CURSOR_DEPTH = 32;
 
-    xcb_pixmap_t  pix = xcb_generate_id(m_connection);
-    xcb_create_pixmap(m_connection, CURSOR_DEPTH, pix, m_screen->root, size.x, size.y);
+    xcb_pixmap_t  pix = xcb_generate_id(getConnection());
+    xcb_create_pixmap(getConnection(), CURSOR_DEPTH, pix, m_screen->root, size.x, size.y);
 
-    xcb_render_picture_t pic = xcb_generate_id(m_connection);
-    xcb_render_create_picture(m_connection, pic, pix, m_renderFormatID, 0, nullptr);
+    xcb_render_picture_t pic = xcb_generate_id(getConnection());
+    xcb_render_create_picture(getConnection(), pic, pix, m_renderFormatID, 0, nullptr);
 
-    xcb_gcontext_t gc = xcb_generate_id(m_connection);
-    xcb_create_gc(m_connection, gc, pix, 0, nullptr);
+    xcb_gcontext_t gc = xcb_generate_id(getConnection());
+    xcb_create_gc(getConnection(), gc, pix, 0, nullptr);
 
-    xcb_put_image(m_connection, XCB_IMAGE_FORMAT_Z_PIXMAP, pix, gc, size.x, size.y, 0, 0, 0, CURSOR_DEPTH, stride * size.y * sizeof(uint8_t), pixData);
-    xcb_free_gc(m_connection, gc);
+    xcb_put_image(getConnection(), XCB_IMAGE_FORMAT_Z_PIXMAP, pix, gc, size.x, size.y, 0, 0, 0, CURSOR_DEPTH, stride * size.y * sizeof(uint8_t), pixData);
+    xcb_free_gc(getConnection(), gc);
 
-    m_cursorXID = xcb_generate_id(m_connection);
-    xcb_render_create_cursor(m_connection, m_cursorXID, pic, hotspot.x, hotspot.y);
-    xcb_free_pixmap(m_connection, pix);
-    xcb_render_free_picture(m_connection, pic);
+    m_cursorXID = xcb_generate_id(getConnection());
+    xcb_render_create_cursor(getConnection(), m_cursorXID, pic, hotspot.x, hotspot.y);
+    xcb_free_pixmap(getConnection(), pix);
+    xcb_render_free_picture(getConnection(), pic);
 
     uint32_t values[] = {m_cursorXID};
-    xcb_change_window_attributes(m_connection, m_screen->root, XCB_CW_CURSOR, values);
-    xcb_flush(m_connection);
+    xcb_change_window_attributes(getConnection(), m_screen->root, XCB_CW_CURSOR, values);
+    xcb_flush(getConnection());
 }
 
 SP<CX11DataDevice> CXWM::getDataDevice() {
@@ -1371,7 +1373,7 @@ void SXSelection::onSelection() {
     if (isX11Clipboard || isX11Primary)
         return;
 
-    xcb_connection_t* conn = g_pXWayland->m_wm->m_connection;
+    auto conn = g_pXWayland->m_wm->getConnection();
 
     if (isClipboard && currentSel) {
         xcb_set_selection_owner(conn, g_pXWayland->m_wm->m_clipboard.window, HYPRATOMS["CLIPBOARD"], XCB_TIME_CURRENT_TIME);
@@ -1421,8 +1423,15 @@ int SXSelection::onRead(int fd, uint32_t mask) {
     transfer->data.resize(oldSize + bytesRead);
 
     if (bytesRead == 0) {
+        if (transfer->data.empty()) {
+            Debug::log(WARN, "[xwm] Transfer ended with zero bytes — rejecting");
+            g_pXWayland->m_wm->selectionSendNotify(&transfer->request, false);
+            transfers.erase(it);
+            return 0;
+        }
+
         Debug::log(LOG, "[xwm] Transfer complete, total size: {}", transfer->data.size());
-        auto conn = g_pXWayland->m_wm->m_connection;
+        auto conn = g_pXWayland->m_wm->getConnection();
         xcb_change_property(conn, XCB_PROP_MODE_REPLACE, transfer->request.requestor, transfer->request.property, transfer->request.target, 8, transfer->data.size(),
                             transfer->data.data());
 
@@ -1452,16 +1461,20 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     else if (!g_pXWayland->m_wm->m_dndDataOffers.empty())
         selection = g_pXWayland->m_wm->m_dndDataOffers.at(0)->getSource();
 
-    if (!selection)
+    if (!selection) {
+        Debug::log(ERR, "[xwm] sendData: no selection source available");
         return false;
+    }
 
     const auto MIMES = selection->mimes();
 
-    if (MIMES.empty())
+    if (MIMES.empty()) {
+        Debug::log(ERR, "[xwm] sendData: selection source has no mimes");
         return false;
+    }
 
     if (std::ranges::find(MIMES, mime) == MIMES.end()) {
-        Debug::log(ERR, "[xwm] X Client asked for an invalid MIME, sending the first advertised. THIS SHIT MAY BREAK!");
+        Debug::log(ERR, "[xwm] X client asked for  unknown MIME '{}', falling back to '{}'", mime, *MIMES.begin());
         mime = *MIMES.begin();
     }
 
@@ -1470,15 +1483,14 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
 
     int p[2];
     if (pipe(p) == -1) {
-        Debug::log(ERR, "[xwm] selection: pipe() failed");
+        Debug::log(ERR, "[xwm] sendData: pipe() failed");
         return false;
     }
 
     fcntl(p[0], F_SETFD, FD_CLOEXEC);
     fcntl(p[0], F_SETFL, O_NONBLOCK);
     fcntl(p[1], F_SETFD, FD_CLOEXEC);
-    // the wayland client might not expect a non-blocking fd
-    // fcntl(p[1], F_SETFL, O_NONBLOCK);
+    // Do NOT set O_NONBLOCK on p[1] (wayland clients may block)
 
     transfer->wlFD = CFileDescriptor{p[0]};
 
@@ -1487,8 +1499,8 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     selection->send(mime, CFileDescriptor{p[1]});
 
     transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
-    transfers.emplace_back(std::move(transfer));
 
+    transfers.emplace_back(std::move(transfer));
     return true;
 }
 
@@ -1533,17 +1545,17 @@ SXTransfer::~SXTransfer() {
     if (eventSource)
         wl_event_source_remove(eventSource);
     if (incomingWindow)
-        xcb_destroy_window(g_pXWayland->m_wm->m_connection, incomingWindow);
+        xcb_destroy_window(*g_pXWayland->m_wm->m_connection, incomingWindow);
     if (propertyReply)
         free(propertyReply);
 }
 
 bool SXTransfer::getIncomingSelectionProp(bool erase) {
     xcb_get_property_cookie_t cookie =
-        xcb_get_property(g_pXWayland->m_wm->m_connection, erase, incomingWindow, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 0x1fffffff);
+        xcb_get_property(*g_pXWayland->m_wm->m_connection, erase, incomingWindow, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 0x1fffffff);
 
     propertyStart = 0;
-    propertyReply = xcb_get_property_reply(g_pXWayland->m_wm->m_connection, cookie, nullptr);
+    propertyReply = xcb_get_property_reply(*g_pXWayland->m_wm->m_connection, cookie, nullptr);
 
     if (!propertyReply) {
         Debug::log(ERR, "[SXTransfer] couldn't get a prop reply");

@@ -39,6 +39,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 
 static int ratHandler(void* data) {
@@ -131,7 +132,8 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&rule);
     });
 
-    m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
+    // TODO: add a way to get backend->drmProps.supportsAsyncCommit from aq and use it here
+    m_canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     m_name = m_output->name;
 
@@ -1428,15 +1430,23 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
 
-    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
+    if (*PDIRECTSCANOUT == 0 || (*PDIRECTSCANOUT != 1 && *PDIRECTSCANOUT != 2))
         return false;
 
     const auto PCANDIDATE = m_solitaryClient.lock();
 
-    if (!PCANDIDATE)
+    if (!PCANDIDATE || PCANDIDATE->m_workspace->m_fullscreenMode != FSMODE_FULLSCREEN)
+        return false;
+
+    if (*PDIRECTSCANOUT == 2 && PCANDIDATE->getContentType() != CONTENT_TYPE_GAME)
+        return false;
+
+    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
+    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
         return false;
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
@@ -1458,6 +1468,10 @@ bool CMonitor::attemptDirectScanout() {
 
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
+
+        Debug::log(TRACE, "attemptDirectScanout: committing hw cursor updated for window {} on monitor {}", PCANDIDATE->m_title, m_name);
+        m_output->state->resetExplicitFences();
+        m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
@@ -1490,8 +1504,13 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
-    m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                          Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    if (!m_currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: committing with tearing enabled for window {} on monitor {}", m_currentTearing->m_title, m_name);
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_IMMEDIATE);
+    } else {
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+    }
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1507,6 +1526,13 @@ bool CMonitor::attemptDirectScanout() {
 
     bool ok = m_output->commit();
 
+    if (!ok && !m_currentTearing.expired()) {
+        Debug::log(TRACE, "attemptDirectScanout: failed AGAIN!, trying without tearing");
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+
+        ok = m_output->commit();
+    }
+
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
@@ -1517,6 +1543,8 @@ bool CMonitor::attemptDirectScanout() {
         m_lastScanout = PCANDIDATE;
         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_title);
     }
+
+    m_pageFlipPending = true;
 
     m_scanoutNeedsCursorUpdate = false;
 
@@ -1555,23 +1583,14 @@ void CMonitor::onMonitorFrame() {
 
     g_pHyprRenderer->recheckSolitaryForMonitor(m_self.lock());
 
-    m_tearingState.busy = false;
-
-    if (m_tearingState.activelyTearing && m_solitaryClient.lock() /* can be invalidated by a recheck */) {
-
-        if (!m_tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        m_tearingState.nextRenderTorn          = true;
-        m_tearingState.frameScheduledWhileBusy = false;
-    }
+    m_pageFlipPending = false;
 
     static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
     static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
 
     m_lastPresentationTimer.reset();
 
-    if (*PENABLERAT && !m_tearingState.nextRenderTorn) {
+    if (*PENABLERAT) {
         if (!m_ratsScheduled) {
             // render
             g_pHyprRenderer->renderMonitor(m_self.lock());
@@ -1600,8 +1619,8 @@ void CMonitor::onMonitorFrame() {
 }
 
 void CMonitor::onCursorMovedOnMonitor() {
-    if (!m_tearingState.activelyTearing || !m_solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
-        return;
+    // if (!m_tearingState.activelyTearing || !m_solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
+    //     return;
 
     // submit a frame immediately. This will only update the cursor pos.
     // output->state->setBuffer(output->state->state().buffer);
@@ -1614,7 +1633,7 @@ void CMonitor::onCursorMovedOnMonitor() {
     // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
     // this will throw too but fix it if we use sw cursors
 
-    m_tearingState.frameScheduledWhileBusy = true;
+    // m_tearingState.frameScheduledWhileBusy = true;
 }
 
 bool CMonitor::supportsWideColor() {

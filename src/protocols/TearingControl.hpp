@@ -3,6 +3,8 @@
 #include "WaylandProtocol.hpp"
 #include "tearing-control-v1.hpp"
 
+#include "../helpers/signal/Signal.hpp"
+
 class CWindow;
 class CTearingControlProtocol;
 class CWLSurfaceResource;
@@ -11,24 +13,15 @@ class CTearingControl {
   public:
     CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfaceResource> surf_);
 
-    void onHint(wpTearingControlV1PresentationHint hint_);
-
     bool good();
 
-    bool operator==(const wl_resource* other) const {
-        return other == m_resource->resource();
-    }
-
-    bool operator==(const CTearingControl* other) const {
-        return other->m_resource == m_resource;
-    }
-
   private:
-    void                               updateWindow();
+    SP<CWpTearingControlV1> m_resource;
+    SP<CWLSurfaceResource>  m_surface;
 
-    SP<CWpTearingControlV1>            m_resource;
-    PHLWINDOWREF                       m_window;
-    wpTearingControlV1PresentationHint m_hint = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
+    struct {
+        CHyprSignalListener surfaceDestroyed;
+    } m_listeners;
 
     friend class CTearingControlProtocol;
 };
@@ -40,10 +33,8 @@ class CTearingControlProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
   private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void onControllerDestroy(CTearingControl* control);
-    void onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surf);
-    void onWindowDestroy(PHLWINDOW pWindow);
+    void destroyResource(CWpTearingControlManagerV1* resource);
+    void destroyResource(CTearingControl* resource);
 
     //
     std::vector<UP<CWpTearingControlManagerV1>> m_managers;

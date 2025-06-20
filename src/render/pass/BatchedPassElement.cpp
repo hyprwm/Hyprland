@@ -72,13 +72,13 @@ void CBatchedPassElement::clear() {
 }
 
 bool CBatchedPassElement::canBatch(IPassElement* element) {
-    // For now, we can't batch pass elements due to private member access
-    // This would require modifications to the pass element classes
+    // TODO: Implement pass element batching in future iteration
+    // This requires refactoring pass element classes to expose batch-compatible data
+    // For now, return false to disable batching
     return false;
 }
 
 void CBatchedPassElement::extractBatchableData(IPassElement* element) {
-    // For now, we can't extract data from pass elements as they have private members
-    // This would require modifying the pass elements to expose their data
-    // or making BatchedPassElement a friend class
+    // TODO: Implement data extraction when pass element batching is enabled
+    // This is a placeholder for future implementation
 }

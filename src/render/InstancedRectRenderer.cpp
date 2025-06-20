@@ -9,16 +9,20 @@ using namespace Hyprutils::Math;
 CInstancedRectRenderer::CInstancedRectRenderer() = default;
 
 CInstancedRectRenderer::~CInstancedRectRenderer() {
-    if (m_vao)
-        glDeleteVertexArrays(1, &m_vao);
-    if (m_vboVertex)
-        glDeleteBuffers(1, &m_vboVertex);
-    if (m_vboInstance)
-        glDeleteBuffers(1, &m_vboInstance);
-    if (m_ebo)
-        glDeleteBuffers(1, &m_ebo);
-    if (m_shaderProgram)
-        glDeleteProgram(m_shaderProgram);
+    // Only delete OpenGL resources if we have a valid context
+    // This prevents crashes during compositor shutdown
+    if (g_pCompositor && g_pCompositor->m_wlDisplay) {
+        if (m_vao)
+            glDeleteVertexArrays(1, &m_vao);
+        if (m_vboVertex)
+            glDeleteBuffers(1, &m_vboVertex);
+        if (m_vboInstance)
+            glDeleteBuffers(1, &m_vboInstance);
+        if (m_ebo)
+            glDeleteBuffers(1, &m_ebo);
+        if (m_shaderProgram)
+            glDeleteProgram(m_shaderProgram);
+    }
 }
 
 void CInstancedRectRenderer::init(CHyprOpenGLImpl* gl) {

@@ -40,8 +40,16 @@ struct SBatchMetrics {
     size_t verticesRendered   = 0;
 };
 
+// IMPORTANT: Thread Safety Requirements
+// This class is NOT thread-safe. All methods must be called from the render thread only.
+// The batch manager maintains internal state that is not protected by synchronization.
+// If multi-threaded access is required, external synchronization must be provided.
 class CRenderBatchManager {
   public:
+    // Batch size configuration constants
+    static constexpr int   MAX_INSTANCES_PER_DRAW = 1000; // Max instances per draw call
+    static constexpr float EPSILON                = 0.001f; // Float comparison epsilon
+    
     CRenderBatchManager();
     ~CRenderBatchManager();
 

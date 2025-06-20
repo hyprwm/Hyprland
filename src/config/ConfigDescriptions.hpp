@@ -1225,6 +1225,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
     },
     SConfigOptionDescription{
+        .value       = "misc:render_batching",
+        .description = "enable render operation batching to reduce OpenGL draw calls and improve performance",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:render_batch_size",
+        .description = "maximum number of render operations to batch together (higher values use more memory but may improve performance)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1000, 100, 10000},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:render_batch_instancing",
+        .description = "enable GPU instancing for batched rendering (requires OpenGL 3.3+ or GLES 3.2+)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "misc:allow_session_lock_restore",
         .description = "if true, will allow you to restart a lockscreen app in case it crashes (red screen of death)",
         .type        = CONFIG_OPTION_BOOL,

@@ -146,9 +146,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     // Start batching for indicator rectangles if enabled
     static auto PRENDERBATCHING = CConfigValue<Hyprlang::INT>("misc:render_batching");
-    auto* batchManager = g_pHyprOpenGL->getBatchManager();
-    const bool USE_BATCHING = *PRENDERBATCHING;
-    
+    auto*       batchManager    = g_pHyprOpenGL->getBatchManager();
+    const bool  USE_BATCHING    = *PRENDERBATCHING;
+
     if (USE_BATCHING)
         batchManager->beginBatch();
 

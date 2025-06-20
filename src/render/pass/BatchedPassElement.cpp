@@ -26,8 +26,8 @@ void CBatchedPassElement::draw(const CRegion& damage) {
                 break;
                 
             case SBatchableElement::TEXTURE:
-                if (elem.texture && elem.texture->m_iTexID) {
-                    batchManager->addTexture(elem.texture->m_iTexID, elem.box, elem.alpha, elem.round, elem.roundingPower);
+                if (elem.texture && elem.texture->m_texID) {
+                    batchManager->addTexture(elem.texture->m_texID, elem.box, elem.alpha, elem.round, elem.roundingPower);
                 }
                 break;
                 

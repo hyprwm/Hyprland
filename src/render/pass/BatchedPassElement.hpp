@@ -2,6 +2,7 @@
 
 #include "PassElement.hpp"
 #include "../BatchManager.hpp"
+#include "../Texture.hpp"
 #include <vector>
 #include <memory>
 

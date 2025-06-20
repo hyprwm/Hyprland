@@ -72,9 +72,13 @@ bool CInstancedRectRenderer::compileInstancedShader() {
     // Read shader sources
     std::string vertexSource, fragmentSource;
 
-    // For now, we'll use hardcoded shader source
-    // In production, this should read from the shader files
-    vertexSource = R"(#version 320 es
+    // Determine shader version based on OpenGL context
+    const char* glVersion = (const char*)glGetString(GL_VERSION);
+    bool isGLES = strstr(glVersion, "OpenGL ES") != nullptr;
+    std::string versionDirective = isGLES ? "#version 320 es" : "#version 330 core";
+    
+    // Use appropriate shader source
+    vertexSource = versionDirective + R"(
 uniform mat3 proj;
 
 // Per-vertex attributes
@@ -96,7 +100,7 @@ void main() {
 })";
 
     // Use the existing quad fragment shader logic
-    fragmentSource = R"(#version 320 es
+    fragmentSource = versionDirective + R"(
 precision highp float;
 
 uniform float radius;

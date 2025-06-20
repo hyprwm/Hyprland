@@ -13,31 +13,40 @@ CRenderBatchManager::~CRenderBatchManager() {
     }
 }
 
-void CRenderBatchManager::beginBatch() {
+bool CRenderBatchManager::beginBatch() {
     if (m_batching) {
-        return;
+        return true; // Already batching
+    }
+    
+    if (!m_gl) {
+        Debug::log(ERR, "BatchManager: Cannot begin batch without OpenGL context");
+        return false;
     }
 
     m_batching = true;
     clearBatch();
+    return true;
 }
 
-void CRenderBatchManager::endBatch() {
+bool CRenderBatchManager::endBatch() {
     if (!m_batching) {
-        return;
+        return false;
     }
 
-    flushBatch();
+    bool result = flushBatch();
     m_batching = false;
+    return result;
 }
 
-void CRenderBatchManager::addRect(const CBox& box, const CHyprColor& color, int round, float roundingPower) {
+bool CRenderBatchManager::addRect(const CBox& box, const CHyprColor& color, int round, float roundingPower) {
     if (!m_batching) {
         // Immediate mode - render directly
-        if (m_gl) {
-            m_gl->renderRect(box, color, round, roundingPower);
+        if (!m_gl) {
+            Debug::log(ERR, "BatchManager: Cannot render rect without OpenGL context");
+            return false;
         }
-        return;
+        m_gl->renderRect(box, color, round, roundingPower);
+        return true;
     }
 
     auto key = createKey(ERenderOperation::RECT, round, roundingPower);
@@ -55,15 +64,23 @@ void CRenderBatchManager::addRect(const CBox& box, const CHyprColor& color, int 
         m_batchOrder.push_back(key);
     }
 
+    // Check memory limits
+    if (m_metrics.pendingOperations >= MAX_INSTANCES_PER_DRAW * 10) {
+        Debug::log(WARN, "BatchManager: Too many pending operations, flushing early");
+        flushBatch();
+    }
+    
     batch->boxes.push_back(box);
     batch->colors.push_back(color);
     m_metrics.pendingOperations++;
+    return true;
 }
 
-void CRenderBatchManager::addTexture(uint32_t textureId, const CBox& box, float alpha, int round, float roundingPower) {
+bool CRenderBatchManager::addTexture(uint32_t textureId, const CBox& box, float alpha, int round, float roundingPower) {
     if (!m_batching) {
         // Immediate mode would require actual texture object
-        return;
+        Debug::log(WARN, "BatchManager: Cannot add texture in immediate mode");
+        return false;
     }
 
     auto key = createKey(ERenderOperation::TEXTURE, round, roundingPower, textureId);
@@ -81,15 +98,22 @@ void CRenderBatchManager::addTexture(uint32_t textureId, const CBox& box, float 
         m_batchOrder.push_back(key);
     }
 
+    // Check memory limits
+    if (m_metrics.pendingOperations >= MAX_INSTANCES_PER_DRAW * 10) {
+        Debug::log(WARN, "BatchManager: Too many pending operations, flushing early");
+        flushBatch();
+    }
+    
     batch->boxes.push_back(box);
     batch->alphas.push_back(alpha);
     batch->textureIds.push_back(textureId);
     m_metrics.pendingOperations++;
+    return true;
 }
 
-void CRenderBatchManager::addBorder(const CBox& box, const CHyprColor& color, int round, float roundingPower, int borderSize) {
+bool CRenderBatchManager::addBorder(const CBox& box, const CHyprColor& color, int round, float roundingPower, int borderSize) {
     if (!m_batching) {
-        return;
+        return false;
     }
 
     auto key = createKey(ERenderOperation::BORDER, round, roundingPower);
@@ -107,19 +131,26 @@ void CRenderBatchManager::addBorder(const CBox& box, const CHyprColor& color, in
         m_batchOrder.push_back(key);
     }
 
+    // Check memory limits
+    if (m_metrics.pendingOperations >= MAX_INSTANCES_PER_DRAW * 10) {
+        Debug::log(WARN, "BatchManager: Too many pending operations, flushing early");
+        flushBatch();
+    }
+    
     batch->boxes.push_back(box);
     batch->colors.push_back(color);
     batch->borderSizes.push_back(borderSize);
     m_metrics.pendingOperations++;
+    return true;
 }
 
-void CRenderBatchManager::addShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color) {
+bool CRenderBatchManager::addShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color) {
     if (!m_batching) {
         // Immediate mode - render directly
         if (m_gl) {
             m_gl->renderRoundedShadow(box, round, roundingPower, range, color, 1.0f);
         }
-        return;
+        return false;
     }
 
     auto key = createKey(ERenderOperation::SHADOW, round, roundingPower);
@@ -141,11 +172,12 @@ void CRenderBatchManager::addShadow(const CBox& box, int round, float roundingPo
     batch->colors.push_back(color);
     batch->shadowRanges.push_back(range);
     m_metrics.pendingOperations++;
+    return true;
 }
 
-void CRenderBatchManager::flushBatch() {
+bool CRenderBatchManager::flushBatch() {
     if (m_batches.empty()) {
-        return;
+        return false;
     }
 
     size_t totalOperations = 0;
@@ -162,9 +194,9 @@ void CRenderBatchManager::flushBatch() {
         }
     }
 
-    // Update efficiency metrics
+#ifdef HYPRLAND_DEBUG
+    // Update efficiency metrics (only in debug builds)
     if (totalOperations > batchCount) {
-        // Calculate batching efficiency: fewer batches = better efficiency
         static size_t totalOpsEver     = 0;
         static size_t totalBatchesEver = 0;
         totalOpsEver += totalOperations;
@@ -174,12 +206,13 @@ void CRenderBatchManager::flushBatch() {
         static int logCounter = 0;
         if (++logCounter % 100 == 0) {
             float efficiency = 100.0f * (1.0f - (float)totalBatchesEver / totalOpsEver);
-            // This would normally go to a debug log
-            // Debug::log(LOG, "Batching efficiency: {:.1f}% ({} ops in {} batches)", efficiency, totalOpsEver, totalBatchesEver);
+            Debug::log(LOG, "Batching efficiency: {:.1f}% ({} ops in {} batches)", efficiency, totalOpsEver, totalBatchesEver);
         }
     }
+#endif
 
     clearBatch();
+    return true;
 }
 
 void CRenderBatchManager::clearBatch() {

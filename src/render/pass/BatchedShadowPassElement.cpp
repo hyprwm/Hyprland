@@ -17,10 +17,6 @@ void CBatchedShadowPassElement::draw(const CRegion& damage) {
     if (*PSHADOWS != 1)
         return;
 
-    // Get common shadow parameters
-    static auto PSHADOWSHARP = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
-    static auto PSHADOWSIZE  = CConfigValue<Hyprlang::INT>("decoration:shadow:range");
-    const bool  SHARP        = *PSHADOWSHARP;
 
     // Start batching
     auto* batchManager = g_pHyprOpenGL->getBatchManager();

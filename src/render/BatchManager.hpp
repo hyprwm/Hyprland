@@ -53,18 +53,18 @@ class CRenderBatchManager {
     CRenderBatchManager();
     ~CRenderBatchManager();
 
-    void beginBatch();
-    void endBatch();
+    bool beginBatch();
+    bool endBatch();
     bool isBatching() const {
         return m_batching;
     }
 
-    void addRect(const CBox& box, const CHyprColor& color, int round, float roundingPower);
-    void addTexture(uint32_t textureId, const CBox& box, float alpha, int round, float roundingPower);
-    void addBorder(const CBox& box, const CHyprColor& color, int round, float roundingPower, int borderSize);
-    void addShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color);
+    bool addRect(const CBox& box, const CHyprColor& color, int round, float roundingPower);
+    bool addTexture(uint32_t textureId, const CBox& box, float alpha, int round, float roundingPower);
+    bool addBorder(const CBox& box, const CHyprColor& color, int round, float roundingPower, int borderSize);
+    bool addShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color);
 
-    void flushBatch();
+    bool flushBatch();
     void clearBatch();
 
     void setAutoFlush(bool autoFlush) {
@@ -79,12 +79,14 @@ class CRenderBatchManager {
     }
     void resetMetrics();
 
-    void setOpenGLContext(CHyprOpenGLImpl* gl) {
+    bool setOpenGLContext(CHyprOpenGLImpl* gl) {
         m_gl = gl;
         if (gl) {
             m_rectRenderer.init(gl);
             m_instancedRenderer.init(gl);
+            return true;
         }
+        return false;
     }
 
     // Control whether to use instanced rendering

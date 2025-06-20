@@ -58,7 +58,7 @@
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
   inherit (lib.sources) cleanSourceWith cleanSource;
-  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable trim;
+  inherit (lib.strings) hasInfix hasSuffix makeBinPath optionalString mesonBool mesonEnable trim;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -79,7 +79,7 @@ in
         filter = name: _type: let
           baseName = baseNameOf (toString name);
         in
-          ! (hasSuffix ".nix" baseName);
+          !((hasSuffix ".nix" baseName) || (hasInfix "hyprtester" name));
         src = cleanSource ../.;
       };
 

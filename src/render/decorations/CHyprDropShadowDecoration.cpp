@@ -230,43 +230,43 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
 void CHyprDropShadowDecoration::renderBatched(float const& a) {
     // This is a simplified version of render() that uses batching
     // It assumes the batch manager is already in batching mode
-    
+
     const auto PWINDOW  = m_window.lock();
     auto       pMonitor = g_pCompositor->getMonitorFromID(PWINDOW->m_monitor.lock());
-    
+
     if (!pMonitor || !PWINDOW->m_windowData.decorate.valueOrDefault() || PWINDOW->m_windowData.noShadow.valueOrDefault())
         return;
-        
+
     if (PWINDOW->m_realShadowColor->value() == CHyprColor(0, 0, 0, 0))
         return;
-        
+
     static auto PSHADOWSIZE         = CConfigValue<Hyprlang::INT>("decoration:shadow:range");
     static auto PSHADOWSCALE        = CConfigValue<Hyprlang::FLOAT>("decoration:shadow:scale");
     static auto PSHADOWOFFSET       = CConfigValue<Hyprlang::VEC2>("decoration:shadow:offset");
     static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
-    
-    const auto ROUNDINGBASE    = PWINDOW->rounding();
-    const auto ROUNDINGPOWER   = PWINDOW->roundingPower();
-    const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
-    const auto PWORKSPACE      = PWINDOW->m_workspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
-    
-    CBox fullBox = m_lastWindowBoxWithDecos;
+
+    const auto  ROUNDINGBASE    = PWINDOW->rounding();
+    const auto  ROUNDINGPOWER   = PWINDOW->roundingPower();
+    const auto  ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
+    const auto  PWORKSPACE      = PWINDOW->m_workspace;
+    const auto  WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+
+    CBox        fullBox = m_lastWindowBoxWithDecos;
     fullBox.translate(-pMonitor->m_position + WORKSPACEOFFSET);
     fullBox.x -= *PSHADOWSIZE;
     fullBox.y -= *PSHADOWSIZE;
     fullBox.w += 2 * *PSHADOWSIZE;
     fullBox.h += 2 * *PSHADOWSIZE;
-    
+
     const float SHADOWSCALE = std::clamp(*PSHADOWSCALE, 0.f, 1.f);
     fullBox.scaleFromCenter(SHADOWSCALE).translate({(*PSHADOWOFFSET).x, (*PSHADOWOFFSET).y});
     fullBox.translate(PWINDOW->m_floatingOffset);
-    
+
     if (fullBox.width < 1 || fullBox.height < 1)
         return;
-        
+
     fullBox.scale(pMonitor->m_scale).round();
-    
+
     // For batched rendering, we only support non-ignore-window shadows for now
     if (!*PSHADOWIGNOREWINDOW) {
         drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
@@ -280,9 +280,9 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
         return;
 
     color.a *= a;
-    
+
     auto* batchManager = g_pHyprOpenGL->getBatchManager();
-    
+
     // Check if we're in batching mode
     if (batchManager->isBatching()) {
         // Use batch manager for shadows
@@ -293,7 +293,7 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     } else {
         // Non-batched mode - render immediately
         g_pHyprOpenGL->blend(true);
-        
+
         if (*PSHADOWSHARP)
             g_pHyprOpenGL->renderRect(box, color, round, roundingPower);
         else

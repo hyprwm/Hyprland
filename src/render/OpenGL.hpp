@@ -299,7 +299,9 @@ class CHyprOpenGLImpl {
     SP<CTexture> m_screencopyDeniedTexture;
 
     // Batch manager for reducing draw calls
-    CRenderBatchManager* getBatchManager() { return &m_batchManager; }
+    CRenderBatchManager* getBatchManager() {
+        return &m_batchManager;
+    }
 
   private:
     enum eEGLContextVersion : uint8_t {

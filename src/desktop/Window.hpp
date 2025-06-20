@@ -324,6 +324,7 @@ class CWindow {
     CBox                       getFullWindowBoundingBox();
     SBoxExtents                getFullWindowExtents();
     CBox                       getWindowBoxUnified(uint64_t props);
+    SBoxExtents                getWindowExtentsUnified(uint64_t props);
     CBox                       getWindowIdealBoundingBoxIgnoreReserved();
     void                       addWindowDeco(UP<IHyprWindowDecoration> deco);
     void                       updateWindowDecos();

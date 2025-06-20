@@ -239,13 +239,24 @@ void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
     switch (batch.type) {
         case ERenderOperation::RECT:
             if (m_useOptimizedPath && batch.boxes.size() > 3) {
-                // Use optimized batch renderer for multiple rects
-                m_rectRenderer.beginBatch(batch.round, batch.roundingPower);
-                for (size_t i = 0; i < batch.boxes.size(); ++i) {
-                    m_rectRenderer.addRect(batch.boxes[i], batch.colors[i]);
+                // Decide between instanced and batched rendering
+                if (getUseInstancing() && batch.boxes.size() > 20) {
+                    // Use instanced rendering for large batches
+                    m_instancedRenderer.beginBatch(batch.round, batch.roundingPower);
+                    for (size_t i = 0; i < batch.boxes.size(); ++i) {
+                        m_instancedRenderer.addRect(batch.boxes[i], batch.colors[i]);
+                    }
+                    m_instancedRenderer.endBatch();
+                    m_metrics.drawCalls++; // Single draw call for entire batch
+                } else {
+                    // Use optimized batch renderer for medium batches
+                    m_rectRenderer.beginBatch(batch.round, batch.roundingPower);
+                    for (size_t i = 0; i < batch.boxes.size(); ++i) {
+                        m_rectRenderer.addRect(batch.boxes[i], batch.colors[i]);
+                    }
+                    m_rectRenderer.endBatch();
+                    m_metrics.drawCalls++; // Single draw call for entire batch
                 }
-                m_rectRenderer.endBatch();
-                m_metrics.drawCalls++; // Single draw call for entire batch
             } else {
                 // Fall back to individual rendering for small batches
                 for (size_t i = 0; i < batch.boxes.size(); ++i) {

@@ -539,21 +539,17 @@ static void snapToMonitorEdges(SRange& xRange, SRange& yRange, SnapFn snapFn, PH
         }
     };
 
-    if (cornerMask & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT)) {
+    if (cornerMask & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
         trySnap(xRange.start, xRange.end, pos.x + tl.x + border + gapOffset, SNAP_LEFT);
-    }
 
-    if (cornerMask & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT)) {
+    if (cornerMask & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT))
         trySnap(xRange.end, xRange.start, pos.x + size.x - br.x - border - gapOffset, SNAP_RIGHT);
-    }
 
-    if (cornerMask & (CORNER_TOPLEFT | CORNER_TOPRIGHT)) {
+    if (cornerMask & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
         trySnap(yRange.start, yRange.end, pos.y + tl.y + border + gapOffset, SNAP_UP);
-    }
 
-    if (cornerMask & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT)) {
+    if (cornerMask & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT))
         trySnap(yRange.end, yRange.start, pos.y + size.y - br.y - border - gapOffset, SNAP_DOWN);
-    }
 }
 
 static void maintainAspectRatio(SRange& xRange, SRange& yRange, int snappedDirs, int cornerMask, const Vector2D& beginSize) {

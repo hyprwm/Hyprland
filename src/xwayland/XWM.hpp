@@ -11,6 +11,8 @@
 #include <xcb/composite.h>
 #include <xcb/xcb_errors.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <cinttypes> // for PRIxPTR
+#include <cstdint>
 
 struct wl_event_source;
 class CXWaylandSurfaceResource;
@@ -68,8 +70,12 @@ class CXCBConnection {
     }
 
     ~CXCBConnection() {
-        if (m_connection)
+        if (m_connection) {
+            Debug::log(LOG, "Disconnecting XCB connection {:x}", (uintptr_t)m_connection);
             xcb_disconnect(m_connection);
+            m_connection = nullptr;
+        } else
+            Debug::log(ERR, "Double xcb_disconnect attempt");
     }
 
     bool hasError() const {
@@ -174,7 +180,7 @@ class CXWM {
     SXSelection* getSelection(xcb_atom_t atom);
 
     //
-    CXCBConnection                            m_connection;
+    UP<CXCBConnection>                        m_connection;
     xcb_errors_context_t*                     m_errors = nullptr;
     xcb_screen_t*                             m_screen = nullptr;
 
@@ -206,6 +212,9 @@ class CXWM {
     SP<CX11DataDevice>                        m_dndDataDevice = makeShared<CX11DataDevice>();
     std::vector<SP<CX11DataOffer>>            m_dndDataOffers;
 
+    inline xcb_connection_t*                  getConnection() {
+        return m_connection ? *m_connection : nullptr;
+    }
     struct {
         CHyprSignalListener newWLSurface;
         CHyprSignalListener newXShellSurface;

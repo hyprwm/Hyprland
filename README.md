@@ -100,7 +100,7 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------------------------------------------------->
 
-[Configure]: https://wiki.hyprland.org/Configuring/
+[Configure]: https://wiki.hypr.land/Configuring/
 [Stars]: https://starchart.cc/hyprwm/Hyprland
 [Hypr]: https://github.com/hyprwm/Hypr
 
@@ -108,9 +108,9 @@ easy IPC, much more QoL stuff than other compositors and more...
 [Issues]: https://github.com/hyprwm/Hyprland/issues
 [Todo]: https://github.com/hyprwm/Hyprland/projects?type=beta
 
-[Contribute]: https://wiki.hyprland.org/Contributing-and-Debugging/
-[Install]: https://wiki.hyprland.org/Getting-Started/Installation/
-[Quick Start]: https://wiki.hyprland.org/Getting-Started/Master-Tutorial/
+[Contribute]: https://wiki.hypr.land/Contributing-and-Debugging/
+[Install]: https://wiki.hypr.land/Getting-Started/Installation/
+[Quick Start]: https://wiki.hypr.land/Getting-Started/Master-Tutorial/
 [License]: LICENSE
 
 

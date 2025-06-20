@@ -298,6 +298,7 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
+        g_pSeatManager->m_selection.currentPrimarySelection.reset();
         return;
     }
 
@@ -308,9 +309,10 @@ void CPrimarySelectionProtocol::updateSelection() {
     if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
 
+    auto selection  = g_pSeatManager->m_selection.currentPrimarySelection.lock();
     auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
 
-    if (!DESTDEVICE) {
+    if (!selection || !DESTDEVICE) {
         LOGM(LOG, "CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device");
         return;
     }

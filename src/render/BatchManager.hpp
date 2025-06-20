@@ -58,7 +58,17 @@ class CRenderBatchManager {
     SBatchMetrics getMetrics() const { return m_metrics; }
     void resetMetrics();
     
-    void setOpenGLContext(CHyprOpenGLImpl* gl) { m_gl = gl; }
+    void setOpenGLContext(CHyprOpenGLImpl* gl) { 
+        m_gl = gl;
+        if (gl) {
+            m_rectRenderer.init(gl);
+        }
+    }
+    
+    // Test methods for performance verification
+    size_t getBatchCount() const { return m_batches.size(); }
+    size_t getPendingOperations() const;
+    bool testBatchingEfficiency(); // Returns true if batching provides benefits
 
   private:
     struct SBatchKey {

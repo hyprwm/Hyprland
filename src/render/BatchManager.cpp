@@ -148,11 +148,34 @@ void CRenderBatchManager::flushBatch() {
         return;
     }
     
+    size_t totalOperations = 0;
+    size_t batchCount = 0;
+    
     // Execute batches in order
     for (const auto& key : m_batchOrder) {
         auto it = m_batches.find(key);
         if (it != m_batches.end() && it->second) {
+            totalOperations += it->second->boxes.size();
+            batchCount++;
             executeBatch(*it->second);
+            m_metrics.drawCalls++; // One draw call per batch
+        }
+    }
+    
+    // Update efficiency metrics
+    if (totalOperations > batchCount) {
+        // Calculate batching efficiency: fewer batches = better efficiency
+        static size_t totalOpsEver = 0;
+        static size_t totalBatchesEver = 0;
+        totalOpsEver += totalOperations;
+        totalBatchesEver += batchCount;
+        
+        // Log efficiency occasionally for debugging
+        static int logCounter = 0;
+        if (++logCounter % 100 == 0) {
+            float efficiency = 100.0f * (1.0f - (float)totalBatchesEver / totalOpsEver);
+            // This would normally go to a debug log
+            // Debug::log(LOG, "Batching efficiency: {:.1f}% ({} ops in {} batches)", efficiency, totalOpsEver, totalBatchesEver);
         }
     }
     
@@ -167,6 +190,43 @@ void CRenderBatchManager::clearBatch() {
 
 void CRenderBatchManager::resetMetrics() {
     m_metrics = SBatchMetrics{};
+}
+
+size_t CRenderBatchManager::getPendingOperations() const {
+    size_t total = 0;
+    for (const auto& [key, batch] : m_batches) {
+        if (batch) {
+            total += batch->boxes.size();
+        }
+    }
+    return total;
+}
+
+bool CRenderBatchManager::testBatchingEfficiency() {
+    if (!m_batching) return false;
+    
+    // Test scenario: Add many similar rectangles
+    const int TEST_RECTS = 50;
+    const CHyprColor testColor(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    resetMetrics();
+    beginBatch();
+    
+    // Add many similar rectangles (should batch well)
+    for (int i = 0; i < TEST_RECTS; i++) {
+        CBox box(i * 10, i * 10, 50, 50);
+        addRect(box, testColor, 5, 2.0f); // Same round and power = good batching
+    }
+    
+    size_t batchCount = getBatchCount();
+    size_t operations = getPendingOperations();
+    
+    endBatch();
+    
+    // Efficiency test: we should have far fewer batches than operations
+    bool efficient = (batchCount > 0) && (operations > batchCount * 3);
+    
+    return efficient;
 }
 
 void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
@@ -234,11 +294,4 @@ bool CRenderBatchManager::shouldFlush(const SBatchKey& newKey) const {
 
 CRenderBatchManager::SBatchKey CRenderBatchManager::createKey(ERenderOperation type, int round, float roundingPower, uint32_t textureId) const {
     return SBatchKey{type, round, roundingPower, textureId};
-}
-
-void CRenderBatchManager::setOpenGLContext(CHyprOpenGLImpl* gl) { 
-    m_gl = gl;
-    if (gl) {
-        m_rectRenderer.init(gl);
-    }
 }

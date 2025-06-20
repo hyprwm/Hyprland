@@ -6,6 +6,7 @@
 #include "../helpers/Color.hpp"
 #include "../helpers/math/Math.hpp"
 #include "BatchedRectRenderer.hpp"
+#include "InstancedRectRenderer.hpp"
 
 class CHyprOpenGLImpl;
 
@@ -62,8 +63,13 @@ class CRenderBatchManager {
         m_gl = gl;
         if (gl) {
             m_rectRenderer.init(gl);
+            m_instancedRenderer.init(gl);
         }
     }
+    
+    // Control whether to use instanced rendering
+    void setUseInstancing(bool useInstancing) { m_useInstancing = useInstancing; }
+    bool getUseInstancing() const { return m_useInstancing && m_instancedRenderer.isInstancedRenderingSupported(); }
     
     // Test methods for performance verification
     size_t getBatchCount() const { return m_batches.size(); }
@@ -102,7 +108,9 @@ class CRenderBatchManager {
     SBatchMetrics m_metrics;
     CHyprOpenGLImpl* m_gl = nullptr;
     CBatchedRectRenderer m_rectRenderer;
+    CInstancedRectRenderer m_instancedRenderer;
     bool m_useOptimizedPath = true;
+    bool m_useInstancing = true; // Default to using instancing if available
 
     void executeBatch(const SRenderBatch& batch);
     bool shouldFlush(const SBatchKey& newKey) const;

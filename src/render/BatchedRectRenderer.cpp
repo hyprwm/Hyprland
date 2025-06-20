@@ -5,12 +5,16 @@
 CBatchedRectRenderer::CBatchedRectRenderer() = default;
 
 CBatchedRectRenderer::~CBatchedRectRenderer() {
-    if (m_vao)
-        glDeleteVertexArrays(1, &m_vao);
-    if (m_vbo)
-        glDeleteBuffers(1, &m_vbo);
-    if (m_ebo)
-        glDeleteBuffers(1, &m_ebo);
+    // Only delete OpenGL resources if we have a valid context
+    // This prevents crashes during compositor shutdown
+    if (g_pCompositor && g_pCompositor->m_wlDisplay) {
+        if (m_vao)
+            glDeleteVertexArrays(1, &m_vao);
+        if (m_vbo)
+            glDeleteBuffers(1, &m_vbo);
+        if (m_ebo)
+            glDeleteBuffers(1, &m_ebo);
+    }
 }
 
 void CBatchedRectRenderer::init(CHyprOpenGLImpl* gl) {

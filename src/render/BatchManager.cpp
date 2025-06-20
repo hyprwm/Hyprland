@@ -229,6 +229,38 @@ bool CRenderBatchManager::testBatchingEfficiency() {
     return efficient;
 }
 
+void CRenderBatchManager::printPerformanceReport() const {
+    Debug::log(LOG, "=== Render Batch Manager Performance Report ===");
+    Debug::log(LOG, "Total draw calls: {}", m_metrics.drawCalls);
+    Debug::log(LOG, "- Instanced draw calls: {} ({:.1f}%)", 
+               m_metrics.instancedDrawCalls, 
+               m_metrics.drawCalls > 0 ? (100.0f * m_metrics.instancedDrawCalls / m_metrics.drawCalls) : 0);
+    Debug::log(LOG, "- Batched draw calls: {} ({:.1f}%)", 
+               m_metrics.batchedDrawCalls,
+               m_metrics.drawCalls > 0 ? (100.0f * m_metrics.batchedDrawCalls / m_metrics.drawCalls) : 0);
+    Debug::log(LOG, "State changes: {}", m_metrics.stateChanges);
+    Debug::log(LOG, "Texture binds: {}", m_metrics.textureBinds);
+    Debug::log(LOG, "Instances rendered: {}", m_metrics.instancesRendered);
+    Debug::log(LOG, "Vertices rendered: {}", m_metrics.verticesRendered);
+    
+    float efficiency = getInstancedRenderingEfficiency();
+    Debug::log(LOG, "Instanced rendering efficiency: {:.1f}%", efficiency * 100.0f);
+    Debug::log(LOG, "==============================================");
+}
+
+float CRenderBatchManager::getInstancedRenderingEfficiency() const {
+    if (m_metrics.instancedDrawCalls == 0) {
+        return 0.0f;
+    }
+    
+    // Calculate efficiency based on instances rendered vs draw calls
+    // Perfect efficiency would be rendering all instances in one draw call
+    float avgInstancesPerDraw = (float)m_metrics.instancesRendered / m_metrics.instancedDrawCalls;
+    
+    // Normalize to 0-1 range (assuming 100+ instances per draw is excellent)
+    return std::min(1.0f, avgInstancesPerDraw / 100.0f);
+}
+
 void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
     if (batch.boxes.empty() || !m_gl) {
         return;
@@ -247,7 +279,9 @@ void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
                         m_instancedRenderer.addRect(batch.boxes[i], batch.colors[i]);
                     }
                     m_instancedRenderer.endBatch();
-                    m_metrics.drawCalls++; // Single draw call for entire batch
+                    m_metrics.drawCalls++;
+                    m_metrics.instancedDrawCalls++;
+                    m_metrics.instancesRendered += batch.boxes.size();
                 } else {
                     // Use optimized batch renderer for medium batches
                     m_rectRenderer.beginBatch(batch.round, batch.roundingPower);
@@ -255,7 +289,9 @@ void CRenderBatchManager::executeBatch(const SRenderBatch& batch) {
                         m_rectRenderer.addRect(batch.boxes[i], batch.colors[i]);
                     }
                     m_rectRenderer.endBatch();
-                    m_metrics.drawCalls++; // Single draw call for entire batch
+                    m_metrics.drawCalls++;
+                    m_metrics.batchedDrawCalls++;
+                    m_metrics.verticesRendered += batch.boxes.size() * 4; // 4 vertices per rect
                 }
             } else {
                 // Fall back to individual rendering for small batches

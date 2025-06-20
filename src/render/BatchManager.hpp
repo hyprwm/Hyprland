@@ -34,6 +34,10 @@ struct SBatchMetrics {
     size_t stateChanges   = 0;
     size_t textureBinds   = 0;
     size_t pendingOperations = 0;
+    size_t instancedDrawCalls = 0;
+    size_t batchedDrawCalls = 0;
+    size_t instancesRendered = 0;
+    size_t verticesRendered = 0;
 };
 
 class CRenderBatchManager {
@@ -75,6 +79,10 @@ class CRenderBatchManager {
     size_t getBatchCount() const { return m_batches.size(); }
     size_t getPendingOperations() const;
     bool testBatchingEfficiency(); // Returns true if batching provides benefits
+    
+    // Performance comparison methods
+    void printPerformanceReport() const;
+    float getInstancedRenderingEfficiency() const;
 
   private:
     struct SBatchKey {

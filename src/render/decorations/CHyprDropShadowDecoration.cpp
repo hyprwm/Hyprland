@@ -232,9 +232,9 @@ void CHyprDropShadowDecoration::renderBatched(float const& a) {
     // It assumes the batch manager is already in batching mode
     
     const auto PWINDOW  = m_window.lock();
-    auto       pMonitor = g_pCompositor->getMonitorFromID(PWINDOW->m_monitorID);
+    auto       pMonitor = g_pCompositor->getMonitorFromID(PWINDOW->m_monitor.lock());
     
-    if (!pMonitor || !PWINDOW->m_sWindowData.decorate.valueOrDefault() || PWINDOW->m_sWindowData.noShadow.valueOrDefault())
+    if (!pMonitor || !PWINDOW->m_windowData.decorate.valueOrDefault() || PWINDOW->m_windowData.noShadow.valueOrDefault())
         return;
         
     if (PWINDOW->m_realShadowColor->value() == CHyprColor(0, 0, 0, 0))

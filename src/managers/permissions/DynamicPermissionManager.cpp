@@ -235,9 +235,13 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    // keyboards are allow default
-    if (permission == PERMISSION_TYPE_KEYBOARD)
-        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    // keyboards and clipboards are allowed by default
+    switch (permission) {
+        case PERMISSION_TYPE_KEYBOARD:
+        case PERMISSION_TYPE_CLIPBOARD_READ:
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+        default: break;
+    }
 
     // if we are here, we need to ask.
     askForPermission(nullptr, str, permission, pid);

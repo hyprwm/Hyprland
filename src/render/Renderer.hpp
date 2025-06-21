@@ -10,6 +10,8 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 
+class CBatchedShadowPassElement;
+
 struct SMonitorRule;
 class CWorkspace;
 class CWindow;

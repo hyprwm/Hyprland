@@ -6,8 +6,10 @@
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
 #include "../pass/RectPassElement.hpp"
+#include "../pass/BatchedPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../OpenGL.hpp"
 
 // shared things to conserve VRAM
 static SP<CTexture> m_tGradientActive         = makeShared<CTexture>();
@@ -142,6 +144,14 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     float xoff = 0;
     float yoff = 0;
 
+    // Start batching for indicator rectangles if enabled
+    static auto PRENDERBATCHING = CConfigValue<Hyprlang::INT>("misc:render_batching");
+    auto*       batchManager    = g_pHyprOpenGL->getBatchManager();
+    const bool  USE_BATCHING    = *PRENDERBATCHING;
+
+    if (USE_BATCHING)
+        batchManager->beginBatch();
+
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
@@ -159,10 +169,15 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         color.a *= a;
 
         if (!rect.empty()) {
-            CRectPassElement::SRectData rectdata;
-            rectdata.color = color;
-            rectdata.box   = rect;
-            if (*PROUNDING) {
+            // Use batch manager for rectangles without complex edge rounding
+            if (USE_BATCHING && (!*PROUNDING || (*PROUNDING && !*PROUNDONLYEDGES))) {
+                int rounding = *PROUNDING ? *PROUNDING : 0;
+                batchManager->addRect(rect, color, rounding, 2.0f);
+            } else {
+                // Complex edge rounding needs individual rendering
+                CRectPassElement::SRectData rectdata;
+                rectdata.color = color;
+                rectdata.box   = rect;
                 if (*PROUNDONLYEDGES) {
                     static constexpr double PADDING = 20;
 
@@ -183,10 +198,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                         rectdata.round   = *PROUNDING;
                         rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
                     }
-                } else
-                    rectdata.round = *PROUNDING;
+                }
+                g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(rectdata));
             }
-            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(rectdata));
         }
 
         rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
@@ -265,6 +279,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         else
             xoff += *PINNERGAP + m_barWidth;
     }
+
+    // End batching and flush all indicator rectangles
+    if (USE_BATCHING)
+        batchManager->endBatch();
 
     if (*PRENDERTITLES)
         invalidateTextures();

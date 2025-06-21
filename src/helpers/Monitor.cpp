@@ -419,6 +419,58 @@ void CMonitor::onDisconnect(bool destroy) {
     std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
+void CMonitor::applyCMType(eCMType cmType) {
+    switch (cmType) {
+        case CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
+        case CM_WIDE:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
+            break;
+        case CM_EDID:
+            m_imageDescription = {.primariesNameSet = false,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                  .primaries        = {
+                                             .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
+                                             .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
+                                             .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
+                                             .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
+                                  }};
+            break;
+        case CM_HDR:
+            m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                  .primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                  .luminances       = {.min = 0, .max = 10000, .reference = 203}};
+            break;
+        case CM_HDR_EDID:
+            m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                  .primariesNameSet = false,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                  .primaries        = m_output->parsedEDID.chromaticityCoords.has_value() ?
+                                             NColorManagement::SPCPRimaries{
+                                                 .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
+                                                 .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
+                                                 .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
+                                                 .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
+                                      } :
+                                             NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                  .luminances       = {.min       = m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
+                                                       .max       = m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
+                                                       .reference = m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}};
+
+            break;
+        default: UNREACHABLE();
+    }
+    if (m_minLuminance >= 0)
+        m_imageDescription.luminances.min = m_minLuminance;
+    if (m_maxLuminance >= 0)
+        m_imageDescription.luminances.max = m_maxLuminance;
+    if (m_maxAvgLuminance >= 0)
+        m_imageDescription.luminances.reference = m_maxAvgLuminance;
+}
+
 bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
@@ -748,62 +800,15 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         case CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : CM_SRGB; break;
         default: break;
     }
-    switch (m_cmType) {
-        case CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
-        case CM_WIDE:
-            m_imageDescription = {.primariesNameSet = true,
-                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
-            break;
-        case CM_EDID:
-            m_imageDescription = {.primariesNameSet = false,
-                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                  .primaries        = {
-                                             .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                             .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                             .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                             .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                  }};
-            break;
-        case CM_HDR:
-            m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                  .primariesNameSet = true,
-                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                  .luminances       = {.min = 0, .max = 10000, .reference = 203}};
-            break;
-        case CM_HDR_EDID:
-            m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                  .primariesNameSet = false,
-                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                  .primaries        = m_output->parsedEDID.chromaticityCoords.has_value() ?
-                                             NColorManagement::SPCPRimaries{
-                                                 .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                                 .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                                 .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                                 .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                      } :
-                                             NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                  .luminances       = {.min       = m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                                       .max       = m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                                       .reference = m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}};
-
-            break;
-        default: UNREACHABLE();
-    }
 
     m_sdrMinLuminance = RULE->sdrMinLuminance;
     m_sdrMaxLuminance = RULE->sdrMaxLuminance;
 
-    m_minLuminance = RULE->minLuminance;
-    if (m_minLuminance >= 0)
-        m_imageDescription.luminances.min = m_minLuminance;
-    m_maxLuminance = RULE->maxLuminance;
-    if (m_maxLuminance >= 0)
-        m_imageDescription.luminances.max = m_maxLuminance;
+    m_minLuminance    = RULE->minLuminance;
+    m_maxLuminance    = RULE->maxLuminance;
     m_maxAvgLuminance = RULE->maxAvgLuminance;
-    if (m_maxAvgLuminance >= 0)
-        m_imageDescription.luminances.reference = m_maxAvgLuminance;
+
+    applyCMType(m_cmType);
     if (oldImageDescription != m_imageDescription)
         PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 

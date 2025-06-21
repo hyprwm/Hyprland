@@ -1482,6 +1482,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:cm_auto_hdr",
+        .description = "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid (cm_fs_passthrough can switch to hdr even when this setting is off)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
+    },
 
     /*
      * cursor:

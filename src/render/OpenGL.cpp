@@ -2132,7 +2132,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
 }
 
 void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, float a, SP<CWLSurfaceResource> pSurface, int round, float roundingPower, bool blockBlurOptimization,
-                                            float blurA, float overallA) {
+                                            float blurA, float overallA, GLenum wrapX, GLenum wrapY) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
@@ -2160,7 +2160,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
         inverseOpaque.invert(&surfbox).intersect(0, 0, pSurface->m_current.size.x * pSurface->m_current.scale, pSurface->m_current.size.y * pSurface->m_current.scale);
 
         if (inverseOpaque.empty()) {
-            renderTexture(tex, box, a, round, roundingPower, false, true);
+            renderTexture(tex, box, a, round, roundingPower, false, true, wrapX, wrapY);
             return;
         }
     } else
@@ -2196,7 +2196,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
         renderRect(box, CHyprColor(0, 0, 0, 0), round, roundingPower);
     else
-        renderTexture(tex, box, a, round, roundingPower, true, true); // discard opaque
+        renderTexture(tex, box, a, round, roundingPower, true, true, wrapX, wrapY); // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -2222,7 +2222,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
     pushMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
-    renderTextureInternalWithDamage(POUTFB->getTexture(), box, (*PBLURIGNOREOPACITY ? blurA : a * blurA) * overallA, texDamage, round, roundingPower, false, false, true);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), box, (*PBLURIGNOREOPACITY ? blurA : a * blurA) * overallA, texDamage, round, roundingPower, false, false, true, wrapX,
+                                    wrapY);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     popMonitorTransformEnabled();
@@ -2236,7 +2237,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, const CBox& box, f
 
     // draw window
     glDisable(GL_STENCIL_TEST);
-    renderTextureInternalWithDamage(tex, box, a * overallA, texDamage, round, roundingPower, false, false, true, true);
+    renderTextureInternalWithDamage(tex, box, a * overallA, texDamage, round, roundingPower, false, false, true, true, wrapX, wrapY);
 
     glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);

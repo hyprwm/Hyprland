@@ -7,6 +7,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include <GLES3/gl32.h>
 #include <cstdint>
 #include <list>
 #include <string>
@@ -189,7 +190,7 @@ class CHyprOpenGLImpl {
     void renderTextureWithDamage(SP<CTexture>, const CBox&, const CRegion& damage, float a, int round = 0, float roundingPower = 2.0f, bool discardActive = false,
                                  bool allowCustomUV = false);
     void renderTextureWithBlur(SP<CTexture>, const CBox&, float a, SP<CWLSurfaceResource> pSurface, int round = 0, float roundingPower = 2.0f, bool blockBlurOptimization = false,
-                               float blurA = 1.f, float overallA = 1.f);
+                               float blurA = 1.f, float overallA = 1.f, GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);
     void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
     void renderBorder(const CBox&, const CGradientValueData&, int round, float roundingPower, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
     void renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, int round, float roundingPower, int borderSize, float a = 1.0,

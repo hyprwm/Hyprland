@@ -36,6 +36,7 @@ class CEventLoopManager {
     struct SIdleData {
         wl_event_source*                   eventSource = nullptr;
         std::vector<std::function<void()>> fns;
+        bool                               scheduled = false;
     };
 
     struct SReadableWaiter {

@@ -1,5 +1,6 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
+#include "../config/ConfigValue.hpp"
 
 CFramebuffer::CFramebuffer() {
     ;
@@ -9,8 +10,10 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 0 && h > 0), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    uint32_t glFormat = NFormatUtils::drmFormatToGL(drmFormat);
-    uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
+    static auto PFP16 = CConfigValue<Hyprlang::INT>("render:send_content_type");
+
+    uint32_t    glFormat = NFormatUtils::drmFormatToGL(drmFormat);
+    uint32_t    glType   = NFormatUtils::glFormatToType(glFormat);
 
     if (drmFormat != m_drmFormat || m_size != Vector2D{w, h})
         release();
@@ -36,7 +39,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
     if (firstAlloc || m_size != Vector2D(w, h)) {
         m_tex->bind();
-        glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, *PFP16 ? GL_RGBA16F : glFormat, w, h, 0, GL_RGBA, glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
 

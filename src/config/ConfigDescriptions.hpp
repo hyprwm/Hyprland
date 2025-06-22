@@ -1543,6 +1543,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
+
         .value       = "render:new_render_scheduling",
         .description = "enable new render scheduling, which should improve FPS on underpowered devices. This does not add latency when your PC can keep up.",
         .type        = CONFIG_OPTION_BOOL,
@@ -1560,6 +1561,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "unspecified and sRGB as Gamma 2.2",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
+    },
+    SConfigOptionDescription{
+        .value       = "render:use_fp16",
+        .description = "Use FP16 for internal buffers. Required for scRGB HDR. Slightly increases VRAM usage (64mb extra at 4k)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+
     },
 
     /*

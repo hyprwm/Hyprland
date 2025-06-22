@@ -846,7 +846,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
         std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
+            {"DRM_FORMAT_XRGB16161616", DRM_FORMAT_XRGB16161616}, {"DRM_FORMAT_XBGR16161616", DRM_FORMAT_XBGR16161616},
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010},
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
         },
         std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
             {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
@@ -865,7 +867,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             Debug::log(ERR, "output {} failed basic test on format {}", m_name, fmt.first);
         } else {
             Debug::log(LOG, "output {} succeeded basic test on format {}", m_name, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
+            if (RULE->enable10bit && (fmt.first.contains("101010") || fmt.first.contains("161616")))
                 set10bit = true;
             break;
         }

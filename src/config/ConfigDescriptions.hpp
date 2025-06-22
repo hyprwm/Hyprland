@@ -1566,8 +1566,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "render:use_fp16",
         .description = "Use FP16 for internal buffers. Required for scRGB HDR. Slightly increases VRAM usage (64mb extra at 4k)",
         .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*

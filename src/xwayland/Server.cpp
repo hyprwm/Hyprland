@@ -299,7 +299,7 @@ void CXWaylandServer::runXWayland(CFileDescriptor& notifyFD) {
         _exit(EXIT_FAILURE);
     }
 
-    auto cmd = std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", m_displayName, m_xFDs[0].get(), m_xFDs[1].get(), notifyFD.get(),
+    auto cmd = std::format("exec Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", m_displayName, m_xFDs[0].get(), m_xFDs[1].get(), notifyFD.get(),
                            m_xwmFDs[1].get());
 
     auto waylandSocket = std::format("{}", m_waylandFDs[1].get());

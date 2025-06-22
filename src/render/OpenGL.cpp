@@ -1485,7 +1485,7 @@ void                                                                   CHyprOpen
         };
         primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
     }
-    shader.setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, {primariesConversionCache[cacheKey][0]});
+    shader.setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const SImageDescription& imageDescription) {

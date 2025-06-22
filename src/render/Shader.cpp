@@ -163,7 +163,7 @@ void SShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLbo
     }
 
     cached = SUniformMatrix4Data{.count = count, .transpose = transpose, .value = value};
-    glUniformMatrix3fv(uniformLocations[location], count, transpose, value.data());
+    glUniformMatrix4x2fv(uniformLocations[location], count, transpose, value.data());
 }
 
 void SShader::setUniform4fv(eShaderUniform location, GLsizei count, std::vector<float> value) {

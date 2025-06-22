@@ -1021,7 +1021,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
     m_activeWorkspace = PNEWWORKSPACE;
 
-    PNEWWORKSPACE->setActive(true);
+    PNEWWORKSPACE->m_events.activeChange.emit();
     PNEWWORKSPACE->m_visible     = true;
     PNEWWORKSPACE->m_lastMonitor = "";
 }
@@ -1178,11 +1178,14 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         return;
 
     const auto POLDWORKSPACE = m_activeWorkspace;
-    if (POLDWORKSPACE)
-        POLDWORKSPACE->m_visible = false;
-    pWorkspace->m_visible = true;
+    m_activeWorkspace        = pWorkspace;
 
-    m_activeWorkspace = pWorkspace;
+    if (POLDWORKSPACE) {
+        POLDWORKSPACE->m_visible = false;
+        POLDWORKSPACE->m_events.activeChange.emit();
+    }
+
+    pWorkspace->m_visible = true;
 
     if (!internal) {
         const auto ANIMTOLEFT = POLDWORKSPACE && (shouldWraparound(pWorkspace->m_id, POLDWORKSPACE->m_id) ^ (pWorkspace->m_id > POLDWORKSPACE->m_id));
@@ -1225,6 +1228,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 
+    pWorkspace->m_events.activeChange.emit();
+
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
@@ -1245,6 +1250,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
+    const auto POLDSPECIAL = m_activeSpecialWorkspace;
+
     m_specialFade->setConfig(g_pConfigManager->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
     *m_specialFade = pWorkspace ? 1.F : 0.F;
 
@@ -1259,6 +1266,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
         }
         m_activeSpecialWorkspace.reset();
+
+        if (POLDSPECIAL)
+            POLDSPECIAL->m_events.activeChange.emit();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
@@ -1283,7 +1293,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         m_activeSpecialWorkspace->startAnim(false, false);
     }
 
-    bool animate = true;
+    bool wasActive = false;
     //close if open elsewhere
     const auto PMONITORWORKSPACEOWNER = pWorkspace->m_monitor.lock();
     if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
@@ -1295,14 +1305,24 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
         g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
 
-        animate = false;
+        wasActive = true;
     }
 
     // open special
     pWorkspace->m_monitor               = m_self;
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
-    if (animate)
+
+    if (POLDSPECIAL)
+        POLDSPECIAL->m_events.activeChange.emit();
+
+    if (PMONITORWORKSPACEOWNER != m_self)
+        pWorkspace->m_events.monitorChange.emit();
+
+    if (!wasActive)
+        pWorkspace->m_events.activeChange.emit();
+
+    if (!wasActive)
         pWorkspace->startAnim(true, true);
 
     for (auto const& w : g_pCompositor->m_windows) {

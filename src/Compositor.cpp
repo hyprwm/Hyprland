@@ -1972,7 +1972,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
 
     PWORKSPACEA->m_monitor = pMonitorB;
-    PWORKSPACEA->moveToMonitor(pMonitorB->m_id);
+    PWORKSPACEA->m_events.monitorChange.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEA) {
@@ -1997,7 +1997,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     }
 
     PWORKSPACEB->m_monitor = pMonitorA;
-    PWORKSPACEB->moveToMonitor(pMonitorA->m_id);
+    PWORKSPACEB->m_events.monitorChange.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEB) {
@@ -2177,7 +2177,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // move the workspace
     pWorkspace->m_monitor = pMonitor;
-    pWorkspace->moveToMonitor(pMonitor->m_id);
+    pWorkspace->m_events.monitorChange.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == pWorkspace) {
@@ -2221,7 +2221,15 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             pMonitor->setSpecialWorkspace(nullptr);
 
         setActiveMonitor(pMonitor);
+
+        auto oldWorkspace           = pMonitor->m_activeWorkspace;
         pMonitor->m_activeWorkspace = pWorkspace;
+
+        if (oldWorkspace)
+            oldWorkspace->m_events.activeChange.emit();
+
+        pWorkspace->m_events.activeChange.emit();
+
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
 
         pWorkspace->startAnim(true, true, true);

@@ -8,7 +8,7 @@ using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 CUniquePointer<CProcess> Tests::spawnKitty() {
-    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("bin/sh", std::vector<std::string>{"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)});
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("/bin/sh", std::vector<std::string>{"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)});
     kitty->runAsync();
     return kitty;
 }

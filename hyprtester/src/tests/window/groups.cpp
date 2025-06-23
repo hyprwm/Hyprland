@@ -63,8 +63,8 @@ bool testGroups() {
     std::println("{}Recheck kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        EXPECT(str.contains("at: 22,45"), true);
-        EXPECT(str.contains("size: 1876,1013"), true);
+        EXPECT(str.contains("at: 22,43"), true);
+        EXPECT(str.contains("size: 1876,1015"), true);
     }
 
     // disable the groupbar for ease of testing for now

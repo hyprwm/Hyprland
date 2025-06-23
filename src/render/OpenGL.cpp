@@ -10,6 +10,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -1221,9 +1222,10 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_finalScreenShader.uniformLocations[SHADER_PROJ] = glGetUniformLocation(m_finalScreenShader.program, "proj");
-    m_finalScreenShader.uniformLocations[SHADER_TEX]  = glGetUniformLocation(m_finalScreenShader.program, "tex");
-    m_finalScreenShader.uniformLocations[SHADER_TIME] = glGetUniformLocation(m_finalScreenShader.program, "time");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER] = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
+    m_finalScreenShader.uniformLocations[SHADER_PROJ]    = glGetUniformLocation(m_finalScreenShader.program, "proj");
+    m_finalScreenShader.uniformLocations[SHADER_TEX]     = glGetUniformLocation(m_finalScreenShader.program, "tex");
+    m_finalScreenShader.uniformLocations[SHADER_TIME]    = glGetUniformLocation(m_finalScreenShader.program, "time");
     if (m_finalScreenShader.uniformLocations[SHADER_TIME] != -1)
         m_finalScreenShader.initialTime = m_globalTimer.getSeconds();
     m_finalScreenShader.uniformLocations[SHADER_WL_OUTPUT] = glGetUniformLocation(m_finalScreenShader.program, "wl_output");
@@ -1557,7 +1559,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapX);
     tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapY);
 
-    if (m_renderData.useNearestNeighbor) {
+    if (m_renderData.useNearestNeighbor && !usingFinalShader) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1596,6 +1598,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         shader->setUniformInt(SHADER_WL_OUTPUT, m_renderData.pMonitor->m_id);
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
     }
+
+    shader->setUniformFloat2(SHADER_POINTER_POSITION, g_pPointerManager->position().x, g_pPointerManager->position().y);
 
     if (CRASHING) {
         shader->setUniformFloat(SHADER_DISTORT, g_pHyprRenderer->m_crashingDistort);

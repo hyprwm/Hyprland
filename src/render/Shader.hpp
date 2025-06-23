@@ -62,6 +62,7 @@ enum eShaderUniform : uint8_t {
     SHADER_VIBRANCY_DARKNESS,
     SHADER_BRIGHTNESS,
     SHADER_NOISE,
+    SHADER_POINTER,
 
     SHADER_LAST,
 };

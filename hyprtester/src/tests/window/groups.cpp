@@ -27,19 +27,9 @@ bool testGroups() {
 
     std::println("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
-    int  counter    = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Keep checking whether kitty spawned", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcA->pid()) && Tests::windowCount() != 1) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 1);
-            return !ret;
-        }
+    if (!kittyProcA) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 1 window", Colors::YELLOW);
@@ -73,31 +63,13 @@ bool testGroups() {
 
     // kill all
     std::println("{}Kill windows", Colors::YELLOW);
-    {
-        auto str = getFromSocket("/clients");
-        auto pos = str.find("Window ");
-        while (pos != std::string::npos) {
-            auto pos2 = str.find(" -> ", pos);
-            getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
-            pos = str.find("Window ", pos + 5);
-        }
-    }
+    Tests::killAllWindows();
 
     std::println("{}Spawn kitty again", Colors::YELLOW);
     kittyProcA = Tests::spawnKitty();
-    counter    = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    std::println("{}Wait for it to start", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcA->pid()) && Tests::windowCount() != 1) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 1);
-            return !ret;
-        }
+    if (!kittyProcA) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Group kitty", Colors::YELLOW);
@@ -113,19 +85,9 @@ bool testGroups() {
 
     std::println("{}Spawn kittyProcB", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
-    counter         = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Wait for it to start 2", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcB->pid()) && Tests::windowCount() != 2) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 2);
-            return !ret;
-        }
+    if (!kittyProcB) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 2 windows", Colors::YELLOW);
@@ -164,19 +126,9 @@ bool testGroups() {
 
     std::println("{}Spawn kittyProcC", Colors::YELLOW);
     auto kittyProcC = Tests::spawnKitty();
-    counter         = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Wait for it to spawn 3", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcC->pid()) && Tests::windowCount() != 3) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 3);
-            return !ret;
-        }
+    if (!kittyProcC) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 3 windows 2", Colors::YELLOW);
@@ -194,19 +146,9 @@ bool testGroups() {
 
     std::println("{}Spawn kittyProcD", Colors::YELLOW);
     auto kittyProcD = Tests::spawnKitty();
-    counter         = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Wait for it to spawn 4", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcD->pid()) && Tests::windowCount() != 4) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 4);
-            return !ret;
-        }
+    if (!kittyProcD) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 4 windows", Colors::YELLOW);
@@ -216,25 +158,14 @@ bool testGroups() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    // FIXME: can't use pid
-    // {
-    //     auto str = getFromSocket("/activewindow");
-    //     EXPECT(str.contains(std::format("pid: {}", kittyProcD.pid())), true);
-    // }
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains(std::format("pid: {}", kittyProcD->pid())), true);
+    }
 
     // kill all
     std::println("{}Kill windows", Colors::YELLOW);
-    {
-        auto str = getFromSocket("/clients");
-        auto pos = str.find("Window ");
-        while (pos != std::string::npos) {
-            auto pos2 = str.find(" -> ", pos);
-            getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
-            pos = str.find("Window ", pos + 5);
-        }
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    Tests::killAllWindows();
 
     std::println("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

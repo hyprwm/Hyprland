@@ -10,4 +10,5 @@ namespace Tests {
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);
+    bool                                                       killAllWindows();
 };

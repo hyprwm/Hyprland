@@ -1,6 +1,8 @@
 #include "shared.hpp"
 #include <csignal>
 #include <cerrno>
+#include <thread>
+#include <print>
 #include "../shared.hpp"
 #include "../hyprctlCompat.hpp"
 
@@ -8,14 +10,34 @@ using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 CUniquePointer<CProcess> Tests::spawnKitty() {
-    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("/bin/sh", std::vector<std::string>{"-c", std::format("WAYLAND_DISPLAY={} kitty >/dev/null 2>&1", WLDISPLAY)});
+    const auto               COUNT_BEFORE = windowCount();
+
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", std::vector<std::string>{});
+    kitty->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
     kitty->runAsync();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // wait while kitty spawns
+    int counter = 0;
+    while (processAlive(kitty->pid()) && windowCount() == COUNT_BEFORE) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50)
+            return nullptr;
+    }
+
+    if (!processAlive(kitty->pid()))
+        return nullptr;
+
     return kitty;
 }
 
 bool Tests::processAlive(pid_t pid) {
-    kill(pid, 0);
-    return errno != ESRCH;
+    errno   = 0;
+    int ret = kill(pid, 0);
+    return ret != -1 || errno != ESRCH;
 }
 
 int Tests::windowCount() {
@@ -31,4 +53,27 @@ int Tests::countOccurrences(const std::string& in, const std::string& what) {
     }
 
     return cnt;
+}
+
+bool Tests::killAllWindows() {
+    auto str = getFromSocket("/clients");
+    auto pos = str.find("Window ");
+    while (pos != std::string::npos) {
+        auto pos2 = str.find(" -> ", pos);
+        getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
+        pos = str.find("Window ", pos + 5);
+    }
+
+    int counter = 0;
+    while (Tests::windowCount() != 0) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50) {
+            std::println("{}Timed out waiting for windows to close", Colors::RED);
+            return false;
+        }
+    }
+
+    return true;
 }

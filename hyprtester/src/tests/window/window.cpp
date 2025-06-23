@@ -27,19 +27,10 @@ bool testWindows() {
 
     std::println("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
-    int  counter    = 0;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Keep checking if kitty spawned", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcA->pid()) && Tests::windowCount() != 1) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 1);
-            return !ret;
-        }
+    if (!kittyProcA) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 1 window", Colors::YELLOW);
@@ -56,19 +47,9 @@ bool testWindows() {
 
     std::println("{}Spawning kittyProcB", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
-    counter         = 0;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::println("{}Keep checking if kitty spawned", Colors::YELLOW);
-    while (Tests::processAlive(kittyProcB->pid()) && Tests::windowCount() != 2) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 20) {
-            EXPECT(Tests::windowCount(), 2);
-            return !ret;
-        }
+    if (!kittyProcB) {
+        std::println("{}Error: kitty did not spawn", Colors::RED);
+        return false;
     }
 
     std::println("{}Expecting 2 windows", Colors::YELLOW);
@@ -77,16 +58,16 @@ bool testWindows() {
     // open xeyes
     std::println("{}Spawning xeyes", Colors::YELLOW);
     getFromSocket("/dispatch exec xeyes");
-    counter = 0;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::println("{}Keep checking if xeyes spawned", Colors::YELLOW);
+    int counter = 0;
     while (Tests::windowCount() != 3) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        if (counter > 20) {
+        if (counter > 50) {
             EXPECT(Tests::windowCount(), 3);
             return !ret;
         }
@@ -108,17 +89,7 @@ bool testWindows() {
 
     // kill all
     std::println("{}Killing all windows", Colors::YELLOW);
-    {
-        auto str = getFromSocket("/clients");
-        auto pos = str.find("Window ");
-        while (pos != std::string::npos) {
-            auto pos2 = str.find(" -> ", pos);
-            getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
-            pos = str.find("Window ", pos + 5);
-        }
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    Tests::killAllWindows();
 
     std::println("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

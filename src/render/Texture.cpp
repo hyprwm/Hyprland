@@ -175,7 +175,7 @@ void CTexture::unbind() {
     GLCALL(glBindTexture(m_target, 0));
 }
 
-inline constexpr std::optional<size_t> CTexture::getCacheStateIndex(GLenum pname) {
+constexpr std::optional<size_t> CTexture::getCacheStateIndex(GLenum pname) {
     switch (pname) {
         case GL_TEXTURE_WRAP_S: return TEXTURE_PAR_WRAP_S;
         case GL_TEXTURE_WRAP_T: return TEXTURE_PAR_WRAP_T;
@@ -188,14 +188,14 @@ inline constexpr std::optional<size_t> CTexture::getCacheStateIndex(GLenum pname
 }
 
 void CTexture::setTexParameter(GLenum pname, GLint param) {
-    auto const cacheIndex = getCacheStateIndex(pname);
+    const auto cacheIndex = getCacheStateIndex(pname);
 
     if (!cacheIndex) {
         GLCALL(glTexParameteri(m_target, pname, param));
         return;
     }
 
-    auto const idx = cacheIndex.value();
+    const auto idx = cacheIndex.value();
 
     if (m_cachedStates[idx] == param)
         return;

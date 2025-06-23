@@ -1240,6 +1240,12 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     }
     m_finalScreenShader.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
     m_finalScreenShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "pos");
+    if (m_finalScreenShader.uniformLocations[SHADER_POINTER] != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
+        // The screen shader uses the "pointer_position" uniform
+        // Since the screen shader could change every frame, damage tracking *needs* to be disabled
+        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off unless the shader only affects the pixels in the immediate vicinity of the cursor\n"
+                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
+    }
     m_finalScreenShader.createVao();
 }
 
@@ -1599,7 +1605,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
     }
 
-    shader->setUniformFloat2(SHADER_POINTER_POSITION, g_pPointerManager->position().x, g_pPointerManager->position().y);
+    if ((usingFinalShader && *PDT == 0) || CRASHING)
+        shader->setUniformFloat2(SHADER_POINTER, g_pPointerManager->position().x, g_pPointerManager->position().y);
+    else if (usingFinalShader)
+        shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 
     if (CRASHING) {
         shader->setUniformFloat(SHADER_DISTORT, g_pHyprRenderer->m_crashingDistort);

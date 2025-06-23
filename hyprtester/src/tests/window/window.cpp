@@ -59,8 +59,6 @@ bool testWindows() {
     std::println("{}Spawning xeyes", Colors::YELLOW);
     getFromSocket("/dispatch exec xeyes");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     std::println("{}Keep checking if xeyes spawned", Colors::YELLOW);
     int counter = 0;
     while (Tests::windowCount() != 3) {

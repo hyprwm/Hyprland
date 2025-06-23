@@ -99,27 +99,33 @@ bool testGroups() {
     try {
         auto str           = getFromSocket("/activewindow");
         lastActiveKittyIdx = std::stoull(str.substr(7, str.find(" -> ") - 7));
-    } catch (...) { ; }
+    } catch (...) {
+        std::println("{}Fail at getting prop", Colors::RED);
+        ret = 1;
+    }
 
     // test cycling through
 
     std::println("{}Test cycling through grouped windows", Colors::YELLOW);
     getFromSocket("/dispatch changegroupactive f");
-    std::println("{}Weird 25ms thing", Colors::YELLOW);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     try {
         auto str = getFromSocket("/activewindow");
         EXPECT(lastActiveKittyIdx != std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
-    } catch (...) { ; }
+    } catch (...) {
+        std::println("{}Fail at getting prop", Colors::RED);
+        ret = 1;
+    }
 
     getFromSocket("/dispatch changegroupactive f");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     try {
         auto str = getFromSocket("/activewindow");
         EXPECT(lastActiveKittyIdx == std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
-    } catch (...) { ; }
+    } catch (...) {
+        std::println("{}Fail at getting prop", Colors::RED);
+        ret = 1;
+    }
 
     std::println("{}Disable autogrouping", Colors::YELLOW);
     EXPECT(getFromSocket("/keyword group:auto_group false"), "ok");
@@ -142,7 +148,6 @@ bool testGroups() {
     EXPECT(getFromSocket("/dispatch changegroupactive 1"), "ok");
     EXPECT(getFromSocket("/keyword group:auto_group true"), "ok");
     EXPECT(getFromSocket("/keyword group:insert_after_current false"), "ok");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::println("{}Spawn kittyProcD", Colors::YELLOW);
     auto kittyProcD = Tests::spawnKitty();
@@ -155,8 +160,6 @@ bool testGroups() {
     EXPECT(Tests::windowCount(), 4);
 
     EXPECT(getFromSocket("/dispatch changegroupactive 3"), "ok");
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     {
         auto str = getFromSocket("/activewindow");

@@ -1243,7 +1243,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (m_finalScreenShader.uniformLocations[SHADER_POINTER] != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
         // The screen shader uses the "pointer_position" uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
-        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off\n"
+        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off.\n"
                                         "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
     }
     m_finalScreenShader.createVao();

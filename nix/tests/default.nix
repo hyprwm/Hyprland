@@ -76,8 +76,6 @@ in {
       machine.copy_from_vm("/tmp/hyprlog")
 
       # Print logs for visibility in CI
-      _, out = machine.execute("cat /tmp/hyprlog")
-      print(f"Hyprland log:\n{out}")
       _, out = machine.execute("cat /tmp/testerlog")
       print(f"Hyprtester log:\n{out}")
 

@@ -46,3 +46,8 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: result

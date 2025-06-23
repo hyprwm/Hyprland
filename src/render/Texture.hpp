@@ -49,16 +49,21 @@ class CTexture {
     bool                        m_isSynchronous = false;
 
   private:
-    void                                   createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
-    void                                   createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
-
-    bool                                   m_keepDataCopy = false;
-
-    std::vector<uint8_t>                   m_dataCopy;
-
-    static constexpr std::array<GLenum, 6> m_supporteCacheStates = {
-        GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER, GL_TEXTURE_SWIZZLE_R, GL_TEXTURE_SWIZZLE_B,
+    enum eTextureParam : uint8_t {
+        TEXTURE_PAR_WRAP_S = 0,
+        TEXTURE_PAR_WRAP_T,
+        TEXTURE_PAR_MAG_FILTER,
+        TEXTURE_PAR_MIN_FILTER,
+        TEXTURE_PAR_SWIZZLE_R,
+        TEXTURE_PAR_SWIZZLE_B,
+        TEXTURE_PAR_LAST,
     };
-    static constexpr size_t                        TEXTURE_LAST = m_supporteCacheStates.size();
-    std::array<std::optional<GLint>, TEXTURE_LAST> m_cachedStates;
+
+    void                                               createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
+    void                                               createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
+    inline constexpr std::optional<size_t>             getCacheStateIndex(GLenum pname);
+
+    bool                                               m_keepDataCopy = false;
+    std::vector<uint8_t>                               m_dataCopy;
+    std::array<std::optional<GLint>, TEXTURE_PAR_LAST> m_cachedStates;
 };

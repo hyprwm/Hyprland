@@ -175,23 +175,31 @@ void CTexture::unbind() {
     GLCALL(glBindTexture(m_target, 0));
 }
 
-void CTexture::setTexParameter(GLenum pname, GLint param) {
-    size_t cacheIndex = TEXTURE_LAST;
-    for (size_t i = 0; i < m_supporteCacheStates.size(); i++) {
-        if (m_supporteCacheStates[i] == pname) {
-            cacheIndex = i;
-            break;
-        }
+inline constexpr std::optional<size_t> CTexture::getCacheStateIndex(GLenum pname) {
+    switch (pname) {
+        case GL_TEXTURE_WRAP_S: return TEXTURE_PAR_WRAP_S;
+        case GL_TEXTURE_WRAP_T: return TEXTURE_PAR_WRAP_T;
+        case GL_TEXTURE_MAG_FILTER: return TEXTURE_PAR_MAG_FILTER;
+        case GL_TEXTURE_MIN_FILTER: return TEXTURE_PAR_MIN_FILTER;
+        case GL_TEXTURE_SWIZZLE_R: return TEXTURE_PAR_SWIZZLE_R;
+        case GL_TEXTURE_SWIZZLE_B: return TEXTURE_PAR_SWIZZLE_B;
+        default: return std::nullopt;
     }
+}
 
-    if (cacheIndex == TEXTURE_LAST) { // dont cache it.
+void CTexture::setTexParameter(GLenum pname, GLint param) {
+    auto const cacheIndex = getCacheStateIndex(pname);
+
+    if (!cacheIndex) {
         GLCALL(glTexParameteri(m_target, pname, param));
         return;
     }
 
-    if (m_cachedStates[cacheIndex] == param)
+    auto const idx = cacheIndex.value();
+
+    if (m_cachedStates[idx] == param)
         return;
 
-    m_cachedStates[cacheIndex] = param;
+    m_cachedStates[idx] = param;
     GLCALL(glTexParameteri(m_target, pname, param));
 }

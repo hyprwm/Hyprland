@@ -47,11 +47,18 @@ in {
         isNormalUser = true;
       };
 
-      # Might crash with less
-      virtualisation.memorySize = 8192;
+      virtualisation = {
+        cores = 4;
+        # Might crash with less
+        memorySize = 8192;
+        resolution = {
+          x = 1920;
+          y = 1080;
+        };
 
-      # Doesn't seem to do much, thought it would fix XWayland crashing
-      virtualisation.qemu.options = ["-vga none -device virtio-gpu-pci"];
+        # Doesn't seem to do much, thought it would fix XWayland crashing
+        qemu.options = ["-vga none -device virtio-gpu-pci"];
+      };
     };
 
     testScript = ''

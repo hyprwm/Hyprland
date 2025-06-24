@@ -10,6 +10,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -1227,9 +1228,10 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_finalScreenShader.proj = glGetUniformLocation(m_finalScreenShader.program, "proj");
-    m_finalScreenShader.tex  = glGetUniformLocation(m_finalScreenShader.program, "tex");
-    m_finalScreenShader.time = glGetUniformLocation(m_finalScreenShader.program, "time");
+    m_finalScreenShader.pointerPosition = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
+    m_finalScreenShader.proj            = glGetUniformLocation(m_finalScreenShader.program, "proj");
+    m_finalScreenShader.tex             = glGetUniformLocation(m_finalScreenShader.program, "tex");
+    m_finalScreenShader.time            = glGetUniformLocation(m_finalScreenShader.program, "time");
     if (m_finalScreenShader.time != -1)
         m_finalScreenShader.initialTime = m_globalTimer.getSeconds();
     m_finalScreenShader.wl_output = glGetUniformLocation(m_finalScreenShader.program, "wl_output");
@@ -1240,6 +1242,12 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         // The screen shader uses the "time" uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
         g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'time', which requires debug:damage_tracking to be switched off.\n"
+                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
+    }
+    if (m_finalScreenShader.pointerPosition != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
+        // The screen shader uses the "pointerPosition" uniform
+        // Since the screen shader could change every frame, damage tracking *needs* to be disabled
+        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off.\n"
                                         "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
     }
     m_finalScreenShader.texAttrib = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
@@ -1552,7 +1560,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_S, wrapX);
     glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_T, wrapY);
 
-    if (m_renderData.useNearestNeighbor) {
+    if (m_renderData.useNearestNeighbor && !usingFinalShader) {
         glTexParameteri(tex->m_target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(tex->m_target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1587,6 +1595,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     } else if (usingFinalShader && shader->time != -1) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);
+    }
+
+    if (usingFinalShader && shader->pointerPosition != -1) {
+        Vector2D p = g_pPointerManager->position();
+        glUniform2f(shader->pointerPosition, p.x, p.y);
     }
 
     if (usingFinalShader && shader->wl_output != -1)

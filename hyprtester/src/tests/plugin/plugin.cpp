@@ -14,7 +14,7 @@ bool testPlugin() {
     const auto RESPONSE = getFromSocket("/dispatch plugin:test:test");
 
     if (RESPONSE != "ok") {
-        std::println("{}Plugin tests failed, plugin returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);
+        NLog::log("{}Plugin tests failed, plugin returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);
         return false;
     }
     return true;

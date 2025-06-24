@@ -19,35 +19,35 @@ using namespace Hyprutils::Memory;
 #define SP CSharedPointer
 
 bool testWorkspaces() {
-    std::println("{}Testing workspaces", Colors::GREEN);
+    NLog::log("{}Testing workspaces", Colors::GREEN);
 
     // test on workspace "window"
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
 
-    std::println("{}Spawning kittyProc on ws 1", Colors::YELLOW);
+    NLog::log("{}Spawning kittyProc on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
 
     if (!kittyProcA) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Switching to workspace 3", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 3", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 3"));
 
-    std::println("{}Spawning kittyProc on ws 3", Colors::YELLOW);
+    NLog::log("{}Spawning kittyProc on ws 3", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
 
     if (!kittyProcB) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
 
-    std::println("{}Switching to workspace +1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace +1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace +1"));
 
     {
@@ -62,10 +62,10 @@ bool testWorkspaces() {
         EXPECT(str.contains("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
 
-    std::println("{}Switching to workspace m+1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace m+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace m+1"));
 
     {
@@ -73,7 +73,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 3 (3)"), true);
     }
 
-    std::println("{}Switching to workspace -1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace -1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace -1"));
 
     {
@@ -81,10 +81,10 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 2 (2)"), true);
     }
 
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
 
-    std::println("{}Switching to workspace r+1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace r+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace r+1"));
 
     {
@@ -92,7 +92,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 2 (2)"), true);
     }
 
-    std::println("{}Switching to workspace r+1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace r+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace r+1"));
 
     {
@@ -100,7 +100,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 3 (3)"), true);
     }
 
-    std::println("{}Switching to workspace r~1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace r~1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace r~1"));
 
     {
@@ -108,7 +108,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Switching to workspace empty", Colors::YELLOW);
+    NLog::log("{}Switching to workspace empty", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace empty"));
 
     {
@@ -116,7 +116,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 2 (2)"), true);
     }
 
-    std::println("{}Switching to workspace previous", Colors::YELLOW);
+    NLog::log("{}Switching to workspace previous", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace previous"));
 
     {
@@ -124,7 +124,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Switching to workspace name:TEST_WORKSPACE_NULL", Colors::YELLOW);
+    NLog::log("{}Switching to workspace name:TEST_WORKSPACE_NULL", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace name:TEST_WORKSPACE_NULL"));
 
     {
@@ -132,11 +132,11 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID -1337 (TEST_WORKSPACE_NULL)"), true);
     }
 
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
 
     // add a new monitor
-    std::println("{}Adding a new monitor", Colors::YELLOW);
+    NLog::log("{}Adding a new monitor", Colors::YELLOW);
     EXPECT(getFromSocket("/output create headless"), "ok")
 
     // should take workspace 2
@@ -155,7 +155,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Switching to workspace r+1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace r+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace r+1"));
 
     {
@@ -163,7 +163,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 3 (3)"), true);
     }
 
-    std::println("{}Switching to workspace r~2", Colors::YELLOW);
+    NLog::log("{}Switching to workspace r~2", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
     OK(getFromSocket("/dispatch workspace r~2"));
 
@@ -172,7 +172,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 3 (3)"), true);
     }
 
-    std::println("{}Switching to workspace m+1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace m+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace m+1"));
 
     {
@@ -180,7 +180,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Switching to workspace 1", Colors::YELLOW);
+    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     // no OK: this will throw an error as it should
     getFromSocket("/dispatch workspace 1");
 
@@ -189,7 +189,7 @@ bool testWorkspaces() {
         EXPECT(str.starts_with("workspace ID 1 (1)"), true);
     }
 
-    std::println("{}Testing back_and_forth", Colors::YELLOW);
+    NLog::log("{}Testing back_and_forth", Colors::YELLOW);
     OK(getFromSocket("/keyword binds:workspace_back_and_forth true"));
     OK(getFromSocket("/dispatch workspace 1"));
 
@@ -200,7 +200,7 @@ bool testWorkspaces() {
 
     OK(getFromSocket("/keyword binds:workspace_back_and_forth false"));
 
-    std::println("{}Testing hide_special_on_workspace_change", Colors::YELLOW);
+    NLog::log("{}Testing hide_special_on_workspace_change", Colors::YELLOW);
     OK(getFromSocket("/keyword binds:hide_special_on_workspace_change true"));
     OK(getFromSocket("/dispatch workspace special:HELLO"));
 
@@ -220,7 +220,7 @@ bool testWorkspaces() {
 
     OK(getFromSocket("/keyword binds:hide_special_on_workspace_change false"));
 
-    std::println("{}Testing allow_workspace_cycles", Colors::YELLOW);
+    NLog::log("{}Testing allow_workspace_cycles", Colors::YELLOW);
     OK(getFromSocket("/keyword binds:allow_workspace_cycles true"));
 
     OK(getFromSocket("/dispatch workspace 1"));
@@ -252,11 +252,11 @@ bool testWorkspaces() {
 
     OK(getFromSocket("/dispatch workspace 1"));
 
-    std::println("{}Killing all windows", Colors::YELLOW);
+    NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 
     // spawn 3 kitties
-    std::println("{}Testing focus_preferred_method", Colors::YELLOW);
+    NLog::log("{}Testing focus_preferred_method", Colors::YELLOW);
     OK(getFromSocket("/keyword dwindle:force_split 2"));
     Tests::spawnKitty("kitty_A");
     Tests::spawnKitty("kitty_B");
@@ -293,7 +293,7 @@ bool testWorkspaces() {
         EXPECT(str.contains("class: kitty_B"), true);
     }
 
-    std::println("{}Testing movefocus_cycles_fullscreen", Colors::YELLOW);
+    NLog::log("{}Testing movefocus_cycles_fullscreen", Colors::YELLOW);
     OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
     OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
     Tests::spawnKitty("kitty_D");
@@ -339,10 +339,10 @@ bool testWorkspaces() {
     OK(getFromSocket("/output remove HEADLESS-3"));
 
     // kill all
-    std::println("{}Killing all windows", Colors::YELLOW);
+    NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 
-    std::println("{}Expecting 0 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
     return !ret;

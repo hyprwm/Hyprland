@@ -19,24 +19,24 @@ using namespace Hyprutils::Memory;
 #define SP CSharedPointer
 
 bool testGroups() {
-    std::println("{}Testing groups", Colors::GREEN);
+    NLog::log("{}Testing groups", Colors::GREEN);
 
     // test on workspace "window"
-    std::println("{}Dispatching workspace `groups`", Colors::YELLOW);
+    NLog::log("{}Dispatching workspace `groups`", Colors::YELLOW);
     getFromSocket("/dispatch workspace name:groups");
 
-    std::println("{}Spawning kittyProcA", Colors::YELLOW);
+    NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
     if (!kittyProcA) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 1 window", Colors::YELLOW);
+    NLog::log("{}Expecting 1 window", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 1);
 
     // check kitty properties. One kitty should take the entire screen, minus the gaps.
-    std::println("{}Check kitty dimensions", Colors::YELLOW);
+    NLog::log("{}Check kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(Tests::countOccurrences(str, "at: 22,22"), 1);
@@ -45,12 +45,12 @@ bool testGroups() {
     }
 
     // group the kitty
-    std::println("{}Enable group and groupbar", Colors::YELLOW);
+    NLog::log("{}Enable group and groupbar", Colors::YELLOW);
     EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
     EXPECT(getFromSocket("/keyword group:groupbar:enabled 1"), "ok");
 
     // check the height of the window now
-    std::println("{}Recheck kitty dimensions", Colors::YELLOW);
+    NLog::log("{}Recheck kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 22,43"), true);
@@ -58,62 +58,62 @@ bool testGroups() {
     }
 
     // disable the groupbar for ease of testing for now
-    std::println("{}Disable groupbar", Colors::YELLOW);
+    NLog::log("{}Disable groupbar", Colors::YELLOW);
     EXPECT(getFromSocket("r/keyword group:groupbar:enabled 0"), "ok");
 
     // kill all
-    std::println("{}Kill windows", Colors::YELLOW);
+    NLog::log("{}Kill windows", Colors::YELLOW);
     Tests::killAllWindows();
 
-    std::println("{}Spawn kitty again", Colors::YELLOW);
+    NLog::log("{}Spawn kitty again", Colors::YELLOW);
     kittyProcA = Tests::spawnKitty();
     if (!kittyProcA) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Group kitty", Colors::YELLOW);
+    NLog::log("{}Group kitty", Colors::YELLOW);
     EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
 
     // check the height of the window now
-    std::println("{}Check kitty dimensions 2", Colors::YELLOW);
+    NLog::log("{}Check kitty dimensions 2", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 22,22"), true);
         EXPECT(str.contains("size: 1876,1036"), true);
     }
 
-    std::println("{}Spawn kittyProcB", Colors::YELLOW);
+    NLog::log("{}Spawn kittyProcB", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
     if (!kittyProcB) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 2 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 2);
 
     size_t lastActiveKittyIdx = 0;
 
-    std::println("{}Get last active kitty id", Colors::YELLOW);
+    NLog::log("{}Get last active kitty id", Colors::YELLOW);
     try {
         auto str           = getFromSocket("/activewindow");
         lastActiveKittyIdx = std::stoull(str.substr(7, str.find(" -> ") - 7));
     } catch (...) {
-        std::println("{}Fail at getting prop", Colors::RED);
+        NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
     }
 
     // test cycling through
 
-    std::println("{}Test cycling through grouped windows", Colors::YELLOW);
+    NLog::log("{}Test cycling through grouped windows", Colors::YELLOW);
     getFromSocket("/dispatch changegroupactive f");
 
     try {
         auto str = getFromSocket("/activewindow");
         EXPECT(lastActiveKittyIdx != std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
     } catch (...) {
-        std::println("{}Fail at getting prop", Colors::RED);
+        NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
     }
 
@@ -123,21 +123,21 @@ bool testGroups() {
         auto str = getFromSocket("/activewindow");
         EXPECT(lastActiveKittyIdx == std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
     } catch (...) {
-        std::println("{}Fail at getting prop", Colors::RED);
+        NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
     }
 
-    std::println("{}Disable autogrouping", Colors::YELLOW);
+    NLog::log("{}Disable autogrouping", Colors::YELLOW);
     EXPECT(getFromSocket("/keyword group:auto_group false"), "ok");
 
-    std::println("{}Spawn kittyProcC", Colors::YELLOW);
+    NLog::log("{}Spawn kittyProcC", Colors::YELLOW);
     auto kittyProcC = Tests::spawnKitty();
     if (!kittyProcC) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 3 windows 2", Colors::YELLOW);
+    NLog::log("{}Expecting 3 windows 2", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 3);
     {
         auto str = getFromSocket("/clients");
@@ -149,14 +149,14 @@ bool testGroups() {
     EXPECT(getFromSocket("/keyword group:auto_group true"), "ok");
     EXPECT(getFromSocket("/keyword group:insert_after_current false"), "ok");
 
-    std::println("{}Spawn kittyProcD", Colors::YELLOW);
+    NLog::log("{}Spawn kittyProcD", Colors::YELLOW);
     auto kittyProcD = Tests::spawnKitty();
     if (!kittyProcD) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 4 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 4 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 4);
 
     EXPECT(getFromSocket("/dispatch changegroupactive 3"), "ok");
@@ -167,10 +167,10 @@ bool testGroups() {
     }
 
     // kill all
-    std::println("{}Kill windows", Colors::YELLOW);
+    NLog::log("{}Kill windows", Colors::YELLOW);
     Tests::killAllWindows();
 
-    std::println("{}Expecting 0 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
     return !ret;

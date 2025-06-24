@@ -19,25 +19,25 @@ using namespace Hyprutils::Memory;
 #define SP CSharedPointer
 
 bool testWindows() {
-    std::println("{}Testing windows", Colors::GREEN);
+    NLog::log("{}Testing windows", Colors::GREEN);
 
     // test on workspace "window"
-    std::println("{}Switching to workspace `window`", Colors::YELLOW);
+    NLog::log("{}Switching to workspace `window`", Colors::YELLOW);
     getFromSocket("/dispatch workspace name:window");
 
-    std::println("{}Spawning kittyProcA", Colors::YELLOW);
+    NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
 
     if (!kittyProcA) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 1 window", Colors::YELLOW);
+    NLog::log("{}Expecting 1 window", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 1);
 
     // check kitty properties. One kitty should take the entire screen, as this is smart gaps
-    std::println("{}Expecting kitty to take up the whole screen", Colors::YELLOW);
+    NLog::log("{}Expecting kitty to take up the whole screen", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 0,0"), true);
@@ -45,21 +45,21 @@ bool testWindows() {
         EXPECT(str.contains("fullscreen: 0"), true);
     }
 
-    std::println("{}Spawning kittyProcB", Colors::YELLOW);
+    NLog::log("{}Spawning kittyProcB", Colors::YELLOW);
     auto kittyProcB = Tests::spawnKitty();
     if (!kittyProcB) {
-        std::println("{}Error: kitty did not spawn", Colors::RED);
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
 
-    std::println("{}Expecting 2 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 2);
 
     // open xeyes
-    std::println("{}Spawning xeyes", Colors::YELLOW);
+    NLog::log("{}Spawning xeyes", Colors::YELLOW);
     getFromSocket("/dispatch exec xeyes");
 
-    std::println("{}Keep checking if xeyes spawned", Colors::YELLOW);
+    NLog::log("{}Keep checking if xeyes spawned", Colors::YELLOW);
     int counter = 0;
     while (Tests::windowCount() != 3) {
         counter++;
@@ -71,10 +71,10 @@ bool testWindows() {
         }
     }
 
-    std::println("{}Expecting 3 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 3 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 3);
 
-    std::println("{}Checking props of xeyes", Colors::YELLOW);
+    NLog::log("{}Checking props of xeyes", Colors::YELLOW);
     // check some window props of xeyes, try to tile them
     {
         auto str = getFromSocket("/clients");
@@ -86,10 +86,10 @@ bool testWindows() {
     }
 
     // kill all
-    std::println("{}Killing all windows", Colors::YELLOW);
+    NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 
-    std::println("{}Expecting 0 windows", Colors::YELLOW);
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
     return !ret;

@@ -28,6 +28,8 @@
 #include <thread>
 #include <print>
 
+#include "Log.hpp"
+
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
@@ -42,7 +44,7 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
     if (binaryPath == "") {
         std::error_code ec;
         if (!std::filesystem::exists(cwd + "/../build/Hyprland", ec) || ec) {
-            std::println("{}No Hyprland binary", Colors::RED);
+            NLog::log("{}No Hyprland binary", Colors::RED);
             return false;
         }
 
@@ -52,31 +54,31 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
     if (configPath == "") {
         std::error_code ec;
         if (!std::filesystem::exists(cwd + "/test.conf", ec) || ec) {
-            std::println("{}No test config", Colors::RED);
+            NLog::log("{}No test config", Colors::RED);
             return false;
         }
 
         configPath = cwd + "/test.conf";
     }
 
-    std::println("{}Launching Hyprland", Colors::YELLOW);
+    NLog::log("{}Launching Hyprland", Colors::YELLOW);
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
-    std::println("{}Launched async process", Colors::YELLOW);
+    NLog::log("{}Launched async process", Colors::YELLOW);
 
     return hyprlandProc->runAsync();
 }
 
 static bool hyprlandAlive() {
-    std::println("{}hyprlandAlive", Colors::YELLOW);
+    NLog::log("{}hyprlandAlive", Colors::YELLOW);
     kill(hyprlandProc->pid(), 0);
     return errno != ESRCH;
 }
 
 static void help() {
-    std::println("usage: hyprtester [arg [...]].\n");
-    std::println(R"(Arguments:
+    NLog::log("usage: hyprtester [arg [...]].\n");
+    NLog::log(R"(Arguments:
     --help              -h       - Show this message again
     --config FILE       -c FILE  - Specify config file to use
     --binary FILE       -b FILE  - Specify Hyprland binary to use
@@ -179,63 +181,63 @@ int main(int argc, char** argv, char** envp) {
         }
     }
 
-    std::println("{}launching hl", Colors::YELLOW);
+    NLog::log("{}launching hl", Colors::YELLOW);
     if (!launchHyprland(configPath, binaryPath)) {
-        std::println("{}well it failed", Colors::RED);
+        NLog::log("{}well it failed", Colors::RED);
         return 1;
     }
 
     // hyprland has launched, let's check if it's alive after 10s
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    std::println("{}slept for 10s", Colors::YELLOW);
+    NLog::log("{}slept for 10s", Colors::YELLOW);
     if (!hyprlandAlive()) {
-        std::println("{}Hyprland failed to launch", Colors::RED);
+        NLog::log("{}Hyprland failed to launch", Colors::RED);
         return 1;
     }
 
     // wonderful, we are in. Let's get the instance signature.
-    std::println("{}trying to get INSTANCES", Colors::YELLOW);
+    NLog::log("{}trying to get INSTANCES", Colors::YELLOW);
     const auto INSTANCES = instances();
     if (INSTANCES.empty()) {
-        std::println("{}Hyprland failed to launch (2)", Colors::RED);
+        NLog::log("{}Hyprland failed to launch (2)", Colors::RED);
         return 1;
     }
 
     HIS       = INSTANCES.back().id;
     WLDISPLAY = INSTANCES.back().wlSocket;
 
-    std::println("{}trying to get create headless output", Colors::YELLOW);
+    NLog::log("{}trying to get create headless output", Colors::YELLOW);
     getFromSocket("/output create headless");
 
-    std::println("{}trying to load plugin", Colors::YELLOW);
+    NLog::log("{}trying to load plugin", Colors::YELLOW);
     if (const auto R = getFromSocket(std::format("/plugin load {}", pluginPath)); R != "ok") {
-        std::println("{}Failed to load the test plugin: {}", Colors::RED, R);
+        NLog::log("{}Failed to load the test plugin: {}", Colors::RED, R);
         getFromSocket("/dispatch exit 1");
         return 1;
     }
 
-    std::println("{}Loaded plugin", Colors::YELLOW);
+    NLog::log("{}Loaded plugin", Colors::YELLOW);
 
     // now we can start issuing stuff.
-    std::println("{}testing windows", Colors::YELLOW);
+    NLog::log("{}testing windows", Colors::YELLOW);
     EXPECT(testWindows(), true);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    std::println("{}testing groups", Colors::YELLOW);
+    NLog::log("{}testing groups", Colors::YELLOW);
     EXPECT(testGroups(), true);
 
-    std::println("{}testing workspaces", Colors::YELLOW);
+    NLog::log("{}testing workspaces", Colors::YELLOW);
     EXPECT(testWorkspaces(), true);
 
-    std::println("{}running plugin test", Colors::YELLOW);
+    NLog::log("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);
 
     // kill hyprland
-    std::println("{}dispatching exit", Colors::YELLOW);
+    NLog::log("{}dispatching exit", Colors::YELLOW);
     getFromSocket("/dispatch exit");
 
-    std::println("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,
+    NLog::log("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,
                  TESTS_FAILED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, (TESTS_FAILED > 0 ? std::string{Colors::RED} + "\nSome tests failed.\n" : ""));
 
     kill(hyprlandProc->pid(), SIGKILL);

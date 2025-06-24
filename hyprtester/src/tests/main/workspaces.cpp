@@ -19,6 +19,8 @@ using namespace Hyprutils::Memory;
 #define SP CSharedPointer
 
 bool testWorkspaces() {
+    NLog::log("Test: {}", getFromSocket("/monitors"));
+
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
     // test on workspace "window"

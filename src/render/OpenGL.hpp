@@ -364,7 +364,6 @@ class CHyprOpenGLImpl {
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false, GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
-    void drawArrays(SShader&, const CRegion& damage);
 
     void preBlurForCurrentMonitor();
 

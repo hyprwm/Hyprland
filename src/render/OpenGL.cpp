@@ -1314,25 +1314,6 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
     scissor(box, transform);
 }
 
-void CHyprOpenGLImpl::drawArrays(SShader& shader, const CRegion& damage) {
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(damage);
-
-        if (!damageClip.empty()) {
-            for (auto const& RECT : damageClip.getRects()) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-        }
-    } else {
-        for (auto const& RECT : damage.getRects()) {
-            scissor(&RECT);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-    }
-}
-
 void CHyprOpenGLImpl::renderRect(const CBox& box, const CHyprColor& col, int round, float roundingPower) {
     if (!m_renderData.damage.empty())
         renderRectWithDamage(box, col, m_renderData.damage, round, roundingPower);
@@ -1419,9 +1400,25 @@ void CHyprOpenGLImpl::renderRectWithDamage(const CBox& box, const CHyprColor& co
 
     glBindVertexArray(m_shaders->m_shQUAD.uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(m_shaders->m_shQUAD, damage);
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+        damageClip.intersect(damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glBindVertexArray(0);
+    scissor(nullptr);
 }
 
 void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, float alpha, int round, float roundingPower, bool discardActive, bool allowCustomUV, GLenum wrapX,
@@ -1662,7 +1659,28 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
     }
 
-    drawArrays(*shader, damage);
+    if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
+        CRegion damageClip = m_renderData.clipBox;
+
+        if (!m_renderData.clipRegion.empty()) {
+            if (m_renderData.clipBox.empty())
+                damageClip = m_renderData.clipRegion;
+            else
+                damageClip.intersect(m_renderData.clipRegion);
+        }
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1696,8 +1714,12 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     shader->setUniformInt(SHADER_TEX, 0);
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(*shader, m_renderData.damage);
+    for (auto const& RECT : m_renderData.damage.getRects()) {
+        scissor(&RECT);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
 
+    scissor(nullptr);
     glBindVertexArray(0);
     tex->unbind();
 }
@@ -1735,8 +1757,12 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
 
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(*shader, m_renderData.damage);
+    for (auto const& RECT : m_renderData.damage.getRects()) {
+        scissor(&RECT);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
 
+    scissor(nullptr);
     glBindVertexArray(0);
     tex->unbind();
 }
@@ -1826,7 +1852,13 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glBindVertexArray(m_shaders->m_shBLURPREPARE.uniformLocations[SHADER_SHADER_VAO]);
 
-        drawArrays(m_shaders->m_shBLURPREPARE, damage);
+        if (!damage.empty()) {
+            for (auto const& RECT : damage.getRects()) {
+                scissor(&RECT, false /* this region is already transformed */);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
         glBindVertexArray(0);
         currentRenderToFB = PMIRRORSWAPFB;
     }
@@ -1861,7 +1893,14 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         pShader->setUniformInt(SHADER_TEX, 0);
 
         glBindVertexArray(pShader->uniformLocations[SHADER_SHADER_VAO]);
-        drawArrays(*pShader, damage);
+
+        if (!pDamage->empty()) {
+            for (auto const& RECT : pDamage->getRects()) {
+                scissor(&RECT, false /* this region is already transformed */);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
         glBindVertexArray(0);
 
         if (currentRenderToFB != PMIRRORFB)
@@ -1916,7 +1955,12 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         glBindVertexArray(m_shaders->m_shBLURFINISH.uniformLocations[SHADER_SHADER_VAO]);
 
-        drawArrays(m_shaders->m_shBLURFINISH, damage);
+        if (!damage.empty()) {
+            for (auto const& RECT : damage.getRects()) {
+                scissor(&RECT, false /* this region is already transformed */);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
 
         glBindVertexArray(0);
 
@@ -2266,7 +2310,22 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(m_shaders->m_shBORDER1, m_renderData.damage);
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+        damageClip.intersect(m_renderData.damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : m_renderData.damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glBindVertexArray(0);
 
@@ -2336,7 +2395,22 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(m_shaders->m_shBORDER1, m_renderData.damage);
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+        damageClip.intersect(m_renderData.damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : m_renderData.damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glBindVertexArray(0);
     blend(BLEND);
@@ -2391,7 +2465,22 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     glBindVertexArray(m_shaders->m_shSHADOW.uniformLocations[SHADER_SHADER_VAO]);
 
-    drawArrays(m_shaders->m_shSHADOW, m_renderData.damage);
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+        damageClip.intersect(m_renderData.damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : m_renderData.damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
 
     glBindVertexArray(0);
 }

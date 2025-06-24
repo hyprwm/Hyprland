@@ -53,12 +53,12 @@
   hidpiXWayland ? false,
   legacyRenderer ? false,
 }: let
-  inherit (builtins) baseNameOf foldl' readFile;
+  inherit (builtins) foldl' readFile;
   inherit (lib.asserts) assertMsg;
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
-  inherit (lib.sources) cleanSourceWith cleanSource;
-  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable trim;
+  inherit (lib.strings) makeBinPath optionalString mesonBool mesonEnable trim;
+  fs = lib.fileset;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -75,12 +75,28 @@ in
       pname = "hyprland${optionalString debug "-debug"}";
       inherit version;
 
-      src = cleanSourceWith {
-        filter = name: _type: let
-          baseName = baseNameOf (toString name);
-        in
-          ! (hasSuffix ".nix" baseName);
-        src = cleanSource ../.;
+      src = fs.toSource {
+        root = ../.;
+        fileset =
+          fs.intersection
+          # allows non-flake builds to only include files tracked by git
+          (fs.gitTracked ../.)
+          (fs.unions [
+            ../assets/hyprland-portals.conf
+            ../assets/install
+            ../hyprctl
+            ../hyprland.pc.in
+            ../LICENSE
+            ../meson_options.txt
+            ../protocols
+            ../src
+            ../systemd
+            ../VERSION
+            (fs.fileFilter (file: file.hasExt "1") ../docs)
+            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
+            (fs.fileFilter (file: file.hasExt "sh") ../scripts)
+            (fs.fileFilter (file: file.name == "meson.build") ../.)
+          ]);
       };
 
       postPatch = ''

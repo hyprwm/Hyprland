@@ -41,3 +41,5 @@ namespace Colors {
             TESTS_PASSED++;                                                                                                                                                        \
         }                                                                                                                                                                          \
     } while (0)
+
+#define OK(x) EXPECT(x, "ok")

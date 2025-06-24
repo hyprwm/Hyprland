@@ -6,7 +6,7 @@
 
 //NOLINTNEXTLINE
 namespace Tests {
-    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty();
+    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "");
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);

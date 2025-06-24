@@ -1,4 +1,4 @@
-#include "window.hpp"
+#include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include <print>

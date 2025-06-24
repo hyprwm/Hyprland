@@ -9,10 +9,10 @@
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
-CUniquePointer<CProcess> Tests::spawnKitty() {
+CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_) {
     const auto               COUNT_BEFORE = windowCount();
 
-    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", std::vector<std::string>{});
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", class_.empty() ? std::vector<std::string>{} : std::vector<std::string>{"--class", class_});
     kitty->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
     kitty->runAsync();
 

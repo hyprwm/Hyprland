@@ -16,8 +16,7 @@
 
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
-#include "tests/window/window.hpp"
-#include "tests/window/groups.hpp"
+#include "tests/main/tests.hpp"
 #include "tests/plugin/plugin.hpp"
 
 #include <filesystem>
@@ -225,6 +224,9 @@ int main(int argc, char** argv, char** envp) {
 
     std::println("{}testing groups", Colors::YELLOW);
     EXPECT(testGroups(), true);
+
+    std::println("{}testing workspaces", Colors::YELLOW);
+    EXPECT(testWorkspaces(), true);
 
     std::println("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);

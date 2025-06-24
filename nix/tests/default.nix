@@ -72,8 +72,10 @@ in {
 
       # Copy logs to host
       machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
+      machine.execute(f'echo {exit_status} > /tmp/exit_status')
       machine.copy_from_vm("/tmp/testerlog")
       machine.copy_from_vm("/tmp/hyprlog")
+      machine.copy_from_vm("/tmp/exit_status")
 
       # Print logs for visibility in CI
       _, out = machine.execute("cat /tmp/testerlog")
@@ -81,9 +83,6 @@ in {
 
       # Finally - shutdown
       machine.shutdown()
-
-      if exit_status != 0:
-        raise Exception("Exit code non-zero")
     '';
   };
 }

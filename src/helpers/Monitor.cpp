@@ -1534,6 +1534,42 @@ bool CMonitor::shouldDoDirectScanout() {
     return true;
 }
 
+bool CMonitor::updateHWCursor() {
+    using enum Aquamarine::COutputState::eOutputStateProperties;
+
+    if (!m_hwCursor.updated)
+        return true;
+
+    m_output->state->resetExplicitFences();
+    m_output->moveCursor(m_hwCursor.pos, shouldSkipScheduleFrameOnMouseEvent());
+
+    if (!m_state.test()) {
+        Debug::log(TRACE, "updateHWCursor: failed basic test");
+        return false;
+    }
+
+    if (m_output->state->state().committed & AQ_OUTPUT_STATE_BUFFER) {
+        // committing a buffer causes a page flip, and the cursor can't be updated while doing an async/tearing page flip
+        // so we have to switch to use "vsync" temporarily
+        Debug::log(WARN, "updateHWCursor: cursor commit shouldn't include a primary plane buffer...");
+        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+    }
+
+    if (!m_output->commit()) {
+        Debug::log(TRACE, "updateHWCursor: failed to commit cursor update");
+        m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+        return false;
+    }
+
+    m_hwCursor.updated = false;
+
+    m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    Debug::log(TRACE, "updateHWCursor: successful seperate cursor commit for {}", m_name);
+
+    return true;
+}
+
 bool CMonitor::attemptDirectScanout() {
     const auto PCANDIDATE = m_currentScanout.lock();
     const auto PSURFACE   = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
@@ -1541,41 +1577,16 @@ bool CMonitor::attemptDirectScanout() {
 
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
-
-        if (m_scanoutNeedsCursorUpdate) {
-            Debug::log(TRACE, "attemptDirectScanout: committing hw cursor updated for window {} on monitor {}", PCANDIDATE->m_title, m_name);
-            m_output->state->resetExplicitFences();
-            m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
-
-            if (!m_state.test()) {
-                Debug::log(TRACE, "attemptDirectScanout: failed basic test");
-                return false;
-            }
-
-            if (!m_output->commit()) {
-                Debug::log(TRACE, "attemptDirectScanout: failed to commit cursor update");
-                m_currentScanout.reset();
-                return false;
-            }
-
-            m_scanoutNeedsCursorUpdate = false;
-        }
-
-        return true;
+        return updateHWCursor();
     }
+
+    m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 
     // reset DRM format, but only if needed since it might modeset
     if (m_output->state->state().drmFormat != m_drmFormat)
         m_output->state->setFormat(m_drmFormat);
 
     m_output->state->setBuffer(PBUFFER);
-
-    if (!m_currentTearing.expired()) {
-        Debug::log(TRACE, "attemptDirectScanout: committing with tearing enabled for window {} on monitor {}", m_currentTearing->m_title, m_name);
-        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_IMMEDIATE);
-    } else {
-        m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
-    }
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1589,13 +1600,13 @@ bool CMonitor::attemptDirectScanout() {
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 
-    bool ok = m_output->commit();
+    bool ok = m_state.commit();
 
     if (!ok && !m_currentTearing.expired()) {
         Debug::log(TRACE, "attemptDirectScanout: failed AGAIN!, trying without tearing");
         m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
 
-        ok = m_output->commit();
+        ok = m_state.commit();
     }
 
     if (!ok) {
@@ -1606,17 +1617,19 @@ bool CMonitor::attemptDirectScanout() {
 
     m_pageFlipPending = true;
 
-    m_scanoutNeedsCursorUpdate = false;
+    // when tearing a seperate cursor commit is required because "no prop can be changed during asnyc flip", including hw cursor position
+    if (!m_currentTearing.expired())
+        ok &= updateHWCursor();
 
     if (!PBUFFER->lockedByBackend || PBUFFER->m_hlEvents.backendRelease)
-        return true;
+        return ok;
 
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then
     // btw buffer's syncReleaser will take care of signaling release point, so we don't do that here
     PBUFFER->lock();
     PBUFFER->onBackendRelease([PBUFFER]() { PBUFFER->unlock(); });
 
-    return true;
+    return ok;
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {

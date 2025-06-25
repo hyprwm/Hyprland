@@ -322,10 +322,13 @@ void CPointerManager::onCursorMoved() {
         if (state->hardwareFailed)
             continue;
 
-        const auto CURSORPOS = getCursorPosForMonitor(m);
-        m->m_output->moveCursor(CURSORPOS, m->shouldSkipScheduleFrameOnMouseEvent());
+        if (state->monitor->m_currentTearing.expired()) {
+            const auto CURSORPOS = getCursorPosForMonitor(m);
+            m->m_output->moveCursor(CURSORPOS, m->shouldSkipScheduleFrameOnMouseEvent());
+        }
 
-        state->monitor->m_scanoutNeedsCursorUpdate = true;
+        state->monitor->m_hwCursor.pos     = getCursorPosForMonitor(m);
+        state->monitor->m_hwCursor.updated = true;
     }
 
     if (recalc)
@@ -385,7 +388,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
         g_pCompositor->scheduleFrameForMonitor(state->monitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
-    state->monitor->m_scanoutNeedsCursorUpdate = true;
+    state->monitor->m_hwCursor.updated = true;
 
     return true;
 }

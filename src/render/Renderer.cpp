@@ -1260,13 +1260,12 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         pMonitor->m_currentTearing.reset();
     }
 
-    if (!pMonitor->attemptDirectScanout() && !pMonitor->m_lastScanout.expired()) {
-        Debug::log(LOG, "Left a direct scanout.");
-        pMonitor->m_lastScanout.reset();
-
-        // reset DRM format, but only if needed since it might modeset
-        if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
-            pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
+    if (pMonitor->shouldDoDirectScanout()) {
+        pMonitor->attemptDirectScanout();
+        return;
+    } else if (!pMonitor->m_currentScanout.expired()) {
+        Debug::log(LOG, "Direct scanout stopped for window {} on monitor {}", pMonitor->m_currentScanout->m_title, pMonitor->m_name);
+        pMonitor->m_currentScanout.reset();
 
         pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
     }
@@ -1571,6 +1570,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_ctmUpdated = false;
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
+
+    // reset DRM format, but only if needed since it might modeset
+    if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_drmFormat)
+        pMonitor->m_output->state->setFormat(pMonitor->m_drmFormat);
 
     pMonitor->m_output->state->setPresentationMode(!pMonitor->m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
 

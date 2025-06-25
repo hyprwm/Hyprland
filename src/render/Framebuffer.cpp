@@ -20,11 +20,11 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     if (!m_tex) {
         m_tex = makeShared<CTexture>();
         m_tex->allocate();
-        glBindTexture(GL_TEXTURE_2D, m_tex->m_texID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        m_tex->bind();
+        m_tex->setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        m_tex->setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        m_tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        m_tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         firstAlloc = true;
     }
 
@@ -35,13 +35,13 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     }
 
     if (firstAlloc || m_size != Vector2D(w, h)) {
-        glBindTexture(GL_TEXTURE_2D, m_tex->m_texID);
+        m_tex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
 
         if (m_stencilTex) {
-            glBindTexture(GL_TEXTURE_2D, m_stencilTex->m_texID);
+            m_stencilTex->bind();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
         }
@@ -62,7 +62,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
 void CFramebuffer::addStencil(SP<CTexture> tex) {
     m_stencilTex = tex;
-    glBindTexture(GL_TEXTURE_2D, m_stencilTex->m_texID);
+    m_stencilTex->bind();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_size.x, m_size.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
@@ -72,7 +72,7 @@ void CFramebuffer::addStencil(SP<CTexture> tex) {
     auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Failed adding a stencil to fbo!", status);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    m_stencilTex->unbind();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -80,7 +80,7 @@ void CFramebuffer::bind() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
 
     if (g_pHyprOpenGL)
-        glViewport(0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y);
+        g_pHyprOpenGL->setViewport(0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y);
     else
         glViewport(0, 0, m_size.x, m_size.y);
 }

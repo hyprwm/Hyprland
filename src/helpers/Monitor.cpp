@@ -1454,6 +1454,35 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
+bool CMonitor::shouldDoTearing() {
+    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+
+    if (!*PTEARINGENABLED) {
+        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+        return false;
+    }
+
+    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+        return false;
+    }
+
+    if (!m_canTear) {
+        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+        return false;
+    }
+
+    if (m_solitaryClient.expired())
+        return false;
+
+    if (m_currentTearing.expired()) {
+        m_currentTearing = m_solitaryClient;
+        Debug::log(LOG, "Tearing started for window {} on monitor {}", m_currentTearing->m_title, m_name);
+    }
+
+    return true;
+}
+
 bool CMonitor::shouldDoDirectScanout() {
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
 

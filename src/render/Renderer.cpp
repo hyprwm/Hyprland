@@ -1154,35 +1154,6 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-bool CHyprRenderer::shouldDoTearing(PHLMONITOR pMonitor) {
-    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
-
-    if (!*PTEARINGENABLED) {
-        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
-        return false;
-    }
-
-    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
-        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
-        return false;
-    }
-
-    if (!pMonitor->m_canTear) {
-        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
-        return false;
-    }
-
-    if (pMonitor->m_solitaryClient.expired())
-        return false;
-
-    if (pMonitor->m_currentTearing.expired()) {
-        pMonitor->m_currentTearing = pMonitor->m_solitaryClient;
-        Debug::log(LOG, "Tearing started for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
-    }
-
-    return true;
-}
-
 void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -1255,7 +1226,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         return;
 
     // tearing and DS first
-    if (!shouldDoTearing(pMonitor) && !pMonitor->m_currentTearing.expired()) {
+    if (!pMonitor->shouldDoTearing() && !pMonitor->m_currentTearing.expired()) {
         Debug::log(LOG, "Tearing stopped for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
         pMonitor->m_currentTearing.reset();
     }

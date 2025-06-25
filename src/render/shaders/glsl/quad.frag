@@ -1,14 +1,17 @@
+#version 300 es
+
 #extension GL_ARB_shading_language_include : enable
 precision highp float;
-varying vec4 v_color;
+in vec4 v_color;
 
 #include "rounding.glsl"
 
+layout(location = 0) out vec4 fragColor;
 void main() {
     vec4 pixColor = v_color;
 
     if (radius > 0.0) 
         pixColor = rounding(pixColor);
 
-    gl_FragColor = pixColor;
+    fragColor = pixColor;
 }

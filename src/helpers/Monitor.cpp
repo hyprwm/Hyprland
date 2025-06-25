@@ -42,6 +42,7 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
@@ -1684,6 +1685,18 @@ int CMonitor::maxLuminance(int defaultValue) {
 int CMonitor::maxAvgLuminance(int defaultValue) {
     return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance :
                                     (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : defaultValue);
+}
+
+bool CMonitor::wantsWideColor() {
+    return supportsWideColor() && (wantsHDR() || m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020);
+}
+
+bool CMonitor::wantsHDR() {
+    return supportsHDR() && inHDR();
+}
+
+bool CMonitor::inHDR() {
+    return m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

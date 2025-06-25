@@ -261,11 +261,11 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
 
@@ -340,6 +340,16 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
     return m_needsNewMetadata;
 }
 
+bool CColorManagementSurface::isHDR() {
+    return m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || isWindowsScRGB();
+}
+
+bool CColorManagementSurface::isWindowsScRGB() {
+    return m_imageDescription.windowsScRGB ||
+        // autodetect scRGB, might be incorrect
+        (m_imageDescription.primariesNamed == NColorManagement::CM_PRIMARIES_SRGB && m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR);
+}
+
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :
     m_surface(surface_), m_resource(resource) {
     if UNLIKELY (!good())
@@ -348,13 +358,13 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
     m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);

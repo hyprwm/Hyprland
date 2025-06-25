@@ -1594,14 +1594,16 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    auto       imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-              m_renderData.surface->m_colorManagement->imageDescription() :
-              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
+    const bool canPassHDRSurface = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+        m_renderData.surface->m_colorManagement->isHDR() && !m_renderData.surface->m_colorManagement->isWindowsScRGB() :
+        false; // windows scRGB requires CM shader
+    const auto imageDescription  = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+         m_renderData.surface->m_colorManagement->imageDescription() :
+         (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
         || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
-        || ((*PPASS == 1 || (*PPASS == 2 && imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_renderData.pMonitor->m_activeWorkspace &&
-            m_renderData.pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
+        || ((*PPASS == 1 || (*PPASS == 2 && canPassHDRSurface)) && m_renderData.pMonitor->m_activeWorkspace && m_renderData.pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
             m_renderData.pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))

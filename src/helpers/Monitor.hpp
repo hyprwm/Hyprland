@@ -249,6 +249,11 @@ class CMonitor {
     int                                 maxLuminance(int defaultValue = 80);
     int                                 maxAvgLuminance(int defaultValue = 80);
 
+    bool                                wantsWideColor();
+    bool                                wantsHDR();
+
+    bool                                inHDR();
+
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;

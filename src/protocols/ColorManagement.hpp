@@ -61,6 +61,8 @@ class CColorManagementSurface {
     const hdr_output_metadata&                 hdrMetadata();
     void                                       setHDRMetadata(const hdr_output_metadata& metadata);
     bool                                       needsHdrMetadataUpdate();
+    bool                                       isHDR();
+    bool                                       isWindowsScRGB();
 
   private:
     SP<CWpColorManagementSurfaceV1>     m_resource;

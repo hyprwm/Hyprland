@@ -30,10 +30,8 @@ in {
         # We don't need portals in this test, so we don't set portalPackage
       };
 
-      # Original conf
+      # Test configuration
       environment.etc."test.conf".source = "${flake.hyprtester}/share/hypr/test.conf";
-      # New conf without HEADLESS outputs, which don't work
-      environment.etc."test2.conf".source = ./test.conf;
 
       # Disable portals
       xdg.portal.enable = pkgs.lib.mkForce false;
@@ -67,7 +65,7 @@ in {
 
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
-      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test2.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
+      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
       print(f"Hyprtester exited with {exit_status}")
 
       # Copy logs to host

@@ -1568,6 +1568,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (ok)
         pMonitor->m_pageFlipPending = true;
 
+    // when tearing a seperate cursor commit is required because "no prop can be changed during asnyc flip", including hw cursor position
+    if (!pMonitor->m_currentTearing.expired())
+        ok &= pMonitor->updateHWCursor();
+
     return ok;
 }
 

@@ -165,6 +165,11 @@ class CMonitor {
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
 
+    struct {
+        Vector2D pos;
+        bool     updated;
+    } m_hwCursor;
+
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();
     bool   m_ctmUpdated = false;
@@ -178,7 +183,6 @@ class CMonitor {
 
     // for direct scanout
     PHLWINDOWREF m_currentScanout;
-    bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
@@ -222,6 +226,7 @@ class CMonitor {
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();
+    bool                                updateHWCursor();
 
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();

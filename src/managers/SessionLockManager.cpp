@@ -51,12 +51,15 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
-        Debug::log(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        LOGM(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;
     }
 
-    Debug::log(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
+    if (m_sessionLock && !hasSentDenied() && !hasSentLocked())
+        return; // Not allowing to relock in case the old lock is still in a limbo
+
+    LOGM(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 
     m_sessionLock       = makeUnique<SSessionLock>();
     m_sessionLock->lock = pLock;
@@ -94,11 +97,13 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     m_sessionLock->sendDeniedTimer = SP<CEventLoopTimer>(new CEventLoopTimer(
         std::chrono::seconds(5),
         [](auto, auto) {
-            if (!g_pSessionLockManager || g_pSessionLockManager->hasSentLocked())
+            if (!g_pSessionLockManager || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied())
                 return;
 
-            if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock)
+            if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock) {
                 g_pSessionLockManager->m_sessionLock->lock->sendDenied();
+                g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
+            }
         },
         nullptr));
 
@@ -108,9 +113,9 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     // Normally the locked event is sent after each output rendered a lock screen frame.
     // When there are no outputs, send it right away.
     if (g_pCompositor->m_unsafeState) {
+        removeSendDeniedTimer();
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
-        removeSendDeniedTimer();
     }
 }
 
@@ -148,9 +153,9 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     m_sessionLock->lockedMonitors.emplace(id);
     const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return m_sessionLock->lockedMonitors.contains(m->m_id); });
     if (LOCKED && m_sessionLock->lock->good()) {
+        removeSendDeniedTimer();
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
-        removeSendDeniedTimer();
     }
 }
 
@@ -191,9 +196,13 @@ bool CSessionLockManager::hasSentLocked() {
     return m_sessionLock && m_sessionLock->hasSentLocked;
 }
 
+bool CSessionLockManager::hasSentDenied() {
+    return m_sessionLock && m_sessionLock->hasSentDenied;
+}
+
 bool CSessionLockManager::shallConsiderLockMissing() {
     if (!m_sessionLock)
-        return false;
+        return true;
 
     static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Hyprlang::INT>("misc:lockdead_screen_delay");
 

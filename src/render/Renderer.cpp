@@ -838,7 +838,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (g_pSessionLockManager->isSessionLocked()) {
         // We stop to render workspaces as soon as the session is covered by the lockscreen,
         // or alternatively after misc:lockdead_screen_delay has passed.
-        if (g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->shallConsiderLockMissing())
+        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied())
             return;
     }
 
@@ -997,19 +997,18 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
         return;
     }
 
-    const bool LOCKMISSING  = g_pSessionLockManager->shallConsiderLockMissing() && !g_pSessionLockManager->hasSentLocked();
-    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked();
-
-    g_pHyprOpenGL->ensureLockTexturesRendered(LOCKMISSING);
-
+    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied();
     if (RENDERPRIMER)
         renderSessionLockPrimer(pMonitor);
 
-    const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
-    if (!PSLS) {
-        if (LOCKMISSING)
-            renderSessionLockMissing(pMonitor);
-    } else {
+    const auto PSLS        = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
+    const bool LOCKMISSING = (!PSLS || g_pSessionLockManager->hasSentDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
+
+    g_pHyprOpenGL->ensureLockTexturesRendered(LOCKMISSING);
+
+    if (LOCKMISSING)
+        renderSessionLockMissing(pMonitor);
+    else if (PSLS) {
         renderSessionLockSurface(PSLS, pMonitor, now);
         g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
 

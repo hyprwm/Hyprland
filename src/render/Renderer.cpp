@@ -997,9 +997,13 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
         return;
     }
 
-    const bool LOCKMISSING = g_pSessionLockManager->shallConsiderLockMissing() && !g_pSessionLockManager->hasSentLocked();
+    const bool LOCKMISSING  = g_pSessionLockManager->shallConsiderLockMissing() && !g_pSessionLockManager->hasSentLocked();
+    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked();
 
     g_pHyprOpenGL->ensureLockTexturesRendered(LOCKMISSING);
+
+    if (RENDERPRIMER)
+        renderSessionLockPrimer(pMonitor);
 
     const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
     if (!PSLS) {
@@ -1022,6 +1026,14 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
 
         g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
     }
+}
+
+void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
+    CRectPassElement::SRectData data;
+    data.color = CHyprColor(0, 0, 0, 1);
+    data.box   = CBox{{}, pMonitor->m_pixelSize};
+
+    m_renderPass.add(makeShared<CRectPassElement>(data));
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {

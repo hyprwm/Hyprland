@@ -21,9 +21,9 @@ class CSessionLockSurface {
     SP<CWLSurfaceResource> surface();
 
     struct {
-        CSignal map;
-        CSignal destroy;
-        CSignal commit;
+        CSignalT<> map;
+        CSignalT<> destroy;
+        CSignalT<> commit;
     } m_events;
 
   private:
@@ -54,9 +54,9 @@ class CSessionLock {
     void sendDenied();
 
     struct {
-        CSignal newLockSurface; // SP<CSessionLockSurface>
-        CSignal unlockAndDestroy;
-        CSignal destroyed; // fires regardless of whether there was a unlockAndDestroy or not.
+        CSignalT<SP<CSessionLockSurface>> newLockSurface;
+        CSignalT<>                        unlockAndDestroy;
+        CSignalT<>                        destroyed; // fires regardless of whether there was a unlockAndDestroy or not.
     } m_events;
 
   private:
@@ -76,7 +76,7 @@ class CSessionLockProtocol : public IWaylandProtocol {
     bool         isLocked();
 
     struct {
-        CSignal newLock; // SP<CSessionLock>
+        CSignalT<SP<CSessionLock>> newLock;
     } m_events;
 
   private:

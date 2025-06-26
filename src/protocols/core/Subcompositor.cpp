@@ -71,7 +71,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         }
     });
 
-    m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {
+    m_listeners.commitSurface = m_surface->m_events.commit.listen([this] {
         if (m_surface->m_current.texture && !m_surface->m_mapped) {
             m_surface->map();
             m_surface->m_events.map.emit();

@@ -9,8 +9,10 @@
 #include "../../helpers/signal/Signal.hpp"
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
+#include "../../devices/IKeyboard.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../SessionLockManager.hpp"
+#include "../SeatManager.hpp"
 
 class CPointerConstraint;
 class CWindow;
@@ -89,7 +91,7 @@ class CInputManager {
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
     void               onMouseButton(IPointer::SButtonEvent);
     void               onMouseWheel(IPointer::SAxisEvent);
-    void               onKeyboardKey(std::any, SP<IKeyboard>);
+    void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
     void               newKeyboard(SP<Aquamarine::IKeyboard>);
@@ -128,7 +130,7 @@ class CInputManager {
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
-    void               processMouseRequest(std::any e);
+    void               processMouseRequest(const CSeatManager::SSetCursorEvent& event);
 
     void               onTouchDown(ITouch::SDownEvent);
     void               onTouchUp(ITouch::SUpEvent);

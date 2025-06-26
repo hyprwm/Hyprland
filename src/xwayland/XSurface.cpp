@@ -42,7 +42,7 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_x
         free(reply);
     }
 
-    m_events.resourceChange.registerStaticListener([this](void* data, std::any d) { ensureListeners(); }, nullptr);
+    m_events.resourceChange.listenStatic([this] { ensureListeners(); });
 }
 
 void CXWaylandSurface::ensureListeners() {
@@ -52,7 +52,7 @@ void CXWaylandSurface::ensureListeners() {
         m_listeners.destroySurface.reset();
         m_listeners.commitSurface.reset();
     } else if (!connected && m_surface) {
-        m_listeners.destroySurface = m_surface->m_events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = m_surface->m_events.destroy.listen([this] {
             if (m_mapped)
                 unmap();
 
@@ -62,7 +62,7 @@ void CXWaylandSurface::ensureListeners() {
             m_events.resourceChange.emit();
         });
 
-        m_listeners.commitSurface = m_surface->m_events.commit.registerListener([this](std::any d) {
+        m_listeners.commitSurface = m_surface->m_events.commit.listen([this] {
             if (m_surface->m_current.texture && !m_mapped) {
                 map();
                 return;
@@ -78,7 +78,7 @@ void CXWaylandSurface::ensureListeners() {
     }
 
     if (m_resource) {
-        m_listeners.destroyResource = m_resource->events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroyResource = m_resource->events.destroy.listen([this] {
             unmap();
             m_surface.reset();
             m_events.resourceChange.emit();

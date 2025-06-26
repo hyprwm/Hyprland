@@ -63,9 +63,9 @@ class CXDGPopupResource {
     CBox                         m_geometry;
 
     struct {
-        CSignal reposition;
-        CSignal dismissed;
-        CSignal destroy; // only the role
+        CSignalT<> reposition;
+        CSignalT<> dismissed;
+        CSignalT<> destroy; // only the role
     } m_events;
 
     // schedules a configure event
@@ -111,10 +111,10 @@ class CXDGToplevelResource {
     void     close();
 
     struct {
-        CSignal sizeLimitsChanged;
-        CSignal stateChanged;    // maximized, fs, minimized, etc.
-        CSignal metadataChanged; // title, appid
-        CSignal destroy;         // only the role
+        CSignalT<> sizeLimitsChanged;
+        CSignalT<> stateChanged;    // maximized, fs, minimized, etc.
+        CSignalT<> metadataChanged; // title, appid
+        CSignalT<> destroy;         // only the role
     } m_events;
 
     struct {
@@ -186,12 +186,12 @@ class CXDGSurfaceResource {
     } m_pending, m_current;
 
     struct {
-        CSignal ack;
-        CSignal commit;
-        CSignal map;
-        CSignal unmap;
-        CSignal destroy;
-        CSignal newPopup; // SP<CXDGPopupResource>
+        CSignalT<uint32_t>              ack;
+        CSignalT<>                      commit;
+        CSignalT<>                      map;
+        CSignalT<>                      unmap;
+        CSignalT<>                      destroy;
+        CSignalT<SP<CXDGPopupResource>> newPopup;
     } m_events;
 
     bool     m_initialCommit = true;
@@ -252,7 +252,7 @@ class CXDGWMBase {
     WP<CXDGWMBase>                          m_self;
 
     struct {
-        CSignal pong;
+        CSignalT<> pong;
     } m_events;
 
   private:

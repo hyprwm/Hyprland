@@ -37,11 +37,11 @@ class ITouch : public IHID {
     };
 
     struct {
-        CSignal down;
-        CSignal up;
-        CSignal motion;
-        CSignal cancel;
-        CSignal frame;
+        CSignalT<SDownEvent>   down;
+        CSignalT<SUpEvent>     up;
+        CSignalT<SMotionEvent> motion;
+        CSignalT<SCancelEvent> cancel;
+        CSignalT<>             frame;
     } m_touchEvents;
 
     std::string m_boundOutput = "";

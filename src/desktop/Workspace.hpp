@@ -85,10 +85,10 @@ class CWorkspace {
     void             updateWindows();
 
     struct {
-        CSignal destroy;
-        CSignal rename;
-        CSignal monitorChange;
-        CSignal activeChange;
+        CSignalT<> destroy;
+        CSignalT<> renamed;
+        CSignalT<> monitorChanged;
+        CSignalT<> activeChanged;
     } m_events;
 
   private:

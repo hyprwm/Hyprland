@@ -33,7 +33,7 @@ class IHID {
     virtual eHIDType getType();
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
     std::string m_deviceName;

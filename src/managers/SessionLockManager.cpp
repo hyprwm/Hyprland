@@ -3,9 +3,10 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
-#include "../managers/SeatManager.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/input/InputManager.hpp"
+#include "./managers/SeatManager.hpp"
+#include "./managers/input/InputManager.hpp"
+#include "./managers/eventLoop/EventLoopManager.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -59,7 +60,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
 
     m_sessionLock       = makeUnique<SSessionLock>();
     m_sessionLock->lock = pLock;
-    m_sessionLock->mLockTimer.reset();
+    m_sessionLock->lockTimer.reset();
 
     m_sessionLock->listeners.newSurface = pLock->m_events.newLockSurface.registerListener([this](std::any data) {
         auto       SURFACE = std::any_cast<SP<CSessionLockSurface>>(data);
@@ -90,12 +91,35 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     g_pCompositor->focusSurface(nullptr);
     g_pSeatManager->setGrab(nullptr);
 
+    m_sessionLock->sendDeniedTimer = SP<CEventLoopTimer>(new CEventLoopTimer(
+        std::chrono::seconds(5),
+        [](auto, auto) {
+            if (!g_pSessionLockManager || g_pSessionLockManager->hasSentLocked())
+                return;
+
+            if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock)
+                g_pSessionLockManager->m_sessionLock->lock->sendDenied();
+        },
+        nullptr));
+
+    if (m_sessionLock->sendDeniedTimer)
+        g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
+
     // Normally the locked event is sent after each output rendered a lock screen frame.
     // When there are no outputs, send it right away.
     if (g_pCompositor->m_unsafeState) {
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
+        removeSendDeniedTimer();
     }
+}
+
+void CSessionLockManager::removeSendDeniedTimer() {
+    if (!m_sessionLock || !m_sessionLock->sendDeniedTimer)
+        return;
+
+    g_pEventLoopManager->removeTimer(m_sessionLock->sendDeniedTimer);
+    m_sessionLock->sendDeniedTimer.reset();
 }
 
 bool CSessionLockManager::isSessionLocked() {
@@ -142,6 +166,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     if (LOCKED && m_sessionLock->lock->good()) {
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
+        removeSendDeniedTimer();
     }
 }
 
@@ -188,5 +213,5 @@ bool CSessionLockManager::shallConsiderLockMissing() {
 
     static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Hyprlang::INT>("misc:lockdead_screen_delay");
 
-    return m_sessionLock->mLockTimer.getMillis() > *LOCKDEAD_SCREEN_DELAY;
+    return m_sessionLock->lockTimer.getMillis() > *LOCKDEAD_SCREEN_DELAY;
 }

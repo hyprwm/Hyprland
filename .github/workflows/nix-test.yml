@@ -1,4 +1,4 @@
-name: Nix (Build)
+name: Nix (Test)
 
 on:
   workflow_call:
@@ -8,14 +8,6 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        package:
-          - hyprland
-          # - hyprland-cross # cross compiling fails due to qt
-          # failure chain: hyprland-qtutils -> qt6.qtsvg -> qt6.qtbase -> psqlodbc & qt6.qttranslations
-          - xdg-desktop-portal-hyprland
-
     runs-on: ubuntu-latest
     steps:
       - name: Install Nix
@@ -53,4 +45,15 @@ jobs:
           name: hyprland
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"
+      - name: Run test VM
+        run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"
+
+      - name: Check exit status
+        run: grep 0 result/exit_status
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: result

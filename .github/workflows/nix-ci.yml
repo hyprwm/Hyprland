@@ -12,3 +12,9 @@ jobs:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     uses: ./.github/workflows/nix-build.yml
     secrets: inherit
+
+  test:
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
+    needs: build
+    uses: ./.github/workflows/nix-test.yml
+    secrets: inherit

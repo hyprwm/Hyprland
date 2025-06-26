@@ -835,9 +835,11 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (!pMonitor)
         return;
 
-    if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
-        // do not render anything. We will render a lockscreen anyways later.
-        return;
+    if (g_pSessionLockManager->isSessionLocked()) {
+        // We stop to render workspaces as soon as the session is covered by the lockscreen,
+        // or alternatively after misc:lockdead_screen_delay has passed.
+        if (g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->shallConsiderLockMissing())
+            return;
     }
 
     // todo: matrices are buggy atm for some reason, but probably would be preferable in the long run
@@ -990,38 +992,35 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
     TRACY_GPU_ZONE("RenderLockscreen");
 
     const bool LOCKED = g_pSessionLockManager->isSessionLocked();
+    if (!LOCKED) {
+        g_pHyprOpenGL->ensureLockTexturesRendered(false);
+        return;
+    }
 
-    g_pHyprOpenGL->ensureLockTexturesRendered(                                     //
-        LOCKED &&                                                                  // session is locked AND
-        !g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id) && // no session lock surface AND
-        (g_pSessionLockManager->shallConsiderLockMissing() ||
-         !g_pSessionLockManager->isSessionLockPresent()) // we can consider rendering the lockMissing texture OR there is no client altogether
-    );
+    const bool LOCKMISSING = g_pSessionLockManager->shallConsiderLockMissing() && !g_pSessionLockManager->hasSentLocked();
 
-    if (LOCKED) {
-        Vector2D   translate = {geometry.x, geometry.y};
+    g_pHyprOpenGL->ensureLockTexturesRendered(LOCKMISSING);
 
-        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
-        if (!PSLS) {
-            if (g_pSessionLockManager->shallConsiderLockMissing() || !g_pSessionLockManager->isSessionLockPresent())
-                renderSessionLockMissing(pMonitor);
-        } else {
-            renderSessionLockSurface(PSLS, pMonitor, now);
+    const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
+    if (!PSLS) {
+        if (LOCKMISSING)
+            renderSessionLockMissing(pMonitor);
+    } else {
+        renderSessionLockSurface(PSLS, pMonitor, now);
 
-            // render layers and then their popups for abovelock rule
-            for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
-                for (auto const& ls : lsl) {
-                    renderLayer(ls.lock(), pMonitor, now, false, true);
-                }
+        // render layers and then their popups for abovelock rule
+        for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
+            for (auto const& ls : lsl) {
+                renderLayer(ls.lock(), pMonitor, now, false, true);
             }
-            for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
-                for (auto const& ls : lsl) {
-                    renderLayer(ls.lock(), pMonitor, now, true, true);
-                }
-            }
-
-            g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
         }
+        for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
+            for (auto const& ls : lsl) {
+                renderLayer(ls.lock(), pMonitor, now, true, true);
+            }
+        }
+
+        g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
     }
 }
 
@@ -1030,20 +1029,13 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
     CBox       monbox = {{}, pMonitor->m_pixelSize};
 
-    const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
+    // render image, with instructions. Lock is gone.
+    g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDeadTexture, monbox, ALPHA);
 
-    if (ANY_PRESENT) {
-        // render image2, without instructions. Lock still "alive", unless texture dead
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDead2Texture, monbox, ALPHA);
-    } else {
-        // render image, with instructions. Lock is gone.
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDeadTexture, monbox, ALPHA);
-
-        // also render text for the tty number
-        if (g_pHyprOpenGL->m_lockTtyTextTexture) {
-            CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, ALPHA);
-        }
+    // also render text for the tty number
+    if (g_pHyprOpenGL->m_lockTtyTextTexture) {
+        CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, ALPHA);
     }
 
     if (ALPHA < 1.f) /* animate */

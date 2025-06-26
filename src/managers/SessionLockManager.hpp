@@ -54,9 +54,8 @@ class CSessionLockManager {
     float                   getRedScreenAlphaForMonitor(uint64_t);
 
     bool                    isSessionLocked();
-    bool                    isSessionLockPresent();
+    bool                    hasSentLocked();
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
-    bool                    anySessionLockSurfacesPresent();
 
     void                    removeSessionLockSurface(SSessionLockSurface*);
 

@@ -178,12 +178,8 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     }
 }
 
-bool CSessionLockManager::isSessionLockPresent() {
-    return m_sessionLock && !m_sessionLock->vSessionLockSurfaces.empty();
-}
-
-bool CSessionLockManager::anySessionLockSurfacesPresent() {
-    return m_sessionLock && std::ranges::any_of(m_sessionLock->vSessionLockSurfaces, [](const auto& surf) { return surf->mapped; });
+bool CSessionLockManager::hasSentLocked() {
+    return m_sessionLock && m_sessionLock->hasSentLocked;
 }
 
 bool CSessionLockManager::shallConsiderLockMissing() {

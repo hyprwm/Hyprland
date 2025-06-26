@@ -107,6 +107,7 @@ void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver,
 
     RESOURCE->m_self  = RESOURCE;
     RESOURCE->m_owner = m_self;
+    m_events.outputBound.emit(RESOURCE);
 }
 
 void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {

@@ -62,6 +62,7 @@
 #include "../protocols/ContentType.hpp"
 #include "../protocols/XDGTag.hpp"
 #include "../protocols/XDGBell.hpp"
+#include "../protocols/ExtWorkspace.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -187,6 +188,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
     PROTO::xdgTag              = makeUnique<CXDGToplevelTagProtocol>(&xdg_toplevel_tag_manager_v1_interface, 1, "XDGTag");
     PROTO::xdgBell             = makeUnique<CXDGSystemBellProtocol>(&xdg_system_bell_v1_interface, 1, "XDGBell");
+    PROTO::extWorkspace        = makeUnique<CExtWorkspaceProtocol>(&ext_workspace_manager_v1_interface, 1, "ExtWorkspace");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
@@ -283,6 +285,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::frogColorManagement.reset();
     PROTO::xdgTag.reset();
     PROTO::xdgBell.reset();
+    PROTO::extWorkspace.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();

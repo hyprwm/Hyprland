@@ -4,6 +4,7 @@
 #include <string>
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 enum eFullscreenMode : int8_t {
     FSMODE_NONE       = 0,
@@ -20,6 +21,8 @@ class CWorkspace {
     // use create() don't use this
     CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
+
+    WP<CWorkspace> m_self;
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
@@ -60,8 +63,6 @@ class CWorkspace {
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool             inert();
     void             startAnim(bool in, bool left, bool instant = false);
-    void             setActive(bool on);
-    void             moveToMonitor(const MONITORID&);
     MONITORID        monitorID();
     PHLWINDOW        getLastFocusedWindow();
     void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
@@ -83,6 +84,13 @@ class CWorkspace {
     void             forceReportSizesToWindows();
     void             updateWindows();
 
+    struct {
+        CSignal destroy;
+        CSignal rename;
+        CSignal monitorChange;
+        CSignal activeChange;
+    } m_events;
+
   private:
     void init(PHLWORKSPACE self);
     // Previous workspace ID and name is stored during a workspace change, allowing travel
@@ -91,7 +99,6 @@ class CWorkspace {
 
     SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
     bool                 m_inert = true;
-    WP<CWorkspace>       m_self;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

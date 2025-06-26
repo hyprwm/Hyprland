@@ -230,6 +230,9 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}testing workspaces", Colors::YELLOW);
     EXPECT(testWorkspaces(), true);
 
+    NLog::log("{}testing misc variables", Colors::YELLOW);
+    EXPECT(testMisc(), true);
+
     NLog::log("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);
 

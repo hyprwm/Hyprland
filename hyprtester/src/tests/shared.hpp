@@ -13,5 +13,5 @@ namespace Tests {
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);
     bool                                                       killAllWindows();
-    void waitUntilWindowsN(int n);
+    void                                                       waitUntilWindowsN(int n);
 };

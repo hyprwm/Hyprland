@@ -111,7 +111,7 @@ bool testMisc() {
         EXPECT(str.contains("fullscreen: 2"), true);
     }
 
-    OK(getFromSocket("/dispatch killactive"));
+    OK(getFromSocket("/dispatch killwindow activewindow"));
     Tests::waitUntilWindowsN(1);
 
     {
@@ -123,7 +123,7 @@ bool testMisc() {
     OK(getFromSocket("/dispatch fullscreen 0"));
     OK(getFromSocket("/keyword misc:exit_window_retains_fullscreen true"));
 
-    OK(getFromSocket("/dispatch killactive"));
+    OK(getFromSocket("/dispatch killwindow activewindow"));
     Tests::waitUntilWindowsN(1);
 
     {

@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+        description: Command to run
+    secrets:
+      CACHIX_AUTH_TOKEN:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: hyprland
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - run: ${{ inputs.command }}

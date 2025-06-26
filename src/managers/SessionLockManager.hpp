@@ -34,7 +34,6 @@ struct SSessionLock {
     SP<CEventLoopTimer>                  sendDeniedTimer;
 
     std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
-    std::unordered_map<uint64_t, CTimer> mMonitorsWithoutMappedSurfaceTimers;
 
     struct {
         CHyprSignalListener newSurface;
@@ -52,8 +51,6 @@ class CSessionLockManager {
     ~CSessionLockManager() = default;
 
     WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
-
-    float                   getRedScreenAlphaForMonitor(uint64_t);
 
     bool                    isSessionLocked();
     bool                    hasSentLocked();

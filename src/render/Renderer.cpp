@@ -1011,6 +1011,7 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
             renderSessionLockMissing(pMonitor);
     } else {
         renderSessionLockSurface(PSLS, pMonitor, now);
+        g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
 
         // render layers and then their popups for abovelock rule
         for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
@@ -1023,37 +1024,28 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
                 renderLayer(ls.lock(), pMonitor, now, true, true);
             }
         }
-
-        g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
     }
 }
 
 void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     CRectPassElement::SRectData data;
-    data.color = CHyprColor(0, 0, 0, 1);
+    data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};
 
     m_renderPass.add(makeShared<CRectPassElement>(data));
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
-    const auto ALPHA = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->m_id);
-
-    CBox       monbox = {{}, pMonitor->m_pixelSize};
+    CBox monbox = {{}, pMonitor->m_pixelSize};
 
     // render image, with instructions. Lock is gone.
-    g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDeadTexture, monbox, ALPHA);
+    g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDeadTexture, monbox, 1.f);
 
     // also render text for the tty number
     if (g_pHyprOpenGL->m_lockTtyTextTexture) {
         CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, ALPHA);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, 1.f);
     }
-
-    if (ALPHA < 1.f) /* animate */
-        damageMonitor(pMonitor);
-    else
-        g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->m_id);
 }
 
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,

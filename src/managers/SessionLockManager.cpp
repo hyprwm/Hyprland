@@ -142,22 +142,6 @@ WP<SSessionLockSurface> CSessionLockManager::getSessionLockSurfaceForMonitor(uin
     return {};
 }
 
-// We don't want the red screen to flash.
-float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
-    if (!m_sessionLock)
-        return 1.F;
-
-    const auto& NOMAPPEDSURFACETIMER = m_sessionLock->mMonitorsWithoutMappedSurfaceTimers.find(id);
-
-    if (NOMAPPEDSURFACETIMER == m_sessionLock->mMonitorsWithoutMappedSurfaceTimers.end()) {
-        m_sessionLock->mMonitorsWithoutMappedSurfaceTimers.emplace(id, CTimer());
-        m_sessionLock->mMonitorsWithoutMappedSurfaceTimers[id].reset();
-        return 0.f;
-    }
-
-    return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds() - /* delay for screencopy */ 0.5f, 0.f, 1.f);
-}
-
 void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     if (!m_sessionLock || m_sessionLock->hasSentLocked)
         return;

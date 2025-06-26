@@ -52,14 +52,14 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 2 (2)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 2 (2)");
     }
 
     // check if the other workspaces are alive
     {
         auto str = getFromSocket("/workspaces");
-        EXPECT(str.contains("workspace ID 3 (3)"), true);
-        EXPECT(str.contains("workspace ID 1 (1)"), true);
+        EXPECT_CONTAINS(str, "workspace ID 3 (3)");
+        EXPECT_CONTAINS(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
@@ -70,7 +70,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     NLog::log("{}Switching to workspace -1", Colors::YELLOW);
@@ -78,7 +78,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 2 (2)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 2 (2)");
     }
 
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
@@ -89,7 +89,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 2 (2)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 2 (2)");
     }
 
     NLog::log("{}Switching to workspace r+1", Colors::YELLOW);
@@ -97,7 +97,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     NLog::log("{}Switching to workspace r~1", Colors::YELLOW);
@@ -105,7 +105,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Switching to workspace empty", Colors::YELLOW);
@@ -113,7 +113,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 2 (2)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 2 (2)");
     }
 
     NLog::log("{}Switching to workspace previous", Colors::YELLOW);
@@ -121,7 +121,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Switching to workspace name:TEST_WORKSPACE_NULL", Colors::YELLOW);
@@ -129,7 +129,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID -1337 (TEST_WORKSPACE_NULL)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID -1337 (TEST_WORKSPACE_NULL)");
     }
 
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
@@ -142,9 +142,9 @@ bool testWorkspaces() {
     // should take workspace 2
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(str.contains("active workspace: 2 (2)"), true);
-        EXPECT(str.contains("active workspace: 1 (1)"), true);
-        EXPECT(str.contains("HEADLESS-3"), true);
+        EXPECT_CONTAINS(str, "active workspace: 2 (2)");
+        EXPECT_CONTAINS(str, "active workspace: 1 (1)");
+        EXPECT_CONTAINS(str, "HEADLESS-3");
     }
 
     // focus the first monitor
@@ -152,7 +152,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Switching to workspace r+1", Colors::YELLOW);
@@ -160,7 +160,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     NLog::log("{}Switching to workspace r~2", Colors::YELLOW);
@@ -169,7 +169,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     NLog::log("{}Switching to workspace m+1", Colors::YELLOW);
@@ -177,7 +177,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
@@ -186,7 +186,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     NLog::log("{}Testing back_and_forth", Colors::YELLOW);
@@ -195,7 +195,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     OK(getFromSocket("/keyword binds:workspace_back_and_forth false"));
@@ -206,8 +206,8 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(str.contains("special workspace: -"), true);
-        EXPECT(str.contains("special:HELLO"), true);
+        EXPECT_CONTAINS(str, "special workspace: -");
+        EXPECT_CONTAINS(str, "special:HELLO");
     }
 
     // no OK: will err (it shouldnt prolly but oh well)
@@ -215,7 +215,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(Tests::countOccurrences(str, "special workspace: 0 ()"), 2);
+        EXPECT_COUNT_STRING(str, "special workspace: 0 ()", 2);
     }
 
     OK(getFromSocket("/keyword binds:hide_special_on_workspace_change false"));
@@ -231,21 +231,21 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     OK(getFromSocket("/dispatch workspace previous"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 1 (1)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 1 (1)");
     }
 
     OK(getFromSocket("/dispatch workspace previous"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT(str.starts_with("workspace ID 3 (3)"), true);
+        EXPECT_STARTS_WITH(str, "workspace ID 3 (3)");
     }
 
     OK(getFromSocket("/keyword binds:allow_workspace_cycles false"));
@@ -279,7 +279,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_C"), true);
+        EXPECT_CONTAINS(str, "class: kitty_C");
     }
 
     OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
@@ -290,7 +290,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_B"), true);
+        EXPECT_CONTAINS(str, "class: kitty_B");
     }
 
     NLog::log("{}Testing movefocus_cycles_fullscreen", Colors::YELLOW);
@@ -299,14 +299,14 @@ bool testWorkspaces() {
     Tests::spawnKitty("kitty_D");
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_D"), true);
+        EXPECT_CONTAINS(str, "class: kitty_D");
     }
 
     OK(getFromSocket("/dispatch focusmonitor l"));
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_A"), true);
+        EXPECT_CONTAINS(str, "class: kitty_A");
     }
 
     OK(getFromSocket("/keyword binds:movefocus_cycles_fullscreen false"));
@@ -316,14 +316,14 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_D"), true);
+        EXPECT_CONTAINS(str, "class: kitty_D");
     }
 
     OK(getFromSocket("/dispatch focusmonitor l"));
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_A"), true);
+        EXPECT_CONTAINS(str, "class: kitty_A");
     }
 
     OK(getFromSocket("/keyword binds:movefocus_cycles_fullscreen true"));
@@ -332,7 +332,7 @@ bool testWorkspaces() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("class: kitty_B"), true);
+        EXPECT_CONTAINS(str, "class: kitty_B");
     }
 
     // destroy the headless output

@@ -30,14 +30,14 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(str.contains("special workspace: -"), true);
+        EXPECT_CONTAINS(str, "special workspace: -");
     }
 
     Tests::killAllWindows();
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(str.contains("special workspace: -"), true);
+        EXPECT_CONTAINS(str, "special workspace: -");
     }
 
     Tests::spawnKitty();
@@ -48,7 +48,7 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT(str.contains("special workspace: -"), false);
+        EXPECT_NOT_CONTAINS(str, "special workspace: -");
     }
 
     NLog::log("{}Testing new_window_takes_over_fullscreen", Colors::YELLOW);
@@ -61,16 +61,16 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 2"), true);
-        EXPECT(str.contains("kitty_A"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     Tests::spawnKitty("kitty_B");
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 2"), true);
-        EXPECT(str.contains("kitty_A"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 1"));
@@ -79,8 +79,8 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 2"), true);
-        EXPECT(str.contains("kitty_C"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "kitty_C");
     }
 
     OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 2"));
@@ -89,8 +89,8 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 0"), true);
-        EXPECT(str.contains("kitty_D"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "kitty_D");
     }
 
     OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 0"));
@@ -108,7 +108,7 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 2"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -116,7 +116,7 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 0"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 0");
     }
 
     Tests::spawnKitty("kitty_B");
@@ -128,7 +128,7 @@ bool testMisc() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains("fullscreen: 2"), true);
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     // kill all

@@ -39,27 +39,27 @@ bool testGroups() {
     NLog::log("{}Check kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        EXPECT(Tests::countOccurrences(str, "at: 22,22"), 1);
-        EXPECT(Tests::countOccurrences(str, "size: 1876,1036"), 1);
-        EXPECT(Tests::countOccurrences(str, "fullscreen: 0"), 1);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     // group the kitty
     NLog::log("{}Enable group and groupbar", Colors::YELLOW);
-    EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
-    EXPECT(getFromSocket("/keyword group:groupbar:enabled 1"), "ok");
+    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/keyword group:groupbar:enabled 1"));
 
     // check the height of the window now
     NLog::log("{}Recheck kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        EXPECT(str.contains("at: 22,43"), true);
-        EXPECT(str.contains("size: 1876,1015"), true);
+        EXPECT_CONTAINS(str, "at: 22,43");
+        EXPECT_CONTAINS(str, "size: 1876,1015");
     }
 
     // disable the groupbar for ease of testing for now
     NLog::log("{}Disable groupbar", Colors::YELLOW);
-    EXPECT(getFromSocket("r/keyword group:groupbar:enabled 0"), "ok");
+    OK(getFromSocket("r/keyword group:groupbar:enabled 0"));
 
     // kill all
     NLog::log("{}Kill windows", Colors::YELLOW);
@@ -73,14 +73,14 @@ bool testGroups() {
     }
 
     NLog::log("{}Group kitty", Colors::YELLOW);
-    EXPECT(getFromSocket("/dispatch togglegroup"), "ok");
+    OK(getFromSocket("/dispatch togglegroup"));
 
     // check the height of the window now
     NLog::log("{}Check kitty dimensions 2", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        EXPECT(str.contains("at: 22,22"), true);
-        EXPECT(str.contains("size: 1876,1036"), true);
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
     }
 
     NLog::log("{}Spawn kittyProcB", Colors::YELLOW);
@@ -98,7 +98,7 @@ bool testGroups() {
     NLog::log("{}Get last active kitty id", Colors::YELLOW);
     try {
         auto str           = getFromSocket("/activewindow");
-        lastActiveKittyIdx = std::stoull(str.substr(7, str.find(" -> ") - 7));
+        lastActiveKittyIdx = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
     } catch (...) {
         NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
@@ -107,11 +107,11 @@ bool testGroups() {
     // test cycling through
 
     NLog::log("{}Test cycling through grouped windows", Colors::YELLOW);
-    getFromSocket("/dispatch changegroupactive f");
+    OK(getFromSocket("/dispatch changegroupactive f"));
 
     try {
         auto str = getFromSocket("/activewindow");
-        EXPECT(lastActiveKittyIdx != std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
+        EXPECT(lastActiveKittyIdx != std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16), true);
     } catch (...) {
         NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
@@ -121,14 +121,14 @@ bool testGroups() {
 
     try {
         auto str = getFromSocket("/activewindow");
-        EXPECT(lastActiveKittyIdx == std::stoull(str.substr(7, str.find(" -> ") - 7)), true);
+        EXPECT(lastActiveKittyIdx, std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16));
     } catch (...) {
         NLog::log("{}Fail at getting prop", Colors::RED);
         ret = 1;
     }
 
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
-    EXPECT(getFromSocket("/keyword group:auto_group false"), "ok");
+    OK(getFromSocket("/keyword group:auto_group false"));
 
     NLog::log("{}Spawn kittyProcC", Colors::YELLOW);
     auto kittyProcC = Tests::spawnKitty();
@@ -141,13 +141,13 @@ bool testGroups() {
     EXPECT(Tests::windowCount(), 3);
     {
         auto str = getFromSocket("/clients");
-        EXPECT(Tests::countOccurrences(str, "at: 22,22"), 2);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
 
-    EXPECT(getFromSocket("/dispatch movefocus l"), "ok");
-    EXPECT(getFromSocket("/dispatch changegroupactive 1"), "ok");
-    EXPECT(getFromSocket("/keyword group:auto_group true"), "ok");
-    EXPECT(getFromSocket("/keyword group:insert_after_current false"), "ok");
+    OK(getFromSocket("/dispatch movefocus l"));
+    OK(getFromSocket("/dispatch changegroupactive 1"));
+    OK(getFromSocket("/keyword group:auto_group true"));
+    OK(getFromSocket("/keyword group:insert_after_current false"));
 
     NLog::log("{}Spawn kittyProcD", Colors::YELLOW);
     auto kittyProcD = Tests::spawnKitty();
@@ -159,11 +159,11 @@ bool testGroups() {
     NLog::log("{}Expecting 4 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 4);
 
-    EXPECT(getFromSocket("/dispatch changegroupactive 3"), "ok");
+    OK(getFromSocket("/dispatch changegroupactive 3"));
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT(str.contains(std::format("pid: {}", kittyProcD->pid())), true);
+        EXPECT_CONTAINS(str, std::format("pid: {}", kittyProcD->pid()));
     }
 
     // kill all

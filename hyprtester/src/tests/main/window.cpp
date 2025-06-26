@@ -78,11 +78,11 @@ bool testWindows() {
     // check some window props of xeyes, try to tile them
     {
         auto str = getFromSocket("/clients");
-        EXPECT(str.contains("floating: 1"), true);
+        EXPECT_CONTAINS(str, "floating: 1");
         getFromSocket("/dispatch settiled class:XEyes");
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         str = getFromSocket("/clients");
-        EXPECT(str.contains("floating: 1"), false);
+        EXPECT_NOT_CONTAINS(str, "floating: 1");
     }
 
     // kill all

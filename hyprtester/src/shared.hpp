@@ -20,26 +20,71 @@ namespace Colors {
 
 #define EXPECT(expr, val)                                                                                                                                                          \
     if (const auto RESULT = expr; RESULT != (val)) {                                                                                                                               \
-        std::cout << Colors::RED << "Failed: " << Colors::RESET << #expr << ", expected " << val << " but got " << RESULT << "\n";                                                 \
+        NLog::log("{}Failed: {}{}, expected {}, got {}. Source: {}@{}.", Colors::RED, Colors::RESET, #expr, val, RESULT, __FILE__, __LINE__);                                      \
         ret = 1;                                                                                                                                                                   \
         TESTS_FAILED++;                                                                                                                                                            \
     } else {                                                                                                                                                                       \
-        std::cout << Colors::GREEN << "Passed " << Colors::RESET << #expr << ". Got " << val << "\n";                                                                              \
+        NLog::log("{}Passed: {}{}. Got {}", Colors::GREEN, Colors::RESET, #expr, val);                                                                                             \
         TESTS_PASSED++;                                                                                                                                                            \
     }
+
 #define EXPECT_VECTOR2D(expr, val)                                                                                                                                                 \
     do {                                                                                                                                                                           \
         const auto& RESULT   = expr;                                                                                                                                               \
         const auto& EXPECTED = val;                                                                                                                                                \
         if (!(std::abs(RESULT.x - EXPECTED.x) < 1e-6 && std::abs(RESULT.y - EXPECTED.y) < 1e-6)) {                                                                                 \
-            std::cout << Colors::RED << "Failed: " << Colors::RESET << #expr << ", expected (" << EXPECTED.x << ", " << EXPECTED.y << ") but got (" << RESULT.x << ", "            \
-                      << RESULT.y << ")\n";                                                                                                                                        \
+            NLog::log("{}Failed: {}{}, expected [{}, {}], got [{}, {}]. Source: {}@{}.", Colors::RED, Colors::RESET, #expr, EXPECTED.x, EXPECTED.y, RESULT.x, RESULT.y, __FILE__,  \
+                      __LINE__);                                                                                                                                                   \
             ret = 1;                                                                                                                                                               \
             TESTS_FAILED++;                                                                                                                                                        \
         } else {                                                                                                                                                                   \
-            std::cout << Colors::GREEN << "Passed " << Colors::RESET << #expr << ". Got (" << RESULT.x << ", " << RESULT.y << ")\n";                                               \
+            NLog::log("{}Passed: {}{}. Got [{}, {}].", Colors::GREEN, Colors::RESET, #expr, RESULT.x, RESULT.y);                                                                   \
             TESTS_PASSED++;                                                                                                                                                        \
         }                                                                                                                                                                          \
     } while (0)
+
+#define EXPECT_CONTAINS(haystack, needle)                                                                                                                                          \
+    if (!std::string{haystack}.contains(needle)) {                                                                                                                                 \
+        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
+                  std::string{haystack});                                                                                                                                          \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{} contains {}.", Colors::GREEN, Colors::RESET, #haystack, #needle);                                                                                \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
+
+#define EXPECT_NOT_CONTAINS(haystack, needle)                                                                                                                                      \
+    if (std::string{haystack}.contains(needle)) {                                                                                                                                  \
+        NLog::log("{}Failed: {}{} shouldn't contain {} but does. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
+                  std::string{haystack});                                                                                                                                          \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{} doesn't contain {}.", Colors::GREEN, Colors::RESET, #haystack, #needle);                                                                         \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
+
+#define EXPECT_STARTS_WITH(str, what)                                                                                                                                              \
+    if (!std::string{str}.starts_with(what)) {                                                                                                                                     \
+        NLog::log("{}Failed: {}{} should start with {} but doesn't. Source: {}@{}. String is:\n{}", Colors::RED, Colors::RESET, #str, #what, __FILE__, __LINE__,                   \
+                  std::string{str});                                                                                                                                               \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{} starts with {}.", Colors::GREEN, Colors::RESET, #str, #what);                                                                                    \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
+
+#define EXPECT_COUNT_STRING(str, what, no)                                                                                                                                         \
+    if (Tests::countOccurrences(str, what) != no) {                                                                                                                                \
+        NLog::log("{}Failed: {}{} should contain {} {} times, but doesn't. Source: {}@{}. String is:\n{}", Colors::RED, Colors::RESET, #str, #what, no, __FILE__, __LINE__,        \
+                  std::string{str});                                                                                                                                               \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{} contains {} {} times.", Colors::GREEN, Colors::RESET, #str, #what, no);                                                                          \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
 
 #define OK(x) EXPECT(x, "ok")

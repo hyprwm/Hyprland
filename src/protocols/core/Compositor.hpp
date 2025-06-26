@@ -80,12 +80,12 @@ class CWLSurfaceResource {
     void                          resetRole();
 
     struct {
-        CSignal precommit; // before commit
-        CSignal commit;    // after commit
-        CSignal map;
-        CSignal unmap;
-        CSignal newSubsurface;
-        CSignal destroy;
+        CSignalT<>                          precommit; // before commit
+        CSignalT<>                          commit;    // after commit
+        CSignalT<>                          map;
+        CSignalT<>                          unmap;
+        CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
+        CSignalT<>                          destroy;
     } m_events;
 
     SSurfaceState                          m_current;
@@ -146,7 +146,7 @@ class CWLCompositorProtocol : public IWaylandProtocol {
     void         forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn);
 
     struct {
-        CSignal newSurface; // SP<CWLSurfaceResource>
+        CSignalT<SP<CWLSurfaceResource>> newSurface;
     } m_events;
 
   private:

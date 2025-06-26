@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
+#include "../devices/IKeyboard.hpp"
+#include "../devices/VirtualKeyboard.hpp"
 #include "virtual-keyboard-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -13,10 +15,10 @@ class CVirtualKeyboardV1Resource {
     ~CVirtualKeyboardV1Resource();
 
     struct {
-        CSignal destroy;
-        CSignal key;
-        CSignal modifiers;
-        CSignal keymap;
+        CSignalT<>                           destroy;
+        CSignalT<IKeyboard::SKeyEvent>       key;
+        CSignalT<IKeyboard::SModifiersEvent> modifiers;
+        CSignalT<IKeyboard::SKeymapEvent>    keymap;
     } m_events;
 
     bool        good();
@@ -41,7 +43,7 @@ class CVirtualKeyboardProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newKeyboard; // SP<CVirtualKeyboard>
+        CSignalT<SP<CVirtualKeyboardV1Resource>> newKeyboard;
     } m_events;
 
   private:

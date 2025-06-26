@@ -12,7 +12,7 @@
 SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
     pWlrSurface = surface->surface();
 
-    listeners.map = surface_->m_events.map.registerListener([this](std::any data) {
+    listeners.map = surface_->m_events.map.listen([this] {
         mapped = true;
 
         g_pInputManager->simulateMouseMovement();
@@ -23,14 +23,14 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
             g_pHyprRenderer->damageMonitor(PMONITOR);
     });
 
-    listeners.destroy = surface_->m_events.destroy.registerListener([this](std::any data) {
+    listeners.destroy = surface_->m_events.destroy.listen([this] {
         if (pWlrSurface == g_pCompositor->m_lastFocus)
             g_pCompositor->m_lastFocus.reset();
 
         g_pSessionLockManager->removeSessionLockSurface(this);
     });
 
-    listeners.commit = surface_->m_events.commit.registerListener([this](std::any data) {
+    listeners.commit = surface_->m_events.commit.listen([this] {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 
         if (mapped && !g_pCompositor->m_lastFocus)
@@ -42,11 +42,10 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
 }
 
 CSessionLockManager::CSessionLockManager() {
-    m_listeners.newLock = PROTO::sessionLock->m_events.newLock.registerListener([this](std::any data) { this->onNewSessionLock(std::any_cast<SP<CSessionLock>>(data)); });
+    m_listeners.newLock = PROTO::sessionLock->m_events.newLock.listen([this](const auto& lock) { this->onNewSessionLock(lock); });
 }
 
 void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
-
     static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
@@ -61,17 +60,15 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     m_sessionLock->lock = pLock;
     m_sessionLock->mLockTimer.reset();
 
-    m_sessionLock->listeners.newSurface = pLock->m_events.newLockSurface.registerListener([this](std::any data) {
-        auto       SURFACE = std::any_cast<SP<CSessionLockSurface>>(data);
+    m_sessionLock->listeners.newSurface = pLock->m_events.newLockSurface.listen([this](const SP<CSessionLockSurface>& surface) {
+        const auto PMONITOR = surface->monitor();
 
-        const auto PMONITOR = SURFACE->monitor();
-
-        const auto NEWSURFACE  = m_sessionLock->vSessionLockSurfaces.emplace_back(makeUnique<SSessionLockSurface>(SURFACE)).get();
+        const auto NEWSURFACE  = m_sessionLock->vSessionLockSurfaces.emplace_back(makeUnique<SSessionLockSurface>(surface)).get();
         NEWSURFACE->iMonitorID = PMONITOR->m_id;
-        PROTO::fractional->sendScale(SURFACE->surface(), PMONITOR->m_scale);
+        PROTO::fractional->sendScale(surface->surface(), PMONITOR->m_scale);
     });
 
-    m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.registerListener([this](std::any data) {
+    m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.listen([this] {
         m_sessionLock.reset();
         g_pInputManager->refocus();
 
@@ -79,7 +76,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             g_pHyprRenderer->damageMonitor(m);
     });
 
-    m_sessionLock->listeners.destroy = pLock->m_events.destroyed.registerListener([this](std::any data) {
+    m_sessionLock->listeners.destroy = pLock->m_events.destroyed.listen([this] {
         m_sessionLock.reset();
         g_pCompositor->focusSurface(nullptr);
 

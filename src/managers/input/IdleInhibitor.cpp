@@ -10,7 +10,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 
     Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->m_surface.get());
 
-    PINHIBIT->inhibitor->m_listeners.destroy = PINHIBIT->inhibitor->m_resource->m_events.destroy.registerListener([this, PINHIBIT](std::any data) {
+    PINHIBIT->inhibitor->m_listeners.destroy = PINHIBIT->inhibitor->m_resource->m_events.destroy.listen([this, PINHIBIT] {
         std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
         recheckIdleInhibitorStatus();
     });
@@ -24,8 +24,8 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         return;
     }
 
-    PINHIBIT->surfaceDestroyListener = WLSurface->m_events.destroy.registerListener(
-        [this, PINHIBIT](std::any data) { std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
+    PINHIBIT->surfaceDestroyListener =
+        WLSurface->m_events.destroy.listen([this, PINHIBIT] { std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
 
     recheckIdleInhibitorStatus();
 }

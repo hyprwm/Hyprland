@@ -14,15 +14,14 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
     if (!keeb_)
         return;
 
-    m_listeners.destroy = keeb_->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = keeb_->m_events.destroy.listen([this] {
         m_keyboard.reset();
         m_events.destroy.emit();
     });
 
-    m_listeners.key       = keeb_->m_events.key.registerListener([this](std::any d) { m_keyboardEvents.key.emit(d); });
-    m_listeners.modifiers = keeb_->m_events.modifiers.registerListener([this](std::any d) {
-        auto E = std::any_cast<SModifiersEvent>(d);
-        updateModifiers(E.depressed, E.latched, E.locked, E.group);
+    m_listeners.key       = keeb_->m_events.key.listen([this](const auto& event) { m_keyboardEvents.key.emit(event); });
+    m_listeners.modifiers = keeb_->m_events.modifiers.listen([this](const SModifiersEvent& event) {
+        updateModifiers(event.depressed, event.latched, event.locked, event.group);
         m_keyboardEvents.modifiers.emit(SModifiersEvent{
             .depressed = m_modifiersState.depressed,
             .latched   = m_modifiersState.latched,
@@ -30,15 +29,14 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
             .group     = m_modifiersState.group,
         });
     });
-    m_listeners.keymap    = keeb_->m_events.keymap.registerListener([this](std::any d) {
-        auto E = std::any_cast<SKeymapEvent>(d);
+    m_listeners.keymap    = keeb_->m_events.keymap.listen([this](const SKeymapEvent& event) {
         if (m_xkbKeymap)
             xkb_keymap_unref(m_xkbKeymap);
-        m_xkbKeymap        = xkb_keymap_ref(E.keymap);
+        m_xkbKeymap        = xkb_keymap_ref(event.keymap);
         m_keymapOverridden = true;
         updateXKBTranslationState(m_xkbKeymap);
         updateKeymapFD();
-        m_keyboardEvents.keymap.emit(d);
+        m_keyboardEvents.keymap.emit(event);
     });
 
     m_deviceName = keeb_->m_name;

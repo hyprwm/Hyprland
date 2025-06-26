@@ -27,11 +27,11 @@ class CTextInputV3 {
     wl_client* client();
 
     struct {
-        CSignal onCommit;
-        CSignal enable;
-        CSignal disable;
-        CSignal reset;
-        CSignal destroy;
+        CSignalT<> onCommit;
+        CSignalT<> enable;
+        CSignalT<> disable;
+        CSignalT<> reset;
+        CSignalT<> destroy;
     } m_events;
 
     struct SState {
@@ -80,7 +80,7 @@ class CTextInputV3Protocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newTextInput; // WP<CTextInputV3>
+        CSignalT<WP<CTextInputV3>> newTextInput;
     } m_events;
 
   private:

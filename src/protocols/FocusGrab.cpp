@@ -8,7 +8,7 @@
 #include <wayland-server.h>
 
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
-    m_listeners.destroy = surface->m_events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
+    m_listeners.destroy = surface->m_events.destroy.listen([grab, surface] { grab->eraseSurface(surface); });
 }
 
 CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : m_resource(resource_) {

@@ -229,12 +229,10 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
 
     g_pPointerManager->attachTablet(PNEWTABLET);
 
-    PNEWTABLET->m_events.destroy.registerStaticListener(
-        [this](void* owner, std::any d) {
-            auto TABLET = ((CTablet*)owner)->m_self;
-            destroyTablet(TABLET.lock());
-        },
-        PNEWTABLET.get());
+    PNEWTABLET->m_events.destroy.listenStatic([this, tablet = PNEWTABLET.get()] {
+        auto TABLET = tablet->m_self;
+        destroyTablet(TABLET.lock());
+    });
 
     setTabletConfigs();
 }
@@ -255,12 +253,10 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
         Debug::log(ERR, "Tablet had no name???"); // logic error
     }
 
-    PTOOL->m_events.destroy.registerStaticListener(
-        [this](void* owner, std::any d) {
-            auto TOOL = ((CTabletTool*)owner)->m_self;
-            destroyTabletTool(TOOL.lock());
-        },
-        PTOOL.get());
+    PTOOL->m_events.destroy.listenStatic([this, tool = PTOOL.get()] {
+        auto TOOL = tool->m_self;
+        destroyTabletTool(TOOL.lock());
+    });
 
     return PTOOL;
 }
@@ -275,39 +271,27 @@ void CInputManager::newTabletPad(SP<Aquamarine::ITabletPad> pDevice) {
         Debug::log(ERR, "Pad had no name???"); // logic error
     }
 
-    // clang-format off
-    PNEWPAD->m_events.destroy.registerStaticListener([this](void* owner, std::any d) {
-        auto PAD = ((CTabletPad*)owner)->m_self;
+    PNEWPAD->m_events.destroy.listenStatic([this, pad = PNEWPAD.get()] {
+        auto PAD = pad->m_self;
         destroyTabletPad(PAD.lock());
-    }, PNEWPAD.get());
+    });
 
-    PNEWPAD->m_padEvents.button.registerStaticListener([](void* owner, std::any e) {
-        const auto E = std::any_cast<CTabletPad::SButtonEvent>(e);
-        const auto PPAD  = ((CTabletPad*)owner)->m_self.lock();
+    PNEWPAD->m_padEvents.button.listenStatic([pad = PNEWPAD.get()](const CTabletPad::SButtonEvent& event) {
+        const auto PPAD = pad->m_self.lock();
 
-        PROTO::tablet->mode(PPAD, 0, E.mode, E.timeMs);
-        PROTO::tablet->buttonPad(PPAD, E.button, E.timeMs, E.down);
-    }, PNEWPAD.get());
+        PROTO::tablet->mode(PPAD, 0, event.mode, event.timeMs);
+        PROTO::tablet->buttonPad(PPAD, event.button, event.timeMs, event.down);
+    });
 
-    PNEWPAD->m_padEvents.strip.registerStaticListener([](void* owner, std::any e) {
-        const auto E = std::any_cast<CTabletPad::SStripEvent>(e);
-        const auto PPAD  = ((CTabletPad*)owner)->m_self.lock();
+    PNEWPAD->m_padEvents.strip.listenStatic([pad = PNEWPAD.get()](const CTabletPad::SStripEvent& event) {
+        const auto PPAD = pad->m_self.lock();
+        PROTO::tablet->strip(PPAD, event.strip, event.position, event.finger, event.timeMs);
+    });
 
-        PROTO::tablet->strip(PPAD, E.strip, E.position, E.finger, E.timeMs);
-    }, PNEWPAD.get());
+    PNEWPAD->m_padEvents.ring.listenStatic([pad = PNEWPAD.get()](const CTabletPad::SRingEvent& event) {
+        const auto PPAD = pad->m_self.lock();
+        PROTO::tablet->ring(PPAD, event.ring, event.position, event.finger, event.timeMs);
+    });
 
-    PNEWPAD->m_padEvents.ring.registerStaticListener([](void* owner, std::any e) {
-        const auto E = std::any_cast<CTabletPad::SRingEvent>(e);
-        const auto PPAD  = ((CTabletPad*)owner)->m_self.lock();
-
-        PROTO::tablet->ring(PPAD, E.ring, E.position, E.finger, E.timeMs);
-    }, PNEWPAD.get());
-
-    PNEWPAD->m_padEvents.attach.registerStaticListener([](void* owner, std::any e) {
-        const auto PPAD  = ((CTabletPad*)owner)->m_self.lock();
-        const auto TOOL = std::any_cast<SP<CTabletTool>>(e);
-
-        PPAD->m_parent = TOOL;
-    }, PNEWPAD.get());
-    // clang-format on
+    PNEWPAD->m_padEvents.attach.listenStatic([pad = PNEWPAD.get()](const SP<CTabletTool>& tool) { pad->m_parent = tool; });
 }

@@ -228,7 +228,7 @@ void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint3
 
     // we need to do it here because protocols come before seatMgr
     if (!m_listeners.onPointerFocusChange)
-        m_listeners.onPointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.registerListener([this](std::any d) { this->onPointerFocus(); });
+        m_listeners.onPointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.listen([this] { this->onPointerFocus(); });
 }
 
 void CPrimarySelectionProtocol::destroyResource(CPrimarySelectionManager* resource) {

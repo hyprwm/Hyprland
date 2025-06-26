@@ -194,11 +194,11 @@ class CMonitor {
     } m_tearingState;
 
     struct {
-        CSignal destroy;
-        CSignal connect;
-        CSignal disconnect;
-        CSignal dpmsChanged;
-        CSignal modeChanged;
+        CSignalT<> destroy;
+        CSignalT<> connect;
+        CSignalT<> disconnect;
+        CSignalT<> dpmsChanged;
+        CSignalT<> modeChanged;
     } m_events;
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;

@@ -30,7 +30,7 @@ void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
         m_alpha = alpha / (float)UINT32_MAX;
     });
 
-    m_listeners.surfaceCommitted = m_surface->m_events.commit.registerListener([this](std::any data) {
+    m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
         auto surface = CWLSurface::fromResource(m_surface.lock());
 
         if (surface && surface->m_alphaModifier != m_alpha) {
@@ -45,7 +45,7 @@ void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
         }
     });
 
-    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.registerListener([this](std::any data) {
+    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] {
         if (!m_resource)
             PROTO::alphaModifier->destroyAlphaModifier(this);
     });

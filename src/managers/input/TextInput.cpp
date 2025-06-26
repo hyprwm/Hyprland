@@ -19,11 +19,11 @@ void CTextInput::initCallbacks() {
     if (isV3()) {
         const auto INPUT = m_v3Input.lock();
 
-        m_listeners.enable  = INPUT->m_events.enable.registerListener([this](std::any p) { onEnabled(); });
-        m_listeners.disable = INPUT->m_events.disable.registerListener([this](std::any p) { onDisabled(); });
-        m_listeners.commit  = INPUT->m_events.onCommit.registerListener([this](std::any p) { onCommit(); });
-        m_listeners.reset   = INPUT->m_events.reset.registerListener([this](std::any p) { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.registerListener([this](std::any p) {
+        m_listeners.enable  = INPUT->m_events.enable.listen([this] { onEnabled(); });
+        m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
+        m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
+        m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
             m_listeners.surfaceUnmap.reset();
             m_listeners.surfaceDestroy.reset();
             g_pInputManager->m_relay.removeTextInput(this);
@@ -36,14 +36,11 @@ void CTextInput::initCallbacks() {
     } else {
         const auto INPUT = m_v1Input.lock();
 
-        m_listeners.enable  = INPUT->m_events.enable.registerListener([this](std::any p) {
-            const auto SURFACE = std::any_cast<SP<CWLSurfaceResource>>(p);
-            onEnabled(SURFACE);
-        });
-        m_listeners.disable = INPUT->m_events.disable.registerListener([this](std::any p) { onDisabled(); });
-        m_listeners.commit  = INPUT->m_events.onCommit.registerListener([this](std::any p) { onCommit(); });
-        m_listeners.reset   = INPUT->m_events.reset.registerListener([this](std::any p) { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.registerListener([this](std::any p) {
+        m_listeners.enable  = INPUT->m_events.enable.listen([this](const auto& surface) { onEnabled(surface); });
+        m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
+        m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
+        m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
             m_listeners.surfaceUnmap.reset();
             m_listeners.surfaceDestroy.reset();
             g_pInputManager->m_relay.removeTextInput(this);
@@ -135,7 +132,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     m_listeners.surfaceUnmap.reset();
     m_listeners.surfaceDestroy.reset();
 
-    m_listeners.surfaceUnmap = pSurface->m_events.unmap.registerListener([this](std::any d) {
+    m_listeners.surfaceUnmap = pSurface->m_events.unmap.listen([this] {
         Debug::log(LOG, "Unmap TI owner1");
 
         if (m_enterLocks)
@@ -155,7 +152,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
             g_pInputManager->m_relay.deactivateIME(this);
     });
 
-    m_listeners.surfaceDestroy = pSurface->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = pSurface->m_events.destroy.listen([this] {
         Debug::log(LOG, "Destroy TI owner1");
 
         if (m_enterLocks)

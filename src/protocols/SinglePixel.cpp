@@ -69,7 +69,7 @@ CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* c
 
     m_buffer->m_resource->m_buffer = m_buffer;
 
-    m_listeners.bufferResourceDestroy = m_buffer->events.destroy.registerListener([this](std::any d) {
+    m_listeners.bufferResourceDestroy = m_buffer->events.destroy.listen([this] {
         m_listeners.bufferResourceDestroy.reset();
         PROTO::singlePixel->destroyResource(this);
     });

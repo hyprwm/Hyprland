@@ -42,7 +42,7 @@ bool CContentTypeManager::good() {
 }
 
 CContentType::CContentType(WP<CWLSurfaceResource> surface) {
-    m_destroy = surface->m_events.destroy.registerListener([this](std::any d) { PROTO::contentType->destroyResource(this); });
+    m_destroy = surface->m_events.destroy.listen([this] { PROTO::contentType->destroyResource(this); });
 }
 
 CContentType::CContentType(SP<CWpContentTypeV1> resource) : m_resource(resource) {

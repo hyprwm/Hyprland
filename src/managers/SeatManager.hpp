@@ -101,13 +101,13 @@ class CSeatManager {
     };
 
     struct {
-        CSignal keyboardFocusChange;
-        CSignal pointerFocusChange;
-        CSignal dndPointerFocusChange;
-        CSignal touchFocusChange;
-        CSignal setCursor; // SSetCursorEvent
-        CSignal setSelection;
-        CSignal setPrimarySelection;
+        CSignalT<>                keyboardFocusChange;
+        CSignalT<>                pointerFocusChange;
+        CSignalT<>                dndPointerFocusChange;
+        CSignalT<>                touchFocusChange;
+        CSignalT<SSetCursorEvent> setCursor;
+        CSignalT<>                setSelection;
+        CSignalT<>                setPrimarySelection;
     } m_events;
 
     struct {

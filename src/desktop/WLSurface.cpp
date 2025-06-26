@@ -159,7 +159,7 @@ void CWLSurface::init() {
 
     m_resource->m_hlSurface = m_self.lock();
 
-    m_listeners.destroy = m_resource->m_events.destroy.registerListener([this](std::any d) { destroy(); });
+    m_listeners.destroy = m_resource->m_events.destroy.listen([this] { destroy(); });
 
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }

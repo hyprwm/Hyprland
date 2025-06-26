@@ -88,7 +88,7 @@ void CEventLoopManager::enterLoop() {
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_wayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();
-    m_listeners.pollFDsChanged = g_pCompositor->m_aqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });
+    m_listeners.pollFDsChanged = g_pCompositor->m_aqBackend->events.pollFDsChanged.listen([this] { syncPollFDs(); });
 
     // if we have a session, dispatch it to get the pending input devices
     if (g_pCompositor->m_aqBackend->hasSession())

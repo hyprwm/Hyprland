@@ -30,8 +30,6 @@ using namespace Hyprutils::String;
 
 #include "Strings.hpp"
 
-#define PAD
-
 std::string instanceSignature;
 bool        quiet = false;
 
@@ -42,7 +40,7 @@ struct SInstanceData {
     std::string wlSocket;
 };
 
-void log(const std::string& str) {
+void log(const std::string_view str) {
     if (quiet)
         return;
 
@@ -66,7 +64,7 @@ std::string getRuntimeDir() {
     return std::string{XDG} + "/hypr";
 }
 
-static std::optional<uint64_t> toUInt64(const std::string& str) {
+static std::optional<uint64_t> toUInt64(const std::string_view str) {
     uint64_t value       = 0;
     const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
     if (ec != std::errc() || ptr != str.data() + str.size())
@@ -86,12 +84,12 @@ static std::optional<SInstanceData> parseInstance(const std::filesystem::directo
     SInstanceData data;
     data.id = entry.path().filename().string();
 
-    const auto first = data.id.find_first_of('_');
-    const auto last  = data.id.find_last_of('_');
-    if (first == std::string::npos || last == std::string::npos || last <= first)
+    const auto first = std::string_view{data.id}.find_first_of('_');
+    const auto last  = std::string_view{data.id}.find_last_of('_');
+    if (first == std::string_view::npos || last == std::string_view::npos || last <= first)
         return std::nullopt;
 
-    auto time = toUInt64(data.id.substr(first + 1, last - first - 1));
+    auto time = toUInt64(std::string_view{data.id}.substr(first + 1, last - first - 1));
     if (!time)
         return std::nullopt;
     data.time = *time;
@@ -100,7 +98,7 @@ static std::optional<SInstanceData> parseInstance(const std::filesystem::directo
     if (!std::getline(ifs, line))
         return std::nullopt;
 
-    auto pid = toUInt64(line);
+    auto pid = toUInt64(std::string_view{line});
     if (!pid)
         return std::nullopt;
     data.pid = *pid;
@@ -175,7 +173,7 @@ int rollingRead(const int socket) {
     return 0;
 }
 
-int request(std::string arg, int minArgs = 0, bool needRoll = false) {
+int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
@@ -201,10 +199,8 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
         return 3;
     }
 
-    const std::string USERID = std::to_string(getUID());
-
-    sockaddr_un       serverAddress = {0};
-    serverAddress.sun_family        = AF_UNIX;
+    sockaddr_un serverAddress = {0};
+    serverAddress.sun_family  = AF_UNIX;
 
     std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/.socket.sock";
 
@@ -215,7 +211,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
         return 4;
     }
 
-    auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
+    auto sizeWritten = write(SERVERSOCKET, arg.data(), arg.size());
 
     if (sizeWritten < 0) {
         log("Couldn't write (5)");
@@ -256,7 +252,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     return 0;
 }
 
-int requestIPC(std::string filename, std::string arg) {
+int requestIPC(std::string_view filename, std::string_view arg) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
@@ -272,9 +268,7 @@ int requestIPC(std::string filename, std::string arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    const std::string USERID = std::to_string(getUID());
-
-    std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + filename;
+    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + filename;
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -286,7 +280,7 @@ int requestIPC(std::string filename, std::string arg) {
     arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
     arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
 
-    auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
+    auto sizeWritten = write(SERVERSOCKET, arg.data(), arg.size());
 
     if (sizeWritten < 0) {
         log("Couldn't write (4)");
@@ -309,16 +303,16 @@ int requestIPC(std::string filename, std::string arg) {
     return 0;
 }
 
-int requestHyprpaper(std::string arg) {
+int requestHyprpaper(std::string_view arg) {
     return requestIPC(".hyprpaper.sock", arg);
 }
 
-int requestHyprsunset(std::string arg) {
+int requestHyprsunset(std::string_view arg) {
     return requestIPC(".hyprsunset.sock", arg);
 }
 
-void batchRequest(std::string arg, bool json) {
-    std::string commands = arg.substr(arg.find_first_of(' ') + 1);
+void batchRequest(std::string_view arg, bool json) {
+    std::string commands(arg.substr(arg.find_first_of(' ') + 1));
 
     if (json) {
         RE2::GlobalReplace(&commands, ";\\s*", ";j/");

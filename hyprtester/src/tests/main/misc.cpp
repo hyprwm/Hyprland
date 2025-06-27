@@ -18,7 +18,7 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-bool testMisc() {
+static bool test() {
     NLog::log("{}Testing config: misc:", Colors::GREEN);
 
     NLog::log("{}Testing close_special_on_empty", Colors::YELLOW);
@@ -140,3 +140,5 @@ bool testMisc() {
 
     return !ret;
 }
+
+REGISTER_TEST_FN(test);

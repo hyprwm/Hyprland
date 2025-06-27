@@ -439,6 +439,13 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
+        double       gapOffset = 0;
+        if (*SNAPRESPECTGAPS) {
+            static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+            auto*       PGAPSINPTR  = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
+            gapOffset               = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
+        }
+
         for (auto& other : g_pCompositor->m_windows) {
             if ((HASFULLSCREEN && !other->m_createdOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
                 other->isX11OverrideRedirect())
@@ -447,13 +454,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             const int    OTHERBORDERSIZE = other->getRealBorderSize();
             const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
 
-            const CBox   SURF      = other->getWindowMainSurfaceBox();
-            double       gapOffset = 0;
-            if (*SNAPRESPECTGAPS) {
-                static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-                auto*       PGAPSINPTR  = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-                gapOffset               = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
-            }
+            const CBox   SURF   = other->getWindowMainSurfaceBox();
             const SRange SURFBX = {SURF.x - BORDERSIZE - gapOffset, SURF.x + SURF.w + BORDERSIZE + gapOffset};
             const SRange SURFBY = {SURF.y - BORDERSIZE - gapOffset, SURF.y + SURF.h + BORDERSIZE + gapOffset};
 

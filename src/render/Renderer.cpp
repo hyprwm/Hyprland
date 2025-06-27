@@ -831,13 +831,14 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
     static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
+    static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
 
     if (!pMonitor)
         return;
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        // We stop to render workspaces as soon as the session is covered by the lockscreen,
-        // or alternatively after misc:lockdead_screen_delay has passed.
+    if (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
+        // We stop to render workspaces as soon as the lockscreen was sent the "locked" or "finished" (aka denied) event.
+        // In addition we make sure to stop rendering workspaces after misc:lockdead_screen_delay has passed.
         if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
             return;
     }
@@ -1027,6 +1028,10 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
 }
 
 void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
+    static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
+    if (*PSESSIONLOCKXRAY)
+        return;
+
     CRectPassElement::SRectData data;
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};

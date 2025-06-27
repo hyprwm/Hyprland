@@ -838,7 +838,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (g_pSessionLockManager->isSessionLocked()) {
         // We stop to render workspaces as soon as the session is covered by the lockscreen,
         // or alternatively after misc:lockdead_screen_delay has passed.
-        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied())
+        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
             return;
     }
 
@@ -997,16 +997,16 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
         return;
     }
 
-    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied();
+    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied();
     if (RENDERPRIMER)
         renderSessionLockPrimer(pMonitor);
 
-    const auto PSLS        = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
-    const bool LOCKMISSING = (!PSLS || g_pSessionLockManager->hasSentDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
+    const auto PSLS              = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
+    const bool RENDERLOCKMISSING = (PSLS.expired() || g_pSessionLockManager->clientDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
 
-    g_pHyprOpenGL->ensureLockTexturesRendered(LOCKMISSING);
+    g_pHyprOpenGL->ensureLockTexturesRendered(RENDERLOCKMISSING);
 
-    if (LOCKMISSING)
+    if (RENDERLOCKMISSING)
         renderSessionLockMissing(pMonitor);
     else if (PSLS) {
         renderSessionLockSurface(PSLS, pMonitor, now);
@@ -1035,15 +1035,23 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
-    CBox monbox = {{}, pMonitor->m_pixelSize};
 
     // render image, with instructions. Lock is gone.
-    g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockDeadTexture, monbox, 1.f);
+    CBox                         monbox = {{}, pMonitor->m_pixelSize};
+    CTexPassElement::SRenderData data;
+    data.tex = g_pHyprOpenGL->m_lockDeadTexture;
+    data.box = monbox;
+    data.a   = 1;
+
+    m_renderPass.add(makeShared<CTexPassElement>(data));
 
     // also render text for the tty number
     if (g_pHyprOpenGL->m_lockTtyTextTexture) {
         CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_lockTtyTextTexture, texbox, 1.f);
+        data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
+        data.box    = texbox;
+
+        m_renderPass.add(makeShared<CTexPassElement>(data));
     }
 }
 

@@ -54,8 +54,8 @@ class CSessionLockManager {
     WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
 
     bool                    isSessionLocked();
-    bool                    hasSentLocked();
-    bool                    hasSentDenied();
+    bool                    clientLocked();
+    bool                    clientDenied();
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
 
     void                    removeSessionLockSurface(SSessionLockSurface*);

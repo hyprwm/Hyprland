@@ -56,7 +56,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         return;
     }
 
-    if (m_sessionLock && !hasSentDenied() && !hasSentLocked())
+    if (m_sessionLock && !clientDenied() && !clientLocked())
         return; // Not allowing to relock in case the old lock is still in a limbo
 
     LOGM(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
@@ -97,7 +97,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     m_sessionLock->sendDeniedTimer = SP<CEventLoopTimer>(new CEventLoopTimer(
         std::chrono::seconds(5),
         [](auto, auto) {
-            if (!g_pSessionLockManager || g_pSessionLockManager->hasSentLocked() || g_pSessionLockManager->hasSentDenied())
+            if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
                 return;
 
             if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock) {
@@ -148,7 +148,7 @@ WP<SSessionLockSurface> CSessionLockManager::getSessionLockSurfaceForMonitor(uin
 }
 
 void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
-    if (!m_sessionLock || m_sessionLock->hasSentLocked)
+    if (!m_sessionLock || m_sessionLock->hasSentLocked || m_sessionLock->hasSentDenied)
         return;
     m_sessionLock->lockedMonitors.emplace(id);
     const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return m_sessionLock->lockedMonitors.contains(m->m_id); });
@@ -192,11 +192,11 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     }
 }
 
-bool CSessionLockManager::hasSentLocked() {
+bool CSessionLockManager::clientLocked() {
     return m_sessionLock && m_sessionLock->hasSentLocked;
 }
 
-bool CSessionLockManager::hasSentDenied() {
+bool CSessionLockManager::clientDenied() {
     return m_sessionLock && m_sessionLock->hasSentDenied;
 }
 

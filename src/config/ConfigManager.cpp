@@ -801,7 +801,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "disabled", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("monitorv2", "mode", {"preferred"});
     m_config->addSpecialConfigValue("monitorv2", "position", {"auto"});
-    m_config->addSpecialConfigValue("monitorv2", "scale", Hyprlang::FLOAT{1.0});
+    m_config->addSpecialConfigValue("monitorv2", "scale", {"auto"});
     m_config->addSpecialConfigValue("monitorv2", "addreserved", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
@@ -1050,7 +1050,7 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
         parser.parsePosition(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "scale", output.c_str());
     if (VAL && VAL->m_bSetByUser)
-        parser.rule().scale = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
+        parser.parseScale(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));

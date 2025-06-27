@@ -1,21 +1,18 @@
-name: Nix (Build)
+name: Build
 
 on:
   workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+        description: Command to run
     secrets:
       CACHIX_AUTH_TOKEN:
         required: false
 
 jobs:
   build:
-    strategy:
-      matrix:
-        package:
-          - hyprland
-          # - hyprland-cross # cross compiling fails due to qt
-          # failure chain: hyprland-qtutils -> qt6.qtsvg -> qt6.qtbase -> psqlodbc & qt6.qttranslations
-          - xdg-desktop-portal-hyprland
-
     runs-on: ubuntu-latest
     steps:
       - name: Install Nix
@@ -29,17 +26,17 @@ jobs:
         uses: nix-community/cache-nix-action@v6
         with:
           # restore and save a cache using this key
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          primary-key: nix-${{ runner.os }}
           # if there's no cache hit, restore a cache by this prefix
-          restore-prefixes-first-match: nix-${{ runner.os }}-
+          restore-prefixes-first-match: nix-${{ runner.os }}
           # collect garbage until the Nix store size (in bytes) is at most this number
           # before trying to save a new cache
           # 1G = 1073741824
-          gc-max-store-size-linux: 1G
+          gc-max-store-size-linux: 5G
           # do purge caches
           purge: true
           # purge all versions of the cache
-          purge-prefixes: nix-${{ runner.os }}-
+          purge-prefixes: nix-${{ runner.os }}
           # created more than this number of seconds ago
           purge-created: 0
           # or, last accessed more than this number of seconds ago
@@ -53,4 +50,4 @@ jobs:
           name: hyprland
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"
+      - run: ${{ inputs.command }}

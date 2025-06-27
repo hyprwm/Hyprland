@@ -83,7 +83,6 @@ enum eMonitorExtraRenderFBs : uint8_t {
 
 struct SPreparedShaders {
     std::string TEXVERTSRC;
-    std::string TEXVERTSRC300;
     std::string TEXVERTSRC320;
     SShader     m_shQUAD;
     SShader     m_shRGBA;
@@ -201,6 +200,8 @@ class CHyprOpenGLImpl {
     void popMonitorTransformEnabled();
 
     void setRenderModifEnabled(bool enabled);
+    void setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void setCapStatus(int cap, bool status);
 
     void saveMatrix();
     void setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
@@ -307,40 +308,47 @@ class CHyprOpenGLImpl {
         EGL_CONTEXT_GLES_3_2,
     };
 
-    eEGLContextVersion      m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
+    struct {
+        GLint   x      = 0;
+        GLint   y      = 0;
+        GLsizei width  = 0;
+        GLsizei height = 0;
+    } m_lastViewport;
 
-    std::vector<SDRMFormat> m_drmFormats;
-    bool                    m_hasModifiers = false;
+    std::unordered_map<int, bool> m_capStatus;
 
-    int                     m_drmFD = -1;
-    std::string             m_extensions;
+    eEGLContextVersion            m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 
-    bool                    m_fakeFrame            = false;
-    bool                    m_applyFinalShader     = false;
-    bool                    m_blend                = false;
-    bool                    m_offloadedFramebuffer = false;
-    bool                    m_cmSupported          = true;
+    std::vector<SDRMFormat>       m_drmFormats;
+    bool                          m_hasModifiers = false;
 
-    bool                    m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>        m_monitorTransformStack;
+    int                           m_drmFD = -1;
+    std::string                   m_extensions;
 
-    SShader                 m_finalScreenShader;
-    CTimer                  m_globalTimer;
-    GLuint                  m_currentProgram;
+    bool                          m_fakeFrame            = false;
+    bool                          m_applyFinalShader     = false;
+    bool                          m_blend                = false;
+    bool                          m_offloadedFramebuffer = false;
+    bool                          m_cmSupported          = true;
 
-    SP<CTexture>            m_missingAssetTexture;
-    SP<CTexture>            m_backgroundTexture;
-    SP<CTexture>            m_lockDeadTexture;
-    SP<CTexture>            m_lockDead2Texture;
-    SP<CTexture>            m_lockTtyTextTexture;
+    bool                          m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>              m_monitorTransformStack;
+    SP<CTexture>                  m_missingAssetTexture;
+    SP<CTexture>                  m_backgroundTexture;
+    SP<CTexture>                  m_lockDeadTexture;
+    SP<CTexture>                  m_lockDead2Texture;
+    SP<CTexture>                  m_lockTtyTextTexture;
+    SShader                       m_finalScreenShader;
+    CTimer                        m_globalTimer;
+    GLuint                        m_currentProgram;
 
-    void                    logShaderError(const GLuint&, bool program = false, bool silent = false);
-    void                    createBGTextureForMonitor(PHLMONITOR);
-    void                    initDRMFormats();
-    void                    initEGL(bool gbm);
-    EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
-    void                    initAssets();
-    void                    initMissingAssetTexture();
+    void                          logShaderError(const GLuint&, bool program = false, bool silent = false);
+    void                          createBGTextureForMonitor(PHLMONITOR);
+    void                          initDRMFormats();
+    void                          initEGL(bool gbm);
+    EGLDeviceEXT                  eglDeviceFromDRMFD(int drmFD);
+    void                          initAssets();
+    void                          initMissingAssetTexture();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
@@ -349,9 +357,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
+    void          passCMUniforms(SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(const SShader&, const NColorManagement::SImageDescription& imageDescription);
+    void          passCMUniforms(SShader&, const NColorManagement::SImageDescription& imageDescription);
     void renderTextureInternalWithDamage(SP<CTexture>, const CBox& box, float a, const CRegion& damage, int round = 0, float roundingPower = 2.0f, bool discardOpaque = false,
                                          bool noAA = false, bool allowCustomUV = false, bool allowDim = false, GLenum wrapX = GL_CLAMP_TO_EDGE, GLenum wrapY = GL_CLAMP_TO_EDGE);
     void renderTexturePrimitive(SP<CTexture> tex, const CBox& box);

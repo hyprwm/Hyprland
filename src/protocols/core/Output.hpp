@@ -46,6 +46,10 @@ class CWLOutputProtocol : public IWaylandProtocol {
     void remove();
     bool isDefunct(); // true if above was called
 
+    struct {
+        CSignal outputBound;
+    } m_events;
+
   private:
     void destroyResource(CWLOutputResource* resource);
 

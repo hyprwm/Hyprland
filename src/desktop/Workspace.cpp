@@ -70,6 +70,8 @@ CWorkspace::~CWorkspace() {
         g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
         EMIT_HOOK_EVENT("destroyWorkspace", this);
     }
+
+    m_events.destroy.emit();
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
@@ -183,14 +185,6 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_renderOffset->warp();
         m_alpha->warp();
     }
-}
-
-void CWorkspace::setActive(bool on) {
-    ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
-}
-
-void CWorkspace::moveToMonitor(const MONITORID& id) {
-    ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
 PHLWINDOW CWorkspace::getLastFocusedWindow() {
@@ -650,6 +644,7 @@ void CWorkspace::rename(const std::string& name) {
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
+    m_events.rename.emit();
 }
 
 void CWorkspace::updateWindows() {

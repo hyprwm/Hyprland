@@ -37,7 +37,9 @@ class IHLBuffer : public Aquamarine::IBuffer {
     } m_hlEvents;
 
   private:
-    int m_locks = 0;
+    int                   m_locks = 0;
+
+    std::function<void()> m_backendReleaseQueuedFn;
 
     friend class CHLBufferReference;
 };

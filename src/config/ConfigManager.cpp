@@ -2578,6 +2578,13 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 std::optional<std::string> CConfigManager::handleUnbind(const std::string& command, const std::string& value) {
     const auto ARGS = CVarList(value);
 
+    if (ARGS.size() == 1 && ARGS[0] == "all") {
+        g_pKeybindManager->m_keybinds.clear();
+        g_pKeybindManager->m_activeKeybinds.clear();
+        g_pKeybindManager->m_lastLongPressKeybind.reset();
+        return {};
+    }
+
     const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
 
     const auto KEY = parseKey(ARGS[1]);

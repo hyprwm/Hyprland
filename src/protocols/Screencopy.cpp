@@ -63,11 +63,13 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, (int)(m_monitor->m_size.x), (int)(m_monitor->m_size.y)};
-    else {
+    else
         m_box = box_;
-    }
 
-    m_box.transform(wlTransformToHyprutils(m_monitor->m_transform), m_monitor->m_transformedSize.x, m_monitor->m_transformedSize.y).scale(m_monitor->m_scale).round();
+    const auto POS = m_box.pos();
+    m_box.transform(wlTransformToHyprutils(m_monitor->m_transform), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y).scale(m_monitor->m_scale).round();
+    m_box.x = POS.x;
+    m_box.y = POS.y;
 
     m_shmStride = NFormatUtils::minStride(PSHMINFO, m_box.w);
 

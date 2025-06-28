@@ -18,7 +18,7 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-bool testWorkspaces() {
+static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
     // test on workspace "window"
@@ -347,3 +347,5 @@ bool testWorkspaces() {
 
     return !ret;
 }
+
+REGISTER_TEST_FN(test)

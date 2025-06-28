@@ -218,20 +218,9 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
-    // now we can start issuing stuff.
-    NLog::log("{}testing windows", Colors::YELLOW);
-    EXPECT(testWindows(), true);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-    NLog::log("{}testing groups", Colors::YELLOW);
-    EXPECT(testGroups(), true);
-
-    NLog::log("{}testing workspaces", Colors::YELLOW);
-    EXPECT(testWorkspaces(), true);
-
-    NLog::log("{}testing misc variables", Colors::YELLOW);
-    EXPECT(testMisc(), true);
+    for (const auto& fn : testFns) {
+        EXPECT(fn(), true);
+    }
 
     NLog::log("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);

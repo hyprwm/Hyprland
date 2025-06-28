@@ -143,11 +143,11 @@ void CHyprError::createQueued() {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     m_texture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_texture->m_texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    m_texture->bind();
+    m_texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 

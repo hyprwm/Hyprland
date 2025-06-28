@@ -331,6 +331,9 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
 
             result += CHyprCtl::getWindowData(w, format);
         }
+
+        if (result.empty())
+            return "no open windows";
     }
     return result;
 }

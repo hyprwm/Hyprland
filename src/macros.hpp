@@ -95,6 +95,8 @@
 #define UNREACHABLE() std::unreachable();
 #endif
 
+#if ISDEBUG
+
 #define GLCALL(__CALL__)                                                                                                                                                           \
     {                                                                                                                                                                              \
         __CALL__;                                                                                                                                                                  \
@@ -104,6 +106,13 @@
                        ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                              \
         }                                                                                                                                                                          \
     }
+
+#else
+
+#define GLCALL(__CALL__)                                                                                                                                                           \
+    { __CALL__; }
+
+#endif
 
 #define HYPRUTILS_FORWARD(ns, name)                                                                                                                                                \
     namespace Hyprutils {                                                                                                                                                          \

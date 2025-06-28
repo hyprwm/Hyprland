@@ -29,12 +29,17 @@ bool IHLBuffer::locked() {
 
 void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     if (m_hlEvents.backendRelease) {
-        m_hlEvents.backendRelease->emit(nullptr);
+        if (m_backendReleaseQueuedFn)
+            m_backendReleaseQueuedFn();
         Debug::log(LOG, "backendRelease emitted early");
     }
 
-    m_hlEvents.backendRelease = events.backendRelease.registerListener([this, fn](std::any) {
-        fn();
+    m_backendReleaseQueuedFn = fn;
+
+    m_hlEvents.backendRelease = events.backendRelease.registerListener([this](std::any) {
+        if (m_backendReleaseQueuedFn)
+            m_backendReleaseQueuedFn();
+        m_backendReleaseQueuedFn = nullptr;
         m_hlEvents.backendRelease.reset();
     });
 }

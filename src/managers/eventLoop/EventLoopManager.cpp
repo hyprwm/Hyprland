@@ -11,7 +11,6 @@
 #include <ctime>
 
 #include <aquamarine/backend/Backend.hpp>
-#include <utility>
 using namespace Hyprutils::OS;
 
 #define TIMESPEC_NSEC_PER_SEC 1000000000L
@@ -141,20 +140,14 @@ void CEventLoopManager::nudgeTimers() {
     // remove timers that have gone missing
     std::erase_if(m_timers.timers, [](const auto& t) { return t.strongRef() <= 1; });
 
-    constexpr long MIN_TIMER_INTERVAL_US = 5'000;      // 5ms
-    constexpr long MAX_TIMER_INTERVAL_US = 10'000'000; // 10s
-    long           nextTimerUs           = MAX_TIMER_INTERVAL_US;
+    long nextTimerUs = 10L * 1000 * 1000; // 10s
 
     for (auto const& t : m_timers.timers) {
-        if (t->cancelled() || t->passed())
-            continue;
-        long remaining = t->leftUs();
-        if (remaining > 0 && remaining < nextTimerUs)
-            nextTimerUs = remaining;
+        if (auto const& µs = t->leftUs(); µs < nextTimerUs)
+            nextTimerUs = µs;
     }
 
-    nextTimerUs = std::clamp(nextTimerUs, MIN_TIMER_INTERVAL_US, MAX_TIMER_INTERVAL_US);
-    Debug::log(LOG, "nudgeTimers: {} timers, nextTimerUs = {}", m_timers.timers.size(), nextTimerUs);
+    nextTimerUs = std::clamp(nextTimerUs + 1, 1L, std::numeric_limits<long>::max());
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -168,20 +161,17 @@ void CEventLoopManager::nudgeTimers() {
 void CEventLoopManager::doLater(const std::function<void()>& fn) {
     m_idle.fns.emplace_back(fn);
 
-    if (m_idle.scheduled)
+    if (m_idle.eventSource)
         return;
-
-    m_idle.scheduled = true;
 
     m_idle.eventSource = wl_event_loop_add_idle(
         m_wayland.loop,
         [](void* data) {
             auto IDLE = (CEventLoopManager::SIdleData*)data;
-            auto fns  = std::move(IDLE->fns);
+            auto cpy  = IDLE->fns;
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;
-            IDLE->scheduled   = false;
-            for (auto const& c : fns) {
+            for (auto const& c : cpy) {
                 if (c)
                     c();
             }
@@ -203,15 +193,15 @@ void CEventLoopManager::syncPollFDs() {
     auto aqPollFDs = g_pCompositor->m_aqBackend->getPollFDs();
 
     std::erase_if(m_aqEventSources, [&](const auto& item) {
-        const int fd = item.first;
+        auto const& [fd, eventSourceData] = item;
+
         // If no pollFD has the same fd, remove this event source
         const bool shouldRemove = std::ranges::none_of(aqPollFDs, [&](const auto& pollFD) { return pollFD->fd == fd; });
 
-        if (shouldRemove) {
-            wl_event_source_remove(item.second.eventSource);
-            return true;
-        }
-        return false;
+        if (shouldRemove)
+            wl_event_source_remove(eventSourceData.eventSource);
+
+        return shouldRemove;
     });
 
     for (auto& fd : aqPollFDs | std::views::filter([&](SP<Aquamarine::SPollFD> fd) { return !m_aqEventSources.contains(fd->fd); })) {

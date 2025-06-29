@@ -178,6 +178,8 @@ class CMonitor {
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
 
+    PHLANIMVAR<float> m_cursorZoom;
+
     struct {
         bool canTear         = false;
         bool nextRenderTorn  = false;

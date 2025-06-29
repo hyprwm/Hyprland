@@ -972,6 +972,7 @@ void CConfigManager::setDefaultAnimationVars() {
     m_animationTree.createNode("border", "global");
     m_animationTree.createNode("borderangle", "global");
     m_animationTree.createNode("workspaces", "global");
+    m_animationTree.createNode("zoomFactor", "global");
 
     // layer
     m_animationTree.createNode("layersIn", "layers");
@@ -1129,8 +1130,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         w->uncacheWindowDecos();
     }
 
-    for (auto const& m : g_pCompositor->m_monitors)
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+    for (auto const& m : g_pCompositor->m_monitors) {
+        *(m->m_cursorZoom) = *PZOOMFACTOR;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+    }
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!m_isFirstLaunch) {

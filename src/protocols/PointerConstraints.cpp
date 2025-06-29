@@ -80,7 +80,7 @@ CPointerConstraint::~CPointerConstraint() {
 
 void CPointerConstraint::sharedConstructions() {
     if (m_hlSurface) {
-        m_listeners.destroySurface = m_hlSurface->m_events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = m_hlSurface->m_events.destroy.listen([this] {
             m_hlSurface.reset();
             if (m_active)
                 deactivate();

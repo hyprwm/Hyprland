@@ -372,7 +372,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         PROTO::xdgShell->destroyResource(this);
     });
 
-    m_listeners.surfaceDestroy = m_surface->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.surfaceDestroy = m_surface->m_events.destroy.listen([this] {
         LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
         m_listeners.surfaceDestroy.reset();
         m_listeners.surfaceCommit.reset();
@@ -385,7 +385,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         m_events.destroy.emit();
     });
 
-    m_listeners.surfaceCommit = m_surface->m_events.commit.registerListener([this](std::any d) {
+    m_listeners.surfaceCommit = m_surface->m_events.commit.listen([this] {
         m_current = m_pending;
         if (m_toplevel)
             m_toplevel->m_current = m_toplevel->m_pending;
@@ -436,7 +436,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         for (auto const& p : m_popups) {
             if (!p)
                 continue;
-            m_events.newPopup.emit(p);
+            m_events.newPopup.emit(p.lock());
         }
     });
 

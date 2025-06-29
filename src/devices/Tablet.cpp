@@ -69,63 +69,55 @@ CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : m_tablet(tablet_) {
     if (!m_tablet)
         return;
 
-    m_listeners.destroy = m_tablet->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = m_tablet->events.destroy.listen([this] {
         m_tablet.reset();
         m_events.destroy.emit();
     });
 
-    m_listeners.axis = m_tablet->events.axis.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITablet::SAxisEvent>(d);
-
+    m_listeners.axis = m_tablet->events.axis.listen([this](const Aquamarine::ITablet::SAxisEvent& event) {
         m_tabletEvents.axis.emit(SAxisEvent{
-            .tool        = E.tool,
+            .tool        = event.tool,
             .tablet      = m_self.lock(),
-            .timeMs      = E.timeMs,
-            .updatedAxes = aqUpdateToHl(E.updatedAxes),
-            .axis        = E.absolute,
-            .axisDelta   = E.delta,
-            .tilt        = E.tilt,
-            .pressure    = E.pressure,
-            .distance    = E.distance,
-            .rotation    = E.rotation,
-            .slider      = E.slider,
-            .wheelDelta  = E.wheelDelta,
+            .timeMs      = event.timeMs,
+            .updatedAxes = aqUpdateToHl(event.updatedAxes),
+            .axis        = event.absolute,
+            .axisDelta   = event.delta,
+            .tilt        = event.tilt,
+            .pressure    = event.pressure,
+            .distance    = event.distance,
+            .rotation    = event.rotation,
+            .slider      = event.slider,
+            .wheelDelta  = event.wheelDelta,
         });
     });
 
-    m_listeners.proximity = m_tablet->events.proximity.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITablet::SProximityEvent>(d);
-
+    m_listeners.proximity = m_tablet->events.proximity.listen([this](const Aquamarine::ITablet::SProximityEvent& event) {
         m_tabletEvents.proximity.emit(SProximityEvent{
-            .tool      = E.tool,
+            .tool      = event.tool,
             .tablet    = m_self.lock(),
-            .timeMs    = E.timeMs,
-            .proximity = E.absolute,
-            .in        = E.in,
+            .timeMs    = event.timeMs,
+            .proximity = event.absolute,
+            .in        = event.in,
         });
     });
 
-    m_listeners.tip = m_tablet->events.tip.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITablet::STipEvent>(d);
-
+    m_listeners.tip = m_tablet->events.tip.listen([this](const Aquamarine::ITablet::STipEvent& event) {
         m_tabletEvents.tip.emit(STipEvent{
-            .tool   = E.tool,
+            .tool   = event.tool,
             .tablet = m_self.lock(),
-            .timeMs = E.timeMs,
-            .tip    = E.absolute,
-            .in     = E.down,
+            .timeMs = event.timeMs,
+            .tip    = event.absolute,
+            .in     = event.down,
         });
     });
 
-    m_listeners.button = m_tablet->events.button.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITablet::SButtonEvent>(d);
-
+    m_listeners.button = m_tablet->events.button.listen([this](const Aquamarine::ITablet::SButtonEvent& event) {
         m_tabletEvents.button.emit(SButtonEvent{
-            .tool   = E.tool,
+            .tool   = event.tool,
             .tablet = m_self.lock(),
-            .timeMs = E.timeMs,
-            .button = E.button,
-            .down   = E.down,
+            .timeMs = event.timeMs,
+            .button = event.button,
+            .down   = event.down,
         });
     });
 
@@ -156,48 +148,42 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : m_pad(pad_) {
     if (!m_pad)
         return;
 
-    m_listeners.destroy = m_pad->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = m_pad->events.destroy.listen([this] {
         m_pad.reset();
         m_events.destroy.emit();
     });
 
-    m_listeners.button = m_pad->events.button.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITabletPad::SButtonEvent>(d);
-
+    m_listeners.button = m_pad->events.button.listen([this](const Aquamarine::ITabletPad::SButtonEvent& event) {
         m_padEvents.button.emit(SButtonEvent{
-            .timeMs = E.timeMs,
-            .button = E.button,
-            .down   = E.down,
-            .mode   = E.mode,
-            .group  = E.group,
+            .timeMs = event.timeMs,
+            .button = event.button,
+            .down   = event.down,
+            .mode   = event.mode,
+            .group  = event.group,
         });
     });
 
-    m_listeners.ring = m_pad->events.ring.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITabletPad::SRingEvent>(d);
-
+    m_listeners.ring = m_pad->events.ring.listen([this](const Aquamarine::ITabletPad::SRingEvent& event) {
         m_padEvents.ring.emit(SRingEvent{
-            .timeMs   = E.timeMs,
-            .finger   = E.source == Aquamarine::ITabletPad::AQ_TABLET_PAD_RING_SOURCE_FINGER,
-            .ring     = E.ring,
-            .position = E.pos,
-            .mode     = E.mode,
+            .timeMs   = event.timeMs,
+            .finger   = event.source == Aquamarine::ITabletPad::AQ_TABLET_PAD_RING_SOURCE_FINGER,
+            .ring     = event.ring,
+            .position = event.pos,
+            .mode     = event.mode,
         });
     });
 
-    m_listeners.strip = m_pad->events.strip.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITabletPad::SStripEvent>(d);
-
+    m_listeners.strip = m_pad->events.strip.listen([this](const Aquamarine::ITabletPad::SStripEvent& event) {
         m_padEvents.strip.emit(SStripEvent{
-            .timeMs   = E.timeMs,
-            .finger   = E.source == Aquamarine::ITabletPad::AQ_TABLET_PAD_STRIP_SOURCE_FINGER,
-            .strip    = E.strip,
-            .position = E.pos,
-            .mode     = E.mode,
+            .timeMs   = event.timeMs,
+            .finger   = event.source == Aquamarine::ITabletPad::AQ_TABLET_PAD_STRIP_SOURCE_FINGER,
+            .strip    = event.strip,
+            .position = event.pos,
+            .mode     = event.mode,
         });
     });
 
-    m_listeners.attach = m_pad->events.attach.registerListener([](std::any d) {
+    m_listeners.attach = m_pad->events.attach.listen([] {
         ; // TODO: this doesn't do anything in aq atm
     });
 
@@ -224,7 +210,7 @@ CTabletTool::CTabletTool(SP<Aquamarine::ITabletTool> tool_) : m_tool(tool_) {
     if (!m_tool)
         return;
 
-    m_listeners.destroyTool = m_tool->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroyTool = m_tool->events.destroy.listen([this] {
         m_tool.reset();
         m_events.destroy.emit();
     });
@@ -265,7 +251,7 @@ void CTabletTool::setSurface(SP<CWLSurfaceResource> surf) {
     m_surface = surf;
 
     if (surf) {
-        m_listeners.destroySurface = surf->m_events.destroy.registerListener([this](std::any d) {
+        m_listeners.destroySurface = surf->m_events.destroy.listen([this] {
             PROTO::tablet->proximityOut(m_self.lock());
             m_surface.reset();
             m_listeners.destroySurface.reset();

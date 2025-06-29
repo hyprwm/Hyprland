@@ -15,23 +15,23 @@ class CVirtualPointerV1Resource {
     ~CVirtualPointerV1Resource();
 
     struct {
-        CSignal destroy;
-        CSignal move;
-        CSignal warp;
-        CSignal button;
-        CSignal axis;
-        CSignal frame;
+        CSignalT<>                               destroy;
+        CSignalT<IPointer::SMotionEvent>         move;
+        CSignalT<IPointer::SMotionAbsoluteEvent> warp;
+        CSignalT<IPointer::SButtonEvent>         button;
+        CSignalT<IPointer::SAxisEvent>           axis;
+        CSignalT<>                               frame;
 
-        CSignal swipeBegin;
-        CSignal swipeUpdate;
-        CSignal swipeEnd;
+        CSignalT<IPointer::SSwipeBeginEvent>     swipeBegin;
+        CSignalT<IPointer::SSwipeUpdateEvent>    swipeUpdate;
+        CSignalT<IPointer::SSwipeEndEvent>       swipeEnd;
 
-        CSignal pinchBegin;
-        CSignal pinchUpdate;
-        CSignal pinchEnd;
+        CSignalT<IPointer::SPinchBeginEvent>     pinchBegin;
+        CSignalT<IPointer::SPinchUpdateEvent>    pinchUpdate;
+        CSignalT<IPointer::SPinchEndEvent>       pinchEnd;
 
-        CSignal holdBegin;
-        CSignal holdEnd;
+        CSignalT<IPointer::SHoldBeginEvent>      holdBegin;
+        CSignalT<IPointer::SHoldEndEvent>        holdEnd;
     } m_events;
 
     bool          good();
@@ -56,7 +56,7 @@ class CVirtualPointerProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newPointer; // SP<CVirtualPointerV1Resource>
+        CSignalT<SP<CVirtualPointerV1Resource>> newPointer;
     } m_events;
 
   private:

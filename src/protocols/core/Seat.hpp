@@ -142,7 +142,7 @@ class CWLSeatResource {
     WP<CWLSeatResource>                  m_self;
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
   private:
@@ -157,7 +157,7 @@ class CWLSeatProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newSeatResource; // SP<CWLSeatResource>
+        CSignalT<SP<CWLSeatResource>> newSeatResource;
     } m_events;
 
   private:

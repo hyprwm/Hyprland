@@ -18,7 +18,7 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     };
 
     struct {
-        CSignal setShape;
+        CSignalT<SSetShapeEvent> setShape;
     } m_events;
 
   private:

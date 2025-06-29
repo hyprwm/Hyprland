@@ -18,9 +18,9 @@ class CInputMethodV2 {
     ~CInputMethodV2();
 
     struct {
-        CSignal onCommit;
-        CSignal destroy;
-        CSignal newPopup;
+        CSignalT<>                        onCommit;
+        CSignalT<>                        destroy;
+        CSignalT<SP<CInputMethodPopupV2>> newPopup;
     } m_events;
 
     struct SState {
@@ -110,10 +110,10 @@ class CInputMethodPopupV2 {
     SP<CWLSurfaceResource> surface();
 
     struct {
-        CSignal map;
-        CSignal unmap;
-        CSignal commit;
-        CSignal destroy;
+        CSignalT<> map;
+        CSignalT<> unmap;
+        CSignalT<> commit;
+        CSignalT<> destroy;
     } m_events;
 
     bool m_mapped = false;
@@ -136,7 +136,7 @@ class CInputMethodV2Protocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newIME; // SP<CInputMethodV2>
+        CSignalT<SP<CInputMethodV2>> newIME;
     } m_events;
 
   private:

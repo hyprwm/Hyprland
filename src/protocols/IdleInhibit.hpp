@@ -28,7 +28,7 @@ class CIdleInhibitorResource {
     SP<CIdleInhibitor> m_inhibitor;
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
   private:
@@ -48,7 +48,7 @@ class CIdleInhibitProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newIdleInhibitor; // data: SP<CIdleInhibitor>
+        CSignalT<SP<CIdleInhibitor>> newIdleInhibitor;
     } m_events;
 
   private:

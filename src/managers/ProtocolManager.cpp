@@ -122,7 +122,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::outputs.emplace(M->m_name, ref);
         ref->m_self = ref;
 
-        m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
+        m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.listen([this, M] { onMonitorModeChange(M); });
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {

@@ -213,7 +213,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     if (PMONITOR == nullptr)
         return;
 
-    if (*PZOOMFACTOR != 1.f)
+    if (PMONITOR->m_cursorZoom->value() != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
     bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();

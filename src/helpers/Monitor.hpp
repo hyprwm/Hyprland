@@ -146,6 +146,7 @@ class CMonitor {
 
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;
+    bool                        m_pageFlipPending = false;
 
     wl_event_source*            m_renderTimer   = nullptr; // for RAT
     bool                        m_ratsScheduled = false;
@@ -164,28 +165,27 @@ class CMonitor {
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
 
+    struct {
+        Vector2D pos;
+        bool     updated;
+    } m_hwCursor;
+
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();
     bool   m_ctmUpdated = false;
 
-    // for tearing
+    //
     PHLWINDOWREF m_solitaryClient;
 
+    // for tearing
+    PHLWINDOWREF m_currentTearing;
+    bool         m_canTear = false;
+
     // for direct scanout
-    PHLWINDOWREF m_lastScanout;
-    bool         m_scanoutNeedsCursorUpdate = false;
+    PHLWINDOWREF m_currentScanout;
 
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
-
-    struct {
-        bool canTear         = false;
-        bool nextRenderTorn  = false;
-        bool activelyTearing = false;
-
-        bool busy                    = false;
-        bool frameScheduledWhileBusy = false;
-    } m_tearingState;
 
     struct {
         CSignal destroy;
@@ -221,9 +221,12 @@ class CMonitor {
     WORKSPACEID                         activeSpecialWorkspaceID();
     CBox                                logicalBox();
     void                                scheduleDone();
+    bool                                shouldDoTearing();
+    bool                                shouldDoDirectScanout();
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();
+    bool                                updateHWCursor();
 
     void                                debugLastPresentation(const std::string& message);
     void                                onMonitorFrame();

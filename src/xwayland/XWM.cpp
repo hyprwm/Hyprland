@@ -20,8 +20,9 @@
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
-using Hyprutils::Memory::CUniquePointer;
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 
+using Hyprutils::Memory::CUniquePointer;
 using namespace Hyprutils::OS;
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
@@ -1231,6 +1232,20 @@ void CXWM::initSelection() {
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
+    const auto CLIENT = g_pXWayland->m_server ? g_pXWayland->m_server->m_xwaylandClient : nullptr;
+    if (CLIENT && &sel == &m_clipboard) {
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            Debug::log(LOG, "[xwm] Clipboard write denied by permission manager for XWayland");
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            Debug::log(LOG, "[xwm] Clipboard write permission pending for XWayland");
+            // For now, deny clipboard access when permission is pending as XWayland doesn't support async operations
+            // TODO: In the future, this could be enhanced to store the request and retry after permission is granted
+            return;
+        }
+    }
+
     auto source = makeShared<CXDataSource>(sel);
     if (source->mimes().empty()) {
         Debug::log(ERR, "[xwm] can't set selection: no MIMEs");
@@ -1464,6 +1479,20 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     if (!selection) {
         Debug::log(ERR, "[xwm] sendData: no selection source available");
         return false;
+    }
+
+    const auto CLIENT = g_pXWayland->m_server ? g_pXWayland->m_server->m_xwaylandClient : nullptr;
+    if (CLIENT) {
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            Debug::log(LOG, "[xwm] Clipboard read denied by permission manager for XWayland");
+            return false;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            Debug::log(LOG, "[xwm] Clipboard read permission pending for XWayland");
+            // For now, deny clipboard access when permission is pending as XWayland doesn't support async operations
+            // TODO: In the future, this could be enhanced to store the request and retry after permission is granted
+            return false;
+        }
     }
 
     const auto MIMES = selection->mimes();

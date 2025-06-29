@@ -126,6 +126,7 @@ class CHyprRenderer {
     void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
     void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
     void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
+    void renderSessionLockPrimer(PHLMONITOR pMonitor);
     void renderSessionLockMissing(PHLMONITOR pMonitor);
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);

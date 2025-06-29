@@ -219,6 +219,16 @@ class IHyprLayout {
     Vector2D     m_beginDragSizeXY;
     Vector2D     m_draggingWindowOriginalFloatSize;
     eRectCorner  m_grabbedCorner = CORNER_TOPLEFT;
+    void         handleDragThreshold(const Vector2D& mousePos, const SP<CWindow>& window);
+    bool         shouldUpdateMouseMove(const Vector2D& mousePos);
+    void         updateWindowPosition(const Vector2D& mousePos, const SP<CWindow>& win);
+    void         updateWindowResize(const Vector2D& mousePos, const SP<CWindow>& win);
+    void         handleFloatingResize(const Vector2D& mousePos, const SP<CWindow>& win);
+    Vector2D     computeNewResizeSize(const Vector2D& delta);
+    Vector2D     computeNewResizePos(const Vector2D& newSize);
+    void         enforceAspectRatio(Vector2D& size, Vector2D& minSize, Vector2D& maxSize, const SP<CWindow>& win);
+    Vector2D     ratioAdjust(const Vector2D& in, float ratio, bool expand);
+    void         updateWindowMonitorAndDecos(const SP<CWindow>& win);
 
     PHLWINDOWREF m_lastTiledWindow;
 };

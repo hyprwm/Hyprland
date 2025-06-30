@@ -6,6 +6,7 @@
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../render/Renderer.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     m_resource(resource_), m_sessionLock(owner_), m_surface(surface_), m_monitor(pMonitor_) {
@@ -119,6 +120,10 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : m_resource(resourc
         PROTO::lockNotify->onUnlocked();
 
         m_events.unlockAndDestroy.emit();
+
+        // if lock tools have hidden it and doesnt restore it, we wont recieve a new cursor until the cursorshape protocol gives us one.
+        // so set it to left_ptr so the "desktop/wallpaper" doesnt end up missing a cursor until hover over a window sending us a shape.
+        g_pHyprRenderer->setCursorFromName("left_ptr");
 
         m_inert = true;
         PROTO::sessionLock->destroyResource(this);

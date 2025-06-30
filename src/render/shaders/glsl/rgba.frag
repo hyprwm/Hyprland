@@ -18,7 +18,7 @@ uniform vec3 tint;
 layout(location = 0) out vec4 fragColor;
 void main() {
 
-    vec4 pixColor = texture2D(tex, v_texcoord);
+    vec4 pixColor = texture(tex, v_texcoord);
 
     if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
 	    discard;

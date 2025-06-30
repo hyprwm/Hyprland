@@ -2367,6 +2367,12 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(true);
 
     useProgram(m_shaders->m_shBORDER1.program);
+
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
+    if (!skipCM)
+        passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
+
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);

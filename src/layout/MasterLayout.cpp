@@ -1484,3 +1484,34 @@ void CHyprMasterLayout::onEnable() {
 void CHyprMasterLayout::onDisable() {
     m_masterNodesData.clear();
 }
+
+PHLWINDOW CHyprMasterLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
+    static auto PFOCUSMASTERONCLOSE = CConfigValue<Hyprlang::INT>("master:focus_master_on_close");
+    
+    // If the config is enabled and we have a valid window that was closed
+    if (*PFOCUSMASTERONCLOSE && pWindow && pWindow->m_workspace) {
+        const auto PNODE = getNodeFromWindow(pWindow);
+        
+        // If the closed window was a master window, try to focus the next master window
+        if (PNODE && PNODE->isMaster) {
+            const auto WORKSPACEID = pWindow->workspaceID();
+            
+            // Find the next master window in the same workspace
+            for (auto& nd : m_masterNodesData) {
+                if (nd.workspaceID == WORKSPACEID && nd.isMaster && nd.pWindow.lock() != pWindow && nd.pWindow.lock() && nd.pWindow.lock()->m_isMapped) {
+                    return nd.pWindow.lock();
+                }
+            }
+            
+            // If no other master window found, try to find any master window in the workspace
+            for (auto& nd : m_masterNodesData) {
+                if (nd.workspaceID == WORKSPACEID && nd.isMaster && nd.pWindow.lock() && nd.pWindow.lock()->m_isMapped) {
+                    return nd.pWindow.lock();
+                }
+            }
+        }
+    }
+    
+    // Fall back to default behavior
+    return IHyprLayout::getNextWindowCandidate(pWindow);
+}

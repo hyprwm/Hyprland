@@ -1122,7 +1122,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "misc:force_default_wallpaper",
-        .description = "Enforce any of the 3 default wallpapers. Setting this to 0 or 1 disables the anime background. -1 means “random”. [-1/0/1/2]",
+        .description = "Enforce any of the 3 default wallpapers. Setting this to 0 or 1 disables the anime background. -1 means "random". [-1/0/1/2]",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{-1, -1, 2},
     },
@@ -1196,7 +1196,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "misc:swallow_exception_regex",
         .description = "The title regex to be used for windows that should not be swallowed by the windows specified in swallow_regex (e.g. wev). The regex is matched against the "
-                       "parent (e.g. Kitty) window’s title on the assumption that it changes to whatever process it’s running.",
+                       "parent (e.g. Kitty) window's title on the assumption that it changes to whatever process it's running.",
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
@@ -1322,7 +1322,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "binds:workspace_back_and_forth",
-        .description = "If enabled, an attempt to switch to the currently focused workspace will instead switch to the previous workspace. Akin to i3’s auto_back_and_forth.",
+        .description = "If enabled, an attempt to switch to the currently focused workspace will instead switch to the previous workspace. Akin to i3's auto_back_and_forth.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1334,7 +1334,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "binds:allow_workspace_cycles",
-        .description = "If enabled, workspaces don’t forget their previous workspace, so cycles can be created by switching to the first workspace in a sequence, then endlessly "
+        .description = "If enabled, workspaces don't forget their previous workspace, so cycles can be created by switching to the first workspace in a sequence, then endlessly "
                        "going to the previous workspace.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
@@ -1520,7 +1520,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "cursor:inactive_timeout",
-        .description = "in seconds, after how many seconds of cursor’s inactivity to hide it. Set to 0 for never.",
+        .description = "in seconds, after how many seconds of cursor's inactivity to hide it. Set to 0 for never.",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{0, 0, 20},
     },
@@ -1905,7 +1905,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "master:always_keep_position",
-        .description = "whether to keep the master window in its configured position when there are no slave windows",
+        .description = "If enabled, the master window will always keep its position and size even when it's the only window on the workspace.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "master:focus_master_on_close",
+        .description = "If enabled, when a master window is closed, focus will automatically shift to the next master window instead of potentially focusing a stack window.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

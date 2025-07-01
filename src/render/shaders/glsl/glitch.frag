@@ -54,9 +54,9 @@ void main() {
 
     vec2 pixCoord = vec2(v_texcoord.x + offset + NOISE * 3.0 / screenSize.x + blockOffset.x, v_texcoord.y - meltAmount + 0.02 * NOISE / screenSize.x + NOISE * 3.0 / screenSize.y  + blockOffset.y);
 
-    vec4 pixColor = texture2D(tex, pixCoord);
-    vec4 pixColorLeft = texture2D(tex, pixCoord + vec2(ABERR_OFFSET / screenSize.x, 0));
-    vec4 pixColorRight = texture2D(tex, pixCoord + vec2(-ABERR_OFFSET / screenSize.x, 0));
+    vec4 pixColor = texture(tex, pixCoord);
+    vec4 pixColorLeft = texture(tex, pixCoord + vec2(ABERR_OFFSET / screenSize.x, 0));
+    vec4 pixColorRight = texture(tex, pixCoord + vec2(-ABERR_OFFSET / screenSize.x, 0));
 
     pixColor[0] = pixColorLeft[0];
     pixColor[2] = pixColorRight[2];

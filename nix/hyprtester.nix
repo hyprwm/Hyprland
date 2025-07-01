@@ -10,7 +10,7 @@
 }: let
   inherit (lib.lists) flatten foldl';
   inherit (lib.sources) cleanSourceWith cleanSource;
-  inherit (lib.strings) hasSuffix;
+  inherit (lib.strings) hasSuffix cmakeBool;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -47,6 +47,8 @@ in
     '';
 
     cmakeBuildType = "Debug";
+
+    cmakeFlags = [(cmakeBool "TESTS" true)];
 
     meta = {
       homepage = "https://github.com/hyprwm/Hyprland";

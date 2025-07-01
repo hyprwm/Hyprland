@@ -455,7 +455,7 @@ install(
   PATTERN "*.hpp"
   PATTERN "*.inc")
 
-if(NOT NO_TESTS)
+if(TESTS)
   enable_testing()
   add_custom_target(tests)
 

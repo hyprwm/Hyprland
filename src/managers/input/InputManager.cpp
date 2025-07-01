@@ -185,7 +185,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
     static auto PMOUSEFOCUSMON        = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
     static auto PRESIZEONBORDER       = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PRESIZECURSORICON     = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
-    static auto PZOOMFACTOR           = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 

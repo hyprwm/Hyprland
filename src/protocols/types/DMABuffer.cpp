@@ -118,6 +118,9 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
         if (fd == -1)
             continue;
 
+        if (CFileDescriptor::isReadable(fd))
+            continue;
+
         dma_buf_export_sync_file request{
             .flags = DMA_BUF_SYNC_READ,
             .fd    = -1,

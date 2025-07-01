@@ -1565,7 +1565,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapX);
     tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapY);
 
-    if (m_renderData.useNearestNeighbor && !usingFinalShader) {
+    if (m_renderData.useNearestNeighbor) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1605,8 +1605,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
     }
 
-    if ((usingFinalShader && *PDT == 0) || CRASHING)
-        shader->setUniformFloat2(SHADER_POINTER, g_pPointerManager->position().x, g_pPointerManager->position().y);
+    if (usingFinalShader && *PDT == 0) {
+        shader->setUniformFloat2(
+            SHADER_POINTER,
+            g_pInputManager->getMouseCoordsInternal().x / m_renderData.pMonitor->m_pixelSize.x,
+            g_pInputManager->getMouseCoordsInternal().y / m_renderData.pMonitor->m_pixelSize.y
+        );
+    }
     else if (usingFinalShader)
         shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 

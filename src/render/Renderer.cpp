@@ -1163,12 +1163,13 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
+
+    const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Debug::log(ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
@@ -1298,16 +1299,16 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     TRACY_GPU_ZONE("Render");
 
     static bool zoomLock = false;
-    if (zoomLock && *PZOOMFACTOR == 1.f) {
+    if (zoomLock && ZOOMFACTOR == 1.f) {
         g_pPointerManager->unlockSoftwareAll();
         zoomLock = false;
-    } else if (!zoomLock && *PZOOMFACTOR != 1.f) {
+    } else if (!zoomLock && ZOOMFACTOR != 1.f) {
         g_pPointerManager->lockSoftwareAll();
         zoomLock = true;
     }
 
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
+        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
     else
         g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
 

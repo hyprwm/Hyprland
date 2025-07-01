@@ -50,6 +50,9 @@ static int ratHandler(void* data) {
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+    g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, g_pConfigManager->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
+    m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -917,8 +920,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
@@ -930,8 +932,7 @@ void CMonitor::addDamage(const CRegion& rg) {
 }
 
 void CMonitor::addDamage(const CBox& box) {
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }

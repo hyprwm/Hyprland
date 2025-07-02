@@ -94,7 +94,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     g_pCompositor->focusSurface(nullptr);
     g_pSeatManager->setGrab(nullptr);
 
-    m_sessionLock->sendDeniedTimer = SP<CEventLoopTimer>(new CEventLoopTimer(
+    m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
+        // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
         std::chrono::seconds(5),
         [](auto, auto) {
             if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
@@ -113,7 +114,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
                 g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
             }
         },
-        nullptr));
+        nullptr);
 
     if (m_sessionLock->sendDeniedTimer)
         g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);

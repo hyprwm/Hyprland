@@ -96,7 +96,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         if (m_pending.bufferSize != m_current.bufferSize) {
             m_pending.updated.bits.damage = true;
-            m_pending.bufferDamage        = CBox{{}, {INT32_MAX, INT32_MAX}};
+            m_pending.bufferDamage        = CBox{{}, m_pending.bufferSize};
         }
     });
 
@@ -175,7 +175,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
     m_resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
         m_pending.updated.bits.damage = true;
-        m_pending.bufferDamage.add(CBox{x, y, w, h});
+        const auto damageSize         = Vector2D(w, h);
+
+        if (damageSize > m_pending.bufferSize)
+            m_pending.bufferDamage.add(CBox{{x, y}, m_pending.bufferSize});
+        else
+            m_pending.bufferDamage.add(CBox{{x, y}, damageSize});
     });
 
     m_resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
@@ -186,7 +191,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.updated.bits.damage = true;
 
         m_pending.scale        = scale;
-        m_pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};
     });
 
     m_resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
@@ -197,14 +202,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.updated.bits.damage    = true;
 
         m_pending.transform    = (wl_output_transform)tr;
-        m_pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+        m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};
     });
 
     m_resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {
         m_pending.updated.bits.input = true;
 
         if (!region) {
-            m_pending.input = CBox{{}, {INT32_MAX, INT32_MAX}};
+            m_pending.input = CBox{{}, m_pending.bufferSize};
             return;
         }
 
@@ -437,8 +442,8 @@ void CWLSurfaceResource::map() {
 
     frame(Time::steadyNow());
 
-    m_current.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-    m_pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
+    m_current.bufferDamage = CBox{{}, m_current.bufferSize};
+    m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};
 }
 
 void CWLSurfaceResource::unmap() {

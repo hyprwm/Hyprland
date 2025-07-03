@@ -77,11 +77,6 @@ void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
     UP<SReadableWaiter> taken = std::move(*it);
     m_readableWaiters.erase(it);
 
-    if (taken->source) {
-        wl_event_source_remove(taken->source);
-        taken->source = nullptr;
-    }
-
     if (taken->fn)
         taken->fn();
 }

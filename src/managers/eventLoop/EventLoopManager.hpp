@@ -42,6 +42,23 @@ class CEventLoopManager {
         wl_event_source*               source;
         Hyprutils::OS::CFileDescriptor fd;
         std::function<void()>          fn;
+
+        SReadableWaiter(wl_event_source* src, Hyprutils::OS::CFileDescriptor f, std::function<void()> func) : source(src), fd(std::move(f)), fn(std::move(func)) {}
+
+        ~SReadableWaiter() {
+            if (source) {
+                wl_event_source_remove(source);
+                source = nullptr;
+            }
+        }
+
+        // copy
+        SReadableWaiter(const SReadableWaiter&)            = delete;
+        SReadableWaiter& operator=(const SReadableWaiter&) = delete;
+
+        // move
+        SReadableWaiter(SReadableWaiter&& other) noexcept            = default;
+        SReadableWaiter& operator=(SReadableWaiter&& other) noexcept = default;
     };
 
     // schedule function to when fd is readable (WL_EVENT_READABLE / POLLIN),

@@ -1041,29 +1041,32 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
 
+    const auto PWINDOWSIZE                 = PCURRENT->m_realSize->goal();
+    const auto PWINDOWPOS                  = PCURRENT->m_realPosition->goal();
+    const auto PWINDOWLASTFLOATINGSIZE     = PCURRENT->m_lastFloatingSize;
+    const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
+
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
-
-    const auto PWINDOWSIZE = PCURRENT->m_realSize->goal();
-    const auto PWINDOWPOS  = PCURRENT->m_realPosition->goal();
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
-    if (PCURRENT->m_isFloating) {
-        pWindow->m_realPosition->setValueAndWarp(PWINDOWPOS);
-        pWindow->m_realSize->setValueAndWarp(PWINDOWSIZE);
-    }
+    pWindow->m_realPosition->setValueAndWarp(PWINDOWPOS);
+    pWindow->m_realSize->setValueAndWarp(PWINDOWSIZE);
+
+    if (FULLSCREEN)
+        g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);
+
+    pWindow->m_lastFloatingSize     = PWINDOWLASTFLOATINGSIZE;
+    pWindow->m_lastFloatingPosition = PWINDOWLASTFLOATINGPOSITION;
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (CURRENTISFOCUS)
         g_pCompositor->focusWindow(pWindow);
-
-    if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);
 
     g_pHyprRenderer->damageWindow(pWindow);
 

@@ -631,7 +631,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 
     if (m_currentCursorImage.surface)
         m_currentCursorImage.surface->resource()->frame(now);

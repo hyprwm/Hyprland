@@ -208,7 +208,7 @@ void CHyprError::draw() {
     data.box = monbox;
     data.a   = m_fadeOpacity->value();
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprError::destroy() {

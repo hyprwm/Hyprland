@@ -2537,7 +2537,7 @@ void CHyprOpenGLImpl::renderMirrored() {
                                  .transform(wlTransformToHyprutils(invertTransform(mirrored->m_transform)))
                                  .translate(-monitor->m_transformedSize / 2.0);
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
@@ -2927,7 +2927,7 @@ void CHyprOpenGLImpl::clearWithTex() {
         data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
         data.flipEndFrame = true;
         data.tex          = TEXIT->second.getTexture();
-        g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+        g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
     }
 }
 

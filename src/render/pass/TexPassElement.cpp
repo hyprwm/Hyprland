@@ -4,7 +4,11 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 
-CTexPassElement::CTexPassElement(const CTexPassElement::SRenderData& data_) : m_data(data_) {
+CTexPassElement::CTexPassElement(const SRenderData& data) : m_data(data) {
+    ;
+}
+
+CTexPassElement::CTexPassElement(CTexPassElement::SRenderData&& data) : m_data(std::move(data)) {
     ;
 }
 

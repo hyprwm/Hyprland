@@ -978,8 +978,8 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 }
 
 bool CPluginManager::hasDeps() {
-    bool hasAllDeps = true;
-    std::vector<std::string> deps = {"meson", "cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
+    bool                     hasAllDeps = true;
+    std::vector<std::string> deps       = {"meson", "cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
 
     for (auto const& d : deps) {
         if (!execAndGet("command -v " + d).contains("/")) {

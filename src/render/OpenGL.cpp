@@ -1606,10 +1606,37 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     }
 
     if (usingFinalShader && *PDT == 0) {
+        PHLMONITORREF pMonitor = m_renderData.pMonitor;
+        Vector2D p = (g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale;
+        switch (pMonitor->m_transform) {
+            case WL_OUTPUT_TRANSFORM_NORMAL: {
+            } break;
+            case WL_OUTPUT_TRANSFORM_90: {
+                p = Vector2D(p.y, pMonitor->m_pixelSize.y - p.x);
+            } break;
+            case WL_OUTPUT_TRANSFORM_180: {
+                p = Vector2D(pMonitor->m_pixelSize.x - p.x, pMonitor->m_pixelSize.y - p.y);
+            } break;
+            case WL_OUTPUT_TRANSFORM_270: {
+                p = Vector2D(pMonitor->m_pixelSize.x - p.y, p.x);
+            } break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED: {
+                p = Vector2D(pMonitor->m_pixelSize.x - p.x, p.y);
+            } break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_90: {
+                p = Vector2D(p.y, p.x);
+            } break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_180: {
+                p = Vector2D(p.x, pMonitor->m_pixelSize.y - p.y);
+            } break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_270: {
+                p = Vector2D(pMonitor->m_pixelSize.x - p.y, pMonitor->m_pixelSize.y - p.x);
+            } break;
+        }
         shader->setUniformFloat2(
             SHADER_POINTER,
-            g_pInputManager->getMouseCoordsInternal().x / m_renderData.pMonitor->m_pixelSize.x,
-            g_pInputManager->getMouseCoordsInternal().y / m_renderData.pMonitor->m_pixelSize.y
+            p.x / pMonitor->m_pixelSize.x,
+            p.y / pMonitor->m_pixelSize.y
         );
     }
     else if (usingFinalShader)

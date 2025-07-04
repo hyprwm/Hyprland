@@ -183,6 +183,10 @@ bool CSessionLockManager::isSurfaceSessionLock(SP<CWLSurfaceResource> pSurface) 
     return false;
 }
 
+bool CSessionLockManager::anySessionLockSurfacesPresent() {
+    return m_sessionLock && std::ranges::any_of(m_sessionLock->vSessionLockSurfaces, [](const auto& surf) { return surf->mapped; });
+}
+
 void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     if (!m_sessionLock)
         return;

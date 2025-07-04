@@ -36,6 +36,7 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "render/OpenGL.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -1040,18 +1041,20 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
+    const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
 
-    // render image, with instructions. Lock is gone.
+    // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
+    // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    data.tex = g_pHyprOpenGL->m_lockDeadTexture;
+    data.tex = (ANY_PRESENT) ? g_pHyprOpenGL->m_lockDead2Texture : g_pHyprOpenGL->m_lockDeadTexture;
     data.box = monbox;
     data.a   = 1;
 
     m_renderPass.add(makeShared<CTexPassElement>(data));
 
-    // also render text for the tty number
-    if (g_pHyprOpenGL->m_lockTtyTextTexture) {
+    if (!ANY_PRESENT && g_pHyprOpenGL->m_lockTtyTextTexture) {
+        // also render text for the tty number
         CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
         data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
         data.box    = texbox;

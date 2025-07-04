@@ -983,7 +983,7 @@ bool CPluginManager::hasDeps() {
 
     for (auto const& d : deps) {
         if (!execAndGet("command -v " + d).contains("/")) {
-            std::println(stderr, "\n{}", failureString("Missing dependency: {}", d));
+            std::println(stderr, "{}", failureString("Missing dependency: {}", d));
             hasAllDeps = false;
         }
     }

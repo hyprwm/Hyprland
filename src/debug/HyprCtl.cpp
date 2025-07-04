@@ -314,7 +314,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -325,7 +325,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -1828,7 +1828,7 @@ std::string CHyprCtl::getReply(std::string request) {
             rd.blurFBDirty = true;
         }
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
                 continue;
 

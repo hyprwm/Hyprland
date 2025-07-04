@@ -33,7 +33,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
         LOGM(LOG, "CForeignToplevelList: finished");
     });
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (!PROTO::foreignToplevel->windowValidForForeign(w))
             return;
 

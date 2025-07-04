@@ -2031,7 +2031,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     };
 
     bool hasWindows = false;
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->m_workspace == pMonitor->m_activeWorkspace && !w->isHidden() && w->m_isMapped && (!w->m_isFloating || *PBLURXRAY)) {
 
             // check if window is valid

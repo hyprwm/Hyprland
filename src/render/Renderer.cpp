@@ -267,67 +267,76 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
     // loop over the tiled windows that are fading out
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!shouldRenderWindow(w, pMonitor))
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
             continue;
 
-        if (w->m_alpha->value() == 0.f)
+        if (!shouldRenderWindow(w.window, pMonitor))
             continue;
 
-        if (w->isFullscreen() || w->m_isFloating)
+        if (w.window->m_alpha->value() == 0.f)
             continue;
 
-        if (pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+        if (w.window->isFullscreen() || w.window->m_isFloating)
             continue;
 
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        if (pWorkspace->m_isSpecialWorkspace != w.window->onSpecialWorkspace())
+            continue;
+
+        renderWindow(w.window, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // and floating ones too
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!shouldRenderWindow(w, pMonitor))
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
             continue;
 
-        if (w->m_alpha->value() == 0.f)
+        if (!shouldRenderWindow(w.window, pMonitor))
             continue;
 
-        if (w->isFullscreen() || !w->m_isFloating)
+        if (w.window->m_alpha->value() == 0.f)
             continue;
 
-        if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+        if (w.window->isFullscreen() || !w.window->m_isFloating)
             continue;
 
-        if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
+        if (w.window->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w.window->onSpecialWorkspace())
+            continue;
+
+        if (pWorkspace->m_isSpecialWorkspace && w.window->m_monitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w.window, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // TODO: this pass sucks
-    for (auto const& w : g_pCompositor->m_windows) {
-        const auto PWORKSPACE = w->m_workspace;
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
+            continue;
 
-        if (w->m_workspace != pWorkspace || !w->isFullscreen()) {
+        const auto PWORKSPACE = w.window->m_workspace;
+
+        if (w.window->m_workspace != pWorkspace || !w.window->isFullscreen()) {
             if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
                 continue;
 
-            if (w->m_monitor != pMonitor)
+            if (w.window->m_monitor != pMonitor)
                 continue;
         }
 
-        if (!w->isFullscreen())
+        if (!w.window->isFullscreen())
             continue;
 
-        if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+        if (w.window->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w.window->onSpecialWorkspace())
             continue;
 
-        if (shouldRenderWindow(w, pMonitor))
-            renderWindow(w, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
+        if (shouldRenderWindow(w.window, pMonitor))
+            renderWindow(w.window, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
-        if (w->m_workspace != pWorkspace)
+        if (w.window->m_workspace != pWorkspace)
             continue;
 
-        pWorkspaceWindow = w;
+        pWorkspaceWindow = w.window;
     }
 
     if (!pWorkspaceWindow) {
@@ -337,18 +346,21 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // then render windows over fullscreen.
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || (!w->m_createdOverFullscreen && !w->m_pinned) || (!w->m_isMapped && !w->m_fadingOut) ||
-            w->isFullscreen())
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
             continue;
 
-        if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+        if (w.window->workspaceID() != pWorkspaceWindow->workspaceID() || !w.window->m_isFloating || (!w.window->m_createdOverFullscreen && !w.window->m_pinned) ||
+            (!w.window->m_isMapped && !w.window->m_fadingOut) || w.window->isFullscreen())
             continue;
 
-        if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
+        if (w.window->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w.window->onSpecialWorkspace())
+            continue;
+
+        if (pWorkspace->m_isSpecialWorkspace && w.window->m_monitor != pWorkspace->m_monitor)
             continue; // special on another are rendered as a part of the base pass
 
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w.window, pMonitor, time, true, RENDER_PASS_ALL);
     }
 }
 
@@ -358,16 +370,19 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
     std::vector<PHLWINDOWREF> windows, tiledFadingOut;
-    windows.reserve(g_pCompositor->m_windows.size());
+    windows.reserve(g_pCompositor->m_windowStack.renderWindows().size());
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || (!w->m_isMapped && !w->m_fadingOut))
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
             continue;
 
-        if (!shouldRenderWindow(w, pMonitor))
+        if (w.window->isHidden() || (!w.window->m_isMapped && !w.window->m_fadingOut))
             continue;
 
-        windows.emplace_back(w);
+        if (!shouldRenderWindow(w.window, pMonitor))
+            continue;
+
+        windows.emplace_back(w.window);
     }
 
     // Non-floating main
@@ -687,6 +702,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
     g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    g_pHyprRenderer->signal.windowRendered.emit(pWindow);
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -945,18 +961,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pinned always above
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->isHidden() && !w->m_isMapped && !w->m_fadingOut)
+    for (auto const& w : g_pCompositor->m_windowStack.renderWindows()) {
+        if (w.rendered)
             continue;
 
-        if (!w->m_pinned || !w->m_isFloating)
+        if (w.window->isHidden() && !w.window->m_isMapped && !w.window->m_fadingOut)
             continue;
 
-        if (!shouldRenderWindow(w, pMonitor))
+        if (!w.window->m_pinned || !w.window->m_isFloating)
+            continue;
+
+        if (!shouldRenderWindow(w.window, pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w.window, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
@@ -1613,7 +1632,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
 }
 
 void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->m_wlSurface->resource())
             continue;
 
@@ -2165,7 +2184,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
             return;
     }
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
             continue;
 
@@ -2297,6 +2316,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
         m_currentBuffer       = nullptr;
+        signal.endRendering.emit();
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)

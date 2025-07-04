@@ -2,6 +2,7 @@
 
 #include <sys/resource.h>
 
+#include "helpers/WindowStack.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
@@ -40,10 +41,9 @@ class CCompositor {
 
     std::vector<PHLMONITOR>                      m_monitors;
     std::vector<PHLMONITOR>                      m_realMonitors; // for all monitors, even those turned off
-    std::vector<PHLWINDOW>                       m_windows;
+    CWindowStack                                 m_windowStack;
     std::vector<PHLLS>                           m_layers;
     std::vector<PHLWORKSPACE>                    m_workspaces;
-    std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
 
     std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
@@ -80,7 +80,6 @@ class CCompositor {
     PHLMONITOR             getMonitorFromDesc(const std::string&);
     PHLMONITOR             getMonitorFromCursor();
     PHLMONITOR             getMonitorFromVector(const Vector2D&);
-    void                   removeWindowFromVectorSafe(PHLWINDOW);
     void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr, bool preserveFocusHistory = false);
     void                   focusSurface(SP<CWLSurfaceResource>, PHLWINDOW pWindowOwner = nullptr);
     bool                   monitorExists(PHLMONITOR);

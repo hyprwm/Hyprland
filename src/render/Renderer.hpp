@@ -112,6 +112,11 @@ class CHyprRenderer {
         std::string                   name;
     } m_lastCursorData;
 
+    struct {
+        CSignal windowRendered;
+        CSignal endRendering;
+    } signal;
+
     CRenderPass m_renderPass = {};
 
   private:

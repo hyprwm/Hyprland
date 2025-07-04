@@ -1936,7 +1936,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         PWORKSPACE->m_defaultPseudo = !PWORKSPACE->m_defaultPseudo;
 
         // apply
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped || w->m_workspace != PWORKSPACE)
                 continue;
 
@@ -1947,7 +1947,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         // apply
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
-        std::vector<PHLWINDOW> ptrs(g_pCompositor->m_windows.begin(), g_pCompositor->m_windows.end());
+        std::vector<PHLWINDOW> ptrs(g_pCompositor->m_windowStack.windows().begin(), g_pCompositor->m_windowStack.windows().cend());
 
         for (auto const& w : ptrs) {
             if (!w->m_isMapped || w->m_workspace != PWORKSPACE || w->isHidden())

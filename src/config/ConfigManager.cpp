@@ -1126,7 +1126,7 @@ Hyprlang::CParseResult CConfigManager::handleMonitorv2() {
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     updateWatcher();
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         w->uncacheWindowDecos();
     }
 

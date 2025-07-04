@@ -431,7 +431,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         LOGM(LOG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
-        g_pCompositor->m_windows.emplace_back(CWindow::create(m_self.lock()));
+        g_pCompositor->m_windowStack.add(CWindow::create(m_self.lock()));
 
         for (auto const& p : m_popups) {
             if (!p)

@@ -446,7 +446,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             gapOffset               = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
         }
 
-        for (auto& other : g_pCompositor->m_windows) {
+        for (auto& other : g_pCompositor->m_windowStack.windows()) {
             if ((HASFULLSCREEN && !other->m_createdOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
                 other->isX11OverrideRedirect())
                 continue;
@@ -863,7 +863,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     if (pWindow->m_isFloating) {
 
         // find whether there is a floating window below this one
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (w->m_isMapped && !w->isHidden() && w->m_isFloating && !w->isX11OverrideRedirect() && w->m_workspace == pWindow->m_workspace && !w->m_X11ShouldntFocus &&
                 !w->m_windowData.noFocus.valueOrDefault() && w != pWindow) {
                 if (VECINRECT((pWindow->m_size / 2.f + pWindow->m_position), w->m_position.x, w->m_position.y, w->m_position.x + w->m_size.x, w->m_position.y + w->m_size.y)) {
@@ -882,7 +882,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
             return PWINDOWCANDIDATE;
 
         // if not, floating window
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (w->m_isMapped && !w->isHidden() && w->m_isFloating && !w->isX11OverrideRedirect() && w->m_workspace == pWindow->m_workspace && !w->m_X11ShouldntFocus &&
                 !w->m_windowData.noFocus.valueOrDefault() && w != pWindow)
                 return w;

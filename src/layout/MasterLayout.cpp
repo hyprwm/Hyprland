@@ -1473,7 +1473,7 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
 }
 
 void CHyprMasterLayout::onEnable() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->m_isFloating || !w->m_isMapped || w->isHidden())
             continue;
 

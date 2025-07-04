@@ -109,7 +109,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
             g_pHyprRenderer->damageMonitor(PMONITOR);
 
         // TODO: just make this into a damn callback already vax...
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped || w->isHidden() || w->m_workspace != PWORKSPACE)
                 continue;
 
@@ -127,7 +127,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         }
 
         // damage any workspace window that is on any monitor
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!validMapped(w) || w->m_workspace != PWORKSPACE || w->m_pinned)
                 continue;
 
@@ -163,7 +163,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                 PWINDOW->updateWindowDecos();
                 g_pHyprRenderer->damageWindow(PWINDOW);
             } else if (PWORKSPACE) {
-                for (auto const& w : g_pCompositor->m_windows) {
+                for (auto const& w : g_pCompositor->m_windowStack.windows()) {
                     if (!validMapped(w) || w->m_workspace != PWORKSPACE)
                         continue;
 

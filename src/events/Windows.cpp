@@ -121,7 +121,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PWINDOWSURFACE = PWINDOW->m_wlSurface->resource();
 
     if (!PWINDOWSURFACE) {
-        g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
+        g_pCompositor->m_windowStack.removeSafe(PWINDOW);
         return;
     }
 
@@ -944,7 +944,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_fadingOut) {
         Debug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
-        g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
+        g_pCompositor->m_windowStack.removeSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
 
     PWINDOW->m_listeners.unmap.reset();

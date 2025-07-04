@@ -899,7 +899,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // Set scale for all surfaces on this monitor, needed for some clients
     // but not on unsafe state to avoid crashes
     if (!g_pCompositor->m_unsafeState) {
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             w->updateSurfaceScaleTransformDetails();
         }
     }
@@ -1200,7 +1200,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         pWorkspace->startAnim(true, ANIMTOLEFT);
 
         // move pinned windows
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
                 w->moveToWorkspace(pWorkspace);
         }
@@ -1331,7 +1331,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (!wasActive)
         pWorkspace->startAnim(true, true);
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->m_workspace == pWorkspace) {
             w->m_monitor = m_self;
             w->updateSurfaceScaleTransformDetails();

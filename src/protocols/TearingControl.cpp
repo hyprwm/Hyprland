@@ -53,7 +53,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfac
     m_resource->setDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     m_resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->m_wlSurface->resource() == surf_) {
             m_window = w;
             break;

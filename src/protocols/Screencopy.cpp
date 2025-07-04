@@ -204,7 +204,7 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
             continue;
 

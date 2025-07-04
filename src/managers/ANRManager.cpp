@@ -66,7 +66,7 @@ void CANRManager::onTick() {
     for (auto& data : m_data) {
         PHLWINDOW firstWindow;
         int       count = 0;
-        for (const auto& w : g_pCompositor->m_windows) {
+        for (const auto& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped)
                 continue;
 
@@ -85,7 +85,7 @@ void CANRManager::onTick() {
             if (!data->isRunning() && !data->dialogSaidWait) {
                 data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
 
-                for (const auto& w : g_pCompositor->m_windows) {
+                for (const auto& w : g_pCompositor->m_windowStack.windows()) {
                     if (!w->m_isMapped)
                         continue;
 

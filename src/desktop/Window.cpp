@@ -483,7 +483,7 @@ PHLWINDOW CWindow::x11TransientFor() {
     if (s == m_xwaylandSurface)
         return nullptr; // dead-ass circle
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : g_pCompositor->m_windowStack.windows()) {
         if (w->m_xwaylandSurface != s)
             continue;
         return w;
@@ -1618,7 +1618,7 @@ PHLWINDOW CWindow::getSwallower() {
         if (!currentPid)
             break;
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : g_pCompositor->m_windowStack.windows()) {
             if (!w->m_isMapped || w->isHidden())
                 continue;
 

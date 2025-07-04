@@ -1201,10 +1201,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         firstLaunchAnimActive = false;
     }
 
-    renderStart = std::chrono::high_resolution_clock::now();
-
-    if (*PDEBUGOVERLAY == 1)
+    if (*PDEBUGOVERLAY == 1) {
+        renderStart = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(pMonitor);
+    }
 
     if (!g_pCompositor->m_sessionActive)
         return;
@@ -1435,10 +1435,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->m_pendingFrame = false;
 
-    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-    g_pDebugOverlay->renderData(pMonitor, durationUs);
-
     if (*PDEBUGOVERLAY == 1) {
+        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+        g_pDebugOverlay->renderData(pMonitor, durationUs);
+
         if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);

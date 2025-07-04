@@ -2488,7 +2488,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.roundingPower = pWindow->roundingPower();
         data.xray          = pWindow->m_windowData.xray.valueOr(false);
 
-        m_renderPass.add(makeShared<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(std::move(data)));
     }
 
     CTexPassElement::SRenderData data;
@@ -2498,7 +2498,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.a            = pWindow->m_alpha->value();
     data.damage       = fakeDamage;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2540,7 +2540,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {

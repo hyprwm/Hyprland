@@ -14,12 +14,12 @@
 #include <ranges>
 
 CSeatManager::CSeatManager() {
-    m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.registerListener([this](std::any res) { onNewSeatResource(std::any_cast<SP<CWLSeatResource>>(res)); });
+    m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
 }
 
 CSeatManager::SSeatResourceContainer::SSeatResourceContainer(SP<CWLSeatResource> res) : resource(res) {
-    listeners.destroy = res->m_events.destroy.registerListener(
-        [this](std::any data) { std::erase_if(g_pSeatManager->m_seatResources, [this](const auto& e) { return e->resource.expired() || e->resource == resource; }); });
+    listeners.destroy = res->m_events.destroy.listen(
+        [this] { std::erase_if(g_pSeatManager->m_seatResources, [this](const auto& e) { return e->resource.expired() || e->resource == resource; }); });
 }
 
 void CSeatManager::onNewSeatResource(SP<CWLSeatResource> resource) {
@@ -151,7 +151,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         }
     }
 
-    m_listeners.keyboardSurfaceDestroy = surf->m_events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
+    m_listeners.keyboardSurfaceDestroy = surf->m_events.destroy.listen([this] { setKeyboardFocus(nullptr); });
 
     m_events.keyboardFocusChange.emit();
 }
@@ -258,7 +258,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     sendPointerFrame();
 
-    m_listeners.pointerSurfaceDestroy = surf->m_events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
+    m_listeners.pointerSurfaceDestroy = surf->m_events.destroy.listen([this] { setPointerFocus(nullptr, {}); });
 
     m_events.pointerFocusChange.emit();
     m_events.dndPointerFocusChange.emit();
@@ -372,7 +372,7 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
         }
     }
 
-    m_listeners.touchSurfaceDestroy = surf->m_events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
+    m_listeners.touchSurfaceDestroy = surf->m_events.destroy.listen([this, timeMs, id] { sendTouchUp(timeMs + 10, id); });
 
     m_touchLocks++;
 
@@ -559,7 +559,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     m_selection.currentSelection = source;
 
     if (source) {
-        m_selection.destroySelection = source->m_events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
+        m_selection.destroySelection = source->m_events.destroy.listen([this] { setCurrentSelection(nullptr); });
         PROTO::data->setSelection(source);
         PROTO::dataWlr->setSelection(source, false);
     }
@@ -584,7 +584,7 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     m_selection.currentPrimarySelection = source;
 
     if (source) {
-        m_selection.destroyPrimarySelection = source->m_events.destroy.registerListener([this](std::any d) { setCurrentPrimarySelection(nullptr); });
+        m_selection.destroyPrimarySelection = source->m_events.destroy.listen([this] { setCurrentPrimarySelection(nullptr); });
         PROTO::primarySelection->setSelection(source);
         PROTO::dataWlr->setSelection(source, true);
     }

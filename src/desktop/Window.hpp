@@ -148,7 +148,7 @@ class CWindow {
     SP<CWLSurface> m_wlSurface;
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
     WP<CXDGSurfaceResource> m_xdgSurface;

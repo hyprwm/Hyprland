@@ -52,19 +52,16 @@ UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<CP
 
 void CSubsurface::initSignals() {
     if (m_subsurface) {
-        m_listeners.commitSubsurface  = m_subsurface->m_surface->m_events.commit.registerListener([this](std::any d) { onCommit(); });
-        m_listeners.destroySubsurface = m_subsurface->m_events.destroy.registerListener([this](std::any d) { onDestroy(); });
-        m_listeners.mapSubsurface     = m_subsurface->m_surface->m_events.map.registerListener([this](std::any d) { onMap(); });
-        m_listeners.unmapSubsurface   = m_subsurface->m_surface->m_events.unmap.registerListener([this](std::any d) { onUnmap(); });
-        m_listeners.newSubsurface =
-            m_subsurface->m_surface->m_events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
+        m_listeners.commitSubsurface  = m_subsurface->m_surface->m_events.commit.listen([this] { onCommit(); });
+        m_listeners.destroySubsurface = m_subsurface->m_events.destroy.listen([this] { onDestroy(); });
+        m_listeners.mapSubsurface     = m_subsurface->m_surface->m_events.map.listen([this] { onMap(); });
+        m_listeners.unmapSubsurface   = m_subsurface->m_surface->m_events.unmap.listen([this] { onUnmap(); });
+        m_listeners.newSubsurface     = m_subsurface->m_surface->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
     } else {
         if (m_windowParent)
-            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->m_events.newSubsurface.registerListener(
-                [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
+            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else if (m_popupParent)
-            m_listeners.newSubsurface = m_popupParent->m_wlSurface->resource()->m_events.newSubsurface.registerListener(
-                [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
+            m_listeners.newSubsurface = m_popupParent->m_wlSurface->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else
             ASSERT(false);
     }

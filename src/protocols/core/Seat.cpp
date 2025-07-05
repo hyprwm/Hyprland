@@ -32,7 +32,7 @@ void CWLTouchResource::sendDown(SP<CWLSurfaceResource> surface, uint32_t timeMs,
     ASSERT(surface->client() == m_owner->client());
 
     m_currentSurface           = surface;
-    m_listeners.destroySurface = surface->m_events.destroy.registerListener([this, timeMs, id](std::any d) { sendUp(timeMs + 10 /* hack */, id); });
+    m_listeners.destroySurface = surface->m_events.destroy.listen([this, timeMs, id] { sendUp(timeMs + 10 /* hack */, id); });
 
     m_resource->sendDown(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, surface->getResource().get(), id, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
 
@@ -160,7 +160,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     ASSERT(surface->client() == m_owner->client());
 
     m_currentSurface           = surface;
-    m_listeners.destroySurface = surface->m_events.destroy.registerListener([this](std::any d) { sendLeave(); });
+    m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
     m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
 }
@@ -349,7 +349,7 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
     ASSERT(surface->client() == m_owner->client());
 
     m_currentSurface           = surface;
-    m_listeners.destroySurface = surface->m_events.destroy.registerListener([this](std::any d) { sendLeave(); });
+    m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
     wl_array arr;
     wl_array_init(&arr);

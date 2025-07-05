@@ -48,7 +48,7 @@ class CWLSubsurfaceResource {
     int                       m_zIndex = 1; // by default, it's above
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
   private:

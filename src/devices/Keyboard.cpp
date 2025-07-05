@@ -23,24 +23,22 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : m_keyboard(keeb) {
     if (!keeb)
         return;
 
-    m_listeners.destroy = keeb->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = keeb->events.destroy.listen([this] {
         m_keyboard.reset();
         m_events.destroy.emit();
     });
 
-    m_listeners.key = keeb->events.key.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
-
+    m_listeners.key = keeb->events.key.listen([this](const Aquamarine::IKeyboard::SKeyEvent& event) {
         m_keyboardEvents.key.emit(SKeyEvent{
-            .timeMs  = E.timeMs,
-            .keycode = E.key,
-            .state   = E.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
+            .timeMs  = event.timeMs,
+            .keycode = event.key,
+            .state   = event.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         });
 
-        updateXkbStateWithKey(E.key + 8, E.pressed);
+        updateXkbStateWithKey(event.key + 8, event.pressed);
     });
 
-    m_listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {
+    m_listeners.modifiers = keeb->events.modifiers.listen([this] {
         updateModifiersState();
 
         m_keyboardEvents.modifiers.emit(SModifiersEvent{

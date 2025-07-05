@@ -86,7 +86,7 @@ void CWLOutputResource::updateState() {
 CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name, PHLMONITOR pMonitor) :
     IWaylandProtocol(iface, ver, name), m_monitor(pMonitor), m_name(pMonitor->m_name) {
 
-    m_listeners.modeChanged = m_monitor->m_events.modeChanged.registerListener([this](std::any d) {
+    m_listeners.modeChanged = m_monitor->m_events.modeChanged.listen([this] {
         for (auto const& o : m_outputs) {
             o->updateState();
         }

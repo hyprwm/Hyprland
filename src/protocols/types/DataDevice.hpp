@@ -41,7 +41,7 @@ class IDataSource {
     virtual void                     sendDndAction(wl_data_device_manager_dnd_action a);
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
   private:

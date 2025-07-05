@@ -33,11 +33,11 @@ class CTextInputV1 {
     bool                m_active = false;
 
     struct {
-        CSignal onCommit;
-        CSignal enable;
-        CSignal disable;
-        CSignal reset;
-        CSignal destroy;
+        CSignalT<>                       onCommit;
+        CSignalT<SP<CWLSurfaceResource>> enable;
+        CSignalT<>                       disable;
+        CSignalT<>                       reset;
+        CSignalT<>                       destroy;
     } m_events;
 
     struct SPendingSurr {
@@ -68,7 +68,7 @@ class CTextInputV1Protocol : public IWaylandProtocol {
     void         destroyResource(CZwpTextInputManagerV1* client);
 
     struct {
-        CSignal newTextInput; // WP<CTextInputV3>
+        CSignalT<WP<CTextInputV1>> newTextInput;
     } m_events;
 
   private:

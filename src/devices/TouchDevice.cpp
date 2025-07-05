@@ -14,51 +14,43 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : m_touch(touch_) {
     if (!m_touch)
         return;
 
-    m_listeners.destroy = m_touch->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = m_touch->events.destroy.listen([this] {
         m_events.destroy.emit();
         m_touch.reset();
     });
 
-    m_listeners.down = m_touch->events.down.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITouch::SDownEvent>(d);
-
+    m_listeners.down = m_touch->events.down.listen([this](const Aquamarine::ITouch::SDownEvent& event) {
         m_touchEvents.down.emit(SDownEvent{
-            .timeMs  = E.timeMs,
-            .touchID = E.touchID,
-            .pos     = E.pos,
+            .timeMs  = event.timeMs,
+            .touchID = event.touchID,
+            .pos     = event.pos,
             .device  = m_self.lock(),
         });
     });
 
-    m_listeners.up = m_touch->events.up.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITouch::SUpEvent>(d);
-
+    m_listeners.up = m_touch->events.up.listen([this](const Aquamarine::ITouch::SUpEvent& event) {
         m_touchEvents.up.emit(SUpEvent{
-            .timeMs  = E.timeMs,
-            .touchID = E.touchID,
+            .timeMs  = event.timeMs,
+            .touchID = event.touchID,
         });
     });
 
-    m_listeners.motion = m_touch->events.move.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITouch::SMotionEvent>(d);
-
+    m_listeners.motion = m_touch->events.move.listen([this](const Aquamarine::ITouch::SMotionEvent& event) {
         m_touchEvents.motion.emit(SMotionEvent{
-            .timeMs  = E.timeMs,
-            .touchID = E.touchID,
-            .pos     = E.pos,
+            .timeMs  = event.timeMs,
+            .touchID = event.touchID,
+            .pos     = event.pos,
         });
     });
 
-    m_listeners.cancel = m_touch->events.cancel.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::ITouch::SCancelEvent>(d);
-
+    m_listeners.cancel = m_touch->events.cancel.listen([this](const Aquamarine::ITouch::SCancelEvent& event) {
         m_touchEvents.cancel.emit(SCancelEvent{
-            .timeMs  = E.timeMs,
-            .touchID = E.touchID,
+            .timeMs  = event.timeMs,
+            .touchID = event.touchID,
         });
     });
 
-    m_listeners.frame = m_touch->events.frame.registerListener([this](std::any d) { m_touchEvents.frame.emit(); });
+    m_listeners.frame = m_touch->events.frame.listen([this] { m_touchEvents.frame.emit(); });
 
     m_deviceName = m_touch->getName();
 }

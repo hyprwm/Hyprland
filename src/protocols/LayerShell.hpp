@@ -10,6 +10,7 @@
 #include "types/SurfaceRole.hpp"
 
 class CMonitor;
+class CXDGPopupResource;
 class CWLSurfaceResource;
 class CLayerShellResource;
 
@@ -44,11 +45,11 @@ class CLayerShellResource {
     };
 
     struct {
-        CSignal destroy;
-        CSignal commit;
-        CSignal map;
-        CSignal unmap;
-        CSignal newPopup; // wlr_xdg_popup*
+        CSignalT<>                      destroy;
+        CSignalT<>                      commit;
+        CSignalT<>                      map;
+        CSignalT<>                      unmap;
+        CSignalT<SP<CXDGPopupResource>> newPopup;
     } m_events;
 
     struct SState {

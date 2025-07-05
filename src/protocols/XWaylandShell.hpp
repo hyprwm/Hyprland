@@ -17,7 +17,7 @@ class CXWaylandSurfaceResource {
     wl_client* client();
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } events;
 
     uint64_t                     m_serial = 0;
@@ -47,7 +47,7 @@ class CXWaylandShellProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newSurface; // SP<CXWaylandSurfaceResource>. Fired when it sets a serial, otherwise it's useless
+        CSignalT<SP<CXWaylandSurfaceResource>> newSurface; // Fired when it sets a serial, otherwise it's useless
     } m_events;
 
   private:

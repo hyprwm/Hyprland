@@ -43,11 +43,9 @@
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {
-    m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.registerListener([this](std::any data) {
+    m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
         if (!cursorImageUnlocked())
             return;
-
-        auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
 
         if (!g_pSeatManager->m_state.pointerFocusResource)
             return;
@@ -66,16 +64,16 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
     });
 
-    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->m_events.newKeyboard.registerListener([this](std::any data) {
-        this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
+    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.listen([this](const auto& data) { this->newIdleInhibitor(data); });
+    m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->m_events.newKeyboard.listen([this](const auto& keyboard) {
+        this->newVirtualKeyboard(keyboard);
         updateCapabilities();
     });
-    m_listeners.newVirtualMouse    = PROTO::virtualPointer->m_events.newPointer.registerListener([this](std::any data) {
-        this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
+    m_listeners.newVirtualMouse    = PROTO::virtualPointer->m_events.newPointer.listen([this](const auto& mouse) {
+        this->newVirtualMouse(mouse);
         updateCapabilities();
     });
-    m_listeners.setCursor          = g_pSeatManager->m_events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
+    m_listeners.setCursor          = g_pSeatManager->m_events.setCursor.listen([this](const auto& event) { this->processMouseRequest(event); });
 
     m_cursorSurfaceInfo.wlSurface = CWLSurface::create();
 }
@@ -641,23 +639,21 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     }
 }
 
-void CInputManager::processMouseRequest(std::any E) {
+void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& event) {
     if (!cursorImageUnlocked())
         return;
 
-    auto e = std::any_cast<CSeatManager::SSetCursorEvent>(E);
+    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)event.surf.get());
 
-    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)e.surf.get());
-
-    if (e.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
+    if (event.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
         m_cursorSurfaceInfo.wlSurface->unassign();
 
-        if (e.surf)
-            m_cursorSurfaceInfo.wlSurface->assign(e.surf);
+        if (event.surf)
+            m_cursorSurfaceInfo.wlSurface->assign(event.surf);
     }
 
-    if (e.surf) {
-        m_cursorSurfaceInfo.vHotspot = e.hotspot;
+    if (event.surf) {
+        m_cursorSurfaceInfo.vHotspot = event.hotspot;
         m_cursorSurfaceInfo.hidden   = false;
     } else {
         m_cursorSurfaceInfo.vHotspot = {};
@@ -667,7 +663,7 @@ void CInputManager::processMouseRequest(std::any E) {
     m_cursorSurfaceInfo.name = "";
 
     m_cursorSurfaceInfo.inUse = true;
-    g_pHyprRenderer->setCursorSurface(m_cursorSurfaceInfo.wlSurface, e.hotspot.x, e.hotspot.y);
+    g_pHyprRenderer->setCursorSurface(m_cursorSurfaceInfo.wlSurface, event.hotspot.x, event.hotspot.y);
 }
 
 void CInputManager::restoreCursorIconToApp() {
@@ -962,60 +958,52 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         Debug::log(ERR, "Keyboard had no name???"); // logic error
     }
 
-    keeb->m_events.destroy.registerStaticListener(
-        [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
+    keeb->m_events.destroy.listenStatic([this, keeb = keeb.get()] {
+        auto PKEEB = keeb->m_self.lock();
 
-            if (!PKEEB)
-                return;
+        if (!PKEEB)
+            return;
 
-            destroyKeyboard(PKEEB);
-            Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)owner);
-        },
-        keeb.get());
+        destroyKeyboard(PKEEB);
+        Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)keeb);
+    });
 
-    keeb->m_keyboardEvents.key.registerStaticListener(
-        [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
+    keeb->m_keyboardEvents.key.listenStatic([this, keeb = keeb.get()](const IKeyboard::SKeyEvent& event) {
+        auto PKEEB = keeb->m_self.lock();
 
-            onKeyboardKey(data, PKEEB);
+        onKeyboardKey(event, PKEEB);
 
-            if (PKEEB->m_enabled)
-                PROTO::idle->onActivity();
+        if (PKEEB->m_enabled)
+            PROTO::idle->onActivity();
 
-            if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
-                g_pKeybindManager->dpms("on");
-        },
-        keeb.get());
+        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
+            g_pKeybindManager->dpms("on");
+    });
 
-    keeb->m_keyboardEvents.modifiers.registerStaticListener(
-        [this](void* owner, std::any data) {
-            auto PKEEB = ((IKeyboard*)owner)->m_self.lock();
+    keeb->m_keyboardEvents.modifiers.listenStatic([this, keeb = keeb.get()] {
+        auto PKEEB = keeb->m_self.lock();
 
-            onKeyboardMod(PKEEB);
+        onKeyboardMod(PKEEB);
 
-            if (PKEEB->m_enabled)
-                PROTO::idle->onActivity();
+        if (PKEEB->m_enabled)
+            PROTO::idle->onActivity();
 
-            if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
-                g_pKeybindManager->dpms("on");
-        },
-        keeb.get());
+        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
+            g_pKeybindManager->dpms("on");
+    });
 
-    keeb->m_keyboardEvents.keymap.registerStaticListener(
-        [](void* owner, std::any data) {
-            auto       PKEEB  = ((IKeyboard*)owner)->m_self.lock();
-            const auto LAYOUT = PKEEB->getActiveLayout();
+    keeb->m_keyboardEvents.keymap.listenStatic([keeb = keeb.get()] {
+        auto       PKEEB  = keeb->m_self.lock();
+        const auto LAYOUT = PKEEB->getActiveLayout();
 
-            if (PKEEB == g_pSeatManager->m_keyboard) {
-                g_pSeatManager->updateActiveKeyboardData();
-                g_pKeybindManager->m_keyToCodeCache.clear();
-            }
+        if (PKEEB == g_pSeatManager->m_keyboard) {
+            g_pSeatManager->updateActiveKeyboardData();
+            g_pKeybindManager->m_keyToCodeCache.clear();
+        }
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
-            EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
-        },
-        keeb.get());
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
+        EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
+    });
 
     disableAllKeyboards(false);
 
@@ -1148,16 +1136,7 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
 
     setPointerConfigs();
 
-    mauz->m_events.destroy.registerStaticListener(
-        [this](void* mouse, std::any data) {
-            const auto PMOUSE = (IPointer*)mouse;
-
-            if (!PMOUSE)
-                return;
-
-            destroyPointer(PMOUSE->m_self.lock());
-        },
-        mauz.get());
+    mauz->m_events.destroy.listenStatic([this, PMOUSE = mauz.get()] { destroyPointer(PMOUSE->m_self.lock()); });
 
     g_pSeatManager->setMouse(mauz);
 
@@ -1413,7 +1392,7 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     }
 }
 
-void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
+void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
 
@@ -1424,17 +1403,15 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
 
     bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
-    auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
-
     if (passEvent) {
         const auto IME = m_relay.m_inputMethod.lock();
 
         if (IME && IME->hasGrab() && !DISALLOWACTION) {
             IME->setKeyboard(pKeyboard);
-            IME->sendKey(e.timeMs, e.keycode, e.state);
+            IME->sendKey(event.timeMs, event.keycode, event.state);
         } else {
             g_pSeatManager->setKeyboard(pKeyboard);
-            g_pSeatManager->sendKeyboardKey(e.timeMs, e.keycode, e.state);
+            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, event.state);
         }
 
         updateKeyboardsLeds(pKeyboard);
@@ -1627,16 +1604,14 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     setTouchDeviceConfigs(PNEWDEV);
     g_pPointerManager->attachTouch(PNEWDEV);
 
-    PNEWDEV->m_events.destroy.registerStaticListener(
-        [this](void* owner, std::any data) {
-            auto PDEV = ((ITouch*)owner)->m_self.lock();
+    PNEWDEV->m_events.destroy.listenStatic([this, dev = PNEWDEV.get()] {
+        auto PDEV = dev->m_self.lock();
 
-            if (!PDEV)
-                return;
+        if (!PDEV)
+            return;
 
-            destroyTouchDevice(PDEV);
-        },
-        PNEWDEV.get());
+        destroyTouchDevice(PDEV);
+    });
 
     Debug::log(LOG, "New touch device added at {:x}", (uintptr_t)PNEWDEV.get());
 }
@@ -1739,17 +1714,16 @@ void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
 
     Debug::log(LOG, "New switch with name \"{}\" added", pDevice->getName());
 
-    PNEWDEV->listeners.destroy = pDevice->events.destroy.registerListener([this, PNEWDEV](std::any d) { destroySwitch(PNEWDEV); });
+    PNEWDEV->listeners.destroy = pDevice->events.destroy.listen([this, PNEWDEV] { destroySwitch(PNEWDEV); });
 
-    PNEWDEV->listeners.fire = pDevice->events.fire.registerListener([PNEWDEV](std::any d) {
+    PNEWDEV->listeners.fire = pDevice->events.fire.listen([PNEWDEV](const Aquamarine::ISwitch::SFireEvent& event) {
         const auto NAME = PNEWDEV->pDevice->getName();
-        const auto E    = std::any_cast<Aquamarine::ISwitch::SFireEvent>(d);
 
         Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
 
         g_pKeybindManager->onSwitchEvent(NAME);
 
-        if (E.enable) {
+        if (event.enable) {
             Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
             g_pKeybindManager->onSwitchOnEvent(NAME);
         } else {

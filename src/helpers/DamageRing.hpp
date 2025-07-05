@@ -3,7 +3,7 @@
 #include "./math/Math.hpp"
 #include <array>
 
-constexpr static int DAMAGE_RING_PREVIOUS_LEN = 2;
+constexpr static int DAMAGE_RING_PREVIOUS_LEN = 3;
 
 class CDamageRing {
   public:

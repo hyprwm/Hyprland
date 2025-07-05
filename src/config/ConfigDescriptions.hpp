@@ -1898,14 +1898,25 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "master:always_keep_position",
+        .description = "whether to keep the master window in its configured position when there are no slave windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+
+    /*
+     * Experimental
+    */
+
+    SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",
         .description = "enable color management protocol",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "master:always_keep_position",
-        .description = "whether to keep the master window in its configured position when there are no slave windows",
+        .value       = "experimental:new_render_scheduling",
+        .description = "enable new render scheduling",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

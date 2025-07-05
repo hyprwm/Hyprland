@@ -9,6 +9,11 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
 }
 
 void CMonitorFrameScheduler::onSyncFired() {
+    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("experimental:new_render_scheduling");
+
+    if (!*PENABLENEW)
+        return;
+
     // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
     // late, we will instantly render here.
 

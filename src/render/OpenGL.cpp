@@ -1607,7 +1607,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
 
     if (usingFinalShader && *PDT == 0) {
         PHLMONITORREF pMonitor = m_renderData.pMonitor;
-        Vector2D p = (g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale;
+        Vector2D      p        = (g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale;
         switch (pMonitor->m_transform) {
             case WL_OUTPUT_TRANSFORM_NORMAL: {
             } break;
@@ -1633,13 +1633,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
                 p = Vector2D(pMonitor->m_pixelSize.x - p.y, pMonitor->m_pixelSize.y - p.x);
             } break;
         }
-        shader->setUniformFloat2(
-            SHADER_POINTER,
-            p.x / pMonitor->m_pixelSize.x,
-            p.y / pMonitor->m_pixelSize.y
-        );
-    }
-    else if (usingFinalShader)
+        shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
+    } else if (usingFinalShader)
         shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 
     if (CRASHING) {

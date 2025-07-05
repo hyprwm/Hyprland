@@ -43,6 +43,11 @@ void CMonitorFrameScheduler::onPresented() {
 
     m_pendingThird = false;
     g_pHyprRenderer->commitPendingAndDoExplicitSync(m_monitor.lock()); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
+
+    // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
+    // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
+    if (m_monitor->m_damage.hasChanged())
+        g_pCompositor->scheduleFrameForMonitor(m_monitor.lock());
 }
 
 void CMonitorFrameScheduler::onFrame() {

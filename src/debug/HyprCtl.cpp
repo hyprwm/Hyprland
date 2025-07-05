@@ -144,8 +144,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "dpmsStatus": {},
     "vrr": {},
     "solitary": "{:x}",
-    "activelyTearing": {},
-    "directScanoutTo": "{:x}",
+    "currentTearing": "{:x}",
+    "currentScanout": "{:x}",
     "disabled": {},
     "currentFormat": "{}",
     "mirrorOf": "{}",
@@ -158,21 +158,21 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x, (int)m->m_reservedTopLeft.y,
             (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform, (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
             (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->m_solitaryClient.get(),
-            (m->m_tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->m_lastScanout.get(), (m->m_enabled ? "false" : "true"),
-            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
+            (uint64_t)m->m_currentTearing.get(), (uint64_t)m->m_currentScanout.get(), (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat),
+            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
         result +=
             std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
                         "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                        "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
+                        "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tcurrentTearing: {:x}\n\tcurrentScanout: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
                         "{}\n\tavailableModes: {}\n\n",
                         m->m_name, m->m_id, (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y, m->m_shortDescription,
                         m->m_output->make, m->m_output->model, m->m_output->serial, m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name),
                         m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x,
                         (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
                         (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->m_dpmsStatus, m->m_output->state->state().adaptiveSync, (uint64_t)m->m_solitaryClient.get(),
-                        m->m_tearingState.activelyTearing, (uint64_t)m->m_lastScanout.get(), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
+                        (uint64_t)m->m_currentTearing.get(), (uint64_t)m->m_currentScanout.get(), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
                         m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 

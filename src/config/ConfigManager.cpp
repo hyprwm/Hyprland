@@ -755,6 +755,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
+    registerConfigVar("experimental:new_render_scheduling", Hyprlang::INT{0});
 
     // devices
     m_config->addSpecialCategory("device", {"name"});

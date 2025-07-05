@@ -62,6 +62,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
+#include "helpers/MonitorFrameScheduler.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -3097,7 +3098,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     }
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
-    PNEWMONITOR->onMonitorFrame();
+    PNEWMONITOR->m_frameScheduler->onFrame();
 
     if (PROTO::colorManagement && shouldChangePreferredImageDescription()) {
         Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");

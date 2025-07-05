@@ -51,7 +51,7 @@ class CHyprRenderer {
     CHyprRenderer();
     ~CHyprRenderer();
 
-    void renderMonitor(PHLMONITOR pMonitor);
+    void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
     void arrangeLayersForMonitor(const MONITORID&);
     void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
     void damageWindow(PHLWINDOW, bool forceFull = false);
@@ -156,6 +156,7 @@ class CHyprRenderer {
     friend class CInputManager;
     friend class CPointerManager;
     friend class CMonitor;
+    friend class CMonitorFrameScheduler;
 };
 
 inline UP<CHyprRenderer> g_pHyprRenderer;

@@ -29,6 +29,7 @@
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
+#include "MonitorFrameScheduler.hpp"
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
@@ -67,7 +68,7 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
-    m_listeners.frame  = m_output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
+    m_listeners.frame  = m_output->events.frame.registerListener([this](std::any d) { m_frameScheduler->onFrame(); });
     m_listeners.commit = m_output->events.commit.registerListener([this](std::any d) {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(m_self.lock());
@@ -92,6 +93,8 @@ void CMonitor::onConnect(bool noRule) {
             PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), E.refresh, E.seq, E.flags);
         else
             PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(E.when), E.refresh, E.seq, E.flags);
+
+        m_frameScheduler->onPresented();
     });
 
     m_listeners.destroy = m_output->events.destroy.registerListener([this](std::any d) {
@@ -133,6 +136,8 @@ void CMonitor::onConnect(bool noRule) {
 
         applyMonitorRule(&rule);
     });
+
+    m_frameScheduler = makeUnique<CMonitorFrameScheduler>(m_self.lock());
 
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
@@ -305,6 +310,8 @@ void CMonitor::onDisconnect(bool destroy) {
         wl_event_source_remove(m_renderTimer);
         m_renderTimer = nullptr;
     }
+
+    m_frameScheduler.reset();
 
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
         return;
@@ -1562,69 +1569,6 @@ void CMonitor::debugLastPresentation(const std::string& message) {
                m_lastPresentationTimer.getMillis() > 0 ? 1000.0f / m_lastPresentationTimer.getMillis() : 0.0f);
 }
 
-void CMonitor::onMonitorFrame() {
-    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
-        Debug::log(WARN, "Attempted to render frame on inactive session!");
-
-        if (g_pCompositor->m_unsafeState && std::ranges::any_of(g_pCompositor->m_monitors.begin(), g_pCompositor->m_monitors.end(), [&](auto& m) {
-                return m->m_output != g_pCompositor->m_unsafeOutput->m_output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
-
-        return; // cannot draw on session inactive (different tty)
-    }
-
-    if (!m_enabled)
-        return;
-
-    g_pHyprRenderer->recheckSolitaryForMonitor(m_self.lock());
-
-    m_tearingState.busy = false;
-
-    if (m_tearingState.activelyTearing && m_solitaryClient.lock() /* can be invalidated by a recheck */) {
-
-        if (!m_tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        m_tearingState.nextRenderTorn          = true;
-        m_tearingState.frameScheduledWhileBusy = false;
-    }
-
-    static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
-    static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
-
-    m_lastPresentationTimer.reset();
-
-    if (*PENABLERAT && !m_tearingState.nextRenderTorn) {
-        if (!m_ratsScheduled) {
-            // render
-            g_pHyprRenderer->renderMonitor(m_self.lock());
-        }
-
-        m_ratsScheduled = false;
-
-        const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(m_self.lock());
-
-        if (max + *PRATSAFE > 1000.0 / m_refreshRate)
-            return;
-
-        const auto MSLEFT = (1000.0 / m_refreshRate) - m_lastPresentationTimer.getMillis();
-
-        m_ratsScheduled = true;
-
-        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
-        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
-
-        if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
-            g_pHyprRenderer->renderMonitor(m_self.lock());
-        else
-            wl_event_source_timer_update(m_renderTimer, TIMETOSLEEP);
-    } else
-        g_pHyprRenderer->renderMonitor(m_self.lock());
-}
-
 void CMonitor::onCursorMovedOnMonitor() {
     if (!m_tearingState.activelyTearing || !m_solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
         return;
@@ -1717,7 +1661,7 @@ bool CMonitorState::updateSwapchain() {
     }
     options.format  = m_owner->m_drmFormat;
     options.scanout = true;
-    options.length  = 2;
+    options.length  = 3;
     options.size    = MODE->pixelSize;
     return m_owner->m_output->swapchain->reconfigure(options);
 }

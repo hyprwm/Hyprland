@@ -20,6 +20,8 @@
 #include <aquamarine/allocator/Swapchain.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 
+class CMonitorFrameScheduler;
+
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {
     DIR_AUTO_NONE = 0, /* None will be treated as right. */
@@ -160,6 +162,8 @@ class CMonitor {
 
     PHLMONITORREF                  m_self;
 
+    UP<CMonitorFrameScheduler>     m_frameScheduler;
+
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
@@ -228,7 +232,6 @@ class CMonitor {
     void                                onCursorMovedOnMonitor();
 
     void                                debugLastPresentation(const std::string& message);
-    void                                onMonitorFrame();
 
     bool                                supportsWideColor();
     bool                                supportsHDR();

@@ -91,7 +91,6 @@
         overlays = with self.overlays; [
           hyprland-packages
           hyprland-extras
-          hyprland-debug
         ];
       });
     pkgsCrossFor = eachSystem (system: crossSystem:
@@ -101,7 +100,6 @@
         overlays = with self.overlays; [
           hyprland-packages
           hyprland-extras
-          hyprland-debug
         ];
       });
     pkgsDebugFor = eachSystem (system:

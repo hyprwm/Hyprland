@@ -24,6 +24,7 @@ class CTexPassElement : public IPassElement {
     };
 
     CTexPassElement(const SRenderData& data);
+    CTexPassElement(SRenderData&& data);
     virtual ~CTexPassElement() = default;
 
     virtual void                draw(const CRegion& damage);

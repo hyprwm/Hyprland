@@ -1201,10 +1201,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         firstLaunchAnimActive = false;
     }
 
-    renderStart = std::chrono::high_resolution_clock::now();
-
-    if (*PDEBUGOVERLAY == 1)
+    if (*PDEBUGOVERLAY == 1) {
+        renderStart = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(pMonitor);
+    }
 
     if (!g_pCompositor->m_sessionActive)
         return;
@@ -1435,10 +1435,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->m_pendingFrame = false;
 
-    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-    g_pDebugOverlay->renderData(pMonitor, durationUs);
-
     if (*PDEBUGOVERLAY == 1) {
+        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+        g_pDebugOverlay->renderData(pMonitor, durationUs);
+
         if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
@@ -2488,7 +2488,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.roundingPower = pWindow->roundingPower();
         data.xray          = pWindow->m_windowData.xray.valueOr(false);
 
-        m_renderPass.add(makeShared<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(std::move(data)));
     }
 
     CTexPassElement::SRenderData data;
@@ -2498,7 +2498,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.a            = pWindow->m_alpha->value();
     data.damage       = fakeDamage;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2540,7 +2540,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {

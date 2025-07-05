@@ -248,7 +248,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprNotificationOverlay::hasAny() {

@@ -361,7 +361,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
 
     if (!success) {
         Debug::log(TRACE, "[pointer] hw cursor failed applying, hiding");
-        setHWCursorBuffer(state, nullptr);
+        // setHWCursorBuffer(state, nullptr);
         return false;
     } else
         state->hwApplied = true;
@@ -377,10 +377,9 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     Debug::log(TRACE, "[pointer] hw transformed hotspot for {}: {}", state->monitor->m_name, HOTSPOT);
 
+    state->cursorFrontBuffer = buf;
     if (!state->monitor->m_output->setCursor(buf, HOTSPOT))
         return false;
-
-    state->cursorFrontBuffer = buf;
 
     if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
         g_pCompositor->scheduleFrameForMonitor(state->monitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);

@@ -103,7 +103,7 @@ find_package(Threads REQUIRED)
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
-pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.8.0)
+pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.9.0)
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.7.0)

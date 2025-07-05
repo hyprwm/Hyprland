@@ -486,6 +486,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:render_ahead_of_time", Hyprlang::INT{0});
     registerConfigVar("misc:render_ahead_safezone", Hyprlang::INT{1});
     registerConfigVar("misc:allow_session_lock_restore", Hyprlang::INT{0});
+    registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
     registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});

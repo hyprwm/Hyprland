@@ -321,6 +321,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     PWINDOW->m_closeableSince = Time::steadyNow() + std::chrono::milliseconds(std::stoull(VARS[1]));
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
+                break;
+            }
+            case CWindowRule::RULE_SUPPRESSVRR: {
+                PWINDOW->m_suppressVrr = true;
+                break;
             }
             default: break;
         }
@@ -715,6 +720,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_X11SurfaceScaledBy = PMONITOR->m_scale;
+
+    // VRR should update
+    g_pConfigManager->ensureVRR(PWINDOW->m_monitor.lock());
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -853,6 +861,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // update lastwindow after focus
     PWINDOW->onUnmap();
+
+    // VRR should update
+    g_pConfigManager->ensureVRR(PMONITOR);
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {

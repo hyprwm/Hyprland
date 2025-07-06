@@ -1,6 +1,7 @@
 #include "ConfigWatcher.hpp"
 #include <sys/inotify.h>
 #include "../debug/Log.hpp"
+#include <algorithm>
 #include <ranges>
 #include <fcntl.h>
 #include <unistd.h>
@@ -40,6 +41,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
     }
 
     m_watches.clear();
+    m_symlinks.clear();
 
     // add new paths
     for (const auto& path : paths) {
@@ -52,9 +54,11 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
         const auto      CANONICAL  = std::filesystem::canonical(path, ec);
         const auto      IS_SYMLINK = std::filesystem::is_symlink(path, ec2);
         if (!ec && !ec2 && IS_SYMLINK) {
+            Debug::log(INFO, "Found symlink {} -> {}", path, CANONICAL.c_str());
+            m_symlinks.insert_or_assign(path, CANONICAL.c_str());
             m_watches.emplace_back(SInotifyWatch{
                 .wd   = inotify_add_watch(m_inotifyFd.get(), CANONICAL.c_str(), IN_MODIFY),
-                .file = path,
+                .file = CANONICAL.c_str(),
             });
         }
     }
@@ -72,6 +76,33 @@ void CConfigWatcher::onInotifyEvent() {
         if (WD == m_watches.end()) {
             Debug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev.wd);
             return;
+        }
+
+        std::error_code ec, ec2;
+        const auto      CANONICAL  = std::filesystem::canonical(WD->file, ec);
+        const auto      IS_SYMLINK = std::filesystem::is_symlink(WD->file, ec2);
+
+        if (IS_SYMLINK) {
+            const auto prev_symlink       = m_symlinks.at(WD->file);
+            const auto prev_symlink_watch = std::ranges::find_if(m_watches, [prev_symlink](const auto& e) { return e.file == prev_symlink; });
+
+            Debug::log(INFO, "Path {} -> {} got event", WD->file, prev_symlink);
+            if (!ec && !ec2 && IS_SYMLINK && CANONICAL != prev_symlink) {
+                Debug::log(INFO, "Path {} changed to {}", WD->file, CANONICAL.c_str());
+                Debug::log(INFO, "Removing {} from m_symlinks and m_watches", prev_symlink);
+                m_symlinks.insert_or_assign(WD->file, CANONICAL);
+                const auto [begin, end] = std::ranges::remove_if(m_watches, [prev_symlink](const auto& e) { return e.file == prev_symlink; });
+                m_watches.erase(begin, end);
+
+                Debug::log(INFO, "Removing {} inotify watch", prev_symlink);
+                inotify_rm_watch(m_inotifyFd.get(), prev_symlink_watch->wd);
+
+                Debug::log(INFO, "Adding {} inotify watch", CANONICAL.c_str());
+                m_watches.emplace_back(SInotifyWatch{
+                    .wd   = inotify_add_watch(m_inotifyFd.get(), CANONICAL.c_str(), IN_MODIFY),
+                    .file = CANONICAL.c_str(),
+                });
+            }
         }
 
         m_watchCallback(SConfigWatchEvent{

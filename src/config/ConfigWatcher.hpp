@@ -1,6 +1,7 @@
 #pragma once
 #include "../helpers/memory/Memory.hpp"
 #include <vector>
+#include <map>
 #include <string>
 #include <functional>
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -27,6 +28,7 @@ class CConfigWatcher {
 
     std::function<void(const SConfigWatchEvent&)> m_watchCallback;
     std::vector<SInotifyWatch>                    m_watches;
+    std::map<std::string, std::string>            m_symlinks;
     Hyprutils::OS::CFileDescriptor                m_inotifyFd;
 };
 

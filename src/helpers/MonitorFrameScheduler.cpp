@@ -9,7 +9,7 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
 }
 
 void CMonitorFrameScheduler::onSyncFired() {
-    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("experimental:new_render_scheduling");
+    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
 
     if (!*PENABLENEW)
         return;
@@ -36,7 +36,7 @@ void CMonitorFrameScheduler::onSyncFired() {
 }
 
 void CMonitorFrameScheduler::onPresented() {
-    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("experimental:new_render_scheduling");
+    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
 
     if (!*PENABLENEW)
         return;
@@ -63,7 +63,7 @@ void CMonitorFrameScheduler::onPresented() {
 }
 
 void CMonitorFrameScheduler::onFrame() {
-    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("experimental:new_render_scheduling");
+    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
 
     if (!canRender())
         return;

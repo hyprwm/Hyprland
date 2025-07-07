@@ -517,6 +517,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     renderdata.pWindow = pWindow;
 
+    // for plugins
+    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
@@ -680,9 +683,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             }
         }
     }
-
-    // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 

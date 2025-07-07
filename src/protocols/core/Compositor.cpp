@@ -72,8 +72,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     m_resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     m_resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
-        m_pending.updated.buffer = true;
-        m_pending.updated.offset = true;
+        m_pending.updated.bits.buffer = true;
+        m_pending.updated.bits.offset = true;
 
         m_pending.offset = {x, y};
 
@@ -95,8 +95,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         }
 
         if (m_pending.bufferSize != m_current.bufferSize) {
-            m_pending.updated.damage = true;
-            m_pending.bufferDamage   = CBox{{}, {INT32_MAX, INT32_MAX}};
+            m_pending.updated.bits.damage = true;
+            m_pending.bufferDamage        = CBox{{}, {INT32_MAX, INT32_MAX}};
         }
     });
 
@@ -124,7 +124,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             return;
         }
 
-        if ((!m_pending.updated.buffer) ||            // no new buffer attached
+        if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
         ) {
             commitState(m_pending);
@@ -149,7 +149,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             m_pendingStates.pop();
         };
 
-        if (state->updated.acquire) {
+        if (state->updated.bits.acquire) {
             // wait on acquire point for this surface, from explicit sync protocol
             state->acquire.addWaiter(whenReadable);
         } else if (state->buffer->isSynchronous()) {
@@ -170,11 +170,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.damage = true;
+        m_pending.updated.bits.damage = true;
         m_pending.damage.add(CBox{x, y, w, h});
     });
     m_resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.damage = true;
+        m_pending.updated.bits.damage = true;
         m_pending.bufferDamage.add(CBox{x, y, w, h});
     });
 
@@ -182,8 +182,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         if (scale == m_pending.scale)
             return;
 
-        m_pending.updated.scale  = true;
-        m_pending.updated.damage = true;
+        m_pending.updated.bits.scale  = true;
+        m_pending.updated.bits.damage = true;
 
         m_pending.scale        = scale;
         m_pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
@@ -193,15 +193,15 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         if (tr == m_pending.transform)
             return;
 
-        m_pending.updated.transform = true;
-        m_pending.updated.damage    = true;
+        m_pending.updated.bits.transform = true;
+        m_pending.updated.bits.damage    = true;
 
         m_pending.transform    = (wl_output_transform)tr;
         m_pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
     });
 
     m_resource->setSetInputRegion([this](CWlSurface* r, wl_resource* region) {
-        m_pending.updated.input = true;
+        m_pending.updated.bits.input = true;
 
         if (!region) {
             m_pending.input = CBox{{}, {INT32_MAX, INT32_MAX}};
@@ -213,7 +213,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setSetOpaqueRegion([this](CWlSurface* r, wl_resource* region) {
-        m_pending.updated.opaque = true;
+        m_pending.updated.bits.opaque = true;
 
         if (!region) {
             m_pending.opaque = CBox{{}, {}};
@@ -227,8 +227,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     m_resource->setFrame([this](CWlSurface* r, uint32_t id) { m_callbacks.emplace_back(makeShared<CWLCallbackResource>(makeShared<CWlCallback>(m_client, 1, id))); });
 
     m_resource->setOffset([this](CWlSurface* r, int32_t x, int32_t y) {
-        m_pending.updated.offset = true;
-        m_pending.offset         = {x, y};
+        m_pending.updated.bits.offset = true;
+        m_pending.offset              = {x, y};
     });
 }
 

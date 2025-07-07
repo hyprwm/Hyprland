@@ -91,6 +91,7 @@ add_compile_options(
   -Wno-narrowing
   -Wno-pointer-arith
   -Wno-clobbered
+  -Wpedantic
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)

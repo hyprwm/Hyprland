@@ -65,36 +65,36 @@ void SSurfaceState::reset() {
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
     updated = ref.updated;
 
-    if (ref.updated.buffer) {
+    if (ref.updated.bits.buffer) {
         buffer     = ref.buffer;
         texture    = ref.texture;
         size       = ref.size;
         bufferSize = ref.bufferSize;
     }
 
-    if (ref.updated.damage) {
+    if (ref.updated.bits.damage) {
         damage       = ref.damage;
         bufferDamage = ref.bufferDamage;
     }
 
-    if (ref.updated.input)
+    if (ref.updated.bits.input)
         input = ref.input;
 
-    if (ref.updated.opaque)
+    if (ref.updated.bits.opaque)
         opaque = ref.opaque;
 
-    if (ref.updated.offset)
+    if (ref.updated.bits.offset)
         offset = ref.offset;
 
-    if (ref.updated.scale)
+    if (ref.updated.bits.scale)
         scale = ref.scale;
 
-    if (ref.updated.transform)
+    if (ref.updated.bits.transform)
         transform = ref.transform;
 
-    if (ref.updated.viewport)
+    if (ref.updated.bits.viewport)
         viewport = ref.viewport;
 
-    if (ref.updated.acquire)
+    if (ref.updated.bits.acquire)
         acquire = ref.acquire;
 }

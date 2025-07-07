@@ -517,14 +517,15 @@ void CHyprOpenGLImpl::initDRMFormats() {
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
-    std::vector<uint32_t> attribs;
+    std::array<uint32_t, 50> attribs;
+    size_t                   idx = 0;
 
-    attribs.push_back(EGL_WIDTH);
-    attribs.push_back(attrs.size.x);
-    attribs.push_back(EGL_HEIGHT);
-    attribs.push_back(attrs.size.y);
-    attribs.push_back(EGL_LINUX_DRM_FOURCC_EXT);
-    attribs.push_back(attrs.format);
+    attribs[idx++] = EGL_WIDTH;
+    attribs[idx++] = attrs.size.x;
+    attribs[idx++] = EGL_HEIGHT;
+    attribs[idx++] = attrs.size.y;
+    attribs[idx++] = EGL_LINUX_DRM_FOURCC_EXT;
+    attribs[idx++] = attrs.format;
 
     struct {
         EGLint fd;
@@ -538,25 +539,27 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
         {EGL_DMA_BUF_PLANE2_FD_EXT, EGL_DMA_BUF_PLANE2_OFFSET_EXT, EGL_DMA_BUF_PLANE2_PITCH_EXT, EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT, EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT},
         {EGL_DMA_BUF_PLANE3_FD_EXT, EGL_DMA_BUF_PLANE3_OFFSET_EXT, EGL_DMA_BUF_PLANE3_PITCH_EXT, EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT, EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT}};
 
-    for (int i = 0; i < attrs.planes; i++) {
-        attribs.push_back(attrNames[i].fd);
-        attribs.push_back(attrs.fds[i]);
-        attribs.push_back(attrNames[i].offset);
-        attribs.push_back(attrs.offsets[i]);
-        attribs.push_back(attrNames[i].pitch);
-        attribs.push_back(attrs.strides[i]);
+    for (int i = 0; i < attrs.planes; ++i) {
+        attribs[idx++] = attrNames[i].fd;
+        attribs[idx++] = attrs.fds[i];
+        attribs[idx++] = attrNames[i].offset;
+        attribs[idx++] = attrs.offsets[i];
+        attribs[idx++] = attrNames[i].pitch;
+        attribs[idx++] = attrs.strides[i];
+
         if (m_hasModifiers && attrs.modifier != DRM_FORMAT_MOD_INVALID) {
-            attribs.push_back(attrNames[i].modlo);
-            attribs.push_back(attrs.modifier & 0xFFFFFFFF);
-            attribs.push_back(attrNames[i].modhi);
-            attribs.push_back(attrs.modifier >> 32);
+            attribs[idx++] = attrNames[i].modlo;
+            attribs[idx++] = static_cast<uint32_t>(attrs.modifier & 0xFFFFFFFF);
+            attribs[idx++] = attrNames[i].modhi;
+            attribs[idx++] = static_cast<uint32_t>(attrs.modifier >> 32);
         }
     }
 
-    attribs.push_back(EGL_IMAGE_PRESERVED_KHR);
-    attribs.push_back(EGL_TRUE);
+    attribs[idx++] = EGL_IMAGE_PRESERVED_KHR;
+    attribs[idx++] = EGL_TRUE;
+    attribs[idx++] = EGL_NONE;
 
-    attribs.push_back(EGL_NONE);
+    RASSERT(idx <= attribs.size(), "createEglImage: attribs array out of bounds.");
 
     EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, (int*)attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {

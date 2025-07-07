@@ -156,6 +156,7 @@ void CTexture::destroyTexture() {
     if (m_eglImage)
         g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_eglImage);
     m_eglImage = nullptr;
+    m_cachedStates.fill(std::nullopt);
 }
 
 void CTexture::allocate() {

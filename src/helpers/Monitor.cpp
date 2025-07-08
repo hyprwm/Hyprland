@@ -1483,6 +1483,10 @@ bool CMonitor::shouldDoTearing() {
         Debug::log(LOG, "Tearing started for window {} on monitor {}", m_currentTearing->m_title, m_name);
     }
 
+    // TODO: remove this when kernel allows tearing + hw cursor updated
+    // hw cursor can't be updated at the same time as tearing, so lock sw cursor
+    g_pPointerManager->lockSoftwareForMonitor(m_self.lock());
+
     return true;
 }
 
@@ -1546,6 +1550,11 @@ bool CMonitor::attemptDirectScanout() {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
+            Debug::log(TRACE, "attemptDirectScanout: committing hw cursor updated for window {} on monitor {}", PCANDIDATE->m_title, m_name);
+
+            m_output->state->resetExplicitFences();
+            m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+
             if (!m_state.test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test");
                 return false;
@@ -1568,7 +1577,7 @@ bool CMonitor::attemptDirectScanout() {
         m_output->state->setFormat(m_drmFormat);
 
     m_output->state->setBuffer(PBUFFER);
-    m_output->state->setPresentationMode(!m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_IMMEDIATE : AQ_OUTPUT_PRESENTATION_VSYNC);
+    m_output->state->setPresentationMode(m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_VSYNC : AQ_OUTPUT_PRESENTATION_IMMEDIATE);
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");

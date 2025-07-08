@@ -1231,6 +1231,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor->shouldDoTearing() && !pMonitor->m_currentTearing.expired()) {
         Debug::log(LOG, "Tearing stopped for window {} on monitor {}", pMonitor->m_currentTearing->m_title, pMonitor->m_name);
         pMonitor->m_currentTearing.reset();
+        g_pPointerManager->unlockSoftwareForMonitor(pMonitor);
     }
 
     if (pMonitor->shouldDoDirectScanout()) {
@@ -1568,8 +1569,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    if (ok)
-        pMonitor->m_pageFlipPending = true;
+    if (ok) {
+        pMonitor->m_pageFlipPending          = true;
+        pMonitor->m_scanoutNeedsCursorUpdate = false;
+    }
 
     return ok;
 }

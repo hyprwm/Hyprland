@@ -19,12 +19,12 @@ void CMonitorFrameScheduler::onSyncFired() {
 
     if (std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - m_lastRenderBegun).count() / 1000.F < 1000.F / m_monitor->m_refreshRate) {
         // we are in. Frame is valid. We can just render as normal.
-        Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, didn't miss.", m_monitor->m_name);
+        Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, didn't miss, seq {}.", m_monitor->m_name, m_seq);
         m_renderAtFrame = true;
         return;
     }
 
-    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed.", m_monitor->m_name);
+    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed, seq {}.", m_monitor->m_name, m_seq);
 
     // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
     m_pendingThird  = true;
@@ -97,7 +97,10 @@ void CMonitorFrameScheduler::onFrame() {
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
-    m_seq++;                     // won't overflow cuz it's u64 but even if it does who cares?
+    m_seq++; // won't overflow cuz it's u64 but even if it does who cares?
+
+    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onFinishRender, seq {}.", m_monitor->m_name, m_seq);
+
     m_sync = CEGLSync::create(); // this destroys the old sync
     g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, mon = m_monitor, seq = m_seq] {
         if (!m_monitor) // might've gotten destroyed

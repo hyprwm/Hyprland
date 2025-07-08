@@ -68,20 +68,17 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
-    m_listeners.frame  = m_output->events.frame.registerListener([this](std::any d) { m_frameScheduler->onFrame(); });
-    m_listeners.commit = m_output->events.commit.registerListener([this](std::any d) {
+    m_listeners.frame      = m_output->events.frame.listen([this] { m_frameScheduler->onFrame(); });
+    m_listeners.commit     = m_output->events.commit.listen([this] {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(m_self.lock());
             PROTO::toplevelExport->onOutputCommit(m_self.lock());
         }
     });
-    m_listeners.needsFrame =
-        m_output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
-    m_listeners.presented = m_output->events.present.registerListener([this](std::any d) {
-        auto      E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-
-        timespec* ts = E.when;
+    m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
+        timespec* ts = event.when;
 
         if (ts && ts->tv_sec <= 2) {
             // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
@@ -90,14 +87,14 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         if (!ts)
-            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), E.refresh, E.seq, E.flags);
+            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
         else
-            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(E.when), E.refresh, E.seq, E.flags);
+            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
 
         m_frameScheduler->onPresented();
     });
 
-    m_listeners.destroy = m_output->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = m_output->events.destroy.listen([this] {
         Debug::log(LOG, "Destroy called for monitor {}", m_name);
 
         onDisconnect(true);
@@ -110,10 +107,8 @@ void CMonitor::onConnect(bool noRule) {
         std::erase_if(g_pCompositor->m_realMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
     });
 
-    m_listeners.state = m_output->events.state.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
-
-        if (E.size == Vector2D{}) {
+    m_listeners.state = m_output->events.state.listen([this](const Aquamarine::IOutput::SStateEvent& event) {
+        if (event.size == Vector2D{}) {
             // an indication to re-set state
             // we can't do much for createdByUser displays I think
             if (m_createdByUser)
@@ -127,7 +122,7 @@ void CMonitor::onConnect(bool noRule) {
         if (!m_createdByUser)
             return;
 
-        const auto SIZE = E.size;
+        const auto SIZE = event.size;
 
         m_forceSize = SIZE;
 
@@ -1034,7 +1029,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
     m_activeWorkspace = PNEWWORKSPACE;
 
-    PNEWWORKSPACE->m_events.activeChange.emit();
+    PNEWWORKSPACE->m_events.activeChanged.emit();
     PNEWWORKSPACE->m_visible     = true;
     PNEWWORKSPACE->m_lastMonitor = "";
 }
@@ -1195,7 +1190,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (POLDWORKSPACE) {
         POLDWORKSPACE->m_visible = false;
-        POLDWORKSPACE->m_events.activeChange.emit();
+        POLDWORKSPACE->m_events.activeChanged.emit();
     }
 
     pWorkspace->m_visible = true;
@@ -1241,7 +1236,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 
-    pWorkspace->m_events.activeChange.emit();
+    pWorkspace->m_events.activeChanged.emit();
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
@@ -1281,7 +1276,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         m_activeSpecialWorkspace.reset();
 
         if (POLDSPECIAL)
-            POLDSPECIAL->m_events.activeChange.emit();
+            POLDSPECIAL->m_events.activeChanged.emit();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
@@ -1327,13 +1322,13 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     m_activeSpecialWorkspace->m_visible = true;
 
     if (POLDSPECIAL)
-        POLDSPECIAL->m_events.activeChange.emit();
+        POLDSPECIAL->m_events.activeChanged.emit();
 
     if (PMONITORWORKSPACEOWNER != m_self)
-        pWorkspace->m_events.monitorChange.emit();
+        pWorkspace->m_events.monitorChanged.emit();
 
     if (!wasActive)
-        pWorkspace->m_events.activeChange.emit();
+        pWorkspace->m_events.activeChanged.emit();
 
     if (!wasActive)
         pWorkspace->startAnim(true, true);

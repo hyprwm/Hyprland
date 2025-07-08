@@ -91,7 +91,7 @@ class CWLSurface {
     CRegion m_visibleRegion;
 
     struct {
-        CSignal destroy;
+        CSignalT<> destroy;
     } m_events;
 
     WP<CWLSurface> m_self;

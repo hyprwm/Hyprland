@@ -43,20 +43,20 @@ class CXWaylandSurface {
     WP<CXWaylandSurfaceResource> m_resource;
 
     struct {
-        CSignal stateChanged;    // maximized, fs, minimized, etc.
-        CSignal metadataChanged; // title, appid
-        CSignal destroy;
+        CSignalT<>     stateChanged;    // maximized, fs, minimized, etc.
+        CSignalT<>     metadataChanged; // title, appid
+        CSignalT<>     destroy;
 
-        CSignal resourceChange; // associated / dissociated
+        CSignalT<>     resourceChange; // associated / dissociated
 
-        CSignal setGeometry;
-        CSignal configureRequest; // CBox
+        CSignalT<>     setGeometry;
+        CSignalT<CBox> configureRequest;
 
-        CSignal map;
-        CSignal unmap;
-        CSignal commit;
+        CSignalT<>     map;
+        CSignalT<>     unmap;
+        CSignalT<>     commit;
 
-        CSignal activate;
+        CSignalT<>     activate;
     } m_events;
 
     struct {

@@ -19,133 +19,109 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
         m_isTouchpad = libinput_device_has_capability(handle, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(handle, &w, &h) == 0;
     }
 
-    m_listeners.destroy = m_mouse->events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroy = m_mouse->events.destroy.listen([this] {
         m_mouse.reset();
         m_events.destroy.emit();
     });
 
-    m_listeners.motion = m_mouse->events.move.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SMoveEvent>(d);
-
+    m_listeners.motion = m_mouse->events.move.listen([this](const Aquamarine::IPointer::SMoveEvent& event) {
         m_pointerEvents.motion.emit(SMotionEvent{
-            .timeMs  = E.timeMs,
-            .delta   = E.delta,
-            .unaccel = E.unaccel,
+            .timeMs  = event.timeMs,
+            .delta   = event.delta,
+            .unaccel = event.unaccel,
             .mouse   = true,
             .device  = m_self.lock(),
         });
     });
 
-    m_listeners.motionAbsolute = m_mouse->events.warp.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SWarpEvent>(d);
-
+    m_listeners.motionAbsolute = m_mouse->events.warp.listen([this](const Aquamarine::IPointer::SWarpEvent& event) {
         m_pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
-            .timeMs   = E.timeMs,
-            .absolute = E.absolute,
+            .timeMs   = event.timeMs,
+            .absolute = event.absolute,
             .device   = m_self.lock(),
         });
     });
 
-    m_listeners.button = m_mouse->events.button.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SButtonEvent>(d);
-
+    m_listeners.button = m_mouse->events.button.listen([this](const Aquamarine::IPointer::SButtonEvent& event) {
         m_pointerEvents.button.emit(SButtonEvent{
-            .timeMs = E.timeMs,
-            .button = E.button,
-            .state  = E.pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
+            .timeMs = event.timeMs,
+            .button = event.button,
+            .state  = event.pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
             .mouse  = true,
         });
     });
 
-    m_listeners.axis = m_mouse->events.axis.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SAxisEvent>(d);
-
+    m_listeners.axis = m_mouse->events.axis.listen([this](const Aquamarine::IPointer::SAxisEvent& event) {
         m_pointerEvents.axis.emit(SAxisEvent{
-            .timeMs            = E.timeMs,
-            .source            = (wl_pointer_axis_source)E.source,
-            .axis              = (wl_pointer_axis)E.axis,
-            .relativeDirection = (wl_pointer_axis_relative_direction)E.direction,
-            .delta             = E.delta,
-            .deltaDiscrete     = E.discrete,
+            .timeMs            = event.timeMs,
+            .source            = (wl_pointer_axis_source)event.source,
+            .axis              = (wl_pointer_axis)event.axis,
+            .relativeDirection = (wl_pointer_axis_relative_direction)event.direction,
+            .delta             = event.delta,
+            .deltaDiscrete     = event.discrete,
             .mouse             = true,
         });
     });
 
-    m_listeners.frame = m_mouse->events.frame.registerListener([this](std::any d) { m_pointerEvents.frame.emit(); });
+    m_listeners.frame = m_mouse->events.frame.listen([this] { m_pointerEvents.frame.emit(); });
 
-    m_listeners.swipeBegin = m_mouse->events.swipeBegin.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SSwipeBeginEvent>(d);
-
+    m_listeners.swipeBegin = m_mouse->events.swipeBegin.listen([this](const Aquamarine::IPointer::SSwipeBeginEvent& event) {
         m_pointerEvents.swipeBegin.emit(SSwipeBeginEvent{
-            .timeMs  = E.timeMs,
-            .fingers = E.fingers,
+            .timeMs  = event.timeMs,
+            .fingers = event.fingers,
         });
     });
 
-    m_listeners.swipeEnd = m_mouse->events.swipeEnd.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SSwipeEndEvent>(d);
-
+    m_listeners.swipeEnd = m_mouse->events.swipeEnd.listen([this](const Aquamarine::IPointer::SSwipeEndEvent& event) {
         m_pointerEvents.swipeEnd.emit(SSwipeEndEvent{
-            .timeMs    = E.timeMs,
-            .cancelled = E.cancelled,
+            .timeMs    = event.timeMs,
+            .cancelled = event.cancelled,
         });
     });
 
-    m_listeners.swipeUpdate = m_mouse->events.swipeUpdate.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SSwipeUpdateEvent>(d);
-
+    m_listeners.swipeUpdate = m_mouse->events.swipeUpdate.listen([this](const Aquamarine::IPointer::SSwipeUpdateEvent& event) {
         m_pointerEvents.swipeUpdate.emit(SSwipeUpdateEvent{
-            .timeMs  = E.timeMs,
-            .fingers = E.fingers,
-            .delta   = E.delta,
+            .timeMs  = event.timeMs,
+            .fingers = event.fingers,
+            .delta   = event.delta,
         });
     });
 
-    m_listeners.pinchBegin = m_mouse->events.pinchBegin.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SPinchBeginEvent>(d);
-
+    m_listeners.pinchBegin = m_mouse->events.pinchBegin.listen([this](const Aquamarine::IPointer::SPinchBeginEvent& event) {
         m_pointerEvents.pinchBegin.emit(SPinchBeginEvent{
-            .timeMs  = E.timeMs,
-            .fingers = E.fingers,
+            .timeMs  = event.timeMs,
+            .fingers = event.fingers,
         });
     });
 
-    m_listeners.pinchEnd = m_mouse->events.pinchEnd.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SPinchEndEvent>(d);
-
+    m_listeners.pinchEnd = m_mouse->events.pinchEnd.listen([this](const Aquamarine::IPointer::SPinchEndEvent& event) {
         m_pointerEvents.pinchEnd.emit(SPinchEndEvent{
-            .timeMs    = E.timeMs,
-            .cancelled = E.cancelled,
+            .timeMs    = event.timeMs,
+            .cancelled = event.cancelled,
         });
     });
 
-    m_listeners.pinchUpdate = m_mouse->events.pinchUpdate.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SPinchUpdateEvent>(d);
-
+    m_listeners.pinchUpdate = m_mouse->events.pinchUpdate.listen([this](const Aquamarine::IPointer::SPinchUpdateEvent& event) {
         m_pointerEvents.pinchUpdate.emit(SPinchUpdateEvent{
-            .timeMs   = E.timeMs,
-            .fingers  = E.fingers,
-            .delta    = E.delta,
-            .scale    = E.scale,
-            .rotation = E.rotation,
+            .timeMs   = event.timeMs,
+            .fingers  = event.fingers,
+            .delta    = event.delta,
+            .scale    = event.scale,
+            .rotation = event.rotation,
         });
     });
 
-    m_listeners.holdBegin = m_mouse->events.holdBegin.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SHoldBeginEvent>(d);
-
+    m_listeners.holdBegin = m_mouse->events.holdBegin.listen([this](const Aquamarine::IPointer::SHoldBeginEvent& event) {
         m_pointerEvents.holdBegin.emit(SHoldBeginEvent{
-            .timeMs  = E.timeMs,
-            .fingers = E.fingers,
+            .timeMs  = event.timeMs,
+            .fingers = event.fingers,
         });
     });
 
-    m_listeners.holdEnd = m_mouse->events.holdEnd.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IPointer::SHoldEndEvent>(d);
-
+    m_listeners.holdEnd = m_mouse->events.holdEnd.listen([this](const Aquamarine::IPointer::SHoldEndEvent& event) {
         m_pointerEvents.holdEnd.emit(SHoldEndEvent{
-            .timeMs    = E.timeMs,
-            .cancelled = E.cancelled,
+            .timeMs    = event.timeMs,
+            .cancelled = event.cancelled,
         });
     });
 

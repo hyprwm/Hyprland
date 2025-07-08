@@ -108,8 +108,8 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     m_resource->sendGammaSize(m_gammaSize);
 
-    m_listeners.monitorDestroy    = m_monitor->m_events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
-    m_listeners.monitorDisconnect = m_monitor->m_events.disconnect.registerListener([this](std::any) { this->onMonitorDestroy(); });
+    m_listeners.monitorDestroy    = m_monitor->m_events.destroy.listen([this] { this->onMonitorDestroy(); });
+    m_listeners.monitorDisconnect = m_monitor->m_events.disconnect.listen([this] { this->onMonitorDestroy(); });
 }
 
 CGammaControl::~CGammaControl() {

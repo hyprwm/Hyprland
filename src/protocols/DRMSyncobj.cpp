@@ -74,7 +74,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         m_pendingRelease = {timeline->m_timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
     });
 
-    m_listeners.surfacePrecommit = m_surface->m_events.precommit.registerListener([this](std::any d) {
+    m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this] {
         if (!m_surface->m_pending.updated.bits.buffer || !m_surface->m_pending.buffer) {
             if (m_pendingAcquire.timeline() || m_pendingRelease.timeline()) {
                 m_resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");

@@ -644,7 +644,7 @@ void CWorkspace::rename(const std::string& name) {
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
-    m_events.rename.emit();
+    m_events.renamed.emit();
 }
 
 void CWorkspace::updateWindows() {

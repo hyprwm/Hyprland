@@ -36,7 +36,7 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
 
     m_backendReleaseQueuedFn = fn;
 
-    m_hlEvents.backendRelease = events.backendRelease.registerListener([this](std::any) {
+    m_hlEvents.backendRelease = events.backendRelease.listen([this] {
         if (m_backendReleaseQueuedFn)
             m_backendReleaseQueuedFn();
         m_backendReleaseQueuedFn = nullptr;

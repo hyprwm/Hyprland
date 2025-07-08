@@ -23,15 +23,15 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
 
     m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 
-    m_listeners.monitorDestroy = m_monitor->m_events.destroy.registerListener([this](std::any v) {
+    m_listeners.monitorDestroy = m_monitor->m_events.destroy.listen([this] {
         m_monitor.reset();
         m_resource->sendFailed();
     });
 
-    m_listeners.monitorDpms = m_monitor->m_events.dpmsChanged.registerListener(
-        [this](std::any v) { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
-    m_listeners.monitorState = m_monitor->m_events.modeChanged.registerListener(
-        [this](std::any v) { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
+    m_listeners.monitorDpms =
+        m_monitor->m_events.dpmsChanged.listen([this] { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
+    m_listeners.monitorState =
+        m_monitor->m_events.modeChanged.listen([this] { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
 }
 
 bool COutputPower::good() {

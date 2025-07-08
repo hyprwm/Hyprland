@@ -1488,6 +1488,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
     },
+    SConfigOptionDescription{
+        .value       = "render:new_render_scheduling",
+        .description = "enable new render scheduling, which should improve FPS on underpowered devices. This does not add latency when your PC can keep up.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * cursor:
@@ -1898,14 +1904,19 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
+        .value       = "master:always_keep_position",
+        .description = "whether to keep the master window in its configured position when there are no slave windows",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+
+    /*
+     * Experimental
+    */
+
     SConfigOptionDescription{
-        .value       = "master:always_keep_position",
-        .description = "whether to keep the master window in its configured position when there are no slave windows",
+        .value       = "experimental:xx_color_management_v4",
+        .description = "enable color management protocol",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

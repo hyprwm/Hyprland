@@ -44,10 +44,6 @@ void CMonitorFrameScheduler::onPresented() {
     if (!m_pendingThird)
         return;
 
-    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", m_monitor->m_name);
-
-    m_pendingThird = false;
-
     Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", m_monitor->m_name);
 
     m_pendingThird = false;
@@ -101,9 +97,12 @@ void CMonitorFrameScheduler::onFrame() {
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
+    m_seq++;                     // won't overflow cuz it's u64 but even if it does who cares?
     m_sync = CEGLSync::create(); // this destroys the old sync
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, mon = m_monitor] {
+    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, mon = m_monitor, seq = m_seq] {
         if (!m_monitor) // might've gotten destroyed
+            return;
+        if (seq != m_seq)
             return;
         onSyncFired();
     });

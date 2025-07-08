@@ -128,6 +128,13 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
         ) {
             commitState(m_pending);
+
+            if (!m_pending.buffer && !m_pending.texture) {
+                // null buffer attached, remove any pending states.
+                while (!m_pendingStates.empty()) {
+                    m_pendingStates.pop();
+                }
+            }
             m_pending.reset();
             return;
         }

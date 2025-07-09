@@ -1554,7 +1554,11 @@ bool CMonitor::attemptDirectScanout() {
     // lock buffer while DRM/KMS is using it, then release it when page flip happens since DRM/KMS should be done by then
     // btw buffer's syncReleaser will take care of signaling release point, so we don't do that here
     PBUFFER->lock();
-    PBUFFER->onBackendRelease([PBUFFER]() { PBUFFER->unlock(); });
+    auto weakBuffer = WP<IHLBuffer>(PBUFFER);
+    PBUFFER->onBackendRelease([weakBuffer]() {
+        if (auto buffer = weakBuffer.lock())
+            buffer->unlock();
+    });
 
     return true;
 }

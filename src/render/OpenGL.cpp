@@ -365,6 +365,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     m_globalTimer.reset();
 
     pushMonitorTransformEnabled(false);
+
+    // Initialize batch manager with configuration
+    m_batchManager.setOpenGLContext(this);
+    
+    // Apply configuration settings
+    static auto PUSEBATCHING = CConfigValue<Hyprlang::INT>("misc:render_batching");
+    static auto PBATCHSIZE = CConfigValue<Hyprlang::INT>("misc:render_batch_size");
+    static auto PUSEINSTANCING = CConfigValue<Hyprlang::INT>("misc:render_batch_instancing");
+    
+    if (*PBATCHSIZE > 0 && *PBATCHSIZE != CRenderBatchManager::MAX_INSTANCES_PER_DRAW) {
+        Debug::log(LOG, "BatchManager: Configured batch size: {}", *PBATCHSIZE);
+        // TODO: Make MAX_INSTANCES_PER_DRAW configurable
+    }
+    
+    m_batchManager.setUseInstancing(*PUSEINSTANCING);
+    Debug::log(LOG, "BatchManager: Batching={}, Instancing={}", *PUSEBATCHING, *PUSEINSTANCING);
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {

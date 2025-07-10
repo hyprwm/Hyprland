@@ -146,10 +146,10 @@ CHyprRenderer::CHyprRenderer() {
                     continue;
 
                 w->m_wlSurface->resource()->frame(Time::steadyNow());
-                auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_wlSurface->resource());
+                auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->m_wlSurface->resource());
                 FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
                 FEEDBACK->discarded();
-                PROTO::presentation->queueData(FEEDBACK);
+                PROTO::presentation->queueData(std::move(FEEDBACK));
             }
 
             if (dirty)

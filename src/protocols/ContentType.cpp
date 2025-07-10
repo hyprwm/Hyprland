@@ -6,10 +6,10 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
     if UNLIKELY (!good())
         return;
 
-    resource->setDestroy([](CWpContentTypeManagerV1* r) {});
-    resource->setOnDestroy([this](CWpContentTypeManagerV1* r) { PROTO::contentType->destroyResource(this); });
+    m_resource->setDestroy([](CWpContentTypeManagerV1* r) {});
+    m_resource->setOnDestroy([this](CWpContentTypeManagerV1* r) { PROTO::contentType->destroyResource(this); });
 
-    resource->setGetSurfaceContentType([](CWpContentTypeManagerV1* r, uint32_t id, wl_resource* surface) {
+    m_resource->setGetSurfaceContentType([](CWpContentTypeManagerV1* r, uint32_t id, wl_resource* surface) {
         LOGM(TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
@@ -49,12 +49,12 @@ CContentType::CContentType(SP<CWpContentTypeV1> resource) : m_resource(resource)
     if UNLIKELY (!good())
         return;
 
-    m_client = resource->client();
+    m_client = m_resource->client();
 
-    resource->setDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
-    resource->setOnDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
+    m_resource->setDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
+    m_resource->setOnDestroy([this](CWpContentTypeV1* r) { PROTO::contentType->destroyResource(this); });
 
-    resource->setSetContentType([this](CWpContentTypeV1* r, wpContentTypeV1Type type) { m_value = NContentType::fromWP(type); });
+    m_resource->setSetContentType([this](CWpContentTypeV1* r, wpContentTypeV1Type type) { m_value = NContentType::fromWP(type); });
 }
 
 bool CContentType::good() {

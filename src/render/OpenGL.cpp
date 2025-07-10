@@ -2120,7 +2120,7 @@ void CHyprOpenGLImpl::preWindowPass() {
     if (!preBlurQueued())
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CPreBlurElement>());
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CPreBlurElement>());
 }
 
 bool CHyprOpenGLImpl::preBlurQueued() {
@@ -2545,7 +2545,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     if (!PFB->isAllocated() || !PFB->getTexture())
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
     data.tex               = PFB->getTexture();
@@ -2556,7 +2556,7 @@ void CHyprOpenGLImpl::renderMirrored() {
                                  .transform(wlTransformToHyprutils(invertTransform(mirrored->m_transform)))
                                  .translate(-monitor->m_transformedSize / 2.0);
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
@@ -2946,7 +2946,7 @@ void CHyprOpenGLImpl::clearWithTex() {
         data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
         data.flipEndFrame = true;
         data.tex          = TEXIT->second.getTexture();
-        g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
     }
 }
 

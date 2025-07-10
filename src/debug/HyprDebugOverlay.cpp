@@ -271,5 +271,5 @@ void CHyprDebugOverlay::draw() {
     CTexPassElement::SRenderData data;
     data.tex = m_texture;
     data.box = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

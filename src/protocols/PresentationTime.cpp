@@ -26,7 +26,7 @@ void CQueuedPresentationData::discarded() {
     m_wasPresented = false;
 }
 
-CPresentationFeedback::CPresentationFeedback(SP<CWpPresentationFeedback> resource_, SP<CWLSurfaceResource> surf) : m_resource(resource_), m_surface(surf) {
+CPresentationFeedback::CPresentationFeedback(UP<CWpPresentationFeedback>&& resource_, SP<CWLSurfaceResource> surf) : m_resource(std::move(resource_)), m_surface(surf) {
     if UNLIKELY (!good())
         return;
 
@@ -40,7 +40,7 @@ bool CPresentationFeedback::good() {
     return m_resource->resource();
 }
 
-void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = m_resource->client();
 
     if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name)) {
@@ -97,9 +97,9 @@ void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
 }
 
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {
-    const auto CLIENT = pMgr->client();
-    const auto RESOURCE =
-        m_feedbacks.emplace_back(makeShared<CPresentationFeedback>(makeShared<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf))).get();
+    const auto  CLIENT = pMgr->client();
+    const auto& RESOURCE =
+        m_feedbacks.emplace_back(makeUnique<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -123,15 +123,24 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
         }
     }
 
-    if (m_feedbacks.size() > 10000 /* arbitrary number I chose as fitting */) {
+    if (m_feedbacks.size() > 10000) {
         LOGM(ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
-        m_feedbacks = {m_feedbacks.begin() + 9000, m_feedbacks.end()};
+
+        // Move the elements from the 9000th position to the end of the vector.
+        std::vector<UP<CPresentationFeedback>> newFeedbacks;
+        newFeedbacks.reserve(m_feedbacks.size() - 9000);
+
+        for (auto it = m_feedbacks.begin() + 9000; it != m_feedbacks.end(); ++it) {
+            newFeedbacks.push_back(std::move(*it));
+        }
+
+        m_feedbacks = std::move(newFeedbacks);
     }
 
     std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
     std::erase_if(m_queue, [pMonitor](const auto& other) { return !other->m_surface || other->m_monitor == pMonitor || !other->m_monitor || other->m_done; });
 }
 
-void CPresentationProtocol::queueData(SP<CQueuedPresentationData> data) {
-    m_queue.emplace_back(data);
+void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
+    m_queue.emplace_back(std::move(data));
 }

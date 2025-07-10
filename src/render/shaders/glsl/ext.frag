@@ -1,7 +1,7 @@
 #version 300 es
 
 #extension GL_ARB_shading_language_include : enable
-#extension GL_OES_EGL_image_external : require
+#extension GL_OES_EGL_image_external_essl3 : require
 
 precision highp float;
 in vec2 v_texcoord;
@@ -20,7 +20,7 @@ uniform vec3 tint;
 layout(location = 0) out vec4 fragColor;
 void main() {
 
-    vec4 pixColor = texture2D(texture0, v_texcoord);
+    vec4 pixColor = texture(texture0, v_texcoord);
 
     if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
 	discard;

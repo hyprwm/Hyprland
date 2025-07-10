@@ -82,10 +82,10 @@ class CTablet : public IHID {
     };
 
     struct {
-        CSignal axis;
-        CSignal proximity;
-        CSignal tip;
-        CSignal button;
+        CSignalT<SAxisEvent>      axis;
+        CSignalT<SProximityEvent> proximity;
+        CSignalT<STipEvent>       tip;
+        CSignalT<SButtonEvent>    button;
     } m_tabletEvents;
 
     WP<CTablet> m_self;
@@ -144,10 +144,10 @@ class CTabletPad : public IHID {
     };
 
     struct {
-        CSignal button;
-        CSignal ring;
-        CSignal strip;
-        CSignal attach;
+        CSignalT<SButtonEvent>    button;
+        CSignalT<SRingEvent>      ring;
+        CSignalT<SStripEvent>     strip;
+        CSignalT<SP<CTabletTool>> attach;
     } m_padEvents;
 
     WP<CTabletPad>  m_self;

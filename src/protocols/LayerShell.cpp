@@ -33,14 +33,14 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         PROTO::layerShell->destroyResource(this);
     });
 
-    m_listeners.destroySurface = surf_->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroySurface = surf_->m_events.destroy.listen([this] {
         m_events.destroy.emit();
         PROTO::layerShell->destroyResource(this);
     });
 
-    m_listeners.unmapSurface = surf_->m_events.unmap.registerListener([this](std::any d) { m_events.unmap.emit(); });
+    m_listeners.unmapSurface = surf_->m_events.unmap.listen([this] { m_events.unmap.emit(); });
 
-    m_listeners.commitSurface = surf_->m_events.commit.registerListener([this](std::any d) {
+    m_listeners.commitSurface = surf_->m_events.commit.listen([this] {
         m_current           = m_pending;
         m_pending.committed = 0;
 

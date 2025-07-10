@@ -256,7 +256,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 data.tex = titleTex;
                 data.box = rect;
                 data.a   = a;
-                g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+                g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
             }
         }
 

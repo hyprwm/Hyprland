@@ -90,22 +90,22 @@ class IPointer : public IHID {
     };
 
     struct {
-        CSignal motion;
-        CSignal motionAbsolute;
-        CSignal button;
-        CSignal axis;
-        CSignal frame;
+        CSignalT<SMotionEvent>         motion;
+        CSignalT<SMotionAbsoluteEvent> motionAbsolute;
+        CSignalT<SButtonEvent>         button;
+        CSignalT<SAxisEvent>           axis;
+        CSignalT<>                     frame;
 
-        CSignal swipeBegin;
-        CSignal swipeEnd;
-        CSignal swipeUpdate;
+        CSignalT<SSwipeBeginEvent>     swipeBegin;
+        CSignalT<SSwipeEndEvent>       swipeEnd;
+        CSignalT<SSwipeUpdateEvent>    swipeUpdate;
 
-        CSignal pinchBegin;
-        CSignal pinchEnd;
-        CSignal pinchUpdate;
+        CSignalT<SPinchBeginEvent>     pinchBegin;
+        CSignalT<SPinchEndEvent>       pinchEnd;
+        CSignalT<SPinchUpdateEvent>    pinchUpdate;
 
-        CSignal holdBegin;
-        CSignal holdEnd;
+        CSignalT<SHoldBeginEvent>      holdBegin;
+        CSignalT<SHoldEndEvent>        holdEnd;
     } m_pointerEvents;
 
     bool         m_connected   = false; // means connected to the cursor

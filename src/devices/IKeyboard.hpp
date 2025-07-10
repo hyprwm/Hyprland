@@ -48,10 +48,10 @@ class IKeyboard : public IHID {
     };
 
     struct {
-        CSignal key;
-        CSignal modifiers;
-        CSignal keymap;
-        CSignal repeatInfo;
+        CSignalT<SKeyEvent>       key;
+        CSignalT<SModifiersEvent> modifiers;
+        CSignalT<SKeymapEvent>    keymap;
+        CSignalT<>                repeatInfo;
     } m_keyboardEvents;
 
     struct SStringRuleNames {

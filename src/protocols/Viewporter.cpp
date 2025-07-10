@@ -15,7 +15,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        m_surface->m_pending.updated.viewport = true;
+        m_surface->m_pending.updated.bits.viewport = true;
 
         if (x == -1 && y == -1) {
             m_surface->m_pending.viewport.hasDestination = false;
@@ -37,7 +37,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
         }
 
-        m_surface->m_pending.updated.viewport = true;
+        m_surface->m_pending.updated.bits.viewport = true;
 
         double x = wl_fixed_to_double(fx), y = wl_fixed_to_double(fy), w = wl_fixed_to_double(fw), h = wl_fixed_to_double(fh);
 
@@ -55,7 +55,7 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
         m_surface->m_pending.viewport.source    = {x, y, w, h};
     });
 
-    m_listeners.surfacePrecommit = m_surface->m_events.precommit.registerListener([this](std::any d) {
+    m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this] {
         if (!m_surface || !m_surface->m_pending.buffer)
             return;
 

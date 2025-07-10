@@ -517,6 +517,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     renderdata.pWindow = pWindow;
 
+    // for plugins
+    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
@@ -680,9 +683,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             }
         }
     }
-
-    // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
@@ -1153,7 +1153,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
+void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -1163,12 +1163,13 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
+
+    const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Debug::log(ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
@@ -1200,10 +1201,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         firstLaunchAnimActive = false;
     }
 
-    renderStart = std::chrono::high_resolution_clock::now();
-
-    if (*PDEBUGOVERLAY == 1)
+    if (*PDEBUGOVERLAY == 1) {
+        renderStart = std::chrono::high_resolution_clock::now();
         g_pDebugOverlay->frameData(pMonitor);
+    }
 
     if (!g_pCompositor->m_sessionActive)
         return;
@@ -1298,16 +1299,16 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     TRACY_GPU_ZONE("Render");
 
     static bool zoomLock = false;
-    if (zoomLock && *PZOOMFACTOR == 1.f) {
+    if (zoomLock && ZOOMFACTOR == 1.f) {
         g_pPointerManager->unlockSoftwareAll();
         zoomLock = false;
-    } else if (!zoomLock && *PZOOMFACTOR != 1.f) {
+    } else if (!zoomLock && ZOOMFACTOR != 1.f) {
         g_pPointerManager->lockSoftwareAll();
         zoomLock = true;
     }
 
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
+        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
     else
         g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
 
@@ -1424,7 +1425,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     pMonitor->m_output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                 Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    commitPendingAndDoExplicitSync(pMonitor);
+    if (commit)
+        commitPendingAndDoExplicitSync(pMonitor);
 
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;
@@ -1434,10 +1436,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     pMonitor->m_pendingFrame = false;
 
-    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-    g_pDebugOverlay->renderData(pMonitor, durationUs);
-
     if (*PDEBUGOVERLAY == 1) {
+        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+        g_pDebugOverlay->renderData(pMonitor, durationUs);
+
         if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
@@ -2246,12 +2248,10 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         return true;
     }
 
-    /* This is a constant expression, as we always use double-buffering in our swapchain
-        TODO: Rewrite the CDamageRing to take advantage of that maybe? It's made to support longer swapchains atm because we used to do wlroots */
-    static constexpr const int HL_BUFFER_AGE = 2;
+    int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(nullptr);
+        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
         if (!m_currentBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
@@ -2272,7 +2272,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     }
 
     if (mode == RENDER_MODE_NORMAL) {
-        damage = pMonitor->m_damage.getBufferDamage(HL_BUFFER_AGE);
+        damage = pMonitor->m_damage.getBufferDamage(bufferAge);
         pMonitor->m_damage.rotate();
     }
 
@@ -2487,7 +2487,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.roundingPower = pWindow->roundingPower();
         data.xray          = pWindow->m_windowData.xray.valueOr(false);
 
-        m_renderPass.add(makeShared<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(std::move(data)));
     }
 
     CTexPassElement::SRenderData data;
@@ -2497,7 +2497,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.a            = pWindow->m_alpha->value();
     data.damage       = fakeDamage;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2539,7 +2539,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {

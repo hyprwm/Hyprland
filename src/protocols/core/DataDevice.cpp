@@ -385,8 +385,8 @@ bool CWLDataDeviceManagerResource::good() {
 
 CWLDataDeviceProtocol::CWLDataDeviceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pEventLoopManager->doLater([this]() {
-        m_listeners.onKeyboardFocusChange   = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
-        m_listeners.onDndPointerFocusChange = g_pSeatManager->m_events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
+        m_listeners.onKeyboardFocusChange   = g_pSeatManager->m_events.keyboardFocusChange.listen([this] { onKeyboardFocus(); });
+        m_listeners.onDndPointerFocusChange = g_pSeatManager->m_events.dndPointerFocusChange.listen([this] { onDndPointerFocus(); });
     });
 }
 
@@ -564,8 +564,8 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     m_dnd.originSurface = origin;
     m_dnd.dndSurface    = dragSurface;
     if (dragSurface) {
-        m_dnd.dndSurfaceDestroy = dragSurface->m_events.destroy.registerListener([this](std::any d) { abortDrag(); });
-        m_dnd.dndSurfaceCommit  = dragSurface->m_events.commit.registerListener([this](std::any d) {
+        m_dnd.dndSurfaceDestroy = dragSurface->m_events.destroy.listen([this] { abortDrag(); });
+        m_dnd.dndSurfaceCommit  = dragSurface->m_events.commit.listen([this] {
             if (m_dnd.dndSurface->m_current.texture && !m_dnd.dndSurface->m_mapped) {
                 m_dnd.dndSurface->map();
                 return;
@@ -814,7 +814,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp
     CTexPassElement::SRenderData data;
     data.tex = m_dnd.dndSurface->m_current.texture;
     data.box = box;
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 
     CBox damageBox = CBox{surfacePos, m_dnd.dndSurface->m_current.size}.expand(5);
     g_pHyprRenderer->damageBox(damageBox);

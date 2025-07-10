@@ -15,7 +15,7 @@ using namespace Hyprutils::OS;
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
+    m_listeners.resourceDestroy = events.destroy.listen([this] {
         closeFDs();
         m_listeners.resourceDestroy.reset();
     });
@@ -116,6 +116,9 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
 
     for (const auto& fd : m_attrs.fds) {
         if (fd == -1)
+            continue;
+
+        if (CFileDescriptor::isReadable(fd))
             continue;
 
         dma_buf_export_sync_file request{

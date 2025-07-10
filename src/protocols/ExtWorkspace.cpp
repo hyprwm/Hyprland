@@ -15,7 +15,7 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
     m_resource->setData(this);
     m_manager->m_resource->sendWorkspaceGroup(m_resource.get());
 
-    m_listeners.destroyed = m_monitor->m_events.destroy.registerListener([this](auto) { m_resource->sendRemoved(); });
+    m_listeners.destroyed = m_monitor->m_events.destroy.listen([this] { m_resource->sendRemoved(); });
 
     m_resource->setOnDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
     m_resource->setDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
@@ -27,11 +27,9 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
     if (auto resource = output->outputResourceFrom(m_resource->client()))
         m_resource->sendOutputEnter(resource->getResource()->resource());
 
-    m_listeners.outputBound = output->m_events.outputBound.registerListener([this](std::any data) {
-        auto resource = std::any_cast<SP<CWLOutputResource>>(data);
-
-        if (resource->client() == m_resource->client())
-            m_resource->sendOutputEnter(resource->getResource()->resource());
+    m_listeners.outputBound = output->m_events.outputBound.listen([this](const SP<CWLOutputResource>& output) {
+        if (output->client() == m_resource->client())
+            m_resource->sendOutputEnter(output->getResource()->resource());
     });
 
     m_manager->sendGroupToWorkspaces(m_self);
@@ -63,21 +61,21 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
     m_resource->setData(this);
     m_manager->m_resource->sendWorkspace(m_resource.get());
 
-    m_listeners.destroyed = m_workspace->m_events.destroy.registerListener([this](auto) {
+    m_listeners.destroyed = m_workspace->m_events.destroy.listen([this] {
         m_resource->sendRemoved();
 
         if (m_manager)
             m_manager->scheduleDone();
     });
 
-    m_listeners.activeChanged = m_workspace->m_events.activeChange.registerListener([this](auto) {
+    m_listeners.activeChanged = m_workspace->m_events.activeChanged.listen([this] {
         sendState();
         sendCapabilities();
     });
 
-    m_listeners.monitorChanged = m_workspace->m_events.monitorChange.registerListener([this](auto) { this->sendGroup(); });
+    m_listeners.monitorChanged = m_workspace->m_events.monitorChanged.listen([this] { this->sendGroup(); });
 
-    m_listeners.renamed = m_workspace->m_events.rename.registerListener([this](auto) {
+    m_listeners.renamed = m_workspace->m_events.renamed.listen([this] {
         m_resource->sendName(m_workspace->m_name.c_str());
 
         if (m_manager)

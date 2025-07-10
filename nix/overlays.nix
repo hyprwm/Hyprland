@@ -43,13 +43,6 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      # Build major libs with debug to get as much info as possible in a stacktrace
-      hyprland-debug = final.hyprland.override {
-        aquamarine = final.aquamarine.override {debug = true;};
-        hyprutils = final.hyprutils.override {debug = true;};
-        debug = true;
-      };
-
       hyprtester = final.callPackage ./hyprtester.nix {
         inherit version;
       };

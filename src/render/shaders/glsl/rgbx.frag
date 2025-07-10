@@ -20,7 +20,7 @@ void main() {
     if (discardOpaque == 1 && alpha == 1.0)
 	discard;
 
-    vec4 pixColor = vec4(texture2D(tex, v_texcoord).rgb, 1.0);
+    vec4 pixColor = vec4(texture(tex, v_texcoord).rgb, 1.0);
 
     if (applyTint == 1) {
 	    pixColor[0] = pixColor[0] * tint[0];

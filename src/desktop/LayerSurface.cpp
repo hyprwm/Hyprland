@@ -59,10 +59,10 @@ void CLayerSurface::registerCallbacks() {
 }
 
 CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : m_layerSurface(resource_) {
-    m_listeners.commit  = m_layerSurface->m_events.commit.registerListener([this](std::any d) { onCommit(); });
-    m_listeners.map     = m_layerSurface->m_events.map.registerListener([this](std::any d) { onMap(); });
-    m_listeners.unmap   = m_layerSurface->m_events.unmap.registerListener([this](std::any d) { onUnmap(); });
-    m_listeners.destroy = m_layerSurface->m_events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    m_listeners.commit  = m_layerSurface->m_events.commit.listen([this] { onCommit(); });
+    m_listeners.map     = m_layerSurface->m_events.map.listen([this] { onMap(); });
+    m_listeners.unmap   = m_layerSurface->m_events.unmap.listen([this] { onUnmap(); });
+    m_listeners.destroy = m_layerSurface->m_events.destroy.listen([this] { onDestroy(); });
 
     m_surface = CWLSurface::create();
 }

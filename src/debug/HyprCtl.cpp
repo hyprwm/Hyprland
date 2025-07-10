@@ -1149,7 +1149,9 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source" ||
         COMMAND.starts_with("windowrule")) {
+        static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
         for (auto const& m : g_pCompositor->m_monitors) {
+            *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }

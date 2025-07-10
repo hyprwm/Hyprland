@@ -20,7 +20,7 @@ struct SSurfaceState {
             bool offset : 1;
             bool viewport : 1;
             bool acquire : 1;
-        };
+        } bits;
     } updated;
 
     bool rejected = false;

@@ -62,6 +62,7 @@
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
+#include "helpers/MonitorFrameScheduler.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -404,90 +405,67 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 }
 
 void CCompositor::initAllSignals() {
-    m_aqBackend->events.newOutput.registerStaticListener(
-        [this](void* p, std::any data) {
-            auto output = std::any_cast<SP<Aquamarine::IOutput>>(data);
-            Debug::log(LOG, "New aquamarine output with name {}", output->name);
-            if (m_initialized)
-                onNewMonitor(output);
-            else
-                pendingOutputs.emplace_back(output);
-        },
-        nullptr);
+    m_aqBackend->events.newOutput.listenStatic([this](const SP<Aquamarine::IOutput>& output) {
+        Debug::log(LOG, "New aquamarine output with name {}", output->name);
+        if (m_initialized)
+            onNewMonitor(output);
+        else
+            pendingOutputs.emplace_back(output);
+    });
 
-    m_aqBackend->events.newPointer.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::IPointer>>(d);
-            Debug::log(LOG, "New aquamarine pointer with name {}", dev->getName());
-            g_pInputManager->newMouse(dev);
-            g_pInputManager->updateCapabilities();
-        },
-        nullptr);
+    m_aqBackend->events.newPointer.listenStatic([](const SP<Aquamarine::IPointer>& dev) {
+        Debug::log(LOG, "New aquamarine pointer with name {}", dev->getName());
+        g_pInputManager->newMouse(dev);
+        g_pInputManager->updateCapabilities();
+    });
 
-    m_aqBackend->events.newKeyboard.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::IKeyboard>>(d);
-            Debug::log(LOG, "New aquamarine keyboard with name {}", dev->getName());
-            g_pInputManager->newKeyboard(dev);
-            g_pInputManager->updateCapabilities();
-        },
-        nullptr);
+    m_aqBackend->events.newKeyboard.listenStatic([](const SP<Aquamarine::IKeyboard>& dev) {
+        Debug::log(LOG, "New aquamarine keyboard with name {}", dev->getName());
+        g_pInputManager->newKeyboard(dev);
+        g_pInputManager->updateCapabilities();
+    });
 
-    m_aqBackend->events.newTouch.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::ITouch>>(d);
-            Debug::log(LOG, "New aquamarine touch with name {}", dev->getName());
-            g_pInputManager->newTouchDevice(dev);
-            g_pInputManager->updateCapabilities();
-        },
-        nullptr);
+    m_aqBackend->events.newTouch.listenStatic([](const SP<Aquamarine::ITouch>& dev) {
+        Debug::log(LOG, "New aquamarine touch with name {}", dev->getName());
+        g_pInputManager->newTouchDevice(dev);
+        g_pInputManager->updateCapabilities();
+    });
 
-    m_aqBackend->events.newSwitch.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::ISwitch>>(d);
-            Debug::log(LOG, "New aquamarine switch with name {}", dev->getName());
-            g_pInputManager->newSwitch(dev);
-        },
-        nullptr);
+    m_aqBackend->events.newSwitch.listenStatic([](const SP<Aquamarine::ISwitch>& dev) {
+        Debug::log(LOG, "New aquamarine switch with name {}", dev->getName());
+        g_pInputManager->newSwitch(dev);
+    });
 
-    m_aqBackend->events.newTablet.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::ITablet>>(d);
-            Debug::log(LOG, "New aquamarine tablet with name {}", dev->getName());
-            g_pInputManager->newTablet(dev);
-        },
-        nullptr);
+    m_aqBackend->events.newTablet.listenStatic([](const SP<Aquamarine::ITablet>& dev) {
+        Debug::log(LOG, "New aquamarine tablet with name {}", dev->getName());
+        g_pInputManager->newTablet(dev);
+    });
 
-    m_aqBackend->events.newTabletPad.registerStaticListener(
-        [](void* data, std::any d) {
-            auto dev = std::any_cast<SP<Aquamarine::ITabletPad>>(d);
-            Debug::log(LOG, "New aquamarine tablet pad with name {}", dev->getName());
-            g_pInputManager->newTabletPad(dev);
-        },
-        nullptr);
+    m_aqBackend->events.newTabletPad.listenStatic([](const SP<Aquamarine::ITabletPad>& dev) {
+        Debug::log(LOG, "New aquamarine tablet pad with name {}", dev->getName());
+        g_pInputManager->newTabletPad(dev);
+    });
 
     if (m_aqBackend->hasSession()) {
-        m_aqBackend->session->events.changeActive.registerStaticListener(
-            [this](void*, std::any) {
-                if (m_aqBackend->session->active) {
-                    Debug::log(LOG, "Session got activated!");
+        m_aqBackend->session->events.changeActive.listenStatic([this] {
+            if (m_aqBackend->session->active) {
+                Debug::log(LOG, "Session got activated!");
 
-                    m_sessionActive = true;
+                m_sessionActive = true;
 
-                    for (auto const& m : m_monitors) {
-                        scheduleFrameForMonitor(m);
-                        m->applyMonitorRule(&m->m_activeMonitorRule, true);
-                    }
-
-                    g_pConfigManager->m_wantsMonitorReload = true;
-                    g_pCursorManager->syncGsettings();
-                } else {
-                    Debug::log(LOG, "Session got deactivated!");
-
-                    m_sessionActive = false;
+                for (auto const& m : m_monitors) {
+                    scheduleFrameForMonitor(m);
+                    m->applyMonitorRule(&m->m_activeMonitorRule, true);
                 }
-            },
-            nullptr);
+
+                g_pConfigManager->m_wantsMonitorReload = true;
+                g_pCursorManager->syncGsettings();
+            } else {
+                Debug::log(LOG, "Session got deactivated!");
+
+                m_sessionActive = false;
+            }
+        });
     }
 }
 
@@ -1972,7 +1950,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
 
     PWORKSPACEA->m_monitor = pMonitorB;
-    PWORKSPACEA->m_events.monitorChange.emit();
+    PWORKSPACEA->m_events.monitorChanged.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEA) {
@@ -1997,7 +1975,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     }
 
     PWORKSPACEB->m_monitor = pMonitorA;
-    PWORKSPACEB->m_events.monitorChange.emit();
+    PWORKSPACEB->m_events.monitorChanged.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACEB) {
@@ -2177,7 +2155,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // move the workspace
     pWorkspace->m_monitor = pMonitor;
-    pWorkspace->m_events.monitorChange.emit();
+    pWorkspace->m_events.monitorChanged.emit();
 
     for (auto const& w : m_windows) {
         if (w->m_workspace == pWorkspace) {
@@ -2226,9 +2204,9 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         pMonitor->m_activeWorkspace = pWorkspace;
 
         if (oldWorkspace)
-            oldWorkspace->m_events.activeChange.emit();
+            oldWorkspace->m_events.activeChanged.emit();
 
-        pWorkspace->m_events.activeChange.emit();
+        pWorkspace->m_events.activeChanged.emit();
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
 
@@ -3097,7 +3075,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     }
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
-    PNEWMONITOR->onMonitorFrame();
+    PNEWMONITOR->m_frameScheduler->onFrame();
 
     if (PROTO::colorManagement && shouldChangePreferredImageDescription()) {
         Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");

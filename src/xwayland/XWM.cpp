@@ -984,9 +984,8 @@ CXWM::CXWM() : m_connection(makeUnique<CXCBConnection>(g_pXWayland->m_server->m_
     setActiveWindow(XCB_WINDOW_NONE);
     initSelection();
 
-    m_listeners.newWLSurface = PROTO::compositor->m_events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
-    m_listeners.newXShellSurface =
-        PROTO::xwaylandShell->m_events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
+    m_listeners.newWLSurface     = PROTO::compositor->m_events.newSurface.listen([this](const auto& surface) { onNewSurface(surface); });
+    m_listeners.newXShellSurface = PROTO::xwaylandShell->m_events.newSurface.listen([this](const auto& surface) { onNewResource(surface); });
 
     createWMWindow();
 
@@ -1218,12 +1217,12 @@ void CXWM::initSelection() {
 
     createSelectionWindow(m_clipboard.window, "CLIPBOARD_MANAGER");
     createSelectionWindow(m_clipboard.window, "CLIPBOARD");
-    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.registerListener([this](std::any) { m_clipboard.onSelection(); });
-    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_clipboard.onKeyboardFocus(); });
+    m_clipboard.listeners.setSelection        = g_pSeatManager->m_events.setSelection.listen([this] { m_clipboard.onSelection(); });
+    m_clipboard.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.listen([this] { m_clipboard.onKeyboardFocus(); });
 
     createSelectionWindow(m_primarySelection.window, "PRIMARY");
-    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.registerListener([this](std::any) { m_primarySelection.onSelection(); });
-    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.registerListener([this](std::any) { m_primarySelection.onKeyboardFocus(); });
+    m_primarySelection.listeners.setSelection        = g_pSeatManager->m_events.setPrimarySelection.listen([this] { m_primarySelection.onSelection(); });
+    m_primarySelection.listeners.keyboardFocusChange = g_pSeatManager->m_events.keyboardFocusChange.listen([this] { m_primarySelection.onKeyboardFocus(); });
 
     createSelectionWindow(m_dndSelection.window, "XdndAware", true);
     const uint32_t xdndVersion = XDND_VERSION;

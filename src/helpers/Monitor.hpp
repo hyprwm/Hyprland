@@ -20,6 +20,8 @@
 #include <aquamarine/allocator/Swapchain.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 
+class CMonitorFrameScheduler;
+
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {
     DIR_AUTO_NONE = 0, /* None will be treated as right. */
@@ -160,6 +162,8 @@ class CMonitor {
 
     PHLMONITORREF                  m_self;
 
+    UP<CMonitorFrameScheduler>     m_frameScheduler;
+
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
@@ -178,6 +182,8 @@ class CMonitor {
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
 
+    PHLANIMVAR<float> m_cursorZoom;
+
     struct {
         bool canTear         = false;
         bool nextRenderTorn  = false;
@@ -188,11 +194,11 @@ class CMonitor {
     } m_tearingState;
 
     struct {
-        CSignal destroy;
-        CSignal connect;
-        CSignal disconnect;
-        CSignal dpmsChanged;
-        CSignal modeChanged;
+        CSignalT<> destroy;
+        CSignalT<> connect;
+        CSignalT<> disconnect;
+        CSignalT<> dpmsChanged;
+        CSignalT<> modeChanged;
     } m_events;
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
@@ -226,7 +232,6 @@ class CMonitor {
     void                                onCursorMovedOnMonitor();
 
     void                                debugLastPresentation(const std::string& message);
-    void                                onMonitorFrame();
 
     bool                                supportsWideColor();
     bool                                supportsHDR();

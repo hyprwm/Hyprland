@@ -6,7 +6,7 @@ CIdleInhibitor::CIdleInhibitor(SP<CIdleInhibitorResource> resource_, SP<CWLSurfa
 }
 
 CIdleInhibitorResource::CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_, SP<CWLSurfaceResource> surface_) : m_resource(resource_), m_surface(surface_) {
-    m_listeners.destroySurface = m_surface->m_events.destroy.registerListener([this](std::any d) {
+    m_listeners.destroySurface = m_surface->m_events.destroy.listen([this] {
         m_surface.reset();
         m_listeners.destroySurface.reset();
         m_destroySent = true;

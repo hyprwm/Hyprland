@@ -31,11 +31,11 @@ if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
 
-aquamarine = dependency('aquamarine', version: '>=0.8.0')
+aquamarine = dependency('aquamarine', version: '>=0.9.0')
 hyprcursor = dependency('hyprcursor', version: '>=0.1.7')
 hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.3')
 hyprlang = dependency('hyprlang', version: '>= 0.3.2')
-hyprutils = dependency('hyprutils', version: '>= 0.7.0')
+hyprutils = dependency('hyprutils', version: '>= 0.8.1')
 aquamarine_version_list = aquamarine.version().split('.')
 add_project_arguments(['-DAQUAMARINE_VERSION="@0@"'.format(aquamarine.version())], language: 'cpp')
 add_project_arguments(['-DAQUAMARINE_VERSION_MAJOR=@0@'.format(aquamarine_version_list.get(0))], language: 'cpp')

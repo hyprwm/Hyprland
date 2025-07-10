@@ -47,7 +47,7 @@ class CWLOutputProtocol : public IWaylandProtocol {
     bool isDefunct(); // true if above was called
 
     struct {
-        CSignal outputBound;
+        CSignalT<SP<CWLOutputResource>> outputBound;
     } m_events;
 
   private:

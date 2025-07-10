@@ -24,7 +24,7 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->m_resource->client(), 1, id));
 
-    m_listeners.bufferResourceDestroy = events.destroy.registerListener([this](std::any d) {
+    m_listeners.bufferResourceDestroy = events.destroy.listen([this] {
         m_listeners.bufferResourceDestroy.reset();
         PROTO::shm->destroyResource(this);
     });

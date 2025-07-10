@@ -10,6 +10,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -517,14 +518,15 @@ void CHyprOpenGLImpl::initDRMFormats() {
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
-    std::vector<uint32_t> attribs;
+    std::array<uint32_t, 50> attribs;
+    size_t                   idx = 0;
 
-    attribs.push_back(EGL_WIDTH);
-    attribs.push_back(attrs.size.x);
-    attribs.push_back(EGL_HEIGHT);
-    attribs.push_back(attrs.size.y);
-    attribs.push_back(EGL_LINUX_DRM_FOURCC_EXT);
-    attribs.push_back(attrs.format);
+    attribs[idx++] = EGL_WIDTH;
+    attribs[idx++] = attrs.size.x;
+    attribs[idx++] = EGL_HEIGHT;
+    attribs[idx++] = attrs.size.y;
+    attribs[idx++] = EGL_LINUX_DRM_FOURCC_EXT;
+    attribs[idx++] = attrs.format;
 
     struct {
         EGLint fd;
@@ -538,25 +540,27 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
         {EGL_DMA_BUF_PLANE2_FD_EXT, EGL_DMA_BUF_PLANE2_OFFSET_EXT, EGL_DMA_BUF_PLANE2_PITCH_EXT, EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT, EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT},
         {EGL_DMA_BUF_PLANE3_FD_EXT, EGL_DMA_BUF_PLANE3_OFFSET_EXT, EGL_DMA_BUF_PLANE3_PITCH_EXT, EGL_DMA_BUF_PLANE3_MODIFIER_LO_EXT, EGL_DMA_BUF_PLANE3_MODIFIER_HI_EXT}};
 
-    for (int i = 0; i < attrs.planes; i++) {
-        attribs.push_back(attrNames[i].fd);
-        attribs.push_back(attrs.fds[i]);
-        attribs.push_back(attrNames[i].offset);
-        attribs.push_back(attrs.offsets[i]);
-        attribs.push_back(attrNames[i].pitch);
-        attribs.push_back(attrs.strides[i]);
+    for (int i = 0; i < attrs.planes; ++i) {
+        attribs[idx++] = attrNames[i].fd;
+        attribs[idx++] = attrs.fds[i];
+        attribs[idx++] = attrNames[i].offset;
+        attribs[idx++] = attrs.offsets[i];
+        attribs[idx++] = attrNames[i].pitch;
+        attribs[idx++] = attrs.strides[i];
+
         if (m_hasModifiers && attrs.modifier != DRM_FORMAT_MOD_INVALID) {
-            attribs.push_back(attrNames[i].modlo);
-            attribs.push_back(attrs.modifier & 0xFFFFFFFF);
-            attribs.push_back(attrNames[i].modhi);
-            attribs.push_back(attrs.modifier >> 32);
+            attribs[idx++] = attrNames[i].modlo;
+            attribs[idx++] = static_cast<uint32_t>(attrs.modifier & 0xFFFFFFFF);
+            attribs[idx++] = attrNames[i].modhi;
+            attribs[idx++] = static_cast<uint32_t>(attrs.modifier >> 32);
         }
     }
 
-    attribs.push_back(EGL_IMAGE_PRESERVED_KHR);
-    attribs.push_back(EGL_TRUE);
+    attribs[idx++] = EGL_IMAGE_PRESERVED_KHR;
+    attribs[idx++] = EGL_TRUE;
+    attribs[idx++] = EGL_NONE;
 
-    attribs.push_back(EGL_NONE);
+    RASSERT(idx <= attribs.size(), "createEglImage: attribs array out of bounds.");
 
     EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, (int*)attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
@@ -1221,9 +1225,10 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_finalScreenShader.uniformLocations[SHADER_PROJ] = glGetUniformLocation(m_finalScreenShader.program, "proj");
-    m_finalScreenShader.uniformLocations[SHADER_TEX]  = glGetUniformLocation(m_finalScreenShader.program, "tex");
-    m_finalScreenShader.uniformLocations[SHADER_TIME] = glGetUniformLocation(m_finalScreenShader.program, "time");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER] = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
+    m_finalScreenShader.uniformLocations[SHADER_PROJ]    = glGetUniformLocation(m_finalScreenShader.program, "proj");
+    m_finalScreenShader.uniformLocations[SHADER_TEX]     = glGetUniformLocation(m_finalScreenShader.program, "tex");
+    m_finalScreenShader.uniformLocations[SHADER_TIME]    = glGetUniformLocation(m_finalScreenShader.program, "time");
     if (m_finalScreenShader.uniformLocations[SHADER_TIME] != -1)
         m_finalScreenShader.initialTime = m_globalTimer.getSeconds();
     m_finalScreenShader.uniformLocations[SHADER_WL_OUTPUT] = glGetUniformLocation(m_finalScreenShader.program, "wl_output");
@@ -1238,6 +1243,12 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     }
     m_finalScreenShader.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
     m_finalScreenShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "pos");
+    if (m_finalScreenShader.uniformLocations[SHADER_POINTER] != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
+        // The screen shader uses the "pointer_position" uniform
+        // Since the screen shader could change every frame, damage tracking *needs* to be disabled
+        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off.\n"
+                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
+    }
     m_finalScreenShader.createVao();
 }
 
@@ -1596,6 +1607,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
         shader->setUniformInt(SHADER_WL_OUTPUT, m_renderData.pMonitor->m_id);
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
     }
+
+    if (usingFinalShader && *PDT == 0) {
+        PHLMONITORREF pMonitor = m_renderData.pMonitor;
+        Vector2D      p        = ((g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale);
+        p                      = p.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
+        shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
+    } else if (usingFinalShader)
+        shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 
     if (CRASHING) {
         shader->setUniformFloat(SHADER_DISTORT, g_pHyprRenderer->m_crashingDistort);
@@ -2367,6 +2386,12 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(true);
 
     useProgram(m_shaders->m_shBORDER1.program);
+
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
+    if (!skipCM)
+        passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
+
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
@@ -2531,7 +2556,7 @@ void CHyprOpenGLImpl::renderMirrored() {
                                  .transform(wlTransformToHyprutils(invertTransform(mirrored->m_transform)))
                                  .translate(-monitor->m_transformedSize / 2.0);
 
-    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
@@ -2921,7 +2946,7 @@ void CHyprOpenGLImpl::clearWithTex() {
         data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
         data.flipEndFrame = true;
         data.tex          = TEXIT->second.getTexture();
-        g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
+        g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
     }
 }
 

@@ -32,8 +32,8 @@ void CCursorShapeProtocol::onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint
 }
 
 void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource) {
-    const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_devices.emplace_back(makeShared<CWpCursorShapeDeviceV1>(CLIENT, pMgr->version(), id));
+    const auto  CLIENT   = pMgr->client();
+    const auto& RESOURCE = m_devices.emplace_back(makeUnique<CWpCursorShapeDeviceV1>(CLIENT, pMgr->version(), id));
     RESOURCE->setOnDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });

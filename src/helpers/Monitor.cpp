@@ -42,12 +42,6 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 
-static int ratHandler(void* data) {
-    g_pHyprRenderer->renderMonitor(((CMonitor*)data)->m_self.lock());
-
-    return 1;
-}
-
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -277,8 +271,6 @@ void CMonitor::onConnect(bool noRule) {
     if (!found)
         g_pCompositor->setActiveMonitor(m_self.lock());
 
-    m_renderTimer = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, ratHandler, this);
-
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     PROTO::gamma->applyGammaToState(m_self.lock());
@@ -300,11 +292,6 @@ void CMonitor::onDisconnect(bool destroy) {
         EMIT_HOOK_EVENT("monitorRemoved", m_self.lock());
         g_pCompositor->arrangeMonitors();
     }};
-
-    if (m_renderTimer) {
-        wl_event_source_remove(m_renderTimer);
-        m_renderTimer = nullptr;
-    }
 
     m_frameScheduler.reset();
 

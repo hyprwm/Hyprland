@@ -149,7 +149,6 @@ class CMonitor {
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;
 
-    wl_event_source*            m_renderTimer   = nullptr; // for RAT
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;
 

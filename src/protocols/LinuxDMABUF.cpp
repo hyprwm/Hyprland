@@ -120,7 +120,7 @@ bool CLinuxDMABuffer::good() {
     return m_buffer && m_buffer->good();
 }
 
-CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_) : m_resource(resource_) {
+CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV1>&& resource_) : m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -215,7 +215,7 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
         LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs->modifier, m_attrs->fds[i], m_attrs->strides[i], m_attrs->offsets[i]);
     }
 
-    auto buf = PROTO::linuxDma->m_buffers.emplace_back(makeShared<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs));
+    auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs));
 
     if UNLIKELY (!buf->good() || !buf->m_buffer->m_success) {
         m_resource->sendFailed();
@@ -224,7 +224,7 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
     }
 
     if (!id)
-        m_resource->sendCreated(PROTO::linuxDma->m_buffers.back()->m_buffer->m_resource->getResource());
+        m_resource->sendCreated(buf->m_buffer->m_resource->getResource());
 
     m_createdBuffer = buf;
 }
@@ -291,7 +291,8 @@ bool CLinuxDMABUFParamsResource::verify() {
     return true;
 }
 
-CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_) : m_surface(surface_), m_resource(resource_) {
+CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(UP<CZwpLinuxDmabufFeedbackV1>&& resource_, SP<CWLSurfaceResource> surface_) :
+    m_surface(surface_), m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -342,7 +343,7 @@ void CLinuxDMABUFFeedbackResource::sendDefaultFeedback() {
     m_lastFeedbackWasScanout = false;
 }
 
-CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : m_resource(resource_) {
+CLinuxDMABUFResource::CLinuxDMABUFResource(UP<CZwpLinuxDmabufV1>&& resource_) : m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -350,8 +351,8 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : m_
     m_resource->setDestroy([this](CZwpLinuxDmabufV1* r) { PROTO::linuxDma->destroyResource(this); });
 
     m_resource->setGetDefaultFeedback([](CZwpLinuxDmabufV1* r, uint32_t id) {
-        const auto RESOURCE =
-            PROTO::linuxDma->m_feedbacks.emplace_back(makeShared<CLinuxDMABUFFeedbackResource>(makeShared<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), nullptr));
+        const auto& RESOURCE =
+            PROTO::linuxDma->m_feedbacks.emplace_back(makeUnique<CLinuxDMABUFFeedbackResource>(makeUnique<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), nullptr));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -361,8 +362,8 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : m_
     });
 
     m_resource->setGetSurfaceFeedback([](CZwpLinuxDmabufV1* r, uint32_t id, wl_resource* surf) {
-        const auto RESOURCE = PROTO::linuxDma->m_feedbacks.emplace_back(
-            makeShared<CLinuxDMABUFFeedbackResource>(makeShared<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surf)));
+        const auto& RESOURCE = PROTO::linuxDma->m_feedbacks.emplace_back(
+            makeUnique<CLinuxDMABUFFeedbackResource>(makeUnique<CZwpLinuxDmabufFeedbackV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surf)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -372,7 +373,7 @@ CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : m_
     });
 
     m_resource->setCreateParams([](CZwpLinuxDmabufV1* r, uint32_t id) {
-        const auto RESOURCE = PROTO::linuxDma->m_params.emplace_back(makeShared<CLinuxDMABUFParamsResource>(makeShared<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
+        const auto& RESOURCE = PROTO::linuxDma->m_params.emplace_back(makeUnique<CLinuxDMABUFParamsResource>(makeUnique<CZwpLinuxBufferParamsV1>(r->client(), r->version(), id)));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -516,7 +517,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
 }
 
 void CLinuxDMABufV1Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_managers.emplace_back(makeShared<CLinuxDMABUFResource>(makeShared<CZwpLinuxDmabufV1>(client, ver, id)));
+    const auto& RESOURCE = m_managers.emplace_back(makeUnique<CLinuxDMABUFResource>(makeUnique<CZwpLinuxDmabufV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -542,7 +543,7 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
 }
 
 void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor) {
-    SP<CLinuxDMABUFFeedbackResource> feedbackResource;
+    WP<CLinuxDMABUFFeedbackResource> feedbackResource;
     for (auto const& f : m_feedbacks) {
         if (f->m_surface != surface)
             continue;

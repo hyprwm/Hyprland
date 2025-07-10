@@ -11,7 +11,7 @@ class CRenderPass {
     bool    empty() const;
     bool    single() const;
 
-    void    add(SP<IPassElement> elem);
+    void    add(UP<IPassElement>&& elem);
     void    clear();
     void    removeAllOfType(const std::string& type);
 
@@ -24,11 +24,11 @@ class CRenderPass {
 
     struct SPassElementData {
         CRegion          elementDamage;
-        SP<IPassElement> element;
+        UP<IPassElement> element;
         bool             discard = false;
     };
 
-    std::vector<SP<SPassElementData>> m_passElements;
+    std::vector<UP<SPassElementData>> m_passElements;
 
     void                              simplify();
     float                             oneBlurRadius();

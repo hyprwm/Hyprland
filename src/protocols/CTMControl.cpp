@@ -8,7 +8,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 
-CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : m_resource(resource_) {
+CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlManagerV1>&& resource_) : m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
         return;
 
@@ -87,7 +87,7 @@ CHyprlandCTMControlProtocol::CHyprlandCTMControlProtocol(const wl_interface* ifa
 }
 
 void CHyprlandCTMControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_managers.emplace_back(makeShared<CHyprlandCTMControlResource>(makeShared<CHyprlandCtmControlManagerV1>(client, ver, id)));
+    const auto& RESOURCE = m_managers.emplace_back(makeUnique<CHyprlandCTMControlResource>(makeUnique<CHyprlandCtmControlManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

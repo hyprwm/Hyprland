@@ -961,7 +961,6 @@ CXWM::CXWM() : m_connection(makeUnique<CXCBConnection>(g_pXWayland->m_server->m_
     m_screen                              = screen_iterator.data;
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, g_pXWayland->m_server->m_xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
-    wl_event_source_check(m_eventSource);
 
     gatherResources();
     getVisual();

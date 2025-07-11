@@ -1213,18 +1213,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "misc:render_ahead_of_time",
-        .description = "[Warning: buggy] starts rendering before your monitor displays a frame in order to lower latency",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "misc:render_ahead_safezone",
-        .description = "how many ms of safezone to add to rendering ahead of time. Recommended 1-2.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
-    },
-    SConfigOptionDescription{
         .value       = "misc:allow_session_lock_restore",
         .description = "if true, will allow you to restart a lockscreen app in case it crashes (red screen of death)",
         .type        = CONFIG_OPTION_BOOL,

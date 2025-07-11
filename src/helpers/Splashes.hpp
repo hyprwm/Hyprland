@@ -59,6 +59,7 @@ namespace NSplashes {
         "The AUR packages always work, except for the times they don't.",
         "Funny animation compositor woo",
         "3 years!",
+        "Beauty will save the world", // 4th ricing comp winner - zacoons' choice
         // music reference / quote section
         "J'remue le ciel, le jour, la nuit.",
         "aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi!",

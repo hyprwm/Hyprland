@@ -41,6 +41,7 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
+using namespace NColorManagement;
 
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
@@ -412,6 +413,7 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::applyCMType(eCMType cmType) {
+    auto oldImageDescription = m_imageDescription;
     switch (cmType) {
         case CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
         case CM_WIDE:
@@ -461,6 +463,9 @@ void CMonitor::applyCMType(eCMType cmType) {
         m_imageDescription.luminances.max = m_maxLuminance;
     if (m_maxAvgLuminance >= 0)
         m_imageDescription.luminances.reference = m_maxAvgLuminance;
+
+    if (oldImageDescription != m_imageDescription)
+        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 }
 
 bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
@@ -753,7 +758,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
         std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010},{"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
         },
         std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
             {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
@@ -783,8 +788,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_supportsWideColor = RULE->supportsHDR;
     m_supportsHDR       = RULE->supportsHDR;
 
-    auto oldImageDescription = m_imageDescription;
-    m_cmType                 = RULE->cmType;
+    m_cmType = RULE->cmType;
     switch (m_cmType) {
         case CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? CM_WIDE : CM_SRGB; break;
         case CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
@@ -801,8 +805,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_maxAvgLuminance = RULE->maxAvgLuminance;
 
     applyCMType(m_cmType);
-    if (oldImageDescription != m_imageDescription)
-        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 
     m_sdrSaturation = RULE->sdrSaturation;
     m_sdrBrightness = RULE->sdrBrightness;
@@ -1590,6 +1592,18 @@ int CMonitor::maxLuminance() {
 
 int CMonitor::maxAvgLuminance() {
     return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 80);
+}
+
+bool CMonitor::wantsWideColor() {
+    return supportsWideColor() && (wantsHDR() || m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020);
+}
+
+bool CMonitor::wantsHDR() {
+    return supportsHDR() && inHDR();
+}
+
+bool CMonitor::inHDR() {
+    return m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

@@ -173,7 +173,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     });
     m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(WARN, "New Windows scRGB description id={} (unsupported)", id);
-        if (!PROTO::colorManagement->m_debug) {
+        if (!PROTO::colorManagement->m_debug && !PROTO::colorManagement->m_allowScRGB) {
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Windows scRGB profiles are not supported");
             return;
         }

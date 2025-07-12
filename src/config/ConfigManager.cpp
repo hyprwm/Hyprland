@@ -748,13 +748,13 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:send_content_type", Hyprlang::INT{1});
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
-    registerConfigVar("render:use_fp16", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
+    registerConfigVar("experimental:use_fp16", Hyprlang::INT{0});
 
     // devices
     m_config->addSpecialCategory("device", {"name"});

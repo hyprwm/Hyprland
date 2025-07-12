@@ -211,6 +211,9 @@ void CScreencopyFrame::renderMon() {
         if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
             continue;
 
+        if (w->isHidden())
+            continue;
+
         const auto PWORKSPACE = w->m_workspace;
 
         if UNLIKELY (!PWORKSPACE)

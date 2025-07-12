@@ -118,14 +118,12 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     bind();
 
-    auto rects = damage.copy().intersect(CBox{{}, m_size}).getRects();
-
     if (format->flipRB) {
         setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
         setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 
-    for (auto const& rect : rects) {
+    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
@@ -133,7 +131,7 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
         int width  = rect.x2 - rect.x1;
         int height = rect.y2 - rect.y1;
         GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
-    }
+    });
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));

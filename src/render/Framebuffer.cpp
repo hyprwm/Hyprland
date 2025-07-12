@@ -10,7 +10,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 0 && h > 0), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    static auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    static auto PFP16 = CConfigValue<Hyprlang::INT>("experimental:use_fp16");
 
     uint32_t    glFormat = *PFP16 ? GL_RGBA16F : NFormatUtils::drmFormatToGL(drmFormat);
     uint32_t    glType   = NFormatUtils::glFormatToType(glFormat);

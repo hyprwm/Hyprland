@@ -1489,12 +1489,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
-    SConfigOptionDescription{
-        .value       = "render:use_fp16",
-        .description = "Use FP16 for internal buffers. Required for scRGB HDR. Slightly increases VRAM usage (64mb extra at 4k)",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
 
     /*
      * cursor:
@@ -1923,8 +1917,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
+        .description = "enable old xx v4 color management protocol (deprecated)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value = "experimental:use_fp16",
+        .description =
+            "Use FP16 for internal buffers. Required for scRGB HDR. Slightly increases VRAM usage (64mb extra at 4k). Has some visual desktop effects glitches. Requires restart",
+        .type = CONFIG_OPTION_BOOL,
+        .data = SConfigOptionDescription::SBoolData{false},
     },
 };

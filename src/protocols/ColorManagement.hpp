@@ -183,7 +183,7 @@ class CColorManagementImageDescriptionInfo {
 
 class CColorManagementProtocol : public IWaylandProtocol {
   public:
-    CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug = false);
+    CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug = false, bool scRGB = false);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
@@ -208,7 +208,8 @@ class CColorManagementProtocol : public IWaylandProtocol {
     std::vector<SP<CColorManagementIccCreator>>        m_iccCreators;
     std::vector<SP<CColorManagementParametricCreator>> m_parametricCreators;
     std::vector<SP<CColorManagementImageDescription>>  m_imageDescriptions;
-    bool                                               m_debug = false;
+    bool                                               m_debug      = false;
+    bool                                               m_allowScRGB = false;
 
     friend class CColorManager;
     friend class CColorManagementOutput;

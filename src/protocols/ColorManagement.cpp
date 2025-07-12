@@ -16,12 +16,14 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES);
 
+    if (PROTO::colorManagement->m_debug || PROTO::colorManagement->m_allowScRGB)
+        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
+
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
     }
 
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
@@ -799,8 +801,8 @@ wl_client* CColorManagementImageDescriptionInfo::client() {
     return m_client;
 }
 
-CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug) :
-    IWaylandProtocol(iface, ver, name), m_debug(debug) {
+CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug, bool scRGB) :
+    IWaylandProtocol(iface, ver, name), m_debug(debug), m_allowScRGB(scRGB) {
     ;
 }
 

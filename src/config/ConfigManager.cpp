@@ -484,6 +484,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:focus_on_activate", Hyprlang::INT{0});
     registerConfigVar("misc:mouse_move_focuses_monitor", Hyprlang::INT{1});
     registerConfigVar("misc:allow_session_lock_restore", Hyprlang::INT{0});
+    registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
     registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});

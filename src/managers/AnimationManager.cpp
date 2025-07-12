@@ -33,7 +33,7 @@ static int wlTick(SP<CEventLoopTimer> self, void* data) {
 }
 
 CHyprAnimationManager::CHyprAnimationManager() {
-    m_animationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
+    m_animationTimer = makeShared<CEventLoopTimer>(std::chrono::microseconds(500), wlTick, nullptr);
     if (g_pEventLoopManager) // null in --verify-config mode
         g_pEventLoopManager->addTimer(m_animationTimer);
 

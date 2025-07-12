@@ -58,7 +58,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
 
     // anim data too
     const auto PMONITORFORTICKS = g_pHyprRenderer->m_mostHzMonitor ? g_pHyprRenderer->m_mostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
-    if (PMONITORFORTICKS) {
+    if (PMONITORFORTICKS == pMonitor) {
         if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->m_refreshRate)
             m_lastAnimationTicks.pop_front();
 

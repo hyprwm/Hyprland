@@ -32,4 +32,5 @@ class CMonitorFrameScheduler {
     PHLMONITORREF   m_monitor;
 
     UP<CEGLSync>    m_sync;
+    size_t          m_seq = 0; // sequence for the syncs
 };

@@ -75,6 +75,7 @@ class CHyprRenderer {
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
+    bool                            isMgpu();
     void                            makeEGLCurrent();
     void                            unsetEGL();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
@@ -140,6 +141,7 @@ class CHyprRenderer {
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
     eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
     bool                    m_nvidia              = false;
+    bool                    m_mgpu                = false;
 
     struct {
         bool hiddenOnTouch    = false;

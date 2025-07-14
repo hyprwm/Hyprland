@@ -362,6 +362,11 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
     m_resource->setGetPreferred([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
         LOGM(TRACE, "Get preferred for id {}", id);
 
+        if (m_surface.expired()) {
+            r->error(WP_COLOR_MANAGEMENT_SURFACE_FEEDBACK_V1_ERROR_INERT, "Surface is inert");
+            return;
+        }
+
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
 
@@ -377,7 +382,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         RESOURCE->m_self   = RESOURCE;
         m_currentPreferred = RESOURCE;
 
-        m_currentPreferred->m_settings = g_pCompositor->getPreferredImageDescription();
+        m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
         RESOURCE->resource()->sendReady(m_currentPreferred->m_settings.updateId());
     });
 

@@ -634,17 +634,16 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled)
             performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
 
-        CBox wb = {newPos, newSize};
-        wb.round();
+        newPos = newPos.round();
 
         if (*PANIMATEMOUSE)
-            *DRAGGINGWINDOW->m_realPosition = wb.pos();
+            *DRAGGINGWINDOW->m_realPosition = newPos;
         else {
-            DRAGGINGWINDOW->m_realPosition->setValueAndWarp(wb.pos());
+            DRAGGINGWINDOW->m_realPosition->setValueAndWarp(newPos);
             DRAGGINGWINDOW->sendWindowSize();
         }
 
-        DRAGGINGWINDOW->m_position = wb.pos();
+        DRAGGINGWINDOW->m_position = newPos;
 
     } else if (g_pInputManager->m_dragMode == MBIND_RESIZE || g_pInputManager->m_dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->m_dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_isFloating) {

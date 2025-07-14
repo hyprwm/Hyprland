@@ -2375,7 +2375,7 @@ bool CHyprRenderer::isNvidia() {
 }
 
 bool CHyprRenderer::isMgpu() {
-    return m_nvidia;
+    return m_mgpu;
 }
 
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {

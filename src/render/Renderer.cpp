@@ -1037,7 +1037,7 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};
 
-    m_renderPass.add(makeShared<CRectPassElement>(data));
+    m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
@@ -1051,7 +1051,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     data.box = monbox;
     data.a   = 1;
 
-    m_renderPass.add(makeShared<CTexPassElement>(data));
+    m_renderPass.add(makeUnique<CTexPassElement>(data));
 
     if (!ANY_PRESENT && g_pHyprOpenGL->m_lockTtyTextTexture) {
         // also render text for the tty number
@@ -1059,7 +1059,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
         data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
         data.box    = texbox;
 
-        m_renderPass.add(makeShared<CTexPassElement>(data));
+        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
     }
 }
 

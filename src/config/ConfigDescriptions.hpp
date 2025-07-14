@@ -1219,6 +1219,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "misc:session_lock_xray",
+        .description = "keep rendering workspaces below your lockscreen",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "misc:background_color",
         .description = "change the background color. (requires enabled disable_hyprland_logo)",
         .type        = CONFIG_OPTION_COLOR,

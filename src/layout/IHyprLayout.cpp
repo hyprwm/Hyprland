@@ -9,7 +9,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
@@ -415,7 +414,7 @@ static void snapResize(double& start, double& end, const double P) {
 
 using SnapFn = std::function<void(double&, double&, const double)>;
 
-static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
+void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
     static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
     static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");

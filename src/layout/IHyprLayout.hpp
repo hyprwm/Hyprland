@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../managers/input/InputManager.hpp"
 #include <any>
 
 class CWindow;
@@ -210,6 +211,11 @@ class IHyprLayout {
         Return true to reject
     */
     virtual bool updateDragWindow();
+
+    /*
+        Triggers a window snap event
+    */
+    static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
 
   private:
     int          m_mouseMoveEventCount;

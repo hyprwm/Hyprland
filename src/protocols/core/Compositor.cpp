@@ -1,4 +1,5 @@
 #include "Compositor.hpp"
+#include "../../Compositor.hpp"
 #include "Output.hpp"
 #include "Seat.hpp"
 #include "../types/WLBuffer.hpp"
@@ -16,6 +17,8 @@
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
+
+using namespace NColorManagement;
 
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
@@ -533,6 +536,10 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
     if (m_current.buffer && m_current.buffer->isSynchronous() && m_role->role() != SURFACE_ROLE_UNASSIGNED)
         dropCurrentBuffer();
+}
+
+SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
+    return m_enteredOutputs.size() == 1 ? m_enteredOutputs[0]->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

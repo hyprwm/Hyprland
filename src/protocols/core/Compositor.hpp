@@ -18,6 +18,7 @@
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
+#include "../types/ColorManagement.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
 
@@ -107,6 +108,7 @@ class CWLSurfaceResource {
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   commitState(SSurfaceState& state);
+    NColorManagement::SImageDescription    getPreferredImageDescription();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

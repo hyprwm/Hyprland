@@ -389,6 +389,11 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
+        if (m_surface.expired()) {
+            r->error(WP_COLOR_MANAGEMENT_SURFACE_FEEDBACK_V1_ERROR_INERT, "Surface is inert");
+            return;
+        }
+
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
 
@@ -404,7 +409,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         RESOURCE->m_self   = RESOURCE;
         m_currentPreferred = RESOURCE;
 
-        m_currentPreferred->m_settings = g_pCompositor->getPreferredImageDescription();
+        m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
         if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd) {
             LOGM(ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");

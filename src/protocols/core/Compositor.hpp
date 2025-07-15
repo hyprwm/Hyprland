@@ -87,6 +87,8 @@ class CWLSurfaceResource {
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
         CSignalT<>                          destroy;
+        CSignalT<SP<CMonitor>>              enter;
+        CSignalT<SP<CMonitor>>              leave;
     } m_events;
 
     SSurfaceState                          m_current;

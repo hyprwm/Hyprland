@@ -410,14 +410,27 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         m_currentPreferred = RESOURCE;
 
         m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
-        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd) {
+        m_currentPreferredId           = m_currentPreferred->m_settings.updateId();
+
+        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd >= 0) {
             LOGM(ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
             return;
         }
 
-        RESOURCE->resource()->sendReady(m_currentPreferred->m_settings.updateId());
+        RESOURCE->resource()->sendReady(m_currentPreferredId);
     });
+
+    m_listeners.enter = m_surface->m_events.enter.listen([this](const auto& monitor) { onPreferredChanged(); });
+    m_listeners.leave = m_surface->m_events.leave.listen([this](const auto& monitor) { onPreferredChanged(); });
+}
+
+void CColorManagementFeedbackSurface::onPreferredChanged() {
+    if (m_surface->m_enteredOutputs.size() == 1) {
+        const auto newId = m_surface->getPreferredImageDescription().updateId();
+        if (m_currentPreferredId != newId)
+            m_resource->sendPreferredChanged(newId);
+    }
 }
 
 bool CColorManagementFeedbackSurface::good() {
@@ -796,6 +809,9 @@ void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> mon
         if (output->m_monitor == monitor)
             output->m_resource->sendImageDescriptionChanged();
     }
+    // recheck feedbacks
+    for (auto const& feedback : m_feedbackSurfaces)
+        feedback->onPreferredChanged();
 }
 
 void CColorManagementProtocol::destroyResource(CColorManager* resource) {

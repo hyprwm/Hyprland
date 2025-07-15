@@ -3090,7 +3090,7 @@ SImageDescription CCompositor::getPreferredImageDescription() {
     }
     Debug::log(WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
     // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
-    return SImageDescription{.primaries = NColorPrimaries::BT709};
+    return m_monitors.size() == 1 ? m_monitors[0]->m_imageDescription : SImageDescription{.primaries = NColorPrimaries::BT709};
 }
 
 bool CCompositor::shouldChangePreferredImageDescription() {

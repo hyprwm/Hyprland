@@ -307,6 +307,7 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
     m_enteredOutputs.emplace_back(monitor);
 
     m_resource->sendEnter(output->getResource().get());
+    m_events.enter.emit(monitor);
 }
 
 void CWLSurfaceResource::leave(PHLMONITOR monitor) {
@@ -323,6 +324,7 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     std::erase(m_enteredOutputs, monitor);
 
     m_resource->sendLeave(output->getResource().get());
+    m_events.leave.emit(monitor);
 }
 
 void CWLSurfaceResource::sendPreferredTransform(wl_output_transform t) {
@@ -539,7 +541,18 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
-    return m_enteredOutputs.size() == 1 ? m_enteredOutputs[0]->m_imageDescription : g_pCompositor->getPreferredImageDescription();
+    auto parent = m_self;
+    if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+        auto subsurface = ((CSubsurfaceRole*)parent->m_role.get())->m_subsurface.lock();
+        parent          = subsurface->t1Parent();
+    }
+    WP<CMonitor> monitor;
+    if (parent->m_enteredOutputs.size() == 1)
+        monitor = parent->m_enteredOutputs[0];
+    else if (m_hlSurface.valid() && m_hlSurface->getWindow())
+        monitor = m_hlSurface->getWindow()->m_monitor;
+
+    return monitor ? monitor->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

@@ -412,6 +412,7 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::applyCMType(eCMType cmType) {
+    auto oldImageDescription = m_imageDescription;
     switch (cmType) {
         case CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
         case CM_WIDE:
@@ -461,6 +462,11 @@ void CMonitor::applyCMType(eCMType cmType) {
         m_imageDescription.luminances.max = m_maxLuminance;
     if (m_maxAvgLuminance >= 0)
         m_imageDescription.luminances.reference = m_maxAvgLuminance;
+
+    if (oldImageDescription != m_imageDescription) {
+        m_imageDescription.updateId();
+        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
+    }
 }
 
 bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
@@ -783,8 +789,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_supportsWideColor = RULE->supportsHDR;
     m_supportsHDR       = RULE->supportsHDR;
 
-    auto oldImageDescription = m_imageDescription;
-    m_cmType                 = RULE->cmType;
+    m_cmType = RULE->cmType;
     switch (m_cmType) {
         case CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? CM_WIDE : CM_SRGB; break;
         case CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
@@ -801,8 +806,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_maxAvgLuminance = RULE->maxAvgLuminance;
 
     applyCMType(m_cmType);
-    if (oldImageDescription != m_imageDescription)
-        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
 
     m_sdrSaturation = RULE->sdrSaturation;
     m_sdrBrightness = RULE->sdrBrightness;

@@ -304,11 +304,10 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
         return;
     }
 
-    if (m_hlSurface.valid())
-        LOGM(INFO, "surface for {} enters {}", m_hlSurface->getWindow(), monitor->m_id);
     m_enteredOutputs.emplace_back(monitor);
 
     m_resource->sendEnter(output->getResource().get());
+    m_events.enter.emit(monitor);
 }
 
 void CWLSurfaceResource::leave(PHLMONITOR monitor) {
@@ -325,6 +324,7 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     std::erase(m_enteredOutputs, monitor);
 
     m_resource->sendLeave(output->getResource().get());
+    m_events.leave.emit(monitor);
 }
 
 void CWLSurfaceResource::sendPreferredTransform(wl_output_transform t) {
@@ -546,7 +546,6 @@ SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
         auto subsurface = ((CSubsurfaceRole*)PARENT->m_role.get())->m_subsurface.lock();
         PARENT          = subsurface->t1Parent();
     }
-    LOGM(INFO, "getPreferredImageDescription for outputs {} {}", PARENT->m_enteredOutputs.size(), m_hlSurface->getWindow());
     WP<CMonitor> MONITOR;
     if (PARENT->m_enteredOutputs.size() == 1)
         MONITOR = PARENT->m_enteredOutputs[0];

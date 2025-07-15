@@ -89,6 +89,14 @@ class CColorManagementFeedbackSurface {
     wl_client*                              m_client = nullptr;
 
     WP<CColorManagementImageDescription>    m_currentPreferred;
+    uint32_t                                m_currentPreferredId = 0;
+
+    struct {
+        CHyprSignalListener enter;
+        CHyprSignalListener leave;
+    } m_listeners;
+
+    void onPreferredChanged();
 
     friend class CColorManagementProtocol;
 };

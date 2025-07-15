@@ -541,18 +541,18 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
-    auto PARENT = m_self;
-    if (PARENT->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
-        auto subsurface = ((CSubsurfaceRole*)PARENT->m_role.get())->m_subsurface.lock();
-        PARENT          = subsurface->t1Parent();
+    auto parent = m_self;
+    if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+        auto subsurface = ((CSubsurfaceRole*)parent->m_role.get())->m_subsurface.lock();
+        parent          = subsurface->t1Parent();
     }
-    WP<CMonitor> MONITOR;
-    if (PARENT->m_enteredOutputs.size() == 1)
-        MONITOR = PARENT->m_enteredOutputs[0];
+    WP<CMonitor> monitor;
+    if (parent->m_enteredOutputs.size() == 1)
+        monitor = parent->m_enteredOutputs[0];
     else if (m_hlSurface.valid() && m_hlSurface->getWindow())
-        MONITOR = m_hlSurface->getWindow()->m_monitor;
+        monitor = m_hlSurface->getWindow()->m_monitor;
 
-    return MONITOR ? MONITOR->m_imageDescription : g_pCompositor->getPreferredImageDescription();
+    return monitor ? monitor->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

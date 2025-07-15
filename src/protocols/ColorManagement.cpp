@@ -410,7 +410,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         m_currentPreferred = RESOURCE;
 
         m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
-        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd) {
+        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd >= 0) {
             LOGM(ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
             return;

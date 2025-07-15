@@ -304,6 +304,8 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
         return;
     }
 
+    if (m_hlSurface.valid())
+        LOGM(INFO, "surface for {} enters {}", m_hlSurface->getWindow(), monitor->m_id);
     m_enteredOutputs.emplace_back(monitor);
 
     m_resource->sendEnter(output->getResource().get());
@@ -539,7 +541,19 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
-    return m_enteredOutputs.size() == 1 ? m_enteredOutputs[0]->m_imageDescription : g_pCompositor->getPreferredImageDescription();
+    auto PARENT = m_self;
+    if (PARENT->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+        auto subsurface = ((CSubsurfaceRole*)PARENT->m_role.get())->m_subsurface.lock();
+        PARENT          = subsurface->t1Parent();
+    }
+    LOGM(INFO, "getPreferredImageDescription for outputs {} {}", PARENT->m_enteredOutputs.size(), m_hlSurface->getWindow());
+    WP<CMonitor> MONITOR;
+    if (PARENT->m_enteredOutputs.size() == 1)
+        MONITOR = PARENT->m_enteredOutputs[0];
+    else if (m_hlSurface.valid() && m_hlSurface->getWindow())
+        MONITOR = m_hlSurface->getWindow()->m_monitor;
+
+    return MONITOR ? MONITOR->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }
 
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {

@@ -9,7 +9,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
@@ -415,7 +414,7 @@ static void snapResize(double& start, double& end, const double P) {
 
 using SnapFn = std::function<void(double&, double&, const double)>;
 
-static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
+void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
     static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
     static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
@@ -514,30 +513,33 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             gapOffset                = std::max({PGAPSOUTPTR->m_left, PGAPSOUTPTR->m_right, PGAPSOUTPTR->m_top, PGAPSOUTPTR->m_bottom});
         }
 
+        SRange monX = {MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset,
+                       MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset};
+        SRange monY = {MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset,
+                       MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset};
+
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
-            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset, GAPSIZE)) ||
-             canSnap(sourceX.start, MON->m_position.x + MON->m_reservedTopLeft.x - BORDERDIFF + gapOffset, GAPSIZE))) {
-            SNAP(sourceX.start, sourceX.end, MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset);
+            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
+             canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
+            SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.x > 0 &&
-              canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset, GAPSIZE)) ||
-             canSnap(sourceX.end, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x + BORDERDIFF - gapOffset, GAPSIZE))) {
-            SNAP(sourceX.end, sourceX.start, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset);
+            ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
+             canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
+            SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
-            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset, GAPSIZE)) ||
-             canSnap(sourceY.start, MON->m_position.y + MON->m_reservedTopLeft.y - BORDERDIFF + gapOffset, GAPSIZE))) {
-            SNAP(sourceY.start, sourceY.end, MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset);
+            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
+             canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
+            SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.y > 0 &&
-              canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset, GAPSIZE)) ||
-             canSnap(sourceY.end, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y + BORDERDIFF - gapOffset, GAPSIZE))) {
-            SNAP(sourceY.end, sourceY.start, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset);
+            ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
+             canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
+            SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
     }
@@ -632,17 +634,16 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled)
             performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
 
-        CBox wb = {newPos, newSize};
-        wb.round();
+        newPos = newPos.round();
 
         if (*PANIMATEMOUSE)
-            *DRAGGINGWINDOW->m_realPosition = wb.pos();
+            *DRAGGINGWINDOW->m_realPosition = newPos;
         else {
-            DRAGGINGWINDOW->m_realPosition->setValueAndWarp(wb.pos());
+            DRAGGINGWINDOW->m_realPosition->setValueAndWarp(newPos);
             DRAGGINGWINDOW->sendWindowSize();
         }
 
-        DRAGGINGWINDOW->m_position = wb.pos();
+        DRAGGINGWINDOW->m_position = newPos;
 
     } else if (g_pInputManager->m_dragMode == MBIND_RESIZE || g_pInputManager->m_dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->m_dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_isFloating) {

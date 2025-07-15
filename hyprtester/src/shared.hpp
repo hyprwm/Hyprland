@@ -44,13 +44,13 @@ namespace Colors {
     } while (0)
 
 #define EXPECT_CONTAINS(haystack, needle)                                                                                                                                          \
-    if (!std::string{haystack}.contains(needle)) {                                                                                                                                 \
-        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
+    if (const auto EXPECTED = needle; !std::string{haystack}.contains(EXPECTED)) {                                                                                                 \
+        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, EXPECTED, __FILE__, __LINE__,            \
                   std::string{haystack});                                                                                                                                          \
         ret = 1;                                                                                                                                                                   \
         TESTS_FAILED++;                                                                                                                                                            \
     } else {                                                                                                                                                                       \
-        NLog::log("{}Passed: {}{} contains {}.", Colors::GREEN, Colors::RESET, #haystack, #needle);                                                                                \
+        NLog::log("{}Passed: {}{} contains {}.", Colors::GREEN, Colors::RESET, #haystack, EXPECTED);                                                                               \
         TESTS_PASSED++;                                                                                                                                                            \
     }
 

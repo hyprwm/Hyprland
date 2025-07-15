@@ -6,6 +6,9 @@
 #define private public
 #include <src/config/ConfigManager.hpp>
 #include <src/config/ConfigDescriptions.hpp>
+#include <src/layout/IHyprLayout.hpp>
+#include <src/managers/LayoutManager.hpp>
+#include <src/Compositor.hpp>
 #undef private
 
 #include "globals.hpp"
@@ -30,10 +33,26 @@ static SDispatchResult test(std::string in) {
     };
 }
 
+// Trigger a snap move event for the active window
+static SDispatchResult snapMove(std::string in) {
+    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
+    if (!PLASTWINDOW->m_isFloating)
+        return {.success = false, .error = "Window must be floating"};
+
+    Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
+    Vector2D size = PLASTWINDOW->m_realSize->goal();
+
+    g_pLayoutManager->getCurrentLayout()->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
+    *PLASTWINDOW->m_realPosition = pos.round();
+
+    return {};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:test", ::test);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:snapmove", ::snapMove);
 
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};
 }

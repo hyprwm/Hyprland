@@ -7,6 +7,7 @@
 #include <src/config/ConfigManager.hpp>
 #include <src/config/ConfigDescriptions.hpp>
 #include <src/layout/IHyprLayout.hpp>
+#include <src/managers/LayoutManager.hpp>
 #include <src/Compositor.hpp>
 #undef private
 
@@ -41,7 +42,7 @@ static SDispatchResult snapMove(std::string in) {
     Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
     Vector2D size = PLASTWINDOW->m_realSize->goal();
 
-    IHyprLayout::performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
+    g_pLayoutManager->getCurrentLayout()->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
     *PLASTWINDOW->m_realPosition = pos.round();
 
     return {};

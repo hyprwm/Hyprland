@@ -215,7 +215,7 @@ class IHyprLayout {
     /*
         Triggers a window snap event
     */
-    static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
+    virtual void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
 
   private:
     int          m_mouseMoveEventCount;

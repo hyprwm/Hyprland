@@ -3131,6 +3131,9 @@ const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions(
 bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
+    if (pMonitor->m_tearingState.activelyTearing)
+        return true;
+
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;

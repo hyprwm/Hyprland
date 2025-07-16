@@ -56,10 +56,12 @@ static int cursorTicker(void* data) {
 
 CHyprRenderer::CHyprRenderer() {
     if (g_pCompositor->m_aqBackend->hasSession()) {
+        size_t drmDevices = 0;
         for (auto const& dev : g_pCompositor->m_aqBackend->session->sessionDevices) {
             const auto DRMV = drmGetVersion(dev->fd);
             if (!DRMV)
                 continue;
+            drmDevices++;
             std::string name = std::string{DRMV->name, DRMV->name_len};
             std::ranges::transform(name, name.begin(), tolower);
 
@@ -71,6 +73,7 @@ CHyprRenderer::CHyprRenderer() {
 
             drmFreeVersion(DRMV);
         }
+        m_mgpu = drmDevices > 1;
     } else {
         Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
@@ -2369,6 +2372,10 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_nvidia;
+}
+
+bool CHyprRenderer::isMgpu() {
+    return m_mgpu;
 }
 
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {

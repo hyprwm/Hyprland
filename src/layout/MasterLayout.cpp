@@ -1078,11 +1078,12 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
     auto command = vars[0];
 
-    // swapwithmaster <master | child | auto>
+    // swapwithmaster <master | child | auto> <ignoremaster>
     // first message argument can have the following values:
     // * master - keep the focus at the new master
     // * child - keep the focus at the new child
     // * auto (default) - swap the focus (keep the focus of the previously selected window)
+    // * ignoremaster - ignore if master is focused
     if (command == "swapwithmaster") {
         const auto PWINDOW = header.pWindow;
 
@@ -1099,13 +1100,15 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto NEWCHILD = PMASTER->pWindow.lock();
 
+        const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
+
         if (PMASTER->pWindow.lock() != PWINDOW) {
             const auto NEWMASTER       = PWINDOW;
             const bool newFocusToChild = vars.size() >= 2 && vars[1] == "child";
             switchWindows(NEWMASTER, NEWCHILD);
             const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
             switchToWindow(NEWFOCUS);
-        } else {
+        } else if (!IGNORE_IF_MASTER) {
             for (auto const& n : m_masterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     const auto NEWMASTER = n.pWindow.lock();

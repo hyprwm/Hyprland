@@ -1,4 +1,4 @@
-#include "hyprtester/src/Log.hpp"
+#include "../../Log.hpp"
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"

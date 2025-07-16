@@ -786,7 +786,9 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += "beziers:\n";
 
         for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
-            ret += std::format("\n\tname: {}\n", bz.first);
+            auto& controlPoints = bz.second->getControlPoints();
+            ret += std::format("\n\tname: {}\n\t\tX0: {:.2f}\n\t\tY0: {:.2f}\n\t\tX1: {:.2f}\n\t\tY1: {:.2f}", bz.first, controlPoints[1].x, controlPoints[1].y, controlPoints[2].x,
+                               controlPoints[2].y);
         }
     } else {
         // json
@@ -811,11 +813,16 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += ",\n[";
 
         for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+            auto& controlPoints = bz.second->getControlPoints();
             ret += std::format(R"#(
 {{
-    "name": "{}"
+    "name": "{}",
+    "X0": {:.2f},
+    "Y0": {:.2f},
+    "X1": {:.2f},
+    "Y1": {:.2f}
 }},)#",
-                               escapeJSONStrings(bz.first));
+                               escapeJSONStrings(bz.first), controlPoints[1].x, controlPoints[1].y, controlPoints[2].x, controlPoints[2].y);
         }
 
         trimTrailingComma(ret);

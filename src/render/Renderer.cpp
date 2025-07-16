@@ -73,7 +73,7 @@ CHyprRenderer::CHyprRenderer() {
 
             drmFreeVersion(DRMV);
         }
-        m_mgpu = drmDevices > 0;
+        m_mgpu = drmDevices > 1;
     } else {
         Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 

@@ -1495,7 +1495,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "cursor:invisible",
-        .description = "don't render cursors(also disables hardware cursors)",
+        .description = "don't render cursors (also disables hardware cursors)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

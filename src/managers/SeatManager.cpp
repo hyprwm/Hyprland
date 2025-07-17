@@ -90,8 +90,13 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
         m_keyboard->m_active = false;
     m_keyboard = KEEB;
 
-    if (KEEB)
+    if (KEEB) {
         KEEB->m_active = true;
+
+        // m_lastFocus was set without a keyboard
+        if (KEEB->m_enabled && g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus != m_state.keyboardFocus)
+            setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
+    }
 
     updateActiveKeyboardData();
 }

@@ -26,12 +26,12 @@ struct SSurfaceState {
     bool rejected = false;
 
     // initial values, copied from protocol text
-    CHLBufferReference  buffer = {};                                  // The initial surface contents are void
-    CRegion             damage, bufferDamage;                         // The initial value for pending damage is empty
-    CRegion             opaque;                                       // The initial value for an opaque region is empty
-    CRegion             input     = CBox{{}, {INT32_MAX, INT32_MAX}}; // The initial value for an input region is infinite
-    wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;       // A newly created surface has its buffer transformation set to normal
-    int                 scale     = 1;                                // A newly created surface has its buffer scale set to 1
+    CHLBufferReference  buffer = {};                                          // The initial surface contents are void
+    CRegion             damage, bufferDamage;                                 // The initial value for pending damage is empty
+    CRegion             opaque;                                               // The initial value for an opaque region is empty
+    CRegion             input     = CBox{{}, {INT32_MAX - 1, INT32_MAX - 1}}; // The initial value for an input region is infinite
+    wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;               // A newly created surface has its buffer transformation set to normal
+    int                 scale     = 1;                                        // A newly created surface has its buffer scale set to 1
 
     // these don't have well defined initial values in the protocol, but these work
     Vector2D size, bufferSize;

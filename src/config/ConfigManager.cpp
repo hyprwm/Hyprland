@@ -709,6 +709,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 
+    registerConfigVar("cursor:enabled", Hyprlang::INT{1});
     registerConfigVar("cursor:no_hardware_cursors", Hyprlang::INT{2});
     registerConfigVar("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     registerConfigVar("cursor:min_refresh_rate", Hyprlang::INT{24});

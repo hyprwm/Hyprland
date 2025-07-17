@@ -219,7 +219,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.updated.bits.input = true;
 
         if (!region) {
-            m_pending.input = CBox{{}, m_pending.bufferSize};
+            m_pending.input = CBox{{}, Vector2D{INT32_MAX - 1, INT32_MAX - 1}};
             return;
         }
 

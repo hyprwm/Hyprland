@@ -83,7 +83,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         if (readBytes < 0 || (size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t) || moreBytes != 0) {
             LOGM(ERR, "Failed to read bytes");
 
-            if ((size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t), moreBytes > 0) {
+            if ((size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t) || moreBytes > 0) {
                 gamma->error(ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
                 return;
             }

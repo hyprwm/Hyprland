@@ -420,42 +420,38 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
     static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
     static auto  SNAPRESPECTGAPS   = CConfigValue<Hyprlang::INT>("general:snap:respect_gaps");
 
+    static auto  PGAPSIN  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    static auto  PGAPSOUT = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    const auto   GAPSNONE = CCssGapData{0, 0, 0, 0};
+
     const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
     int          snaps = 0;
-
-    const bool   OVERLAP            = *SNAPBORDEROVERLAP;
-    const int    DRAGGINGBORDERSIZE = DRAGGINGWINDOW->getRealBorderSize();
 
     struct SRange {
         double start = 0;
         double end   = 0;
     };
-    SRange sourceX = {sourcePos.x, sourcePos.x + sourceSize.x};
-    SRange sourceY = {sourcePos.y, sourcePos.y + sourceSize.y};
+    const auto EXTENTS = DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
+    SRange     sourceX = {sourcePos.x - EXTENTS.topLeft.x, sourcePos.x + sourceSize.x + EXTENTS.bottomRight.x};
+    SRange     sourceY = {sourcePos.y - EXTENTS.topLeft.y, sourcePos.y + sourceSize.y + EXTENTS.bottomRight.y};
 
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
-        double       gapOffset = 0;
-        if (*SNAPRESPECTGAPS) {
-            static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-            auto*       PGAPSINPTR  = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-            gapOffset               = std::max({PGAPSINPTR->m_left, PGAPSINPTR->m_right, PGAPSINPTR->m_top, PGAPSINPTR->m_bottom});
-        }
+        const auto*  GAPSIN = *SNAPRESPECTGAPS ? (CCssGapData*)PGAPSIN.ptr()->getData() : &GAPSNONE;
+        const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
+        const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : g_pCompositor->m_windows) {
             if ((HASFULLSCREEN && !other->m_createdOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
                 other->isX11OverrideRedirect())
                 continue;
 
-            const int    OTHERBORDERSIZE = other->getRealBorderSize();
-            const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
-
-            const CBox   SURF   = other->getWindowMainSurfaceBox();
-            const SRange SURFBX = {SURF.x - BORDERSIZE - gapOffset, SURF.x + SURF.w + BORDERSIZE + gapOffset};
-            const SRange SURFBY = {SURF.y - BORDERSIZE - gapOffset, SURF.y + SURF.h + BORDERSIZE + gapOffset};
+            const CBox   SURF   = other->getWindowBoxUnified(RESERVED_EXTENTS);
+            const SRange SURFBX = {SURF.x - GAPSX, SURF.x + SURF.w + GAPSX};
+            const SRange SURFBY = {SURF.y - GAPSY, SURF.y + SURF.h + GAPSY};
 
             // only snap windows if their ranges overlap in the opposite axis
             if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
@@ -478,9 +474,8 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
             }
 
             // corner snapping
-            const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
             if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
-                const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
+                const SRange SURFY = {SURFBY.start + GAPSY, SURFBY.end - GAPSY};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
@@ -490,7 +485,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
                 }
             }
             if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
-                const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
+                const SRange SURFX = {SURFBX.start + GAPSX, SURFBX.end - GAPSX};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
@@ -504,45 +499,43 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
 
     if (*SNAPMONITORGAP) {
         const double GAPSIZE    = *SNAPMONITORGAP;
-        const double BORDERDIFF = OVERLAP ? DRAGGINGBORDERSIZE : 0;
+        const auto   EXTENTNONE = SBoxExtents{{0, 0}, {0, 0}};
+        const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
-        double       gapOffset  = 0;
-        if (*SNAPRESPECTGAPS) {
-            static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-            auto*       PGAPSOUTPTR  = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
-            gapOffset                = std::max({PGAPSOUTPTR->m_left, PGAPSOUTPTR->m_right, PGAPSOUTPTR->m_top, PGAPSOUTPTR->m_bottom});
-        }
+        const auto*  GAPSOUT    = *SNAPRESPECTGAPS ? (CCssGapData*)PGAPSOUT.ptr()->getData() : &GAPSNONE;
 
-        SRange monX = {MON->m_position.x + MON->m_reservedTopLeft.x + DRAGGINGBORDERSIZE + gapOffset,
-                       MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - DRAGGINGBORDERSIZE - gapOffset};
-        SRange monY = {MON->m_position.y + MON->m_reservedTopLeft.y + DRAGGINGBORDERSIZE + gapOffset,
-                       MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - DRAGGINGBORDERSIZE - gapOffset};
+        SRange       monX = {MON->m_position.x + MON->m_reservedTopLeft.x + GAPSOUT->m_left, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - GAPSOUT->m_right};
+        SRange       monY = {MON->m_position.y + MON->m_reservedTopLeft.y + GAPSOUT->m_top, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - GAPSOUT->m_bottom};
 
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
             ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
-             canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
+             canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + EXTENTDIFF->topLeft.x), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
             ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
-             canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
+             canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
             ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
-             canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
+             canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + EXTENTDIFF->topLeft.y), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
             ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
-             canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
+             canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
     }
+
+    // remove extents from main surface
+    sourceX = {sourceX.start + EXTENTS.topLeft.x, sourceX.end - EXTENTS.bottomRight.x};
+    sourceY = {sourceY.start + EXTENTS.topLeft.y, sourceY.end - EXTENTS.bottomRight.y};
 
     if (MODE == MBIND_RESIZE_FORCE_RATIO) {
         if ((CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {

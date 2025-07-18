@@ -79,7 +79,7 @@ CHyprRenderer::CHyprRenderer() {
     } else {
         Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
-        const auto DRMV = drmGetVersion(g_pCompositor->m_drmFD);
+        const auto DRMV = drmGetVersion(g_pCompositor->m_drm.fd);
 
         if (DRMV) {
             std::string name = std::string{DRMV->name, DRMV->name_len};

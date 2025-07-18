@@ -114,7 +114,7 @@ vec3 tfInvSRGB(vec3 color) {
 }
 
 vec3 tfInvExtSRGB(vec3 color) {
-    // EXR sRGB is the sRGB transfer function mirrored around 0.
+    // EXT sRGB is the sRGB transfer function mirrored around 0.
     return sign(color) * tfInvSRGB(abs(color));
 }
 
@@ -160,7 +160,7 @@ vec3 tfSRGB(vec3 color) {
 }
 
 vec3 tfExtSRGB(vec3 color) {
-    // EXR sRGB is the sRGB transfer function mirrored around 0.
+    // EXT sRGB is the sRGB transfer function mirrored around 0.
     return sign(color) * tfSRGB(abs(color));
 }
 

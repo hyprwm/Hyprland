@@ -45,69 +45,68 @@ static void expectSnapMove(const Vector2D FROM, const Vector2D* TO) {
     EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("at: {},{}", B.x, B.y));
 }
 
-static void testSnap(const bool OVERLAP, const bool RESPECT) {
+static void testWindowSnap(const bool RESPECTGAPS) {
     const double BORDERSIZE = 2;
     const double WINDOWSIZE = 100;
 
-    // test window snapping
-    {
-        const double OTHER     = 500;
-        const double WINDOWGAP = 8;
-        const double GAPSIN    = 5;
-        const double GAP       = (RESPECT ? GAPSIN : 0) + BORDERSIZE + (OVERLAP ? 0 : BORDERSIZE);
-        const double END       = GAP + WINDOWSIZE;
+    const double OTHER     = 500;
+    const double WINDOWGAP = 8;
+    const double GAPSIN    = 5;
+    const double GAP       = (RESPECTGAPS ? 2 * GAPSIN : 0) + (2 * BORDERSIZE);
+    const double END       = GAP + WINDOWSIZE;
 
-        double       x;
-        Vector2D     predict;
+    double       x;
+    Vector2D     predict;
 
-        x = WINDOWGAP + END;
-        expectSnapMove({OTHER + x, OTHER}, nullptr);
-        expectSnapMove({OTHER - x, OTHER}, nullptr);
-        expectSnapMove({OTHER, OTHER + x}, nullptr);
-        expectSnapMove({OTHER, OTHER - x}, nullptr);
-        x -= 1;
-        expectSnapMove({OTHER + x, OTHER}, &(predict = {OTHER + END, OTHER}));
-        expectSnapMove({OTHER - x, OTHER}, &(predict = {OTHER - END, OTHER}));
-        expectSnapMove({OTHER, OTHER + x}, &(predict = {OTHER, OTHER + END}));
-        expectSnapMove({OTHER, OTHER - x}, &(predict = {OTHER, OTHER - END}));
-    }
+    x = WINDOWGAP + END;
+    expectSnapMove({OTHER + x, OTHER}, nullptr);
+    expectSnapMove({OTHER - x, OTHER}, nullptr);
+    expectSnapMove({OTHER, OTHER + x}, nullptr);
+    expectSnapMove({OTHER, OTHER - x}, nullptr);
+    x -= 1;
+    expectSnapMove({OTHER + x, OTHER}, &(predict = {OTHER + END, OTHER}));
+    expectSnapMove({OTHER - x, OTHER}, &(predict = {OTHER - END, OTHER}));
+    expectSnapMove({OTHER, OTHER + x}, &(predict = {OTHER, OTHER + END}));
+    expectSnapMove({OTHER, OTHER - x}, &(predict = {OTHER, OTHER - END}));
+}
 
-    // test monitor snapping
-    {
-        const double MONITORGAP = 10;
-        const double GAPSOUT    = 20;
-        const double RESP       = (RESPECT ? GAPSOUT : 0);
-        const double GAP        = RESP + (OVERLAP ? 0 : BORDERSIZE);
-        const double END        = GAP + WINDOWSIZE;
+static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
+    const double BORDERSIZE = 2;
+    const double WINDOWSIZE = 100;
 
-        double       x;
-        Vector2D     predict;
+    const double MONITORGAP = 10;
+    const double GAPSOUT    = 20;
+    const double RESP       = (RESPECTGAPS ? GAPSOUT : 0);
+    const double GAP        = RESP + (OVERLAP ? 0 : BORDERSIZE);
+    const double END        = GAP + WINDOWSIZE;
 
-        x = MONITORGAP + GAP;
-        expectSnapMove({x, x}, nullptr);
-        x -= 1;
-        expectSnapMove({x, x}, &(predict = {GAP, GAP}));
+    double       x;
+    Vector2D     predict;
 
-        x = MONITORGAP + END;
-        expectSnapMove({1920 - x, 1080 - x}, nullptr);
-        x -= 1;
-        expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - END, 1080 - END}));
+    x = MONITORGAP + GAP;
+    expectSnapMove({x, x}, nullptr);
+    x -= 1;
+    expectSnapMove({x, x}, &(predict = {GAP, GAP}));
 
-        // test reserved area
-        const double RESERVED = 200;
-        const double RGAP     = RESERVED + RESP + BORDERSIZE;
-        const double REND     = RGAP + WINDOWSIZE;
+    x = MONITORGAP + END;
+    expectSnapMove({1920 - x, 1080 - x}, nullptr);
+    x -= 1;
+    expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - END, 1080 - END}));
 
-        x = MONITORGAP + RGAP;
-        expectSnapMove({x, x}, nullptr);
-        x -= 1;
-        expectSnapMove({x, x}, &(predict = {RGAP, RGAP}));
+    // test reserved area
+    const double RESERVED = 200;
+    const double RGAP     = RESERVED + RESP + BORDERSIZE;
+    const double REND     = RGAP + WINDOWSIZE;
 
-        x = MONITORGAP + REND;
-        expectSnapMove({1920 - x, 1080 - x}, nullptr);
-        x -= 1;
-        expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - REND, 1080 - REND}));
-    }
+    x = MONITORGAP + RGAP;
+    expectSnapMove({x, x}, nullptr);
+    x -= 1;
+    expectSnapMove({x, x}, &(predict = {RGAP, RGAP}));
+
+    x = MONITORGAP + REND;
+    expectSnapMove({1920 - x, 1080 - x}, nullptr);
+    x -= 1;
+    expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - REND, 1080 - REND}));
 }
 
 static bool test() {
@@ -143,20 +142,22 @@ static bool test() {
     EXPECT(Tests::windowCount(), 2);
 
     NLog::log("");
-    testSnap(false, false);
-
-    NLog::log("\n{}Turning on border_overlap", Colors::YELLOW);
-    OK(getFromSocket("/keyword general:snap:border_overlap true"));
-    testSnap(true, false);
+    testWindowSnap(false);
+    testMonitorSnap(false, false);
 
     NLog::log("\n{}Turning on respect_gaps", Colors::YELLOW);
-    OK(getFromSocket("/keyword general:snap:border_overlap false"));
     OK(getFromSocket("/keyword general:snap:respect_gaps true"));
-    testSnap(false, true);
+    testWindowSnap(true);
+    testMonitorSnap(true, false);
+
+    NLog::log("\n{}Turning on border_overlap", Colors::YELLOW);
+    OK(getFromSocket("/keyword general:snap:respect_gaps false"));
+    OK(getFromSocket("/keyword general:snap:border_overlap true"));
+    testMonitorSnap(false, true);
 
     NLog::log("\n{}Turning on both border_overlap and respect_gaps", Colors::YELLOW);
-    OK(getFromSocket("/keyword general:snap:border_overlap true"));
-    testSnap(true, true);
+    OK(getFromSocket("/keyword general:snap:respect_gaps true"));
+    testMonitorSnap(true, true);
 
     // kill all
     NLog::log("\n{}Killing all windows", Colors::YELLOW);

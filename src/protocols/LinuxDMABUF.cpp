@@ -408,7 +408,7 @@ void CLinuxDMABUFResource::sendMods() {
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
-        int  rendererFD = g_pCompositor->m_drmFD;
+        int  rendererFD = g_pCompositor->m_drm.fd;
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {

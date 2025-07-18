@@ -210,7 +210,7 @@ CProtocolManager::CProtocolManager() {
         else
             lease.reset();
 
-        if (!PROTO::sync)
+        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync)
             PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
     }
 

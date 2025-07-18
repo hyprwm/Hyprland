@@ -257,7 +257,7 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
 CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
-    Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
+    Debug::log(LOG, "Supported EGL global extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
 
     m_exts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
 
@@ -343,6 +343,15 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
         Debug::log(WARN, "Your GPU does not support GL_EXT_read_format_bgra, this may cause issues with texture importing");
     if (!m_exts.EXT_image_dma_buf_import || !m_exts.EXT_image_dma_buf_import_modifiers)
         Debug::log(WARN, "Your GPU does not support DMABUFs, this will possibly cause issues and will take a hit on the performance.");
+
+    const std::string EGLEXTENSIONS_DISPLAY = (const char*)eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
+
+    Debug::log(LOG, "Supported EGL display extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS_DISPLAY, ' '), EGLEXTENSIONS_DISPLAY);
+
+    m_exts.EGL_ANDROID_native_fence_sync_ext = EGLEXTENSIONS_DISPLAY.contains("EGL_ANDROID_native_fence_sync");
+
+    if (!m_exts.EGL_ANDROID_native_fence_sync_ext)
+        Debug::log(WARN, "Your GPU does not support explicit sync via the EGL_ANDROID_native_fence_sync extension.");
 
 #ifdef USE_TRACY_GPU
 
@@ -3054,6 +3063,10 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
     return pMonitor->m_output->state->state().drmFormat;
 }
 
+bool CHyprOpenGLImpl::explicitSyncSupported() {
+    return m_exts.EGL_ANDROID_native_fence_sync_ext;
+}
+
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return m_drmFormats;
 }
@@ -3120,6 +3133,8 @@ float SRenderModifData::combinedScale() {
 }
 
 UP<CEGLSync> CEGLSync::create() {
+    RASSERT(g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext, "Tried to create an EGL sync when syncs are not supported on the gpu");
+
     EGLSyncKHR sync = g_pHyprOpenGL->m_proc.eglCreateSyncKHR(g_pHyprOpenGL->m_eglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
 
     if (sync == EGL_NO_SYNC_KHR) {

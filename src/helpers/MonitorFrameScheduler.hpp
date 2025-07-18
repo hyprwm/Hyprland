@@ -24,6 +24,7 @@ class CMonitorFrameScheduler {
   private:
     bool            canRender();
     void            onFinishRender();
+    bool            newSchedulingEnabled();
 
     bool            m_renderAtFrame = true;
     bool            m_pendingThird  = false;

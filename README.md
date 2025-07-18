@@ -4,7 +4,7 @@
 
 <br>
 
-![Badge Workflow] 
+[![Badge Workflow]][Workflow]
 [![Badge License]][License] 
 ![Badge Language] 
 [![Badge Pull Requests]][Pull Requests] 
@@ -111,6 +111,7 @@ easy IPC, much more QoL stuff than other compositors and more...
 [Contribute]: https://wiki.hypr.land/Contributing-and-Debugging/
 [Install]: https://wiki.hypr.land/Getting-Started/Installation/
 [Quick Start]: https://wiki.hypr.land/Getting-Started/Master-Tutorial/
+[Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml
 [License]: LICENSE
 
 

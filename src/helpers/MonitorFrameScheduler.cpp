@@ -53,6 +53,8 @@ void CMonitorFrameScheduler::onPresented() {
     m_pendingThird = false;
 
     g_pEventLoopManager->doLater([m = m_monitor.lock()] {
+        if (!m)
+            return;
         g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
 
         // schedule a frame: we might have some missed damage, which got cleared due to the above commit.

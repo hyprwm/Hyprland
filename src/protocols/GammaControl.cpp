@@ -73,14 +73,14 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
         ssize_t readBytes = read(gammaFd.get(), m_gammaTable.data(), m_gammaTable.size() * sizeof(uint16_t));
 
-        ssize_t moreBytes;
+        ssize_t moreBytes = 0;
         {
-            const size_t BUF_SIZE = 1;
-            char         buf[BUF_SIZE];
-            moreBytes = read(gammaFd.get(), buf, BUF_SIZE);
+            const size_t BUF_SIZE      = 1;
+            char         buf[BUF_SIZE] = {};
+            moreBytes                  = read(gammaFd.get(), buf, BUF_SIZE);
         }
 
-        if (readBytes < 0 || (size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t), moreBytes != 0) {
+        if (readBytes < 0 || (size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t) || moreBytes != 0) {
             LOGM(ERR, "Failed to read bytes");
 
             if ((size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t), moreBytes > 0) {

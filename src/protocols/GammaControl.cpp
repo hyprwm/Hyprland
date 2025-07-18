@@ -71,11 +71,19 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
             return;
         }
 
-        ssize_t readBytes = pread(gammaFd.get(), m_gammaTable.data(), m_gammaTable.size() * sizeof(uint16_t), 0);
-        if (readBytes < 0 || (size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t)) {
+        ssize_t readBytes = read(gammaFd.get(), m_gammaTable.data(), m_gammaTable.size() * sizeof(uint16_t));
+
+        ssize_t moreBytes = 0;
+        {
+            const size_t BUF_SIZE      = 1;
+            char         buf[BUF_SIZE] = {};
+            moreBytes                  = read(gammaFd.get(), buf, BUF_SIZE);
+        }
+
+        if (readBytes < 0 || (size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t) || moreBytes != 0) {
             LOGM(ERR, "Failed to read bytes");
 
-            if ((size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t)) {
+            if ((size_t)readBytes != m_gammaTable.size() * sizeof(uint16_t) || moreBytes > 0) {
                 gamma->error(ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
                 return;
             }

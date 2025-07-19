@@ -1081,10 +1081,7 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
         BEGINAT->m_groupData.pNextWindow = pWindow;
         pWindow->m_groupData.pNextWindow = ENDAT;
         pWindow->m_groupData.head        = false;
-
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
-
+        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
         return;
     }
 

@@ -49,9 +49,10 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
         g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
     if (!pWindow->m_groupData.pNextWindow.expired()) {
-        if (pWindow->m_groupData.pNextWindow.lock() == pWindow)
+        if (pWindow->m_groupData.pNextWindow.lock() == pWindow) {
             pWindow->m_groupData.pNextWindow.reset();
-        else {
+            pWindow->updateWindowDecos();
+        } else {
             // find last window and update
             PHLWINDOW  PWINDOWPREV     = pWindow->getGroupPrevious();
             const auto WINDOWISVISIBLE = pWindow->getGroupCurrent() == pWindow;
@@ -226,9 +227,6 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
-
         return true;
     }
 
@@ -355,9 +353,6 @@ void IHyprLayout::onEndDragWindow() {
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
                 DRAGGINGWINDOW->applyGroupRules();
                 DRAGGINGWINDOW->updateWindowDecos();
-
-                if (!DRAGGINGWINDOW->getDecorationByType(DECORATION_GROUPBAR))
-                    DRAGGINGWINDOW->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
             }
         }
     }

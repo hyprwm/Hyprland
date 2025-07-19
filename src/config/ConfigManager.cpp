@@ -709,6 +709,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
 
+    registerConfigVar("cursor:invisible", Hyprlang::INT{0});
     registerConfigVar("cursor:no_hardware_cursors", Hyprlang::INT{2});
     registerConfigVar("cursor:no_break_fs_vrr", Hyprlang::INT{2});
     registerConfigVar("cursor:min_refresh_rate", Hyprlang::INT{24});
@@ -3129,9 +3130,13 @@ const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions(
 }
 
 bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
-    static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
+    static auto PNOHW      = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
+    static auto PINVISIBLE = CConfigValue<Hyprlang::INT>("cursor:invisible");
 
     if (pMonitor->m_tearingState.activelyTearing)
+        return true;
+
+    if (*PINVISIBLE != 0)
         return true;
 
     switch (*PNOHW) {

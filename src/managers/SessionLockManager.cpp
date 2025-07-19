@@ -91,35 +91,33 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     g_pCompositor->focusSurface(nullptr);
     g_pSeatManager->setGrab(nullptr);
 
-    m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
-        // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
-        std::chrono::seconds(5),
-        [](auto, auto) {
-            if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
-                return;
-
-            if (g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
-                // Because the session is inactive, there is a good reason for why the client did't recieve locked or denied.
-                // We send locked, although this could lead to imperfect frames when we start to render again.
-                g_pSessionLockManager->m_sessionLock->lock->sendLocked();
-                g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
-                return;
-            }
-
-            if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock) {
-                g_pSessionLockManager->m_sessionLock->lock->sendDenied();
-                g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
-            }
-        },
-        nullptr);
-
-    if (m_sessionLock->sendDeniedTimer)
-        g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
-
-    // Normally the locked event is sent after each output rendered a lock screen frame.
-    // When there are no outputs, send it right away.
     if (g_pCompositor->m_unsafeState) {
-        removeSendDeniedTimer();
+        m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
+            // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
+            std::chrono::seconds(5),
+            [](auto, auto) {
+                if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+                    return;
+
+                if (g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
+                    // Because the session is inactive, there is a good reason for why the client did't recieve locked or denied.
+                    // We send locked, although this could lead to imperfect frames when we start to render again.
+                    g_pSessionLockManager->m_sessionLock->lock->sendLocked();
+                    g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
+                    return;
+                }
+
+                if (g_pSessionLockManager->m_sessionLock && g_pSessionLockManager->m_sessionLock->lock) {
+                    g_pSessionLockManager->m_sessionLock->lock->sendDenied();
+                    g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
+                }
+            },
+            nullptr);
+
+        g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
+    } else {
+        // Normally the locked event is sent after each output rendered a lock screen frame.
+        // When there are no outputs, send it right away.
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
     }

@@ -8,10 +8,15 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
 }
 
-void CMonitorFrameScheduler::onSyncFired() {
+bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
 
-    if (!*PENABLENEW)
+    return *PENABLENEW && g_pHyprOpenGL->explicitSyncSupported();
+}
+
+void CMonitorFrameScheduler::onSyncFired() {
+
+    if (!newSchedulingEnabled())
         return;
 
     // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
@@ -36,9 +41,7 @@ void CMonitorFrameScheduler::onSyncFired() {
 }
 
 void CMonitorFrameScheduler::onPresented() {
-    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
-
-    if (!*PENABLENEW)
+    if (!newSchedulingEnabled())
         return;
 
     if (!m_pendingThird)
@@ -65,8 +68,6 @@ void CMonitorFrameScheduler::onPresented() {
 }
 
 void CMonitorFrameScheduler::onFrame() {
-    static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
-
     if (!canRender())
         return;
 
@@ -83,7 +84,7 @@ void CMonitorFrameScheduler::onFrame() {
         m_monitor->m_tearingState.frameScheduledWhileBusy = false;
     }
 
-    if (!*PENABLENEW) {
+    if (!newSchedulingEnabled()) {
         m_monitor->m_lastPresentationTimer.reset();
 
         g_pHyprRenderer->renderMonitor(m_monitor.lock());

@@ -253,6 +253,8 @@ class CHyprOpenGLImpl {
 
     void                                        ensureLockTexturesRendered(bool load);
 
+    bool                                        explicitSyncSupported();
+
     bool                                        m_shadersInitialized = false;
     SP<SPreparedShaders>                        m_shaders;
 
@@ -297,6 +299,7 @@ class CHyprOpenGLImpl {
         bool KHR_display_reference              = false;
         bool IMG_context_priority               = false;
         bool EXT_create_context_robustness      = false;
+        bool EGL_ANDROID_native_fence_sync_ext  = false;
     } m_exts;
 
     SP<CTexture> m_screencopyDeniedTexture;

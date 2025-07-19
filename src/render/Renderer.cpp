@@ -2326,6 +2326,22 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);
 
+    if (!g_pHyprOpenGL->explicitSyncSupported()) {
+        Debug::log(TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
+
+        // nvidia doesn't have implicit sync, so we have to explicitly wait here
+        if (isNvidia() && *PNVIDIAANTIFLICKER)
+            glFinish();
+        else
+            glFlush(); // mark an implicit sync point
+
+        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        if (renderingDoneCallback)
+            renderingDoneCallback();
+
+        return;
+    }
+
     UP<CEGLSync> eglSync = CEGLSync::create();
     if (eglSync && eglSync->isValid()) {
         for (auto const& buf : m_usedAsyncBuffers) {
@@ -2350,11 +2366,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
-        Debug::log(ERR, "renderer: couldn't use EGLSync for explicit gpu synchronization");
-
-        // nvidia doesn't have implicit sync, so we have to explicitly wait here
-        if (isNvidia() && *PNVIDIAANTIFLICKER)
-            glFinish();
+        Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
 
         m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)

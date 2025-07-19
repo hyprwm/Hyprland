@@ -2332,6 +2332,8 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         // nvidia doesn't have implicit sync, so we have to explicitly wait here
         if (isNvidia() && *PNVIDIAANTIFLICKER)
             glFinish();
+        else
+            glFlush(); // mark an implicit sync point
 
         m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)

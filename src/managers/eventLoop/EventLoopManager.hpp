@@ -27,8 +27,8 @@ class CEventLoopManager {
 
     void onTimerFire();
 
-    // recalculates timers
-    void nudgeTimers();
+    // schedules a recalc of the timers
+    void scheduleRecalc();
 
     // schedules a function to run later, aka in a wayland idle event.
     void doLater(const std::function<void()>& fn);
@@ -69,6 +69,7 @@ class CEventLoopManager {
   private:
     // Manages the event sources after AQ pollFDs change.
     void syncPollFDs();
+    void nudgeTimers();
 
     struct SEventSourceData {
         SP<Aquamarine::SPollFD> pollFD;
@@ -84,6 +85,7 @@ class CEventLoopManager {
     struct {
         std::vector<SP<CEventLoopTimer>> timers;
         Hyprutils::OS::CFileDescriptor   timerfd;
+        bool                             recalcScheduled = false;
     } m_timers;
 
     SIdleData                        m_idle;

@@ -1043,6 +1043,8 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     const auto PWINDOWSIZE                 = PCURRENT->m_realSize->value();
     const auto PWINDOWPOS                  = PCURRENT->m_realPosition->value();
+    const auto PWINDOWSIZEGOAL             = PCURRENT->m_realSize->goal();
+    const auto PWINDOWPOSGOAL              = PCURRENT->m_realPosition->goal();
     const auto PWINDOWLASTFLOATINGSIZE     = PCURRENT->m_lastFloatingSize;
     const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
 
@@ -1053,6 +1055,12 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     pWindow->setHidden(false); // can remove m_pLastWindow
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
+
+    if (PCURRENT->m_isFloating) {
+        pWindow->m_realPosition->setValueAndWarp(PWINDOWPOSGOAL);
+        pWindow->m_realSize->setValueAndWarp(PWINDOWSIZEGOAL);
+        pWindow->sendWindowSize();
+    }
 
     pWindow->m_realPosition->setValue(PWINDOWPOS);
     pWindow->m_realSize->setValue(PWINDOWSIZE);

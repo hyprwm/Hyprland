@@ -6,7 +6,16 @@
 #include <sys/eventfd.h>
 using namespace Hyprutils::OS;
 
+static bool checkDrmSyncobjTimelineSupport(int drmFD) {
+    uint64_t cap = 0;
+    int ret = drmGetCap(drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
+    return (ret == 0 && cap != 0);
+}
+
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
+    if (!checkDrmSyncobjTimelineSupport(drmFD_))
+        return nullptr;
+
     auto timeline     = SP<CSyncTimeline>(new CSyncTimeline);
     timeline->m_drmFD = drmFD_;
     timeline->m_self  = timeline;
@@ -20,6 +29,9 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
 }
 
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, CFileDescriptor&& drmSyncobjFD) {
+    if (!checkDrmSyncobjTimelineSupport(drmFD_))
+        return nullptr;
+
     auto timeline         = SP<CSyncTimeline>(new CSyncTimeline);
     timeline->m_drmFD     = drmFD_;
     timeline->m_syncobjFD = std::move(drmSyncobjFD);

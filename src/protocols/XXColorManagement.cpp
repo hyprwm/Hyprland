@@ -58,6 +58,14 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(r
     m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB);
     m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ);
     m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_BT709);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_BT1361);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST240);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LOG_100);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LOG_316);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_XVYCC);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_EXT_SRGB);
+    m_resource->sendSupportedTfNamed(XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST428);
 
     m_resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_PERCEPTUAL);
     // resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_RELATIVE);
@@ -405,7 +413,15 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_HLG:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB:
             case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ:
-            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR: break;
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LINEAR:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_BT709:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_BT1361:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST240:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LOG_100:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_LOG_316:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_XVYCC:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_EXT_SRGB:
+            case XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST428: break;
             default: r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 

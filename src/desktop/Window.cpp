@@ -1077,13 +1077,14 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
     const auto BEGINAT = m_self.lock();
     const auto ENDAT   = m_groupData.pNextWindow.lock();
 
-    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
-
     if (!pWindow->m_groupData.pNextWindow.lock()) {
         BEGINAT->m_groupData.pNextWindow = pWindow;
         pWindow->m_groupData.pNextWindow = ENDAT;
         pWindow->m_groupData.head        = false;
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
+
         return;
     }
 

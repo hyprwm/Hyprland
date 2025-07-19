@@ -546,6 +546,13 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_HLG: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_BT1886: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST240: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_100: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_316: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_XVYCC: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_SRGB: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST428: break;
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 

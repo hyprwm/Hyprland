@@ -100,7 +100,8 @@ void CEventLoopManager::enterLoop() {
 }
 
 void CEventLoopManager::onTimerFire() {
-    for (auto const& t : m_timers.timers) {
+    const auto CPY = m_timers.timers;
+    for (auto const& t : CPY) {
         if (t.strongRef() > 1 /* if it's 1, it was lost. Don't call it. */ && t->passed() && !t->cancelled())
             t->call(t);
     }
@@ -109,11 +110,15 @@ void CEventLoopManager::onTimerFire() {
 }
 
 void CEventLoopManager::addTimer(SP<CEventLoopTimer> timer) {
-    m_timers.timers.push_back(timer);
+    if (std::ranges::contains(m_timers.timers, timer))
+        return;
+    m_timers.timers.emplace_back(timer);
     nudgeTimers();
 }
 
 void CEventLoopManager::removeTimer(SP<CEventLoopTimer> timer) {
+    if (!std::ranges::contains(m_timers.timers, timer))
+        return;
     std::erase_if(m_timers.timers, [timer](const auto& t) { return timer == t; });
     nudgeTimers();
 }

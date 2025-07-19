@@ -200,7 +200,7 @@ bool CDRMSyncobjManagerResource::good() {
 }
 
 CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
-    IWaylandProtocol(iface, ver, name), m_drmFD(g_pCompositor->m_drmFD) {}
+    IWaylandProtocol(iface, ver, name), m_drmFD(g_pCompositor->m_drmRenderNodeFD >= 0 ? g_pCompositor->m_drmRenderNodeFD : g_pCompositor->m_drmFD) {}
 
 void CDRMSyncobjProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto& RESOURCE = m_managers.emplace_back(makeUnique<CDRMSyncobjManagerResource>(makeUnique<CWpLinuxDrmSyncobjManagerV1>(client, ver, id)));

@@ -25,10 +25,11 @@ class CCompositor {
     CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
-    wl_display*                                  m_wlDisplay   = nullptr;
-    wl_event_loop*                               m_wlEventLoop = nullptr;
-    int                                          m_drmFD       = -1;
-    bool                                         m_initialized = false;
+    wl_display*                                  m_wlDisplay       = nullptr;
+    wl_event_loop*                               m_wlEventLoop     = nullptr;
+    int                                          m_drmFD           = -1;
+    int                                          m_drmRenderNodeFD = -1;
+    bool                                         m_initialized     = false;
     SP<Aquamarine::CBackend>                     m_aqBackend;
 
     std::string                                  m_hyprTempDataRoot = "";

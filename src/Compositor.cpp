@@ -354,6 +354,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_drmFD = m_aqBackend->drmFD();
     Debug::log(LOG, "Running on DRMFD: {}", m_drmFD);
 
+    m_drmRenderNodeFD = m_aqBackend->drmRenderNodeFD();
+    Debug::log(LOG, "Using RENDERNODEFD: {}", m_drmRenderNodeFD);
+
     if (!socketName.empty() && socketFd != -1) {
         fcntl(socketFd, F_SETFD, FD_CLOEXEC);
         const auto RETVAL = wl_display_add_socket_fd(m_wlDisplay, socketFd);

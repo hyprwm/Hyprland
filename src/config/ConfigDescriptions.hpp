@@ -1494,6 +1494,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
+        .value       = "cursor:invisible",
+        .description = "don't render cursors",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:no_hardware_cursors",
         .description = "disables hardware cursors. Auto = disable when multi-gpu on nvidia",
         .type        = CONFIG_OPTION_CHOICE,

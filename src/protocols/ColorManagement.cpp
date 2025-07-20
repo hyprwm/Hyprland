@@ -341,13 +341,13 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
 }
 
 bool CColorManagementSurface::isHDR() {
-    return m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || isWindowsScRGB();
+    return m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_HLG || isWindowsScRGB();
 }
 
 bool CColorManagementSurface::isWindowsScRGB() {
     return m_imageDescription.windowsScRGB ||
         // autodetect scRGB, might be incorrect
-        (m_imageDescription.primariesNamed == NColorManagement::CM_PRIMARIES_SRGB && m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR);
+        (m_imageDescription.primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR);
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :

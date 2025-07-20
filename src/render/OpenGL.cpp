@@ -108,7 +108,7 @@ static int openRenderNode(int drmFd) {
             if (strcmp(render_version->name, "evdi") == 0) {
                 free(renderName);
                 renderName = (char*)malloc(sizeof(char) * 15);
-                strcpy(renderName, "/dev/dri/card0");
+                snprintf(renderName, 15, "%s", "/dev/dri/card0");
             }
             drmFreeVersion(render_version);
         }

@@ -92,9 +92,9 @@ vec3 tfInvPQ(vec3 color) {
 }
 
 vec3 tfInvHLG(vec3 color) {
-    bvec3 isLow = lessThanEqual(color.rgb, vec3(HLG_D_CUT));
-    vec3 lo = sqrt(3.0) * pow(color.rgb, vec3(0.5));
-    vec3 hi = HLG_A * log(12.0 * color.rgb - HLG_B) + HLG_C;
+    bvec3 isLow = lessThanEqual(color.rgb, vec3(HLG_E_CUT));
+    vec3 lo = color.rgb * color.rgb / 3.0;
+    vec3 hi = (exp((color.rgb - HLG_C) / HLG_A) + HLG_B) / 12.0;
     return mix(hi, lo, isLow);
 }
 
@@ -142,9 +142,9 @@ vec3 tfPQ(vec3 color) {
 }
 
 vec3 tfHLG(vec3 color) {
-    bvec3 isLow = lessThanEqual(color.rgb, vec3(HLG_E_CUT));
-    vec3 lo = pow(color.rgb / sqrt(3.0), vec3(2.0));
-    vec3 hi = (pow(vec3(M_E), (color.rgb - HLG_C) / HLG_A) + HLG_B) / 12.0;
+    bvec3 isLow = lessThanEqual(color.rgb, vec3(HLG_D_CUT));
+    vec3 lo = sqrt(max(color.rgb, vec3(0.0)) * 3.0);
+    vec3 hi = HLG_A * log(max(12.0 * color.rgb - HLG_B, vec3(0.0001))) + HLG_C;
     return mix(hi, lo, isLow);
 }
 

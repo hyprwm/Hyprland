@@ -1045,8 +1045,10 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
 
-    const auto PWINDOWSIZE                 = PCURRENT->m_realSize->goal();
-    const auto PWINDOWPOS                  = PCURRENT->m_realPosition->goal();
+    const auto PWINDOWSIZE                 = PCURRENT->m_realSize->value();
+    const auto PWINDOWPOS                  = PCURRENT->m_realPosition->value();
+    const auto PWINDOWSIZEGOAL             = PCURRENT->m_realSize->goal();
+    const auto PWINDOWPOSGOAL              = PCURRENT->m_realPosition->goal();
     const auto PWINDOWLASTFLOATINGSIZE     = PCURRENT->m_lastFloatingSize;
     const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
 
@@ -1058,8 +1060,14 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
-    pWindow->m_realPosition->setValueAndWarp(PWINDOWPOS);
-    pWindow->m_realSize->setValueAndWarp(PWINDOWSIZE);
+    if (PCURRENT->m_isFloating) {
+        pWindow->m_realPosition->setValueAndWarp(PWINDOWPOSGOAL);
+        pWindow->m_realSize->setValueAndWarp(PWINDOWSIZEGOAL);
+        pWindow->sendWindowSize();
+    }
+
+    pWindow->m_realPosition->setValue(PWINDOWPOS);
+    pWindow->m_realSize->setValue(PWINDOWSIZE);
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);
@@ -1081,13 +1089,11 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
     const auto BEGINAT = m_self.lock();
     const auto ENDAT   = m_groupData.pNextWindow.lock();
 
-    if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
-
     if (!pWindow->m_groupData.pNextWindow.lock()) {
         BEGINAT->m_groupData.pNextWindow = pWindow;
         pWindow->m_groupData.pNextWindow = ENDAT;
         pWindow->m_groupData.head        = false;
+        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
         return;
     }
 

@@ -304,13 +304,15 @@ class CHyprOpenGLImpl {
 
     SP<CTexture> m_screencopyDeniedTexture;
 
-  private:
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,
         EGL_CONTEXT_GLES_3_0,
         EGL_CONTEXT_GLES_3_2,
     };
 
+    eEGLContextVersion m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
+
+  private:
     struct {
         GLint   x      = 0;
         GLint   y      = 0;
@@ -319,8 +321,6 @@ class CHyprOpenGLImpl {
     } m_lastViewport;
 
     std::unordered_map<int, bool> m_capStatus;
-
-    eEGLContextVersion            m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 
     std::vector<SDRMFormat>       m_drmFormats;
     bool                          m_hasModifiers = false;

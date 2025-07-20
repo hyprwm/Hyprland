@@ -54,7 +54,7 @@ uniform mat3 convertMatrix;
 
 // HLG constants
 #define HLG_D_CUT (1.0 / 12.0)
-#define HLG_E_CUT (sqrt(3.0) * pow(HLG_D_CUT, 0.5))
+#define HLG_E_CUT 0.5
 #define HLG_A 0.17883277
 #define HLG_B 0.28466892
 #define HLG_C 0.55991073

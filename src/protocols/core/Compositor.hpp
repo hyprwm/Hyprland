@@ -111,6 +111,7 @@ class CWLSurfaceResource {
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::SImageDescription    getPreferredImageDescription();
+    void                                   sortSubsurfaces();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

@@ -555,6 +555,30 @@ SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     return monitor ? monitor->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }
 
+void CWLSurfaceResource::sortSubsurfaces() {
+    std::ranges::sort(m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
+
+    // find the first non-negative index. We will preserve negativity: e.g. -2, -1, 1, 2
+    int firstNonNegative = -1;
+    for (size_t i = 0; i < m_subsurfaces.size(); ++i) {
+        if (m_subsurfaces.at(i)->m_zIndex >= 0) {
+            firstNonNegative = i;
+            break;
+        }
+    }
+
+    if (firstNonNegative == -1)
+        firstNonNegative = m_subsurfaces.size();
+
+    for (size_t i = firstNonNegative; i < m_subsurfaces.size(); ++i) {
+        m_subsurfaces.at(i)->m_zIndex = i - firstNonNegative;
+    }
+
+    for (int i = 0; i < firstNonNegative; ++i) {
+        m_subsurfaces.at(i)->m_zIndex = -firstNonNegative + i;
+    }
+}
+
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;

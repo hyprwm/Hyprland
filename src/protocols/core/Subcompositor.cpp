@@ -27,8 +27,14 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         auto it = std::ranges::find_if(m_parent->m_subsurfaces, [SURF](const auto& s) { return s->m_surface == SURF; });
 
+        if ((it == m_parent->m_subsurfaces.end() && m_parent != SURF) || SURF == m_surface) {
+            // protocol error, this is not a valid surface
+            r->error(-1, "Invalid surface in placeAbove");
+            return;
+        }
+
         if (it == m_parent->m_subsurfaces.end()) {
-            LOGM(ERR, "Invalid surface reference in placeAbove, likely parent");
+            // parent surface
             m_parent->m_subsurfaces.emplace_back(m_self);
             m_zIndex = 1;
         } else {
@@ -36,11 +42,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
-
-        for (size_t i = 0; i < m_parent->m_subsurfaces.size(); ++i) {
-            m_parent->m_subsurfaces.at(i)->m_zIndex = i;
-        }
+        m_parent->sortSubsurfaces();
     });
 
     m_resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -55,8 +57,14 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 
         auto it = std::ranges::find_if(m_parent->m_subsurfaces, [SURF](const auto& s) { return s->m_surface == SURF; });
 
+        if ((it == m_parent->m_subsurfaces.end() && m_parent != SURF) || SURF == m_surface) {
+            // protocol error, this is not a valid surface
+            r->error(-1, "Invalid surface in placeBelow");
+            return;
+        }
+
         if (it == m_parent->m_subsurfaces.end()) {
-            LOGM(ERR, "Invalid surface reference in placeBelow, likely parent");
+            // parent
             m_parent->m_subsurfaces.emplace_back(m_self);
             m_zIndex = -1;
         } else {
@@ -64,11 +72,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             m_parent->m_subsurfaces.emplace_back(m_self);
         }
 
-        std::ranges::sort(m_parent->m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
-
-        for (size_t i = 0; i < m_parent->m_subsurfaces.size(); ++i) {
-            m_parent->m_subsurfaces.at(i)->m_zIndex = i;
-        }
+        m_parent->sortSubsurfaces();
     });
 
     m_listeners.commitSurface = m_surface->m_events.commit.listen([this] {

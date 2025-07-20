@@ -15,9 +15,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES);
-
-    if (PROTO::colorManagement->m_debug || PROTO::colorManagement->m_allowScRGB)
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
 
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
@@ -172,11 +170,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->m_self = RESOURCE;
     });
     m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
-        LOGM(WARN, "New Windows scRGB description id={} (unsupported)", id);
-        if (!PROTO::colorManagement->m_debug && !PROTO::colorManagement->m_allowScRGB) {
-            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Windows scRGB profiles are not supported");
-            return;
-        }
+        LOGM(WARN, "New Windows scRGB description id={}", id);
 
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
@@ -628,10 +622,6 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Primaries already set");
                 return;
             }
-            if (!PROTO::colorManagement->m_debug) {
-                r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Custom primaries aren't supported");
-                return;
-            }
             m_settings.primariesNameSet = false;
             m_settings.primaries        = SPCPRimaries{.red   = {.x = r_x / 1000000.0f, .y = r_y / 1000000.0f},
                                                        .green = {.x = g_x / 1000000.0f, .y = g_y / 1000000.0f},
@@ -801,8 +791,8 @@ wl_client* CColorManagementImageDescriptionInfo::client() {
     return m_client;
 }
 
-CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug, bool scRGB) :
-    IWaylandProtocol(iface, ver, name), m_debug(debug), m_allowScRGB(scRGB) {
+CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool debug) :
+    IWaylandProtocol(iface, ver, name), m_debug(debug) {
     ;
 }
 

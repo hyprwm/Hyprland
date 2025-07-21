@@ -212,10 +212,7 @@ CProtocolManager::CProtocolManager() {
             lease.reset();
 
         if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
-            // Check if DRM supports syncobj timelines before creating the protocol
-            uint64_t cap = 0;
-            int ret = drmGetCap(g_pCompositor->m_drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
-            if (ret == 0 && cap != 0) {
+            if (g_pCompositor->supportsDrmSyncobjTimeline()) {
                 PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
                 Debug::log(LOG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
             } else {

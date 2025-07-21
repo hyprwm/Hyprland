@@ -152,6 +152,8 @@ class CCompositor {
     NColorManagement::SImageDescription getPreferredImageDescription();
     bool                                shouldChangePreferredImageDescription();
 
+    bool                                supportsDrmSyncobjTimeline() const { return m_bDrmSyncobjTimelineSupported; }
+
     std::string                         m_explicitConfigPath;
 
   private:
@@ -164,6 +166,8 @@ class CCompositor {
     void             createLockFile();
     void             removeLockFile();
     void             setMallocThreshold();
+
+    bool             m_bDrmSyncobjTimelineSupported = false;
 
     uint64_t         m_hyprlandPID    = 0;
     wl_event_source* m_critSigSource  = nullptr;

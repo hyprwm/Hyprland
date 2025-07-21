@@ -1,19 +1,14 @@
 #include "SyncTimeline.hpp"
 #include "../../defines.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../Compositor.hpp"
 
 #include <xf86drm.h>
 #include <sys/eventfd.h>
 using namespace Hyprutils::OS;
 
-static bool checkDrmSyncobjTimelineSupport(int drmFD) {
-    uint64_t cap = 0;
-    int ret = drmGetCap(drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
-    return (ret == 0 && cap != 0);
-}
-
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
-    if (!checkDrmSyncobjTimelineSupport(drmFD_))
+    if (!g_pCompositor->supportsDrmSyncobjTimeline())
         return nullptr;
 
     auto timeline     = SP<CSyncTimeline>(new CSyncTimeline);
@@ -29,7 +24,7 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
 }
 
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, CFileDescriptor&& drmSyncobjFD) {
-    if (!checkDrmSyncobjTimelineSupport(drmFD_))
+    if (!g_pCompositor->supportsDrmSyncobjTimeline())
         return nullptr;
 
     auto timeline         = SP<CSyncTimeline>(new CSyncTimeline);

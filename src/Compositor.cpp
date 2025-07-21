@@ -1862,11 +1862,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     auto* const GROUPINACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
 
     auto        setBorderColor = [&](CGradientValueData grad) -> void {
-        if (grad == pWindow->m_realBorderColor)
+        if (pWindow->isHidden() || grad == pWindow->m_realBorderColor)
             return;
 
-        pWindow->m_realBorderColorPrevious = pWindow->m_realBorderColor;
-        pWindow->m_realBorderColor         = grad;
+        if (pWindow->m_borderFadeAnimationProgress->value() > 0.5f) // should interpolate current and previous border color, but that isn't straightforward
+            pWindow->m_realBorderColorPrevious = pWindow->m_realBorderColor;
+
+        pWindow->m_realBorderColor = grad;
         pWindow->m_borderFadeAnimationProgress->setValueAndWarp(0.f);
         *pWindow->m_borderFadeAnimationProgress = 1.f;
     };

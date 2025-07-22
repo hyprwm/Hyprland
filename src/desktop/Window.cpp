@@ -1054,7 +1054,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
 
     if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE, false);
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow

@@ -716,6 +716,9 @@ void CCompositor::prepareFallbackOutput() {
     }
 
     headless->createOutput();
+
+    if (m_monitors.empty())
+        enterUnsafeState();
 }
 
 void CCompositor::startCompositor() {

@@ -13,6 +13,7 @@ using namespace Hyprutils::String;
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
     workspace->init(workspace);
+    g_pCompositor->registerWorkspace(workspace);
     return workspace;
 }
 

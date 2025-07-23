@@ -224,8 +224,8 @@ void CExtWorkspaceManagerResource::init(WP<CExtWorkspaceManagerResource> self) {
         onMonitorCreated(m);
     }
 
-    for (auto const& w : g_pCompositor->m_workspaces) {
-        onWorkspaceCreated(w);
+    for (auto const& w : g_pCompositor->getWorkspaces()) {
+        onWorkspaceCreated(w.lock());
     }
 }
 

@@ -42,7 +42,6 @@ class CCompositor {
     std::vector<PHLMONITOR>                      m_realMonitors; // for all monitors, even those turned off
     std::vector<PHLWINDOW>                       m_windows;
     std::vector<PHLLS>                           m_layers;
-    std::vector<PHLWORKSPACE>                    m_workspaces;
     std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
 
@@ -75,6 +74,13 @@ class CCompositor {
 
     // ------------------------------------------------- //
 
+    auto getWorkspaces() {
+        return std::views::filter(m_workspaces, [](const auto& e) { return e; });
+    }
+    void registerWorkspace(PHLWORKSPACE w);
+
+    //
+
     PHLMONITOR             getMonitorFromID(const MONITORID&);
     PHLMONITOR             getMonitorFromName(const std::string&);
     PHLMONITOR             getMonitorFromDesc(const std::string&);
@@ -96,7 +102,6 @@ class CCompositor {
     PHLWORKSPACE           getWorkspaceByID(const WORKSPACEID&);
     PHLWORKSPACE           getWorkspaceByName(const std::string&);
     PHLWORKSPACE           getWorkspaceByString(const std::string&);
-    void                   sanityCheckWorkspaces();
     PHLWINDOW              getUrgentWindow();
     bool                   isWindowActive(PHLWINDOW);
     void                   changeWindowZOrder(PHLWINDOW, bool);
@@ -156,21 +161,23 @@ class CCompositor {
     std::string                         m_explicitConfigPath;
 
   private:
-    void             initAllSignals();
-    void             removeAllSignals();
-    void             cleanEnvironment();
-    void             setRandomSplash();
-    void             initManagers(eManagersInitStage stage);
-    void             prepareFallbackOutput();
-    void             createLockFile();
-    void             removeLockFile();
-    void             setMallocThreshold();
+    void                         initAllSignals();
+    void                         removeAllSignals();
+    void                         cleanEnvironment();
+    void                         setRandomSplash();
+    void                         initManagers(eManagersInitStage stage);
+    void                         prepareFallbackOutput();
+    void                         createLockFile();
+    void                         removeLockFile();
+    void                         setMallocThreshold();
 
-    bool             m_bDrmSyncobjTimelineSupported = false;
+    bool                         m_bDrmSyncobjTimelineSupported = false;
 
-    uint64_t         m_hyprlandPID    = 0;
-    wl_event_source* m_critSigSource  = nullptr;
-    rlimit           m_originalNofile = {};
+    uint64_t                     m_hyprlandPID    = 0;
+    wl_event_source*             m_critSigSource  = nullptr;
+    rlimit                       m_originalNofile = {};
+
+    std::vector<PHLWORKSPACEREF> m_workspaces;
 };
 
 inline UP<CCompositor> g_pCompositor;

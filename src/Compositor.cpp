@@ -356,8 +356,8 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     Debug::log(LOG, "Running on DRMFD: {}", m_drmFD);
 
     if (m_drmFD >= 0) {
-        uint64_t cap = 0;
-        int ret = drmGetCap(m_drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
+        uint64_t cap                   = 0;
+        int      ret                   = drmGetCap(m_drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
         m_bDrmSyncobjTimelineSupported = (ret == 0 && cap != 0);
         Debug::log(LOG, "DRM syncobj timeline support: {}", m_bDrmSyncobjTimelineSupported ? "yes" : "no");
     } else {

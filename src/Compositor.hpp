@@ -152,9 +152,11 @@ class CCompositor {
     NColorManagement::SImageDescription getPreferredImageDescription();
     bool                                shouldChangePreferredImageDescription();
 
-    bool                                supportsDrmSyncobjTimeline() const { return m_bDrmSyncobjTimelineSupported; }
+    bool                                supportsDrmSyncobjTimeline() const {
+        return m_bDrmSyncobjTimelineSupported;
+    }
 
-    std::string                         m_explicitConfigPath;
+    std::string m_explicitConfigPath;
 
   private:
     void             initAllSignals();

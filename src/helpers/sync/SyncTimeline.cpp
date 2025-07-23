@@ -1,12 +1,16 @@
 #include "SyncTimeline.hpp"
 #include "../../defines.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../Compositor.hpp"
 
 #include <xf86drm.h>
 #include <sys/eventfd.h>
 using namespace Hyprutils::OS;
 
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
+    if (!g_pCompositor->supportsDrmSyncobjTimeline())
+        return nullptr;
+
     auto timeline     = SP<CSyncTimeline>(new CSyncTimeline);
     timeline->m_drmFD = drmFD_;
     timeline->m_self  = timeline;
@@ -20,6 +24,9 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
 }
 
 SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, CFileDescriptor&& drmSyncobjFD) {
+    if (!g_pCompositor->supportsDrmSyncobjTimeline())
+        return nullptr;
+
     auto timeline         = SP<CSyncTimeline>(new CSyncTimeline);
     timeline->m_drmFD     = drmFD_;
     timeline->m_syncobjFD = std::move(drmSyncobjFD);

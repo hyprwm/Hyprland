@@ -70,6 +70,7 @@
 #include "content-type-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
+#include <xf86drm.h>
 #include <aquamarine/backend/Backend.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 
@@ -210,8 +211,13 @@ CProtocolManager::CProtocolManager() {
         else
             lease.reset();
 
-        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync)
-            PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
+        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
+            if (g_pCompositor->supportsDrmSyncobjTimeline()) {
+                PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
+                Debug::log(LOG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
+            } else
+                Debug::log(WARN, "DRM Syncobj Timeline not supported, skipping explicit sync protocol");
+        }
     }
 
     if (!g_pHyprOpenGL->getDRMFormats().empty()) {

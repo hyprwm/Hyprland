@@ -34,8 +34,8 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlM
                                           wl_fixed_to_double(mat5), wl_fixed_to_double(mat6), wl_fixed_to_double(mat7), wl_fixed_to_double(mat8)};
 
         for (auto& el : MAT) {
-            if (el < 0.F) {
-                m_resource->error(HYPRLAND_CTM_CONTROL_MANAGER_V1_ERROR_INVALID_MATRIX, "a matrix component was < 0");
+            if (!std::isfinite(el) || el < 0.F) {
+                m_resource->error(HYPRLAND_CTM_CONTROL_MANAGER_V1_ERROR_INVALID_MATRIX, "a matrix component was invalid");
                 return;
             }
         }

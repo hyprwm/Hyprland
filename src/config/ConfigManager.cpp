@@ -2091,6 +2091,8 @@ bool CMonitorRuleParser::parseMode(const std::string& value) {
         m_rule.resolution = Vector2D(-1, -1);
     else if (value.starts_with("highres"))
         m_rule.resolution = Vector2D(-1, -2);
+    else if (value.starts_with("maxwidth"))
+        m_rule.resolution = Vector2D(-1, -3);
     else if (parseModeLine(value, m_rule.drmMode)) {
         m_rule.resolution  = Vector2D(m_rule.drmMode.hdisplay, m_rule.drmMode.vdisplay);
         m_rule.refreshRate = float(m_rule.drmMode.vrefresh) / 1000;

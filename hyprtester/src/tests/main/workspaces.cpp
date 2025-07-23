@@ -21,6 +21,8 @@ using namespace Hyprutils::Memory;
 static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
+    EXPECT(Tests::windowCount(), 0);
+
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
@@ -64,6 +66,11 @@ static bool test() {
 
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_NOT_CONTAINS(str, "workspace ID 2 (2)");
+    }
 
     NLog::log("{}Switching to workspace m+1", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace m+1"));

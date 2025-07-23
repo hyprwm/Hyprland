@@ -219,7 +219,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             std::set<WORKSPACEID> invalidWSes;
 
             // Collect all the workspaces we can't jump to.
-            for (auto const& ws : g_pCompositor->m_workspaces) {
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor)) {
                     // Can't jump to this workspace
                     invalidWSes.insert(ws->m_id);
@@ -237,7 +237,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             // Prepare all named workspaces in case when we need them
             std::vector<WORKSPACEID> namedWSes;
-            for (auto const& ws : g_pCompositor->m_workspaces) {
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor) || ws->m_id >= 0)
                     continue;
 
@@ -381,7 +381,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             int                      remains = (int)result.id;
 
             std::vector<WORKSPACEID> validWSes;
-            for (auto const& ws : g_pCompositor->m_workspaces) {
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor && !onAllMonitors))
                     continue;
 

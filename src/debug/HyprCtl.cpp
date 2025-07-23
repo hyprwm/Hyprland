@@ -432,16 +432,16 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : g_pCompositor->m_workspaces) {
-            result += CHyprCtl::getWorkspaceData(w, format);
+        for (auto const& w : g_pCompositor->getWorkspaces()) {
+            result += CHyprCtl::getWorkspaceData(w.lock(), format);
             result += ",";
         }
 
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_workspaces) {
-            result += CHyprCtl::getWorkspaceData(w, format);
+        for (auto const& w : g_pCompositor->getWorkspaces()) {
+            result += CHyprCtl::getWorkspaceData(w.lock(), format);
         }
     }
 

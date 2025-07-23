@@ -241,6 +241,8 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
         (m_activeSwipe.delta < 0 && m_activeSwipe.pWorkspaceBegin->m_id <= workspaceIDLeft)) {
 
         m_activeSwipe.delta = 0;
+        g_pHyprRenderer->damageMonitor(m_activeSwipe.pMonitor.lock());
+        m_activeSwipe.pWorkspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, 0.0));
         return;
     }
 

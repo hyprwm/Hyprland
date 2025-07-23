@@ -216,12 +216,12 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto const& ws : g_pCompositor->m_workspaces) {
-        if (!valid(ws))
+    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+        if (!valid(ws.lock()))
             continue;
 
         if (ws->m_lastMonitor == m_name || g_pCompositor->m_monitors.size() == 1 /* avoid lost workspaces on recover */) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
+            g_pCompositor->moveWorkspaceToMonitor(ws.lock(), m_self.lock());
             ws->startAnim(true, true, true);
             ws->m_lastMonitor = "";
         }
@@ -365,9 +365,9 @@ void CMonitor::onDisconnect(bool destroy) {
 
         // move workspaces
         std::vector<PHLWORKSPACE> wspToMove;
-        for (auto const& w : g_pCompositor->m_workspaces) {
+        for (auto const& w : g_pCompositor->getWorkspaces()) {
             if (w->m_monitor == m_self || !w->m_monitor)
-                wspToMove.push_back(w);
+                wspToMove.emplace_back(w.lock());
         }
 
         for (auto const& w : wspToMove) {
@@ -994,7 +994,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     }
 
     if (wsID == WORKSPACE_INVALID || (wsID >= SPECIAL_WORKSPACE_START && wsID <= -2)) {
-        wsID                    = g_pCompositor->m_workspaces.size() + 1;
+        wsID                    = std::ranges::distance(g_pCompositor->getWorkspaces()) + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
         Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(m_name));
@@ -1014,7 +1014,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         if (newDefaultWorkspaceName.empty())
             newDefaultWorkspaceName = std::to_string(wsID);
 
-        PNEWWORKSPACE = g_pCompositor->m_workspaces.emplace_back(CWorkspace::create(wsID, m_self.lock(), newDefaultWorkspaceName));
+        PNEWWORKSPACE = CWorkspace::create(wsID, m_self.lock(), newDefaultWorkspaceName);
     }
 
     m_activeWorkspace = PNEWWORKSPACE;
@@ -1089,9 +1089,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // move all the WS
         std::vector<PHLWORKSPACE> wspToMove;
-        for (auto const& w : g_pCompositor->m_workspaces) {
+        for (auto const& w : g_pCompositor->getWorkspaces()) {
             if (w->m_monitor == m_self || !w->m_monitor)
-                wspToMove.push_back(w);
+                wspToMove.emplace_back(w.lock());
         }
 
         for (auto const& w : wspToMove) {
@@ -1113,8 +1113,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pCompositor->arrangeMonitors();
 
         g_pCompositor->setActiveMonitor(g_pCompositor->m_monitors.front());
-
-        g_pCompositor->sanityCheckWorkspaces();
 
         // Software lock mirrored monitor
         g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
@@ -1150,7 +1148,7 @@ static bool shouldWraparound(const WORKSPACEID id1, const WORKSPACEID id2) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
 
-    for (auto const& w : g_pCompositor->m_workspaces) {
+    for (auto const& w : g_pCompositor->getWorkspaces()) {
         if (w->m_id < 0 || w->m_isSpecialWorkspace)
             continue;
         lowestID  = std::min(w->m_id, lowestID);

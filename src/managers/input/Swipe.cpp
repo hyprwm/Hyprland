@@ -17,7 +17,7 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
         return;
 
     int onMonitor = 0;
-    for (auto const& w : g_pCompositor->m_workspaces) {
+    for (auto const& w : g_pCompositor->getWorkspaces()) {
         if (w->m_monitor == g_pCompositor->m_lastMonitor && !g_pCompositor->isWorkspaceSpecial(w->m_id))
             onMonitor++;
     }

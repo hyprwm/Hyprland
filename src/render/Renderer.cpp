@@ -941,14 +941,14 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // special
-    for (auto const& ws : g_pCompositor->m_workspaces) {
+    for (auto const& ws : g_pCompositor->getWorkspaces()) {
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
             continue;
 
         if (ws->m_hasFullscreenWindow)
-            renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
+            renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
         else
-            renderWorkspaceWindows(pMonitor, ws, time);
+            renderWorkspaceWindows(pMonitor, ws.lock(), time);
     }
 
     // pinned always above
@@ -1225,7 +1225,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (pMonitor->m_id == m_mostHzMonitor->m_id ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
-        g_pCompositor->sanityCheckWorkspaces();
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
 
@@ -2192,7 +2191,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
     if (pMonitor->m_activeSpecialWorkspace)
         return;
 
-    for (auto const& ws : g_pCompositor->m_workspaces) {
+    for (auto const& ws : g_pCompositor->getWorkspaces()) {
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != pMonitor)
             continue;
 

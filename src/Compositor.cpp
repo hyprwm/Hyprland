@@ -1338,27 +1338,12 @@ PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {
 }
 
 PHLWORKSPACE CCompositor::getWorkspaceByID(const WORKSPACEID& id) {
-    for (auto const& w : m_workspaces) {
+    for (auto const& w : getWorkspaces()) {
         if (w->m_id == id && !w->inert())
-            return w;
+            return w.lock();
     }
 
     return nullptr;
-}
-
-void CCompositor::sanityCheckWorkspaces() {
-    auto it = m_workspaces.begin();
-    while (it != m_workspaces.end()) {
-        const auto& WORKSPACE = *it;
-
-        // If ref == 1, only the compositor holds a ref, which means it's inactive and has no mapped windows.
-        if (!WORKSPACE->m_persistent && WORKSPACE.strongRef() == 1) {
-            it = m_workspaces.erase(it);
-            continue;
-        }
-
-        ++it;
-    }
 }
 
 PHLWINDOW CCompositor::getUrgentWindow() {
@@ -1732,7 +1717,7 @@ PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::op
 
 WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
     WORKSPACEID lowest = -1337 + 1;
-    for (auto const& w : m_workspaces) {
+    for (auto const& w : getWorkspaces()) {
         if (w->m_id < -1 && w->m_id < lowest)
             lowest = w->m_id;
     }
@@ -1749,9 +1734,9 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
 }
 
 PHLWORKSPACE CCompositor::getWorkspaceByName(const std::string& name) {
-    for (auto const& w : m_workspaces) {
+    for (auto const& w : getWorkspaces()) {
         if (w->m_name == name && !w->inert())
-            return w;
+            return w.lock();
     }
 
     return nullptr;
@@ -2152,7 +2137,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     if (!SWITCHINGISACTIVE)
         nextWorkspaceOnMonitorID = pWorkspace->m_id;
     else {
-        for (auto const& w : m_workspaces) {
+        for (auto const& w : getWorkspaces()) {
             if (w->m_monitor == POLDMON && w->m_id != pWorkspace->m_id && !w->m_isSpecialWorkspace) {
                 nextWorkspaceOnMonitorID = w->m_id;
                 break;
@@ -2266,7 +2251,7 @@ bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
 
-    for (auto const& w : m_workspaces) {
+    for (auto const& w : getWorkspaces()) {
         if (w->m_isSpecialWorkspace)
             continue;
         lowestID  = std::min(w->m_id, lowestID);
@@ -2668,7 +2653,7 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
         return nullptr;
     }
 
-    const auto PWORKSPACE = m_workspaces.emplace_back(CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty));
+    const auto PWORKSPACE = CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty);
 
     PWORKSPACE->m_alpha->setValueAndWarp(0);
 
@@ -2702,13 +2687,17 @@ bool CCompositor::isWorkspaceSpecial(const WORKSPACEID& id) {
 
 WORKSPACEID CCompositor::getNewSpecialID() {
     WORKSPACEID highest = SPECIAL_WORKSPACE_START;
-    for (auto const& ws : m_workspaces) {
-        if (ws->m_isSpecialWorkspace && ws->m_id > highest) {
+    for (auto const& ws : getWorkspaces()) {
+        if (ws->m_isSpecialWorkspace && ws->m_id > highest)
             highest = ws->m_id;
-        }
     }
 
     return highest + 1;
+}
+
+void CCompositor::registerWorkspace(PHLWORKSPACE w) {
+    m_workspaces.emplace_back(w);
+    w->m_events.destroy.listenStatic([this, weak = PHLWORKSPACEREF{w}] { std::erase(m_workspaces, weak); });
 }
 
 void CCompositor::performUserChecks() {
@@ -3184,7 +3173,4 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             continue;
         }
     }
-
-    // cleanup old
-    sanityCheckWorkspaces();
 }

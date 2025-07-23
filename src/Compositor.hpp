@@ -2,6 +2,8 @@
 
 #include <sys/resource.h>
 
+#include <ranges>
+
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"

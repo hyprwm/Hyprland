@@ -168,6 +168,10 @@ void CCompositor::restoreNofile() {
         Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
+bool CCompositor::supportsDrmSyncobjTimeline() const {
+    return m_bDrmSyncobjTimelineSupported;
+}
+
 void CCompositor::setMallocThreshold() {
 #ifdef M_TRIM_THRESHOLD
     // The default is 128 pages,

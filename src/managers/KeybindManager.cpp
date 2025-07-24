@@ -2299,10 +2299,12 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
     else if (args.contains("float") || args.contains("floating"))
         floatStatus = true;
 
+    static auto PRESERVE_HIST = reinterpret_cast<int64_t* const*>(g_pConfigManager->getConfigValuePtr("master:focus_on_close"));
+
     const auto  VISIBLE = args.contains("visible") || args.contains("v");
     const auto  PREV    = args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l");
     const auto  NEXT    = args.contains("next") || args.contains("n"); // prev is default in classic alt+tab
-    const auto  HIST    = args.contains("hist") || args.contains("h");
+    const auto  HIST    = args.contains("hist") || args.contains("h") || (**PRESERVE_HIST > 0 ? true : false);
     const auto& w       = HIST ? g_pCompositor->getWindowCycleHist(g_pCompositor->m_lastWindow, true, floatStatus, VISIBLE, NEXT) :
                                  g_pCompositor->getWindowCycle(g_pCompositor->m_lastWindow.lock(), true, floatStatus, VISIBLE, PREV);
 

@@ -9,12 +9,10 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         return;
 
     m_resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
-        releasePressed();
         m_events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) {
-        releasePressed();
         m_events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
@@ -30,12 +28,6 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             .keycode = key,
             .state   = (wl_keyboard_key_state)state,
         });
-
-        const bool CONTAINS = std::ranges::find(m_pressed, key) != m_pressed.end();
-        if (state && !CONTAINS)
-            m_pressed.emplace_back(key);
-        else if (!state && CONTAINS)
-            std::erase(m_pressed, key);
     });
 
     m_resource->setModifiers([this](CZwpVirtualKeyboardV1* r, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
@@ -101,18 +93,6 @@ bool CVirtualKeyboardV1Resource::good() {
 
 wl_client* CVirtualKeyboardV1Resource::client() {
     return m_resource->resource() ? m_resource->client() : nullptr;
-}
-
-void CVirtualKeyboardV1Resource::releasePressed() {
-    for (auto const& p : m_pressed) {
-        m_events.key.emit(IKeyboard::SKeyEvent{
-            .timeMs  = Time::millis(Time::steadyNow()),
-            .keycode = p,
-            .state   = WL_KEYBOARD_KEY_STATE_RELEASED,
-        });
-    }
-
-    m_pressed.clear();
 }
 
 CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

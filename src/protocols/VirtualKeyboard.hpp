@@ -28,12 +28,7 @@ class CVirtualKeyboardV1Resource {
 
   private:
     SP<CZwpVirtualKeyboardV1> m_resource;
-
-    void                      releasePressed();
-
     bool                      m_hasKeymap = false;
-
-    std::vector<uint32_t>     m_pressed;
 };
 
 class CVirtualKeyboardProtocol : public IWaylandProtocol {

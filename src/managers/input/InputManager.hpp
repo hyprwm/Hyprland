@@ -184,8 +184,7 @@ class CInputManager {
 
     CInputMethodRelay m_relay;
 
-    // for shared mods
-    uint32_t accumulateModsFromAllKBs();
+    uint32_t getLastKeyboardMods();
 
     // for virtual keyboards: whether we should respect them as normal ones
     bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
@@ -304,6 +303,8 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
+
+    uint32_t m_lastKeyboardMods = 0;
 
     friend class CKeybindManager;
     friend class CWLSurface;

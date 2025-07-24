@@ -1424,10 +1424,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
-    const auto ALLMODS = accumulateModsFromAllKBs();
-
     auto       MODS = pKeyboard->m_modifiersState;
-    MODS.depressed  = ALLMODS;
 
     const auto IME = m_relay.m_inputMethod.lock();
 
@@ -1437,6 +1434,8 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     } else {
         g_pSeatManager->setKeyboard(pKeyboard);
         g_pSeatManager->sendKeyboardMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+
+        m_lastKeyboardMods = MODS.depressed;
     }
 
     updateKeyboardsLeds(pKeyboard);
@@ -1564,21 +1563,8 @@ void CInputManager::updateCapabilities() {
     m_capabilities = caps;
 }
 
-uint32_t CInputManager::accumulateModsFromAllKBs() {
-
-    uint32_t finalMask = 0;
-
-    for (auto const& kb : m_keyboards) {
-        if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
-            continue;
-
-        if (!kb->m_enabled)
-            continue;
-
-        finalMask |= kb->getModifiers();
-    }
-
-    return finalMask;
+uint32_t CInputManager::getLastKeyboardMods() {
+    return m_lastKeyboardMods;
 }
 
 void CInputManager::disableAllKeyboards(bool virt) {

@@ -1966,9 +1966,7 @@ void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const in
 }
 
 void CHyprRenderer::damageRegion(const CRegion& rg) {
-    for (auto const& RECT : rg.getRects()) {
-        damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
-    }
+    rg.forEachRect([this](const auto& RECT) { damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1); });
 }
 
 void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {

@@ -237,7 +237,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!m_activeMonitorRule.mirrorOf.empty())
         setMirror(m_activeMonitorRule.mirrorOf);
 
-    if (!g_pCompositor->m_lastMonitor) // set the last monitor if it isnt set yet
+    if (!g_pCompositor->m_lastMonitor) // set the last monitor if it isn't set yet
         g_pCompositor->setActiveMonitor(m_self.lock());
 
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
@@ -512,7 +512,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && m_autoDir == RULE->autoDir                                 /* Auto direction is the same */
         /* position is set correctly */
         && ((DELTALESSTHAN(m_position.x, RULE->offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX))
-        /* other properties hadnt changed */
+        /* other properties hadn't changed */
         && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
         RULE->sdrBrightness == m_sdrBrightness && RULE->sdrMinLuminance == m_minLuminance && RULE->sdrMaxLuminance == m_maxLuminance &&
         RULE->supportsWideColor == m_supportsWideColor && RULE->supportsHDR == m_supportsHDR && RULE->minLuminance == m_minLuminance && RULE->maxLuminance == m_maxLuminance &&
@@ -618,7 +618,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             return false;
         });
 
-        // if the best mode isnt close to requested, then try requested as custom mode first
+        // if the best mode isn't close to requested, then try requested as custom mode first
         if (!requestedModes.empty()) {
             auto bestMode = requestedModes.back();
             if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
@@ -1329,7 +1329,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
             const auto MIDDLE = w->middle();
             if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
-                // if it's floating and the middle isnt on the current mon, move it to the center
+                // if it's floating and the middle isn't on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_realPosition->goal();
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,

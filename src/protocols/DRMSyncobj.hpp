@@ -21,7 +21,7 @@ class CDRMSyncPointState {
     WP<CSyncTimeline>                                timeline();
     Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
     bool                                             addWaiter(const std::function<void()>& waiter);
-    bool                                             comitted();
+    bool                                             committed();
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
 

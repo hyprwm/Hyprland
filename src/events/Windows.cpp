@@ -181,7 +181,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 break;
             }
             case CWindowRule::RULE_WORKSPACE: {
-                // check if it isnt unset
+                // check if it isn't unset
                 const auto WORKSPACERQ = r->m_rule.substr(r->m_rule.find_first_of(' ') + 1);
 
                 if (WORKSPACERQ == "unset")

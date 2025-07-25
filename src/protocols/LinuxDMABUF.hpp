@@ -43,7 +43,7 @@ struct SDMABUFTranche {
     dev_t                   device = 0;
     uint32_t                flags  = 0;
     std::vector<SDRMFormat> formats;
-    std::vector<uint16_t>   indicies;
+    std::vector<uint16_t>   indices;
 };
 
 class CDMABUFFormatTable {

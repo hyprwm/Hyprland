@@ -176,7 +176,7 @@
     homeManagerModules.default = import ./nix/hm-module.nix self;
 
     # Hydra build jobs
-    # Recent versions of Hydra can aggregate jobsets from 'hydraJobs' intead of a release.nix
+    # Recent versions of Hydra can aggregate jobsets from 'hydraJobs' instead of a release.nix
     # or similar. Remember to filter large or incompatible attributes here. More eval jobs can
     # be added by merging, e.g., self.packages // self.devShells.
     hydraJobs = self.packages;

@@ -137,7 +137,7 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> p
 
         PROTO::lease.at(m_parent->m_deviceName)->m_leases.emplace_back(RESOURCE);
 
-        // per protcol, after submit, this is dead.
+        // per protocol, after submit, this is dead.
         PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
     });
 }

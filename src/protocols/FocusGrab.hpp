@@ -20,7 +20,7 @@ class CFocusGrabSurfaceState {
     enum State {
         PendingAddition,
         PendingRemoval,
-        Comitted,
+        Committed,
     } m_state = PendingAddition;
 
   private:
@@ -35,7 +35,7 @@ class CFocusGrab {
     ~CFocusGrab();
 
     bool good();
-    bool isSurfaceComitted(SP<CWLSurfaceResource> surface);
+    bool isSurfaceCommitted(SP<CWLSurfaceResource> surface);
 
     void start();
     void finish(bool sendCleared);

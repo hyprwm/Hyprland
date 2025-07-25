@@ -574,7 +574,7 @@ void CXCursorManager::syncGsettings() {
         auto* gSettingsSchemaSource = g_settings_schema_source_get_default();
 
         if (!gSettingsSchemaSource) {
-            Debug::log(WARN, "GSettings default schema source does not exist, cant sync GSettings");
+            Debug::log(WARN, "GSettings default schema source does not exist, can't sync GSettings");
             return false;
         }
 
@@ -592,7 +592,7 @@ void CXCursorManager::syncGsettings() {
     using SettingValue = std::variant<std::string, int>;
     auto setValue      = [&checkParamExists](std::string const& paramName, const SettingValue& paramValue, std::string const& category) {
         if (!checkParamExists(paramName, category)) {
-            Debug::log(WARN, "GSettings parameter doesnt exist {} in {}", paramName, category);
+            Debug::log(WARN, "GSettings parameter doesn't exist {} in {}", paramName, category);
             return;
         }
 

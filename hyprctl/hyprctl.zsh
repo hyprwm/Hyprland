@@ -36,7 +36,7 @@ _hyprctl () {
     descriptions[22]="Focus the urgent window or the last window"
     descriptions[23]="Get the list of defined workspace rules"
     descriptions[24]="Move the active workspace to a monitor"
-    descriptions[25]="Move window doesnt switch to the workspace"
+    descriptions[25]="Move window doesn't switch to the workspace"
     descriptions[26]="Interact with hyprpaper if present"
     descriptions[29]="Swap the active window with the next or previous in a group"
     descriptions[30]="Move the cursor to the corner of the active window"

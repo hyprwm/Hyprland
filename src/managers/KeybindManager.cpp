@@ -2015,8 +2015,8 @@ SDispatchResult CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args)
     PHLMONITOR PMONITOR = g_pCompositor->getMonitorFromString(args);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
-        return {.success = false, .error = "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist"};
+        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesn't exist");
+        return {.success = false, .error = "Ignoring moveCurrentWorkspaceToMonitor: monitor doesn't exist"};
     }
 
     // get the current workspace
@@ -2041,8 +2041,8 @@ SDispatchResult CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     const auto  PMONITOR = g_pCompositor->getMonitorFromString(monitor);
 
     if (!PMONITOR) {
-        Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesnt exist");
-        return {.success = false, .error = "Ignoring moveWorkspaceToMonitor: monitor doesnt exist"};
+        Debug::log(ERR, "Ignoring moveWorkspaceToMonitor: monitor doesn't exist");
+        return {.success = false, .error = "Ignoring moveWorkspaceToMonitor: monitor doesn't exist"};
     }
 
     const auto WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
@@ -2584,7 +2584,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
     const auto        LASTSURFACE = g_pCompositor->m_lastFocus.lock();
 
     //if regexp is not empty, send shortcut to current window
-    //else, dont change focus
+    //else, don't change focus
     if (!regexp.empty()) {
         PWINDOW = g_pCompositor->getWindowByRegex(regexp);
 
@@ -2926,7 +2926,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 
     updateRelativeCursorCoords();
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes grouped property!
 
     if (pWindow->m_monitor != pWindowInDirection->m_monitor) {
         pWindow->moveToWorkspace(pWindowInDirection->m_workspace);

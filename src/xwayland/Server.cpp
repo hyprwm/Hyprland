@@ -149,7 +149,7 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
     }
 #else
     if (*CREATEABSTRACTSOCKET) {
-        Debug::log(WARN, "The abstract XWayland Unix domain socket might be used only on Linux systems. A regular one'll be created insted.");
+        Debug::log(WARN, "The abstract XWayland Unix domain socket might be used only on Linux systems. A regular one'll be created instead.");
     }
     path = getSocketPath(display, false);
     strncpy(addr.sun_path, path.c_str(), path.length() + 1);

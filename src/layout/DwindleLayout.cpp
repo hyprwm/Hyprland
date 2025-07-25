@@ -190,7 +190,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         // Calculate pseudo
         float scale = 1;
 
-        // adjust if doesnt fit
+        // adjust if doesn't fit
         if (PWINDOW->m_pseudoSize.x > calcSize.x || PWINDOW->m_pseudoSize.y > calcSize.y) {
             if (PWINDOW->m_pseudoSize.x > calcSize.x) {
                 scale = calcSize.x / PWINDOW->m_pseudoSize.x;

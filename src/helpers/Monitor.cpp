@@ -1537,27 +1537,27 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         reasons |= DS_BLOCK_CANDIDATE;
         if (!full)
             return reasons;
-    }
+    } else {
+        const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+        if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
+            reasons |= DS_BLOCK_SURFACE;
+            if (!full)
+                return reasons;
+        } else {
+            if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
+                reasons |= DS_BLOCK_TRANSFORM;
+                if (!full)
+                    return reasons;
+            }
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
-    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
-        reasons |= DS_BLOCK_SURFACE;
-        if (!full)
-            return reasons;
-    }
-
-    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
-        reasons |= DS_BLOCK_TRANSFORM;
-        if (!full)
-            return reasons;
-    }
-
-    // we can't scanout shm buffers.
-    const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
-        reasons |= DS_BLOCK_DMA;
-        if (!full)
-            return reasons;
+            // we can't scanout shm buffers.
+            const auto params = PSURFACE->m_current.buffer->dmabuf();
+            if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
+                reasons |= DS_BLOCK_DMA;
+                if (!full)
+                    return reasons;
+            }
+        }
     }
     return reasons;
 }

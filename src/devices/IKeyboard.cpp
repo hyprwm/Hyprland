@@ -410,7 +410,7 @@ bool IKeyboard::updatePressed(uint32_t key, bool pressed) {
 }
 
 bool IKeyboard::getPressed(uint32_t key) {
-    return std::ranges::find(m_pressed, key) != m_pressed.end();
+    return std::ranges::contains(m_pressed, key);
 }
 
 bool IKeyboard::shareStates() {

@@ -1408,9 +1408,8 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 
     bool passEvent = DISALLOWACTION;
 
-    if (!DISALLOWACTION) {
+    if (!DISALLOWACTION)
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
-    }
 
     if (passEvent) {
         if (USEIME) {
@@ -1418,7 +1417,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
             IME->sendKey(event.timeMs, event.keycode, event.state);
         } else {
             const auto PRESSED  = shareKeyFromAllKBs(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
-            const auto CONTAINS = std::ranges::find(m_pressed, event.keycode) != m_pressed.end();
+            const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
 
             if (CONTAINS && PRESSED)
                 return;

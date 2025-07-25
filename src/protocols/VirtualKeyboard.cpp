@@ -8,6 +8,29 @@
 #include "../helpers/MiscFunctions.hpp"
 using namespace Hyprutils::OS;
 
+static std::string virtualKeyboardNameForWlClient(wl_client* client) {
+    std::string name = "hl-virtual-keyboard";
+
+    static auto PVKNAMEPROC = CConfigValue<Hyprlang::INT>("misc:name_vk_after_proc");
+    if (!*PVKNAMEPROC)
+        return name;
+
+    name += "-";
+    const auto CLIENTNAME = binaryNameForWlClient(client);
+    if (CLIENTNAME.has_value()) {
+        const auto PATH = std::filesystem::path(CLIENTNAME.value());
+        if (PATH.has_filename()) {
+            const auto FILENAME = PATH.filename();
+            const auto NAME     = deviceNameToInternalString(FILENAME);
+            name += NAME;
+            return name;
+        }
+    }
+
+    name += "unknown";
+    return name;
+}
+
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -27,7 +50,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             .state   = (wl_keyboard_key_state)state,
         });
 
-        const bool CONTAINS = std::ranges::find(m_pressed, key) != m_pressed.end();
+        const bool CONTAINS = std::ranges::contains(m_pressed, key);
         if (state && !CONTAINS)
             m_pressed.emplace_back(key);
         else if (!state && CONTAINS)
@@ -84,25 +107,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         xkb_context_unref(xkbContext);
     });
 
-    m_name = "hl-virtual-keyboard";
-
-    static auto PVKNAMEPROC = CConfigValue<Hyprlang::INT>("misc:name_vk_after_proc");
-    if (!*PVKNAMEPROC) {
-        return;
-    }
-
-    m_name += "-";
-    const auto CLIENTNAME = binaryNameForWlClient(resource_->client());
-    if (CLIENTNAME.has_value()) {
-        const auto PATH = std::filesystem::path(CLIENTNAME.value());
-        if (PATH.has_filename()) {
-            const auto FILENAME = PATH.filename();
-            const auto NAME     = deviceNameToInternalString(FILENAME);
-            m_name += NAME;
-            return;
-        }
-    }
-    m_name += "unknown";
+    m_name = virtualKeyboardNameForWlClient(resource_->client());
 }
 
 CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {

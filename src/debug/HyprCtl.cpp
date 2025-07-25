@@ -110,6 +110,168 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
+std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+    const auto reasons = m->isSolitaryBlocked(true);
+    if (!reasons)
+        return "null";
+    std::string reasonStr = "";
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        if (reasons & CMonitor::SC_UNKNOWN) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"UNKNOWN\"";
+        }
+        if (reasons & CMonitor::SC_NOTIFICATION) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"NOTIFICATION\"";
+        }
+        if (reasons & CMonitor::SC_LOCK) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"LOCK\"";
+        }
+        if (reasons & CMonitor::SC_WORKSPACE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"WORKSPACE\"";
+        }
+        if (reasons & CMonitor::SC_WINDOWED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"WINDOWED\"";
+        }
+        if (reasons & CMonitor::SC_DND) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"DND\"";
+        }
+        if (reasons & CMonitor::SC_SPECIAL) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"SPECIAL\"";
+        }
+        if (reasons & CMonitor::SC_ALPHA) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"ALPHA\"";
+        }
+        if (reasons & CMonitor::SC_OFFSET) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"OFFSET\"";
+        }
+        if (reasons & CMonitor::SC_CANDIDATE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"CANDIDATE\"";
+        }
+        if (reasons & CMonitor::SC_OPAQUE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"OPAQUE\"";
+        }
+        if (reasons & CMonitor::SC_TRANSFORM) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"TRANSFORM\"";
+        }
+        if (reasons & CMonitor::SC_OVERLAYS) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"OVERLAYS\"";
+        }
+        if (reasons & CMonitor::SC_WORKSPACES) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"WORKSPACES\"";
+        }
+        if (reasons & CMonitor::SC_SURFACES) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"SURFACES\"";
+        }
+        return "[" + reasonStr + "]";
+    } else {
+        if (reasons & CMonitor::SC_UNKNOWN) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "unknown reason";
+        }
+        if (reasons & CMonitor::SC_NOTIFICATION) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "notification";
+        }
+        if (reasons & CMonitor::SC_LOCK) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "session lock";
+        }
+        if (reasons & CMonitor::SC_WORKSPACE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "invalid workspace";
+        }
+        if (reasons & CMonitor::SC_WINDOWED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "windowed mode";
+        }
+        if (reasons & CMonitor::SC_DND) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "dnd active";
+        }
+        if (reasons & CMonitor::SC_SPECIAL) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "special workspace";
+        }
+        if (reasons & CMonitor::SC_ALPHA) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "alpha channel";
+        }
+        if (reasons & CMonitor::SC_OFFSET) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "workspace offset";
+        }
+        if (reasons & CMonitor::SC_CANDIDATE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "missing candidate";
+        }
+        if (reasons & CMonitor::SC_OPAQUE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "not opaque";
+        }
+        if (reasons & CMonitor::SC_TRANSFORM) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "surface transformations";
+        }
+        if (reasons & CMonitor::SC_OVERLAYS) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "other overlays";
+        }
+        if (reasons & CMonitor::SC_WORKSPACES) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "other workspaces";
+        }
+        if (reasons & CMonitor::SC_SURFACES) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "subsurfaces";
+        }
+        return reasonStr;
+    }
+}
+
 std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
@@ -289,6 +451,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "dpmsStatus": {},
     "vrr": {},
     "solitary": "{:x}",
+    "solitaryBlockedBy": {},
     "activelyTearing": {},
     "directScanoutTo": "{:x}",
     "directScanoutBlockedBy": {},
@@ -304,15 +467,15 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x,
             (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
             (m == g_pCompositor->m_lastMonitor ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
-            (uint64_t)m->m_solitaryClient.get(), (m->m_tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->m_lastScanout.get(), getDSBlockedReason(m, format),
-            (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none",
-            availableModesForOutput(m, format));
+            (uint64_t)m->m_solitaryClient.get(), getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->m_lastScanout.get(),
+            getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat),
+            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
         result += std::format(
             "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tphysical size (mm): {}x{}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
             "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
+            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
             "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
@@ -320,7 +483,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
             (int)m->m_reservedTopLeft.x, (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
             (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->m_dpmsStatus, m->m_output->state->state().adaptiveSync, (uint64_t)m->m_solitaryClient.get(),
-            m->m_tearingState.activelyTearing, (uint64_t)m->m_lastScanout.get(), getDSBlockedReason(m, format), !m->m_enabled,
+            getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, (uint64_t)m->m_lastScanout.get(), getDSBlockedReason(m, format), !m->m_enabled,
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 

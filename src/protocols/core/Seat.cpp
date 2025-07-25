@@ -341,6 +341,8 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
 }
 
 void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface, wl_array* keys) {
+    ASSERT(keys);
+
     if (!m_owner || m_currentSurface == surface || !surface->getResource()->resource())
         return;
 

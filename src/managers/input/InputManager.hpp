@@ -185,7 +185,8 @@ class CInputManager {
     CInputMethodRelay m_relay;
 
     // for shared mods
-    uint32_t getModsFromAllKBs();
+    const std::vector<uint32_t>& getKeysFromAllKBs();
+    uint32_t                     getModsFromAllKBs();
 
     // for virtual keyboards: whether we should respect them as normal ones
     bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);

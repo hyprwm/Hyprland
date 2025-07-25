@@ -1584,6 +1584,10 @@ void CInputManager::updateCapabilities() {
     m_capabilities = caps;
 }
 
+const std::vector<uint32_t>& CInputManager::getKeysFromAllKBs() {
+    return m_pressed;
+}
+
 uint32_t CInputManager::getModsFromAllKBs() {
     return m_lastMods;
 }

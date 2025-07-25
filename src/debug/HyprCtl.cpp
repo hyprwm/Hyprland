@@ -291,7 +291,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "solitary": "{:x}",
     "activelyTearing": {},
     "directScanoutTo": "{:x}",
-    "directScanoutBlockedBy": "{}",
+    "directScanoutBlockedBy": {},
     "disabled": {},
     "currentFormat": "{}",
     "mirrorOf": "{}",

@@ -1,4 +1,5 @@
 #include "HyprCtl.hpp"
+#include "helpers/Monitor.hpp"
 
 #include <algorithm>
 #include <format>
@@ -109,6 +110,148 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
+std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+    const auto reasons = m->isDSBlocked(true);
+    if (!reasons)
+        return "null";
+    std::string reasonStr = "";
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        if (reasons & CMonitor::DS_BLOCK_UNKNOWN) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"UNKNOWN\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_USER) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"USER\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_WINDOWED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"WINDOWED\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_CONTENT) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"CONTENT\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_MIRROR) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"MIRROR\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_RECORD) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"RECORD\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_SW) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"SW\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_CANDIDATE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"CANDIDATE\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_SURFACE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"SURFACE\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_TRANSFORM) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"TRANSFORM\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_DMA) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"DMA\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_TEARING) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"TEARING\"";
+        }
+        if (reasons & CMonitor::DS_BLOCK_FAILED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "\"FAILED\"";
+        }
+        return "[" + reasonStr + "]";
+    } else {
+        if (reasons & CMonitor::DS_BLOCK_UNKNOWN) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "unknown reason";
+        }
+        if (reasons & CMonitor::DS_BLOCK_USER) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "";
+        }
+        if (reasons & CMonitor::DS_BLOCK_WINDOWED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "user settings";
+        }
+        if (reasons & CMonitor::DS_BLOCK_CONTENT) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "content type";
+        }
+        if (reasons & CMonitor::DS_BLOCK_MIRROR) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "monitor mirrors";
+        }
+        if (reasons & CMonitor::DS_BLOCK_RECORD) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "screen record/screenshot";
+        }
+        if (reasons & CMonitor::DS_BLOCK_SW) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "software renders";
+        }
+        if (reasons & CMonitor::DS_BLOCK_CANDIDATE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "missing candidate";
+        }
+        if (reasons & CMonitor::DS_BLOCK_SURFACE) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "invalid surface";
+        }
+        if (reasons & CMonitor::DS_BLOCK_TRANSFORM) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "surface transformations";
+        }
+        if (reasons & CMonitor::DS_BLOCK_DMA) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "invalid buffer";
+        }
+        if (reasons & CMonitor::DS_BLOCK_TEARING) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "tearing";
+        }
+        if (reasons & CMonitor::DS_BLOCK_FAILED) {
+            if (reasonStr != "")
+                reasonStr += ",";
+            reasonStr += "activation failed";
+        }
+        return reasonStr;
+    }
+}
+
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->m_output || m->m_id == -1)
@@ -148,6 +291,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "solitary": "{:x}",
     "activelyTearing": {},
     "directScanoutTo": "{:x}",
+    "directScanoutBlockedBy": "{}",
     "disabled": {},
     "currentFormat": "{}",
     "mirrorOf": "{}",
@@ -155,27 +299,28 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
-            escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), m->m_pixelSize.y, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y),
-            m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(),
-            (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
-            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y),
-            sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
-            (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), rc<uint64_t>(m->m_solitaryClient.get()),
-            (m->m_tearingState.activelyTearing ? "true" : "false"), rc<uint64_t>(m->m_lastScanout.get()), (m->m_enabled ? "false" : "true"),
-            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
+            escapeJSONStrings(m->m_output->serial), (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, (int)m->m_output->physicalSize.x, (int)m->m_output->physicalSize.y,
+            m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y, m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
+            m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x,
+            (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
+            (m == g_pCompositor->m_lastMonitor ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
+            (uint64_t)m->m_solitaryClient.get(), (m->m_tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->m_lastScanout.get(), getDSBlockedReason(m, format),
+            (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none",
+            availableModesForOutput(m, format));
 
     } else {
         result += std::format(
             "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tphysical size (mm): {}x{}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
             "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
+            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
+            "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
-            sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale,
-            sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
-            rc<uint64_t>(m->m_solitaryClient.get()), m->m_tearingState.activelyTearing, rc<uint64_t>(m->m_lastScanout.get()), !m->m_enabled,
+            (int)m->m_reservedTopLeft.x, (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
+            (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->m_dpmsStatus, m->m_output->state->state().adaptiveSync, (uint64_t)m->m_solitaryClient.get(),
+            m->m_tearingState.activelyTearing, (uint64_t)m->m_lastScanout.get(), getDSBlockedReason(m, format), !m->m_enabled,
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 

@@ -1184,7 +1184,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
@@ -1251,22 +1250,17 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     pMonitor->m_tearingState.activelyTearing = shouldTear;
 
-    if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
-          pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN && pMonitor->m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        !shouldTear) {
-        if (pMonitor->attemptDirectScanout()) {
-            return;
-        } else if (!pMonitor->m_lastScanout.expired()) {
-            Debug::log(LOG, "Left a direct scanout.");
-            pMonitor->m_lastScanout.reset();
+    if (pMonitor->attemptDirectScanout()) {
+        return;
+    } else if (!pMonitor->m_lastScanout.expired()) {
+        Debug::log(LOG, "Left a direct scanout.");
+        pMonitor->m_lastScanout.reset();
 
-            // reset DRM format, but only if needed since it might modeset
-            if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
-                pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
+        // reset DRM format, but only if needed since it might modeset
+        if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
+            pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
 
-            pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
-        }
+        pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);

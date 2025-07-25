@@ -212,6 +212,23 @@ class CMonitor {
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
 
+    enum eDSBlockReason : uint16_t {
+        DS_OK              = 0,
+        DS_BLOCK_UNKNOWN   = (1 << 0),
+        DS_BLOCK_USER      = (1 << 1),
+        DS_BLOCK_WINDOWED  = (1 << 2),
+        DS_BLOCK_CONTENT   = (1 << 3),
+        DS_BLOCK_MIRROR    = (1 << 4),
+        DS_BLOCK_RECORD    = (1 << 5),
+        DS_BLOCK_SW        = (1 << 6),
+        DS_BLOCK_CANDIDATE = (1 << 7),
+        DS_BLOCK_SURFACE   = (1 << 8),
+        DS_BLOCK_TRANSFORM = (1 << 9),
+        DS_BLOCK_DMA       = (1 << 10),
+        DS_BLOCK_TEARING   = (1 << 11),
+        DS_BLOCK_FAILED    = (1 << 12),
+    };
+
     // methods
     void                                onConnect(bool noRule);
     void                                onDisconnect(bool destroy = false);
@@ -236,6 +253,7 @@ class CMonitor {
     WORKSPACEID                         activeSpecialWorkspaceID();
     CBox                                logicalBox();
     void                                scheduleDone();
+    uint16_t                            isDSBlocked(bool full = false);
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();

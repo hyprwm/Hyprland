@@ -1490,30 +1490,88 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
-bool CMonitor::attemptDirectScanout() {
-    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+uint16_t CMonitor::isDSBlocked(bool full) {
+    uint16_t    reasons        = 0;
+    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+    if (*PDIRECTSCANOUT == 0) {
+        reasons |= DS_BLOCK_USER;
+        if (!full)
+            return reasons;
+    }
+    if (*PDIRECTSCANOUT == 2) {
+        if (!m_activeWorkspace || !m_activeWorkspace->m_hasFullscreenWindow || m_activeWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN) {
+            reasons |= DS_BLOCK_WINDOWED;
+            if (!full)
+                return reasons;
+        }
+        if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
+            reasons |= DS_BLOCK_CONTENT;
+            if (!full)
+                return reasons;
+        }
+        if (m_tearingState.activelyTearing) {
+            reasons |= DS_BLOCK_TEARING;
+            if (!full)
+                return reasons;
+        }
+    }
+    if (!m_mirrors.empty() || isMirror()) {
+        reasons |= DS_BLOCK_MIRROR;
+        if (!full)
+            return reasons;
+    }
+    if (g_pHyprRenderer->m_directScanoutBlocked) {
+        reasons |= DS_BLOCK_RECORD;
+        if (!full)
+            return reasons;
+    }
 
-    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
-        return false;
+    if (g_pPointerManager->softwareLockedFor(m_self.lock())) {
+        reasons |= DS_BLOCK_SW;
+        if (!full)
+            return reasons;
+    }
 
     const auto PCANDIDATE = m_solitaryClient.lock();
-
-    if (!PCANDIDATE)
-        return false;
+    if (!PCANDIDATE) {
+        reasons |= DS_BLOCK_CANDIDATE;
+        if (!full)
+            return reasons;
+    }
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
+        reasons |= DS_BLOCK_SURFACE;
+        if (!full)
+            return reasons;
+    }
 
-    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer)
-        return false;
-
-    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform)
-        return false;
+    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
+        reasons |= DS_BLOCK_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
+    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
+        reasons |= DS_BLOCK_DMA;
+        if (!full)
+            return reasons;
+    }
+    return reasons;
+}
+
+bool CMonitor::attemptDirectScanout() {
+    const auto blockedReason = isDSBlocked();
+    if (blockedReason) {
+        Debug::log(TRACE, "attemptDirectScanout: blocked by {}", blockedReason);
         return false;
+    }
+
+    const auto PCANDIDATE = m_solitaryClient.lock();
+    const auto PSURFACE   = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    const auto params     = PSURFACE->m_current.buffer->dmabuf();
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()),
                rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));

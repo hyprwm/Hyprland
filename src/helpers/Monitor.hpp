@@ -229,6 +229,26 @@ class CMonitor {
         DS_BLOCK_FAILED    = (1 << 12),
     };
 
+    enum eSolitaryCheck : uint16_t {
+        SC_OK           = 0,
+        SC_UNKNOWN      = (1 << 0),
+        SC_NOTIFICATION = (1 << 1),
+        SC_LOCK         = (1 << 2),
+        SC_WORKSPACE    = (1 << 3),
+        SC_WINDOWED     = (1 << 4),
+        SC_DND          = (1 << 5),
+        SC_SPECIAL      = (1 << 6),
+        SC_ALPHA        = (1 << 7),
+        SC_OFFSET       = (1 << 8),
+        SC_CANDIDATE    = (1 << 9),
+        SC_OPAQUE       = (1 << 10),
+        SC_TRANSFORM    = (1 << 11),
+        SC_OVERLAYS     = (1 << 12),
+        SC_FLOAT        = (1 << 13),
+        SC_WORKSPACES   = (1 << 14),
+        SC_SURFACES     = (1 << 15),
+    };
+
     // methods
     void                                onConnect(bool noRule);
     void                                onDisconnect(bool destroy = false);
@@ -253,6 +273,8 @@ class CMonitor {
     WORKSPACEID                         activeSpecialWorkspaceID();
     CBox                                logicalBox();
     void                                scheduleDone();
+    uint16_t                            isSolitaryBlocked(bool full = false);
+    void                                recheckSolitary();
     uint16_t                            isDSBlocked(bool full = false);
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);

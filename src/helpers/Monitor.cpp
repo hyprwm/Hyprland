@@ -18,6 +18,7 @@
 #include "../managers/PointerManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/LayoutManager.hpp"
@@ -1488,6 +1489,136 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     m_ctm        = ctm_;
     m_ctmUpdated = true;
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
+}
+
+uint16_t CMonitor::isSolitaryBlocked(bool full) {
+    uint16_t reasons = 0;
+
+    if (g_pHyprNotificationOverlay->hasAny()) {
+        reasons |= SC_NOTIFICATION;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        reasons |= SC_LOCK;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PWORKSPACE = m_activeWorkspace;
+    if (!PWORKSPACE) {
+        reasons |= SC_WORKSPACE;
+        if (!full)
+            return reasons;
+    } else {
+        if (!PWORKSPACE->m_hasFullscreenWindow) {
+            reasons |= SC_WINDOWED;
+            if (!full)
+                return reasons;
+        }
+
+        if (PROTO::data->dndActive()) {
+            reasons |= SC_DND;
+            if (!full)
+                return reasons;
+        }
+
+        if (m_activeSpecialWorkspace) {
+            reasons |= SC_SPECIAL;
+            if (!full)
+                return reasons;
+        }
+
+        if (PWORKSPACE->m_alpha->value() != 1.f) {
+            reasons |= SC_ALPHA;
+            if (!full)
+                return reasons;
+        }
+
+        if (PWORKSPACE->m_renderOffset->value() != Vector2D{}) {
+            reasons |= SC_OFFSET;
+            if (!full)
+                return reasons;
+        }
+
+        const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
+
+        if (!PCANDIDATE) {
+            reasons |= SC_CANDIDATE;
+            if (!full)
+                return reasons;
+        } else {
+            if (!PCANDIDATE->opaque()) {
+                reasons |= SC_OPAQUE;
+                if (!full)
+                    return reasons;
+            }
+
+            if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
+                PCANDIDATE->m_realSize->isBeingAnimated()) {
+                reasons |= SC_TRANSFORM;
+                if (!full)
+                    return reasons;
+            }
+
+            if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
+                reasons |= SC_OVERLAYS;
+                if (!full)
+                    return reasons;
+            }
+
+            for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+                if (topls->m_alpha->value() != 0.f) {
+                    reasons |= SC_OVERLAYS;
+                    if (!full)
+                        return reasons;
+                }
+            }
+
+            for (auto const& w : g_pCompositor->m_windows) {
+                if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
+                    continue;
+
+                if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(m_self.lock())) {
+                    reasons |= SC_FLOAT;
+                    if (!full)
+                        return reasons;
+                }
+            }
+
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+                if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
+                    continue;
+
+                reasons |= SC_WORKSPACES;
+                if (!full)
+                    return reasons;
+            }
+
+            // check if it did not open any subsurfaces or shit
+            int surfaceCount = 0;
+            if (PCANDIDATE->m_isX11)
+                surfaceCount = 1;
+            else
+                surfaceCount = PCANDIDATE->popupsCount() + PCANDIDATE->surfacesCount();
+
+            if (surfaceCount > 1) {
+                reasons |= SC_SURFACES;
+                if (!full)
+                    return reasons;
+            }
+        }
+    }
+    return reasons;
+}
+
+void CMonitor::recheckSolitary() {
+    m_solitaryClient.reset(); // reset it, if we find one it will be set.
+    if (isSolitaryBlocked())
+        return;
+
+    m_solitaryClient = m_activeWorkspace->getFullscreenWindow();
 }
 
 uint16_t CMonitor::isDSBlocked(bool full) {

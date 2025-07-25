@@ -60,11 +60,6 @@ void CANRManager::onTick() {
     static auto PENABLEANR    = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
     static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
 
-    if (!*PENABLEANR) {
-        m_timer->updateTimeout(TIMER_TIMEOUT * 10);
-        return;
-    }
-
     for (auto& data : m_data) {
         PHLWINDOW firstWindow;
         int       count = 0;
@@ -88,16 +83,18 @@ void CANRManager::onTick() {
                 if (data->missedResponses == *PANRTHRESHOLD)
                     g_pEventManager->postEvent(SHyprIPCEvent{.event = "applicationnotresponding", .data = std::to_string(data->getPid())});
 
-                data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
+                if (*PENABLEANR) {
+                    data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
 
-                for (const auto& w : g_pCompositor->m_windows) {
-                    if (!w->m_isMapped)
-                        continue;
+                    for (const auto& w : g_pCompositor->m_windows) {
+                        if (!w->m_isMapped)
+                            continue;
 
-                    if (!data->fitsWindow(w))
-                        continue;
+                        if (!data->fitsWindow(w))
+                            continue;
 
-                    *w->m_notRespondingTint = 0.2F;
+                        *w->m_notRespondingTint = 0.2F;
+                    }
                 }
             }
         } else if (data->isRunning())

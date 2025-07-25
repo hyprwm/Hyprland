@@ -519,10 +519,8 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
 
     static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
 
-    if (m_scrollTimer.getMillis() < *PDELAY) {
-        m_scrollTimer.reset();
+    if (m_scrollTimer.getMillis() < *PDELAY)
         return true; // timer hasn't passed yet!
-    }
 
     m_scrollTimer.reset();
 

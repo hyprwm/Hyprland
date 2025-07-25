@@ -111,7 +111,7 @@ void CFocusGrab::refocusKeyboard() {
 
 void CFocusGrab::commit(bool removeOnly) {
     auto surfacesChanged = false;
-    auto anyCommitted     = false;
+    auto anyCommitted    = false;
     for (auto iter = m_surfaces.begin(); iter != m_surfaces.end();) {
         switch (iter->second->m_state) {
             case CFocusGrabSurfaceState::PendingRemoval:
@@ -124,7 +124,7 @@ void CFocusGrab::commit(bool removeOnly) {
                     iter->second->m_state = CFocusGrabSurfaceState::Committed;
                     m_grab->add(iter->first.lock());
                     surfacesChanged = true;
-                    anyCommitted     = true;
+                    anyCommitted    = true;
                 }
                 break;
             case CFocusGrabSurfaceState::Committed: anyCommitted = true; break;

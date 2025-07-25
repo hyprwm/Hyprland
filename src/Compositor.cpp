@@ -1722,6 +1722,14 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
             lowest = w->m_id;
     }
 
+    // Give priority to persistent workspaces to avoid any conflicts between them.
+    for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
+        if (!rule.isPersistent)
+            continue;
+        if (rule.workspaceId < -1 && rule.workspaceId < lowest)
+            lowest = rule.workspaceId;
+    }
+
     return lowest - 1;
 }
 

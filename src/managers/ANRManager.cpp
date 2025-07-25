@@ -8,6 +8,8 @@
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "./EventManager.hpp"
+#include <string>
 
 using namespace Hyprutils::OS;
 
@@ -83,6 +85,9 @@ void CANRManager::onTick() {
 
         if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isRunning() && !data->dialogSaidWait) {
+                if (data->missedResponses == *PANRTHRESHOLD)
+                    g_pEventManager->postEvent(SHyprIPCEvent{.event = "applicationnotresponding", .data = std::to_string(data->getPid())});
+
                 data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
 
                 for (const auto& w : g_pCompositor->m_windows) {

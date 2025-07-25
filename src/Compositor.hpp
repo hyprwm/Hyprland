@@ -148,6 +148,7 @@ class CCompositor {
     void                   moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW              getForceFocus();
     void                   arrangeMonitors();
+    void                   recheckFloatingWindowsOnScreen();
     void                   enterUnsafeState();
     void                   leaveUnsafeState();
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);

@@ -127,7 +127,7 @@ void main() {
     pixCoord -= fullSize * 0.5 - radius;
     pixCoordOuter -= fullSize * 0.5 - radiusOuter;
 
-    // center the pixes dont make it top-left
+    // center the pixes don't make it top-left
     pixCoord += vec2(1.0, 1.0) / fullSize;
     pixCoordOuter += vec2(1.0, 1.0) / fullSize;
 

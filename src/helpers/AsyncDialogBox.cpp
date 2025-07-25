@@ -71,7 +71,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
             m_stdout += std::string_view{(char*)buf.data(), (size_t)ret};
         }
 
-        // restore the flags (otherwise libwayland wont give us a hangup)
+        // restore the flags (otherwise libwayland won't give us a hangup)
         if (fcntl(fd, F_SETFL, fdFlags) < 0) {
             Debug::log(ERR, "CAsyncDialogBox::onWrite: fcntl 2 failed!");
             return;

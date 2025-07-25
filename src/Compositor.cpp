@@ -1234,7 +1234,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         return;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
-        Debug::log(LOG, "surface {:x} won't receive kb focus becuase grab rejected it", (uintptr_t)pSurface.get());
+        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", (uintptr_t)pSurface.get());
         return;
     }
 
@@ -2869,7 +2869,7 @@ void CCompositor::arrangeMonitors() {
         maxYOffsetUp    = 0;
         maxYOffsetDown  = 0;
 
-        // Finds the max and min values of explicitely placed monitors.
+        // Finds the max and min values of explicitly placed monitors.
         for (auto const& m : arranged) {
             maxXOffsetRight = std::max<double>(m->m_position.x + m->m_size.x, maxXOffsetRight);
             maxXOffsetLeft  = std::min<double>(m->m_position.x, maxXOffsetLeft);
@@ -3039,7 +3039,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
         }
     }
 
-    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
+    // modechange happened check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
     if (g_pCompositor->getMonitorFromCursor() == monitor) {
         g_pCompositor->warpCursorTo(POS, true);
         g_pInputManager->refocus();

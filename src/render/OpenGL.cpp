@@ -855,7 +855,7 @@ void CHyprOpenGLImpl::end() {
 
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,
-    // but I havent seen a single plugin yet use these, so it's better to drop a bit of vram.
+    // but I haven't seen a single plugin yet use these, so it's better to drop a bit of vram.
     if (m_renderData.pCurrentMonData->offMainFB.isAllocated())
         m_renderData.pCurrentMonData->offMainFB.release();
 

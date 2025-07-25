@@ -194,7 +194,7 @@ wl_client* CXXColorManagementOutput::client() {
 }
 
 CXXColorManagementSurface::CXXColorManagementSurface(SP<CWLSurfaceResource> surface_) : m_surface(surface_) {
-    // only for frog cm untill wayland cm is adopted
+    // only for frog cm until wayland cm is adopted
 }
 
 CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) : m_surface(surface_), m_resource(resource_) {
@@ -600,7 +600,7 @@ CXXColorManagementImageDescriptionInfo::CXXColorManagementImageDescriptionInfo(S
     m_resource->sendTfNamed(m_settings.transferFunction);
     m_resource->sendLuminances(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max, m_settings.luminances.reference);
 
-    // send expexted display paramateres
+    // send expected display paramateres
     m_resource->sendTargetPrimaries(toProto(m_settings.masteringPrimaries.red.x), toProto(m_settings.masteringPrimaries.red.y), toProto(m_settings.masteringPrimaries.green.x),
                                     toProto(m_settings.masteringPrimaries.green.y), toProto(m_settings.masteringPrimaries.blue.x), toProto(m_settings.masteringPrimaries.blue.y),
                                     toProto(m_settings.masteringPrimaries.white.x), toProto(m_settings.masteringPrimaries.white.y));

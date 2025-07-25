@@ -87,7 +87,7 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
 
     xcb_flush(g_pXWayland->m_wm->getConnection());
 
-    //TODO: make CFileDescriptor setflags take SETFL aswell
+    //TODO: make CFileDescriptor setflags take SETFL as well
     fcntl(fd.get(), F_SETFL, O_WRONLY | O_NONBLOCK);
     transfer->wlFD = std::move(fd);
     m_selection.transfers.emplace_back(std::move(transfer));

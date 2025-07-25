@@ -32,14 +32,14 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     // insert formats into vec if they got inserted into set, meaning they're unique
     size_t i = 0;
 
-    m_rendererTranche.indicies.clear();
+    m_rendererTranche.indices.clear();
     for (auto const& fmt : m_rendererTranche.formats) {
         for (auto const& mod : fmt.modifiers) {
             auto format        = std::make_pair<>(fmt.drmFormat, mod);
             auto [_, inserted] = formats.insert(format);
             if (inserted) {
                 // if it was inserted into set, then its unique and will have a new index in vec
-                m_rendererTranche.indicies.push_back(i++);
+                m_rendererTranche.indices.push_back(i++);
                 formatsVec.push_back(SDMABUFFormatTableEntry{
                     .fmt      = fmt.drmFormat,
                     .modifier = mod,
@@ -47,29 +47,29 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
             } else {
                 // if it wasn't inserted then find its index in vec
                 auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
-                m_rendererTranche.indicies.push_back(it - formatsVec.begin());
+                m_rendererTranche.indices.push_back(it - formatsVec.begin());
             }
         }
     }
 
     for (auto& [monitor, tranche] : m_monitorTranches) {
-        tranche.indicies.clear();
+        tranche.indices.clear();
         for (auto const& fmt : tranche.formats) {
             for (auto const& mod : fmt.modifiers) {
-                // apparently these can implode on planes, so dont use them
+                // apparently these can implode on planes, so don't use them
                 if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                     continue;
                 auto format        = std::make_pair<>(fmt.drmFormat, mod);
                 auto [_, inserted] = formats.insert(format);
                 if (inserted) {
-                    tranche.indicies.push_back(i++);
+                    tranche.indices.push_back(i++);
                     formatsVec.push_back(SDMABUFFormatTableEntry{
                         .fmt      = fmt.drmFormat,
                         .modifier = mod,
                     });
                 } else {
                     auto it = std::ranges::find_if(formatsVec, [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
-                    tranche.indicies.push_back(it - formatsVec.begin());
+                    tranche.indices.push_back(it - formatsVec.begin());
                 }
             }
         }
@@ -318,8 +318,8 @@ void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
     m_resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)tranche.flags);
 
     wl_array indices = {
-        .size = tranche.indicies.size() * sizeof(tranche.indicies.at(0)),
-        .data = tranche.indicies.data(),
+        .size = tranche.indices.size() * sizeof(tranche.indices.at(0)),
+        .data = tranche.indices.data(),
     };
     m_resource->sendTrancheFormats(&indices);
     m_resource->sendTrancheDone();
@@ -421,7 +421,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         SDMABUFTranche eglTranche = {
             .device  = m_mainDevice,
-            .flags   = 0, // renderer isnt for ds so dont set flag.
+            .flags   = 0, // renderer isn't for ds so don't set flag.
             .formats = g_pHyprOpenGL->getDRMFormats(),
         };
 

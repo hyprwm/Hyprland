@@ -12,7 +12,7 @@ vec4 rounding(vec4 color) {
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
-    pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
+    pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix don't make it top-left
 
     if (pixCoord.x + pixCoord.y > radius) {
         float dist = pow(pow(pixCoord.x, roundingPower) + pow(pixCoord.y, roundingPower), 1.0/roundingPower);

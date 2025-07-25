@@ -106,7 +106,7 @@ class CKeybindManager {
 
     std::vector<SP<SKeybind>>                                                    m_keybinds;
 
-    //since we cant find keycode through keyname in xkb:
+    //since we can't find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
     //and cache it in this map to make sendshortcut calls faster
     //we also store the keyboard pointer (in the string) to differentiate between different keyboard (layouts)

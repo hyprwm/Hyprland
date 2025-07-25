@@ -217,7 +217,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "special:HELLO");
     }
 
-    // no OK: will err (it shouldnt prolly but oh well)
+    // no OK: will err (it shouldn't prolly but oh well)
     getFromSocket("/dispatch workspace 3");
 
     {

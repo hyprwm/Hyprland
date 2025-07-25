@@ -104,7 +104,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         if (!PMONITOR)
             return;
 
-        // dont damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
+        // don't damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
         if (PWORKSPACE->m_isSpecialWorkspace)
             g_pHyprRenderer->damageMonitor(PMONITOR);
 

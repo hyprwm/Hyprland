@@ -30,6 +30,7 @@ class CVirtualKeyboardV1Resource {
     SP<CZwpVirtualKeyboardV1> m_resource;
 
     void                      releasePressed();
+    void                      destroy();
 
     bool                      m_hasKeymap = false;
 

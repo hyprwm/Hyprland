@@ -473,6 +473,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:vrr", Hyprlang::INT{0});
     registerConfigVar("misc:mouse_move_enables_dpms", Hyprlang::INT{0});
     registerConfigVar("misc:key_press_enables_dpms", Hyprlang::INT{0});
+    registerConfigVar("misc:name_vk_after_proc", Hyprlang::INT{1});
     registerConfigVar("misc:always_follow_on_dnd", Hyprlang::INT{1});
     registerConfigVar("misc:layers_hog_keyboard_focus", Hyprlang::INT{1});
     registerConfigVar("misc:animate_manual_resizes", Hyprlang::INT{0});
@@ -662,6 +663,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
+    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{0});
+    registerConfigVar("input:virtualkeyboard:release_pressed_on_close", Hyprlang::INT{0});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
     registerConfigVar("input:tablet:output", {STRVAL_EMPTY});
     registerConfigVar("input:tablet:region_position", Hyprlang::VEC2{0, 0});
@@ -797,6 +800,8 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
     m_config->addSpecialConfigValue("device", "drag_3fg", Hyprlang::INT{0});                 // only for touchpads
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
+    m_config->addSpecialConfigValue("device", "share_states", Hyprlang::INT{0});             // only for virtualkeyboards
+    m_config->addSpecialConfigValue("device", "release_pressed_on_close", Hyprlang::INT{0}); // only for virtualkeyboards
 
     m_config->addSpecialCategory("monitorv2", {.key = "output"});
     m_config->addSpecialConfigValue("monitorv2", "disabled", Hyprlang::INT{0});

@@ -185,7 +185,7 @@ class CInputManager {
     CInputMethodRelay m_relay;
 
     // for shared mods
-    uint32_t accumulateModsFromAllKBs();
+    uint32_t getModsFromAllKBs();
 
     // for virtual keyboards: whether we should respect them as normal ones
     bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
@@ -194,7 +194,6 @@ class CInputManager {
     void        setCursorImageUntilUnset(std::string);
     void        unsetCursorImage();
 
-    std::string deviceNameToInternalString(std::string);
     std::string getNameForNewDevice(std::string);
 
     void        releaseAllMouseButtons();
@@ -304,6 +303,11 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
+
+    bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);
+    uint32_t              shareModsFromAllKBs(uint32_t depressed);
+    std::vector<uint32_t> m_pressed;
+    uint32_t              m_lastMods = 0;
 
     friend class CKeybindManager;
     friend class CWLSurface;

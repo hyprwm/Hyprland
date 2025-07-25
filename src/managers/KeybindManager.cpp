@@ -457,7 +457,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (handleInternalKeybinds(internalKeysym))
         return false;
 
-    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+    const auto MODS = g_pInputManager->getModsFromAllKBs();
 
     m_timeLastMs    = e.timeMs;
     m_lastCode      = KEYCODE;
@@ -515,7 +515,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 }
 
 bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
-    const auto  MODS = g_pInputManager->accumulateModsFromAllKBs();
+    const auto  MODS = g_pInputManager->getModsFromAllKBs();
 
     static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
 
@@ -548,7 +548,7 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
 }
 
 bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
-    const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
+    const auto MODS = g_pInputManager->getModsFromAllKBs();
 
     bool       suppressEvent = false;
 
@@ -2456,7 +2456,7 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
             g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
     }
 
-    g_pSeatManager->sendKeyboardMods(g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0);
+    g_pSeatManager->sendKeyboardMods(g_pInputManager->getModsFromAllKBs(), 0, 0, 0);
 
     if (g_pKeybindManager->m_passPressed == 1) {
         if (g_pKeybindManager->m_lastCode != 0)

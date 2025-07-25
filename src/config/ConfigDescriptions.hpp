@@ -677,6 +677,23 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
+     * input:virtualkeyboard:
+     */
+
+    SConfigOptionDescription{
+        .value       = "input:virtualkeyboard:share_states",
+        .description = "Unify key down states and modifier states with other keyboards",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:virtualkeyboard:release_pressed_on_close",
+        .description = "Release all pressed keys by virtual keyboard on close.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+
+    /*
      * input:tablet:
      */
 
@@ -1149,6 +1166,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "If DPMS is set to off, wake up the monitors if a key is pressed.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:name_vk_after_proc",
+        .description = "Name virtual keyboards after the processes that create them. E.g. /usr/bin/fcitx5 will have hl-virtual-keyboard-fcitx5.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
         .value       = "misc:always_follow_on_dnd",

@@ -81,7 +81,7 @@ void CANRManager::onTick() {
         if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isRunning() && !data->dialogSaidWait) {
                 if (data->missedResponses == *PANRTHRESHOLD)
-                    g_pEventManager->postEvent(SHyprIPCEvent{.event = "applicationnotresponding", .data = std::to_string(data->getPid())});
+                    g_pEventManager->postEvent(SHyprIPCEvent{.event = "anr", .data = std::to_string(data->getPid())});
 
                 if (*PENABLEANR) {
                     data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());

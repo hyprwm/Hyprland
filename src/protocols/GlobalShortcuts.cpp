@@ -40,9 +40,9 @@ CGlobalShortcutsProtocol::CGlobalShortcutsProtocol(const wl_interface* iface, co
 }
 
 void CGlobalShortcutsProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESROUCE = m_clients.emplace_back(makeShared<CShortcutClient>(makeShared<CHyprlandGlobalShortcutsManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_clients.emplace_back(makeShared<CShortcutClient>(makeShared<CHyprlandGlobalShortcutsManagerV1>(client, ver, id)));
 
-    if UNLIKELY (!RESROUCE->good()) {
+    if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
         m_clients.pop_back();
         return;

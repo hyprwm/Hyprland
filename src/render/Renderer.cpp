@@ -2414,7 +2414,7 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
-    // this is temporary, doesnt mess with the actual damage
+    // this is temporary, doesn't mess with the actual damage
     CRegion      fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
 
     PHLWINDOWREF ref{pWindow};
@@ -2447,7 +2447,7 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
-    // this is temporary, doesnt mess with the actual damage
+    // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
 
     makeEGLCurrent();

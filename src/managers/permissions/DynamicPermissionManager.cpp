@@ -193,7 +193,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    // if we are here, we need to ask, that's the fallback for all these (keyboards wont come here)
+    // if we are here, we need to ask, that's the fallback for all these (keyboards won't come here)
     askForPermission(client, LOOKUP.value_or(""), permission);
 
     return PERMISSION_RULE_ALLOW_MODE_PENDING;

@@ -100,7 +100,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
                     return;
 
                 if (g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
-                    // Because the session is inactive, there is a good reason for why the client did't recieve locked or denied.
+                    // Because the session is inactive, there is a good reason for why the client did't receive locked or denied.
                     // We send locked, although this could lead to imperfect frames when we start to render again.
                     g_pSessionLockManager->m_sessionLock->lock->sendLocked();
                     g_pSessionLockManager->m_sessionLock->hasSentLocked = true;

@@ -35,12 +35,12 @@ bool CFocusGrab::good() {
     return m_resource->resource();
 }
 
-bool CFocusGrab::isSurfaceComitted(SP<CWLSurfaceResource> surface) {
+bool CFocusGrab::isSurfaceCommitted(SP<CWLSurfaceResource> surface) {
     auto iter = std::ranges::find_if(m_surfaces, [surface](const auto& o) { return o.first == surface; });
     if (iter == m_surfaces.end())
         return false;
 
-    return iter->second->m_state == CFocusGrabSurfaceState::Comitted;
+    return iter->second->m_state == CFocusGrabSurfaceState::Committed;
 }
 
 void CFocusGrab::start() {
@@ -49,7 +49,7 @@ void CFocusGrab::start() {
         g_pSeatManager->setGrab(m_grab);
     }
 
-    // Ensure new surfaces are focused if under the mouse when comitted.
+    // Ensure new surfaces are focused if under the mouse when committed.
     g_pInputManager->simulateMouseMovement();
     refocusKeyboard();
 }
@@ -92,12 +92,12 @@ void CFocusGrab::eraseSurface(SP<CWLSurfaceResource> surface) {
 
 void CFocusGrab::refocusKeyboard() {
     auto keyboardSurface = g_pSeatManager->m_state.keyboardFocus;
-    if (keyboardSurface && isSurfaceComitted(keyboardSurface.lock()))
+    if (keyboardSurface && isSurfaceCommitted(keyboardSurface.lock()))
         return;
 
     SP<CWLSurfaceResource> surface = nullptr;
     for (auto const& [surf, state] : m_surfaces) {
-        if (state->m_state == CFocusGrabSurfaceState::Comitted) {
+        if (state->m_state == CFocusGrabSurfaceState::Committed) {
             surface = surf.lock();
             break;
         }
@@ -111,7 +111,7 @@ void CFocusGrab::refocusKeyboard() {
 
 void CFocusGrab::commit(bool removeOnly) {
     auto surfacesChanged = false;
-    auto anyComitted     = false;
+    auto anyCommitted    = false;
     for (auto iter = m_surfaces.begin(); iter != m_surfaces.end();) {
         switch (iter->second->m_state) {
             case CFocusGrabSurfaceState::PendingRemoval:
@@ -121,20 +121,20 @@ void CFocusGrab::commit(bool removeOnly) {
                 continue;
             case CFocusGrabSurfaceState::PendingAddition:
                 if (!removeOnly) {
-                    iter->second->m_state = CFocusGrabSurfaceState::Comitted;
+                    iter->second->m_state = CFocusGrabSurfaceState::Committed;
                     m_grab->add(iter->first.lock());
                     surfacesChanged = true;
-                    anyComitted     = true;
+                    anyCommitted    = true;
                 }
                 break;
-            case CFocusGrabSurfaceState::Comitted: anyComitted = true; break;
+            case CFocusGrabSurfaceState::Committed: anyCommitted = true; break;
         }
 
         iter++;
     }
 
     if (surfacesChanged) {
-        if (anyComitted)
+        if (anyCommitted)
             start();
         else
             finish(true);

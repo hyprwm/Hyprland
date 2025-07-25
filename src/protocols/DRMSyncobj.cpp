@@ -32,7 +32,7 @@ bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
     return m_timeline->addWaiter(waiter, m_point, 0u);
 }
 
-bool CDRMSyncPointState::comitted() {
+bool CDRMSyncPointState::committed() {
     return m_acquireCommitted;
 }
 

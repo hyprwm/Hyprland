@@ -36,7 +36,7 @@ jobs:
           cp build/Hyprland hyprland/
           cp -r example/ hyprland/
           cp -r assets/ hyprland/
-          tar -cvf Hyprland.tar.xz hyprland
+          tar -cvJf Hyprland.tar.xz hyprland
 
       - name: Release
         uses: actions/upload-artifact@v4

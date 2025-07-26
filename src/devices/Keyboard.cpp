@@ -29,13 +29,16 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : m_keyboard(keeb) {
     });
 
     m_listeners.key = keeb->events.key.listen([this](const Aquamarine::IKeyboard::SKeyEvent& event) {
+        const auto UPDATED = updatePressed(event.key, event.pressed);
+
         m_keyboardEvents.key.emit(SKeyEvent{
             .timeMs  = event.timeMs,
             .keycode = event.key,
             .state   = event.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         });
 
-        updateXkbStateWithKey(event.key + 8, event.pressed);
+        if (UPDATED)
+            updateXkbStateWithKey(event.key + 8, event.pressed);
     });
 
     m_listeners.modifiers = keeb->events.modifiers.listen([this] {

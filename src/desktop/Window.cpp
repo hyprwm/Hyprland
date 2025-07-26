@@ -18,6 +18,7 @@
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/Subcompositor.hpp"
 #include "../protocols/ContentType.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../xwayland/XWayland.hpp"
@@ -1175,7 +1176,8 @@ bool CWindow::opaque() {
     if (m_isX11 && m_xwaylandSurface && m_xwaylandSurface->m_surface && m_xwaylandSurface->m_surface->m_current.texture)
         return m_xwaylandSurface->m_surface->m_current.texture->m_opaque;
 
-    if (!m_wlSurface->resource() || !m_wlSurface->resource()->m_current.texture)
+    auto solitaryResource = getSolitaryResource();
+    if (!solitaryResource || !solitaryResource->m_current.texture)
         return false;
 
     // TODO: this is wrong
@@ -1183,7 +1185,7 @@ bool CWindow::opaque() {
     if (EXTENTS.w >= m_xdgSurface->m_surface->m_current.bufferSize.x && EXTENTS.h >= m_xdgSurface->m_surface->m_current.bufferSize.y)
         return true;
 
-    return m_wlSurface->resource()->m_current.texture->m_opaque;
+    return solitaryResource->m_current.texture->m_opaque;
 }
 
 float CWindow::rounding() {
@@ -1862,4 +1864,25 @@ PHLWINDOW CWindow::parent() {
 
 bool CWindow::priorityFocus() {
     return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
+}
+
+SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
+    if (!m_wlSurface || !m_wlSurface->resource())
+        return nullptr;
+    auto res = m_wlSurface->resource();
+    if (m_isX11)
+        return res;
+    if (popupsCount())
+        return nullptr;
+    if (res->m_subsurfaces.size() == 0)
+        return res;
+    if (res->m_subsurfaces.size() == 1) {
+        if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
+            return nullptr;
+        auto surf = res->m_subsurfaces[0]->m_surface.lock();
+        if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
+            return nullptr;
+        return surf;
+    }
+    return nullptr;
 }

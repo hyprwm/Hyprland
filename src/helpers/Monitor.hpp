@@ -249,6 +249,17 @@ class CMonitor {
         SC_SURFACES     = (1 << 15),
     };
 
+    enum eTearingCheck : uint8_t {
+        TC_OK        = 0,
+        TC_UNKNOWN   = (1 << 0),
+        TC_NOT_TORN  = (1 << 1),
+        TC_USER      = (1 << 2),
+        TC_ZOOM      = (1 << 3),
+        TC_SUPPORT   = (1 << 4),
+        TC_CANDIDATE = (1 << 5),
+        TC_WINDOW    = (1 << 6),
+    };
+
     // methods
     void                                onConnect(bool noRule);
     void                                onDisconnect(bool destroy = false);
@@ -275,6 +286,8 @@ class CMonitor {
     void                                scheduleDone();
     uint16_t                            isSolitaryBlocked(bool full = false);
     void                                recheckSolitary();
+    uint8_t                             isTearingBlocked(bool full = false);
+    bool                                updateTearing();
     uint16_t                            isDSBlocked(bool full = false);
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);

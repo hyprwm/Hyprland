@@ -1615,6 +1615,53 @@ void CMonitor::recheckSolitary() {
     m_solitaryClient = m_activeWorkspace->getFullscreenWindow();
 }
 
+uint8_t CMonitor::isTearingBlocked(bool full) {
+    uint8_t     reasons = 0;
+
+    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+
+    if (!m_tearingState.nextRenderTorn) {
+        reasons |= TC_NOT_TORN;
+        if (!full)
+            return reasons;
+    }
+    if (!*PTEARINGENABLED) {
+        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+        reasons |= TC_USER;
+        if (!full)
+            return reasons;
+    }
+    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+        reasons |= TC_ZOOM;
+        if (!full)
+            return reasons;
+    }
+    if (!m_tearingState.canTear) {
+        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+        reasons |= TC_SUPPORT;
+        if (!full)
+            return reasons;
+    }
+    if (m_solitaryClient.expired()) {
+        reasons |= TC_CANDIDATE;
+        if (!full)
+            return reasons;
+    } else if (!m_solitaryClient->canBeTorn()) {
+        reasons |= TC_WINDOW;
+        if (!full)
+            return reasons;
+    }
+
+    return reasons;
+}
+
+bool CMonitor::updateTearing() {
+    m_tearingState.activelyTearing = !isTearingBlocked();
+    m_tearingState.nextRenderTorn  = false;
+    return m_tearingState.activelyTearing;
+}
+
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");

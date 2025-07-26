@@ -35,6 +35,7 @@ class CHyprCtl {
     static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
     static std::string getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
     static std::string getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+    static std::string getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
     static std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
 
   private:

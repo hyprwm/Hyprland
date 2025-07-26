@@ -470,9 +470,14 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
 
         const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
 
-        int        force = -1;
+        if (!PMONITOR) { // can rarely happen on exit
+            m_alpha->setValueAndWarp(in ? 1.F : 0.F);
+            return;
+        }
 
-        CVarList   args(ANIMSTYLE, 0, 's');
+        int      force = -1;
+
+        CVarList args(ANIMSTYLE, 0, 's');
         if (args.size() > 1) {
             const auto ARG2 = args[1];
             if (ARG2 == "top")

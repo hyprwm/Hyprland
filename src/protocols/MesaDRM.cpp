@@ -113,28 +113,26 @@ bool CMesaDRMResource::good() {
 
 CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     drmDevice* dev   = nullptr;
-    int        drmFD = g_pCompositor->m_drmFD;
+    int        drmFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
+
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
-        LOGM(ERR, "Failed to get device, disabling MesaDRM");
+        LOGM(ERR, "Failed to get device from fd {}, disabling MesaDRM", drmFD);
         removeGlobal();
         return;
     }
 
-    if (dev->available_nodes & (1 << DRM_NODE_RENDER)) {
+    if (dev->available_nodes & (1 << DRM_NODE_RENDER) && dev->nodes[DRM_NODE_RENDER]) {
         m_nodeName = dev->nodes[DRM_NODE_RENDER];
-    } else {
-        ASSERT(dev->available_nodes & (1 << DRM_NODE_PRIMARY));
-
-        if (!dev->nodes[DRM_NODE_PRIMARY]) {
-            LOGM(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
-            drmFreeDevice(&dev);
-            removeGlobal();
-            return;
-        }
-
+    } else if (dev->available_nodes & (1 << DRM_NODE_PRIMARY) && dev->nodes[DRM_NODE_PRIMARY]) {
         LOGM(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
         m_nodeName = dev->nodes[DRM_NODE_PRIMARY];
+    } else {
+        LOGM(ERR, "No usable DRM node (render or primary) found, disabling MesaDRM");
+        drmFreeDevice(&dev);
+        removeGlobal();
+        return;
     }
+
     drmFreeDevice(&dev);
 }
 

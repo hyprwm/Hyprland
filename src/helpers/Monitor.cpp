@@ -1550,13 +1550,7 @@ uint16_t CMonitor::isSolitaryBlocked(bool full) {
             }
 
             // check if it did not open any subsurfaces or shit
-            int surfaceCount = 0;
-            if (PCANDIDATE->m_isX11)
-                surfaceCount = 1;
-            else
-                surfaceCount = PCANDIDATE->popupsCount() + PCANDIDATE->surfacesCount();
-
-            if (surfaceCount > 1) {
+            if (!PCANDIDATE->getSolitaryResource()) {
                 reasons |= SC_SURFACES;
                 if (!full)
                     return reasons;
@@ -1622,7 +1616,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         if (!full)
             return reasons;
     } else {
-        const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+        const auto PSURFACE = PCANDIDATE->getSolitaryResource();
         if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
             reasons |= DS_BLOCK_SURFACE;
             if (!full)
@@ -1654,7 +1648,7 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     const auto PCANDIDATE = m_solitaryClient.lock();
-    const auto PSURFACE   = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     const auto params     = PSURFACE->m_current.buffer->dmabuf();
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());
@@ -1666,7 +1660,7 @@ bool CMonitor::attemptDirectScanout() {
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
-                Debug::log(TRACE, "attemptDirectScanout: failed basic test");
+                Debug::log(TRACE, "attemptDirectScanout: failed basic test on cursor update");
                 return false;
             }
 

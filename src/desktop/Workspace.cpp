@@ -44,7 +44,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     m_inert = false;
 
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
-    m_persistent             = WORKSPACERULE.isPersistent;
+    setPersistent(WORKSPACERULE.isPersistent);
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
@@ -639,7 +639,7 @@ void CWorkspace::rename(const std::string& name) {
     m_name = name;
 
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
-    m_persistent             = WORKSPACERULE.isPersistent;
+    setPersistent(WORKSPACERULE.isPersistent);
 
     if (WORKSPACERULE.isPersistent)
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
@@ -657,4 +657,20 @@ void CWorkspace::updateWindows() {
 
         w->updateDynamicRules();
     }
+}
+
+void CWorkspace::setPersistent(bool persistent) {
+    if (m_persistent == persistent)
+        return;
+
+    m_persistent = persistent;
+
+    if (persistent)
+        m_selfPersistent = m_self.lock();
+    else
+        m_selfPersistent.reset();
+}
+
+bool CWorkspace::isPersistent() {
+    return m_persistent;
 }

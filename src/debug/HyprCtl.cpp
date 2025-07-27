@@ -353,12 +353,12 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
         if (reasons & CMonitor::DS_BLOCK_USER) {
             if (reasonStr != "")
                 reasonStr += ",";
-            reasonStr += "";
+            reasonStr += "user settings";
         }
         if (reasons & CMonitor::DS_BLOCK_WINDOWED) {
             if (reasonStr != "")
                 reasonStr += ",";
-            reasonStr += "user settings";
+            reasonStr += "windowed mode";
         }
         if (reasons & CMonitor::DS_BLOCK_CONTENT) {
             if (reasonStr != "")

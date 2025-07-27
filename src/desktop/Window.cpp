@@ -1869,13 +1869,17 @@ bool CWindow::priorityFocus() {
 SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     if (!m_wlSurface || !m_wlSurface->resource())
         return nullptr;
+
     auto res = m_wlSurface->resource();
     if (m_isX11)
         return res;
+
     if (popupsCount())
         return nullptr;
+
     if (res->m_subsurfaces.size() == 0)
         return res;
+
     if (res->m_subsurfaces.size() == 1) {
         if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
             return nullptr;
@@ -1884,5 +1888,6 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
             return nullptr;
         return surf;
     }
+
     return nullptr;
 }

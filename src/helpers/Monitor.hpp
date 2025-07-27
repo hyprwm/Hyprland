@@ -212,8 +212,10 @@ class CMonitor {
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
 
+    // keep in sync with HyprCtl
     enum eDSBlockReason : uint16_t {
-        DS_OK              = 0,
+        DS_OK = 0,
+
         DS_BLOCK_UNKNOWN   = (1 << 0),
         DS_BLOCK_USER      = (1 << 1),
         DS_BLOCK_WINDOWED  = (1 << 2),
@@ -227,10 +229,14 @@ class CMonitor {
         DS_BLOCK_DMA       = (1 << 10),
         DS_BLOCK_TEARING   = (1 << 11),
         DS_BLOCK_FAILED    = (1 << 12),
+
+        DS_CHECKS_COUNT = 13,
     };
 
+    // keep in sync with HyprCtl
     enum eSolitaryCheck : uint16_t {
-        SC_OK           = 0,
+        SC_OK = 0,
+
         SC_UNKNOWN      = (1 << 0),
         SC_NOTIFICATION = (1 << 1),
         SC_LOCK         = (1 << 2),
@@ -247,10 +253,14 @@ class CMonitor {
         SC_FLOAT        = (1 << 13),
         SC_WORKSPACES   = (1 << 14),
         SC_SURFACES     = (1 << 15),
+
+        SC_CHECKS_COUNT = 16,
     };
 
+    // keep in sync with HyprCtl
     enum eTearingCheck : uint8_t {
-        TC_OK        = 0,
+        TC_OK = 0,
+
         TC_UNKNOWN   = (1 << 0),
         TC_NOT_TORN  = (1 << 1),
         TC_USER      = (1 << 2),
@@ -258,6 +268,8 @@ class CMonitor {
         TC_SUPPORT   = (1 << 4),
         TC_CANDIDATE = (1 << 5),
         TC_WINDOW    = (1 << 6),
+
+        TC_CHECKS_COUNT = 7,
     };
 
     // methods

@@ -3173,7 +3173,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
 
     if (!pWorkspace) {
         // check non-persistent and downgrade if workspace is no longer persistent
-        for (auto& w : g_pCompositor->getWorkspaces()) {
+        for (auto& w : getWorkspaces()) {
             if (!w->isPersistent())
                 continue;
 

@@ -1321,7 +1321,7 @@ void CWindow::onFocusAnimUpdate() {
 }
 
 int CWindow::popupsCount() {
-    if (m_isX11)
+    if (m_isX11 || !m_popupHead)
         return 0;
 
     int no = -1;

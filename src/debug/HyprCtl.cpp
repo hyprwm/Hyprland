@@ -1183,6 +1183,9 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         }
     }
 
+    if (COMMAND.contains("workspace"))
+        g_pConfigManager->ensurePersistentWorkspacesPresent();
+
     Debug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
     if (retval.empty())

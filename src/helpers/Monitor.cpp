@@ -1625,24 +1625,28 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         if (!full)
             return reasons;
     }
+
     if (!*PTEARINGENABLED) {
         Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
         reasons |= TC_USER;
         if (!full)
             return reasons;
     }
+
     if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
         Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
         reasons |= TC_ZOOM;
         if (!full)
             return reasons;
     }
+
     if (!m_tearingState.canTear) {
         Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         reasons |= TC_SUPPORT;
         if (!full)
             return reasons;
     }
+
     if (m_solitaryClient.expired()) {
         reasons |= TC_CANDIDATE;
         if (!full)
@@ -1665,33 +1669,39 @@ bool CMonitor::updateTearing() {
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
         if (!full)
             return reasons;
     }
+
     if (*PDIRECTSCANOUT == 2) {
         if (!m_activeWorkspace || !m_activeWorkspace->m_hasFullscreenWindow || m_activeWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
         }
+
         if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
             reasons |= DS_BLOCK_CONTENT;
             if (!full)
                 return reasons;
         }
+
         if (m_tearingState.activelyTearing) {
             reasons |= DS_BLOCK_TEARING;
             if (!full)
                 return reasons;
         }
     }
+
     if (!m_mirrors.empty() || isMirror()) {
         reasons |= DS_BLOCK_MIRROR;
         if (!full)
             return reasons;
     }
+
     if (g_pHyprRenderer->m_directScanoutBlocked) {
         reasons |= DS_BLOCK_RECORD;
         if (!full)
@@ -1731,6 +1741,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             }
         }
     }
+
     return reasons;
 }
 

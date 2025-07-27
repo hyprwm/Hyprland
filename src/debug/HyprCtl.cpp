@@ -416,7 +416,7 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
 
 std::string CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
-    if (!reasons)
+    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
     std::string reasonStr = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {

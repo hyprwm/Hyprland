@@ -1261,6 +1261,9 @@ void CWindow::setSuspended(bool suspend) {
 bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
     CBox wbox = {m_realPosition->value(), m_realSize->value()};
 
+    if (m_isFloating)
+        wbox = getFullWindowBoundingBox();
+
     return !wbox.intersection({pMonitor->m_position, pMonitor->m_size}).empty();
 }
 

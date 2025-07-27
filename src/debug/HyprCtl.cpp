@@ -110,390 +110,89 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
+const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
+    "\"UNKNOWN\"", "\"NOTIFICATION\"", "\"LOCK\"",   "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",   "\"SPECIAL\"",    "\"ALPHA\"",
+    "\"OFFSET\"",  "\"CANDIDATE\"",    "\"OPAQUE\"", "\"TRANSFORM\"", "\"OVERLAYS\"", "\"FLOAT\"", "\"WORKSPACES\"", "\"SURFACES\"",
+};
+
+const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
+    "unknown reason",   "notification",      "session lock", "invalid workspace",       "windowed mode",  "dnd active",       "special workspace", "alpha channel",
+    "workspace offset", "missing candidate", "not opaque",   "surface transformations", "other overlays", "floating windows", "other workspaces",  "subsurfaces",
+};
+
 std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isSolitaryBlocked(true);
     if (!reasons)
         return "null";
+
     std::string reasonStr = "";
-    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        if (reasons & CMonitor::SC_UNKNOWN) {
+    const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
+
+    for (int i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+        if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
-            reasonStr += "\"UNKNOWN\"";
+            reasonStr += TEXTS[i];
         }
-        if (reasons & CMonitor::SC_NOTIFICATION) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"NOTIFICATION\"";
-        }
-        if (reasons & CMonitor::SC_LOCK) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"LOCK\"";
-        }
-        if (reasons & CMonitor::SC_WORKSPACE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"WORKSPACE\"";
-        }
-        if (reasons & CMonitor::SC_WINDOWED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"WINDOWED\"";
-        }
-        if (reasons & CMonitor::SC_DND) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"DND\"";
-        }
-        if (reasons & CMonitor::SC_SPECIAL) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"SPECIAL\"";
-        }
-        if (reasons & CMonitor::SC_ALPHA) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"ALPHA\"";
-        }
-        if (reasons & CMonitor::SC_OFFSET) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"OFFSET\"";
-        }
-        if (reasons & CMonitor::SC_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"CANDIDATE\"";
-        }
-        if (reasons & CMonitor::SC_OPAQUE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"OPAQUE\"";
-        }
-        if (reasons & CMonitor::SC_TRANSFORM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"TRANSFORM\"";
-        }
-        if (reasons & CMonitor::SC_OVERLAYS) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"OVERLAYS\"";
-        }
-        if (reasons & CMonitor::SC_WORKSPACES) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"WORKSPACES\"";
-        }
-        if (reasons & CMonitor::SC_SURFACES) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"SURFACES\"";
-        }
-        return "[" + reasonStr + "]";
-    } else {
-        if (reasons & CMonitor::SC_UNKNOWN) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "unknown reason";
-        }
-        if (reasons & CMonitor::SC_NOTIFICATION) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "notification";
-        }
-        if (reasons & CMonitor::SC_LOCK) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "session lock";
-        }
-        if (reasons & CMonitor::SC_WORKSPACE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "invalid workspace";
-        }
-        if (reasons & CMonitor::SC_WINDOWED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "windowed mode";
-        }
-        if (reasons & CMonitor::SC_DND) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "dnd active";
-        }
-        if (reasons & CMonitor::SC_SPECIAL) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "special workspace";
-        }
-        if (reasons & CMonitor::SC_ALPHA) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "alpha channel";
-        }
-        if (reasons & CMonitor::SC_OFFSET) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "workspace offset";
-        }
-        if (reasons & CMonitor::SC_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "missing candidate";
-        }
-        if (reasons & CMonitor::SC_OPAQUE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "not opaque";
-        }
-        if (reasons & CMonitor::SC_TRANSFORM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "surface transformations";
-        }
-        if (reasons & CMonitor::SC_OVERLAYS) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "other overlays";
-        }
-        if (reasons & CMonitor::SC_WORKSPACES) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "other workspaces";
-        }
-        if (reasons & CMonitor::SC_SURFACES) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "subsurfaces";
-        }
-        return reasonStr;
     }
+
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
+
+const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
+    "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"",  "\"RECORD\"", "\"SW\"",
+    "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"TEARING\"", "\"FAILED\"",
+};
+
+const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
+    "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors", "screen record/screenshot", "software renders/cursors",
+    "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "tearing",         "activation failed",
+};
 
 std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
         return "null";
+
     std::string reasonStr = "";
-    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        if (reasons & CMonitor::DS_BLOCK_UNKNOWN) {
+    const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? DS_REASONS_JSON : DS_REASONS_TEXT;
+
+    for (int i = 0; i < CMonitor::DS_CHECKS_COUNT; i++) {
+        if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
-            reasonStr += "\"UNKNOWN\"";
+            reasonStr += TEXTS[i];
         }
-        if (reasons & CMonitor::DS_BLOCK_USER) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"USER\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_WINDOWED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"WINDOWED\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_CONTENT) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"CONTENT\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_MIRROR) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"MIRROR\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_RECORD) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"RECORD\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_SW) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"SW\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"CANDIDATE\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_SURFACE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"SURFACE\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_TRANSFORM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"TRANSFORM\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_DMA) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"DMA\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_TEARING) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"TEARING\"";
-        }
-        if (reasons & CMonitor::DS_BLOCK_FAILED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"FAILED\"";
-        }
-        return "[" + reasonStr + "]";
-    } else {
-        if (reasons & CMonitor::DS_BLOCK_UNKNOWN) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "unknown reason";
-        }
-        if (reasons & CMonitor::DS_BLOCK_USER) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "user settings";
-        }
-        if (reasons & CMonitor::DS_BLOCK_WINDOWED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "windowed mode";
-        }
-        if (reasons & CMonitor::DS_BLOCK_CONTENT) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "content type";
-        }
-        if (reasons & CMonitor::DS_BLOCK_MIRROR) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "monitor mirrors";
-        }
-        if (reasons & CMonitor::DS_BLOCK_RECORD) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "screen record/screenshot";
-        }
-        if (reasons & CMonitor::DS_BLOCK_SW) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "software renders";
-        }
-        if (reasons & CMonitor::DS_BLOCK_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "missing candidate";
-        }
-        if (reasons & CMonitor::DS_BLOCK_SURFACE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "invalid surface";
-        }
-        if (reasons & CMonitor::DS_BLOCK_TRANSFORM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "surface transformations";
-        }
-        if (reasons & CMonitor::DS_BLOCK_DMA) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "invalid buffer";
-        }
-        if (reasons & CMonitor::DS_BLOCK_TEARING) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "tearing";
-        }
-        if (reasons & CMonitor::DS_BLOCK_FAILED) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "activation failed";
-        }
-        return reasonStr;
     }
+
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
+
+const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
+    "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"",
+};
+
+const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {
+    "unknown reason", "next frame is not torn", "user settings", "zoom", "not supported by monitor", "missing candidate", "window settings",
+};
 
 std::string CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
     if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
+
     std::string reasonStr = "";
-    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        if (reasons & CMonitor::TC_UNKNOWN) {
+    const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? TEARING_REASONS_JSON : TEARING_REASONS_TEXT;
+
+    for (int i = 0; i < CMonitor::TC_CHECKS_COUNT; i++) {
+        if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
-            reasonStr += "\"UNKNOWN\"";
+            reasonStr += TEXTS[i];
         }
-        if (reasons & CMonitor::TC_NOT_TORN) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"NOT_TORN\"";
-        }
-        if (reasons & CMonitor::TC_USER) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"USER\"";
-        }
-        if (reasons & CMonitor::TC_ZOOM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"ZOOM\"";
-        }
-        if (reasons & CMonitor::TC_SUPPORT) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"SUPPORT\"";
-        }
-        if (reasons & CMonitor::TC_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"CANDIDATE\"";
-        }
-        if (reasons & CMonitor::TC_WINDOW) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "\"WINDOW\"";
-        }
-        return "[" + reasonStr + "]";
-    } else {
-        if (reasons & CMonitor::TC_UNKNOWN) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "unknown reason";
-        }
-        if (reasons & CMonitor::TC_NOT_TORN) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "next frame is not torn";
-        }
-        if (reasons & CMonitor::TC_USER) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "user settings";
-        }
-        if (reasons & CMonitor::TC_ZOOM) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "zoom";
-        }
-        if (reasons & CMonitor::TC_SUPPORT) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "not supported by monitor";
-        }
-        if (reasons & CMonitor::TC_CANDIDATE) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "missing candidate";
-        }
-        if (reasons & CMonitor::TC_WINDOW) {
-            if (reasonStr != "")
-                reasonStr += ",";
-            reasonStr += "window settings";
-        }
-        return reasonStr;
     }
+
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {

@@ -385,8 +385,10 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
     nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
-        for (auto const& c : n->m_children) {
-            nodes2.push_back(c->m_self);
+        if (!n.expired()) {
+            for (auto const& c : n->m_children) {
+                nodes2.push_back(c->m_self);
+            }
         }
     }
 

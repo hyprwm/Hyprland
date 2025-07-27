@@ -399,6 +399,7 @@ if(NO_TESTS)
   message(STATUS "building tests is disabled")
 else()
   message(STATUS "building tests is enabled (NO_TESTS not defined)")
+  add_subdirectory(hyprtester)
 endif()
 
 # binary and symlink

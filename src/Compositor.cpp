@@ -3144,7 +3144,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PWORKSPACE)
-                createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
+                PWORKSPACE = createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
         }
 
         if (!PMONITOR) {
@@ -3173,6 +3173,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
 
     if (!pWorkspace) {
         // check non-persistent and downgrade if workspace is no longer persistent
+        std::vector<PHLWORKSPACEREF> toDowngrade;
         for (auto& w : getWorkspaces()) {
             if (!w->isPersistent())
                 continue;
@@ -3180,7 +3181,11 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             if (std::ranges::contains(persistentFound, w.lock()))
                 continue;
 
-            w->setPersistent(false);
+            toDowngrade.emplace_back(w);
+        }
+
+        for (auto& ws : toDowngrade) {
+            ws->setPersistent(false);
         }
     }
 }

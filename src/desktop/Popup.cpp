@@ -397,6 +397,9 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
 }
 
 void CPopup::breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data) {
+    if (!m_self)
+        return;
+
     std::vector<WP<CPopup>> popups;
     popups.push_back(m_self);
     bfHelper(popups, fn, data);

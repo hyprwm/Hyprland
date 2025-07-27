@@ -3109,6 +3109,8 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
     if (!m_lastMonitor)
         return;
 
+    std::vector<PHLWORKSPACE> persistentFound;
+
     for (const auto& rule : rules) {
         if (!rule.isPersistent)
             continue;
@@ -3142,16 +3144,19 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PWORKSPACE)
-                createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
+                PWORKSPACE = createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
         }
-
-        if (PWORKSPACE)
-            PWORKSPACE->m_persistent = true;
 
         if (!PMONITOR) {
             Debug::log(ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.monitor);
             continue;
         }
+
+        if (PWORKSPACE)
+            PWORKSPACE->setPersistent(true);
+
+        if (!pWorkspace)
+            persistentFound.emplace_back(PWORKSPACE);
 
         if (PWORKSPACE) {
             if (PWORKSPACE->m_monitor == PMONITOR) {
@@ -3163,6 +3168,24 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->m_name);
             moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
             continue;
+        }
+    }
+
+    if (!pWorkspace) {
+        // check non-persistent and downgrade if workspace is no longer persistent
+        std::vector<PHLWORKSPACEREF> toDowngrade;
+        for (auto& w : getWorkspaces()) {
+            if (!w->isPersistent())
+                continue;
+
+            if (std::ranges::contains(persistentFound, w.lock()))
+                continue;
+
+            toDowngrade.emplace_back(w);
+        }
+
+        for (auto& ws : toDowngrade) {
+            ws->setPersistent(false);
         }
     }
 }

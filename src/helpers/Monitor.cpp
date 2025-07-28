@@ -216,12 +216,12 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto const& ws : g_pCompositor->getWorkspaces()) {
-        if (!valid(ws.lock()))
+    for (auto const& ws : g_pCompositor->getWorkspacesCopy()) {
+        if (!valid(ws))
             continue;
 
         if (ws->m_lastMonitor == m_name || g_pCompositor->m_monitors.size() == 1 /* avoid lost workspaces on recover */) {
-            g_pCompositor->moveWorkspaceToMonitor(ws.lock(), m_self.lock());
+            g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
             ws->startAnim(true, true, true);
             ws->m_lastMonitor = "";
         }

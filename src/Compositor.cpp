@@ -2692,6 +2692,16 @@ void CCompositor::registerWorkspace(PHLWORKSPACE w) {
     w->m_events.destroy.listenStatic([this, weak = PHLWORKSPACEREF{w}] { std::erase(m_workspaces, weak); });
 }
 
+std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
+    std::vector<PHLWORKSPACE> wsp;
+    auto                      range = getWorkspaces();
+    wsp.reserve(std::ranges::distance(range));
+    for (auto& r : range) {
+        wsp.emplace_back(r.lock());
+    }
+    return wsp;
+}
+
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
     static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");

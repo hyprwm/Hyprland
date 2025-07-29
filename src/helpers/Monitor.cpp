@@ -1681,9 +1681,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
-        }
-
-        if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
+        } else if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
             reasons |= DS_BLOCK_CONTENT;
             if (!full)
                 return reasons;
@@ -1756,8 +1754,8 @@ bool CMonitor::attemptDirectScanout() {
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     const auto params     = PSURFACE->m_current.buffer->dmabuf();
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()),
-               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
@@ -1795,6 +1793,7 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
+    Debug::log(TRACE, "attemptDirectScanout: setting presentation mode");
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 

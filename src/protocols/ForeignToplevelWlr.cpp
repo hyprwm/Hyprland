@@ -288,20 +288,15 @@ void CForeignToplevelWlrManager::onUnmap(PHLWINDOW pWindow) {
     H->m_closed = true;
 }
 
-void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
+void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if UNLIKELY (m_finished)
         return;
 
     const auto H = handleForWindow(pWindow);
-    if UNLIKELY (!H || H->m_closed)
+    if UNLIKELY (!H || H->m_closed || !pMonitor)
         return;
 
-    const auto PMONITOR = pWindow->m_monitor.lock();
-
-    if UNLIKELY (!PMONITOR)
-        return;
-
-    H->sendMonitor(PMONITOR);
+    H->sendMonitor(pMonitor);
     H->m_resource->sendDone();
 }
 
@@ -386,9 +381,14 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
     });
 
     static auto P4 = g_pHookSystem->hookDynamic("moveWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(std::any_cast<std::vector<std::any>>(data).at(0));
+        const auto PWINDOW    = std::any_cast<PHLWINDOW>(std::any_cast<std::vector<std::any>>(data).at(0));
+        const auto PWORKSPACE = std::any_cast<PHLWORKSPACE>(std::any_cast<std::vector<std::any>>(data).at(1));
+
+        if (!PWORKSPACE)
+            return;
+
         for (auto const& m : m_managers) {
-            m->onMoveMonitor(PWINDOW);
+            m->onMoveMonitor(PWINDOW, PWORKSPACE->m_monitor.lock());
         }
     });
 

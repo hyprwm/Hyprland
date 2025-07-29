@@ -53,7 +53,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
 void CLayerSurface::registerCallbacks() {
     m_alpha->setUpdateCallback([this](auto) {
-        if (m_dimAround)
+        if (m_dimAround && m_monitor)
             g_pHyprRenderer->damageMonitor(m_monitor.lock());
     });
 }

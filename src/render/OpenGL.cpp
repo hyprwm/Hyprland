@@ -347,10 +347,15 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
 
     Debug::log(LOG, "Supported EGL display extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS_DISPLAY, ' '), EGLEXTENSIONS_DISPLAY);
 
+#if defined(__linux__)
     m_exts.EGL_ANDROID_native_fence_sync_ext = EGLEXTENSIONS_DISPLAY.contains("EGL_ANDROID_native_fence_sync");
 
     if (!m_exts.EGL_ANDROID_native_fence_sync_ext)
         Debug::log(WARN, "Your GPU does not support explicit sync via the EGL_ANDROID_native_fence_sync extension.");
+#else
+    m_exts.EGL_ANDROID_native_fence_sync_ext = false;
+    Debug::log(WARN, "Forcefully disabling explicit sync: BSD is missing support for proper timeline export");
+#endif
 
 #ifdef USE_TRACY_GPU
 

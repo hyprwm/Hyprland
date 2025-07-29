@@ -359,6 +359,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_drmFD = m_aqBackend->drmFD();
     Debug::log(LOG, "Running on DRMFD: {}", m_drmFD);
 
+#if defined(__linux__)
     if (m_drmFD >= 0) {
         uint64_t cap                   = 0;
         int      ret                   = drmGetCap(m_drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
@@ -368,6 +369,10 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         m_bDrmSyncobjTimelineSupported = false;
         Debug::log(LOG, "DRM syncobj timeline support: no (no DRM FD)");
     }
+#else
+    Debug::log(LOG, "DRM syncobj timeline support: no (not linux)");
+    m_bDrmSyncobjTimelineSupported = false;
+#endif
 
     if (!socketName.empty() && socketFd != -1) {
         fcntl(socketFd, F_SETFD, FD_CLOEXEC);

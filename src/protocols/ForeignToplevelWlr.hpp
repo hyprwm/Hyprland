@@ -34,7 +34,7 @@ class CForeignToplevelWlrManager {
     void onMap(PHLWINDOW pWindow);
     void onTitle(PHLWINDOW pWindow);
     void onClass(PHLWINDOW pWindow);
-    void onMoveMonitor(PHLWINDOW pWindow);
+    void onMoveMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
     void onFullscreen(PHLWINDOW pWindow);
     void onNewFocus(PHLWINDOW pWindow);
     void onUnmap(PHLWINDOW pWindow);

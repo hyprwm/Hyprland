@@ -932,7 +932,7 @@ SWindowRenderLayoutHints CHyprMasterLayout::requestRenderHints(PHLWINDOW pWindow
 
     SWindowRenderLayoutHints hints;
 
-    return hints; // master doesnt have any hints
+    return hints; // master doesn't have any hints
 }
 
 void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, bool silent) {

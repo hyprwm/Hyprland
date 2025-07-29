@@ -1261,6 +1261,9 @@ void CWindow::setSuspended(bool suspend) {
 bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
     CBox wbox = {m_realPosition->value(), m_realSize->value()};
 
+    if (m_isFloating)
+        wbox = getFullWindowBoundingBox();
+
     return !wbox.intersection({pMonitor->m_position, pMonitor->m_size}).empty();
 }
 
@@ -1804,7 +1807,7 @@ void CWindow::deactivateGroupMembers() {
     auto curr = getGroupHead();
     while (curr) {
         if (curr != m_self.lock()) {
-            // we dont want to deactivate unfocused xwayland windows
+            // we don't want to deactivate unfocused xwayland windows
             // because X is weird, keep the behavior for wayland windows
             // also its not really needed for xwayland windows
             // ref: #9760 #9294

@@ -527,7 +527,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         if (TR) {
             cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
 
-            // FIXME: this is wrong, and doesnt work for 5, 6 and 7. (flipped + rot)
+            // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
             // cba to do it rn, does anyone fucking use that??
             if (TR >= WL_OUTPUT_TRANSFORM_FLIPPED) {
                 cairo_matrix_scale(&matrixPre, -1, 1);

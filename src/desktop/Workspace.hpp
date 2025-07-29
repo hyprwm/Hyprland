@@ -58,8 +58,6 @@ class CWorkspace {
 
     bool        m_wasCreatedEmpty = true;
 
-    bool        m_persistent = false;
-
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool             inert();
     void             startAnim(bool in, bool left, bool instant = false);
@@ -83,6 +81,8 @@ class CWorkspace {
     void             rename(const std::string& name = "");
     void             forceReportSizesToWindows();
     void             updateWindows();
+    void             setPersistent(bool persistent);
+    bool             isPersistent();
 
     struct {
         CSignalT<> destroy;
@@ -99,6 +99,9 @@ class CWorkspace {
 
     SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
     bool                 m_inert = true;
+
+    SP<CWorkspace>       m_selfPersistent; // for persistent workspaces.
+    bool                 m_persistent = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

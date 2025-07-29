@@ -152,7 +152,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     auto GLOBALSTATE = DataState::getGlobalState();
     if (!GLOBALSTATE.dontWarnInstall) {
         std::println("{}!{} Disclaimer: {}", Colors::YELLOW, Colors::RED, Colors::RESET);
-        std::println("plugins, especially not official, have no guarantee of stability, availablity or security.\n"
+        std::println("plugins, especially not official, have no guarantee of stability, availability or security.\n"
                      "Run them at your own risk.\n"
                      "This message will not appear again.");
         GLOBALSTATE.dontWarnInstall = true;

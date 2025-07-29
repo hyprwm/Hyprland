@@ -57,7 +57,7 @@ void SSurfaceState::reset() {
     // applies only to the buffer that is attached to the surface
     acquire = {};
 
-    // wl_surface.commit assings pending ... and clears pending damage.
+    // wl_surface.commit assigns pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
 }

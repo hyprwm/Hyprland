@@ -1234,7 +1234,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         return;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
-        Debug::log(LOG, "surface {:x} won't receive kb focus becuase grab rejected it", (uintptr_t)pSurface.get());
+        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", (uintptr_t)pSurface.get());
         return;
     }
 
@@ -2692,6 +2692,16 @@ void CCompositor::registerWorkspace(PHLWORKSPACE w) {
     w->m_events.destroy.listenStatic([this, weak = PHLWORKSPACEREF{w}] { std::erase(m_workspaces, weak); });
 }
 
+std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
+    std::vector<PHLWORKSPACE> wsp;
+    auto                      range = getWorkspaces();
+    wsp.reserve(std::ranges::distance(range));
+    for (auto& r : range) {
+        wsp.emplace_back(r.lock());
+    }
+    return wsp;
+}
+
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
     static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");
@@ -2861,7 +2871,7 @@ void CCompositor::arrangeMonitors() {
         maxYOffsetUp    = 0;
         maxYOffsetDown  = 0;
 
-        // Finds the max and min values of explicitely placed monitors.
+        // Finds the max and min values of explicitly placed monitors.
         for (auto const& m : arranged) {
             maxXOffsetRight = std::max<double>(m->m_position.x + m->m_size.x, maxXOffsetRight);
             maxXOffsetLeft  = std::min<double>(m->m_position.x, maxXOffsetLeft);
@@ -3031,7 +3041,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
         }
     }
 
-    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
+    // modechange happened check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
     if (g_pCompositor->getMonitorFromCursor() == monitor) {
         g_pCompositor->warpCursorTo(POS, true);
         g_pInputManager->refocus();
@@ -3109,6 +3119,8 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
     if (!m_lastMonitor)
         return;
 
+    std::vector<PHLWORKSPACE> persistentFound;
+
     for (const auto& rule : rules) {
         if (!rule.isPersistent)
             continue;
@@ -3142,16 +3154,19 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PWORKSPACE)
-                createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
+                PWORKSPACE = createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
         }
-
-        if (PWORKSPACE)
-            PWORKSPACE->m_persistent = true;
 
         if (!PMONITOR) {
             Debug::log(ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.monitor);
             continue;
         }
+
+        if (PWORKSPACE)
+            PWORKSPACE->setPersistent(true);
+
+        if (!pWorkspace)
+            persistentFound.emplace_back(PWORKSPACE);
 
         if (PWORKSPACE) {
             if (PWORKSPACE->m_monitor == PMONITOR) {
@@ -3163,6 +3178,24 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             Debug::log(LOG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->m_name);
             moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
             continue;
+        }
+    }
+
+    if (!pWorkspace) {
+        // check non-persistent and downgrade if workspace is no longer persistent
+        std::vector<PHLWORKSPACEREF> toDowngrade;
+        for (auto& w : getWorkspaces()) {
+            if (!w->isPersistent())
+                continue;
+
+            if (std::ranges::contains(persistentFound, w.lock()))
+                continue;
+
+            toDowngrade.emplace_back(w);
+        }
+
+        for (auto& ws : toDowngrade) {
+            ws->setPersistent(false);
         }
     }
 }

@@ -79,7 +79,8 @@ class CCompositor {
     auto getWorkspaces() {
         return std::views::filter(m_workspaces, [](const auto& e) { return e; });
     }
-    void registerWorkspace(PHLWORKSPACE w);
+    std::vector<PHLWORKSPACE> getWorkspacesCopy();
+    void                      registerWorkspace(PHLWORKSPACE w);
 
     //
 

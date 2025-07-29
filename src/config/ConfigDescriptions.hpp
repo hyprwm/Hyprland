@@ -154,7 +154,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "decoration:rounding_power",
-        .description = "rouding power of corners (2 is a circle)",
+        .description = "rounding power of corners (2 is a circle)",
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
     },

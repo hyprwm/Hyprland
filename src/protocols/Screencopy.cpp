@@ -26,7 +26,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     m_monitor       = CWLOutputResource::fromResource(output)->m_monitor;
 
     if (!m_monitor) {
-        LOGM(ERR, "Client requested sharing of a monitor that doesnt exist");
+        LOGM(ERR, "Client requested sharing of a monitor that doesn't exist");
         m_resource->sendFailed();
         return;
     }
@@ -48,7 +48,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT wont work here
+    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT won't work here
     if (m_shmFormat == DRM_FORMAT_XRGB2101010 || m_shmFormat == DRM_FORMAT_ARGB2101010)
         m_shmFormat = DRM_FORMAT_XBGR2101010;
 

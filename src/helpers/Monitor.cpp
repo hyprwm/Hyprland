@@ -1509,101 +1509,97 @@ uint16_t CMonitor::isSolitaryBlocked(bool full) {
     const auto PWORKSPACE = m_activeWorkspace;
     if (!PWORKSPACE) {
         reasons |= SC_WORKSPACE;
+        return reasons;
+    }
+
+    if (!PWORKSPACE->m_hasFullscreenWindow) {
+        reasons |= SC_WINDOWED;
         if (!full)
             return reasons;
-    } else {
-        if (!PWORKSPACE->m_hasFullscreenWindow) {
-            reasons |= SC_WINDOWED;
+    }
+
+    if (PROTO::data->dndActive()) {
+        reasons |= SC_DND;
+        if (!full)
+            return reasons;
+    }
+
+    if (m_activeSpecialWorkspace) {
+        reasons |= SC_SPECIAL;
+        if (!full)
+            return reasons;
+    }
+
+    if (PWORKSPACE->m_alpha->value() != 1.f) {
+        reasons |= SC_ALPHA;
+        if (!full)
+            return reasons;
+    }
+
+    if (PWORKSPACE->m_renderOffset->value() != Vector2D{}) {
+        reasons |= SC_OFFSET;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
+
+    if (!PCANDIDATE) {
+        reasons |= SC_CANDIDATE;
+        return reasons;
+    }
+
+    if (!PCANDIDATE->opaque()) {
+        reasons |= SC_OPAQUE;
+        if (!full)
+            return reasons;
+    }
+
+    if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
+        PCANDIDATE->m_realSize->isBeingAnimated()) {
+        reasons |= SC_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
+
+    if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
+        reasons |= SC_OVERLAYS;
+        if (!full)
+            return reasons;
+    }
+
+    for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        if (topls->m_alpha->value() != 0.f) {
+            reasons |= SC_OVERLAYS;
             if (!full)
                 return reasons;
-        }
-
-        if (PROTO::data->dndActive()) {
-            reasons |= SC_DND;
-            if (!full)
-                return reasons;
-        }
-
-        if (m_activeSpecialWorkspace) {
-            reasons |= SC_SPECIAL;
-            if (!full)
-                return reasons;
-        }
-
-        if (PWORKSPACE->m_alpha->value() != 1.f) {
-            reasons |= SC_ALPHA;
-            if (!full)
-                return reasons;
-        }
-
-        if (PWORKSPACE->m_renderOffset->value() != Vector2D{}) {
-            reasons |= SC_OFFSET;
-            if (!full)
-                return reasons;
-        }
-
-        const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
-
-        if (!PCANDIDATE) {
-            reasons |= SC_CANDIDATE;
-            if (!full)
-                return reasons;
-        } else {
-            if (!PCANDIDATE->opaque()) {
-                reasons |= SC_OPAQUE;
-                if (!full)
-                    return reasons;
-            }
-
-            if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
-                PCANDIDATE->m_realSize->isBeingAnimated()) {
-                reasons |= SC_TRANSFORM;
-                if (!full)
-                    return reasons;
-            }
-
-            if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
-                reasons |= SC_OVERLAYS;
-                if (!full)
-                    return reasons;
-            }
-
-            for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-                if (topls->m_alpha->value() != 0.f) {
-                    reasons |= SC_OVERLAYS;
-                    if (!full)
-                        return reasons;
-                }
-            }
-
-            for (auto const& w : g_pCompositor->m_windows) {
-                if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
-                    continue;
-
-                if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(m_self.lock())) {
-                    reasons |= SC_FLOAT;
-                    if (!full)
-                        return reasons;
-                }
-            }
-
-            for (auto const& ws : g_pCompositor->getWorkspaces()) {
-                if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
-                    continue;
-
-                reasons |= SC_WORKSPACES;
-                if (!full)
-                    return reasons;
-            }
-
-            // check if it did not open any subsurfaces or shit
-            if (!PCANDIDATE->getSolitaryResource()) {
-                reasons |= SC_SURFACES;
-                if (!full)
-                    return reasons;
-            }
         }
     }
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
+            continue;
+
+        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(m_self.lock())) {
+            reasons |= SC_FLOAT;
+            if (!full)
+                return reasons;
+        }
+    }
+
+    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
+            continue;
+
+        reasons |= SC_WORKSPACES;
+        if (!full)
+            return reasons;
+    }
+
+    // check if it did not open any subsurfaces or shit
+    if (!PCANDIDATE->getSolitaryResource())
+        reasons |= SC_SURFACES;
+
     return reasons;
 }
 
@@ -1649,13 +1645,11 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
 
     if (m_solitaryClient.expired()) {
         reasons |= TC_CANDIDATE;
-        if (!full)
-            return reasons;
-    } else if (!m_solitaryClient->canBeTorn()) {
-        reasons |= TC_WINDOW;
-        if (!full)
-            return reasons;
+        return reasons;
     }
+
+    if (!m_solitaryClient->canBeTorn())
+        reasons |= TC_WINDOW;
 
     return reasons;
 }
@@ -1686,12 +1680,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             if (!full)
                 return reasons;
         }
+    }
 
-        if (m_tearingState.activelyTearing) {
-            reasons |= DS_BLOCK_TEARING;
-            if (!full)
-                return reasons;
-        }
+    if (m_tearingState.activelyTearing) {
+        reasons |= DS_BLOCK_TEARING;
+        if (!full)
+            return reasons;
     }
 
     if (!m_mirrors.empty() || isMirror()) {
@@ -1715,30 +1709,25 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     const auto PCANDIDATE = m_solitaryClient.lock();
     if (!PCANDIDATE) {
         reasons |= DS_BLOCK_CANDIDATE;
+        return reasons;
+    }
+
+    const auto PSURFACE = PCANDIDATE->getSolitaryResource();
+    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
+        reasons |= DS_BLOCK_SURFACE;
+        return reasons;
+    }
+
+    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
+        reasons |= DS_BLOCK_TRANSFORM;
         if (!full)
             return reasons;
-    } else {
-        const auto PSURFACE = PCANDIDATE->getSolitaryResource();
-        if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
-            reasons |= DS_BLOCK_SURFACE;
-            if (!full)
-                return reasons;
-        } else {
-            if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
-                reasons |= DS_BLOCK_TRANSFORM;
-                if (!full)
-                    return reasons;
-            }
-
-            // we can't scanout shm buffers.
-            const auto params = PSURFACE->m_current.buffer->dmabuf();
-            if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
-                reasons |= DS_BLOCK_DMA;
-                if (!full)
-                    return reasons;
-            }
-        }
     }
+
+    // we can't scanout shm buffers.
+    const auto params = PSURFACE->m_current.buffer->dmabuf();
+    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
+        reasons |= DS_BLOCK_DMA;
 
     return reasons;
 }

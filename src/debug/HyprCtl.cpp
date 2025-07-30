@@ -155,8 +155,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
-            escapeJSONStrings(m->m_output->serial), (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, (int)m->m_output->physicalSize.x, (int)m->m_output->physicalSize.y,
-            m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y, m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
+            escapeJSONStrings(m->m_output->serial), (int)m->m_pixelSize.x, m->m_pixelSize.y, m->m_output->physicalSize.x, (int)m->m_output->physicalSize.y, m->m_refreshRate,
+            (int)m->m_position.x, (int)m->m_position.y, m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
             m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), (int)m->m_reservedTopLeft.x,
             (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
             (m == g_pCompositor->m_lastMonitor ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
@@ -170,7 +170,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\n",
             m->m_name, m->m_id, (int)m->m_pixelSize.x, (int)m->m_pixelSize.y, m->m_refreshRate, (int)m->m_position.x, (int)m->m_position.y, m->m_shortDescription,
-            m->m_output->make, m->m_output->model, (int)m->m_output->physicalSize.x, (int)m->m_output->physicalSize.y, m->m_output->serial, m->activeWorkspaceID(),
+            m->m_output->make, m->m_output->model, m->m_output->physicalSize.x, m->m_output->physicalSize.y, m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
             (int)m->m_reservedTopLeft.x, (int)m->m_reservedTopLeft.y, (int)m->m_reservedBottomRight.x, (int)m->m_reservedBottomRight.y, m->m_scale, (int)m->m_transform,
             (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), (int)m->m_dpmsStatus, m->m_output->state->state().adaptiveSync, (uint64_t)m->m_solitaryClient.get(),

@@ -180,6 +180,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
         SP<HOOK_CALLBACK_FN> mouseButton;
         SP<HOOK_CALLBACK_FN> touchUp;
         SP<HOOK_CALLBACK_FN> touchMove;
+        SP<HOOK_CALLBACK_FN> tabletTip;
     } m_dnd;
 
     void abortDrag();

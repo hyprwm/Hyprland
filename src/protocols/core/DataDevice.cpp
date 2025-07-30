@@ -591,6 +591,14 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
         dropDrag();
     });
 
+    m_dnd.tabletTip = g_pHookSystem->hookDynamic("tabletTip", [this](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<CTablet::STipEvent>(e);
+        if (!E.in) {
+            LOGM(LOG, "Dropping drag on tablet tipUp");
+            dropDrag();
+        }
+    });
+
     m_dnd.mouseMove = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto V = std::any_cast<const Vector2D>(e);
         if (m_dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
@@ -695,6 +703,7 @@ void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, 
     m_dnd.mouseMove.reset();
     m_dnd.touchUp.reset();
     m_dnd.touchMove.reset();
+    m_dnd.tabletTip.reset();
 
     if (resetDevice)
         m_dnd.focusedDevice.reset();

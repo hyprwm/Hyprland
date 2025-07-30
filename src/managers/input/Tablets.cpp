@@ -2,6 +2,7 @@
 #include "../../desktop/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
+#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
@@ -167,6 +168,8 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("tabletTip", e);
+
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
     const auto POS   = e.tip;

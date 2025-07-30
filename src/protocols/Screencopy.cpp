@@ -200,7 +200,7 @@ void CScreencopyFrame::renderMon() {
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, 1);
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, {});
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
@@ -229,7 +229,7 @@ void CScreencopyFrame::renderMon() {
         const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, rounding, roundingPower);
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -249,7 +249,7 @@ void CScreencopyFrame::renderMon() {
                         const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
 
                         if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK);
+                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
                     },
                     nullptr);
             },
@@ -292,7 +292,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
             CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, 1);
+            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
             renderMon();
@@ -301,7 +301,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
         CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, 1);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
     }
 
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
@@ -333,7 +333,7 @@ bool CScreencopyFrame::copyShm() {
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
             CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, 1);
+            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
             renderMon();
@@ -342,7 +342,7 @@ bool CScreencopyFrame::copyShm() {
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
         CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, 1);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
     }
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());

@@ -189,18 +189,19 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
         // first, clear region of interest with black (fully transparent)
-        g_pHyprOpenGL->renderRect(fullBox, CHyprColor(0, 0, 0, 1), 0);
+        g_pHyprOpenGL->renderRect(fullBox, CHyprColor(0, 0, 0, 1), {.round = 0});
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
         drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
 
         // render black window box ("clip")
-        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale, ROUNDINGPOWER);
+        g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 1.0),
+                                  {.round = (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale, .roundingPower = ROUNDINGPOWER});
 
         alphaSwapFB.bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprOpenGL->renderRect(fullBox, PWINDOW->m_realShadowColor->value().stripA(), 0);
+        g_pHyprOpenGL->renderRect(fullBox, PWINDOW->m_realShadowColor->value().stripA(), {.round = 0});
 
         LASTFB->bind();
 
@@ -237,7 +238,7 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     color.a *= a;
 
     if (*PSHADOWSHARP)
-        g_pHyprOpenGL->renderRect(box, color, round, roundingPower);
+        g_pHyprOpenGL->renderRect(box, color, {.round = round, .roundingPower = roundingPower});
     else
         g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, color, 1.F);
 }

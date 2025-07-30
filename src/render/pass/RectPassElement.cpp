@@ -13,9 +13,10 @@ void CRectPassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.clipBox = m_data.clipBox;
 
     if (m_data.color.a == 1.F || !m_data.blur)
-        g_pHyprOpenGL->renderRectWithDamage(m_data.box, m_data.color, damage, m_data.round, m_data.roundingPower);
+        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
     else
-        g_pHyprOpenGL->renderRectWithBlur(m_data.box, m_data.color, m_data.round, m_data.roundingPower, m_data.blurA, m_data.xray);
+        g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
+                                  {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
 
     g_pHyprOpenGL->m_renderData.clipBox = {};
 }

@@ -91,38 +91,41 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     g_pCompositor->focusSurface(nullptr);
     g_pSeatManager->setGrab(nullptr);
 
-    if (!g_pCompositor->m_unsafeState) {
-        m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
-            // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
-            std::chrono::seconds(5),
-            [](auto, auto) {
-                if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
-                    return;
+    const bool NOACTIVEMONS = std::ranges::all_of(g_pCompositor->m_monitors, [](const auto& m) { return !m->m_enabled || !m->m_dpmsStatus; });
 
-                if (!g_pSessionLockManager->m_sessionLock || !g_pSessionLockManager->m_sessionLock->lock)
-                    return;
-
-                if (!g_pCompositor->m_dpmsStateOn || g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
-                    // Because the session is inactive, there is a good reason for why the client did't manage to render to all outputs.
-                    // We send locked, although this could lead to imperfect frames when we start to render again.
-                    g_pSessionLockManager->m_sessionLock->lock->sendLocked();
-                    g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
-                    return;
-                }
-
-                LOGM(WARN, "Kicking lockscreen client, because it failed to render to all outputs within 5 seconds");
-                g_pSessionLockManager->m_sessionLock->lock->sendDenied();
-                g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
-            },
-            nullptr);
-
-        g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
-    } else {
+    if (NOACTIVEMONS || g_pCompositor->m_unsafeState) {
         // Normally the locked event is sent after each output rendered a lock screen frame.
-        // When there are no outputs, send it right away.
+        // When there are no active outputs, send it right away.
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
+        return;
     }
+
+    m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
+        // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
+        std::chrono::seconds(5),
+        [](auto, auto) {
+            if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+                return;
+
+            if (!g_pSessionLockManager->m_sessionLock || !g_pSessionLockManager->m_sessionLock->lock)
+                return;
+
+            if (g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
+                // Because the session is inactive, there is a good reason for why the client did't manage to render to all outputs.
+                // We send locked, although this could lead to imperfect frames when we start to render again.
+                g_pSessionLockManager->m_sessionLock->lock->sendLocked();
+                g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
+                return;
+            }
+
+            LOGM(WARN, "Kicking lockscreen client, because it failed to render to all outputs within 5 seconds");
+            g_pSessionLockManager->m_sessionLock->lock->sendDenied();
+            g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
+        },
+        nullptr);
+
+    g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
 }
 
 void CSessionLockManager::removeSendDeniedTimer() {
@@ -158,7 +161,8 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
         return;
 
     m_sessionLock->lockedMonitors.emplace(id);
-    const bool LOCKED = std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return !m->m_dpmsStatus || m_sessionLock->lockedMonitors.contains(m->m_id); });
+    const bool LOCKED =
+        std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return !m->m_enabled || !m->m_dpmsStatus || m_sessionLock->lockedMonitors.contains(m->m_id); });
 
     if (LOCKED && m_sessionLock->lock->good()) {
         removeSendDeniedTimer();

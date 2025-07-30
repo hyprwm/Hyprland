@@ -33,6 +33,7 @@
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
+#include <climits>
 #include <ranges>
 #include <vector>
 #include <algorithm>

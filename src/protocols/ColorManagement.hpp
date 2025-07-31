@@ -18,7 +18,8 @@ class CColorManager {
   public:
     CColorManager(SP<CWpColorManagerV1> resource);
 
-    bool good();
+    bool       good();
+    wl_client* client();
 
   private:
     SP<CWpColorManagerV1> m_resource;
@@ -186,6 +187,8 @@ class CColorManagementProtocol : public IWaylandProtocol {
 
     void         onImagePreferredChanged(uint32_t preferredId);
     void         onMonitorImageDescriptionChanged(WP<CMonitor> monitor);
+
+    bool         isClientCMAware(wl_client* client);
 
   private:
     void                                               destroyResource(CColorManager* resource);

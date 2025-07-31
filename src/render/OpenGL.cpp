@@ -1337,12 +1337,13 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
 }
 
 void CHyprOpenGLImpl::renderRect(const CBox& box, const CHyprColor& col, SRectRenderData data) {
-    if (data.damage)
-        renderRectWithDamageInternal(box, col, data);
-    else if (!m_renderData.damage.empty()) {
+    if (!data.damage)
         data.damage = &m_renderData.damage;
+
+    if (data.blur)
+        renderRectWithBlurInternal(box, col, data);
+    else
         renderRectWithDamageInternal(box, col, data);
-    }
 }
 
 void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprColor& col, const SRectRenderData& data) {

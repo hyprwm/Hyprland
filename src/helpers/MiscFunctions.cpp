@@ -878,6 +878,9 @@ bool isNvidiaDriverVersionAtLeast(int threshold) {
 }
 
 std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
+    if (!client)
+        return std::unexpected("client unknown");
+
     pid_t pid = 0;
     wl_client_get_credentials(client, &pid, nullptr, nullptr);
 

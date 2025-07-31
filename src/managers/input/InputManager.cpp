@@ -932,6 +932,14 @@ Vector2D CInputManager::getMouseCoordsInternal() {
     return g_pPointerManager->position();
 }
 
+void CInputManager::newKeyboard(SP<IKeyboard> keeb) {
+    const auto PNEWKEYBOARD = m_keyboards.emplace_back(keeb);
+
+    setupKeyboard(PNEWKEYBOARD);
+
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x}", (uintptr_t)PNEWKEYBOARD.get());
+}
+
 void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
     const auto PNEWKEYBOARD = m_keyboards.emplace_back(CKeyboard::create(keyboard));
 
@@ -1476,9 +1484,9 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->isVirtual())
         return false;
 
-    CVirtualKeyboard* vk = (CVirtualKeyboard*)pKeyboard.get();
+    auto client = pKeyboard->getClient();
 
-    return !pKeyboard || (!m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == vk->getClient());
+    return !pKeyboard || (client && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == client);
 }
 
 void CInputManager::refocus() {

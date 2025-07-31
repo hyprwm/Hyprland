@@ -94,6 +94,7 @@ class CInputManager {
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
+    void               newKeyboard(SP<IKeyboard>);
     void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
     void               newMouse(SP<Aquamarine::IPointer>);

@@ -24,10 +24,13 @@ enum eKeyboardModifiers {
 class IKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
-    virtual uint32_t                  getCapabilities();
-    virtual eHIDType                  getType();
-    virtual bool                      isVirtual() = 0;
-    virtual SP<Aquamarine::IKeyboard> aq()        = 0;
+    virtual uint32_t   getCapabilities();
+    virtual eHIDType   getType();
+    virtual bool       isVirtual() = 0;
+    virtual wl_client* getClient() {
+        return nullptr;
+    };
+    virtual SP<Aquamarine::IKeyboard> aq() = 0;
 
     struct SKeyEvent {
         uint32_t              timeMs     = 0;

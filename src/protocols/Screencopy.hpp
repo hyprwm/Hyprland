@@ -28,6 +28,7 @@ class CScreencopyClient {
     ~CScreencopyClient();
 
     bool                  good();
+    wl_client*            client();
 
     WP<CScreencopyClient> m_self;
     eClientOwners         m_clientOwner = CLIENT_SCREENCOPY;

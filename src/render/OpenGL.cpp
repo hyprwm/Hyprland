@@ -1593,11 +1593,12 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    const auto imageDescription =
-        m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->imageDescription() : SImageDescription{};
+    const auto imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+        m_renderData.surface->m_colorManagement->imageDescription() :
+        (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                      /* CM unsupported or disabled */
-        || (imageDescription == m_renderData.pMonitor->m_imageDescription) /* Source and target have the same image description */
+    const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
+        || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
         || ((*PPASS == 1 || (*PPASS == 2 && imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)) && m_renderData.pMonitor->m_activeWorkspace &&
             m_renderData.pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
             m_renderData.pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
@@ -1609,7 +1610,10 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     if (shader == &m_shaders->m_shCM) {
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
-        passCMUniforms(*shader, imageDescription);
+        if (data.cmBackToSRGB)
+            passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{}, true, -1, -1);
+        else
+            passCMUniforms(*shader, imageDescription);
     }
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());

@@ -11,6 +11,7 @@
 #include "core/Output.hpp"
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
+#include "ColorManagement.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/time/Time.hpp"
 #include "XDGShell.hpp"
@@ -191,16 +192,22 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto    TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    CBox    monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
+    const bool IS_CM_AWARE = PROTO::colorManagement->isClientCMAware(m_client->client());
+
+    CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, {});
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
+                                 {
+                                     .cmBackToSRGB       = !IS_CM_AWARE,
+                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
+                                 });
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
@@ -451,6 +458,10 @@ void CScreencopyClient::onTick() {
 
 bool CScreencopyClient::good() {
     return m_resource->resource();
+}
+
+wl_client* CScreencopyClient::client() {
+    return m_resource ? m_resource->client() : nullptr;
 }
 
 CScreencopyProtocol::CScreencopyProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

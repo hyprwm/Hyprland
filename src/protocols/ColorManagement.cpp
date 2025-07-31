@@ -204,6 +204,10 @@ bool CColorManager::good() {
     return m_resource->resource();
 }
 
+wl_client* CColorManager::client() {
+    return m_resource->client();
+}
+
 CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor) : m_resource(resource), m_monitor(monitor) {
     if UNLIKELY (!good())
         return;
@@ -816,6 +820,10 @@ void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> mon
     // recheck feedbacks
     for (auto const& feedback : m_feedbackSurfaces)
         feedback->onPreferredChanged();
+}
+
+bool CColorManagementProtocol::isClientCMAware(wl_client* client) {
+    return std::ranges::any_of(m_managers, [client](const auto& m) { return m->client() == client; });
 }
 
 void CColorManagementProtocol::destroyResource(CColorManager* resource) {

@@ -125,6 +125,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
                                              .overallA              = OVERALL_ALPHA,
                                              .round                 = rounding,
                                              .roundingPower         = roundingPower,
+                                             .allowCustomUV         = true,
                                              .blockBlurOptimization = m_data.blockBlurOptimization,
                                          });
         else
@@ -141,6 +142,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
                                              .overallA              = OVERALL_ALPHA,
                                              .round                 = rounding,
                                              .roundingPower         = roundingPower,
+                                             .allowCustomUV         = true,
                                              .blockBlurOptimization = true,
                                          });
         else

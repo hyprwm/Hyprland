@@ -8,6 +8,7 @@
 #include "fs/FsUtils.hpp"
 #include <optional>
 #include <cstring>
+#include <climits>
 #include <cmath>
 #include <filesystem>
 #include <set>

@@ -1071,9 +1071,9 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         pKeyboard->m_allowed = PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     try {
-        if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && !RULES.empty() &&
-            RULES == pKeyboard->m_currentRules.rules && MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout &&
-            VARIANT == pKeyboard->m_currentRules.variant && OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
+        if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES == pKeyboard->m_currentRules.rules &&
+            MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout && VARIANT == pKeyboard->m_currentRules.variant &&
+            OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
             return;
         }

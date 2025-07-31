@@ -579,7 +579,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     Debug::log(TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size, cursorSize,
                m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    g_pHyprOpenGL->renderTexture(texture, xbox, 1.F);
+    g_pHyprOpenGL->renderTexture(texture, xbox, {});
 
     g_pHyprOpenGL->end();
     g_pHyprOpenGL->m_renderData.pMonitor.reset();

@@ -7,9 +7,13 @@ CBorderPassElement::CBorderPassElement(const CBorderPassElement::SBorderData& da
 
 void CBorderPassElement::draw(const CRegion& damage) {
     if (m_data.hasGrad2)
-        g_pHyprOpenGL->renderBorder(m_data.box, m_data.grad1, m_data.grad2, m_data.lerp, m_data.round, m_data.roundingPower, m_data.borderSize, m_data.a, m_data.outerRound);
+        g_pHyprOpenGL->renderBorder(
+            m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,
+            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
     else
-        g_pHyprOpenGL->renderBorder(m_data.box, m_data.grad1, m_data.round, m_data.roundingPower, m_data.borderSize, m_data.a, m_data.outerRound);
+        g_pHyprOpenGL->renderBorder(
+            m_data.box, m_data.grad1,
+            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
 }
 
 bool CBorderPassElement::needsLiveBlur() {

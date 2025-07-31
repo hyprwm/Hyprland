@@ -116,14 +116,38 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
     if (m_data.surfaceCounter == 0 && !m_data.popup) {
         if (BLUR)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, m_data.surface, rounding, roundingPower, m_data.blockBlurOptimization, m_data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
+                                         {
+                                             .surface               = m_data.surface,
+                                             .a                     = ALPHA,
+                                             .blur                  = true,
+                                             .blurA                 = m_data.fadeAlpha,
+                                             .overallA              = OVERALL_ALPHA,
+                                             .round                 = rounding,
+                                             .roundingPower         = roundingPower,
+                                             .allowCustomUV         = true,
+                                             .blockBlurOptimization = m_data.blockBlurOptimization,
+                                         });
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
+                                         {.a = ALPHA * OVERALL_ALPHA, .round = rounding, .roundingPower = roundingPower, .discardActive = false, .allowCustomUV = true});
     } else {
         if (BLUR && m_data.popup)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, windowBox, ALPHA, m_data.surface, rounding, roundingPower, true, m_data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
+                                         {
+                                             .surface               = m_data.surface,
+                                             .a                     = ALPHA,
+                                             .blur                  = true,
+                                             .blurA                 = m_data.fadeAlpha,
+                                             .overallA              = OVERALL_ALPHA,
+                                             .round                 = rounding,
+                                             .roundingPower         = roundingPower,
+                                             .allowCustomUV         = true,
+                                             .blockBlurOptimization = true,
+                                         });
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
+                                         {.a = ALPHA * OVERALL_ALPHA, .round = rounding, .roundingPower = roundingPower, .discardActive = false, .allowCustomUV = true});
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)

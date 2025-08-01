@@ -24,6 +24,7 @@ static bool test() {
     NLog::log("{}Expecting blocked solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
+        NLog::log("{}", str);
         EXPECT(str.contains("solitary: 0\n"), true);
         EXPECT(str.contains("solitaryBlockedBy: windowed mode,missing candidate"), true);
         EXPECT(str.contains("activelyTearing: false"), true);
@@ -48,6 +49,7 @@ static bool test() {
     NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
+        NLog::log("{}", str);
         EXPECT(str.contains("solitary: 0\n"), false);
         EXPECT(str.contains("solitaryBlockedBy: null"), true);
         EXPECT(str.contains("activelyTearing: false"), true);
@@ -60,6 +62,7 @@ static bool test() {
     NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
+        NLog::log("{}", str);
         EXPECT(str.contains("tearingBlockedBy: next frame is not torn,not supported by monitor\n"), true);
     }
 

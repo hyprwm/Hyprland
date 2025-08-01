@@ -831,7 +831,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
     m_clickBehavior = CLICKMODE_DEFAULT;
 }
 
-void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
+void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     static auto POFFWINDOWAXIS        = CConfigValue<Hyprlang::INT>("input:off_window_axis_events");
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
@@ -841,7 +841,10 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     const bool  ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto        factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
 
-    const auto  EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
+    if (pointer && pointer->m_scrollFactor.has_value())
+        factor = *pointer->m_scrollFactor;
+
+    const auto EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
     EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
 
     if (e.mouse)
@@ -1159,6 +1162,11 @@ void CInputManager::setPointerConfigs() {
                 m->m_connected = false;
             }
         }
+
+        if (g_pConfigManager->deviceConfigExplicitlySet(devname, "scroll_factor"))
+            m->m_scrollFactor = std::clamp(g_pConfigManager->getDeviceFloat(devname, "scroll_factor", "input:scroll_factor"), 0.F, 100.F);
+        else
+            m->m_scrollFactor = std::nullopt;
 
         if (m->aq() && m->aq()->getLibinputHandle()) {
             const auto LIBINPUTDEV = m->aq()->getLibinputHandle();

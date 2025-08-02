@@ -105,6 +105,8 @@ void CMonitorFrameScheduler::onFrame() {
 
 void CMonitorFrameScheduler::onFinishRender() {
     m_sync = CEGLSync::create(); // this destroys the old sync
+    m_sync->dupNativeFence(true);
+
     g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, mon = m_monitor] {
         if (!mon) // might've gotten destroyed
             return;

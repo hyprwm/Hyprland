@@ -9,6 +9,7 @@
 
 class CSyncReleaser;
 class CHLBufferReference;
+class CEGLSync;
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
@@ -30,6 +31,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
+    UP<CEGLSync>                          m_eglSync;
 
     struct {
         CHyprSignalListener backendRelease;

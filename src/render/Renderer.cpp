@@ -2347,23 +2347,30 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 
     UP<CEGLSync> eglSync = CEGLSync::create();
+    eglSync->dupNativeFence(true);
     if (eglSync && eglSync->isValid()) {
         for (auto const& buf : m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
-                releaser->addSyncFileFd(eglSync->fd());
+            buf->m_eglSync->dupNativeFence();
+            if (buf->m_syncReleasers.empty()) {
+                g_pEventLoopManager->doOnReadable(buf->m_eglSync->fd().duplicate(), [buffer = std::move(buf)] {
+                    // drop buffer on out of scope.
+                });
+                continue;
+            } else {
+                for (const auto& releaser : buf->m_syncReleasers) {
+                    releaser->addSyncFileFd(buf->m_eglSync->fd());
+                }
+                buf->m_syncReleasers.clear(); // import the fd;
             }
         }
 
-        // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
+        m_usedAsyncBuffers.clear();
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
-            prevbfs.clear();
+        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback]() {
             if (renderingDoneCallback)
                 renderingDoneCallback();
         });
-        m_usedAsyncBuffers.clear();
 
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();

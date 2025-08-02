@@ -153,9 +153,9 @@ struct SCurrentRenderData {
 class CEGLSync {
   public:
     static UP<CEGLSync> create();
-
     ~CEGLSync();
 
+    void                             dupNativeFence(bool flush = false);
     Hyprutils::OS::CFileDescriptor&  fd();
     Hyprutils::OS::CFileDescriptor&& takeFd();
     bool                             isValid();

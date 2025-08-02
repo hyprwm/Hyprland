@@ -4,6 +4,7 @@
 #include "Subsurface.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/memory/Memory.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 
 class CXDGPopupResource;
 
@@ -21,6 +22,7 @@ class CPopup {
     SP<CWLSurface> getT1Owner();
     Vector2D       coordsRelativeToParent();
     Vector2D       coordsGlobal();
+    PHLMONITOR     getMonitor();
 
     Vector2D       size();
 
@@ -44,6 +46,10 @@ class CPopup {
     SP<CWLSurface> m_wlSurface;
     WP<CPopup>     m_self;
     bool           m_mapped = false;
+
+    // fade in-out
+    PHLANIMVAR<float> m_alpha;
+    bool              m_fadingOut = false;
 
   private:
     CPopup() = default;
@@ -82,6 +88,7 @@ class CPopup {
     void        reposition();
     void        recheckChildrenRecursive();
     void        sendScale();
+    void        fullyDestroy();
 
     Vector2D    localToGlobal(const Vector2D& rel);
     Vector2D    t1ParentCoords();

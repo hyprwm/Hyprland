@@ -81,8 +81,10 @@ class CHyprRenderer {
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeSnapshot(PHLWINDOW);
     void                            makeSnapshot(PHLLS);
+    void                            makeSnapshot(WP<CPopup>);
     void                            renderSnapshot(PHLWINDOW);
     void                            renderSnapshot(PHLLS);
+    void                            renderSnapshot(WP<CPopup>);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -134,6 +136,7 @@ class CHyprRenderer {
 
     bool shouldBlur(PHLLS ls);
     bool shouldBlur(PHLWINDOW w);
+    bool shouldBlur(WP<CPopup> p);
 
     bool m_cursorHidden                           = false;
     bool m_cursorHasSurface                       = false;

@@ -472,7 +472,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     const auto                       PWORKSPACE = pWindow->m_workspace;
     const auto                       REALPOS    = pWindow->m_realPosition->value() + (pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
     static auto                      PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
-    static auto                      PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
     CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_realSize->value().x, 5.0), std::max(pWindow->m_realSize->value().y, 5.0)};
@@ -639,10 +638,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             renderdata.squishOversized = false; // don't squish popups
             renderdata.popup           = true;
 
-            static CConfigValue PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
             static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = *PBLURPOPUPS && *PBLUR;
+            renderdata.blur = shouldBlur(pWindow->m_popupHead);
 
             if (renderdata.blur) {
                 renderdata.discardMode |= DISCARD_ALPHA;
@@ -656,11 +654,17 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             pWindow->m_popupHead->breadthfirst(
                 [this, &renderdata](WP<CPopup> popup, void* data) {
+                    if (popup->m_fadingOut) {
+                        renderSnapshot(popup);
+                        return;
+                    }
+
                     if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
+                    renderdata.alpha = popup->m_alpha->value();
 
                     popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -676,6 +680,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                     renderdata.pos = oldPos;
                 },
                 &renderdata);
+
+            renderdata.alpha = 1.F;
         }
 
         if (decorate) {
@@ -2468,6 +2474,54 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     m_bRenderingSnapshot = false;
 }
 
+void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
+    // we trust the window is valid.
+    const auto PMONITOR = popup->getMonitor();
+
+    if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
+        return;
+
+    if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+        return;
+
+    CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+
+    makeEGLCurrent();
+
+    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_popupFramebuffers[popup];
+
+    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+
+    beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
+
+    m_bRenderingSnapshot = true;
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    CSurfacePassElement::SRenderData renderdata;
+    renderdata.pos             = popup->coordsGlobal() - PMONITOR->m_position;
+    renderdata.alpha           = 1.F;
+    renderdata.dontRound       = true; // don't round popups
+    renderdata.pMonitor        = PMONITOR;
+    renderdata.squishOversized = false; // don't squish popups
+    renderdata.popup           = true;
+
+    popup->m_wlSurface->resource()->breadthfirst(
+        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            renderdata.localPos    = offset;
+            renderdata.texture     = s->m_current.texture;
+            renderdata.surface     = s;
+            renderdata.mainSurface = false;
+            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            renderdata.surfaceCounter++;
+        },
+        nullptr);
+
+    endRender();
+
+    m_bRenderingSnapshot = false;
+}
+
 void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     static auto  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
@@ -2570,6 +2624,41 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
+void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
+    if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
+        return;
+
+    static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
+
+    const auto          FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+
+    if (!FBDATA->getTexture())
+        return;
+
+    const auto PMONITOR = popup->getMonitor();
+
+    if (!PMONITOR)
+        return;
+
+    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+
+    const bool                   SHOULD_BLUR = shouldBlur(popup);
+
+    CTexPassElement::SRenderData data;
+    data.flipEndFrame = true;
+    data.tex          = FBDATA->getTexture();
+    data.box          = {{}, PMONITOR->m_transformedSize};
+    data.a            = popup->m_alpha->value();
+    data.damage       = fakeDamage;
+    data.blur         = SHOULD_BLUR;
+    data.blurA        = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    if (SHOULD_BLUR)
+        data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
+    ;
+
+    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+}
+
 bool CHyprRenderer::shouldBlur(PHLLS ls) {
     if (m_bRenderingSnapshot)
         return false;
@@ -2585,4 +2674,11 @@ bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
     static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     const bool  DONT_BLUR = w->m_windowData.noBlur.valueOrDefault() || w->m_windowData.RGBX.valueOrDefault() || w->opaque();
     return *PBLUR && !DONT_BLUR;
+}
+
+bool CHyprRenderer::shouldBlur(WP<CPopup> p) {
+    static CConfigValue PBLURPOPUPS = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
+    static CConfigValue PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+
+    return *PBLURPOPUPS && *PBLUR;
 }

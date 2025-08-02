@@ -88,8 +88,9 @@ namespace Colors {
     }
 
 #define OK(x) EXPECT(x, "ok")
+
 #define FIXME(code)                                                                                                                                                                \
-    {                                                                                                                                                                              \
+    do {                                                                                                                                                                           \
         const int OLD_FAILED = TESTS_FAILED;                                                                                                                                       \
         const int OLD_RET    = ret;                                                                                                                                                \
                                                                                                                                                                                    \
@@ -106,4 +107,4 @@ namespace Colors {
             TESTS_PASSED--;                                                                                                                                                        \
             ret = 1;                                                                                                                                                               \
         }                                                                                                                                                                          \
-    }
+    } while (0)

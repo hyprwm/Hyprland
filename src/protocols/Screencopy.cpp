@@ -196,7 +196,7 @@ void CScreencopyFrame::renderMon() {
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    const bool IS_CM_AWARE = PROTO::colorManagement->isClientCMAware(m_client->client());
+    const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
 
     CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.

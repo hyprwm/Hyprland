@@ -45,7 +45,7 @@ namespace Colors {
 
 #define EXPECT_CONTAINS(haystack, needle)                                                                                                                                          \
     if (const auto EXPECTED = needle; !std::string{haystack}.contains(EXPECTED)) {                                                                                                 \
-        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, EXPECTED, __FILE__, __LINE__,            \
+        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
                   std::string{haystack});                                                                                                                                          \
         ret = 1;                                                                                                                                                                   \
         TESTS_FAILED++;                                                                                                                                                            \
@@ -88,3 +88,22 @@ namespace Colors {
     }
 
 #define OK(x) EXPECT(x, "ok")
+#define FIXME(code)                                                                                                                                                                \
+    {                                                                                                                                                                              \
+        const int OLD_FAILED = TESTS_FAILED;                                                                                                                                       \
+        const int OLD_RET    = ret;                                                                                                                                                \
+                                                                                                                                                                                   \
+        { code }                                                                                                                                                                   \
+                                                                                                                                                                                   \
+        if (TESTS_FAILED > OLD_FAILED) {                                                                                                                                           \
+            NLog::log("{}FIXME Broken test has failed, counting as passed", Colors::YELLOW);                                                                                       \
+            TESTS_FAILED--;                                                                                                                                                        \
+            TESTS_PASSED++;                                                                                                                                                        \
+            ret = OLD_RET;                                                                                                                                                         \
+        } else {                                                                                                                                                                   \
+            NLog::log("{}FIXME Broken test has passed, change it to EXPECT", Colors::YELLOW);                                                                                      \
+            TESTS_FAILED++;                                                                                                                                                        \
+            TESTS_PASSED--;                                                                                                                                                        \
+            ret = 1;                                                                                                                                                               \
+        }                                                                                                                                                                          \
+    }

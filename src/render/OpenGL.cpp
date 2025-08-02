@@ -1593,9 +1593,9 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
-    const auto imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-        m_renderData.surface->m_colorManagement->imageDescription() :
-        (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
+    auto       imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+              m_renderData.surface->m_colorManagement->imageDescription() :
+              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
         || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
@@ -1610,9 +1610,12 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     if (shader == &m_shaders->m_shCM) {
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
-        if (data.cmBackToSRGB)
+        if (data.cmBackToSRGB) {
+            // revert luma changes to avoid black screenshots.
+            // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
+            imageDescription.luminances = {};
             passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{}, true, -1, -1);
-        else
+        } else
             passCMUniforms(*shader, imageDescription);
     }
 

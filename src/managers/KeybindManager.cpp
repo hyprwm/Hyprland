@@ -178,7 +178,7 @@ CKeybindManager::CKeybindManager() {
                 DISPATCHER->second(k->arg);
             }
 
-            self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->m_repeatRate));
+            self->updateTimeout(std::chrono::milliseconds(1000 / m_repeatKeyRate));
         },
         nullptr);
 
@@ -483,7 +483,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
         m_pressedKeys.push_back(KEY);
 
-        suppressEvent = !handleKeybinds(MODS, KEY, true).passEvent;
+        suppressEvent = !handleKeybinds(MODS, KEY, true, pKeyboard).passEvent;
 
         if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
@@ -494,7 +494,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         bool foundInPressedKeys = false;
         for (auto it = m_pressedKeys.begin(); it != m_pressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                handleKeybinds(MODS, *it, false);
+                handleKeybinds(MODS, *it, false, pKeyboard);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_pressedKeys.erase(it);
@@ -505,7 +505,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            suppressEvent = !handleKeybinds(MODS, KEY, false).passEvent;
+            suppressEvent = !handleKeybinds(MODS, KEY, false, pKeyboard).passEvent;
         }
 
         shadowKeybinds();
@@ -529,14 +529,14 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
     bool found = false;
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         if (e.delta < 0)
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true, nullptr).passEvent;
         else
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true, nullptr).passEvent;
     } else if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
         if (e.delta < 0)
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true, nullptr).passEvent;
         else
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true, nullptr).passEvent;
     }
 
     if (found)
@@ -569,7 +569,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_pressedKeys.push_back(KEY);
 
-        suppressEvent = !handleKeybinds(MODS, KEY, true).passEvent;
+        suppressEvent = !handleKeybinds(MODS, KEY, true, nullptr).passEvent;
 
         if (suppressEvent)
             shadowKeybinds();
@@ -579,7 +579,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
         bool foundInPressedKeys = false;
         for (auto it = m_pressedKeys.begin(); it != m_pressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
-                suppressEvent      = !handleKeybinds(MODS, *it, false).passEvent;
+                suppressEvent      = !handleKeybinds(MODS, *it, false, nullptr).passEvent;
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_pressedKeys.erase(it);
@@ -590,7 +590,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            suppressEvent = !handleKeybinds(MODS, KEY, false).passEvent;
+            suppressEvent = !handleKeybinds(MODS, KEY, false, nullptr).passEvent;
         }
 
         shadowKeybinds();
@@ -604,15 +604,15 @@ void CKeybindManager::resizeWithBorder(const IPointer::SButtonEvent& e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true, nullptr);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true, nullptr);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, nullptr);
 }
 
 eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
@@ -645,7 +645,7 @@ std::string CKeybindManager::getCurrentSubmap() {
     return m_currentSelectedSubmap;
 }
 
-SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
+SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, SP<IKeyboard> keyboard) {
     static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
     static auto     PDRAGTHRESHOLD  = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
 
@@ -796,10 +796,11 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (k->repeat) {
-            const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
+            const auto KEEB = keyboard ? keyboard : g_pSeatManager->m_keyboard.lock();
+            m_repeatKeyRate = KEEB->m_repeatRate;
 
             m_activeKeybinds.emplace_back(k);
-            m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
+            m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(KEEB->m_repeatDelay));
         }
 
         if (!k->nonConsuming)

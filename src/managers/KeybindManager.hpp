@@ -124,6 +124,7 @@ class CKeybindManager {
 
     SP<CEventLoopTimer>              m_longPressTimer;
     SP<CEventLoopTimer>              m_repeatKeyTimer;
+    uint32_t                         m_repeatKeyRate = 50;
 
     uint32_t                         m_timeLastMs    = 0;
     uint32_t                         m_lastCode      = 0;
@@ -135,7 +136,7 @@ class CKeybindManager {
 
     CTimer                           m_scrollTimer;
 
-    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
+    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>);
 
     std::set<xkb_keysym_t>           m_mkKeys = {};
     std::set<xkb_keysym_t>           m_mkMods = {};

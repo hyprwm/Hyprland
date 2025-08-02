@@ -1600,9 +1600,9 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     const bool canPassHDRSurface = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
         m_renderData.surface->m_colorManagement->isHDR() && !m_renderData.surface->m_colorManagement->isWindowsScRGB() :
         false; // windows scRGB requires CM shader
-    const auto imageDescription  = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-         m_renderData.surface->m_colorManagement->imageDescription() :
-         (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
+    auto       imageDescription  = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+               m_renderData.surface->m_colorManagement->imageDescription() :
+               (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
         || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */

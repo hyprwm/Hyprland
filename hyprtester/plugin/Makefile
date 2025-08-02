@@ -1,4 +1,9 @@
-CXXFLAGS = -shared -fPIC --no-gnu-unique -g -std=c++2b -Wno-c++11-narrowing
+ifeq ($(CXX), clang++)
+	# FIXME --no-gnu-unique replacement if needed
+	CXXFLAGS = -shared -fPIC -g -std=c++2b -Wno-c++11-narrowing
+else
+	CXXFLAGS = -shared -fPIC --no-gnu-unique -g -std=c++2b -Wno-c++11-narrowing
+endif
 INCLUDES = `pkg-config --cflags pixman-1 libdrm pangocairo libinput libudev wayland-server xkbcommon`
 LIBS = `pkg-config --libs pangocairo`
 

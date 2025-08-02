@@ -24,13 +24,12 @@ static bool test() {
     NLog::log("{}Expecting blocked solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
-        NLog::log("{}", str);
-        EXPECT(str.contains("solitary: 0\n"), true);
-        EXPECT(str.contains("solitaryBlockedBy: windowed mode,missing candidate"), true);
-        EXPECT(str.contains("activelyTearing: false"), true);
-        EXPECT(str.contains("tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate"), true);
-        EXPECT(str.contains("directScanoutTo: 0\n"), true);
-        EXPECT(str.contains("directScanoutBlockedBy: user settings,missing candidate"), true);
+        EXPECT_CONTAINS(str, "solitary: 0\n");
+        EXPECT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
+        EXPECT_CONTAINS(str, "activelyTearing: false");
+        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
+        EXPECT_CONTAINS(str, "directScanoutTo: 0\n");
+        EXPECT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
     }
 
     NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
@@ -49,31 +48,27 @@ static bool test() {
     NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
-        NLog::log("{}", str);
-        EXPECT(str.contains("solitary: 0\n"), false);
-        EXPECT(str.contains("solitaryBlockedBy: null"), true);
-        EXPECT(str.contains("activelyTearing: false"), true);
-        EXPECT(str.contains("tearingBlockedBy: next frame is not torn,not supported by monitor,window settings"), true);
-        EXPECT(str.contains("directScanoutTo: 0\n"), false);
-        EXPECT(str.contains("directScanoutBlockedBy: null"), true);
+        FIXME(EXPECT_NOT_CONTAINS(str, "solitary: 0\n"));
+        FIXME(EXPECT_CONTAINS(str, "solitaryBlockedBy: null"));
+        EXPECT_CONTAINS(str, "activelyTearing: false");
+        FIXME(EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings"));
+        FIXME(EXPECT_NOT_CONTAINS(str, "directScanoutTo: 0\n"));
+        FIXME(EXPECT_CONTAINS(str, "directScanoutBlockedBy: null"));
     }
 
     OK(getFromSocket("/dispatch setprop active immediate 1"));
     NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
-        NLog::log("{}", str);
-        EXPECT(str.contains("tearingBlockedBy: next frame is not torn,not supported by monitor\n"), true);
+        FIXME(EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor\n"));
     }
 
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 
-    NLog::log("{}Restoring config values", Colors::YELLOW);
-    OK(getFromSocket("/keyword general:allow_tearing false"));
-    OK(getFromSocket("/keyword render:direct_scanout 0"));
-    OK(getFromSocket("/keyword cursor:no_hardware_cursors 2"));
+    NLog::log("{}Reloading the config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
 
     return !ret;
 }

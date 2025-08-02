@@ -97,7 +97,7 @@ static SDispatchResult vkb(std::string in) {
     g_pInputManager->newKeyboard(tkb1);
     g_pInputManager->newKeyboard(vkb0);
 
-    CScopeGuard    x([] {
+    CScopeGuard    x([&] {
         tkb0->destroy();
         tkb1->destroy();
         vkb0->destroy();

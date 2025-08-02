@@ -155,15 +155,15 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto              calcPos  = PWINDOW->m_position;
     auto              calcSize = PWINDOW->m_size;
 
-    const static auto REQUESTEDRATIO          = *CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
+    const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("dwindle:single_window_aspect_ratio");
     const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("dwindle:single_window_aspect_ratio_tolerance");
 
     Vector2D          ratioPadding;
 
-    if (REQUESTEDRATIO.y != 0 && !pNode->pParent) {
+    if (REQUESTEDRATIO.ptr()->y != 0 && !pNode->pParent) {
         const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
 
-        const double   requestedRatio = REQUESTEDRATIO.x / REQUESTEDRATIO.y;
+        const double   requestedRatio = REQUESTEDRATIO.ptr()->x / REQUESTEDRATIO.ptr()->y;
         const double   originalRatio  = originalSize.x / originalSize.y;
 
         if (requestedRatio > originalRatio) {

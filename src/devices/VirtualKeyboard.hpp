@@ -11,7 +11,7 @@ class CVirtualKeyboard : public IKeyboard {
     virtual bool                      isVirtual();
     virtual SP<Aquamarine::IKeyboard> aq();
 
-    wl_client*                        getClient();
+    virtual wl_client*                getClient();
 
   private:
     CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb);

@@ -1,6 +1,8 @@
 #include "VirtualKeyboard.hpp"
 #include "../defines.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
+#include "../config/ConfigManager.hpp"
+#include <wayland-server-protocol.h>
 
 SP<CVirtualKeyboard> CVirtualKeyboard::create(SP<CVirtualKeyboardV1Resource> keeb) {
     SP<CVirtualKeyboard> pKeeb = SP<CVirtualKeyboard>(new CVirtualKeyboard(keeb));
@@ -19,7 +21,10 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
         m_events.destroy.emit();
     });
 
-    m_listeners.key       = keeb_->m_events.key.listen([this](const auto& event) { m_keyboardEvents.key.emit(event); });
+    m_listeners.key       = keeb_->m_events.key.listen([this](const auto& event) {
+        updatePressed(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
+        m_keyboardEvents.key.emit(event);
+    });
     m_listeners.modifiers = keeb_->m_events.modifiers.listen([this](const SModifiersEvent& event) {
         updateModifiers(event.depressed, event.latched, event.locked, event.group);
         m_keyboardEvents.modifiers.emit(SModifiersEvent{
@@ -39,7 +44,8 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
         m_keyboardEvents.keymap.emit(event);
     });
 
-    m_deviceName = keeb_->m_name;
+    m_deviceName  = keeb_->m_name;
+    m_shareStates = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
 }
 
 bool CVirtualKeyboard::isVirtual() {

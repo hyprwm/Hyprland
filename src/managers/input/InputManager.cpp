@@ -39,6 +39,7 @@
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include "../../helpers/time/Time.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
@@ -931,6 +932,14 @@ Vector2D CInputManager::getMouseCoordsInternal() {
     return g_pPointerManager->position();
 }
 
+void CInputManager::newKeyboard(SP<IKeyboard> keeb) {
+    const auto PNEWKEYBOARD = m_keyboards.emplace_back(keeb);
+
+    setupKeyboard(PNEWKEYBOARD);
+
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x}", (uintptr_t)PNEWKEYBOARD.get());
+}
+
 void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
     const auto PNEWKEYBOARD = m_keyboards.emplace_back(CKeyboard::create(keyboard));
 
@@ -1398,18 +1407,36 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
+    const auto IME    = m_relay.m_inputMethod.lock();
+    const bool HASIME = IME && IME->hasGrab();
+    const bool USEIME = HASIME && !DISALLOWACTION;
+
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
-    bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
+    bool passEvent = DISALLOWACTION;
+
+    if (!DISALLOWACTION)
+        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
     if (passEvent) {
-        const auto IME = m_relay.m_inputMethod.lock();
-
-        if (IME && IME->hasGrab() && !DISALLOWACTION) {
+        if (USEIME) {
             IME->setKeyboard(pKeyboard);
             IME->sendKey(event.timeMs, event.keycode, event.state);
         } else {
+            const auto PRESSED  = shareKeyFromAllKBs(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
+            const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
+
+            if (CONTAINS && PRESSED)
+                return;
+            if (!CONTAINS && !PRESSED)
+                return;
+
+            if (CONTAINS)
+                std::erase(m_pressed, event.keycode);
+            else
+                m_pressed.emplace_back(event.keycode);
+
             g_pSeatManager->setKeyboard(pKeyboard);
             g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, event.state);
         }
@@ -1424,10 +1451,9 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
-    const auto ALLMODS = accumulateModsFromAllKBs();
-
-    auto       MODS = pKeyboard->m_modifiersState;
-    MODS.depressed  = ALLMODS;
+    auto       MODS    = pKeyboard->m_modifiersState;
+    const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
+    MODS.depressed     = ALLMODS;
 
     const auto IME = m_relay.m_inputMethod.lock();
 
@@ -1437,6 +1463,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     } else {
         g_pSeatManager->setKeyboard(pKeyboard);
         g_pSeatManager->sendKeyboardMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+        m_lastMods = MODS.depressed;
     }
 
     updateKeyboardsLeds(pKeyboard);
@@ -1457,9 +1484,9 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->isVirtual())
         return false;
 
-    CVirtualKeyboard* vk = (CVirtualKeyboard*)pKeyboard.get();
+    auto client = pKeyboard->getClient();
 
-    return !pKeyboard || (!m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == vk->getClient());
+    return !pKeyboard || (client && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == client);
 }
 
 void CInputManager::refocus() {
@@ -1564,11 +1591,45 @@ void CInputManager::updateCapabilities() {
     m_capabilities = caps;
 }
 
-uint32_t CInputManager::accumulateModsFromAllKBs() {
+const std::vector<uint32_t>& CInputManager::getKeysFromAllKBs() {
+    return m_pressed;
+}
 
-    uint32_t finalMask = 0;
+uint32_t CInputManager::getModsFromAllKBs() {
+    return m_lastMods;
+}
+
+bool CInputManager::shareKeyFromAllKBs(uint32_t key, bool pressed) {
+    bool finalState = pressed;
+
+    if (finalState)
+        return finalState;
 
     for (auto const& kb : m_keyboards) {
+        if (!kb->shareStates())
+            continue;
+
+        if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
+            continue;
+
+        if (!kb->m_enabled)
+            continue;
+
+        const bool PRESSED = kb->getPressed(key);
+        if (PRESSED)
+            return PRESSED;
+    }
+
+    return finalState;
+}
+
+uint32_t CInputManager::shareModsFromAllKBs(uint32_t depressed) {
+    uint32_t finalMask = depressed;
+
+    for (auto const& kb : m_keyboards) {
+        if (!kb->shareStates())
+            continue;
+
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
             continue;
 
@@ -1749,13 +1810,6 @@ void CInputManager::unsetCursorImage() {
 
     m_cursorImageOverridden = false;
     restoreCursorIconToApp();
-}
-
-std::string CInputManager::deviceNameToInternalString(std::string in) {
-    std::ranges::replace(in, ' ', '-');
-    std::ranges::replace(in, '\n', '-');
-    std::ranges::transform(in, in.begin(), ::tolower);
-    return in;
 }
 
 std::string CInputManager::getNameForNewDevice(std::string internalName) {

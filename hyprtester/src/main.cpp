@@ -225,6 +225,9 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);
 
+    NLog::log("{}running vkb test from plugin", Colors::YELLOW);
+    EXPECT(testVkb(), true);
+
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);
     getFromSocket("/dispatch exit");

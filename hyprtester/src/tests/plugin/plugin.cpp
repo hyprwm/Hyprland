@@ -19,3 +19,13 @@ bool testPlugin() {
     }
     return true;
 }
+
+bool testVkb() {
+    const auto RESPONSE = getFromSocket("/dispatch plugin:test:vkb");
+
+    if (RESPONSE != "ok") {
+        NLog::log("{}Vkb tests failed, tests returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);
+        return false;
+    }
+    return true;
+}

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include <wayland-server-protocol.h>
+#include <wayland-util.h>
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -104,7 +105,7 @@ class CWLKeyboardResource {
 
     bool                good();
     void                sendKeymap(SP<IKeyboard> keeb);
-    void                sendEnter(SP<CWLSurfaceResource> surface);
+    void                sendEnter(SP<CWLSurfaceResource> surface, wl_array* keys);
     void                sendLeave();
     void                sendKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void                sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);

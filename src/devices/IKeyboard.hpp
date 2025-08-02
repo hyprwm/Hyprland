@@ -24,10 +24,13 @@ enum eKeyboardModifiers {
 class IKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
-    virtual uint32_t                  getCapabilities();
-    virtual eHIDType                  getType();
-    virtual bool                      isVirtual() = 0;
-    virtual SP<Aquamarine::IKeyboard> aq()        = 0;
+    virtual uint32_t   getCapabilities();
+    virtual eHIDType   getType();
+    virtual bool       isVirtual() = 0;
+    virtual wl_client* getClient() {
+        return nullptr;
+    };
+    virtual SP<Aquamarine::IKeyboard> aq() = 0;
 
     struct SKeyEvent {
         uint32_t              timeMs     = 0;
@@ -73,6 +76,8 @@ class IKeyboard : public IHID {
     bool                    updateModifiersState(); // rets whether changed
     void                    updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
     void                    updateKeymapFD();
+    bool                    getPressed(uint32_t key);
+    bool                    shareStates();
 
     bool                    m_active     = false;
     bool                    m_enabled    = true;
@@ -118,5 +123,9 @@ class IKeyboard : public IHID {
   private:
     void                  clearManuallyAllocd();
 
-    std::vector<uint32_t> m_pressedXKB;
+    std::vector<uint32_t> m_pressed;
+
+  protected:
+    bool updatePressed(uint32_t key, bool pressed);
+    bool m_shareStates = true;
 };

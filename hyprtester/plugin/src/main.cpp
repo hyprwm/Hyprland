@@ -12,6 +12,9 @@
 #include <src/Compositor.hpp>
 #undef private
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
+
 #include "globals.hpp"
 
 // Do NOT change this function.
@@ -52,9 +55,9 @@ static SDispatchResult snapMove(std::string in) {
 class CTestKeyboard : public IKeyboard {
   public:
     static SP<CTestKeyboard> create(bool isVirtual) {
-        auto keeb            = SP<CTestKeyboard>(new CTestKeyboard());
-        keeb->m_self         = keeb;
-        keeb->m_isVirtual    = isVirtual;
+        auto keeb           = SP<CTestKeyboard>(new CTestKeyboard());
+        keeb->m_self        = keeb;
+        keeb->m_isVirtual   = isVirtual;
         keeb->m_shareStates = !isVirtual;
         return keeb;
     }
@@ -94,6 +97,12 @@ static SDispatchResult vkb(std::string in) {
     g_pInputManager->newKeyboard(tkb1);
     g_pInputManager->newKeyboard(vkb0);
 
+    CScopeGuard    x([] {
+        tkb0->destroy();
+        tkb1->destroy();
+        vkb0->destroy();
+    });
+
     const auto&    PRESSED = g_pInputManager->getKeysFromAllKBs();
     const uint32_t TESTKEY = 1;
 
@@ -122,10 +131,6 @@ static SDispatchResult vkb(std::string in) {
             .error   = "Expected released key found in pressed (vkb no share state)",
         };
     }
-
-    tkb0->destroy();
-    tkb1->destroy();
-    vkb0->destroy();
 
     return {};
 }

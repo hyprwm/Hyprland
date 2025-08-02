@@ -45,7 +45,7 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
     });
 
     m_deviceName   = keeb_->m_name;
-    m_share_states = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
+    m_shareStates = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
 }
 
 bool CVirtualKeyboard::isVirtual() {

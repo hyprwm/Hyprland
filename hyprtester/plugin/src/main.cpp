@@ -55,7 +55,7 @@ class CTestKeyboard : public IKeyboard {
         auto keeb            = SP<CTestKeyboard>(new CTestKeyboard());
         keeb->m_self         = keeb;
         keeb->m_isVirtual    = isVirtual;
-        keeb->m_share_states = !isVirtual;
+        keeb->m_shareStates = !isVirtual;
         return keeb;
     }
 
@@ -75,6 +75,10 @@ class CTestKeyboard : public IKeyboard {
         };
         updatePressed(event.keycode, pressed);
         m_keyboardEvents.key.emit(event);
+    }
+
+    void destroy() {
+        m_events.destroy.emit();
     }
 
   private:
@@ -118,6 +122,10 @@ static SDispatchResult vkb(std::string in) {
             .error   = "Expected released key found in pressed (vkb no share state)",
         };
     }
+
+    tkb0->destroy();
+    tkb1->destroy();
+    vkb0->destroy();
 
     return {};
 }

@@ -127,5 +127,5 @@ class IKeyboard : public IHID {
 
   protected:
     bool updatePressed(uint32_t key, bool pressed);
-    bool m_share_states = true;
+    bool m_shareStates = true;
 };

@@ -414,5 +414,5 @@ bool IKeyboard::getPressed(uint32_t key) {
 }
 
 bool IKeyboard::shareStates() {
-    return m_share_states;
+    return m_shareStates;
 }

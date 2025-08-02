@@ -2630,7 +2630,7 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-    const auto FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto          FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
 
     if (!FBDATA->getTexture())
         return;
@@ -2653,7 +2653,8 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
     data.blur         = SHOULD_BLUR;
     data.blurA        = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
     if (SHOULD_BLUR)
-        data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */;
+        data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
+    ;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

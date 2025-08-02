@@ -160,10 +160,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     Vector2D          ratioPadding;
 
-    if (REQUESTEDRATIO.ptr()->y != 0 && !pNode->pParent) {
+    if ((*REQUESTEDRATIO).y != 0 && !pNode->pParent) {
         const Vector2D originalSize = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
 
-        const double   requestedRatio = REQUESTEDRATIO.ptr()->x / REQUESTEDRATIO.ptr()->y;
+        const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
         const double   originalRatio  = originalSize.x / originalSize.y;
 
         if (requestedRatio > originalRatio) {

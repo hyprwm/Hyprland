@@ -296,6 +296,7 @@ class CHyprOpenGLImpl {
 
     std::map<PHLWINDOWREF, CFramebuffer>        m_windowFramebuffers;
     std::map<PHLLSREF, CFramebuffer>            m_layerFramebuffers;
+    std::map<WP<CPopup>, CFramebuffer>          m_popupFramebuffers;
     std::map<PHLMONITORREF, SMonitorRenderData> m_monitorRenderResources;
     std::map<PHLMONITORREF, CFramebuffer>       m_monitorBGFBs;
 

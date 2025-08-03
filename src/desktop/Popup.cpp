@@ -90,7 +90,7 @@ void CPopup::initAllSignals() {
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
     const auto& POPUP = m_children.emplace_back(CPopup::create(popup, m_self));
     POPUP->m_self     = POPUP;
-    Debug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
+    Debug::log(LOG, "New popup at {:x}", (uintptr_t)this);
 }
 
 void CPopup::onDestroy() {
@@ -148,6 +148,8 @@ void CPopup::onMap() {
 
     m_alpha->setValueAndWarp(0.F);
     *m_alpha = 1.F;
+
+    Debug::log(LOG, "popup {:x}: mapped", (uintptr_t)this);
 }
 
 void CPopup::onUnmap() {
@@ -159,6 +161,8 @@ void CPopup::onUnmap() {
         onDestroy();
         return;
     }
+
+    Debug::log(LOG, "popup {:x}: unmapped", (uintptr_t)this);
 
     // if the popup committed a different size right now, we also need to damage the old size.
     const Vector2D MAX_DAMAGE_SIZE = {std::max(m_lastSize.x, m_resource->m_surface->m_surface->m_current.size.x),

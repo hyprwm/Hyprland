@@ -1,10 +1,12 @@
 #include "Popup.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
@@ -51,6 +53,20 @@ CPopup::~CPopup() {
 
 void CPopup::initAllSignals() {
 
+    g_pAnimationManager->createAnimation(0.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig("fade"), AVARDAMAGE_NONE);
+    m_alpha->setUpdateCallback([this](auto) {
+        //
+        g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
+    });
+    m_alpha->setCallbackOnEnd(
+        [this](auto) {
+            if (inert()) {
+                g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
+                fullyDestroy();
+            }
+        },
+        false);
+
     if (!m_resource) {
         if (!m_windowOwner.expired())
             m_listeners.newPopup = m_windowOwner->m_xdgSurface->m_events.newPopup.listen([this](const auto& resource) { this->onNewPopup(resource); });
@@ -83,6 +99,23 @@ void CPopup::onDestroy() {
     if (!m_parent)
         return; // head node
 
+    m_subsurfaceHead.reset();
+    m_children.clear();
+
+    if (m_fadingOut && m_alpha->isBeingAnimated()) {
+        Debug::log(LOG, "popup {:x}: skipping full destroy, animating", (uintptr_t)this);
+        return;
+    }
+
+    fullyDestroy();
+}
+
+void CPopup::fullyDestroy() {
+    Debug::log(LOG, "popup {:x} fully destroying", (uintptr_t)this);
+
+    g_pHyprRenderer->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first == m_self; });
+
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });
 }
 
@@ -112,6 +145,9 @@ void CPopup::onMap() {
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+
+    m_alpha->setValueAndWarp(0.F);
+    *m_alpha = 1.F;
 }
 
 void CPopup::onUnmap() {
@@ -124,13 +160,12 @@ void CPopup::onUnmap() {
         return;
     }
 
-    m_mapped = false;
-
     // if the popup committed a different size right now, we also need to damage the old size.
     const Vector2D MAX_DAMAGE_SIZE = {std::max(m_lastSize.x, m_resource->m_surface->m_surface->m_current.size.x),
                                       std::max(m_lastSize.y, m_resource->m_surface->m_surface->m_current.size.y)};
 
     m_lastSize = m_resource->m_surface->m_surface->m_current.size;
+    m_lastPos  = coordsRelativeToParent();
 
     const auto COORDS = coordsGlobal();
 
@@ -141,6 +176,16 @@ void CPopup::onUnmap() {
     // damage the last popup's explicit max size as well
     box = CBox{COORDS, MAX_DAMAGE_SIZE}.expand(4);
     g_pHyprRenderer->damageBox(box);
+
+    m_lastSize = MAX_DAMAGE_SIZE;
+
+    g_pHyprRenderer->makeSnapshot(m_self);
+
+    m_fadingOut = true;
+    m_alpha->setValueAndWarp(1.F);
+    *m_alpha = 0.F;
+
+    m_mapped = false;
 
     m_subsurfaceHead.reset();
 
@@ -245,7 +290,7 @@ Vector2D CPopup::coordsRelativeToParent() {
     Vector2D offset;
 
     if (!m_resource)
-        return {};
+        return m_lastPos;
 
     WP<CPopup> current = m_self;
     offset -= current->m_resource->m_surface->m_current.geometry.pos();
@@ -380,4 +425,12 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
 
 bool CPopup::inert() const {
     return m_inert;
+}
+
+PHLMONITOR CPopup::getMonitor() {
+    if (!m_windowOwner.expired())
+        return m_windowOwner->m_monitor.lock();
+    if (!m_layerOwner.expired())
+        return m_layerOwner->m_monitor.lock();
+    return nullptr;
 }

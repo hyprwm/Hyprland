@@ -67,7 +67,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     else
         m_box = box_;
 
-    const auto POS = m_box.pos();
+    const auto POS = m_box.pos() * m_monitor->m_scale;
     m_box.transform(wlTransformToHyprutils(m_monitor->m_transform), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y).scale(m_monitor->m_scale).round();
     m_box.x = POS.x;
     m_box.y = POS.y;

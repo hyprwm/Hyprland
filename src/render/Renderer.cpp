@@ -2499,12 +2499,13 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     CSurfacePassElement::SRenderData renderdata;
-    renderdata.pos             = popup->coordsGlobal() - PMONITOR->m_position;
+    renderdata.pos             = popup->coordsGlobal();
     renderdata.alpha           = 1.F;
     renderdata.dontRound       = true; // don't round popups
     renderdata.pMonitor        = PMONITOR;
     renderdata.squishOversized = false; // don't squish popups
     renderdata.popup           = true;
+    renderdata.blur            = false;
 
     popup->m_wlSurface->resource()->breadthfirst(
         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {

@@ -101,6 +101,7 @@ void CPopup::onDestroy() {
 
     m_subsurfaceHead.reset();
     m_children.clear();
+    m_wlSurface.reset();
 
     if (m_fadingOut && m_alpha->isBeingAnimated()) {
         Debug::log(LOG, "popup {:x}: skipping full destroy, animating", (uintptr_t)this);

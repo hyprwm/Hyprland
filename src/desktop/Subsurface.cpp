@@ -172,8 +172,16 @@ void CSubsurface::onUnmap() {
 }
 
 void CSubsurface::damageLastArea() {
-    const auto COORDS = coordsGlobal() + m_lastPosition - m_subsurface->m_position;
-    CBox       box{COORDS, m_lastSize};
+    const auto     COORDS = coordsGlobal() + m_lastPosition - m_subsurface->m_position;
+
+    const Vector2D MAX_DAMAGE_SIZE = m_wlSurface && m_wlSurface->resource() ?
+        Vector2D{
+            std::max(m_lastSize.x, m_wlSurface->resource()->m_current.size.x),
+            std::max(m_lastSize.y, m_wlSurface->resource()->m_current.size.y),
+        } :
+        m_lastSize;
+
+    CBox           box{COORDS, m_lastSize};
     box.expand(4);
     g_pHyprRenderer->damageBox(box);
 }

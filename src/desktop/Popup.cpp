@@ -53,7 +53,7 @@ CPopup::~CPopup() {
 
 void CPopup::initAllSignals() {
 
-    g_pAnimationManager->createAnimation(0.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig("fade"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
     m_alpha->setUpdateCallback([this](auto) {
         //
         g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
@@ -146,6 +146,7 @@ void CPopup::onMap() {
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
 
+    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
     m_alpha->setValueAndWarp(0.F);
     *m_alpha = 1.F;
 
@@ -186,6 +187,7 @@ void CPopup::onUnmap() {
     g_pHyprRenderer->makeSnapshot(m_self);
 
     m_fadingOut = true;
+    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsOut"));
     m_alpha->setValueAndWarp(1.F);
     *m_alpha = 0.F;
 

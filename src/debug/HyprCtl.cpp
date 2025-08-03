@@ -1367,7 +1367,7 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
     if (vars.size() < 3) {
         g_pHyprError->destroy();
 
-        if (vars.size() == 2 && !vars[1].find("dis"))
+        if (vars.size() == 2 && !vars[1].contains("dis"))
             return "var 1 not color or disable";
 
         return "ok";

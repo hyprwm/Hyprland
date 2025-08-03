@@ -664,7 +664,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
-                    renderdata.alpha = popup->m_alpha->value();
+                    renderdata.fadeAlpha = popup->m_alpha->value();
 
                     popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -2416,6 +2416,8 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     if (!shouldRenderWindow(pWindow))
         return; // ignore, window is not being rendered
 
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pWindow.get());
+
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
@@ -2448,6 +2450,8 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
+
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pLayer.get());
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
@@ -2483,6 +2487,8 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
 
     if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
         return;
+
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)popup.get());
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 

@@ -382,6 +382,7 @@ protocolnew("staging/color-management" "color-management-v1" false)
 protocolnew("staging/xdg-toplevel-tag" "xdg-toplevel-tag-v1" false)
 protocolnew("staging/xdg-system-bell" "xdg-system-bell-v1" false)
 protocolnew("staging/ext-workspace" "ext-workspace-v1" false)
+protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 
 protocolwayland()
 

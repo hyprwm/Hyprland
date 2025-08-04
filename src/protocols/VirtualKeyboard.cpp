@@ -1,23 +1,42 @@
 #include "VirtualKeyboard.hpp"
+#include <filesystem>
 #include <sys/mman.h>
+#include "../config/ConfigValue.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../helpers/MiscFunctions.hpp"
 using namespace Hyprutils::OS;
+
+static std::string virtualKeyboardNameForWlClient(wl_client* client) {
+    std::string name = "hl-virtual-keyboard";
+
+    static auto PVKNAMEPROC = CConfigValue<Hyprlang::INT>("misc:name_vk_after_proc");
+    if (!*PVKNAMEPROC)
+        return name;
+
+    name += "-";
+    const auto CLIENTNAME = binaryNameForWlClient(client);
+    if (CLIENTNAME.has_value()) {
+        const auto PATH = std::filesystem::path(CLIENTNAME.value());
+        if (PATH.has_filename()) {
+            const auto FILENAME = PATH.filename();
+            const auto NAME     = deviceNameToInternalString(FILENAME);
+            name += NAME;
+            return name;
+        }
+    }
+
+    name += "unknown";
+    return name;
+}
 
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    m_resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
-        releasePressed();
-        m_events.destroy.emit();
-        PROTO::virtualKeyboard->destroyResource(this);
-    });
-    m_resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) {
-        releasePressed();
-        m_events.destroy.emit();
-        PROTO::virtualKeyboard->destroyResource(this);
-    });
+    m_resource->setDestroy([this](CZwpVirtualKeyboardV1* r) { destroy(); });
+    m_resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) { destroy(); });
 
     m_resource->setKey([this](CZwpVirtualKeyboardV1* r, uint32_t timeMs, uint32_t key, uint32_t state) {
         if UNLIKELY (!m_hasKeymap) {
@@ -31,7 +50,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             .state   = (wl_keyboard_key_state)state,
         });
 
-        const bool CONTAINS = std::ranges::find(m_pressed, key) != m_pressed.end();
+        const bool CONTAINS = std::ranges::contains(m_pressed, key);
         if (state && !CONTAINS)
             m_pressed.emplace_back(key);
         else if (!state && CONTAINS)
@@ -88,7 +107,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         xkb_context_unref(xkbContext);
     });
 
-    m_name = "hl-virtual-keyboard";
+    m_name = virtualKeyboardNameForWlClient(resource_->client());
 }
 
 CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {
@@ -113,6 +132,14 @@ void CVirtualKeyboardV1Resource::releasePressed() {
     }
 
     m_pressed.clear();
+}
+
+void CVirtualKeyboardV1Resource::destroy() {
+    const auto RELEASEPRESSED = g_pConfigManager->getDeviceInt(m_name, "release_pressed_on_close", "input:virtualkeyboard:release_pressed_on_close");
+    if (RELEASEPRESSED)
+        releasePressed();
+    m_events.destroy.emit();
+    PROTO::virtualKeyboard->destroyResource(this);
 }
 
 CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

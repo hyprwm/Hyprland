@@ -184,6 +184,7 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}launching hl", Colors::YELLOW);
     if (!launchHyprland(configPath, binaryPath)) {
         NLog::log("{}well it failed", Colors::RED);
+        std::cout << "\033[37m";
         return 1;
     }
 

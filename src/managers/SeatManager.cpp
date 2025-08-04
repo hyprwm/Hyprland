@@ -11,7 +11,11 @@
 #include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <ranges>
+#include <cstring>
+
+using namespace Hyprutils::Utils;
 
 CSeatManager::CSeatManager() {
     m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
@@ -136,6 +140,18 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         return;
     }
 
+    wl_array keys;
+    wl_array_init(&keys);
+    CScopeGuard x([&keys] { wl_array_release(&keys); });
+
+    const auto& PRESSED = g_pInputManager->getKeysFromAllKBs();
+    static_assert(std::is_same_v<std::decay_t<decltype(PRESSED)>::value_type, uint32_t>, "Element type different from keycode type uint32_t");
+
+    const auto PRESSEDARRSIZE = PRESSED.size() * sizeof(uint32_t);
+    const auto PKEYS          = wl_array_add(&keys, PRESSEDARRSIZE);
+    if (PKEYS)
+        memcpy(PKEYS, PRESSED.data(), PRESSEDARRSIZE);
+
     auto client = surf->client();
     for (auto const& r : m_seatResources | std::views::reverse) {
         if (r->resource->client() != client)
@@ -146,7 +162,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
             if (!k)
                 continue;
 
-            k->sendEnter(surf);
+            k->sendEnter(surf, &keys);
             k->sendMods(m_keyboard->m_modifiersState.depressed, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
         }
     }

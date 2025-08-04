@@ -305,8 +305,14 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     sendKeymap(g_pSeatManager->m_keyboard.lock());
     repeatInfo(g_pSeatManager->m_keyboard->m_repeatRate, g_pSeatManager->m_keyboard->m_repeatDelay);
 
-    if (g_pSeatManager->m_state.keyboardFocus && g_pSeatManager->m_state.keyboardFocus->client() == m_resource->client())
-        sendEnter(g_pSeatManager->m_state.keyboardFocus.lock());
+    if (g_pSeatManager->m_state.keyboardFocus && g_pSeatManager->m_state.keyboardFocus->client() == m_resource->client()) {
+        wl_array keys;
+        wl_array_init(&keys);
+
+        sendEnter(g_pSeatManager->m_state.keyboardFocus.lock(), &keys);
+
+        wl_array_release(&keys);
+    }
 }
 
 bool CWLKeyboardResource::good() {
@@ -334,7 +340,9 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     m_resource->sendKeymap(format, fd.get(), size);
 }
 
-void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
+void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface, wl_array* keys) {
+    ASSERT(keys);
+
     if (!m_owner || m_currentSurface == surface || !surface->getResource()->resource())
         return;
 
@@ -351,12 +359,7 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
     m_currentSurface           = surface;
     m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
-    wl_array arr;
-    wl_array_init(&arr);
-
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), &arr);
-
-    wl_array_release(&arr);
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), keys);
 }
 
 void CWLKeyboardResource::sendLeave() {

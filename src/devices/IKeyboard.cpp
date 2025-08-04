@@ -378,19 +378,6 @@ bool IKeyboard::updateModifiersState() {
 }
 
 void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
-
-    const auto contains = std::ranges::find(m_pressedXKB, xkbKey) != m_pressedXKB.end();
-
-    if (contains && pressed)
-        return;
-    if (!contains && !pressed)
-        return;
-
-    if (contains)
-        std::erase(m_pressedXKB, xkbKey);
-    else
-        m_pressedXKB.emplace_back(xkbKey);
-
     xkb_state_update_key(m_xkbState, xkbKey, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 
     if (updateModifiersState()) {
@@ -404,4 +391,28 @@ void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
             .group     = m_modifiersState.group,
         });
     }
+}
+
+bool IKeyboard::updatePressed(uint32_t key, bool pressed) {
+    const auto contains = getPressed(key);
+
+    if (contains && pressed)
+        return false;
+    if (!contains && !pressed)
+        return false;
+
+    if (contains)
+        std::erase(m_pressed, key);
+    else
+        m_pressed.emplace_back(key);
+
+    return true;
+}
+
+bool IKeyboard::getPressed(uint32_t key) {
+    return std::ranges::contains(m_pressed, key);
+}
+
+bool IKeyboard::shareStates() {
+    return m_shareStates;
 }

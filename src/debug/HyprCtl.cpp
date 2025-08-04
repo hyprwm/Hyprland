@@ -1342,7 +1342,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         }
         return result.empty() ? "ok" : result;
     } else {
-        auto k = std::ranges::find_if(g_pInputManager->m_keyboards, [&](const auto& other) { return other->m_hlName == g_pInputManager->deviceNameToInternalString(KB); });
+        auto k = std::ranges::find_if(g_pInputManager->m_keyboards, [&](const auto& other) { return other->m_hlName == deviceNameToInternalString(KB); });
 
         if (k == g_pInputManager->m_keyboards.end())
             return "device not found";

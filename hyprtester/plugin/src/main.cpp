@@ -8,8 +8,12 @@
 #include <src/config/ConfigDescriptions.hpp>
 #include <src/layout/IHyprLayout.hpp>
 #include <src/managers/LayoutManager.hpp>
+#include <src/managers/input/InputManager.hpp>
 #include <src/Compositor.hpp>
 #undef private
+
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
 
 #include "globals.hpp"
 
@@ -48,11 +52,95 @@ static SDispatchResult snapMove(std::string in) {
     return {};
 }
 
+class CTestKeyboard : public IKeyboard {
+  public:
+    static SP<CTestKeyboard> create(bool isVirtual) {
+        auto keeb           = SP<CTestKeyboard>(new CTestKeyboard());
+        keeb->m_self        = keeb;
+        keeb->m_isVirtual   = isVirtual;
+        keeb->m_shareStates = !isVirtual;
+        return keeb;
+    }
+
+    virtual bool isVirtual() {
+        return m_isVirtual;
+    }
+
+    virtual SP<Aquamarine::IKeyboard> aq() {
+        return nullptr;
+    }
+
+    void sendKey(uint32_t key, bool pressed) {
+        auto event = IKeyboard::SKeyEvent{
+            .timeMs  = static_cast<uint32_t>(Time::millis(Time::steadyNow())),
+            .keycode = key,
+            .state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
+        };
+        updatePressed(event.keycode, pressed);
+        m_keyboardEvents.key.emit(event);
+    }
+
+    void destroy() {
+        m_events.destroy.emit();
+    }
+
+  private:
+    bool m_isVirtual;
+};
+
+static SDispatchResult vkb(std::string in) {
+    auto tkb0 = CTestKeyboard::create(false);
+    auto tkb1 = CTestKeyboard::create(false);
+    auto vkb0 = CTestKeyboard::create(true);
+
+    g_pInputManager->newKeyboard(tkb0);
+    g_pInputManager->newKeyboard(tkb1);
+    g_pInputManager->newKeyboard(vkb0);
+
+    CScopeGuard    x([&] {
+        tkb0->destroy();
+        tkb1->destroy();
+        vkb0->destroy();
+    });
+
+    const auto&    PRESSED = g_pInputManager->getKeysFromAllKBs();
+    const uint32_t TESTKEY = 1;
+
+    tkb0->sendKey(TESTKEY, true);
+    if (!std::ranges::contains(PRESSED, TESTKEY)) {
+        return {
+            .success = false,
+            .error   = "Expected pressed key not found",
+        };
+    }
+
+    tkb1->sendKey(TESTKEY, true);
+    tkb0->sendKey(TESTKEY, false);
+    if (!std::ranges::contains(PRESSED, TESTKEY)) {
+        return {
+            .success = false,
+            .error   = "Expected pressed key not found (kb share state)",
+        };
+    }
+
+    vkb0->sendKey(TESTKEY, true);
+    tkb1->sendKey(TESTKEY, false);
+    if (std::ranges::contains(PRESSED, TESTKEY)) {
+        return {
+            .success = false,
+            .error   = "Expected released key found in pressed (vkb no share state)",
+        };
+    }
+
+    return {};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:test", ::test);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:snapmove", ::snapMove);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:vkb", ::vkb);
 
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};
 }

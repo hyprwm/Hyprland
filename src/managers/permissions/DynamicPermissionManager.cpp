@@ -2,10 +2,9 @@
 #include "DynamicPermissionManager.hpp"
 #include <algorithm>
 #include <wayland-server-core.h>
-#include <expected>
-#include <filesystem>
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -74,48 +73,6 @@ static const char* specialPidToString(eSpecialPidTypes type) {
         case SPECIAL_PID_TYPE_CONFIG: return "config";
         default: return "";
     }
-}
-
-static std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
-    if (pid <= 0)
-        return std::unexpected("No pid for client");
-
-#if defined(KERN_PROC_PATHNAME)
-    int mib[] = {
-        CTL_KERN,
-#if defined(__NetBSD__)
-        KERN_PROC_ARGS,
-        pid,
-        KERN_PROC_PATHNAME,
-#else
-        KERN_PROC,
-        KERN_PROC_PATHNAME,
-        pid,
-#endif
-    };
-    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
-    char   exe[PATH_MAX] = "/nonexistent";
-    size_t sz            = sizeof(exe);
-    sysctl(mib, miblen, &exe, &sz, NULL, 0);
-    std::string path = exe;
-#else
-    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
-#endif
-    std::error_code ec;
-
-    std::string     fullPath = std::filesystem::canonical(path, ec);
-
-    if (ec)
-        return std::unexpected("canonical failed");
-
-    return fullPath;
-}
-
-static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
-    pid_t pid = 0;
-    wl_client_get_credentials(client, &pid, nullptr, nullptr);
-
-    return binaryNameForPid(pid);
 }
 
 void CDynamicPermissionManager::clearConfigPermissions() {

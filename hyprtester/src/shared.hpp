@@ -102,7 +102,7 @@ namespace Colors {
             TESTS_PASSED++;                                                                                                                                                        \
             ret = OLD_RET;                                                                                                                                                         \
         } else {                                                                                                                                                                   \
-            NLog::log("{}FIXME Broken test has passed, change it to EXPECT", Colors::YELLOW);                                                                                      \
+            NLog::log("{}FIXME Broken test has passed, remove FIXME wrapper", Colors::YELLOW);                                                                                     \
             TESTS_FAILED++;                                                                                                                                                        \
             TESTS_PASSED--;                                                                                                                                                        \
             ret = 1;                                                                                                                                                               \

@@ -43,7 +43,9 @@ static bool test() {
     OK(getFromSocket("/keyword general:allow_tearing true"));
     OK(getFromSocket("/keyword render:direct_scanout 1"));
     OK(getFromSocket("/keyword cursor:no_hardware_cursors 0"));
+    NLog::log("{}", getFromSocket("/clients"));
     OK(getFromSocket("/dispatch fullscreen 1"));
+    NLog::log("{}", getFromSocket("/clients"));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
     {

@@ -65,17 +65,34 @@ void CConfigWatcher::setOnChange(const std::function<void(const SConfigWatchEven
 }
 
 void CConfigWatcher::onInotifyEvent() {
-    inotify_event ev;
-    while (read(m_inotifyFd.get(), &ev, sizeof(ev)) > 0) {
-        const auto WD = std::ranges::find_if(m_watches.begin(), m_watches.end(), [wd = ev.wd](const auto& e) { return e.wd == wd; });
+    constexpr size_t                                     BUFFER_SIZE = sizeof(inotify_event) + NAME_MAX + 1;
+    alignas(inotify_event) std::array<char, BUFFER_SIZE> buffer      = {};
+    const ssize_t                                        bytesRead   = read(m_inotifyFd.get(), buffer.data(), buffer.size());
+    if (bytesRead <= 0)
+        return;
 
-        if (WD == m_watches.end()) {
-            Debug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev.wd);
-            return;
+    for (size_t offset = 0; offset < (size_t)bytesRead;) {
+        const auto* ev = (const inotify_event*)(buffer.data() + offset);
+
+        if (offset + sizeof(inotify_event) > (size_t)bytesRead) {
+            Debug::log(ERR, "CConfigWatcher: malformed inotify event, truncated header");
+            break;
         }
 
-        m_watchCallback(SConfigWatchEvent{
-            .file = WD->file,
-        });
+        if (offset + sizeof(inotify_event) + ev->len > (size_t)(bytesRead)) {
+            Debug::log(ERR, "CConfigWatcher: malformed inotify event, truncated name field");
+            break;
+        }
+
+        const auto WD = std::ranges::find_if(m_watches, [wd = ev->wd](const auto& e) { return e.wd == wd; });
+
+        if (WD == m_watches.end())
+            Debug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev->wd);
+        else
+            m_watchCallback(SConfigWatchEvent{
+                .file = WD->file,
+            });
+
+        offset += sizeof(inotify_event) + ev->len;
     }
 }

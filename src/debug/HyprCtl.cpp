@@ -1695,7 +1695,7 @@ static std::string getIsLocked(eHyprCtlOutputFormat format, std::string request)
 }
 
 static std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
-    std::string json  = "{";
+    std::string json  = "[";
     const auto& DESCS = g_pConfigManager->getAllDescriptions();
 
     for (const auto& d : DESCS) {
@@ -1705,7 +1705,7 @@ static std::string getDescriptions(eHyprCtlOutputFormat format, std::string requ
     json.pop_back();
     json.pop_back();
 
-    json += "}\n";
+    json += "]\n";
     return json;
 }
 

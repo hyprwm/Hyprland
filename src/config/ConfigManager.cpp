@@ -3202,8 +3202,8 @@ std::string SConfigOptionDescription::jsonify() const {
         "explicit": {})#",
                                            val.value, val.min, val.max, currentValue, EXPLICIT);
                     } else if constexpr (std::is_same_v<T, SColorData>) {
-                        return std::format(R"#(     "value": {},
-        "current": {},
+                        return std::format(R"#(     "value": "{}",
+        "current": "{}",
         "explicit": {})#",
                                            val.color.getAsHex(), currentValue, EXPLICIT);
                     } else if constexpr (std::is_same_v<T, SBoolData>) {
@@ -3212,7 +3212,7 @@ std::string SConfigOptionDescription::jsonify() const {
         "explicit": {})#",
                                            val.value, currentValue, EXPLICIT);
                     } else if constexpr (std::is_same_v<T, SChoiceData>) {
-                        return std::format(R"#(     "value": {},
+                        return std::format(R"#(     "value": "{}",
         "firstIndex": {},
         "current": {},
         "explicit": {})#",
@@ -3249,7 +3249,7 @@ std::string SConfigOptionDescription::jsonify() const {
         {}
     }}
 }})#",
-                                   value, description, (uint16_t)type, (uint32_t)flags, parseData());
+                                   value, escapeJSONStrings(description), (uint16_t)type, (uint32_t)flags, parseData());
 
     return json;
 }

@@ -42,6 +42,8 @@ struct SMasterNodeData {
 struct SMasterWorkspaceData {
     WORKSPACEID  workspaceID = WORKSPACE_INVALID;
     eOrientation orientation = ORIENTATION_LEFT;
+    // Previously focused non-master window when `focusmaster previous` command was issued
+    PHLWINDOWREF focusMasterPrev;
 
     //
     bool operator==(const SMasterWorkspaceData& rhs) const {

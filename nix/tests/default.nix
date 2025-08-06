@@ -10,6 +10,7 @@ in {
         flake.hyprtester
 
         # Programs needed for tests
+        jq
         kitty
         xorg.xeyes
       ];

@@ -599,7 +599,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
         std::print("\n");
     } else {
-        progress.printMessageAbove(failureString("failed to install headers with error code {} ({})", (int)HEADERSVALID, headerErrorShort(HEADERSVALID)));
+        progress.printMessageAbove(failureString("failed to install headers with error code {} ({})", static_cast<int>(HEADERSVALID), headerErrorShort(HEADERSVALID)));
         progress.printMessageAbove(infoString("if the problem persists, try running hyprpm purge-cache."));
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";

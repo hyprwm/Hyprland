@@ -29,7 +29,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
 
         m_events.warp.emit(IPointer::SMotionAbsoluteEvent{
             .timeMs   = timeMs,
-            .absolute = {(double)x / xExtent, (double)y / yExtent},
+            .absolute = {static_cast<double>(x) / xExtent, static_cast<double>(y) / yExtent},
         });
     });
 
@@ -37,7 +37,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         m_events.button.emit(IPointer::SButtonEvent{
             .timeMs = timeMs,
             .button = button,
-            .state  = (wl_pointer_button_state)state,
+            .state  = static_cast<wl_pointer_button_state>(state),
         });
     });
 
@@ -48,7 +48,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         }
 
         m_axis               = axis_;
-        m_axisEvents[m_axis] = IPointer::SAxisEvent{.timeMs = timeMs, .axis = (wl_pointer_axis)m_axis, .delta = wl_fixed_to_double(value)};
+        m_axisEvents[m_axis] = IPointer::SAxisEvent{.timeMs = timeMs, .axis = static_cast<wl_pointer_axis>(m_axis), .delta = wl_fixed_to_double(value)};
     });
 
     m_resource->setFrame([this](CZwlrVirtualPointerV1* r) {
@@ -62,7 +62,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         m_events.frame.emit();
     });
 
-    m_resource->setAxisSource([this](CZwlrVirtualPointerV1* r, uint32_t source) { m_axisEvents[m_axis].source = (wl_pointer_axis_source)source; });
+    m_resource->setAxisSource([this](CZwlrVirtualPointerV1* r, uint32_t source) { m_axisEvents[m_axis].source = static_cast<wl_pointer_axis_source>(source); });
 
     m_resource->setAxisStop([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_) {
         if UNLIKELY (m_axis > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
@@ -72,7 +72,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
 
         m_axis                             = axis_;
         m_axisEvents[m_axis].timeMs        = timeMs;
-        m_axisEvents[m_axis].axis          = (wl_pointer_axis)m_axis;
+        m_axisEvents[m_axis].axis          = static_cast<wl_pointer_axis>(m_axis);
         m_axisEvents[m_axis].delta         = 0;
         m_axisEvents[m_axis].deltaDiscrete = 0;
     });
@@ -85,7 +85,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
 
         m_axis                             = axis_;
         m_axisEvents[m_axis].timeMs        = timeMs;
-        m_axisEvents[m_axis].axis          = (wl_pointer_axis)m_axis;
+        m_axisEvents[m_axis].axis          = static_cast<wl_pointer_axis>(m_axis);
         m_axisEvents[m_axis].delta         = wl_fixed_to_double(value);
         m_axisEvents[m_axis].deltaDiscrete = discrete * 120;
     });

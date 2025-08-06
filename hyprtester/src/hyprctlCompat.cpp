@@ -95,7 +95,7 @@ std::string getFromSocket(const std::string& cmd) {
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET, reinterpret_cast<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         std::println("Couldn't connect to {}. (3)", socketPath);
         return "";
     }

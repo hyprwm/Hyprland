@@ -524,7 +524,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
 
         if (TR) {
-            cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
+            cairo_matrix_rotate(&matrixPre, M_PI_2 * static_cast<double>(TR));
 
             // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
             // cba to do it rn, does anyone fucking use that??
@@ -549,7 +549,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         cairo_pattern_destroy(PATTERNPRE);
 
-        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), (size_t)cairo_image_surface_get_height(CAIROSURFACE) * cairo_image_surface_get_stride(CAIROSURFACE));
+        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), static_cast<size_t>(cairo_image_surface_get_height(CAIROSURFACE)) * cairo_image_surface_get_stride(CAIROSURFACE));
 
         cairo_destroy(CAIRO);
         cairo_surface_destroy(CAIROSURFACE);
@@ -663,7 +663,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
 
-    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 0, 100);
+    auto        CURSOR_PADDING = std::clamp(static_cast<int>(*PADDING), 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
 
     //

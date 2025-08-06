@@ -4,13 +4,13 @@
 using namespace Hyprutils::OS;
 
 static int onListenFdEvent(int fd, uint32_t mask, void* data) {
-    auto sc = (CSecurityContext*)data;
+    auto sc = static_cast<CSecurityContext*>(data);
     sc->onListen(mask);
     return 0;
 }
 
 static int onCloseFdEvent(int fd, uint32_t mask, void* data) {
-    auto sc = (CSecurityContext*)data;
+    auto sc = static_cast<CSecurityContext*>(data);
     sc->onClose(mask);
     return 0;
 }

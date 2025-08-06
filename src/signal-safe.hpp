@@ -62,7 +62,7 @@ class CBufFileWriter {
     }
     void write(char const* data, size_t len) {
         while (len > 0) {
-            size_t to_add = std::min(len, (size_t)BUFSIZE - m_writeBufPos);
+            size_t to_add = std::min(len, static_cast<size_t>(BUFSIZE) - m_writeBufPos);
             memcpy(m_writeBuf + m_writeBufPos, data, to_add);
             data += to_add;
             len -= to_add;
@@ -127,7 +127,7 @@ class CBufFileWriter {
             close(pipefd[0]);
             dup2(pipefd[1], STDOUT_FILENO);
             char const* const argv[] = {"/bin/sh", "-c", cmd, nullptr};
-            execv("/bin/sh", (char* const*)argv);
+            execv("/bin/sh", const_cast<char* const*>(argv));
 
             CBufFileWriter<64> failmsg(pipefd[1]);
             failmsg += "<execv(";

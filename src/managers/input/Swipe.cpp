@@ -67,7 +67,7 @@ void CInputManager::endWorkspaceSwipe() {
     // commit
     auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
     auto       workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
-    const auto SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
+    const auto SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, static_cast<int64_t>(1LL), static_cast<int64_t>(UINT32_MAX));
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
@@ -213,7 +213,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     static auto  PSWIPEUSER             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto  PWORKSPACEGAP          = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
-    const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
+    const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, static_cast<int64_t>(1LL), static_cast<int64_t>(UINT32_MAX));
     const auto   XDISTANCE     = m_activeSwipe.pMonitor->m_size.x + *PWORKSPACEGAP;
     const auto   YDISTANCE     = m_activeSwipe.pMonitor->m_size.y + *PWORKSPACEGAP;
     const auto   ANIMSTYLE     = m_activeSwipe.pWorkspaceBegin->m_renderOffset->getStyle();
@@ -234,7 +234,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
 
     m_activeSwipe.pWorkspaceBegin->m_forceRendering = true;
 
-    m_activeSwipe.delta = std::clamp(m_activeSwipe.delta, (double)-SWIPEDISTANCE, (double)SWIPEDISTANCE);
+    m_activeSwipe.delta = std::clamp(m_activeSwipe.delta, static_cast<double>(-SWIPEDISTANCE), static_cast<double>(SWIPEDISTANCE));
 
     if ((m_activeSwipe.pWorkspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_activeSwipe.delta < 0)) ||
         (m_activeSwipe.delta > 0 && m_activeSwipe.pWorkspaceBegin->getWindows() == 0 && workspaceIDRight <= m_activeSwipe.pWorkspaceBegin->m_id) ||

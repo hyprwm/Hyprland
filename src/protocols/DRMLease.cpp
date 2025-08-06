@@ -147,7 +147,7 @@ bool CDRMLeaseRequestResource::good() {
 }
 
 SP<CDRMLeaseConnectorResource> CDRMLeaseConnectorResource::fromResource(wl_resource* res) {
-    auto data = (CDRMLeaseConnectorResource*)(((CWpDrmLeaseConnectorV1*)wl_resource_get_user_data(res))->data());
+    auto data = static_cast<CDRMLeaseConnectorResource*>(static_cast<CWpDrmLeaseConnectorV1*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
@@ -181,7 +181,7 @@ void CDRMLeaseConnectorResource::sendData() {
     m_resource->sendName(m_monitor->m_name.c_str());
     m_resource->sendDescription(m_monitor->m_description.c_str());
 
-    auto AQDRMOutput = (Aquamarine::CDRMOutput*)m_monitor->m_output.get();
+    auto AQDRMOutput = static_cast<Aquamarine::CDRMOutput*>(m_monitor->m_output.get());
     m_resource->sendConnectorId(AQDRMOutput->getConnectorID());
 
     m_resource->sendDone();
@@ -265,7 +265,7 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
     if (backend_->type() != Aquamarine::AQ_BACKEND_DRM)
         return;
 
-    m_backend    = ((Aquamarine::CDRMBackend*)backend_.get())->self.lock();
+    m_backend    = static_cast<Aquamarine::CDRMBackend*>(backend_.get())->self.lock();
     m_deviceName = m_backend->gpuName;
 
     CFileDescriptor fd{m_backend->getNonMasterFD()};

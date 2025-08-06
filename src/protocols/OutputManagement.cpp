@@ -480,7 +480,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         }
 
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
-        m_state.customMode = {{w, h}, (uint32_t)refresh};
+        m_state.customMode = {{w, h}, static_cast<uint32_t>(refresh)};
 
         LOGM(LOG, " | configHead for {}: set custom mode to {}x{}@{}", m_monitor->m_name, w, h, refresh);
     });
@@ -519,7 +519,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         }
 
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_TRANSFORM;
-        m_state.transform = (wl_output_transform)transform;
+        m_state.transform = static_cast<wl_output_transform>(transform);
 
         LOGM(LOG, " | configHead for {}: set transform to {}", m_monitor->m_name, transform);
     });

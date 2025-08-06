@@ -540,7 +540,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});
     registerConfigVar("debug:disable_time", Hyprlang::INT{1});
     registerConfigVar("debug:enable_stdout_logs", Hyprlang::INT{0});
-    registerConfigVar("debug:damage_tracking", {(Hyprlang::INT)DAMAGE_TRACKING_FULL});
+    registerConfigVar("debug:damage_tracking", {static_cast<Hyprlang::INT>(DAMAGE_TRACKING_FULL)});
     registerConfigVar("debug:manual_crash", Hyprlang::INT{0});
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});
@@ -1358,18 +1358,18 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
-            Debug::log(LOG, " > overriding transform: {} -> {}", (uint8_t)rule.transform, (uint8_t)CONFIG->transform);
+            Debug::log(LOG, " > overriding transform: {} -> {}", static_cast<uint8_t>(rule.transform), static_cast<uint8_t>(CONFIG->transform));
             rule.transform = CONFIG->transform;
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
-            Debug::log(LOG, " > overriding scale: {} -> {}", (uint8_t)rule.scale, (uint8_t)CONFIG->scale);
+            Debug::log(LOG, " > overriding scale: {} -> {}", static_cast<uint8_t>(rule.scale), static_cast<uint8_t>(CONFIG->scale));
             rule.scale = CONFIG->scale;
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
             Debug::log(LOG, " > overriding vrr: {} -> {}", rule.vrr.value_or(0), CONFIG->adaptiveSync);
-            rule.vrr = (int)CONFIG->adaptiveSync;
+            rule.vrr = static_cast<int>(CONFIG->adaptiveSync);
         }
 
         return rule;
@@ -1530,14 +1530,14 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                     if (ARGS[0] == "*")
                         internalMode = std::nullopt;
                     else if (isNumber(ARGS[0]))
-                        internalMode = (eFullscreenMode)std::stoi(ARGS[0]);
+                        internalMode = static_cast<eFullscreenMode>(std::stoi(ARGS[0]));
                     else
                         throw std::runtime_error("szFullscreenState internal mode not valid");
 
                     if (ARGS[1] == "*")
                         clientMode = std::nullopt;
                     else if (isNumber(ARGS[1]))
-                        clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
+                        clientMode = static_cast<eFullscreenMode>(std::stoi(ARGS[1]));
                     else
                         throw std::runtime_error("szFullscreenState client mode not valid");
 
@@ -1630,7 +1630,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
             hasFullscreen = true;
     }
 
-    std::vector<uint64_t> PIDs = {(uint64_t)pWindow->getPID()};
+    std::vector<uint64_t> PIDs = {static_cast<uint64_t>(pWindow->getPID())};
     while (getPPIDof(PIDs.back()) > 10)
         PIDs.push_back(getPPIDof(PIDs.back()));
 
@@ -1657,7 +1657,7 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
 
     for (auto const& lr : m_layerRules) {
         if (lr->m_targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_targetNamespace)
+            if (std::format("address:0x{:x}", reinterpret_cast<uintptr_t>(pLS.get())) != lr->m_targetNamespace)
                 continue;
         } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->m_layerNamespace))
             continue;
@@ -2196,7 +2196,7 @@ bool CMonitorRuleParser::parseTransform(const std::string& value) {
         m_error += "invalid transform ";
         return false;
     }
-    m_rule.transform = (wl_output_transform)TSF;
+    m_rule.transform = static_cast<wl_output_transform>(TSF);
     return true;
 }
 
@@ -2530,7 +2530,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     const int  DESCR_OFFSET = hasDescription ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
+    else if ((ARGS.size() > static_cast<size_t>(4) + DESCR_OFFSET && !mouse) || (ARGS.size() > static_cast<size_t>(3) + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2866,7 +2866,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         for (auto const& lsl : m->m_layerSurfaceLayers) {
             for (auto const& ls : lsl) {
                 if (BYADDRESS) {
-                    if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
+                    if (std::format("0x{:x}", reinterpret_cast<uintptr_t>(ls.get())) == matchName)
                         ls->m_forceBlur = forceBlur;
                 } else if (ls->m_namespace == matchName)
                     ls->m_forceBlur = forceBlur;
@@ -3184,7 +3184,7 @@ std::string SConfigOptionDescription::jsonify() const {
                     const auto V = std::any_cast<Hyprlang::VEC2>(CONFIGVALUE);
                     currentValue = std::format("{}, {}", V.x, V.y);
                 } else if (typeid(void*) == std::type_index(CONFIGVALUE.type())) {
-                    const auto DATA = (ICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
+                    const auto DATA = static_cast<ICustomConfigValueData*>(std::any_cast<void*>(CONFIGVALUE));
                     currentValue    = DATA->toString();
                 }
 
@@ -3257,7 +3257,7 @@ std::string SConfigOptionDescription::jsonify() const {
         {}
     }}
 }})#",
-                                   value, escapeJSONStrings(description), (uint16_t)type, (uint32_t)flags, parseData());
+                                   value, escapeJSONStrings(description), static_cast<uint16_t>(type), static_cast<uint32_t>(flags), parseData());
 
     return json;
 }

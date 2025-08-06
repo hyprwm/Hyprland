@@ -1349,7 +1349,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
-        damage = {0, 0, (int)pMonitor->m_transformedSize.x * 10, (int)pMonitor->m_transformedSize.y * 10};
+        damage = {0, 0, static_cast<int>(pMonitor->m_transformedSize.x) * 10, static_cast<int>(pMonitor->m_transformedSize.y) * 10};
 
     finalDamage = damage;
 
@@ -1375,7 +1375,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                 EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
                 renderCursor = false;
             } else {
-                CBox renderBox = {0, 0, (int)pMonitor->m_pixelSize.x, (int)pMonitor->m_pixelSize.y};
+                CBox renderBox = {0, 0, static_cast<int>(pMonitor->m_pixelSize.x), static_cast<int>(pMonitor->m_pixelSize.y)};
                 renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
 
                 renderLockscreen(pMonitor, NOW, renderBox);
@@ -1431,7 +1431,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-        frameDamage.add(0, 0, (int)pMonitor->m_transformedSize.x, (int)pMonitor->m_transformedSize.y);
+        frameDamage.add(0, 0, static_cast<int>(pMonitor->m_transformedSize.x), static_cast<int>(pMonitor->m_transformedSize.y));
 
     if (*PDAMAGEBLINK)
         frameDamage.add(damage);
@@ -1622,7 +1622,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
 void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
-    float    scale     = (float)geometry.width / pMonitor->m_pixelSize.x;
+    float    scale     = static_cast<float>(geometry.width) / pMonitor->m_pixelSize.x;
 
     TRACY_GPU_ZONE("RenderWorkspace");
 
@@ -1792,7 +1792,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             box.y -= PSTATE->margin.bottom;
 
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
+            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", reinterpret_cast<uintptr_t>(ls.get()));
             continue;
         }
 
@@ -2126,7 +2126,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - (int)(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
+    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - static_cast<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
                                                 ICON_INFO);
 
     g_pHyprRenderer->m_crashingDistort += 0.5f;
@@ -2150,7 +2150,7 @@ void CHyprRenderer::initiateManualCrash() {
 
     g_pHyprOpenGL->m_globalTimer.reset();
 
-    static auto PDT = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
+    static auto PDT = reinterpret_cast<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
 
     **PDT = 0;
 }
@@ -2419,12 +2419,12 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     if (!shouldRenderWindow(pWindow))
         return; // ignore, window is not being rendered
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pWindow.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", reinterpret_cast<uintptr_t>(pWindow.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion      fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
+    CRegion      fakeDamage{0, 0, static_cast<int>(PMONITOR->m_transformedSize.x), static_cast<int>(PMONITOR->m_transformedSize.y)};
 
     PHLWINDOWREF ref{pWindow};
 
@@ -2454,12 +2454,12 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pLayer.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", reinterpret_cast<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
+    CRegion fakeDamage{0, 0, static_cast<int>(PMONITOR->m_transformedSize.x), static_cast<int>(PMONITOR->m_transformedSize.y)};
 
     makeEGLCurrent();
 
@@ -2491,7 +2491,7 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
     if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
         return;
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)popup.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", reinterpret_cast<uintptr_t>(popup.get()));
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 

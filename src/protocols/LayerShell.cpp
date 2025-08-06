@@ -11,7 +11,7 @@ void CLayerShellResource::SState::reset() {
     exclusive     = 0;
     interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
-    exclusiveEdge = (zwlrLayerSurfaceV1Anchor)0;
+    exclusiveEdge = static_cast<zwlrLayerSurfaceV1Anchor>(0);
     desiredSize   = {};
     margin        = {0, 0, 0, 0};
 }
@@ -84,7 +84,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
 
     m_resource->setSetSize([this](CZwlrLayerSurfaceV1* r, uint32_t x, uint32_t y) {
         m_pending.committed |= STATE_SIZE;
-        m_pending.desiredSize = {(int)x, (int)y};
+        m_pending.desiredSize = {static_cast<int>(x), static_cast<int>(y)};
     });
 
     m_resource->setSetAnchor([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
@@ -150,7 +150,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         }
 
         m_pending.committed |= STATE_LAYER;
-        m_pending.layer = (zwlrLayerShellV1Layer)layer;
+        m_pending.layer = static_cast<zwlrLayerShellV1Layer>(layer);
     });
 
     m_resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {

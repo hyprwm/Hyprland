@@ -531,12 +531,12 @@ struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
     auto format(PHLWINDOW const& w, FormatContext& ctx) const {
         auto&& out = ctx.out();
         if (formatAddressOnly)
-            return std::format_to(out, "{:x}", (uintptr_t)w.get());
+            return std::format_to(out, "{:x}", reinterpret_cast<uintptr_t>(w.get()));
         if (!w)
             return std::format_to(out, "[Window nullptr]");
 
         std::format_to(out, "[");
-        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_title);
+        std::format_to(out, "Window {:x}: title: \"{}\"", reinterpret_cast<uintptr_t>(w.get()), w->m_title);
         if (formatWorkspace)
             std::format_to(out, ", workspace: {}", w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID);
         if (formatMonitor)

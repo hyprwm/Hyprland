@@ -25,7 +25,7 @@ CHyprColor::CHyprColor(const Hyprgraphics::CColor& color, float a_) : a(a_) {
 }
 
 uint32_t CHyprColor::getAsHex() const {
-    return (uint32_t)(a * 255.f) * 0x1000000 + (uint32_t)(r * 255.f) * 0x10000 + (uint32_t)(g * 255.f) * 0x100 + (uint32_t)(b * 255.f) * 0x1;
+    return static_cast<uint32_t>(a * 255.f) * 0x1000000 + static_cast<uint32_t>(r * 255.f) * 0x10000 + static_cast<uint32_t>(g * 255.f) * 0x100 + static_cast<uint32_t>(b * 255.f) * 0x1;
 }
 
 Hyprgraphics::CColor::SSRGB CHyprColor::asRGB() const {

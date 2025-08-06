@@ -163,7 +163,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
                 if (!popup->m_wlSurface || !popup->m_wlSurface->resource())
                     return;
 
-                CBox* pSurfaceExtents = (CBox*)data;
+                CBox* pSurfaceExtents = static_cast<CBox*>(data);
                 CBox  surf            = CBox{popup->coordsRelativeToParent(), popup->size()};
                 pSurfaceExtents->x    = std::min(surf.x, pSurfaceExtents->x);
                 pSurfaceExtents->y    = std::min(surf.y, pSurfaceExtents->y);
@@ -215,7 +215,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 
-        return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+        return CBox{static_cast<int>(POS.x), static_cast<int>(POS.y), static_cast<int>(SIZE.x), static_cast<int>(SIZE.y)};
     }
 
     if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, PMONITOR->m_reservedTopLeft.y, 1)) {
@@ -233,7 +233,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         SIZE.y += PMONITOR->m_reservedBottomRight.y;
     }
 
-    return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+    return CBox{static_cast<int>(POS.x), static_cast<int>(POS.y), static_cast<int>(SIZE.x), static_cast<int>(SIZE.y)};
 }
 
 SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
@@ -450,8 +450,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_name)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", (uintptr_t)this, pWorkspace->m_id, pWorkspace->m_name)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", reinterpret_cast<uintptr_t>(this), pWorkspace->m_name)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", reinterpret_cast<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
     }
 
@@ -793,7 +793,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
-                    *(search->second(m_self.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
+                    *(search->second(m_self.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : static_cast<bool>(std::stoi(VARS[2])), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             }
             break;
@@ -852,16 +852,16 @@ bool CWindow::isInCurvedCorner(double x, double y) {
     double y1 = m_realPosition->value().y + m_realSize->value().y - ROUNDING;
 
     if (x < x0 && y < y0) {
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
+        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(static_cast<double>(ROUNDING), ROUNDINGPOWER);
     }
     if (x > x1 && y < y0) {
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
+        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(static_cast<double>(ROUNDING), ROUNDINGPOWER);
     }
     if (x < x0 && y > y1) {
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
+        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(static_cast<double>(ROUNDING), ROUNDINGPOWER);
     }
     if (x > x1 && y > y1) {
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
+        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(static_cast<double>(ROUNDING), ROUNDINGPOWER);
     }
 
     return false;
@@ -887,7 +887,7 @@ void CWindow::applyGroupRules() {
 
 void CWindow::createGroup() {
     if (m_groupData.deny) {
-        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_title);
+        Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", reinterpret_cast<uintptr_t>(this), this->m_title);
         return;
     }
 
@@ -906,14 +906,14 @@ void CWindow::createGroup() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", reinterpret_cast<uintptr_t>(this))});
     }
 }
 
 void CWindow::destroyGroup() {
     if (m_groupData.pNextWindow == m_self) {
         if (m_groupRules & GROUP_SET_ALWAYS) {
-            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", (uintptr_t)this, this->m_title);
+            Debug::log(LOG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", reinterpret_cast<uintptr_t>(this), this->m_title);
             return;
         }
         m_groupData.pNextWindow.reset();
@@ -926,7 +926,7 @@ void CWindow::destroyGroup() {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", reinterpret_cast<uintptr_t>(this))});
         return;
     }
 
@@ -940,7 +940,7 @@ void CWindow::destroyGroup() {
         curr->setHidden(false);
         members.push_back(curr);
 
-        addresses += std::format("{:x},", (uintptr_t)curr.get());
+        addresses += std::format("{:x},", reinterpret_cast<uintptr_t>(curr.get()));
     } while (curr.get() != this);
 
     for (auto const& w : members) {
@@ -1323,7 +1323,7 @@ int CWindow::popupsCount() {
         return 0;
 
     int no = -1;
-    m_popupHead->breadthfirst([](WP<CPopup> p, void* d) { *((int*)d) += 1; }, &no);
+    m_popupHead->breadthfirst([](WP<CPopup> p, void* d) { *static_cast<int*>(d) += 1; }, &no);
     return no;
 }
 
@@ -1332,7 +1332,7 @@ int CWindow::surfacesCount() {
         return 1;
 
     int no = 0;
-    m_wlSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
+    m_wlSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *static_cast<int*>(d) += 1; }, &no);
     return no;
 }
 
@@ -1350,7 +1350,7 @@ bool CWindow::isFullscreen() {
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
-    return (eFullscreenMode)std::bit_floor((uint8_t)m_fullscreenState.internal) == MODE;
+    return static_cast<eFullscreenMode>(std::bit_floor(static_cast<uint8_t>(m_fullscreenState.internal))) == MODE;
 }
 
 WORKSPACEID CWindow::workspaceID() {
@@ -1415,7 +1415,7 @@ void CWindow::activate(bool force) {
 
     m_isUrgent = true;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "urgent", .data = std::format("{:x}", (uintptr_t)this)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "urgent", .data = std::format("{:x}", reinterpret_cast<uintptr_t>(this))});
     EMIT_HOOK_EVENT("urgent", m_self.lock());
 
     if (!force && (!m_windowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_suppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_suppressedEvents & SUPPRESS_ACTIVATE)))
@@ -1470,17 +1470,17 @@ void CWindow::onUpdateMeta() {
 
     if (m_title != NEWTITLE) {
         m_title = NEWTITLE;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitle", .data = std::format("{:x}", (uintptr_t)this)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", (uintptr_t)this, m_title)});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitle", .data = std::format("{:x}", reinterpret_cast<uintptr_t>(this))});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", reinterpret_cast<uintptr_t>(this), m_title)});
         EMIT_HOOK_EVENT("windowTitle", m_self.lock());
 
         if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", (uintptr_t)this)});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", reinterpret_cast<uintptr_t>(this))});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_title);
+        Debug::log(LOG, "Window {:x} set title to {}", reinterpret_cast<uintptr_t>(this), m_title);
         doUpdate = true;
     }
 
@@ -1490,11 +1490,11 @@ void CWindow::onUpdateMeta() {
 
         if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", (uintptr_t)this)});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", reinterpret_cast<uintptr_t>(this))});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
         }
 
-        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_class);
+        Debug::log(LOG, "Window {:x} set class to {}", reinterpret_cast<uintptr_t>(this), m_class);
         doUpdate = true;
     }
 
@@ -1549,7 +1549,7 @@ void CWindow::onResourceChangeX11() {
     // could be first assoc and we need to catch the class
     onUpdateMeta();
 
-    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_xwaylandSurface.get(), (uintptr_t)m_wlSurface->resource().get());
+    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", reinterpret_cast<uintptr_t>(m_xwaylandSurface.get()), reinterpret_cast<uintptr_t>(m_wlSurface->resource().get()));
 }
 
 void CWindow::onX11ConfigureRequest(CBox box) {
@@ -1766,7 +1766,7 @@ void CWindow::updateX11SurfaceScale() {
 void CWindow::sendWindowSize(bool force) {
     const auto PMONITOR = m_monitor.lock();
 
-    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", (uintptr_t)this, this->m_title, m_realPosition->goal(), m_realSize->goal(),
+    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", reinterpret_cast<uintptr_t>(this), this->m_title, m_realPosition->goal(), m_realSize->goal(),
                force);
 
     // TODO: this should be decoupled from setWindowSize IMO
@@ -1799,7 +1799,7 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
         m_wlSurface->resource()->m_contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
     // else disallow content type change if proto is used?
 
-    Debug::log(INFO, "ContentType for window {}", (int)contentType);
+    Debug::log(INFO, "ContentType for window {}", static_cast<int>(contentType));
     m_wlSurface->resource()->m_contentType->m_value = contentType;
 }
 

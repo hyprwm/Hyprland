@@ -213,7 +213,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = static_cast<int>(PLUSMINUSRESULT.value());
 
             WORKSPACEID           remains = result.id;
 
@@ -251,7 +251,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 remains -= 1;
 
                 // traverse valid workspaces until we reach the remains
-                if ((size_t)remains < namedWSes.size()) {
+                if (static_cast<size_t>(remains) < namedWSes.size()) {
                     result.id = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
@@ -376,10 +376,10 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = static_cast<int>(PLUSMINUSRESULT.value());
 
             // result now has +/- what we should move on mon
-            int                      remains = (int)result.id;
+            int                      remains = static_cast<int>(result.id);
 
             std::vector<WORKSPACEID> validWSes;
             for (auto const& ws : g_pCompositor->getWorkspaces()) {
@@ -400,7 +400,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 // clamp
                 if (currentItem < 0) {
                     currentItem = 0;
-                } else if (currentItem >= (ssize_t)validWSes.size()) {
+                } else if (currentItem >= static_cast<ssize_t>(validWSes.size())) {
                     currentItem = validWSes.size() - 1;
                 }
             } else {
@@ -409,7 +409,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 // get the current item
                 WORKSPACEID activeWSID = g_pCompositor->m_lastMonitor->m_activeWorkspace ? g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id : 1;
-                for (ssize_t i = 0; i < (ssize_t)validWSes.size(); i++) {
+                for (ssize_t i = 0; i < static_cast<ssize_t>(validWSes.size()); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
@@ -420,7 +420,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 currentItem += remains;
 
                 // sanitize
-                if (currentItem >= (ssize_t)validWSes.size()) {
+                if (currentItem >= static_cast<ssize_t>(validWSes.size())) {
                     currentItem = currentItem % validWSes.size();
                 } else if (currentItem < 0) {
                     currentItem = validWSes.size() + currentItem;
@@ -436,7 +436,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     if (!PLUSMINUSRESULT.has_value())
                         return {WORKSPACE_INVALID};
 
-                    result.id = std::max((int)PLUSMINUSRESULT.value(), 1);
+                    result.id = std::max(static_cast<int>(PLUSMINUSRESULT.value()), 1);
                 } else {
                     Debug::log(ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
@@ -642,7 +642,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
             } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * (Hyprlang::INT)0x1000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return a * static_cast<Hyprlang::INT>(0x1000000) + *r * static_cast<Hyprlang::INT>(0x10000) + *g * static_cast<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
@@ -670,7 +670,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
             if (!r || !g || !b)
                 return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
 
-            return (Hyprlang::INT)0xFF000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return static_cast<Hyprlang::INT>(0xFF000000) + *r * static_cast<Hyprlang::INT>(0x10000) + *g * static_cast<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
             auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
@@ -717,7 +717,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    return Vector2D((double)x, (double)y);
+    return Vector2D(static_cast<double>(x), static_cast<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
@@ -910,7 +910,7 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     sysctl(mib, miblen, &exe, &sz, NULL, 0);
     std::string path = exe;
 #else
-    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
+    std::string path = std::format("/proc/{}/exe", static_cast<uint64_t>(pid));
 #endif
     std::error_code ec;
 

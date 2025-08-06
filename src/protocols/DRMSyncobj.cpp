@@ -61,7 +61,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline    = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        m_pendingAcquire = {timeline->m_timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
+        m_pendingAcquire = {timeline->m_timeline, (static_cast<uint64_t>(hi) << 32) | static_cast<uint64_t>(lo)};
     });
 
     m_resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -71,7 +71,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
         }
 
         auto timeline    = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        m_pendingRelease = {timeline->m_timeline, ((uint64_t)hi << 32) | (uint64_t)lo};
+        m_pendingRelease = {timeline->m_timeline, (static_cast<uint64_t>(hi) << 32) | static_cast<uint64_t>(lo)};
     });
 
     m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this] {

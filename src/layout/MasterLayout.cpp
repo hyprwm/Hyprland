@@ -661,8 +661,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     static auto PANIMATE     = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
     static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto*       PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto*       PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    auto*       PGAPSIN      = static_cast<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+    auto*       PGAPSOUT     = static_cast<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -680,9 +680,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto       calcPos  = PWINDOW->m_position;
     auto       calcSize = PWINDOW->m_size;
 
-    const auto OFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto OFFSETTOPLEFT = Vector2D(static_cast<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), static_cast<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto OFFSETBOTTOMRIGHT = Vector2D(static_cast<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), static_cast<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
@@ -1382,10 +1382,10 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
         }
     }
 
-    if (nextOrPrev >= (int)cycle.size())
-        nextOrPrev = nextOrPrev % (int)cycle.size();
+    if (nextOrPrev >= static_cast<int>(cycle.size()))
+        nextOrPrev = nextOrPrev % static_cast<int>(cycle.size());
     else if (nextOrPrev < 0)
-        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
+        nextOrPrev = cycle.size() + (nextOrPrev % static_cast<int>(cycle.size()));
 
     PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
     recalculateMonitor(header.pWindow->monitorID());
@@ -1393,7 +1393,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
 
 void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle) {
     for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
-        cycle.push_back((eOrientation)i);
+        cycle.push_back(static_cast<eOrientation>(i));
     }
 }
 

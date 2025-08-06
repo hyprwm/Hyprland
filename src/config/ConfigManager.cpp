@@ -63,7 +63,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
     if (!*data)
         *data = new CGradientValueData();
 
-    const auto DATA = reinterpret_cast<CGradientValueData*>(*data);
+    const auto DATA = static_cast<CGradientValueData*>(*data);
 
     CVarList   varlist(V, 0, ' ');
     DATA->m_colors.clear();
@@ -119,7 +119,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
 static void configHandleGradientDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CGradientValueData*>(*data);
+        delete static_cast<CGradientValueData*>(*data);
 }
 
 static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data) {
@@ -128,7 +128,7 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
     if (!*data)
         *data = new CCssGapData();
 
-    const auto             DATA = reinterpret_cast<CCssGapData*>(*data);
+    const auto             DATA = static_cast<CCssGapData*>(*data);
     CVarList               varlist(V);
     Hyprlang::CParseResult result;
 
@@ -144,14 +144,14 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
 
 static void configHandleGapDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CCssGapData*>(*data);
+        delete static_cast<CCssGapData*>(*data);
 }
 
 static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void** data) {
     if (!*data)
         *data = new CFontWeightConfigValueData();
 
-    const auto             DATA = reinterpret_cast<CFontWeightConfigValueData*>(*data);
+    const auto             DATA = static_cast<CFontWeightConfigValueData*>(*data);
     Hyprlang::CParseResult result;
 
     try {
@@ -166,7 +166,7 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
 
 static void configHandleFontWeightDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CFontWeightConfigValueData*>(*data);
+        delete static_cast<CFontWeightConfigValueData*>(*data);
 }
 
 static Hyprlang::CParseResult handleExec(const char* c, const char* v) {
@@ -2103,7 +2103,7 @@ bool CMonitorRuleParser::parseMode(const std::string& value) {
         m_rule.resolution = Vector2D(-1, -3);
     else if (parseModeLine(value, m_rule.drmMode)) {
         m_rule.resolution  = Vector2D(m_rule.drmMode.hdisplay, m_rule.drmMode.vdisplay);
-        m_rule.refreshRate = float(m_rule.drmMode.vrefresh) / 1000;
+        m_rule.refreshRate = static_cast<float>(m_rule.drmMode.vrefresh) / 1000;
     } else {
 
         if (!value.contains("x")) {

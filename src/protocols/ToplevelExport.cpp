@@ -180,7 +180,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
             m_resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::toplevelExport->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != m_shmStride) {
+        } else if (attrs.stride != m_shmStride) {
             m_resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             PROTO::toplevelExport->destroyResource(this);
             return;

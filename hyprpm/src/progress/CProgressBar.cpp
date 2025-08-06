@@ -54,7 +54,7 @@ void CProgressBar::print() {
     std::ostringstream oss;
     oss << ' ' << Colors::GREEN;
 
-    size_t filled = static_cast<size_t>(std::floor(percentDone * BARWIDTH));
+    size_t filled = std::floor(percentDone * BARWIDTH);
     size_t i      = 0;
 
     for (; i < filled; ++i)

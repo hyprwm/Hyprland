@@ -1027,7 +1027,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
         return;
 
     if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_isX11)) {
-        setActiveWindow((uint32_t)XCB_WINDOW_NONE);
+        setActiveWindow(XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {
         setActiveWindow(surf ? surf->m_xID : (uint32_t)XCB_WINDOW_NONE);

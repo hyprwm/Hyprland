@@ -199,7 +199,7 @@ bool CFunctionHook::hook() {
     const uint8_t* PROTSTART    = (uint8_t*)m_source - ((uint64_t)m_source % PAGESIZE_VAR);
     const size_t   PROTLEN      = std::ceil((float)(ORIGSIZE + ((uint64_t)m_source - (uint64_t)PROTSTART)) / (float)PAGESIZE_VAR) * PAGESIZE_VAR;
     mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy((uint8_t*)m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    memcpy(m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
     memcpy((uint8_t*)m_source + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));

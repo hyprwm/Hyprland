@@ -504,7 +504,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
         auto CAIRODATASURFACE =
-            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
+            cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
 
         auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -1118,7 +1118,7 @@ void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, co
 }
 
 void CPointerManager::sendStoredMovement() {
-    PROTO::relativePointer->sendRelativeMotion((uint64_t)m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
+    PROTO::relativePointer->sendRelativeMotion(m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
     m_storedTime    = 0;
     m_storedDelta   = Vector2D{};
     m_storedUnaccel = Vector2D{};

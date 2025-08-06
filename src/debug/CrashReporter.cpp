@@ -206,7 +206,7 @@ void NCrashReporter::createAndSaveCrash(int sig) {
         // convert in memory address to VMA address
         Dl_info          info;
         struct link_map* linkMap;
-        dladdr1((void*)CALLSTACK[i].adr, &info, (void**)&linkMap, RTLD_DL_LINKMAP);
+        dladdr1(CALLSTACK[i].adr, &info, (void**)&linkMap, RTLD_DL_LINKMAP);
         size_t vmaAddr = (size_t)CALLSTACK[i].adr - linkMap->l_addr;
 #else
         // musl doesn't define dladdr1

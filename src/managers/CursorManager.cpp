@@ -22,7 +22,7 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
 CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(cairo_image_surface_get_stride(surf)) {
     size = size_;
 
-    m_data = std::vector<uint8_t>((uint8_t*)cairo_image_surface_get_data(surf), ((uint8_t*)cairo_image_surface_get_data(surf)) + (cairo_image_surface_get_height(surf) * m_stride));
+    m_data = std::vector<uint8_t>(cairo_image_surface_get_data(surf), cairo_image_surface_get_data(surf) + (cairo_image_surface_get_height(surf) * m_stride));
 }
 
 CCursorBuffer::CCursorBuffer(const uint8_t* pixelData, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(4 * size_.x) {

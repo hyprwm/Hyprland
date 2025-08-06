@@ -945,7 +945,7 @@ void CPluginManager::listAllPlugins() {
 }
 
 void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message) {
-    NHyprlandSocket::send("/notify " + std::to_string((int)icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
+    NHyprlandSocket::send("/notify " + std::to_string(icon) + " " + std::to_string(durationMs) + " " + std::to_string(color) + " " + message);
 }
 
 std::string CPluginManager::headerError(const eHeadersErrors err) {

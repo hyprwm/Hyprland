@@ -133,7 +133,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::screencopy->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != m_shmStride) {
+        } else if (attrs.stride != m_shmStride) {
             LOGM(ERR, "Invalid buffer shm stride in {:x}", (uintptr_t)pFrame);
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             PROTO::screencopy->destroyResource(this);
@@ -382,7 +382,7 @@ bool CScreencopyFrame::copyShm() {
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
             uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, ((unsigned char*)pixelData) + i * shm.stride);
+            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
         }
     }
 

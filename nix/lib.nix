@@ -82,7 +82,7 @@ lib: let
     :::
   */
   toHyprlang = {
-    topCommandsPrefixes ? ["$"],
+    topCommandsPrefixes ? ["$" "bezier"],
     bottomCommandsPrefixes ? [],
   }: attrs: let
     toHyprlang' = attrs: let

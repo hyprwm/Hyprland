@@ -502,9 +502,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         const auto DMABUF      = buf->dmabuf();
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
-        auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
-        auto CAIRODATASURFACE =
-            cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
+        auto CAIROSURFACE     = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
+        auto CAIRODATASURFACE = cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
 
         auto CAIRO = cairo_create(CAIROSURFACE);
 

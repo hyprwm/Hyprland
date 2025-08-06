@@ -76,8 +76,8 @@ void CWLOutputResource::updateState() {
 
     m_resource->sendMode(WL_OUTPUT_MODE_CURRENT, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y, m_monitor->m_refreshRate * 1000.0);
 
-    m_resource->sendGeometry(0, 0, m_monitor->m_output->physicalSize.x, m_monitor->m_output->physicalSize.y, m_monitor->m_output->subpixel,
-                             m_monitor->m_output->make.c_str(), m_monitor->m_output->model.c_str(), m_monitor->m_transform);
+    m_resource->sendGeometry(0, 0, m_monitor->m_output->physicalSize.x, m_monitor->m_output->physicalSize.y, m_monitor->m_output->subpixel, m_monitor->m_output->make.c_str(),
+                             m_monitor->m_output->model.c_str(), m_monitor->m_transform);
 
     if (m_resource->version() >= 2)
         m_resource->sendDone();

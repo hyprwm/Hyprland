@@ -1481,8 +1481,8 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
         default: return NO_HDR_METADATA; // empty metadata for SDR
     }
 
-    const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
-    const auto to16Bit = [](float value) { return uint16_t(std::round(value * 50000)); };
+    const auto toNits  = [](uint32_t value) { return static_cast<uint16_t>(std::round(value)); };
+    const auto to16Bit = [](float value) { return static_cast<uint16_t>(std::round(value * 50000)); };
 
     auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
     auto       luminances  = settings.masteringLuminances.max > 0 ?

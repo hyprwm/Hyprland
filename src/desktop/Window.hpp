@@ -106,8 +106,8 @@ struct SWindowData {
     CWindowOverridableVar<bool>               noFollowMouse      = false;
     CWindowOverridableVar<bool>               noScreenShare      = false;
 
-    CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), Hyprlang::INT(0), std::nullopt};
-    CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), Hyprlang::INT(0), std::nullopt};
+    CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), static_cast<Hyprlang::INT>(0), std::nullopt};
+    CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), static_cast<Hyprlang::INT>(0), std::nullopt};
 
     CWindowOverridableVar<Hyprlang::FLOAT>    roundingPower  = {std::string("decoration:rounding_power")};
     CWindowOverridableVar<Hyprlang::FLOAT>    scrollMouse    = {std::string("input:scroll_factor")};

@@ -755,7 +755,7 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
 
     m_client = m_resource->client();
 
-    const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
+    const auto toProto = [](float value) { return static_cast<int32_t>(std::round(value * 10000)); };
 
     if (m_settings.icc.fd >= 0)
         m_resource->sendIccFile(m_settings.icc.fd, m_settings.icc.length);

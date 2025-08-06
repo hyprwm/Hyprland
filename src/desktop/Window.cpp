@@ -785,7 +785,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             const CVarList VARS(r->m_rule, 0, ' ');
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
                 try {
-                    *(search->second(m_self.lock())) = CWindowOverridableVar(Hyprlang::INT(std::stoi(VARS[2])), priority);
+                    *(search->second(m_self.lock())) = CWindowOverridableVar(static_cast<Hyprlang::INT>(std::stoi(VARS[2])), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::floatWindowProperties.find(VARS[1]); search != NWindowProperties::floatWindowProperties.end()) {
                 try {
@@ -1003,7 +1003,7 @@ int CWindow::getGroupSize() {
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
     bool        isGroup               = m_groupData.pNextWindow;
-    bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
+    bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !static_cast<bool>(*ALLOWGROUPMERGE);
     return !g_pKeybindManager->m_groupsLocked                                                // global group lock disengaged
         && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
             || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked

@@ -7,7 +7,7 @@
 #include "../helpers/Monitor.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
-    const auto cursorMgr = reinterpret_cast<CCursorManager*>(data);
+    const auto cursorMgr = static_cast<CCursorManager*>(data);
     cursorMgr->tickAnimatedCursor();
     return 1;
 }

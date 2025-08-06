@@ -18,7 +18,7 @@ CXWaylandSurfaceResource::CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resour
     m_client = m_resource->client();
 
     m_resource->setSetSerial([this](CXwaylandSurfaceV1* r, uint32_t lo, uint32_t hi) {
-        m_serial = (((uint64_t)hi) << 32) + lo;
+        m_serial = (static_cast<uint64_t>(hi) << 32) + lo;
         PROTO::xwaylandShell->m_events.newSurface.emit(m_self.lock());
     });
 }

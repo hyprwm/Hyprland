@@ -53,7 +53,7 @@ static CFileDescriptor createSocket(struct sockaddr_un* addr, size_t pathSize) {
     if (isRegularSocket)
         unlink(addr->sun_path);
 
-    if (bind(fd.get(), (struct sockaddr*)addr, size) < 0) {
+    if (bind(fd.get(), reinterpret_cast<struct sockaddr*>(addr), size) < 0) {
         Debug::log(ERR, "Failed to bind socket {}{}", dbgSocketPathPrefix, dbgSocketPathRem);
         if (isRegularSocket)
             unlink(addr->sun_path);

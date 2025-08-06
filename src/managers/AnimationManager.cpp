@@ -268,7 +268,7 @@ void CHyprAnimationManager::scheduleTick() {
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 
-    m_animationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
+    m_animationTimer->updateTimeout(std::chrono::milliseconds(static_cast<int>(std::floor(TOPRES))));
 }
 
 void CHyprAnimationManager::onTicked() {

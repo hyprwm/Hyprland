@@ -37,7 +37,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
             if (w->m_wlSurface->resource() == SURFACE) {
                 g_pEventManager->postEvent(SHyprIPCEvent{
                     .event = "bell",
-                    .data  = std::format("{:x}", (uintptr_t)w.get()),
+                    .data  = std::format("{:x}", reinterpret_cast<uintptr_t>(w.get())),
                 });
                 return;
             }

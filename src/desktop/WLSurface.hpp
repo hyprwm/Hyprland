@@ -58,7 +58,7 @@ class CWLSurface {
     // track surface data and avoid dupes
     float               m_lastScaleFloat = 0;
     int                 m_lastScaleInt   = 0;
-    wl_output_transform m_lastTransform  = (wl_output_transform)-1;
+    wl_output_transform m_lastTransform  = static_cast<wl_output_transform>(-1);
 
     //
     CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {

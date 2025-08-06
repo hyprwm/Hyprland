@@ -206,7 +206,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET, reinterpret_cast<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         log("Couldn't connect to " + socketPath + ". (4)");
         return 4;
     }
@@ -272,7 +272,7 @@ int requestIPC(std::string_view filename, std::string_view arg) {
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-    if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET, reinterpret_cast<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         log("Couldn't connect to " + socketPath + ". (3)");
         return 3;
     }

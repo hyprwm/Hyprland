@@ -3,7 +3,7 @@
 
 static int onTimer(SP<CEventLoopTimer> self, void* data) {
 
-    const auto NOTIF = (CExtIdleNotification*)data;
+    const auto NOTIF = static_cast<CExtIdleNotification*>(data);
 
     NOTIF->onTimerFired();
 

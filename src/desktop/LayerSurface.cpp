@@ -46,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->m_layerNamespace, (int)pLS->m_layer, pMonitor->m_name);
+    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", reinterpret_cast<uintptr_t>(resource.get()), resource->m_layerNamespace, static_cast<int>(pLS->m_layer), pMonitor->m_name);
 
     return pLS;
 }
@@ -84,7 +84,7 @@ CLayerSurface::~CLayerSurface() {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)m_layerSurface.get());
+    Debug::log(LOG, "LayerSurface {:x} destroyed", reinterpret_cast<uintptr_t>(m_layerSurface.get()));
 
     const auto PMONITOR = m_monitor.lock();
 
@@ -130,7 +130,7 @@ void CLayerSurface::onDestroy() {
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)m_layerSurface.get());
+    Debug::log(LOG, "LayerSurface {:x} mapped", reinterpret_cast<uintptr_t>(m_layerSurface.get()));
 
     m_mapped        = true;
     m_interactivity = m_layerSurface->m_current.interactivity;
@@ -196,7 +196,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)m_layerSurface.get());
+    Debug::log(LOG, "LayerSurface {:x} unmapped", reinterpret_cast<uintptr_t>(m_layerSurface.get()));
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", m_self.lock());
@@ -249,8 +249,8 @@ void CLayerSurface::onUnmap() {
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
 
-    geomFixed = {m_geometry.x + (int)PMONITOR->m_position.x, m_geometry.y + (int)PMONITOR->m_position.y, (int)m_layerSurface->m_surface->m_current.size.x,
-                 (int)m_layerSurface->m_surface->m_current.size.y};
+    geomFixed = {m_geometry.x + static_cast<int>(PMONITOR->m_position.x), m_geometry.y + static_cast<int>(PMONITOR->m_position.y), static_cast<int>(m_layerSurface->m_surface->m_current.size.x),
+                 static_cast<int>(m_layerSurface->m_surface->m_current.size.y)};
     g_pHyprRenderer->damageBox(geomFixed);
 
     g_pInputManager->simulateMouseMovement();
@@ -596,7 +596,7 @@ int CLayerSurface::popupsCount() {
         return 0;
 
     int no = -1; // we have one dummy
-    m_popupHead->breadthfirst([](WP<CPopup> p, void* data) { *(int*)data += 1; }, &no);
+    m_popupHead->breadthfirst([](WP<CPopup> p, void* data) { *static_cast<int*>(data) += 1; }, &no);
     return no;
 }
 

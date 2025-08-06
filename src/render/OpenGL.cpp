@@ -51,7 +51,7 @@ static inline void loadGLProc(void* pProc, const char* name) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();
     }
-    *(void**)pProc = proc;
+    *static_cast<void**>(pProc) = proc;
 }
 
 static enum eLogLevel eglLogToLevel(EGLint type) {
@@ -323,7 +323,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
 
     RASSERT(success, "EGL does not support KHR_platform_gbm or EXT_platform_device, this is an issue with your gpu driver.");
 
-    auto* const EXTENSIONS = (const char*)glGetString(GL_EXTENSIONS);
+    auto* const EXTENSIONS = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
     RASSERT(EXTENSIONS, "Couldn't retrieve openGL extensions!");
 
     m_extensions = EXTENSIONS;
@@ -575,7 +575,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 
     RASSERT(idx <= attribs.size(), "createEglImage: attribs array out of bounds.");
 
-    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, (int*)attribs.data());
+    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, reinterpret_cast<int*>(attribs.data()));
     if (image == EGL_NO_IMAGE_KHR) {
         Debug::log(ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
         return EGL_NO_IMAGE_KHR;
@@ -1421,8 +1421,8 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     // Rounded corners
-    m_shaders->m_shQUAD.setUniformFloat2(SHADER_TOP_LEFT, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    m_shaders->m_shQUAD.setUniformFloat2(SHADER_FULL_SIZE, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    m_shaders->m_shQUAD.setUniformFloat2(SHADER_TOP_LEFT, static_cast<float>(TOPLEFT.x), static_cast<float>(TOPLEFT.y));
+    m_shaders->m_shQUAD.setUniformFloat2(SHADER_FULL_SIZE, static_cast<float>(FULLSIZE.x), static_cast<float>(FULLSIZE.y));
     m_shaders->m_shQUAD.setUniformFloat(SHADER_RADIUS, data.round);
     m_shaders->m_shQUAD.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
@@ -1846,7 +1846,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     CRegion damage{*originalDamage};
     damage.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                      m_renderData.pMonitor->m_transformedSize.y);
-    damage.expand(*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES));
+    damage.expand(*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, static_cast<int64_t>(1), static_cast<int64_t>(40)) * pow(2, *PBLURPASSES));
 
     // helper
     const auto    PMIRRORFB     = &m_renderData.pCurrentMonData->mirrorFB;
@@ -2361,7 +2361,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, (int)(grad.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, static_cast<int>(grad.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_ALPHA, data.a);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
 
@@ -2372,9 +2372,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, (float)newBox.width, (float)newBox.height);
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, static_cast<float>(TOPLEFT.x), static_cast<float>(TOPLEFT.y));
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, static_cast<float>(FULLSIZE.x), static_cast<float>(FULLSIZE.y));
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, static_cast<float>(newBox.width), static_cast<float>(newBox.height));
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS, round);
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
@@ -2447,11 +2447,11 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, (int)(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, static_cast<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
     if (!grad2.m_colorsOkLabA.empty())
         m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE2, (int)(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE2, static_cast<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_ALPHA, data.a);
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
@@ -2462,9 +2462,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, (float)FULLSIZE.x, (float)FULLSIZE.y);
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, (float)newBox.width, (float)newBox.height);
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, static_cast<float>(TOPLEFT.x), static_cast<float>(TOPLEFT.y));
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, static_cast<float>(FULLSIZE.x), static_cast<float>(FULLSIZE.y));
+    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, static_cast<float>(newBox.width), static_cast<float>(newBox.height));
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS, round);
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
@@ -2508,7 +2508,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
 
-    const auto  SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
+    const auto  SHADOWPOWER = std::clamp(static_cast<int>(*PSHADOWPOWER), 1, 4);
 
     const auto  col = color;
 
@@ -2532,9 +2532,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     // Rounded corners
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_TOP_LEFT, (float)TOPLEFT.x, (float)TOPLEFT.y);
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_BOTTOM_RIGHT, (float)BOTTOMRIGHT.x, (float)BOTTOMRIGHT.y);
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_FULL_SIZE, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_TOP_LEFT, static_cast<float>(TOPLEFT.x), static_cast<float>(TOPLEFT.y));
+    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_BOTTOM_RIGHT, static_cast<float>(BOTTOMRIGHT.x), static_cast<float>(BOTTOMRIGHT.y));
+    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_FULL_SIZE, static_cast<float>(FULLSIZE.x), static_cast<float>(FULLSIZE.y));
     m_shaders->m_shSHADOW.setUniformFloat(SHADER_RADIUS, range + round);
     m_shaders->m_shSHADOW.setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     m_shaders->m_shSHADOW.setUniformFloat(SHADER_RANGE, range);
@@ -2623,7 +2623,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     static auto           FALLBACKFONT = CConfigValue<std::string>("misc:font_family");
 
     const auto            FONTFAMILY = *PSPLASHFONT != STRVAL_EMPTY ? *PSPLASHFONT : *FALLBACKFONT;
-    const auto            FONTSIZE   = (int)(size.y / 76);
+    const auto            FONTSIZE   = static_cast<int>(size.y / 76);
     const auto            COLOR      = CHyprColor(*PSPLASHCOLOR);
 
     PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
@@ -2887,7 +2887,7 @@ void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
 
             texPath += std::to_string(distribution(engine));
         } else
-            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, (int64_t)0, (int64_t)2));
+            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(0), static_cast<int64_t>(2)));
 
         texPath += ".png";
 

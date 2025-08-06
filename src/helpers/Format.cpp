@@ -222,7 +222,7 @@ const SPixelFormat* NFormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
 
 const SPixelFormat* NFormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha) {
     for (auto const& fmt : GLES3_FORMATS) {
-        if (fmt.glFormat == (int)glFormat && fmt.glType == (int)glType && fmt.withAlpha == alpha)
+        if (fmt.glFormat == static_cast<int>(glFormat) && fmt.glType == static_cast<int>(glType) && fmt.withAlpha == alpha)
             return &fmt;
     }
 

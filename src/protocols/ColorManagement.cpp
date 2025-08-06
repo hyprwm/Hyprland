@@ -272,7 +272,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     m_resource->setSetImageDescription([this](CWpColorManagementSurfaceV1* r, wl_resource* image_description, uint32_t render_intent) {
         LOGM(TRACE, "Set image description for surface={}, desc={}, intent={}", (uintptr_t)r, (uintptr_t)image_description, render_intent);
 
-        const auto PO = (CWpImageDescriptionV1*)wl_resource_get_user_data(image_description);
+        const auto PO = static_cast<CWpImageDescriptionV1*>(wl_resource_get_user_data(image_description));
         if (!PO) { // FIXME check validity
             r->error(WP_COLOR_MANAGEMENT_SURFACE_V1_ERROR_IMAGE_DESCRIPTION, "Image description creation failed");
             return;
@@ -560,7 +560,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
-        m_settings.transferFunction = convertTransferFunction((wpColorManagerV1TransferFunction)tf);
+        m_settings.transferFunction = convertTransferFunction(static_cast<wpColorManagerV1TransferFunction>(tf));
         m_valuesSet |= PC_TF;
     });
     m_resource->setSetTfPower([this](CWpImageDescriptionCreatorParamsV1* r, uint32_t eexp) {
@@ -605,7 +605,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         }
 
         m_settings.primariesNameSet = true;
-        m_settings.primariesNamed   = convertPrimaries((wpColorManagerV1Primaries)primaries);
+        m_settings.primariesNamed   = convertPrimaries(static_cast<wpColorManagerV1Primaries>(primaries));
         m_settings.primaries        = getPrimaries(m_settings.primariesNamed);
         m_valuesSet |= PC_PRIMARIES;
     });

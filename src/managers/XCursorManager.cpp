@@ -185,15 +185,15 @@ SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, floa
 
 SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, void* ximages) {
     auto           xcursor = makeShared<SXCursors>();
-    XcursorImages* xImages = (XcursorImages*)ximages;
+    XcursorImages* xImages = static_cast<XcursorImages*>(ximages);
 
     for (int i = 0; i < xImages->nimage; i++) {
         auto          xImage = xImages->images[i];
         SXCursorImage image;
-        image.size    = {(int)xImage->width, (int)xImage->height};
-        image.hotspot = {(int)xImage->xhot, (int)xImage->yhot};
-        image.pixels.resize((size_t)xImage->width * xImage->height);
-        std::memcpy(image.pixels.data(), xImage->pixels, (size_t)xImage->width * xImage->height * sizeof(uint32_t));
+        image.size    = {static_cast<int>(xImage->width), static_cast<int>(xImage->height)};
+        image.hotspot = {static_cast<int>(xImage->xhot), static_cast<int>(xImage->yhot)};
+        image.pixels.resize(static_cast<size_t>(xImage->width) * xImage->height);
+        std::memcpy(image.pixels.data(), xImage->pixels, static_cast<size_t>(xImage->width) * xImage->height * sizeof(uint32_t));
         image.delay = xImage->delay;
 
         xcursor->images.emplace_back(image);

@@ -15,9 +15,9 @@ std::string CTokenManager::getRandomUUID() {
     do {
         uuid_t uuid_;
         uuid_generate_random(uuid_);
-        uuid = std::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", (uint16_t)uuid_[0], (uint16_t)uuid_[1],
-                           (uint16_t)uuid_[2], (uint16_t)uuid_[3], (uint16_t)uuid_[4], (uint16_t)uuid_[5], (uint16_t)uuid_[6], (uint16_t)uuid_[7], (uint16_t)uuid_[8],
-                           (uint16_t)uuid_[9], (uint16_t)uuid_[10], (uint16_t)uuid_[11], (uint16_t)uuid_[12], (uint16_t)uuid_[13], (uint16_t)uuid_[14], (uint16_t)uuid_[15]);
+        uuid = std::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", static_cast<uint16_t>(uuid_[0]), static_cast<uint16_t>(uuid_[1]),
+                           static_cast<uint16_t>(uuid_[2]), static_cast<uint16_t>(uuid_[3]), static_cast<uint16_t>(uuid_[4]), static_cast<uint16_t>(uuid_[5]), static_cast<uint16_t>(uuid_[6]), static_cast<uint16_t>(uuid_[7]), static_cast<uint16_t>(uuid_[8]),
+                           static_cast<uint16_t>(uuid_[9]), static_cast<uint16_t>(uuid_[10]), static_cast<uint16_t>(uuid_[11]), static_cast<uint16_t>(uuid_[12]), static_cast<uint16_t>(uuid_[13]), static_cast<uint16_t>(uuid_[14]), static_cast<uint16_t>(uuid_[15]));
     } while (m_tokens.contains(uuid));
 
     return uuid;

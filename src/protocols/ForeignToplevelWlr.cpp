@@ -109,7 +109,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->m_isMapped)
             return;
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},1", (uintptr_t)PWINDOW.get())});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},1", reinterpret_cast<uintptr_t>(PWINDOW.get()))});
     });
 
     m_resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -121,7 +121,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->m_isMapped)
             return;
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},0", (uintptr_t)PWINDOW.get())});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},0", reinterpret_cast<uintptr_t>(PWINDOW.get()))});
     });
 
     m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
@@ -179,12 +179,12 @@ void CForeignToplevelHandleWlr::sendState() {
     wl_array_init(&state);
 
     if (PWINDOW == g_pCompositor->m_lastWindow) {
-        auto p = (uint32_t*)wl_array_add(&state, sizeof(uint32_t));
+        auto p = static_cast<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
 
     if (PWINDOW->isFullscreen()) {
-        auto p = (uint32_t*)wl_array_add(&state, sizeof(uint32_t));
+        auto p = static_cast<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
         if (PWINDOW->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_FULLSCREEN;
         else
@@ -424,7 +424,7 @@ void CForeignToplevelWlrProtocol::destroyHandle(CForeignToplevelHandleWlr* handl
 }
 
 PHLWINDOW CForeignToplevelWlrProtocol::windowFromHandleResource(wl_resource* res) {
-    auto data = (CForeignToplevelHandleWlr*)(((CZwlrForeignToplevelHandleV1*)wl_resource_get_user_data(res))->data());
+    auto data = static_cast<CForeignToplevelHandleWlr*>(static_cast<CZwlrForeignToplevelHandleV1*>(wl_resource_get_user_data(res))->data());
     return data ? data->window() : nullptr;
 }
 

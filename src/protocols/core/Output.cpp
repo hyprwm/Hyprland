@@ -51,7 +51,7 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
 }
 
 SP<CWLOutputResource> CWLOutputResource::fromResource(wl_resource* res) {
-    auto data = (CWLOutputResource*)(((CWlOutput*)wl_resource_get_user_data(res))->data());
+    auto data = static_cast<CWLOutputResource*>(static_cast<CWlOutput*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 

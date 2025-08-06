@@ -54,7 +54,7 @@ CInputManager::CInputManager() {
         if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->m_state.pointerFocusResource->client())
             return;
 
-        Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
+        Debug::log(LOG, "cursorImage request: shape {} -> {}", static_cast<uint32_t>(event.shape), event.shapeName);
 
         m_cursorSurfaceInfo.wlSurface->unassign();
         m_cursorSurfaceInfo.vHotspot = {};
@@ -117,7 +117,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     else
         g_pPointerManager->setStoredMovement(e.timeMs, DELTA, unaccel);
 
-    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, unaccel);
+    PROTO::relativePointer->sendRelativeMotion(static_cast<uint64_t>(e.timeMs) * 1000, DELTA, unaccel);
 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
@@ -236,13 +236,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
                 g_pCompositor->warpCursorTo(CLOSEST, true);
                 g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
-                PROTO::relativePointer->sendRelativeMotion((uint64_t)time * 1000, {}, {});
+                PROTO::relativePointer->sendRelativeMotion(static_cast<uint64_t>(time) * 1000, {}, {});
             }
 
             return;
 
         } else
-            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF.get(), (uintptr_t)CONSTRAINT.get());
+            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", reinterpret_cast<uintptr_t>(SURF.get()), reinterpret_cast<uintptr_t>(CONSTRAINT.get()));
     }
 
     if (PMONITOR != g_pCompositor->m_lastMonitor && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
@@ -644,7 +644,7 @@ void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& eve
     if (!cursorImageUnlocked())
         return;
 
-    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)event.surf.get());
+    Debug::log(LOG, "cursorImage request: surface {:x}", reinterpret_cast<uintptr_t>(event.surf.get()));
 
     if (event.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
         m_cursorSurfaceInfo.wlSurface->unassign();
@@ -937,7 +937,7 @@ void CInputManager::newKeyboard(SP<IKeyboard> keeb) {
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x}", (uintptr_t)PNEWKEYBOARD.get());
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x}", reinterpret_cast<uintptr_t>(PNEWKEYBOARD.get()));
 }
 
 void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
@@ -945,7 +945,7 @@ void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and AQ: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard.get());
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and AQ: {:x}", reinterpret_cast<uintptr_t>(PNEWKEYBOARD.get()), reinterpret_cast<uintptr_t>(keyboard.get()));
 }
 
 void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) {
@@ -953,7 +953,7 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Debug::log(LOG, "New virtual keyboard created at {:x}", (uintptr_t)PNEWKEYBOARD.get());
+    Debug::log(LOG, "New virtual keyboard created at {:x}", reinterpret_cast<uintptr_t>(PNEWKEYBOARD.get()));
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
@@ -974,7 +974,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             return;
 
         destroyKeyboard(PKEEB);
-        Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)keeb);
+        Debug::log(LOG, "Destroyed keyboard {:x}", reinterpret_cast<uintptr_t>(keeb));
     });
 
     keeb->m_keyboardEvents.key.listenStatic([this, keeb = keeb.get()](const IKeyboard::SKeyEvent& event) {
@@ -1035,7 +1035,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
-    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", devname, (int)HASCONFIG);
+    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", devname, static_cast<int>(HASCONFIG));
 
     const auto REPEATRATE  = g_pConfigManager->getDeviceInt(devname, "repeat_rate", "input:repeat_rate");
     const auto REPEATDELAY = g_pConfigManager->getDeviceInt(devname, "repeat_delay", "input:repeat_delay");
@@ -1119,7 +1119,7 @@ void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
 
     setupMouse(PMOUSE);
 
-    Debug::log(LOG, "New mouse created, pointer AQ: {:x}", (uintptr_t)mouse.get());
+    Debug::log(LOG, "New mouse created, pointer AQ: {:x}", reinterpret_cast<uintptr_t>(mouse.get()));
 }
 
 void CInputManager::setupMouse(SP<IPointer> mauz) {
@@ -1135,8 +1135,8 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
         const auto LIBINPUTDEV = mauz->aq()->getLibinputHandle();
 
         Debug::log(LOG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
-                   libinput_device_config_accel_get_default_speed(LIBINPUTDEV), (int)libinput_device_config_accel_get_profile(LIBINPUTDEV),
-                   (int)libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
+                   libinput_device_config_accel_get_default_speed(LIBINPUTDEV), static_cast<int>(libinput_device_config_accel_get_profile(LIBINPUTDEV)),
+                   static_cast<int>(libinput_device_config_accel_get_default_profile(LIBINPUTDEV)));
     }
 
     g_pPointerManager->attachPointer(mauz);
@@ -1319,7 +1319,7 @@ static void removeFromHIDs(WP<IHID> hid) {
 }
 
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
-    Debug::log(LOG, "Keyboard at {:x} removed", (uintptr_t)pKeyboard.get());
+    Debug::log(LOG, "Keyboard at {:x} removed", reinterpret_cast<uintptr_t>(pKeyboard.get()));
 
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
@@ -1343,7 +1343,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::destroyPointer(SP<IPointer> mouse) {
-    Debug::log(LOG, "Pointer at {:x} removed", (uintptr_t)mouse.get());
+    Debug::log(LOG, "Pointer at {:x} removed", reinterpret_cast<uintptr_t>(mouse.get()));
 
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
 
@@ -1356,7 +1356,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
 }
 
 void CInputManager::destroyTouchDevice(SP<ITouch> touch) {
-    Debug::log(LOG, "Touch device at {:x} removed", (uintptr_t)touch.get());
+    Debug::log(LOG, "Touch device at {:x} removed", reinterpret_cast<uintptr_t>(touch.get()));
 
     std::erase_if(m_touches, [touch](const auto& other) { return other == touch; });
 
@@ -1364,7 +1364,7 @@ void CInputManager::destroyTouchDevice(SP<ITouch> touch) {
 }
 
 void CInputManager::destroyTablet(SP<CTablet> tablet) {
-    Debug::log(LOG, "Tablet device at {:x} removed", (uintptr_t)tablet.get());
+    Debug::log(LOG, "Tablet device at {:x} removed", reinterpret_cast<uintptr_t>(tablet.get()));
 
     std::erase_if(m_tablets, [tablet](const auto& other) { return other == tablet; });
 
@@ -1372,7 +1372,7 @@ void CInputManager::destroyTablet(SP<CTablet> tablet) {
 }
 
 void CInputManager::destroyTabletTool(SP<CTabletTool> tool) {
-    Debug::log(LOG, "Tablet tool at {:x} removed", (uintptr_t)tool.get());
+    Debug::log(LOG, "Tablet tool at {:x} removed", reinterpret_cast<uintptr_t>(tool.get()));
 
     std::erase_if(m_tabletTools, [tool](const auto& other) { return other == tool; });
 
@@ -1380,7 +1380,7 @@ void CInputManager::destroyTabletTool(SP<CTabletTool> tool) {
 }
 
 void CInputManager::destroyTabletPad(SP<CTabletPad> pad) {
-    Debug::log(LOG, "Tablet pad at {:x} removed", (uintptr_t)pad.get());
+    Debug::log(LOG, "Tablet pad at {:x} removed", reinterpret_cast<uintptr_t>(pad.get()));
 
     std::erase_if(m_tabletPads, [pad](const auto& other) { return other == pad; });
 
@@ -1674,7 +1674,7 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
         destroyTouchDevice(PDEV);
     });
 
-    Debug::log(LOG, "New touch device added at {:x}", (uintptr_t)PNEWDEV.get());
+    Debug::log(LOG, "New touch device added at {:x}", reinterpret_cast<uintptr_t>(PNEWDEV.get()));
 }
 
 void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {

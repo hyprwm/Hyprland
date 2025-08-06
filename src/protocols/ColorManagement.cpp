@@ -70,14 +70,16 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
 
         if UNLIKELY (!OUTPUTRESOURCE) {
-            r->error(-1, "Invalid output (2)");
+            LOGM(WARN, "Output resource temporarily unavailable for wl_output {:x}", (uintptr_t)output);
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Output resource temporarily unavailable");
             return;
         }
 
         const auto PMONITOR = OUTPUTRESOURCE->m_monitor.lock();
 
         if UNLIKELY (!PMONITOR) {
-            r->error(-1, "Invalid output (2)");
+            LOGM(WARN, "Monitor temporarily unavailable for output resource");
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Monitor temporarily unavailable");
             return;
         }
 
@@ -97,8 +99,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
-            r->error(-1, "Invalid surface (2)");
+            LOGM(WARN, "Surface resource temporarily unavailable for wl_surface {:x}", (uintptr_t)surface);
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Surface resource temporarily unavailable");
             return;
         }
 
@@ -124,8 +126,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
-            r->error(-1, "Invalid surface (2)");
+            LOGM(WARN, "Surface resource temporarily unavailable for wl_surface {:x}", (uintptr_t)surface);
+            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Surface resource temporarily unavailable");
             return;
         }
 

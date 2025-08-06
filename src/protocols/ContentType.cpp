@@ -14,8 +14,8 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
-            r->error(-1, "Invalid surface (2)");
+            LOGM(WARN, "Surface resource temporarily unavailable for wl_surface {:x}", (uintptr_t)surface);
+            r->error(WP_CONTENT_TYPE_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED, "Surface resource temporarily unavailable");
             return;
         }
 

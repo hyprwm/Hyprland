@@ -129,7 +129,7 @@ static void timespecAddNs(timespec* pTimespec, int64_t delta) {
 
     pTimespec->tv_sec += delta_s_high;
 
-    pTimespec->tv_nsec += (long)delta_ns_low;
+    pTimespec->tv_nsec += delta_ns_low;
     if (pTimespec->tv_nsec >= TIMESPEC_NSEC_PER_SEC) {
         pTimespec->tv_nsec -= TIMESPEC_NSEC_PER_SEC;
         ++pTimespec->tv_sec;

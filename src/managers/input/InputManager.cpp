@@ -113,9 +113,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
     if (g_pSeatManager->m_isPointerFrameSkipped)
-        g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, unaccel);
+        g_pPointerManager->storeMovement(e.timeMs, DELTA, unaccel);
     else
-        g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, unaccel);
+        g_pPointerManager->setStoredMovement(e.timeMs, DELTA, unaccel);
 
     PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, unaccel);
 

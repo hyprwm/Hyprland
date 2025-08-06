@@ -243,11 +243,11 @@ void CInputMethodV2::surroundingText(const std::string& text, uint32_t cursor, u
 }
 
 void CInputMethodV2::textChangeCause(zwpTextInputV3ChangeCause changeCause) {
-    m_resource->sendTextChangeCause((uint32_t)changeCause);
+    m_resource->sendTextChangeCause(changeCause);
 }
 
 void CInputMethodV2::textContentType(zwpTextInputV3ContentHint hint, zwpTextInputV3ContentPurpose purpose) {
-    m_resource->sendContentType((uint32_t)hint, (uint32_t)purpose);
+    m_resource->sendContentType(hint, purpose);
 }
 
 void CInputMethodV2::done() {

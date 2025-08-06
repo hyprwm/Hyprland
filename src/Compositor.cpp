@@ -1133,7 +1133,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-        EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
+        EMIT_HOOK_EVENT("activeWindow", nullptr);
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
@@ -1253,7 +1253,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
-        EMIT_HOOK_EVENT("keyboardFocus", (SP<CWLSurfaceResource>)nullptr);
+        EMIT_HOOK_EVENT("keyboardFocus", nullptr);
         m_lastFocus.reset();
         return;
     }

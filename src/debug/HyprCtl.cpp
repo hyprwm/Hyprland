@@ -292,7 +292,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             (uintptr_t)w.get(), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_realPosition->goal().x, (int)w->m_realPosition->goal().y,
             (int)w->m_realSize->goal().x, (int)w->m_realSize->goal().y, w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
             escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), ((int)w->m_isFloating == 1 ? "true" : "false"), (w->m_isPseudotiled ? "true" : "false"),
-            (int64_t)w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle),
+            w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle),
             w->getPID(), ((int)w->m_isX11 == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), (uint8_t)w->m_fullscreenState.internal, (uint8_t)w->m_fullscreenState.client,
             getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_swallowed.get(), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")));
@@ -305,7 +305,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\txdgDescription: {}\n\n",
             (uintptr_t)w.get(), w->m_title, (int)w->m_isMapped, (int)w->isHidden(), (int)w->m_realPosition->goal().x, (int)w->m_realPosition->goal().y,
             (int)w->m_realSize->goal().x, (int)w->m_realSize->goal().y, w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name),
-            (int)w->m_isFloating, (int)w->m_isPseudotiled, (int64_t)w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), (int)w->m_isX11,
+            (int)w->m_isFloating, (int)w->m_isPseudotiled, w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), (int)w->m_isX11,
             (int)w->m_pinned, (uint8_t)w->m_fullscreenState.internal, (uint8_t)w->m_fullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
             (uintptr_t)w->m_swallowed.get(), getFocusHistoryID(w), (int)g_pInputManager->isWindowInhibiting(w, false), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
     }

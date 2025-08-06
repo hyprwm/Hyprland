@@ -1139,10 +1139,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x || geom.height > projSizeUnscaled.y) {
-            const auto XPERC = (double)geom.x / (double)pSurface->m_current.size.x;
-            const auto YPERC = (double)geom.y / (double)pSurface->m_current.size.y;
-            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->m_current.size.x;
-            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->m_current.size.y;
+            const auto XPERC = geom.x / pSurface->m_current.size.x;
+            const auto YPERC = geom.y / pSurface->m_current.size.y;
+            const auto WPERC = (geom.x + geom.width) / pSurface->m_current.size.x;
+            const auto HPERC = (geom.y + geom.height) / pSurface->m_current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));

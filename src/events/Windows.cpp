@@ -826,7 +826,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOW == g_pCompositor->m_lastWindow.lock() || !g_pCompositor->m_lastWindow.lock()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
-            EMIT_HOOK_EVENT("activeWindow", nullptr);
+            EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW)nullptr);
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");

@@ -8,6 +8,7 @@
 #include <print>
 #include <filesystem>
 #include <algorithm>
+#include <sstream>
 
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/string/VarList.hpp>

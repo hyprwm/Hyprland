@@ -1139,10 +1139,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         // Adjust UV based on the xdg_surface geometry
         if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
-            const auto XPERC = (double)geom.x / (double)pSurface->m_current.size.x;
-            const auto YPERC = (double)geom.y / (double)pSurface->m_current.size.y;
-            const auto WPERC = (double)(geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / (double)pSurface->m_current.size.x;
-            const auto HPERC = (double)(geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / (double)pSurface->m_current.size.y;
+            const auto XPERC = geom.x / pSurface->m_current.size.x;
+            const auto YPERC = geom.y / pSurface->m_current.size.y;
+            const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
+            const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
@@ -1626,7 +1626,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
 
     TRACY_GPU_ZONE("RenderWorkspace");
 
-    if (!DELTALESSTHAN((double)geometry.width / (double)geometry.height, pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
+    if (!DELTALESSTHAN(geometry.width / geometry.height, pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
         Debug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};

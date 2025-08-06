@@ -530,7 +530,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
 
             auto const& full = entry.path().string();
             using PcloseType = int (*)(FILE*);
-            const std::unique_ptr<FILE, PcloseType> f(fopen(full.c_str(), "r"), static_cast<PcloseType>(fclose));
+            const std::unique_ptr<FILE, PcloseType> f(fopen(full.c_str(), "r"), fclose);
 
             if (!f)
                 continue;

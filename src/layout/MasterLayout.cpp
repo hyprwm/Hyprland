@@ -392,7 +392,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
                 nextX = (WSSIZE.x - WIDTH) / 2;
 
             PMASTERNODE->size     = Vector2D(WIDTH, WSSIZE.y);
-            PMASTERNODE->position = WSPOS + Vector2D((double)nextX, 0.0);
+            PMASTERNODE->position = WSPOS + Vector2D(nextX, 0.0);
         } else {
             PMASTERNODE->size     = WSSIZE;
             PMASTERNODE->position = WSPOS;

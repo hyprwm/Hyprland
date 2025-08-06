@@ -142,7 +142,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     if (eglInitialize(m_eglDisplay, &major, &minor) == EGL_FALSE)
         RASSERT(false, "EGL: failed to initialize a platform display");
 
-    const std::string EGLEXTENSIONS = (const char*)eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
+    const std::string EGLEXTENSIONS = eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
 
     m_exts.IMG_context_priority               = EGLEXTENSIONS.contains("IMG_context_priority");
     m_exts.EXT_create_context_robustness      = EGLEXTENSIONS.contains("EXT_create_context_robustness");
@@ -254,7 +254,7 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
 }
 
 CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
-    const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    const std::string EGLEXTENSIONS = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
     Debug::log(LOG, "Supported EGL global extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
 
@@ -343,7 +343,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     if (!m_exts.EXT_image_dma_buf_import || !m_exts.EXT_image_dma_buf_import_modifiers)
         Debug::log(WARN, "Your GPU does not support DMABUFs, this will possibly cause issues and will take a hit on the performance.");
 
-    const std::string EGLEXTENSIONS_DISPLAY = (const char*)eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
+    const std::string EGLEXTENSIONS_DISPLAY = eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
 
     Debug::log(LOG, "Supported EGL display extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS_DISPLAY, ' '), EGLEXTENSIONS_DISPLAY);
 
@@ -652,7 +652,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
     auto shaderSource = src.c_str();
 
-    glShaderSource(shader, 1, (const GLchar**)&shaderSource, nullptr);
+    glShaderSource(shader, 1, &shaderSource, nullptr);
     glCompileShader(shader);
 
     GLint ok;
@@ -2872,7 +2872,7 @@ void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
     static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
 
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, -1L, 2L);
 
     if (*PNOWALLPAPER)
         m_backgroundTexture.reset();

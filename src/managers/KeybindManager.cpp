@@ -3254,7 +3254,7 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                 const Hyprlang::INT V = std::stoi(VAL.substr(VAL.find(' ')));
                 search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
             } else if (const auto V = configStringToInt(VAL); V)
-                *(search->second(PWINDOW)) = CWindowOverridableVar((Hyprlang::INT)*V, PRIORITY_SET_PROP);
+                *(search->second(PWINDOW)) = CWindowOverridableVar(*V, PRIORITY_SET_PROP);
         } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);

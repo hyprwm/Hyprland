@@ -68,7 +68,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         }
 
         while ((ret = read(m_pipeReadFd.get(), buf.data(), 1023)) > 0) {
-            m_stdout += std::string_view{(char*)buf.data(), (size_t)ret};
+            m_stdout += std::string_view{(buf.data()), (size_t)ret};
         }
 
         // restore the flags (otherwise libwayland won't give us a hangup)

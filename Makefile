@@ -92,3 +92,7 @@ asan:
 	@echo "Hyprland done"
 
 	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.conf
+
+test:
+	$(MAKE) debug
+	./build/hyprtester/hyprtester -c hyprtester/test.conf -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so

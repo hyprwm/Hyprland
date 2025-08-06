@@ -177,10 +177,10 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         }
     }
 
-    if ((BNEWISMASTER && g_pInputManager->m_dragMode != MBIND_MOVE)                //
-        || WINDOWSONWORKSPACE == 1                                                 //
-        || (WINDOWSONWORKSPACE > 2 && !pWindow->m_firstMap && OPENINGON->isMaster) //
-        || forceDropAsMaster                                                       //
+    if ((BNEWISMASTER && g_pInputManager->m_dragMode != MBIND_MOVE)                             //
+        || WINDOWSONWORKSPACE == 1                                                              //
+        || (WINDOWSONWORKSPACE > 2 && !pWindow->m_firstMap && OPENINGON && OPENINGON->isMaster) //
+        || forceDropAsMaster                                                                    //
         || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && g_pInputManager->m_dragMode != MBIND_MOVE)) {
 
         if (BNEWBEFOREACTIVE) {

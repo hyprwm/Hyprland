@@ -2,6 +2,7 @@
 
 #include "color-management-v1.hpp"
 #include <hyprgraphics/color/Color.hpp>
+#include "../../helpers/memory/Memory.hpp"
 
 #define SDR_MIN_LUMINANCE 0.2
 #define SDR_MAX_LUMINANCE 80.0
@@ -42,16 +43,16 @@ namespace NColorManagement {
     // NOTE should be ok this way. unsupported primaries/tfs must be rejected earlier. supported enum values should be in sync with proto.
     // might need a proper switch-case and additional INVALID enum value.
     inline wpColorManagerV1Primaries convertPrimaries(ePrimaries primaries) {
-        return static_cast<wpColorManagerV1Primaries>(primaries);
+        return sc<wpColorManagerV1Primaries>(primaries);
     }
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
-        return static_cast<ePrimaries>(primaries);
+        return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return static_cast<wpColorManagerV1TransferFunction>(tf);
+        return sc<wpColorManagerV1TransferFunction>(tf);
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
-        return static_cast<eTransferFunction>(tf);
+        return sc<eTransferFunction>(tf);
     }
 
     using SPCPRimaries = Hyprgraphics::SPCPRimaries;

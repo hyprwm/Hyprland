@@ -62,7 +62,7 @@ class CBufFileWriter {
     }
     void write(char const* data, size_t len) {
         while (len > 0) {
-            size_t to_add = std::min(len, static_cast<size_t>(BUFSIZE) - m_writeBufPos);
+            size_t to_add = std::min(len, sc<size_t>(BUFSIZE) - m_writeBufPos);
             memcpy(m_writeBuf + m_writeBufPos, data, to_add);
             data += to_add;
             len -= to_add;

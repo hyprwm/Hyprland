@@ -44,7 +44,7 @@ CAsyncDialogBox::CAsyncDialogBox(const std::string& title, const std::string& de
 }
 
 static int onFdWrite(int fd, uint32_t mask, void* data) {
-    auto box = static_cast<CAsyncDialogBox*>(data);
+    auto box = sc<CAsyncDialogBox*>(data);
 
     // lock the box to prevent a UAF
     auto lock = box->lockSelf();
@@ -68,7 +68,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         }
 
         while ((ret = read(m_pipeReadFd.get(), buf.data(), 1023)) > 0) {
-            m_stdout += std::string_view{(buf.data()), static_cast<size_t>(ret)};
+            m_stdout += std::string_view{(buf.data()), sc<size_t>(ret)};
         }
 
         // restore the flags (otherwise libwayland won't give us a hangup)

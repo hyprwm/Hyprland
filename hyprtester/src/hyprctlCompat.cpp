@@ -14,6 +14,8 @@
 #include <csignal>
 #include <cerrno>
 #include <print>
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
 
 static int getUID() {
     const auto UID   = getuid();
@@ -95,7 +97,7 @@ std::string getFromSocket(const std::string& cmd) {
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-    if (connect(SERVERSOCKET, reinterpret_cast<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET, rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         std::println("Couldn't connect to {}. (3)", socketPath);
         return "";
     }

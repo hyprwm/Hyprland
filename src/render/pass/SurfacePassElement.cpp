@@ -169,7 +169,7 @@ CBox CSurfacePassElement::getTexBox() {
 
     CBox         windowBox;
     if (m_data.surface && m_data.mainSurface) {
-        windowBox = {static_cast<int>(outputX) + m_data.pos.x + m_data.localPos.x, static_cast<int>(outputY) + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
+        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them
         const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
@@ -191,8 +191,8 @@ CBox CSurfacePassElement::getTexBox() {
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {static_cast<int>(outputX) + m_data.pos.x + m_data.localPos.x, static_cast<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(static_cast<float>(m_data.surface->m_current.size.x), 2.F),
-                     std::max(static_cast<float>(m_data.surface->m_current.size.y), 2.F)};
+        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(sc<float>(m_data.surface->m_current.size.x), 2.F),
+                     std::max(sc<float>(m_data.surface->m_current.size.y), 2.F)};
         if (m_data.pWindow && m_data.pWindow->m_realSize->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
             windowBox.width  = (windowBox.width / m_data.pWindow->m_reportedSize.x) * m_data.pWindow->m_realSize->value().x;

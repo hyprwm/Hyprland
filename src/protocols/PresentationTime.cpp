@@ -65,8 +65,8 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const T
         tv_sec = TIMESPEC.tv_sec >> 32;
 
     if (data->m_wasPresented)
-        m_resource->sendPresented(static_cast<uint32_t>(tv_sec), static_cast<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), static_cast<uint32_t>(TIMESPEC.tv_nsec), untilRefreshNs, static_cast<uint32_t>(seq >> 32),
-                                  static_cast<uint32_t>(seq & 0xFFFFFFFF), static_cast<wpPresentationFeedbackKind>(flags));
+        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), sc<uint32_t>(TIMESPEC.tv_nsec), untilRefreshNs, sc<uint32_t>(seq >> 32),
+                                  sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
     else
         m_resource->sendDiscarded();
 

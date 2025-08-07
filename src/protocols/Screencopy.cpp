@@ -63,7 +63,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     m_dmabufFormat = m_monitor->m_output->state->state().drmFormat;
 
     if (box_.width == 0 && box_.height == 0)
-        m_box = {0, 0, static_cast<int>(m_monitor->m_size.x), static_cast<int>(m_monitor->m_size.y)};
+        m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
     else
         m_box = box_;
 
@@ -172,7 +172,7 @@ void CScreencopyFrame::share() {
             return;
         }
 
-        m_resource->sendFlags(static_cast<zwlrScreencopyFrameV1Flags>(0));
+        m_resource->sendFlags(sc<zwlrScreencopyFrameV1Flags>(0));
         if (m_withDamage) {
             // TODO: add a damage ring for this.
             m_resource->sendDamage(0, 0, m_buffer->size.x, m_buffer->size.y);
@@ -377,7 +377,7 @@ bool CScreencopyFrame::copyShm() {
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
-    if (packStride == static_cast<uint32_t>(shm.stride)) {
+    if (packStride == sc<uint32_t>(shm.stride)) {
         glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
@@ -446,11 +446,11 @@ void CScreencopyClient::onTick() {
     const bool FRAMEAWAITING  = std::ranges::any_of(PROTO::screencopy->m_frames, [&](const auto& frame) { return frame->m_client.get() == this; });
 
     if (m_framesInLastHalfSecond > 3 && !m_sentScreencast) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, static_cast<uint64_t>(m_framesInLastHalfSecond), static_cast<uint64_t>(m_clientOwner)}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(m_clientOwner)});
         m_sentScreencast = true;
     } else if (m_framesInLastHalfSecond < 4 && m_sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, static_cast<uint64_t>(m_framesInLastHalfSecond), static_cast<uint64_t>(m_clientOwner)}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(m_clientOwner)});
         m_sentScreencast = false;
     }

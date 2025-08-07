@@ -19,7 +19,7 @@ static wpColorManagerV1TransferFunction getWPTransferFunction(frogColorManagedSu
 }
 
 static wpColorManagerV1Primaries getWPPrimaries(frogColorManagedSurfacePrimaries primaries) {
-    return static_cast<wpColorManagerV1Primaries>(primaries + 1);
+    return sc<wpColorManagerV1Primaries>(primaries + 1);
 }
 
 CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_) : m_resource(resource_) {

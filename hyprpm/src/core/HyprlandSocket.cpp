@@ -6,6 +6,9 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <cstring>
+#include <hyprutils/memory/Casts.hpp>
+
+using namespace Hyprutils::Memory;
 
 static int getUID() {
     const auto UID   = getuid();
@@ -46,7 +49,7 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
-    if (connect(SERVERSOCKET, reinterpret_cast<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET, rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         std::println("{}", failureString("Couldn't connect to " + socketPath + ". (4)"));
         return "";
     }

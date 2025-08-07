@@ -57,7 +57,7 @@ bool CWLRegionResource::good() {
 }
 
 SP<CWLRegionResource> CWLRegionResource::fromResource(wl_resource* res) {
-    auto data = static_cast<CWLRegionResource*>(static_cast<CWlRegion*>(wl_resource_get_user_data(res))->data());
+    auto data = sc<CWLRegionResource*>(sc<CWlRegion*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
@@ -167,7 +167,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             whenReadable();
         } else if (state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
             // async buffer and is dmabuf, then we can wait on implicit fences
-            auto syncFd = dynamic_cast<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
+            auto syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
 
             if (syncFd.isValid())
                 g_pEventLoopManager->doOnReadable(std::move(syncFd), whenReadable);
@@ -211,7 +211,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.updated.bits.transform = true;
         m_pending.updated.bits.damage    = true;
 
-        m_pending.transform    = static_cast<wl_output_transform>(tr);
+        m_pending.transform    = sc<wl_output_transform>(tr);
         m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};
     });
 
@@ -270,7 +270,7 @@ void CWLSurfaceResource::dropCurrentBuffer() {
 }
 
 SP<CWLSurfaceResource> CWLSurfaceResource::fromResource(wl_resource* res) {
-    auto data = static_cast<CWLSurfaceResource*>(static_cast<CWlSurface*>(wl_resource_get_user_data(res))->data());
+    auto data = sc<CWLSurfaceResource*>(sc<CWlSurface*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
@@ -379,7 +379,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
     for (auto const& n : nodes) {
         Vector2D offset = {};
         if (n->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
-            auto subsurface = static_cast<CSubsurfaceRole*>(n->m_role.get())->m_subsurface.lock();
+            auto subsurface = sc<CSubsurfaceRole*>(n->m_role.get())->m_subsurface.lock();
             offset          = subsurface->posRelativeToParent();
         }
 
@@ -491,7 +491,7 @@ CBox CWLSurfaceResource::extends() {
             if (surf->m_role->role() != SURFACE_ROLE_SUBSURFACE)
                 return;
 
-            static_cast<CRegion*>(d)->add(CBox{offset, surf->m_current.size});
+            sc<CRegion*>(d)->add(CBox{offset, surf->m_current.size});
         },
         &full);
     return full.getExtents();
@@ -515,7 +515,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
         m_current.texture->m_transform = wlTransformToHyprutils(m_current.transform);
 
     if (m_role->role() == SURFACE_ROLE_SUBSURFACE) {
-        auto subsurface = static_cast<CSubsurfaceRole*>(m_role.get())->m_subsurface.lock();
+        auto subsurface = sc<CSubsurfaceRole*>(m_role.get())->m_subsurface.lock();
         if (subsurface->m_sync)
             return;
 
@@ -525,7 +525,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
         breadthfirst(
             [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                 if (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
-                    auto subsurface = static_cast<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
+                    auto subsurface = sc<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
                     if (!subsurface->m_sync)
                         return;
                 }
@@ -543,7 +543,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     auto parent = m_self;
     if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
-        auto subsurface = static_cast<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
+        auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
         parent          = subsurface->t1Parent();
     }
     WP<CMonitor> monitor;

@@ -87,7 +87,7 @@ std::string escapeJSONStrings(const std::string& str) {
             case '\t': oss << "\\t"; break;
             default:
                 if ('\x00' <= c && c <= '\x1f') {
-                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << sc<int>(c);
                 } else {
                     oss << c;
                 }
@@ -213,7 +213,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = static_cast<int>(PLUSMINUSRESULT.value());
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             WORKSPACEID           remains = result.id;
 
@@ -251,7 +251,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 remains -= 1;
 
                 // traverse valid workspaces until we reach the remains
-                if (static_cast<size_t>(remains) < namedWSes.size()) {
+                if (sc<size_t>(remains) < namedWSes.size()) {
                     result.id = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
@@ -272,7 +272,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 char        walkDir       = in[1];
 
                 // sanitize. 0 means invalid oob in -
-                predictedWSID = std::max(predictedWSID, static_cast<int64_t>(0));
+                predictedWSID = std::max(predictedWSID, sc<int64_t>(0));
 
                 // Count how many invalidWSes are in between (how bad the prediction was)
                 WORKSPACEID beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
@@ -295,7 +295,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     }
 
                     currentItem += remains;
-                    currentItem = std::max(currentItem, static_cast<size_t>(0));
+                    currentItem = std::max(currentItem, sc<size_t>(0));
                     if (currentItem >= namedWSes.size()) {
                         // At the seam between namedWSes and normal WSes. Behave like r+[diff] at imaginary ws 0
                         size_t diff         = currentItem - (namedWSes.size() - 1);
@@ -332,7 +332,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                             // Need remainingWSes more
                             auto namedWSIdx = namedWSes.size() - remainingWSes;
                             // Sanitze
-                            namedWSIdx = std::clamp(namedWSIdx, static_cast<size_t>(0), namedWSes.size() - static_cast<size_t>(1));
+                            namedWSIdx = std::clamp(namedWSIdx, sc<size_t>(0), namedWSes.size() - sc<size_t>(1));
                             finalWSID  = namedWSes[namedWSIdx];
                         } else {
                             // Couldn't find valid workspace in negative direction, search last first one back up positive direction
@@ -376,10 +376,10 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = static_cast<int>(PLUSMINUSRESULT.value());
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             // result now has +/- what we should move on mon
-            int                      remains = static_cast<int>(result.id);
+            int                      remains = sc<int>(result.id);
 
             std::vector<WORKSPACEID> validWSes;
             for (auto const& ws : g_pCompositor->getWorkspaces()) {
@@ -400,7 +400,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 // clamp
                 if (currentItem < 0) {
                     currentItem = 0;
-                } else if (currentItem >= static_cast<ssize_t>(validWSes.size())) {
+                } else if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = validWSes.size() - 1;
                 }
             } else {
@@ -409,7 +409,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 // get the current item
                 WORKSPACEID activeWSID = g_pCompositor->m_lastMonitor->m_activeWorkspace ? g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id : 1;
-                for (ssize_t i = 0; i < static_cast<ssize_t>(validWSes.size()); i++) {
+                for (ssize_t i = 0; i < sc<ssize_t>(validWSes.size()); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
@@ -420,7 +420,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 currentItem += remains;
 
                 // sanitize
-                if (currentItem >= static_cast<ssize_t>(validWSes.size())) {
+                if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = currentItem % validWSes.size();
                 } else if (currentItem < 0) {
                     currentItem = validWSes.size() + currentItem;
@@ -436,7 +436,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     if (!PLUSMINUSRESULT.has_value())
                         return {WORKSPACE_INVALID};
 
-                    result.id = std::max(static_cast<int>(PLUSMINUSRESULT.value()), 1);
+                    result.id = std::max(sc<int>(PLUSMINUSRESULT.value()), 1);
                 } else {
                     Debug::log(ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
@@ -642,7 +642,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
             } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * static_cast<Hyprlang::INT>(0x1000000) + *r * static_cast<Hyprlang::INT>(0x10000) + *g * static_cast<Hyprlang::INT>(0x100) + *b;
+            return a * sc<Hyprlang::INT>(0x1000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
@@ -670,7 +670,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
             if (!r || !g || !b)
                 return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
 
-            return static_cast<Hyprlang::INT>(0xFF000000) + *r * static_cast<Hyprlang::INT>(0x10000) + *g * static_cast<Hyprlang::INT>(0x100) + *b;
+            return sc<Hyprlang::INT>(0xFF000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
             auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
@@ -717,7 +717,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    return Vector2D(static_cast<double>(x), static_cast<double>(y));
+    return Vector2D(sc<double>(x), sc<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
@@ -910,7 +910,7 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     sysctl(mib, miblen, &exe, &sz, NULL, 0);
     std::string path = exe;
 #else
-    std::string path = std::format("/proc/{}/exe", static_cast<uint64_t>(pid));
+    std::string path = std::format("/proc/{}/exe", sc<uint64_t>(pid));
 #endif
     std::error_code ec;
 

@@ -155,12 +155,12 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
-            escapeJSONStrings(m->m_output->serial), static_cast<int>(m->m_pixelSize.x), m->m_pixelSize.y, static_cast<int>(m->m_output->physicalSize.x), static_cast<int>(m->m_output->physicalSize.y), m->m_refreshRate,
-            static_cast<int>(m->m_position.x), static_cast<int>(m->m_position.y), m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
-            m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), static_cast<int>(m->m_reservedTopLeft.x),
-            static_cast<int>(m->m_reservedTopLeft.y), static_cast<int>(m->m_reservedBottomRight.x), static_cast<int>(m->m_reservedBottomRight.y), m->m_scale, static_cast<int>(m->m_transform),
+            escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), m->m_pixelSize.y, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_refreshRate,
+            sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
+            m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x),
+            sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform),
             (m == g_pCompositor->m_lastMonitor ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
-            reinterpret_cast<uint64_t>(m->m_solitaryClient.get()), (m->m_tearingState.activelyTearing ? "true" : "false"), reinterpret_cast<uint64_t>(m->m_lastScanout.get()), (m->m_enabled ? "false" : "true"),
+            rc<uint64_t>(m->m_solitaryClient.get()), (m->m_tearingState.activelyTearing ? "true" : "false"), rc<uint64_t>(m->m_lastScanout.get()), (m->m_enabled ? "false" : "true"),
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
@@ -169,12 +169,12 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
             "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\n",
-            m->m_name, m->m_id, static_cast<int>(m->m_pixelSize.x), static_cast<int>(m->m_pixelSize.y), m->m_refreshRate, static_cast<int>(m->m_position.x), static_cast<int>(m->m_position.y), m->m_shortDescription,
-            m->m_output->make, m->m_output->model, static_cast<int>(m->m_output->physicalSize.x), static_cast<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
+            m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
+            m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
-            static_cast<int>(m->m_reservedTopLeft.x), static_cast<int>(m->m_reservedTopLeft.y), static_cast<int>(m->m_reservedBottomRight.x), static_cast<int>(m->m_reservedBottomRight.y), m->m_scale, static_cast<int>(m->m_transform),
-            (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), static_cast<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync, reinterpret_cast<uint64_t>(m->m_solitaryClient.get()),
-            m->m_tearingState.activelyTearing, reinterpret_cast<uint64_t>(m->m_lastScanout.get()), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
+            sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform),
+            (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync, rc<uint64_t>(m->m_solitaryClient.get()),
+            m->m_tearingState.activelyTearing, rc<uint64_t>(m->m_lastScanout.get()), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 
@@ -235,9 +235,9 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     PHLWINDOW          curr = head;
     while (true) {
         if (isJson)
-            result << std::format("\"0x{:x}\"", reinterpret_cast<uintptr_t>(curr.get()));
+            result << std::format("\"0x{:x}\"", rc<uintptr_t>(curr.get()));
         else
-            result << std::format("{:x}", reinterpret_cast<uintptr_t>(curr.get()));
+            result << std::format("{:x}", rc<uintptr_t>(curr.get()));
         curr = curr->m_groupData.pNextWindow.lock();
         // We've wrapped around to the start, break out without trailing comma
         if (curr == head)
@@ -289,12 +289,12 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xdgTag": "{}",
     "xdgDescription": "{}"
 }},)#",
-            reinterpret_cast<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), static_cast<int>(w->m_realPosition->goal().x), static_cast<int>(w->m_realPosition->goal().y),
-            static_cast<int>(w->m_realSize->goal().x), static_cast<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
-            escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), (static_cast<int>(w->m_isFloating) == 1 ? "true" : "false"), (w->m_isPseudotiled ? "true" : "false"),
+            rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
+            sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
+            escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), (w->m_isPseudotiled ? "true" : "false"),
             w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle), w->getPID(),
-            (static_cast<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), static_cast<uint8_t>(w->m_fullscreenState.internal), static_cast<uint8_t>(w->m_fullscreenState.client),
-            getGroupedData(w, format), getTagsData(w, format), reinterpret_cast<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w),
+            (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
+            getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")));
     } else {
         return std::format(
@@ -303,11 +303,11 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\txwayland: {}\n\tpinned: "
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\n",
-            reinterpret_cast<uintptr_t>(w.get()), w->m_title, static_cast<int>(w->m_isMapped), static_cast<int>(w->isHidden()), static_cast<int>(w->m_realPosition->goal().x), static_cast<int>(w->m_realPosition->goal().y),
-            static_cast<int>(w->m_realSize->goal().x), static_cast<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name),
-            static_cast<int>(w->m_isFloating), static_cast<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), static_cast<int>(w->m_isX11),
-            static_cast<int>(w->m_pinned), static_cast<uint8_t>(w->m_fullscreenState.internal), static_cast<uint8_t>(w->m_fullscreenState.client), getGroupedData(w, format), getTagsData(w, format),
-            reinterpret_cast<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), static_cast<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
+            rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
+            sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name),
+            sc<int>(w->m_isFloating), sc<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11),
+            sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client), getGroupedData(w, format), getTagsData(w, format),
+            rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
     }
 }
 
@@ -357,12 +357,12 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
 }})#",
                            w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
                            escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
-                           reinterpret_cast<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->isPersistent() ? "true" : "false");
+                           rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->isPersistent() ? "true" : "false");
     } else {
         return std::format(
             "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: {}\n\n",
-            w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindows(), static_cast<int>(w->m_hasFullscreenWindow),
-            reinterpret_cast<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", static_cast<int>(w->isPersistent()));
+            w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindows(), sc<int>(w->m_hasFullscreenWindow),
+            rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()));
     }
 }
 
@@ -370,19 +370,19 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
-        const std::string default_    = static_cast<bool>(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
-        const std::string persistent  = static_cast<bool>(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
-        const std::string gapsIn      = static_cast<bool>(r.gapsIn) ?
+        const std::string default_    = sc<bool>(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
+        const std::string persistent  = sc<bool>(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
+        const std::string gapsIn      = sc<bool>(r.gapsIn) ?
                  std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().m_top, r.gapsIn.value().m_right, r.gapsIn.value().m_bottom, r.gapsIn.value().m_left) :
                  "";
-        const std::string gapsOut     = static_cast<bool>(r.gapsOut) ?
+        const std::string gapsOut     = sc<bool>(r.gapsOut) ?
                 std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().m_top, r.gapsOut.value().m_right, r.gapsOut.value().m_bottom, r.gapsOut.value().m_left) :
                 "";
-        const std::string borderSize  = static_cast<bool>(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
-        const std::string border      = static_cast<bool>(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
-        const std::string rounding    = static_cast<bool>(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
-        const std::string decorate    = static_cast<bool>(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
-        const std::string shadow      = static_cast<bool>(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
+        const std::string borderSize  = sc<bool>(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
+        const std::string border      = sc<bool>(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
+        const std::string rounding    = sc<bool>(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
+        const std::string decorate    = sc<bool>(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
+        const std::string shadow      = sc<bool>(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
         const std::string defaultName = r.defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.defaultName.value())) : "";
 
         std::string       result =
@@ -394,19 +394,19 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         return result;
     } else {
         const std::string monitor    = std::format("\tmonitor: {}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
-        const std::string default_   = std::format("\tdefault: {}\n", static_cast<bool>(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
-        const std::string persistent = std::format("\tpersistent: {}\n", static_cast<bool>(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
-        const std::string gapsIn     = static_cast<bool>(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().m_top), std::to_string(r.gapsIn.value().m_right),
+        const std::string default_   = std::format("\tdefault: {}\n", sc<bool>(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
+        const std::string persistent = std::format("\tpersistent: {}\n", sc<bool>(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
+        const std::string gapsIn     = sc<bool>(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().m_top), std::to_string(r.gapsIn.value().m_right),
                                                                       std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
                                                           std::format("\tgapsIn: <unset>\n");
-        const std::string gapsOut = static_cast<bool>(r.gapsOut) ? std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right),
+        const std::string gapsOut = sc<bool>(r.gapsOut) ? std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right),
                                                                     std::to_string(r.gapsOut.value().m_bottom), std::to_string(r.gapsOut.value().m_left)) :
                                                         std::format("\tgapsOut: <unset>\n");
-        const std::string borderSize  = std::format("\tborderSize: {}\n", static_cast<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border      = std::format("\tborder: {}\n", static_cast<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
-        const std::string rounding    = std::format("\trounding: {}\n", static_cast<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
-        const std::string decorate    = std::format("\tdecorate: {}\n", static_cast<bool>(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow      = std::format("\tshadow: {}\n", static_cast<bool>(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
+        const std::string borderSize  = std::format("\tborderSize: {}\n", sc<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
+        const std::string border      = std::format("\tborder: {}\n", sc<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
+        const std::string rounding    = std::format("\trounding: {}\n", sc<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
+        const std::string decorate    = std::format("\tdecorate: {}\n", sc<bool>(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
+        const std::string shadow      = std::format("\tshadow: {}\n", sc<bool>(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
         const std::string defaultName = std::format("\tdefaultName: {}\n", r.defaultName.value_or("<unset>"));
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
@@ -515,7 +515,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "namespace": "{}",
                     "pid": {}
                 }},)#",
-                        reinterpret_cast<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, escapeJSONStrings(layer->m_namespace),
+                        rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, escapeJSONStrings(layer->m_namespace),
                         layer->getPID());
                 }
 
@@ -547,7 +547,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", reinterpret_cast<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
+                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
                                           layer->m_geometry.width, layer->m_geometry.height, layer->m_namespace, layer->getPID());
                 }
 
@@ -628,7 +628,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "name": "{}",
         "defaultSpeed": {:.5f}
     }},)#",
-                reinterpret_cast<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName),
+                rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName),
                 m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
         }
 
@@ -652,7 +652,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "numLock": {},
         "main": {}
     }},)#",
-                reinterpret_cast<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
+                rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
                 escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), escapeJSONStrings(KM),
                 (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
         }
@@ -672,7 +672,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
             "name": "{}"
         }}
     }},)#",
-                reinterpret_cast<uintptr_t>(d.get()), reinterpret_cast<uintptr_t>(d->m_parent.get()), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
+                rc<uintptr_t>(d.get()), rc<uintptr_t>(d->m_parent.get()), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
         }
 
         for (auto const& d : g_pInputManager->m_tablets) {
@@ -681,7 +681,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                reinterpret_cast<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName));
+                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName));
         }
 
         for (auto const& d : g_pInputManager->m_tabletTools) {
@@ -690,7 +690,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "type": "tabletTool",
     }},)#",
-                reinterpret_cast<uintptr_t>(d.get()));
+                rc<uintptr_t>(d.get()));
         }
 
         trimTrailingComma(result);
@@ -704,7 +704,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                reinterpret_cast<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName));
+                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName));
         }
 
         trimTrailingComma(result);
@@ -718,7 +718,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                reinterpret_cast<uintptr_t>(&d), escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""));
+                rc<uintptr_t>(&d), escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""));
         }
 
         trimTrailingComma(result);
@@ -730,7 +730,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_pointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", reinterpret_cast<uintptr_t>(m.get()), m->m_hlName,
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
                                   (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
@@ -740,7 +740,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
             const auto KM = k->getActiveLayout();
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
-                                  reinterpret_cast<uintptr_t>(k.get()), k->m_hlName, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout, k->m_currentRules.variant,
+                                  rc<uintptr_t>(k.get()), k->m_hlName, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout, k->m_currentRules.variant,
                                   k->m_currentRules.options, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
                                   (k->m_active ? "yes" : "no"));
         }
@@ -748,27 +748,27 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n\nTablets:\n";
 
         for (auto const& d : g_pInputManager->m_tabletPads) {
-            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", reinterpret_cast<uintptr_t>(d.get()), reinterpret_cast<uintptr_t>(d->m_parent.get()), d->m_parent ? d->m_parent->m_hlName : "");
+            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", rc<uintptr_t>(d.get()), rc<uintptr_t>(d->m_parent.get()), d->m_parent ? d->m_parent->m_hlName : "");
         }
 
         for (auto const& d : g_pInputManager->m_tablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", reinterpret_cast<uintptr_t>(d.get()), d->m_hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", rc<uintptr_t>(d.get()), d->m_hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
         for (auto const& d : g_pInputManager->m_tabletTools) {
-            result += std::format("\tTablet Tool at {:x}\n", reinterpret_cast<uintptr_t>(d.get()));
+            result += std::format("\tTablet Tool at {:x}\n", rc<uintptr_t>(d.get()));
         }
 
         result += "\n\nTouch:\n";
 
         for (auto const& d : g_pInputManager->m_touches) {
-            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", reinterpret_cast<uintptr_t>(d.get()), d->m_hlName);
+            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", rc<uintptr_t>(d.get()), d->m_hlName);
         }
 
         result += "\n\nSwitches:\n";
 
         for (auto const& d : g_pInputManager->m_switches) {
-            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", reinterpret_cast<uintptr_t>(&d), d.pDevice ? d.pDevice->getName() : "");
+            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", rc<uintptr_t>(&d), d.pDevice ? d.pDevice->getName() : "");
         }
     }
 
@@ -781,7 +781,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += "animations:\n";
 
         for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
-            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, static_cast<int>(ac.second->overridden),
+            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
                                ac.second->internalBezier, ac.second->internalEnabled, ac.second->internalSpeed, ac.second->internalStyle);
         }
 
@@ -1083,7 +1083,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     for (const auto& m : g_pCompositor->m_monitors) {
         result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
                               "{}\n\t\tnon-desktop {}\n\t\t",
-                              m->m_name, static_cast<int>(m->m_pixelSize.x), static_cast<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
+                              m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
                               backend(m->m_output->getBackend()->type()), check(m->m_output->supportsExplicit), check(m->m_output->parsedEDID.hdrMetadata.has_value()),
                               check(m->m_output->parsedEDID.chromaticityCoords.has_value()), check(m->m_output->parsedEDID.supportsBT2020), check(m->m_output->vrrCapable),
                               check(m->m_output->nonDesktop));
@@ -1105,7 +1105,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
 
     auto       DISPATCHARG = std::string();
-    if (static_cast<int>(in.find_first_of(' ')) != -1)
+    if (sc<int>(in.find_first_of(' ')) != -1)
         DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
 
     const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(DISPATCHSTR);
@@ -1222,7 +1222,7 @@ static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string req
     const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal().floor();
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        return std::format("{}, {}", static_cast<int>(CURSORPOS.x), static_cast<int>(CURSORPOS.y));
+        return std::format("{}, {}", sc<int>(CURSORPOS.x), sc<int>(CURSORPOS.y));
     } else {
         return std::format(R"#(
 {{
@@ -1230,7 +1230,7 @@ static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string req
     "y": {}
 }}
 )#",
-                           static_cast<int>(CURSORPOS.x), static_cast<int>(CURSORPOS.y));
+                           sc<int>(CURSORPOS.x), sc<int>(CURSORPOS.y));
     }
 
     return "error";
@@ -1259,7 +1259,7 @@ static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string reques
         }
     }
 
-    return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));
+    return reply.substr(0, std::max(sc<int>(reply.size() - DELIMITER.size()), 0));
 }
 
 static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {
@@ -1315,7 +1315,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
                 requestedLayout = std::stoi(CMD);
             } catch (std::exception& e) { return "invalid arg 2"; }
 
-            if (requestedLayout < 0 || static_cast<uint64_t>(requestedLayout) > LAYOUTS - 1) {
+            if (requestedLayout < 0 || sc<uint64_t>(requestedLayout) > LAYOUTS - 1) {
                 return "layout idx out of range of " + std::to_string(LAYOUTS);
             }
 
@@ -1433,7 +1433,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("str: {}\nset: {}", std::any_cast<Hyprlang::STRING>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(void*))
-            return std::format("custom type: {}\nset: {}", static_cast<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
+            return std::format("custom type: {}\nset: {}", sc<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
             return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
@@ -1445,7 +1445,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
         else if (TYPE == typeid(void*))
-            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, static_cast<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, sc<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";
@@ -1587,7 +1587,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
     "version": "{}",
     "description": "{}"
 }},)#",
-                    escapeJSONStrings(p->m_name), escapeJSONStrings(p->m_author), reinterpret_cast<uintptr_t>(p->m_handle), escapeJSONStrings(p->m_version), escapeJSONStrings(p->m_description));
+                    escapeJSONStrings(p->m_name), escapeJSONStrings(p->m_author), rc<uintptr_t>(p->m_handle), escapeJSONStrings(p->m_version), escapeJSONStrings(p->m_description));
             }
             trimTrailingComma(result);
             result += "]";
@@ -1596,7 +1596,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
                 return "no plugins loaded";
 
             for (auto const& p : PLUGINS) {
-                result += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->m_name, p->m_author, reinterpret_cast<uintptr_t>(p->m_handle), p->m_version,
+                result += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->m_name, p->m_author, rc<uintptr_t>(p->m_handle), p->m_version,
                                       p->m_description);
             }
         }
@@ -1659,7 +1659,7 @@ static std::string dispatchNotify(eHyprCtlOutputFormat format, std::string reque
 
     const auto MESSAGE = vars.join(" ", msgidx);
 
-    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, static_cast<eIcons>(icon), fontsize);
+    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, sc<eIcons>(icon), fontsize);
 
     return "ok";
 }
@@ -1937,7 +1937,7 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     sockaddr_in            clientAddress;
     socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), reinterpret_cast<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC);
 
     std::array<char, 1024> readBuffer;
 
@@ -2033,7 +2033,7 @@ void CHyprCtl::startHyprCtlSocket() {
 
     snprintf(SERVERADDRESS.sun_path, sizeof(SERVERADDRESS.sun_path), "%s", m_socketPath.c_str());
 
-    if (bind(m_socketFD.get(), reinterpret_cast<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
+    if (bind(m_socketFD.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
         return;
     }

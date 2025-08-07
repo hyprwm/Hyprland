@@ -69,7 +69,7 @@ CDonationNagManager::CDonationNagManager() {
     // don't nag if the last nag was less than a month ago. This is
     // mostly for first-time nags, as other nags happen in specific time frames shorter than a month
     if (EPOCH - state.epoch < MONTH_IN_SECONDS) {
-        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", static_cast<int>(std::round((EPOCH - state.epoch) / static_cast<double>(DAY_IN_SECONDS))));
+        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", sc<int>(std::round((EPOCH - state.epoch) / sc<double>(DAY_IN_SECONDS))));
         return;
     }
 

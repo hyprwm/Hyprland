@@ -139,8 +139,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSIN      = static_cast<CCssGapData*>((PGAPSINDATA.ptr())->getData());
-    auto* const PGAPSOUT     = static_cast<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+    auto* const PGAPSIN      = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+    auto* const PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -179,9 +179,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         }
     }
 
-    const auto GAPOFFSETTOPLEFT = Vector2D(static_cast<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), static_cast<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), sc<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
 
-    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(static_cast<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), static_cast<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
 
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;

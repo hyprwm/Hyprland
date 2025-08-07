@@ -99,7 +99,7 @@ void CInputPopup::updateBox() {
     if (!cursorRect) {
         Vector2D coords = OWNER ? OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500}).pos() : Vector2D{0, 0};
         parentBox       = {coords, {500, 500}};
-        cursorBoxParent = {0, 0, static_cast<int>(parentBox.w), static_cast<int>(parentBox.h)};
+        cursorBoxParent = {0, 0, sc<int>(parentBox.w), sc<int>(parentBox.h)};
     }
 
     Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->m_current.scale;

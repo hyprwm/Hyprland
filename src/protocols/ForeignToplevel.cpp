@@ -55,7 +55,7 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
         return;
     }
 
-    const auto IDENTIFIER = std::format("{:08x}->{:016x}", static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this) & 0xFFFFFFFF), reinterpret_cast<uintptr_t>(pWindow.get()));
+    const auto IDENTIFIER = std::format("{:08x}->{:016x}", sc<uint32_t>(rc<uintptr_t>(this) & 0xFFFFFFFF), rc<uintptr_t>(pWindow.get()));
 
     LOGM(LOG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     m_resource->sendToplevel(NEWHANDLE->m_resource.get());
@@ -172,6 +172,6 @@ bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
 }
 
 PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {
-    auto data = static_cast<CForeignToplevelHandle*>(static_cast<CExtForeignToplevelHandleV1*>(wl_resource_get_user_data(res))->data());
+    auto data = sc<CForeignToplevelHandle*>(sc<CExtForeignToplevelHandleV1*>(wl_resource_get_user_data(res))->data());
     return data ? data->window() : nullptr;
 }

@@ -41,7 +41,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
     if (!PAV)
         return;
 
-    CAnimatedVariable<Vector2D>* animvar = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
     animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
     const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
@@ -50,7 +50,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW   PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
@@ -223,7 +223,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     clientMode = std::stoi(ARGS[1]);
                 } catch (std::exception& e) { clientMode = 0; }
-                requestedFSState = SFullscreenState{.internal = static_cast<eFullscreenMode>(internalMode), .client = static_cast<eFullscreenMode>(clientMode)};
+                requestedFSState = SFullscreenState{.internal = sc<eFullscreenMode>(internalMode), .client = sc<eFullscreenMode>(clientMode)};
                 break;
             }
             case CWindowRule::RULE_SUPPRESSEVENT: {
@@ -527,13 +527,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         if (ONSCREEN) {
                             int borderSize = PWINDOW->getRealBorderSize();
 
-                            posX = std::clamp(posX, static_cast<int>(PMONITOR->m_reservedTopLeft.x + borderSize),
-                                              std::max(static_cast<int>(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PWINDOW->m_realSize->goal().x - borderSize),
-                                                       static_cast<int>(PMONITOR->m_reservedTopLeft.x + borderSize + 1)));
+                            posX = std::clamp(posX, sc<int>(PMONITOR->m_reservedTopLeft.x + borderSize),
+                                              std::max(sc<int>(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PWINDOW->m_realSize->goal().x - borderSize),
+                                                       sc<int>(PMONITOR->m_reservedTopLeft.x + borderSize + 1)));
 
-                            posY = std::clamp(posY, static_cast<int>(PMONITOR->m_reservedTopLeft.y + borderSize),
-                                              std::max(static_cast<int>(PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PWINDOW->m_realSize->goal().y - borderSize),
-                                                       static_cast<int>(PMONITOR->m_reservedTopLeft.y + borderSize + 1)));
+                            posY = std::clamp(posY, sc<int>(PMONITOR->m_reservedTopLeft.y + borderSize),
+                                              std::max(sc<int>(PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PWINDOW->m_realSize->goal().y - borderSize),
+                                                       sc<int>(PMONITOR->m_reservedTopLeft.y + borderSize + 1)));
                         }
 
                         Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
@@ -631,9 +631,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & SUPPRESS_FULLSCREEN))
-        requestedClientFSMode = static_cast<eFullscreenMode>(static_cast<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~static_cast<uint8_t>(FSMODE_FULLSCREEN));
+        requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_FULLSCREEN));
     if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & SUPPRESS_MAXIMIZE))
-        requestedClientFSMode = static_cast<eFullscreenMode>(static_cast<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~static_cast<uint8_t>(FSMODE_MAXIMIZED));
+        requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_MAXIMIZED));
 
     if (!PWINDOW->m_noInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
@@ -717,7 +717,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
@@ -855,7 +855,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->m_initialCommit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
@@ -922,7 +922,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
@@ -953,7 +953,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
-    PHLWINDOW PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
@@ -978,7 +978,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
-    PHLWINDOW PWINDOW = static_cast<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
 
     if (!PWINDOW->m_isMapped || !PWINDOW->m_xwaylandSurface || !PWINDOW->m_xwaylandSurface->m_overrideRedirect)
         return;

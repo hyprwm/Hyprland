@@ -87,8 +87,8 @@ CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(UP<CWpSingl
     m_resource->setOnDestroy([this](CWpSinglePixelBufferManagerV1* r) { PROTO::singlePixel->destroyResource(this); });
 
     m_resource->setCreateU32RgbaBuffer([this](CWpSinglePixelBufferManagerV1* res, uint32_t id, uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-        CHyprColor  color{r / sc<float>(std::numeric_limits<uint32_t>::max()), g / sc<float>(std::numeric_limits<uint32_t>::max()), b / sc<float>(std::numeric_limits<uint32_t>::max()),
-                         a / sc<float>(std::numeric_limits<uint32_t>::max())};
+        CHyprColor  color{r / sc<float>(std::numeric_limits<uint32_t>::max()), g / sc<float>(std::numeric_limits<uint32_t>::max()),
+                         b / sc<float>(std::numeric_limits<uint32_t>::max()), a / sc<float>(std::numeric_limits<uint32_t>::max())};
         const auto& RESOURCE = PROTO::singlePixel->m_buffers.emplace_back(makeUnique<CSinglePixelBufferResource>(id, m_resource->client(), color));
 
         if UNLIKELY (!RESOURCE->good()) {

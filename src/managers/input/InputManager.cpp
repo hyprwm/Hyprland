@@ -1246,8 +1246,7 @@ void CInputManager::setPointerConfigs() {
             }
 
             if (libinput_device_config_dwt_is_available(LIBINPUTDEV)) {
-                const auto DWT =
-                    sc<enum libinput_config_dwt_state>(g_pConfigManager->getDeviceInt(devname, "disable_while_typing", "input:touchpad:disable_while_typing") != 0);
+                const auto DWT = sc<enum libinput_config_dwt_state>(g_pConfigManager->getDeviceInt(devname, "disable_while_typing", "input:touchpad:disable_while_typing") != 0);
                 libinput_device_config_dwt_set_enabled(LIBINPUTDEV, DWT);
             }
 

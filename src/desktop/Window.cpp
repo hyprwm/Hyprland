@@ -1766,8 +1766,8 @@ void CWindow::updateX11SurfaceScale() {
 void CWindow::sendWindowSize(bool force) {
     const auto PMONITOR = m_monitor.lock();
 
-    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(this), this->m_title, m_realPosition->goal(), m_realSize->goal(),
-               force);
+    Debug::log(TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(this), this->m_title, m_realPosition->goal(),
+               m_realSize->goal(), force);
 
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();

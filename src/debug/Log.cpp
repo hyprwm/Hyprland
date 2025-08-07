@@ -71,4 +71,6 @@ void Debug::log(eLogLevel level, std::string str) {
     // log it to the stdout too.
     if (!m_disableStdout)
         std::println("{}", ((m_coloredLogs && !**m_coloredLogs) ? str : coloredStr));
+
+    std::fflush(stdout);
 }

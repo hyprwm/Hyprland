@@ -5,7 +5,7 @@
 #include "../config/ConfigManager.hpp"
 
 static const auto RULES = std::unordered_set<std::string>{
-    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize",
+    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize", "suppressvrr",
 };
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "animation",     "bordercolor", "bordersize", "center",  "content", "fullscreenstate", "group",    "idleinhibit",   "maxsize",     "minsize",        "monitor",
@@ -80,6 +80,8 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         m_ruleType = RULE_CONTENT;
     else if (rule.starts_with("noclosefor"))
         m_ruleType = RULE_NOCLOSEFOR;
+    else if (rule == "suppressvrr")
+        m_ruleType = RULE_SUPPRESSVRR;
     else {
         // check if this is a prop.
         const CVarList VARS(rule, 0, 's', true);

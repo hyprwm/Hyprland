@@ -1840,6 +1840,10 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
                 return; // ???
 
             bool wantVRR = PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN);
+            if (wantVRR && PWORKSPACE->getFullscreenWindow()->m_suppressVRR) {
+                wantVRR = false;
+            }
+
             if (wantVRR && USEVRR == 3) {
                 const auto contentType = PWORKSPACE->getFullscreenWindow()->getContentType();
                 wantVRR                = contentType == CONTENT_TYPE_GAME || contentType == CONTENT_TYPE_VIDEO;

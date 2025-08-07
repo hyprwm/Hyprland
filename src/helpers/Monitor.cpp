@@ -1469,7 +1469,8 @@ bool CMonitor::attemptDirectScanout() {
     if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()), rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()),
+               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 

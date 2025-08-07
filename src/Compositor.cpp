@@ -2289,9 +2289,9 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenClient(PWINDOW,
-                              sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) :
-                                                                (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
+    setWindowFullscreenClient(
+        PWINDOW,
+        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
 }
 
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {

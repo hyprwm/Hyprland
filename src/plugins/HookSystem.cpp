@@ -186,7 +186,7 @@ bool CFunctionHook::hook() {
     memcpy(m_originalBytes.data(), m_source, ORIGSIZE);
 
     // populate trampoline
-    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
+    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                           // first, original but fixed func bytes
     memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
     memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 

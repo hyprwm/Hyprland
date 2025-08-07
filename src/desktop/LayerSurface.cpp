@@ -46,7 +46,8 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer), pMonitor->m_name);
+    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer),
+               pMonitor->m_name);
 
     return pLS;
 }

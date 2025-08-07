@@ -155,12 +155,13 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
-            escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), m->m_pixelSize.y, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_refreshRate,
-            sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(), (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)),
-            m->activeSpecialWorkspaceID(), escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x),
-            sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform),
-            (m == g_pCompositor->m_lastMonitor ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
-            rc<uint64_t>(m->m_solitaryClient.get()), (m->m_tearingState.activelyTearing ? "true" : "false"), rc<uint64_t>(m->m_lastScanout.get()), (m->m_enabled ? "false" : "true"),
+            escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), m->m_pixelSize.y, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y),
+            m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(),
+            (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
+            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y),
+            sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
+            (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), rc<uint64_t>(m->m_solitaryClient.get()),
+            (m->m_tearingState.activelyTearing ? "true" : "false"), rc<uint64_t>(m->m_lastScanout.get()), (m->m_enabled ? "false" : "true"),
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
@@ -172,10 +173,10 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
-            sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform),
-            (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync, rc<uint64_t>(m->m_solitaryClient.get()),
-            m->m_tearingState.activelyTearing, rc<uint64_t>(m->m_lastScanout.get()), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
-            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
+            sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale,
+            sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
+            rc<uint64_t>(m->m_solitaryClient.get()), m->m_tearingState.activelyTearing, rc<uint64_t>(m->m_lastScanout.get()), !m->m_enabled,
+            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 
     return result;
@@ -289,8 +290,8 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xdgTag": "{}",
     "xdgDescription": "{}"
 }},)#",
-            rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
-            sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
+            rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x),
+            sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
             escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), (w->m_isPseudotiled ? "true" : "false"),
             w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle), w->getPID(),
             (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
@@ -304,10 +305,11 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
-            sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name),
-            sc<int>(w->m_isFloating), sc<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11),
-            sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client), getGroupedData(w, format), getTagsData(w, format),
-            rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
+            sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
+            (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), sc<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass,
+            w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
+            getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)),
+            w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
     }
 }
 
@@ -397,16 +399,17 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         const std::string default_   = std::format("\tdefault: {}\n", sc<bool>(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
         const std::string persistent = std::format("\tpersistent: {}\n", sc<bool>(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
         const std::string gapsIn     = sc<bool>(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().m_top), std::to_string(r.gapsIn.value().m_right),
-                                                                      std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
-                                                          std::format("\tgapsIn: <unset>\n");
-        const std::string gapsOut = sc<bool>(r.gapsOut) ? std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right),
-                                                                    std::to_string(r.gapsOut.value().m_bottom), std::to_string(r.gapsOut.value().m_left)) :
-                                                        std::format("\tgapsOut: <unset>\n");
-        const std::string borderSize  = std::format("\tborderSize: {}\n", sc<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border      = std::format("\tborder: {}\n", sc<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
-        const std::string rounding    = std::format("\trounding: {}\n", sc<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
-        const std::string decorate    = std::format("\tdecorate: {}\n", sc<bool>(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow      = std::format("\tshadow: {}\n", sc<bool>(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
+                                                                        std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
+                                                            std::format("\tgapsIn: <unset>\n");
+        const std::string gapsOut    = sc<bool>(r.gapsOut) ?
+               std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right), std::to_string(r.gapsOut.value().m_bottom),
+                           std::to_string(r.gapsOut.value().m_left)) :
+               std::format("\tgapsOut: <unset>\n");
+        const std::string borderSize = std::format("\tborderSize: {}\n", sc<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", sc<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", sc<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
+        const std::string decorate   = std::format("\tdecorate: {}\n", sc<bool>(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", sc<bool>(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
         const std::string defaultName = std::format("\tdefaultName: {}\n", r.defaultName.value_or("<unset>"));
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
@@ -515,8 +518,8 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "namespace": "{}",
                     "pid": {}
                 }},)#",
-                        rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, escapeJSONStrings(layer->m_namespace),
-                        layer->getPID());
+                        rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height,
+                        escapeJSONStrings(layer->m_namespace), layer->getPID());
                 }
 
                 trimTrailingComma(result);
@@ -748,7 +751,8 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n\nTablets:\n";
 
         for (auto const& d : g_pInputManager->m_tabletPads) {
-            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", rc<uintptr_t>(d.get()), rc<uintptr_t>(d->m_parent.get()), d->m_parent ? d->m_parent->m_hlName : "");
+            result +=
+                std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", rc<uintptr_t>(d.get()), rc<uintptr_t>(d->m_parent.get()), d->m_parent ? d->m_parent->m_hlName : "");
         }
 
         for (auto const& d : g_pInputManager->m_tablets) {

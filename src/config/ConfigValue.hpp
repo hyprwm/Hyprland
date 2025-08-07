@@ -48,17 +48,17 @@ inline std::string* CConfigValue<std::string>::ptr() const {
 
 template <>
 inline std::string CConfigValue<std::string>::operator*() const {
-    return std::string{*(Hyprlang::STRING*)p_};
+    return std::string{*reinterpret_cast<const Hyprlang::STRING*>(p_)};
 }
 
 template <>
 inline Hyprlang::STRING* CConfigValue<Hyprlang::STRING>::ptr() const {
-    return (Hyprlang::STRING*)p_;
+    return static_cast<Hyprlang::STRING*>(const_cast<void*>(*p_));
 }
 
 template <>
 inline Hyprlang::STRING CConfigValue<Hyprlang::STRING>::operator*() const {
-    return *(Hyprlang::STRING*)p_;
+    return *reinterpret_cast<const Hyprlang::STRING*>(p_);
 }
 
 template <>

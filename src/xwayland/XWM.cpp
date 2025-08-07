@@ -231,12 +231,12 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWindowType = [&]() {
-        auto* atomsArr = (xcb_atom_t*)value;
+        auto* atomsArr = reinterpret_cast<const xcb_atom_t*>(value);
         XSURF->m_atoms.assign(atomsArr, atomsArr + reply->value_len);
     };
 
     auto handleWMState = [&]() {
-        auto* atoms = (xcb_atom_t*)value;
+        auto* atoms = reinterpret_cast<const xcb_atom_t*>(value);
         for (uint32_t i = 0; i < reply->value_len; i++) {
             if (atoms[i] == HYPRATOMS["_NET_WM_STATE_MODAL"])
                 XSURF->m_modal = true;
@@ -264,7 +264,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     auto handleTransientFor = [&]() {
         if (reply->type != XCB_ATOM_WINDOW)
             return;
-        const auto XID     = (xcb_window_t*)value;
+        const auto XID     = reinterpret_cast<const xcb_window_t*>(value);
         XSURF->m_transient = XID;
         if (!XID)
             return;
@@ -306,7 +306,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     auto handleWMProtocols = [&]() {
         if (reply->type != XCB_ATOM_ATOM)
             return;
-        auto* atoms = (xcb_atom_t*)value;
+        auto* atoms = reinterpret_cast<const xcb_atom_t*>(value);
         XSURF->m_protocols.assign(atoms, atoms + reply->value_len);
     };
 

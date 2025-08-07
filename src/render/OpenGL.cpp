@@ -46,7 +46,7 @@ const std::vector<const char*> ASSET_PATHS = {
 };
 
 static inline void loadGLProc(void* pProc, const char* name) {
-    void* proc = (void*)eglGetProcAddress(name);
+    void* proc = eglGetProcAddress(name);
     if (proc == nullptr) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();
@@ -329,9 +329,9 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmFD) {
     m_extensions = EXTENSIONS;
 
     Debug::log(LOG, "Creating the Hypr OpenGL Renderer!");
-    Debug::log(LOG, "Using: {}", (char*)glGetString(GL_VERSION));
-    Debug::log(LOG, "Vendor: {}", (char*)glGetString(GL_VENDOR));
-    Debug::log(LOG, "Renderer: {}", (char*)glGetString(GL_RENDERER));
+    Debug::log(LOG, "Using: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    Debug::log(LOG, "Vendor: {}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+    Debug::log(LOG, "Renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
     Debug::log(LOG, "Supported extensions: ({}) {}", std::ranges::count(m_extensions, ' '), m_extensions);
 
     m_exts.EXT_read_format_bgra = m_extensions.contains("GL_EXT_read_format_bgra");

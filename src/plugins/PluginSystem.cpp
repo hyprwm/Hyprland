@@ -89,8 +89,8 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     PLUGIN->m_handle = MODULE;
 
-    PPLUGIN_API_VERSION_FUNC apiVerFunc = static_cast<PPLUGIN_API_VERSION_FUNC>(dlsym(MODULE, PLUGIN_API_VERSION_FUNC_STR));
-    PPLUGIN_INIT_FUNC        initFunc   = static_cast<PPLUGIN_INIT_FUNC>(dlsym(MODULE, PLUGIN_INIT_FUNC_STR));
+    PPLUGIN_API_VERSION_FUNC apiVerFunc = reinterpret_cast<PPLUGIN_API_VERSION_FUNC>(dlsym(MODULE, PLUGIN_API_VERSION_FUNC_STR));
+    PPLUGIN_INIT_FUNC        initFunc   = reinterpret_cast<PPLUGIN_INIT_FUNC>(dlsym(MODULE, PLUGIN_INIT_FUNC_STR));
 
     if (!apiVerFunc || !initFunc) {
         Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path);
@@ -145,7 +145,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
         return;
 
     if (!eject) {
-        PPLUGIN_EXIT_FUNC exitFunc = static_cast<PPLUGIN_EXIT_FUNC>(dlsym(plugin->m_handle, PLUGIN_EXIT_FUNC_STR));
+        PPLUGIN_EXIT_FUNC exitFunc = reinterpret_cast<PPLUGIN_EXIT_FUNC>(dlsym(plugin->m_handle, PLUGIN_EXIT_FUNC_STR));
         if (exitFunc)
             exitFunc();
     }

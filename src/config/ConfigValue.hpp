@@ -29,7 +29,7 @@ class CConfigValue {
     }
 
     T* ptr() const {
-        return *static_cast<T* const*>(p_);
+        return *reinterpret_cast<T* const*>(p_);
     }
 
     T operator*() const {
@@ -53,7 +53,7 @@ inline std::string CConfigValue<std::string>::operator*() const {
 
 template <>
 inline Hyprlang::STRING* CConfigValue<Hyprlang::STRING>::ptr() const {
-    return static_cast<Hyprlang::STRING*>(const_cast<void*>(*p_));
+    return reinterpret_cast<Hyprlang::STRING*>(*p_);
 }
 
 template <>

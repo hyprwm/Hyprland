@@ -12,7 +12,7 @@ IHyprLayout* CLayoutManager::getCurrentLayout() {
 void CLayoutManager::switchToLayout(std::string layout) {
     for (size_t i = 0; i < m_layouts.size(); ++i) {
         if (m_layouts[i].first == layout) {
-            if (i == static_cast<size_t>(m_currentLayoutID))
+            if (i == sc<size_t>(m_currentLayoutID))
                 return;
 
             getCurrentLayout()->onDisable();
@@ -31,7 +31,7 @@ bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
 
     m_layouts.emplace_back(std::make_pair<>(name, layout));
 
-    Debug::log(LOG, "Added new layout {} at {:x}", name, reinterpret_cast<uintptr_t>(layout));
+    Debug::log(LOG, "Added new layout {} at {:x}", name, rc<uintptr_t>(layout));
 
     return true;
 }
@@ -45,7 +45,7 @@ bool CLayoutManager::removeLayout(IHyprLayout* layout) {
     if (m_currentLayoutID == IT - m_layouts.begin())
         switchToLayout("dwindle");
 
-    Debug::log(LOG, "Removed a layout {} at {:x}", IT->first, reinterpret_cast<uintptr_t>(layout));
+    Debug::log(LOG, "Removed a layout {} at {:x}", IT->first, rc<uintptr_t>(layout));
 
     std::erase(m_layouts, *IT);
 

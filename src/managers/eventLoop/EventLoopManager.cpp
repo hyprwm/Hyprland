@@ -45,7 +45,7 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
-    auto POLLFD = static_cast<Aquamarine::SPollFD*>(data);
+    auto POLLFD = sc<Aquamarine::SPollFD*>(data);
     POLLFD->onSignal();
     return 1;
 }
@@ -62,7 +62,7 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
     }
 
     if (mask & WL_EVENT_READABLE)
-        g_pEventLoopManager->onFdReadable(static_cast<CEventLoopManager::SReadableWaiter*>(data));
+        g_pEventLoopManager->onFdReadable(sc<CEventLoopManager::SReadableWaiter*>(data));
 
     return 0;
 }
@@ -181,7 +181,7 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
     m_idle.eventSource = wl_event_loop_add_idle(
         m_wayland.loop,
         [](void* data) {
-            auto IDLE = static_cast<CEventLoopManager::SIdleData*>(data);
+            auto IDLE = sc<CEventLoopManager::SIdleData*>(data);
             auto cpy  = IDLE->fns;
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;

@@ -100,7 +100,7 @@ struct std::formatter<SMasterNodeData*, CharT> : std::formatter<CharT> {
         auto out = ctx.out();
         if (!node)
             return std::format_to(out, "[Node nullptr]");
-        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", reinterpret_cast<uintptr_t>(node), node->workspaceID, node->position, node->size);
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", rc<uintptr_t>(node), node->workspaceID, node->position, node->size);
         if (node->isMaster)
             std::format_to(out, ", master");
         if (!node->pWindow.expired())

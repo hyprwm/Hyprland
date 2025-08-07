@@ -27,7 +27,7 @@ void CAlphaModifier::setResource(UP<CWpAlphaModifierSurfaceV1>&& resource) {
             return;
         }
 
-        m_alpha = alpha / static_cast<float>(UINT32_MAX);
+        m_alpha = alpha / sc<float>(UINT32_MAX);
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {

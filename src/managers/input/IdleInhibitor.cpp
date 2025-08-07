@@ -8,7 +8,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_idleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
     PINHIBIT->inhibitor = std::any_cast<SP<CIdleInhibitor>>(inhibitor);
 
-    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", reinterpret_cast<uintptr_t>(PINHIBIT->inhibitor->m_surface.get()));
+    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", rc<uintptr_t>(PINHIBIT->inhibitor->m_surface.get()));
 
     PINHIBIT->inhibitor->m_listeners.destroy = PINHIBIT->inhibitor->m_resource->m_events.destroy.listen([this, PINHIBIT] {
         std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
@@ -89,7 +89,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
                     return;
 
                 if (WLSurface->visible())
-                    *static_cast<bool*>(data) = true;
+                    *sc<bool*>(data) = true;
             },
             &isInhibiting);
 

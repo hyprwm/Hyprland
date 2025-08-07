@@ -120,7 +120,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         const auto IDX = xkb_map_mod_get_index(m_xkbKeymap, XKB_MOD_NAME_NUM);
 
         if (IDX != XKB_MOD_INVALID)
-            m_modifiersState.locked |= static_cast<uint32_t>(1) << IDX;
+            m_modifiersState.locked |= sc<uint32_t>(1) << IDX;
 
         // 0 to avoid mods getting stuck if depressed during reload
         updateModifiers(0, 0, m_modifiersState.locked, m_modifiersState.group);
@@ -188,7 +188,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     m_xkbSymState    = nullptr;
 
     if (keymap) {
-        Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", reinterpret_cast<uintptr_t>(this));
+        Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", rc<uintptr_t>(this));
         m_xkbStaticState = xkb_state_new(keymap);
         m_xkbState       = xkb_state_new(keymap);
         m_xkbSymState    = xkb_state_new(keymap);
@@ -203,7 +203,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
         if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE) == 1) {
-            Debug::log(LOG, "Updating keyboard {:x}'s translation state from an active index {}", reinterpret_cast<uintptr_t>(this), i);
+            Debug::log(LOG, "Updating keyboard {:x}'s translation state from an active index {}", rc<uintptr_t>(this), i);
 
             CVarList       keyboardLayouts(m_currentRules.layout, 0, ',');
             CVarList       keyboardModels(m_currentRules.model, 0, ',');
@@ -246,7 +246,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
         }
     }
 
-    Debug::log(LOG, "Updating keyboard {:x}'s translation state from an unknown index", reinterpret_cast<uintptr_t>(this));
+    Debug::log(LOG, "Updating keyboard {:x}'s translation state from an unknown index", rc<uintptr_t>(this));
 
     xkb_rule_names rules = {
         .rules   = m_currentRules.rules.c_str(),
@@ -289,7 +289,7 @@ std::optional<uint32_t> IKeyboard::getLEDs() {
         return {};
 
     uint32_t leds = 0;
-    for (uint32_t i = 0; i < std::min(static_cast<size_t>(LED_COUNT), m_ledIndexes.size()); ++i) {
+    for (uint32_t i = 0; i < std::min(sc<size_t>(LED_COUNT), m_ledIndexes.size()); ++i) {
         if (xkb_state_led_index_is_active(m_xkbState, m_ledIndexes[i]))
             leds |= (1 << i);
     }

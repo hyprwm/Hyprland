@@ -100,7 +100,7 @@ struct std::formatter<SDwindleNodeData*, CharT> : std::formatter<CharT> {
         auto out = ctx.out();
         if (!node)
             return std::format_to(out, "[Node nullptr]");
-        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", reinterpret_cast<uintptr_t>(node), node->workspaceID, node->box.pos(), node->box.size());
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", rc<uintptr_t>(node), node->workspaceID, node->box.pos(), node->box.size());
         if (!node->isNode && !node->pWindow.expired())
             std::format_to(out, ", window: {:x}", node->pWindow.lock());
         return std::format_to(out, "]");

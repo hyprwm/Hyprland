@@ -26,7 +26,7 @@ CEventManager::CEventManager() : m_socketFD(socket(AF_UNIX, SOCK_STREAM | SOCK_C
 
     strncpy(SERVERADDRESS.sun_path, PATH.c_str(), sizeof(SERVERADDRESS.sun_path) - 1);
 
-    if (bind(m_socketFD.get(), reinterpret_cast<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
+    if (bind(m_socketFD.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't bind the Hyprland Socket 2. (3) IPC will not work.");
         return;
     }
@@ -70,7 +70,7 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
 
     sockaddr_in     clientAddress;
     socklen_t       clientSize = sizeof(clientAddress);
-    CFileDescriptor ACCEPTEDCONNECTION{accept4(m_socketFD.get(), reinterpret_cast<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK)};
+    CFileDescriptor ACCEPTEDCONNECTION{accept4(m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK)};
     if (!ACCEPTEDCONNECTION.isValid()) {
         if (errno != EAGAIN) {
             Debug::log(ERR, "Socket2 failed receiving connection, errno: {}", errno);

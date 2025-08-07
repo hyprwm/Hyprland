@@ -7,7 +7,7 @@
 #include "../helpers/Monitor.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
-    const auto cursorMgr = static_cast<CCursorManager*>(data);
+    const auto cursorMgr = sc<CCursorManager*>(data);
     cursorMgr->tickAnimatedCursor();
     return 1;
 }
@@ -28,7 +28,7 @@ CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const
 CCursorBuffer::CCursorBuffer(const uint8_t* pixelData, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(4 * size_.x) {
     size = size_;
 
-    m_data = std::vector<uint8_t>(pixelData, pixelData + (static_cast<int>(size_.y) * m_stride));
+    m_data = std::vector<uint8_t>(pixelData, pixelData + (sc<int>(size_.y) * m_stride));
 }
 
 Aquamarine::eBufferCapability CCursorBuffer::caps() {
@@ -167,7 +167,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
 
         auto  xcursor = m_xcursor->getShape(name, m_size, m_cursorScale);
         auto& icon    = xcursor->images.front();
-        auto  buf     = makeShared<CCursorBuffer>(reinterpret_cast<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
+        auto  buf     = makeShared<CCursorBuffer>(rc<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
 
         m_currentXcursor = xcursor;
@@ -233,18 +233,18 @@ void CCursorManager::tickAnimatedCursor() {
     if (!m_hyprcursor->valid() && m_currentXcursor->images.size() > 1) {
         m_currentAnimationFrame++;
 
-        if (static_cast<size_t>(m_currentAnimationFrame) >= m_currentXcursor->images.size())
+        if (sc<size_t>(m_currentAnimationFrame) >= m_currentXcursor->images.size())
             m_currentAnimationFrame = 0;
 
         float scale = std::ceil(m_cursorScale);
         auto& icon  = m_currentXcursor->images.at(m_currentAnimationFrame);
-        auto  buf   = makeShared<CCursorBuffer>(reinterpret_cast<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
+        auto  buf   = makeShared<CCursorBuffer>(rc<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
         setAnimationTimer(m_currentAnimationFrame, m_currentXcursor->images[m_currentAnimationFrame].delay);
     } else if (m_currentCursorShapeData.images.size() > 1) {
         m_currentAnimationFrame++;
 
-        if (static_cast<size_t>(m_currentAnimationFrame) >= m_currentCursorShapeData.images.size())
+        if (sc<size_t>(m_currentAnimationFrame) >= m_currentCursorShapeData.images.size())
             m_currentAnimationFrame = 0;
 
         auto hotspot =
@@ -281,7 +281,7 @@ void CCursorManager::setXWaylandCursor() {
         auto  xcursor = m_xcursor->getShape("left_ptr", m_size, 1);
         auto& icon    = xcursor->images.front();
 
-        g_pXWayland->setCursor(reinterpret_cast<uint8_t*>(icon.pixels.data()), icon.size.x * 4, icon.size, icon.hotspot);
+        g_pXWayland->setCursor(rc<uint8_t*>(icon.pixels.data()), icon.size.x * 4, icon.size, icon.hotspot);
     }
 }
 

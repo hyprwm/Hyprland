@@ -157,7 +157,7 @@ CWLDataSourceResource::~CWLDataSourceResource() {
 }
 
 SP<CWLDataSourceResource> CWLDataSourceResource::fromResource(wl_resource* res) {
-    auto data = static_cast<CWLDataSourceResource*>(static_cast<CWlDataSource*>(wl_resource_get_user_data(res))->data());
+    auto data = sc<CWLDataSourceResource*>(sc<CWlDataSource*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 

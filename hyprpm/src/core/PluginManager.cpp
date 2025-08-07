@@ -26,8 +26,10 @@
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Memory;
 
 static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
@@ -599,7 +601,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
         std::print("\n");
     } else {
-        progress.printMessageAbove(failureString("failed to install headers with error code {} ({})", static_cast<int>(HEADERSVALID), headerErrorShort(HEADERSVALID)));
+        progress.printMessageAbove(failureString("failed to install headers with error code {} ({})", sc<int>(HEADERSVALID), headerErrorShort(HEADERSVALID)));
         progress.printMessageAbove(infoString("if the problem persists, try running hyprpm purge-cache."));
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";

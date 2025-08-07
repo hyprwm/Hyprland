@@ -54,9 +54,9 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
     m_listeners.axis = m_mouse->events.axis.listen([this](const Aquamarine::IPointer::SAxisEvent& event) {
         m_pointerEvents.axis.emit(SAxisEvent{
             .timeMs            = event.timeMs,
-            .source            = static_cast<wl_pointer_axis_source>(event.source),
-            .axis              = static_cast<wl_pointer_axis>(event.axis),
-            .relativeDirection = static_cast<wl_pointer_axis_relative_direction>(event.direction),
+            .source            = sc<wl_pointer_axis_source>(event.source),
+            .axis              = sc<wl_pointer_axis>(event.axis),
+            .relativeDirection = sc<wl_pointer_axis_relative_direction>(event.direction),
             .delta             = event.delta,
             .deltaDiscrete     = event.discrete,
             .mouse             = true,

@@ -29,7 +29,7 @@ class CConfigValue {
     }
 
     T* ptr() const {
-        return *reinterpret_cast<T* const*>(p_);
+        return *rc<T* const*>(p_);
     }
 
     T operator*() const {
@@ -48,22 +48,22 @@ inline std::string* CConfigValue<std::string>::ptr() const {
 
 template <>
 inline std::string CConfigValue<std::string>::operator*() const {
-    return std::string{*reinterpret_cast<const Hyprlang::STRING*>(p_)};
+    return std::string{*rc<const Hyprlang::STRING*>(p_)};
 }
 
 template <>
 inline Hyprlang::STRING* CConfigValue<Hyprlang::STRING>::ptr() const {
-    return reinterpret_cast<Hyprlang::STRING*>(*p_);
+    return rc<Hyprlang::STRING*>(*p_);
 }
 
 template <>
 inline Hyprlang::STRING CConfigValue<Hyprlang::STRING>::operator*() const {
-    return *reinterpret_cast<const Hyprlang::STRING*>(p_);
+    return *rc<const Hyprlang::STRING*>(p_);
 }
 
 template <>
 inline Hyprlang::CUSTOMTYPE* CConfigValue<Hyprlang::CUSTOMTYPE>::ptr() const {
-    return *reinterpret_cast<Hyprlang::CUSTOMTYPE* const*>(p_);
+    return *rc<Hyprlang::CUSTOMTYPE* const*>(p_);
 }
 
 template <>

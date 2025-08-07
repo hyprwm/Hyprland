@@ -29,7 +29,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
         if (!WINDOW)
             NEWHANDLE->m_resource->sendFailed();
         else
-            NEWHANDLE->m_resource->sendWindowAddress(reinterpret_cast<uint64_t>(WINDOW.get()) >> 32 & 0xFFFFFFFF, reinterpret_cast<uint64_t>(WINDOW.get()) & 0xFFFFFFFF);
+            NEWHANDLE->m_resource->sendWindowAddress(rc<uint64_t>(WINDOW.get()) >> 32 & 0xFFFFFFFF, rc<uint64_t>(WINDOW.get()) & 0xFFFFFFFF);
     });
     m_resource->setGetWindowForToplevelWlr([this](CHyprlandToplevelMappingManagerV1* mgr, uint32_t handle, wl_resource* toplevel) {
         const auto NEWHANDLE = PROTO::toplevelMapping->m_handles.emplace_back(
@@ -48,7 +48,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
         if (!WINDOW)
             NEWHANDLE->m_resource->sendFailed();
         else
-            NEWHANDLE->m_resource->sendWindowAddress(reinterpret_cast<uint64_t>(WINDOW.get()) >> 32 & 0xFFFFFFFF, reinterpret_cast<uint64_t>(WINDOW.get()) & 0xFFFFFFFF);
+            NEWHANDLE->m_resource->sendWindowAddress(rc<uint64_t>(WINDOW.get()) >> 32 & 0xFFFFFFFF, rc<uint64_t>(WINDOW.get()) & 0xFFFFFFFF);
     });
 }
 

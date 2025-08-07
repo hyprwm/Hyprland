@@ -72,7 +72,7 @@ class CTestKeyboard : public IKeyboard {
 
     void sendKey(uint32_t key, bool pressed) {
         auto event = IKeyboard::SKeyEvent{
-            .timeMs  = static_cast<uint32_t>(Time::millis(Time::steadyNow())),
+            .timeMs  = sc<uint32_t>(Time::millis(Time::steadyNow())),
             .keycode = key,
             .state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         };

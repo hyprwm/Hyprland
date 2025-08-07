@@ -47,7 +47,7 @@ int NSystemd::sdNotify(int unsetEnvironment, const char* state) {
     if (unixAddr.sun_path[0] == '@')
         unixAddr.sun_path[0] = '\0';
 
-    if (connect(fd, reinterpret_cast<const sockaddr*>(&unixAddr), sizeof(struct sockaddr_un)) < 0)
+    if (connect(fd, rc<const sockaddr*>(&unixAddr), sizeof(struct sockaddr_un)) < 0)
         return -errno;
 
     // arbitrary value which seems to be enough for s-d messages

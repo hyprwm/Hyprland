@@ -62,7 +62,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
         } catch (std::exception& e) {
             // TODO: this works only once...?
             faultyHandles.push_back(cb.handle);
-            Debug::log(ERR, "[hookSystem] Hook from plugin {:x} caused a SIGSEGV, queueing for unloading.", reinterpret_cast<uintptr_t>(cb.handle));
+            Debug::log(ERR, "[hookSystem] Hook from plugin {:x} caused a SIGSEGV, queueing for unloading.", rc<uintptr_t>(cb.handle));
         }
     }
 

@@ -46,7 +46,7 @@ const std::vector<const char*> ASSET_PATHS = {
 };
 
 static inline void loadGLProc(void* pProc, const char* name) {
-    void* proc = eglGetProcAddress(name);
+    void* proc = reinterpret_cast<void*>( eglGetProcAddress(name));
     if (proc == nullptr) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();

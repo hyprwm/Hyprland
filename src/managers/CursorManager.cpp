@@ -167,7 +167,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
 
         auto  xcursor = m_xcursor->getShape(name, m_size, m_cursorScale);
         auto& icon    = xcursor->images.front();
-        auto  buf     = makeShared<CCursorBuffer>(static_cast<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
+        auto  buf     = makeShared<CCursorBuffer>(reinterpret_cast<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
 
         m_currentXcursor = xcursor;

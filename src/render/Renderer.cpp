@@ -1142,9 +1142,6 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            Debug::log(LOG, "br: {} tl: {} size: {} buf: {} tex: {} proj: {}", uvBR, uvTL, pSurface->m_current.size, pSurface->m_current.bufferSize,
-                       pSurface->m_current.texture->m_size, projSizeUnscaled);
-
             auto maxSize = projSizeUnscaled;
 
             if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)

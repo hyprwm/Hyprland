@@ -2303,7 +2303,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return true;
 }
 
-void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
@@ -2340,8 +2340,6 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
             glFlush(); // mark an implicit sync point
 
         m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
 
         return;
     }
@@ -2366,22 +2364,13 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
 
         m_usedAsyncBuffers.clear();
 
-        // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback]() {
-            if (renderingDoneCallback)
-                renderingDoneCallback();
-        });
-
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
         Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
-
         m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
     }
 }
 

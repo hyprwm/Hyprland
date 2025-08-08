@@ -78,7 +78,7 @@ class CGradientValueData : public ICustomConfigValueData {
             result += std::format("{:x} ", c.getAsHex());
         }
 
-        result += std::format("{}deg", (int)(m_angle * 180.0 / M_PI));
+        result += std::format("{}deg", sc<int>(m_angle * 180.0 / M_PI));
         return result;
     }
 };

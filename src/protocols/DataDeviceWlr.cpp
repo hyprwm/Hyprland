@@ -65,7 +65,7 @@ CWLRDataSource::~CWLRDataSource() {
 }
 
 SP<CWLRDataSource> CWLRDataSource::fromResource(wl_resource* res) {
-    auto data = (CWLRDataSource*)(((CZwlrDataControlSourceV1*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CWLRDataSource*>(sc<CZwlrDataControlSourceV1*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 

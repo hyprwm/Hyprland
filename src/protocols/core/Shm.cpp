@@ -59,7 +59,7 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CWLSHMBuffer::beginDataPtr(uint32_t flags) {
-    return {(uint8_t*)m_pool->m_data + m_offset, m_fmt, m_stride * size.y};
+    return {sc<uint8_t*>(m_pool->m_data) + m_offset, m_fmt, m_stride * size.y};
 }
 
 void CWLSHMBuffer::endDataPtr() {
@@ -101,7 +101,7 @@ static int shmIsSizeValid(CFileDescriptor& fd, size_t size) {
         return 0;
     }
 
-    return (size_t)st.st_size >= size;
+    return sc<size_t>(st.st_size) >= size;
 }
 
 CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor fd_, size_t size_) : m_resource(resource_) {
@@ -119,7 +119,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor
     m_resource->setOnDestroy([this](CWlShmPool* r) { PROTO::shm->destroyResource(this); });
 
     m_resource->setResize([this](CWlShmPool* r, int32_t size_) {
-        if UNLIKELY (size_ < (int32_t)m_pool->m_size) {
+        if UNLIKELY (size_ < sc<int32_t>(m_pool->m_size)) {
             r->error(-1, "Shrinking a shm pool is illegal");
             return;
         }
@@ -188,7 +188,7 @@ CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : m_resource(resource_) {
 
     // send a few supported formats. No need for any other I think?
     for (auto const& s : PROTO::shm->m_shmFormats) {
-        m_resource->sendFormat((wl_shm_format)s);
+        m_resource->sendFormat(sc<wl_shm_format>(s));
     }
 }
 

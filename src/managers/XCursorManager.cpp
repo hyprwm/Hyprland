@@ -185,15 +185,15 @@ SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, floa
 
 SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, void* ximages) {
     auto           xcursor = makeShared<SXCursors>();
-    XcursorImages* xImages = (XcursorImages*)ximages;
+    XcursorImages* xImages = sc<XcursorImages*>(ximages);
 
     for (int i = 0; i < xImages->nimage; i++) {
         auto          xImage = xImages->images[i];
         SXCursorImage image;
-        image.size    = {(int)xImage->width, (int)xImage->height};
-        image.hotspot = {(int)xImage->xhot, (int)xImage->yhot};
-        image.pixels.resize((size_t)xImage->width * xImage->height);
-        std::memcpy(image.pixels.data(), xImage->pixels, (size_t)xImage->width * xImage->height * sizeof(uint32_t));
+        image.size    = {sc<int>(xImage->width), sc<int>(xImage->height)};
+        image.hotspot = {sc<int>(xImage->xhot), sc<int>(xImage->yhot)};
+        image.pixels.resize(sc<size_t>(xImage->width) * xImage->height);
+        std::memcpy(image.pixels.data(), xImage->pixels, sc<size_t>(xImage->width) * xImage->height * sizeof(uint32_t));
         image.delay = xImage->delay;
 
         xcursor->images.emplace_back(image);
@@ -530,7 +530,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
 
             auto const& full = entry.path().string();
             using PcloseType = int (*)(FILE*);
-            const std::unique_ptr<FILE, PcloseType> f(fopen(full.c_str(), "r"), static_cast<PcloseType>(fclose));
+            const std::unique_ptr<FILE, PcloseType> f(fopen(full.c_str(), "r"), fclose);
 
             if (!f)
                 continue;

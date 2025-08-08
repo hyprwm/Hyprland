@@ -2,7 +2,7 @@
 #include "../Compositor.hpp"
 
 static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    ((IWaylandProtocol*)data)->bindManager(client, data, ver, id);
+    sc<IWaylandProtocol*>(data)->bindManager(client, data, ver, id);
 }
 
 static void displayDestroyInternal(struct wl_listener* listener, void* data) {

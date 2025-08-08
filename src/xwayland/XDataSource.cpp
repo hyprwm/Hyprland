@@ -21,7 +21,7 @@ CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
         return;
     }
 
-    auto value = (xcb_atom_t*)xcb_get_property_value(reply);
+    auto value = sc<xcb_atom_t*>(xcb_get_property_value(reply));
     for (uint32_t i = 0; i < reply->value_len; i++) {
         if (value[i] == HYPRATOMS["UTF8_STRING"])
             m_mimeTypes.emplace_back("text/plain;charset=utf-8");

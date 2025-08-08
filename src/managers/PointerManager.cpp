@@ -502,9 +502,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         const auto DMABUF      = buf->dmabuf();
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
-        auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
-        auto CAIRODATASURFACE =
-            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
+        auto CAIROSURFACE     = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
+        auto CAIRODATASURFACE = cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
 
         auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -525,7 +524,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
 
         if (TR) {
-            cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
+            cairo_matrix_rotate(&matrixPre, M_PI_2 * sc<double>(TR));
 
             // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
             // cba to do it rn, does anyone fucking use that??
@@ -550,7 +549,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         cairo_pattern_destroy(PATTERNPRE);
 
-        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), (size_t)cairo_image_surface_get_height(CAIROSURFACE) * cairo_image_surface_get_stride(CAIROSURFACE));
+        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), sc<size_t>(cairo_image_surface_get_height(CAIROSURFACE)) * cairo_image_surface_get_stride(CAIROSURFACE));
 
         cairo_destroy(CAIRO);
         cairo_surface_destroy(CAIROSURFACE);
@@ -664,7 +663,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
 
-    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 0, 100);
+    auto        CURSOR_PADDING = std::clamp(sc<int>(*PADDING), 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
 
     //
@@ -809,7 +808,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     switch (dev->getType()) {
         case HID_TYPE_TABLET: {
-            CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
+            CTablet* TAB = rc<CTablet*>(dev.get());
             if (!TAB->m_boundOutput.empty()) {
                 mappedArea = outputMappedArea(TAB->m_boundOutput);
                 mappedArea.translate(TAB->m_boundBox.pos());
@@ -826,13 +825,13 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
             break;
         }
         case HID_TYPE_TOUCH: {
-            ITouch* TOUCH = reinterpret_cast<ITouch*>(dev.get());
+            ITouch* TOUCH = rc<ITouch*>(dev.get());
             if (!TOUCH->m_boundOutput.empty())
                 mappedArea = outputMappedArea(TOUCH->m_boundOutput);
             break;
         }
         case HID_TYPE_POINTER: {
-            IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
+            IPointer* POINTER = rc<IPointer*>(dev.get());
             if (!POINTER->m_boundOutput.empty())
                 mappedArea = outputMappedArea(POINTER->m_boundOutput);
             break;
@@ -1118,7 +1117,7 @@ void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, co
 }
 
 void CPointerManager::sendStoredMovement() {
-    PROTO::relativePointer->sendRelativeMotion((uint64_t)m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
+    PROTO::relativePointer->sendRelativeMotion(m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
     m_storedTime    = 0;
     m_storedDelta   = Vector2D{};
     m_storedUnaccel = Vector2D{};

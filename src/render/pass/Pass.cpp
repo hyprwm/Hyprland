@@ -294,7 +294,7 @@ float CRenderPass::oneBlurRadius() {
     // TODO: is this exact range correct?
     static auto PBLURSIZE   = CConfigValue<Hyprlang::INT>("decoration:blur:size");
     static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
-    return *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
+    return *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 }
 
 void CRenderPass::removeAllOfType(const std::string& type) {

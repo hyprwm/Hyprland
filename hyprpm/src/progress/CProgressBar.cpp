@@ -9,8 +9,10 @@
 
 #include <algorithm>
 #include <sstream>
-
+#include <hyprutils/memory/Casts.hpp>
 #include "../helpers/Colors.hpp"
+
+using namespace Hyprutils::Memory;
 
 static winsize getTerminalSize() {
     winsize w{};
@@ -44,7 +46,7 @@ void CProgressBar::print() {
         percentDone = m_fPercentage;
     else {
         // check for divide-by-zero
-        percentDone = m_iMaxSteps > 0 ? static_cast<float>(m_iSteps) / m_iMaxSteps : 0.0f;
+        percentDone = m_iMaxSteps > 0 ? sc<float>(m_iSteps) / m_iMaxSteps : 0.0f;
     }
     // clamp to ensure no overflows (sanity check)
     percentDone = std::clamp(percentDone, 0.0f, 1.0f);
@@ -54,7 +56,7 @@ void CProgressBar::print() {
     std::ostringstream oss;
     oss << ' ' << Colors::GREEN;
 
-    size_t filled = static_cast<size_t>(std::floor(percentDone * BARWIDTH));
+    size_t filled = std::floor(percentDone * BARWIDTH);
     size_t i      = 0;
 
     for (; i < filled; ++i)
@@ -69,7 +71,7 @@ void CProgressBar::print() {
         oss << Colors::RESET;
 
     if (m_fPercentage >= 0.0f)
-        oss << "  " << std::format("{}%", static_cast<int>(percentDone * 100.0)) << ' ';
+        oss << "  " << std::format("{}%", sc<int>(percentDone * 100.0)) << ' ';
     else
         oss << "  " << std::format("{} / {}", m_iSteps, m_iMaxSteps) << ' ';
 

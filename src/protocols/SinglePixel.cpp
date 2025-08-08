@@ -12,7 +12,7 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_opaque = col_.a >= 1.F;
 
-    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, (uint8_t*)&m_color, 4, Vector2D{1, 1});
+    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
@@ -50,7 +50,7 @@ Aquamarine::SDMABUFAttrs CSinglePixelBuffer::dmabuf() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CSinglePixelBuffer::beginDataPtr(uint32_t flags) {
-    return {(uint8_t*)&m_color, DRM_FORMAT_ARGB8888, 4};
+    return {rc<uint8_t*>(&m_color), DRM_FORMAT_ARGB8888, 4};
 }
 
 void CSinglePixelBuffer::endDataPtr() {
@@ -87,8 +87,8 @@ CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(UP<CWpSingl
     m_resource->setOnDestroy([this](CWpSinglePixelBufferManagerV1* r) { PROTO::singlePixel->destroyResource(this); });
 
     m_resource->setCreateU32RgbaBuffer([this](CWpSinglePixelBufferManagerV1* res, uint32_t id, uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-        CHyprColor  color{r / (float)std::numeric_limits<uint32_t>::max(), g / (float)std::numeric_limits<uint32_t>::max(), b / (float)std::numeric_limits<uint32_t>::max(),
-                         a / (float)std::numeric_limits<uint32_t>::max()};
+        CHyprColor  color{r / sc<float>(std::numeric_limits<uint32_t>::max()), g / sc<float>(std::numeric_limits<uint32_t>::max()),
+                         b / sc<float>(std::numeric_limits<uint32_t>::max()), a / sc<float>(std::numeric_limits<uint32_t>::max())};
         const auto& RESOURCE = PROTO::singlePixel->m_buffers.emplace_back(makeUnique<CSinglePixelBufferResource>(id, m_resource->client(), color));
 
         if UNLIKELY (!RESOURCE->good()) {

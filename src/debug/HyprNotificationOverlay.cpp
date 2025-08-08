@@ -58,7 +58,7 @@ void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     if (amount == -1)
         m_notifications.clear();
     else {
-        const int AMT = std::min(amount, static_cast<int>(m_notifications.size()));
+        const int AMT = std::min(amount, sc<int>(m_notifications.size()));
 
         for (int i = 0; i < AMT; ++i) {
             m_notifications.erase(m_notifications.begin());
@@ -94,7 +94,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
 
     for (auto const& notif : m_notifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
-        const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
+        const auto FONTSIZE        = std::clamp(sc<int>(notif->fontSize * ((pMonitor->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
         // first rect (bg, col)
         const float FIRSTRECTANIMP =
@@ -189,7 +189,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     // cleanup notifs
     std::erase_if(m_notifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
-    return CBox{(int)(pMonitor->m_position.x + pMonitor->m_size.x - maxWidth - 20), (int)pMonitor->m_position.y, (int)maxWidth + 20, (int)offsetY + 10};
+    return CBox{sc<int>(pMonitor->m_position.x + pMonitor->m_size.x - maxWidth - 20), sc<int>(pMonitor->m_position.y), sc<int>(maxWidth) + 20, sc<int>(offsetY) + 10};
 }
 
 void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {

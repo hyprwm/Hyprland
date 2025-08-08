@@ -473,7 +473,7 @@ void CWLSeatResource::sendCapabilities(uint32_t caps) {
     if (caps & eHIDCapabilityType::HID_INPUT_CAPABILITY_TOUCH)
         wlCaps |= WL_SEAT_CAPABILITY_TOUCH;
 
-    m_resource->sendCapabilities((wl_seat_capability)wlCaps);
+    m_resource->sendCapabilities(sc<wl_seat_capability>(wlCaps));
 }
 
 bool CWLSeatResource::good() {
@@ -561,6 +561,6 @@ SP<CWLSeatResource> CWLSeatProtocol::seatResourceForClient(wl_client* client) {
 std::vector<uint8_t>& CCursorSurfaceRole::cursorPixelData(SP<CWLSurfaceResource> surface) {
     RASSERT(surface->m_role->role() == SURFACE_ROLE_CURSOR, "cursorPixelData called on a non-cursor surface");
 
-    auto role = (CCursorSurfaceRole*)surface->m_role.get();
+    auto role = sc<CCursorSurfaceRole*>(surface->m_role.get());
     return role->m_cursorShmPixelData;
 }

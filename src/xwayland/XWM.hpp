@@ -71,7 +71,7 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            Debug::log(LOG, "Disconnecting XCB connection {:x}", (uintptr_t)m_connection);
+            Debug::log(LOG, "Disconnecting XCB connection {:x}", rc<uintptr_t>(m_connection));
             xcb_disconnect(m_connection);
             m_connection = nullptr;
         } else

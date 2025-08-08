@@ -47,7 +47,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         m_events.key.emit(IKeyboard::SKeyEvent{
             .timeMs  = timeMs,
             .keycode = key,
-            .state   = (wl_keyboard_key_state)state,
+            .state   = sc<wl_keyboard_key_state>(state),
         });
 
         const bool CONTAINS = std::ranges::contains(m_pressed, key);
@@ -88,7 +88,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        auto xkbKeymap = xkb_keymap_new_from_string(xkbContext, (const char*)keymapData, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        auto xkbKeymap = xkb_keymap_new_from_string(xkbContext, sc<const char*>(keymapData), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
         munmap(keymapData, len);
 
         if UNLIKELY (!xkbKeymap) {

@@ -99,7 +99,7 @@ Vector2D CXDGPopupResource::accumulateParentOffset() {
 }
 
 SP<CXDGPopupResource> CXDGPopupResource::fromResource(wl_resource* res) {
-    auto data = (CXDGPopupResource*)(((CXdgPopup*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CXDGPopupResource*>(sc<CXdgPopup*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
@@ -146,9 +146,9 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     if (m_resource->version() >= 5) {
         wl_array arr;
         wl_array_init(&arr);
-        auto p = (uint32_t*)wl_array_add(&arr, sizeof(uint32_t));
+        auto p = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN;
-        p      = (uint32_t*)wl_array_add(&arr, sizeof(uint32_t));
+        p      = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE;
         m_resource->sendWmCapabilities(&arr);
         wl_array_release(&arr);
@@ -239,7 +239,7 @@ CXDGToplevelResource::~CXDGToplevelResource() {
 }
 
 SP<CXDGToplevelResource> CXDGToplevelResource::fromResource(wl_resource* res) {
-    auto data = (CXDGToplevelResource*)(((CXdgToplevel*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CXDGToplevelResource*>(sc<CXdgToplevel*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
@@ -491,12 +491,12 @@ bool CXDGSurfaceResource::good() {
 }
 
 SP<CXDGSurfaceResource> CXDGSurfaceResource::fromResource(wl_resource* res) {
-    auto data = (CXDGSurfaceResource*)(((CXdgSurface*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CXDGSurfaceResource*>(sc<CXdgSurface*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 
 static void onConfigure(void* data) {
-    ((CXDGSurfaceResource*)data)->configure();
+    sc<CXDGSurfaceResource*>(data)->configure();
 }
 
 uint32_t CXDGSurfaceResource::scheduleConfigure() {
@@ -547,14 +547,14 @@ CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<
 
     m_resource->setSetGravity([this](CXdgPositioner* r, xdgPositionerGravity g) { m_state.setGravity(g); });
 
-    m_resource->setSetConstraintAdjustment([this](CXdgPositioner* r, xdgPositionerConstraintAdjustment a) { m_state.constraintAdjustment = (uint32_t)a; });
+    m_resource->setSetConstraintAdjustment([this](CXdgPositioner* r, xdgPositionerConstraintAdjustment a) { m_state.constraintAdjustment = sc<uint32_t>(a); });
 
     // TODO: support this shit better. The current impl _works_, but is lacking and could be wrong in a few cases.
     // doesn't matter _that_ much for now, though.
 }
 
 SP<CXDGPositionerResource> CXDGPositionerResource::fromResource(wl_resource* res) {
-    auto data = (CXDGPositionerResource*)(((CXdgPositioner*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CXDGPositionerResource*>(sc<CXdgPositioner*>(wl_resource_get_user_data(res))->data());
     return data ? data->m_self.lock() : nullptr;
 }
 

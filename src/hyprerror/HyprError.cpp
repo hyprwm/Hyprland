@@ -51,7 +51,7 @@ void CHyprError::createQueued() {
 
     const auto SCALE = PMONITOR->m_scale;
 
-    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
+    const auto FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
 
@@ -82,7 +82,7 @@ void CHyprError::createQueued() {
     const double X      = PAD;
     const double Y      = TOPBAR ? PAD : PMONITOR->m_pixelSize.y - HEIGHT - PAD;
 
-    m_damageBox = {0, 0, (int)PMONITOR->m_pixelSize.x, (int)HEIGHT + (int)PAD * 2};
+    m_damageBox = {0, 0, sc<int>(PMONITOR->m_pixelSize.x), sc<int>(HEIGHT) + sc<int>(PAD) * 2};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -195,8 +195,8 @@ void CHyprError::draw() {
 
     CBox       monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
-    m_damageBox.x = (int)PMONITOR->m_position.x;
-    m_damageBox.y = (int)PMONITOR->m_position.y;
+    m_damageBox.x = sc<int>(PMONITOR->m_position.x);
+    m_damageBox.y = sc<int>(PMONITOR->m_position.y);
 
     if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
         g_pHyprRenderer->damageBox(m_damageBox);

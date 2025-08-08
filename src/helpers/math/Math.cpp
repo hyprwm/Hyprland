@@ -1,4 +1,5 @@
 #include "Math.hpp"
+#include "../memory/Memory.hpp"
 
 Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
     switch (t) {
@@ -17,7 +18,7 @@ Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
 
 wl_output_transform invertTransform(wl_output_transform tr) {
     if ((tr & WL_OUTPUT_TRANSFORM_90) && !(tr & WL_OUTPUT_TRANSFORM_FLIPPED))
-        tr = (wl_output_transform)(tr ^ (int)WL_OUTPUT_TRANSFORM_180);
+        tr = sc<wl_output_transform>(tr ^ sc<int>(WL_OUTPUT_TRANSFORM_180));
 
     return tr;
 }

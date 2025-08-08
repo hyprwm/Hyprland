@@ -58,7 +58,7 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
 
-    m_resource->sendKey(SERIAL, time, key, (uint32_t)state);
+    m_resource->sendKey(SERIAL, time, key, sc<uint32_t>(state));
 }
 
 void CInputMethodKeyboardGrabV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
@@ -243,11 +243,11 @@ void CInputMethodV2::surroundingText(const std::string& text, uint32_t cursor, u
 }
 
 void CInputMethodV2::textChangeCause(zwpTextInputV3ChangeCause changeCause) {
-    m_resource->sendTextChangeCause((uint32_t)changeCause);
+    m_resource->sendTextChangeCause(changeCause);
 }
 
 void CInputMethodV2::textContentType(zwpTextInputV3ContentHint hint, zwpTextInputV3ContentPurpose purpose) {
-    m_resource->sendContentType((uint32_t)hint, (uint32_t)purpose);
+    m_resource->sendContentType(hint, purpose);
 }
 
 void CInputMethodV2::done() {

@@ -18,7 +18,7 @@ void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs)
 
     m_lastRenderTimes.emplace_back(durationUs / 1000.f);
 
-    if (m_lastRenderTimes.size() > (long unsigned int)pMonitor->m_refreshRate)
+    if (m_lastRenderTimes.size() > sc<long unsigned int>(pMonitor->m_refreshRate))
         m_lastRenderTimes.pop_front();
 
     if (!m_monitor)
@@ -33,7 +33,7 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float du
 
     m_lastRenderTimesNoOverlay.emplace_back(durationUs / 1000.f);
 
-    if (m_lastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->m_refreshRate)
+    if (m_lastRenderTimesNoOverlay.size() > sc<long unsigned int>(pMonitor->m_refreshRate))
         m_lastRenderTimesNoOverlay.pop_front();
 
     if (!m_monitor)
@@ -48,7 +48,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
 
     m_lastFrametimes.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_lastFrame).count() / 1000.f);
 
-    if (m_lastFrametimes.size() > (long unsigned int)pMonitor->m_refreshRate)
+    if (m_lastFrametimes.size() > sc<long unsigned int>(pMonitor->m_refreshRate))
         m_lastFrametimes.pop_front();
 
     m_lastFrame = std::chrono::high_resolution_clock::now();
@@ -59,7 +59,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
     // anim data too
     const auto PMONITORFORTICKS = g_pHyprRenderer->m_mostHzMonitor ? g_pHyprRenderer->m_mostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
     if (PMONITORFORTICKS == pMonitor) {
-        if (m_lastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->m_refreshRate)
+        if (m_lastAnimationTicks.size() > sc<long unsigned int>(PMONITORFORTICKS->m_refreshRate))
             m_lastAnimationTicks.pop_front();
 
         m_lastAnimationTicks.push_back(g_pAnimationManager->m_lastTickTimeMs);
@@ -175,7 +175,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     else
         cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 0.2f, 0.2f, 1.f);
 
-    text = std::format("{} FPS", (int)FPS);
+    text = std::format("{} FPS", sc<int>(FPS));
     showText(text.c_str(), 16);
 
     cairo_set_source_rgba(g_pDebugOverlay->m_cairo, 1.f, 1.f, 1.f, 1.f);
@@ -199,8 +199,8 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     cairo_get_current_point(cr, &posX, &posY);
 
     g_pHyprRenderer->damageBox(m_lastDrawnBox);
-    m_lastDrawnBox = {(int)g_pCompositor->m_monitors.front()->m_position.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_monitors.front()->m_position.y + offset + MARGIN_TOP - 1,
-                      (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
+    m_lastDrawnBox = {sc<int>(g_pCompositor->m_monitors.front()->m_position.x) + MARGIN_LEFT - 1,
+                      sc<int>(g_pCompositor->m_monitors.front()->m_position.y) + offset + MARGIN_TOP - 1, sc<int>(maxTextW) + 2, posY - offset - MARGIN_TOP + 2};
     g_pHyprRenderer->damageBox(m_lastDrawnBox);
 
     return posY - offset;

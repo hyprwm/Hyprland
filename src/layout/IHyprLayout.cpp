@@ -435,7 +435,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
-        const auto*  GAPSIN = *SNAPRESPECTGAPS ? (CCssGapData*)PGAPSIN.ptr()->getData() : &GAPSNONE;
+        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSIN.ptr()->getData()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
@@ -497,7 +497,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
         const auto   EXTENTNONE = SBoxExtents{{0, 0}, {0, 0}};
         const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
-        const auto*  GAPSOUT    = *SNAPRESPECTGAPS ? (CCssGapData*)PGAPSOUT.ptr()->getData() : &GAPSNONE;
+        const auto*  GAPSOUT    = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
 
         SRange       monX = {MON->m_position.x + MON->m_reservedTopLeft.x + GAPSOUT->m_left, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - GAPSOUT->m_right};
         SRange       monY = {MON->m_position.y + MON->m_reservedTopLeft.y + GAPSOUT->m_top, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - GAPSOUT->m_bottom};
@@ -745,7 +745,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     const auto TILED = isWindowTiled(pWindow);
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", std::format("{:x},{}", (uintptr_t)pWindow.get(), (int)TILED)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"changefloatingmode", std::format("{:x},{}", rc<uintptr_t>(pWindow.get()), sc<int>(TILED))});
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {

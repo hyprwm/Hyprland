@@ -92,7 +92,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 
     const auto LOOKUP = binaryNameForWlClient(client);
 
-    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), (uintptr_t)client,
+    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), rc<uintptr_t>(client),
                LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
@@ -174,7 +174,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         if (lookup.has_value())
             binaryName = *lookup;
     } else
-        binaryName = specialPidToString((eSpecialPidTypes)pid);
+        binaryName = specialPidToString(sc<eSpecialPidTypes>(pid));
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [str, permission, pid](const auto& e) { return e->m_keyString == str && pid && pid == e->m_pid && e->m_type == permission; });
@@ -246,14 +246,14 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
     std::string description = "";
     if (binaryPath.empty())
-        description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", (uintptr_t)client));
+        description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", rc<uintptr_t>(client)));
     else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
         description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}</b> ({})", binaryName, binaryPath));
     } else {
         std::string lookup = "";
         if (pid < 0)
-            lookup = specialPidToString((eSpecialPidTypes)pid);
+            lookup = specialPidToString(sc<eSpecialPidTypes>(pid));
         else {
             const auto LOOKUP = binaryNameForPid(pid);
             lookup            = LOOKUP.value_or("Unknown");

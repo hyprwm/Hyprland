@@ -36,7 +36,7 @@ void CX11DataDevice::sendDndEvent(xcb_window_t targetWindow, xcb_atom_t type, xc
         .data          = data,
     };
     xcb_connection_t* conn = (g_pXWayland->m_wm->getConnection());
-    xcb_send_event(conn, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_send_event(conn, 0, targetWindow, XCB_EVENT_MASK_NO_EVENT, rc<const char*>(&event));
     xcb_flush(conn);
 }
 
@@ -51,14 +51,14 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
     };
 
     if (isValidPropertyReply(proxyReply)) {
-        xcb_window_t              proxyWindow = *(xcb_window_t*)xcb_get_property_value(proxyReply);
+        xcb_window_t              proxyWindow = *sc<xcb_window_t*>(xcb_get_property_value(proxyReply));
 
         xcb_get_property_cookie_t proxyVerifyCookie =
             xcb_get_property(g_pXWayland->m_wm->getConnection(), PROPERTY_OFFSET, proxyWindow, HYPRATOMS["XdndProxy"], XCB_ATOM_WINDOW, PROPERTY_OFFSET, PROPERTY_LENGTH);
         xcb_get_property_reply_t* proxyVerifyReply = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), proxyVerifyCookie, nullptr);
 
         if (isValidPropertyReply(proxyVerifyReply)) {
-            xcb_window_t verifyWindow = *(xcb_window_t*)xcb_get_property_value(proxyVerifyReply);
+            xcb_window_t verifyWindow = *sc<xcb_window_t*>(xcb_get_property_value(proxyVerifyReply));
             if (verifyWindow == proxyWindow) {
                 targetWindow = proxyWindow;
                 Debug::log(LOG, "Using XdndProxy window {:x} for window {:x}", proxyWindow, window);
@@ -181,7 +181,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
     xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
     const auto                XCOORDS = g_pXWaylandManager->waylandToXWaylandCoords(m_lastSurfaceCoords + local);
-    const uint32_t            coords  = ((uint32_t)XCOORDS.x << 16) | (uint32_t)XCOORDS.y;
+    const uint32_t            coords  = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
 
     xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;

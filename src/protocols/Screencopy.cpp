@@ -63,7 +63,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     m_dmabufFormat = m_monitor->m_output->state->state().drmFormat;
 
     if (box_.width == 0 && box_.height == 0)
-        m_box = {0, 0, (int)(m_monitor->m_size.x), (int)(m_monitor->m_size.y)};
+        m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
     else
         m_box = box_;
 
@@ -133,7 +133,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::screencopy->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != m_shmStride) {
+        } else if (attrs.stride != m_shmStride) {
             LOGM(ERR, "Invalid buffer shm stride in {:x}", (uintptr_t)pFrame);
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             PROTO::screencopy->destroyResource(this);
@@ -172,7 +172,7 @@ void CScreencopyFrame::share() {
             return;
         }
 
-        m_resource->sendFlags((zwlrScreencopyFrameV1Flags)0);
+        m_resource->sendFlags(sc<zwlrScreencopyFrameV1Flags>(0));
         if (m_withDamage) {
             // TODO: add a damage ring for this.
             m_resource->sendDamage(0, 0, m_buffer->size.x, m_buffer->size.y);
@@ -377,12 +377,12 @@ bool CScreencopyFrame::copyShm() {
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
-    if (packStride == (uint32_t)shm.stride) {
+    if (packStride == sc<uint32_t>(shm.stride)) {
         glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
             uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, ((unsigned char*)pixelData) + i * shm.stride);
+            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
         }
     }
 
@@ -446,11 +446,11 @@ void CScreencopyClient::onTick() {
     const bool FRAMEAWAITING  = std::ranges::any_of(PROTO::screencopy->m_frames, [&](const auto& frame) { return frame->m_client.get() == this; });
 
     if (m_framesInLastHalfSecond > 3 && !m_sentScreencast) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(m_clientOwner)});
         m_sentScreencast = true;
     } else if (m_framesInLastHalfSecond < 4 && m_sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(m_clientOwner)});
         m_sentScreencast = false;
     }

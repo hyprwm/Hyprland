@@ -33,7 +33,7 @@ CFunctionHook::SInstructionProbe CFunctionHook::getInstructionLenAt(void* start)
     size_t curOffset = 1;
     size_t insSize   = 0;
     while (true) {
-        ud_set_input_buffer(&udis, (uint8_t*)start, curOffset);
+        ud_set_input_buffer(&udis, sc<uint8_t*>(start), curOffset);
         insSize = ud_disassemble(&udis);
         if (insSize != curOffset)
             break;
@@ -57,7 +57,7 @@ CFunctionHook::SInstructionProbe CFunctionHook::probeMinimumJumpSize(void* start
 
     while (size <= min) {
         // find info about this instruction
-        auto probe = getInstructionLenAt((uint8_t*)start + size);
+        auto probe = getInstructionLenAt(sc<uint8_t*>(start) + size);
         sizes.push_back(probe.len);
         size += probe.len;
         instrs += probe.assembly + "\n";
@@ -70,7 +70,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
     SAssembly returns;
 
     // analyze the code and fix what we know how to.
-    uint64_t currentAddress = (uint64_t)m_source;
+    uint64_t currentAddress = rc<uint64_t>(m_source);
     // actually newline + 1
     size_t lastAsmNewline = 0;
     // needle for destination binary
@@ -83,7 +83,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
 
         // copy original bytes to our finalBytes
         for (size_t i = 0; i < len; ++i) {
-            finalBytes[currentDestinationOffset + i] = *(char*)(currentAddress + i);
+            finalBytes[currentDestinationOffset + i] = *rc<char*>(currentAddress + i);
         }
 
         std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find('\n', lastAsmNewline) - lastAsmNewline);
@@ -106,14 +106,14 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             if (ADDREND == std::string::npos || ADDRSTART == std::string::npos)
                 return {};
 
-            const uint64_t PREDICTEDRIP = (uint64_t)m_trampolineAddr + currentDestinationOffset + len;
+            const uint64_t PREDICTEDRIP = rc<uint64_t>(m_trampolineAddr) + currentDestinationOffset + len;
             const int32_t  NEWRIPOFFSET = DESTINATION - PREDICTEDRIP;
 
             size_t         ripOffset = 0;
 
             // find %rip usage offset from beginning
             for (int i = len - 4 /* 32-bit */; i > 0; --i) {
-                if (*(int32_t*)(currentAddress + i) == OFFSET) {
+                if (*rc<int32_t*>(currentAddress + i) == OFFSET) {
                     ripOffset = i;
                     break;
                 }
@@ -123,7 +123,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
                 return {};
 
             // fix offset in the final bytes. This doesn't care about endianness
-            *(int32_t*)&finalBytes[currentDestinationOffset + ripOffset] = NEWRIPOFFSET;
+            *rc<int32_t*>(&finalBytes[currentDestinationOffset + ripOffset]) = NEWRIPOFFSET;
 
             currentDestinationOffset += len;
         } else {
@@ -157,7 +157,7 @@ bool CFunctionHook::hook() {
 
     // alloc trampoline
     const auto MAX_TRAMPOLINE_SIZE = HOOK_TRAMPOLINE_MAX_SIZE; // we will never need more.
-    m_trampolineAddr               = (void*)g_pFunctionHookSystem->getAddressForTrampo();
+    m_trampolineAddr               = rc<void*>(g_pFunctionHookSystem->getAddressForTrampo());
 
     // probe instructions to be trampolin'd
     SInstructionProbe probe;
@@ -186,31 +186,31 @@ bool CFunctionHook::hook() {
     memcpy(m_originalBytes.data(), m_source, ORIGSIZE);
 
     // populate trampoline
-    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                       // first, original but fixed func bytes
-    memcpy((uint8_t*)m_trampolineAddr + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
-    memcpy((uint8_t*)m_trampolineAddr + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
+    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                           // first, original but fixed func bytes
+    memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
+    memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
 
     // fixup trampoline addr
-    *(uint64_t*)((uint8_t*)m_trampolineAddr + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
-        (uint64_t)((uint8_t*)m_source + sizeof(ABSOLUTE_JMP_ADDRESS));
+    *rc<uint64_t*>(sc<uint8_t*>(m_trampolineAddr) + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
+        rc<uint64_t>(sc<uint8_t*>(m_source) + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
     const auto     PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
-    const uint8_t* PROTSTART    = (uint8_t*)m_source - ((uint64_t)m_source % PAGESIZE_VAR);
-    const size_t   PROTLEN      = std::ceil((float)(ORIGSIZE + ((uint64_t)m_source - (uint64_t)PROTSTART)) / (float)PAGESIZE_VAR) * PAGESIZE_VAR;
-    mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy((uint8_t*)m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    const uint8_t* PROTSTART    = sc<uint8_t*>(m_source) - (rc<uint64_t>(m_source) % PAGESIZE_VAR);
+    const size_t   PROTLEN      = std::ceil(sc<float>(ORIGSIZE + (rc<uint64_t>(m_source) - rc<uint64_t>(PROTSTART))) / sc<float>(PAGESIZE_VAR)) * PAGESIZE_VAR;
+    mprotect(const_cast<uint8_t*>(PROTSTART), PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
+    memcpy(m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make popq %rax and NOP all remaining
-    memcpy((uint8_t*)m_source + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
+    memcpy(sc<uint8_t*>(m_source) + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
     size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
-    memset((uint8_t*)m_source + currentOp, NOP, ORIGSIZE - currentOp);
+    memset(sc<uint8_t*>(m_source) + currentOp, NOP, ORIGSIZE - currentOp);
 
     // fixup jump addr
-    *(uint64_t*)((uint8_t*)m_source + ABSOLUTE_JMP_ADDRESS_OFFSET) = (uint64_t)(m_destination);
+    *rc<uint64_t*>(sc<uint8_t*>(m_source) + ABSOLUTE_JMP_ADDRESS_OFFSET) = rc<uint64_t>(m_destination);
 
     // revert mprot
-    mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_EXEC);
+    mprotect(const_cast<uint8_t*>(PROTSTART), PROTLEN, PROT_READ | PROT_EXEC);
 
     // set original addr to trampo addr
     m_original = m_trampolineAddr;
@@ -232,13 +232,13 @@ bool CFunctionHook::unhook() {
         return false;
 
     // allow write to src
-    mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
+    mprotect(sc<uint8_t*>(m_source) - rc<uint64_t>(m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     // write back original bytes
     memcpy(m_source, m_originalBytes.data(), m_hookLen);
 
     // revert mprot
-    mprotect((uint8_t*)m_source - ((uint64_t)m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
+    mprotect(sc<uint8_t*>(m_source) - rc<uint64_t>(m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // reset vars
     m_active         = false;
@@ -352,16 +352,16 @@ uint64_t CHookSystem::getAddressForTrampo() {
             for (int i = 0; i <= 2; ++i) {
                 const auto PAGEADDR = BASEPAGEADDR + i * PAGESIZE_VAR;
 
-                page->addr = (uint64_t)mmap((void*)PAGEADDR, PAGESIZE_VAR, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                page->addr = rc<uint64_t>(mmap(rc<void*>(PAGEADDR), PAGESIZE_VAR, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
                 page->len  = PAGESIZE_VAR;
                 page->used = 0;
 
                 Debug::log(LOG, "Attempted to allocate 0x{:x}, got 0x{:x}", PAGEADDR, page->addr);
 
-                if (page->addr == (uint64_t)MAP_FAILED)
+                if (page->addr == rc<uint64_t>(MAP_FAILED))
                     continue;
                 if (page->addr != PAGEADDR && attempt == 0) {
-                    munmap((void*)page->addr, PAGESIZE_VAR);
+                    munmap(rc<void*>(page->addr), PAGESIZE_VAR);
                     page->addr = 0;
                     page->len  = 0;
                     continue;

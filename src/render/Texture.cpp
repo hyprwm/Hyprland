@@ -112,7 +112,6 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
 
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
     g_pHyprRenderer->makeEGLCurrent();
-
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
@@ -123,25 +122,64 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
         setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 
-    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
-        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
-        GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
-        GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
+    auto             clippedDamage = damage.copy().intersect(CBox{{}, m_size});
+    const auto       rects         = clippedDamage.getRects();
+    const auto       pixelSize     = format->bytesPerBlock;
 
-        int width  = rect.x2 - rect.x1;
-        int height = rect.y2 - rect.y1;
-        GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
-    });
+    constexpr size_t MAX_RECTS_BEFORE_PACKING = 2;
+    const auto       usePackedUpload          = rects.size() > MAX_RECTS_BEFORE_PACKING;
 
-    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
-    GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));
-    GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
+    if (usePackedUpload) {
+        const auto extents = clippedDamage.getExtents();
+        const auto xMin    = static_cast<int32_t>(extents.x);
+        const auto yMin    = static_cast<int32_t>(extents.y);
+        const auto width   = static_cast<int32_t>(extents.width);
+        const auto height  = static_cast<int32_t>(extents.height);
+
+        if (width <= 0 || height <= 0) {
+            unbind();
+            return;
+        }
+
+        const auto           rowPitch = static_cast<size_t>(width) * pixelSize;
+        std::vector<uint8_t> packedBuffer(static_cast<size_t>(height) * rowPitch);
+
+        for (int32_t row = 0; row < height; ++row) {
+            const auto* src = pixels + (static_cast<size_t>(yMin + row) * stride) + (static_cast<size_t>(xMin) * pixelSize);
+            auto*       dst = packedBuffer.data() + (static_cast<size_t>(row) * rowPitch);
+
+            std::memcpy(dst, src, rowPitch);
+        }
+
+        GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, xMin, yMin, width, height, format->glFormat, format->glType, packedBuffer.data()));
+    } else {
+        for (const auto& rect : rects) {
+            const auto x      = rect.x1;
+            const auto y      = rect.y1;
+            const auto width  = rect.x2 - rect.x1;
+            const auto height = rect.y2 - rect.y1;
+
+            if (width <= 0 || height <= 0)
+                continue;
+
+            GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / pixelSize));
+            GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, x));
+            GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, y));
+
+            GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, format->glFormat, format->glType, pixels));
+        }
+
+        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
+        GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));
+        GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
+    }
 
     unbind();
 
     if (m_keepDataCopy) {
-        m_dataCopy.resize(stride * m_size.y);
-        memcpy(m_dataCopy.data(), pixels, stride * m_size.y);
+        const size_t fullSize = static_cast<size_t>(stride) * m_size.y;
+        m_dataCopy.resize(fullSize);
+        std::memcpy(m_dataCopy.data(), pixels, fullSize);
     }
 }
 

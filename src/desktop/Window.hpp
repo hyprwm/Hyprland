@@ -302,6 +302,9 @@ class CWindow {
 
     bool     m_tearingHint = false;
 
+    // VRR suppression
+    bool m_suppressVRR = false;
+
     // stores the currently matched window rules
     std::vector<SP<CWindowRule>> m_matchedRules;
 

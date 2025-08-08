@@ -321,6 +321,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     PWINDOW->m_closeableSince = Time::steadyNow() + std::chrono::milliseconds(std::stoull(VARS[1]));
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
+                break;
+            }
+            case CWindowRule::RULE_SUPPRESSVRR: {
+                PWINDOW->m_suppressVRR = true;
+                break;
             }
             default: break;
         }

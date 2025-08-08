@@ -34,7 +34,9 @@ class CANRManager {
         WP<CXWaylandSurface> xwaylandSurface;
         WP<CXDGWMBase>       xdgBase;
 
-        int                  missedResponses = 0;
+        int                  missedResponses  = 0;
+        bool                 wasNotResponding = false;
+        pid_t                cachedPid        = 0;
 
         bool                 dialogSaidWait = false;
         SP<CAsyncDialogBox>  dialogBox;

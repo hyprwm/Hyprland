@@ -1131,17 +1131,20 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
-        // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || pSurface->m_current.size.x > projSizeUnscaled.x || pSurface->m_current.size.y > projSizeUnscaled.y) {
+        // Adjust UV based on the xdg_surface geometry
+        if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
             const auto XPERC = (double)geom.x / (double)pSurface->m_current.size.x;
             const auto YPERC = (double)geom.y / (double)pSurface->m_current.size.y;
-            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->m_current.size.x;
-            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->m_current.size.y;
+            const auto WPERC = (double)(geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / (double)pSurface->m_current.size.x;
+            const auto HPERC = (double)(geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / (double)pSurface->m_current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
+        }
 
+        // Adjust UV based on our animation progress
+        if (pSurface->m_current.size.x > projSizeUnscaled.x || pSurface->m_current.size.y > projSizeUnscaled.y) {
             auto maxSize = projSizeUnscaled;
 
             if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)

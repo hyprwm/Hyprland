@@ -6,6 +6,7 @@
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
+#include "../../protocols/core/DataDevice.hpp"
 
 static void unfocusTool(SP<CTabletTool> tool) {
     if (!tool->getSurface())
@@ -136,7 +137,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
         }
 
         m_lastInputTouch = false;
-        if (!PTOOL->m_isDown)
+        if (!PTOOL->m_isDown || PROTO::data->dndActive())
             simulateMouseMovement();
         refocusTablet(PTAB, PTOOL, true);
         m_lastCursorMovement.reset();

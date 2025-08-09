@@ -2358,7 +2358,6 @@ void CHyprRenderer::endRender() {
                 for (const auto& releaser : buf->m_syncReleasers) {
                     releaser->addSyncFileFd(buf->m_eglSync->fd());
                 }
-                buf->m_syncReleasers.clear(); // import the fd;
             }
         }
 

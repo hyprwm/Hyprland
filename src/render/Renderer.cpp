@@ -1617,6 +1617,27 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
+    if (!g_pHyprOpenGL->explicitSyncSupported()) {
+        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+    } else {
+        glFlush(); // flush once for the native fence FD's.
+        for (auto const& buf : m_usedAsyncBuffers) {
+            buf->m_eglSync->dupNativeFence();
+            if (buf->m_syncReleasers.empty()) {
+                g_pEventLoopManager->doOnReadable(buf->m_eglSync->fd().duplicate(), [buffer = std::move(buf)] {
+                    // drop buffer on out of scope.
+                });
+                continue;
+            } else {
+                for (const auto& releaser : buf->m_syncReleasers) {
+                    releaser->addSyncFileFd(buf->m_eglSync->fd());
+                }
+            }
+        }
+
+        m_usedAsyncBuffers.clear();
+    }
+
     return ok;
 }
 
@@ -2306,7 +2327,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return true;
 }
 
-void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
@@ -2342,42 +2363,19 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         else
             glFlush(); // mark an implicit sync point
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
-
         return;
     }
 
     UP<CEGLSync> eglSync = CEGLSync::create();
+    eglSync->dupNativeFence(true);
     if (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
-                releaser->addSyncFileFd(eglSync->fd());
-            }
-        }
-
-        // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
-
-        // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
-            prevbfs.clear();
-            if (renderingDoneCallback)
-                renderingDoneCallback();
-        });
-        m_usedAsyncBuffers.clear();
-
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
         Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
-
         m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
     }
 }
 

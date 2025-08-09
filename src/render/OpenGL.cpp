@@ -3191,17 +3191,7 @@ UP<CEGLSync> CEGLSync::create() {
         return nullptr;
     }
 
-    // we need to flush otherwise we might not get a valid fd
-    glFlush();
-
-    int fd = g_pHyprOpenGL->m_proc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_eglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
-        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
-        return nullptr;
-    }
-
     UP<CEGLSync> eglSync(new CEGLSync);
-    eglSync->m_fd    = CFileDescriptor(fd);
     eglSync->m_sync  = sync;
     eglSync->m_valid = true;
 
@@ -3214,6 +3204,24 @@ CEGLSync::~CEGLSync() {
 
     if (g_pHyprOpenGL && g_pHyprOpenGL->m_proc.eglDestroySyncKHR(g_pHyprOpenGL->m_eglDisplay, m_sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
+}
+
+void CEGLSync::dupNativeFence(bool flush) {
+    if (m_sync == EGL_NO_SYNC_KHR) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed, no valid EGLSyncKHR");
+        return;
+    }
+
+    if (flush)
+        glFlush(); // we need to flush otherwise we might not get a valid fd
+
+    int fd = g_pHyprOpenGL->m_proc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_eglDisplay, m_sync);
+    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
+        return;
+    }
+
+    m_fd = CFileDescriptor(fd);
 }
 
 CFileDescriptor& CEGLSync::fd() {

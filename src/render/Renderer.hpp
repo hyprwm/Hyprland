@@ -89,7 +89,7 @@ class CHyprRenderer {
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
-    void endRender(const std::function<void()>& renderingDoneCallback = {});
+    void endRender();
 
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;

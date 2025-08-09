@@ -1395,6 +1395,142 @@ static std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string requ
     return "DEPRECATED: use hyprctl dispatch setprop instead" + (result.success ? "" : "\n" + result.error);
 }
 
+static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() < 3)
+        return "not enough args";
+
+    const auto WINREGEX = vars[1];
+    const auto PROP     = vars[2];
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINREGEX);
+
+    if (!PWINDOW)
+        return "window not found";
+
+    const bool FORMNORM = format == FORMAT_NORMAL;
+
+    auto       sizeToString = [&](bool max) -> std::string {
+        auto sizeValue = PWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE));
+        if (max) {
+            sizeValue = PWINDOW->m_windowData.maxSize.valueOr(Vector2D(INFINITY, INFINITY));
+        }
+
+        if (FORMNORM) {
+            return std::format("{} {}", sizeValue.x, sizeValue.y);
+        } else {
+            std::string xSizeString = (sizeValue.x != INFINITY) ? std::to_string(sizeValue.x) : "null";
+            std::string ySizeString = (sizeValue.y != INFINITY) ? std::to_string(sizeValue.y) : "null";
+            return std::format(R"({{"{}": [{},{}]}})", PROP, xSizeString, ySizeString);
+        }
+    };
+
+    auto alphaToString = [&](CWindowOverridableVar<SAlphaValue>& alpha, bool getAlpha) -> std::string {
+        if (FORMNORM) {
+            if (getAlpha) {
+                return std::format("{}", alpha.valueOrDefault().alpha);
+            } else {
+                return std::format("{}", alpha.valueOrDefault().overridden);
+            }
+        } else {
+            if (getAlpha) {
+                return std::format(R"({{"{}": {}}})", PROP, alpha.valueOrDefault().alpha);
+            } else {
+                return std::format(R"({{"{}": {}}})", PROP, alpha.valueOrDefault().overridden);
+            }
+        }
+    };
+
+    auto borderColorToString = [&](bool active) -> std::string {
+        static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
+        static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");
+        static auto PNOGROUPACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border_active");
+        static auto PNOGROUPINACTIVECOL     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border");
+        static auto PGROUPACTIVECOL         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_active");
+        static auto PGROUPINACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_inactive");
+        static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_active");
+        static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_inactive");
+
+        const bool  GROUPLOCKED = PWINDOW->m_groupData.pNextWindow.lock() ? PWINDOW->getGroupHead()->m_groupData.locked : false;
+
+        if (active) {
+            auto* const       ACTIVECOL            = (CGradientValueData*)(PACTIVECOL.ptr())->getData();
+            auto* const       NOGROUPACTIVECOL     = (CGradientValueData*)(PNOGROUPACTIVECOL.ptr())->getData();
+            auto* const       GROUPACTIVECOL       = (CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
+            auto* const       GROUPACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
+            const auto* const ACTIVECOLOR =
+                !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
+
+            std::string borderColorString = PWINDOW->m_windowData.activeBorderColor.valueOr(*ACTIVECOLOR).toString();
+            if (FORMNORM) {
+                return borderColorString;
+            } else {
+                return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
+            }
+        } else {
+            auto* const       INACTIVECOL            = (CGradientValueData*)(PINACTIVECOL.ptr())->getData();
+            auto* const       NOGROUPINACTIVECOL     = (CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
+            auto* const       GROUPINACTIVECOL       = (CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
+            auto* const       GROUPINACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
+            const auto* const INACTIVECOLOR          = !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) :
+                                                                                                  (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+
+            std::string       borderColorString = PWINDOW->m_windowData.inactiveBorderColor.valueOr(*INACTIVECOLOR).toString();
+            if (FORMNORM) {
+                return borderColorString;
+            } else {
+                return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
+            }
+        }
+    };
+
+    auto windowPropToString = [&](auto& prop) -> std::string {
+        if (FORMNORM) {
+            return std::format("{}", prop.valueOrDefault());
+        } else {
+            return std::format(R"({{"{}": {}}})", PROP, prop.valueOrDefault());
+        }
+    };
+
+    if (PROP == "animationstyle") {
+        auto& animationStyle = PWINDOW->m_windowData.animationStyle;
+        if (FORMNORM) {
+            return animationStyle.valueOr("(unset)");
+        } else {
+            return std::format(R"({{"{}": "{}"}})", PROP, animationStyle.valueOr(""));
+        }
+    } else if (PROP == "maxsize") {
+        return sizeToString(true);
+    } else if (PROP == "minsize") {
+        return sizeToString(false);
+    } else if (PROP == "alpha") {
+        return alphaToString(PWINDOW->m_windowData.alpha, true);
+    } else if (PROP == "alphainactive") {
+        return alphaToString(PWINDOW->m_windowData.alphaInactive, true);
+    } else if (PROP == "alphafullscreen") {
+        return alphaToString(PWINDOW->m_windowData.alphaFullscreen, true);
+    } else if (PROP == "alphaoverride") {
+        return alphaToString(PWINDOW->m_windowData.alpha, false);
+    } else if (PROP == "alphainactiveoverride") {
+        return alphaToString(PWINDOW->m_windowData.alphaInactive, false);
+    } else if (PROP == "alphafullscreenoverride") {
+        return alphaToString(PWINDOW->m_windowData.alphaFullscreen, false);
+    } else if (PROP == "activebordercolor") {
+        return borderColorToString(true);
+    } else if (PROP == "inactivebordercolor") {
+        return borderColorToString(false);
+    } else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end()) {
+        return windowPropToString(*search->second(PWINDOW));
+    } else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end()) {
+        return windowPropToString(*search->second(PWINDOW));
+    } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
+        return windowPropToString(*search->second(PWINDOW));
+    }
+
+    return "prop not found";
+}
+
 static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) {
     std::string curitem = "";
 
@@ -1756,6 +1892,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
     registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
     registerCommand(SHyprCtlCommand{"setprop", false, dispatchSetProp});
+    registerCommand(SHyprCtlCommand{"getprop", false, dispatchGetProp});
     registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
     registerCommand(SHyprCtlCommand{"output", false, dispatchOutput});

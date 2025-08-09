@@ -49,6 +49,7 @@ commands:
                           the same format as in colors in config. Will reset
                           when Hyprland's config is reloaded
     setprop ...         → Sets a window property
+    getprop ...         → Gets a window property
     splash              → Get the current splash
     switchxkblayout ... → Sets the xkb layout index for a keyboard
     systeminfo          → Get system info
@@ -155,6 +156,18 @@ value:
 lock:
     Optional argument. If lock is not added, will be unlocked. Locking means a
     dynamic windowrule cannot override this setting.
+
+flags:
+    See 'hyprctl --help')#";
+
+const std::string_view GETPROP_HELP = R"#(usage: hyprctl [flags] getprop <regex> <property>
+
+regex:
+    Regular expression by which a window will be searched
+
+property:
+    See https://wiki.hypr.land/Configuring/Using-hyprctl/#setprop for list
+    of properties
 
 flags:
     See 'hyprctl --help')#";

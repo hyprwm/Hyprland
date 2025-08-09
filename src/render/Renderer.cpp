@@ -1614,6 +1614,27 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
+    if (!g_pHyprOpenGL->explicitSyncSupported()) {
+        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+    } else {
+        glFlush(); // flush once for the native fence FD's.
+        for (auto const& buf : m_usedAsyncBuffers) {
+            buf->m_eglSync->dupNativeFence();
+            if (buf->m_syncReleasers.empty()) {
+                g_pEventLoopManager->doOnReadable(buf->m_eglSync->fd().duplicate(), [buffer = std::move(buf)] {
+                    // drop buffer on out of scope.
+                });
+                continue;
+            } else {
+                for (const auto& releaser : buf->m_syncReleasers) {
+                    releaser->addSyncFileFd(buf->m_eglSync->fd());
+                }
+            }
+        }
+
+        m_usedAsyncBuffers.clear();
+    }
+
     return ok;
 }
 
@@ -2339,30 +2360,12 @@ void CHyprRenderer::endRender() {
         else
             glFlush(); // mark an implicit sync point
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-
         return;
     }
 
     UP<CEGLSync> eglSync = CEGLSync::create();
     eglSync->dupNativeFence(true);
     if (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
-            buf->m_eglSync->dupNativeFence();
-            if (buf->m_syncReleasers.empty()) {
-                g_pEventLoopManager->doOnReadable(buf->m_eglSync->fd().duplicate(), [buffer = std::move(buf)] {
-                    // drop buffer on out of scope.
-                });
-                continue;
-            } else {
-                for (const auto& releaser : buf->m_syncReleasers) {
-                    releaser->addSyncFileFd(buf->m_eglSync->fd());
-                }
-            }
-        }
-
-        m_usedAsyncBuffers.clear();
-
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());

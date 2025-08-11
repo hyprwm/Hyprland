@@ -54,7 +54,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "ID 6 (6)");
         EXPECT_CONTAINS(str, "(PERSIST) on monitor");
         EXPECT_CONTAINS(str, "(PERSIST-2) on monitor");
-        EXPECT_COUNT_STRING(str, "workspace ID ", 5);
+        EXPECT_COUNT_STRING(str, "workspace ID ", 6);
     }
 
     OK(getFromSocket("/reload"));

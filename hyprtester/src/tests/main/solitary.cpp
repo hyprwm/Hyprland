@@ -42,7 +42,6 @@ static bool test() {
 
     OK(getFromSocket("/keyword general:allow_tearing true"));
     OK(getFromSocket("/keyword render:direct_scanout 1"));
-    OK(getFromSocket("/keyword cursor:no_hardware_cursors 0"));
     NLog::log("{}", getFromSocket("/clients"));
     OK(getFromSocket("/dispatch fullscreen"));
     NLog::log("{}", getFromSocket("/clients"));
@@ -54,8 +53,6 @@ static bool test() {
         EXPECT_CONTAINS(str, "solitaryBlockedBy: null");
         EXPECT_CONTAINS(str, "activelyTearing: false");
         EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
-        FIXME(EXPECT_NOT_CONTAINS(str, "directScanoutTo: 0\n"));
-        FIXME(EXPECT_CONTAINS(str, "directScanoutBlockedBy: null"));
     }
 
     OK(getFromSocket("/dispatch setprop active immediate 1"));

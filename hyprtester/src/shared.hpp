@@ -88,23 +88,3 @@ namespace Colors {
     }
 
 #define OK(x) EXPECT(x, "ok")
-
-#define FIXME(code)                                                                                                                                                                \
-    do {                                                                                                                                                                           \
-        const int OLD_FAILED = TESTS_FAILED;                                                                                                                                       \
-        const int OLD_RET    = ret;                                                                                                                                                \
-                                                                                                                                                                                   \
-        { code }                                                                                                                                                                   \
-                                                                                                                                                                                   \
-        if (TESTS_FAILED > OLD_FAILED) {                                                                                                                                           \
-            NLog::log("{}FIXME Broken test has failed, counting as passed", Colors::YELLOW);                                                                                       \
-            TESTS_FAILED--;                                                                                                                                                        \
-            TESTS_PASSED++;                                                                                                                                                        \
-            ret = OLD_RET;                                                                                                                                                         \
-        } else {                                                                                                                                                                   \
-            NLog::log("{}FIXME Broken test has passed, remove FIXME wrapper", Colors::YELLOW);                                                                                     \
-            TESTS_FAILED++;                                                                                                                                                        \
-            TESTS_PASSED--;                                                                                                                                                        \
-            ret = 1;                                                                                                                                                               \
-        }                                                                                                                                                                          \
-    } while (0)

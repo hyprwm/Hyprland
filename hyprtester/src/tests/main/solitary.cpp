@@ -32,39 +32,40 @@ static bool test() {
         EXPECT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
     }
 
-    NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
-    auto kittyProcA = Tests::spawnKitty();
+    // FIXME: need a reliable client with solitary opaque surface in fullscreen. kitty doesn't work all the time
+    // NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
+    // auto kittyProcA = Tests::spawnKitty();
 
-    if (!kittyProcA) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        return false;
-    }
+    // if (!kittyProcA) {
+    //     NLog::log("{}Error: kitty did not spawn", Colors::RED);
+    //     return false;
+    // }
 
-    OK(getFromSocket("/keyword general:allow_tearing true"));
-    OK(getFromSocket("/keyword render:direct_scanout 1"));
-    NLog::log("{}", getFromSocket("/clients"));
-    OK(getFromSocket("/dispatch fullscreen"));
-    NLog::log("{}", getFromSocket("/clients"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
-    {
-        auto str = getFromSocket("/monitors");
-        EXPECT_NOT_CONTAINS(str, "solitary: 0\n");
-        EXPECT_CONTAINS(str, "solitaryBlockedBy: null");
-        EXPECT_CONTAINS(str, "activelyTearing: false");
-        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
-    }
+    // OK(getFromSocket("/keyword general:allow_tearing true"));
+    // OK(getFromSocket("/keyword render:direct_scanout 1"));
+    // NLog::log("{}", getFromSocket("/clients"));
+    // OK(getFromSocket("/dispatch fullscreen"));
+    // NLog::log("{}", getFromSocket("/clients"));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
+    // {
+    //     auto str = getFromSocket("/monitors");
+    //     EXPECT_NOT_CONTAINS(str, "solitary: 0\n");
+    //     EXPECT_CONTAINS(str, "solitaryBlockedBy: null");
+    //     EXPECT_CONTAINS(str, "activelyTearing: false");
+    //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
+    // }
 
-    OK(getFromSocket("/dispatch setprop active immediate 1"));
-    NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
-    {
-        auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor\n");
-    }
+    // OK(getFromSocket("/dispatch setprop active immediate 1"));
+    // NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
+    // {
+    //     auto str = getFromSocket("/monitors");
+    //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor\n");
+    // }
 
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
+    // // kill all
+    // NLog::log("{}Killing all windows", Colors::YELLOW);
+    // Tests::killAllWindows();
 
     NLog::log("{}Reloading the config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

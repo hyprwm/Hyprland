@@ -200,10 +200,14 @@ bool CDRMSyncobjManagerResource::good() {
 }
 
 CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    if (g_pCompositor->m_drm.syncobjSupport)
-        m_drmFD = g_pCompositor->m_drm.fd;
-    else if (g_pCompositor->m_drmRenderNode.syncObjSupport)
+    if (g_pCompositor->m_drmRenderNode.syncObjSupport)
         m_drmFD = g_pCompositor->m_drmRenderNode.fd;
+    else if (g_pCompositor->m_drm.syncobjSupport)
+        m_drmFD = g_pCompositor->m_drm.fd;
+    else {
+        LOGM(ERR, "CDRMSyncobjProtocol: no nodes support explicit sync?");
+        return;
+    }
 
     LOGM(LOG, "CDRMSyncobjProtocol: using fd {}", m_drmFD);
 }

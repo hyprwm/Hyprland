@@ -925,6 +925,7 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
 std::string deviceNameToInternalString(std::string in) {
     std::ranges::replace(in, ' ', '-');
     std::ranges::replace(in, '\n', '-');
+    std::ranges::replace(in, ',', '-');
     std::ranges::transform(in, in.begin(), ::tolower);
     return in;
 }

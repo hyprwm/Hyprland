@@ -1840,7 +1840,7 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
                 return; // ???
 
             bool wantVRR = PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN);
-            if (wantVRR && PWORKSPACE->getFullscreenWindow()->m_suppressVRR) {
+            if (wantVRR && PWORKSPACE->getFullscreenWindow()->m_windowData.noVRR.valueOr(false)) {
                 wantVRR = false;
             }
 

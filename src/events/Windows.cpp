@@ -323,10 +323,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
                 break;
             }
-            case CWindowRule::RULE_SUPPRESSVRR: {
-                PWINDOW->m_suppressVRR = true;
-                break;
-            }
             default: break;
         }
 

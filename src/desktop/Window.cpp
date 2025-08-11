@@ -802,6 +802,10 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             m_windowData.persistentSize = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
             break;
         }
+        case CWindowRule::RULE_NOVRR: {
+            m_windowData.noVRR = CWindowOverridableVar(true, priority);
+            break;
+        }
         default: break;
     }
 }
@@ -821,6 +825,7 @@ void CWindow::updateDynamicRules() {
     m_windowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
 
     m_windowData.renderUnfocused.unset(PRIORITY_WINDOW_RULE);
+    m_windowData.noVRR.unset(PRIORITY_WINDOW_RULE);
 
     m_idleInhibitMode = IDLEINHIBIT_NONE;
 

@@ -105,6 +105,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               renderUnfocused    = false;
     CWindowOverridableVar<bool>               noFollowMouse      = false;
     CWindowOverridableVar<bool>               noScreenShare      = false;
+    CWindowOverridableVar<bool>               noVRR              = false;
 
     CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), Hyprlang::INT(0), std::nullopt};
     CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), Hyprlang::INT(0), std::nullopt};
@@ -302,9 +303,6 @@ class CWindow {
 
     bool     m_tearingHint = false;
 
-    // VRR suppression
-    bool m_suppressVRR = false;
-
     // stores the currently matched window rules
     std::vector<SP<CWindowRule>> m_matchedRules;
 
@@ -491,6 +489,7 @@ namespace NWindowProperties {
         {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.opaque; }},
         {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.RGBX; }},
         {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.syncFullscreen; }},
+        {"novrr", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noVRR; }},
         {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.tearing; }},
         {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.xray; }},
         {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFollowMouse; }},

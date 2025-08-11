@@ -3277,6 +3277,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
         g_pCompositor->focusWindow(PLASTWINDOW);
     }
 
+    if (PROP == "novrr")
+        g_pConfigManager->ensureVRR(PWINDOW->m_monitor.lock());
+
     for (auto const& m : g_pCompositor->m_monitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
 

@@ -1,4 +1,5 @@
 #include "ConfigWatcher.hpp"
+#include <linux/limits.h>
 #include <sys/inotify.h>
 #include "../debug/Log.hpp"
 #include <ranges>

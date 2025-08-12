@@ -525,7 +525,9 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:text_color_locked_inactive", Hyprlang::INT{-1});
     registerConfigVar("group:groupbar:stacked", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:rounding", Hyprlang::INT{1});
+    registerConfigVar("group:groupbar:rounding_power", {2.F});
     registerConfigVar("group:groupbar:gradient_rounding", Hyprlang::INT{2});
+    registerConfigVar("group:groupbar:gradient_rounding_power", {2.F});
     registerConfigVar("group:groupbar:round_only_edges", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gradient_round_only_edges", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:gaps_out", Hyprlang::INT{2});

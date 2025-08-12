@@ -113,7 +113,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGRADIENTS                 = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto PSTACKED                   = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
     static auto PROUNDING                  = CConfigValue<Hyprlang::INT>("group:groupbar:rounding");
+    static auto PROUNDINGPOWER             = CConfigValue<Hyprlang::FLOAT>("group:groupbar:rounding_power");
     static auto PGRADIENTROUNDING          = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_rounding");
+    static auto PGRADIENTROUNDINGPOWER     = CConfigValue<Hyprlang::FLOAT>("group:groupbar:gradient_rounding_power");
     static auto PGRADIENTROUNDINGONLYEDGES = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_round_only_edges");
     static auto PROUNDONLYEDGES            = CConfigValue<Hyprlang::INT>("group:groupbar:round_only_edges");
     static auto PGROUPCOLACTIVE            = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
@@ -163,6 +165,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             rectdata.color = color;
             rectdata.box   = rect;
             if (*PROUNDING) {
+                rectdata.roundingPower = *PROUNDINGPOWER;
                 if (*PROUNDONLYEDGES) {
                     static constexpr double PADDING = 20;
 
@@ -203,6 +206,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                     data.tex = GRADIENTTEX;
                     data.box = rect;
                     if (*PGRADIENTROUNDING) {
+                        data.roundingPower = *PGRADIENTROUNDINGPOWER;
                         if (*PGRADIENTROUNDINGONLYEDGES) {
                             static constexpr double PADDING = 20;
 

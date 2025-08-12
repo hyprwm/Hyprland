@@ -1413,13 +1413,12 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
 
     auto       sizeToString = [&](bool max) -> std::string {
         auto sizeValue = PWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE));
-        if (max) {
+        if (max)
             sizeValue = PWINDOW->m_windowData.maxSize.valueOr(Vector2D(INFINITY, INFINITY));
-        }
 
-        if (FORMNORM) {
+        if (FORMNORM)
             return std::format("{} {}", sizeValue.x, sizeValue.y);
-        } else {
+        else {
             std::string xSizeString = (sizeValue.x != INFINITY) ? std::to_string(sizeValue.x) : "null";
             std::string ySizeString = (sizeValue.y != INFINITY) ? std::to_string(sizeValue.y) : "null";
             return std::format(R"({{"{}": [{},{}]}})", PROP, xSizeString, ySizeString);
@@ -1428,17 +1427,15 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
 
     auto alphaToString = [&](CWindowOverridableVar<SAlphaValue>& alpha, bool getAlpha) -> std::string {
         if (FORMNORM) {
-            if (getAlpha) {
+            if (getAlpha)
                 return std::format("{}", alpha.valueOrDefault().alpha);
-            } else {
+            else
                 return std::format("{}", alpha.valueOrDefault().overridden);
-            }
         } else {
-            if (getAlpha) {
+            if (getAlpha)
                 return std::format(R"({{"{}": {}}})", PROP, alpha.valueOrDefault().alpha);
-            } else {
+            else
                 return std::format(R"({{"{}": {}}})", PROP, alpha.valueOrDefault().overridden);
-            }
         }
     };
 
@@ -1463,11 +1460,10 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
                 !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
 
             std::string borderColorString = PWINDOW->m_windowData.activeBorderColor.valueOr(*ACTIVECOLOR).toString();
-            if (FORMNORM) {
+            if (FORMNORM)
                 return borderColorString;
-            } else {
+            else
                 return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
-            }
         } else {
             auto* const       INACTIVECOL            = (CGradientValueData*)(PINACTIVECOL.ptr())->getData();
             auto* const       NOGROUPINACTIVECOL     = (CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
@@ -1477,56 +1473,52 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
                                                                                                   (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
 
             std::string       borderColorString = PWINDOW->m_windowData.inactiveBorderColor.valueOr(*INACTIVECOLOR).toString();
-            if (FORMNORM) {
+            if (FORMNORM)
                 return borderColorString;
-            } else {
+            else
                 return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
-            }
         }
     };
 
     auto windowPropToString = [&](auto& prop) -> std::string {
-        if (FORMNORM) {
+        if (FORMNORM)
             return std::format("{}", prop.valueOrDefault());
-        } else {
+        else
             return std::format(R"({{"{}": {}}})", PROP, prop.valueOrDefault());
-        }
     };
 
     if (PROP == "animationstyle") {
         auto& animationStyle = PWINDOW->m_windowData.animationStyle;
-        if (FORMNORM) {
+        if (FORMNORM)
             return animationStyle.valueOr("(unset)");
-        } else {
+        else
             return std::format(R"({{"{}": "{}"}})", PROP, animationStyle.valueOr(""));
-        }
-    } else if (PROP == "maxsize") {
+    } else if (PROP == "maxsize")
         return sizeToString(true);
-    } else if (PROP == "minsize") {
+    else if (PROP == "minsize")
         return sizeToString(false);
-    } else if (PROP == "alpha") {
+    else if (PROP == "alpha")
         return alphaToString(PWINDOW->m_windowData.alpha, true);
-    } else if (PROP == "alphainactive") {
+    else if (PROP == "alphainactive")
         return alphaToString(PWINDOW->m_windowData.alphaInactive, true);
-    } else if (PROP == "alphafullscreen") {
+    else if (PROP == "alphafullscreen")
         return alphaToString(PWINDOW->m_windowData.alphaFullscreen, true);
-    } else if (PROP == "alphaoverride") {
+    else if (PROP == "alphaoverride")
         return alphaToString(PWINDOW->m_windowData.alpha, false);
-    } else if (PROP == "alphainactiveoverride") {
+    else if (PROP == "alphainactiveoverride")
         return alphaToString(PWINDOW->m_windowData.alphaInactive, false);
-    } else if (PROP == "alphafullscreenoverride") {
+    else if (PROP == "alphafullscreenoverride")
         return alphaToString(PWINDOW->m_windowData.alphaFullscreen, false);
-    } else if (PROP == "activebordercolor") {
+    else if (PROP == "activebordercolor")
         return borderColorToString(true);
-    } else if (PROP == "inactivebordercolor") {
+    else if (PROP == "inactivebordercolor")
         return borderColorToString(false);
-    } else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end()) {
+    else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end())
         return windowPropToString(*search->second(PWINDOW));
-    } else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end()) {
+    else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end())
         return windowPropToString(*search->second(PWINDOW));
-    } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
+    else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end())
         return windowPropToString(*search->second(PWINDOW));
-    }
 
     return "prop not found";
 }

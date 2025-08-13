@@ -89,14 +89,14 @@ struct SShader {
         std::array<GLfloat, 8> value     = {};
     };
 
-    struct SUniform4Data {
+    struct SUniformVData {
         GLsizei            count = 0;
         std::vector<float> value;
     };
 
     //
     std::array<std::variant<std::monostate, GLint, GLfloat, std::array<GLfloat, 2>, std::array<GLfloat, 3>, std::array<GLfloat, 4>, SUniformMatrix3Data, SUniformMatrix4Data,
-                            SUniform4Data>,
+                            SUniformVData>,
                SHADER_LAST>
         uniformStatus;
     //
@@ -109,6 +109,11 @@ struct SShader {
     void setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
     void setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value);
     void setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value);
-    void setUniform4fv(eShaderUniform location, GLsizei count, std::vector<float> value);
+    void setUniform1fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void setUniform2fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void setUniform4fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
     void destroy();
+
+  private:
+    void setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size);
 };

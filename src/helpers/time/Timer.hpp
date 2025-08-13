@@ -5,12 +5,12 @@
 class CTimer {
   public:
     void                   reset();
-    float                  getSeconds();
-    float                  getMillis();
+    float                  getSeconds() const;
+    float                  getMillis() const;
     const Time::steady_tp& chrono() const;
 
   private:
     Time::steady_tp  m_lastReset;
 
-    Time::steady_dur getDuration();
+    Time::steady_dur getDuration() const;
 };

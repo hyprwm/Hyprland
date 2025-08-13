@@ -1287,7 +1287,12 @@ void CXWM::getTransferData(SXSelection& sel) {
     }
 
     const size_t transferIndex = std::distance(sel.transfers.begin(), it);
-    sel.onWrite();
+    int writeResult = sel.onWrite();
+
+    if (writeResult != 1) {
+    return;
+    }
+
 
     if (transferIndex >= sel.transfers.size())
         return;

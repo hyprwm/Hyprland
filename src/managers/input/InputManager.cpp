@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
 #include <ranges>
+#include <algorithm>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../desktop/Window.hpp"
@@ -628,7 +629,10 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
 
     switch (m_clickBehavior) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
-        case CLICKMODE_KILL: processMouseDownKill(e); break;
+        case CLICKMODE_KILL:
+            processMouseDownKill(e);
+            addLastPressed(getMouseCoordsInternal(), false);
+            break;
         default: break;
     }
 
@@ -716,7 +720,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
         case CLICKMODE_DEFAULT:
             Debug::log(LOG, "SetClickMode: DEFAULT");
             m_clickBehavior = CLICKMODE_DEFAULT;
-            g_pHyprRenderer->setCursorFromName("left_ptr");
+            g_pHyprRenderer->setCursorFromName("left_ptr", true);
             break;
 
         case CLICKMODE_KILL:
@@ -728,10 +732,26 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            g_pHyprRenderer->setCursorFromName("crosshair");
+            g_pHyprRenderer->setCursorFromName("crosshair", true);
             break;
         default: break;
     }
+}
+
+void CInputManager::addLastPressed(const Vector2D& pos, bool normal) {
+    // shift the new pos and time in
+    std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
+    m_pressedHistoryPositions[0] = pos;
+
+    std::ranges::rotate(m_pressedHistoryTimers, m_pressedHistoryTimers.end() - 1);
+    m_pressedHistoryTimers[0].reset();
+
+    // shift killed flag in
+    m_pressedHistoryKilled <<= 1;
+    m_pressedHistoryKilled |= normal ? 0 : 1;
+#if POINTER_PRESSED_HISTORY_LENGTH < 32
+    m_pressedHistoryKilled &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+#endif
 }
 
 void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
@@ -802,6 +822,9 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     // notify app if we didn't handle it
     g_pSeatManager->sendPointerButton(e.timeMs, e.button, e.state);
+
+    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
+        addLastPressed(mouseCoords, true);
 
     if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_lastMonitor && PMON)
         g_pCompositor->setActiveMonitor(PMON);

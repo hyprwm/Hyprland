@@ -218,6 +218,11 @@ class CInputManager {
     //
     bool m_emptyFocusCursorSet = false;
 
+    // for the final shader
+    std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};
+    std::array<Vector2D, POINTER_PRESSED_HISTORY_LENGTH> m_pressedHistoryPositions = {};
+    GLint                                                m_pressedHistoryKilled    = 0;
+
   private:
     // Listeners
     struct {
@@ -240,6 +245,8 @@ class CInputManager {
 
     void               processMouseDownNormal(const IPointer::SButtonEvent& e);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
+
+    void               addLastPressed(const Vector2D& pos, bool normal);
 
     bool               cursorImageUnlocked();
 

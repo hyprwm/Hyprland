@@ -12,7 +12,6 @@
 #include "managers/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
-#include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
@@ -591,7 +590,6 @@ void CCompositor::cleanup() {
     g_pHyprCtl.reset();
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
-    g_pDonationNagManager.reset();
     g_pANRManager.reset();
     g_pConfigWatcher.reset();
 
@@ -690,8 +688,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the VersionKeeper!");
             g_pVersionKeeperMgr = makeUnique<CVersionKeeperManager>();
 
-            Debug::log(LOG, "Creating the DonationNag!");
-            g_pDonationNagManager = makeUnique<CDonationNagManager>();
 
             Debug::log(LOG, "Creating the ANRManager!");
             g_pANRManager = makeUnique<CANRManager>();

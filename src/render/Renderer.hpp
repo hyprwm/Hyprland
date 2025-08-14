@@ -108,8 +108,11 @@ class CHyprRenderer {
     std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {
-        int                           hotspotX = 0;
-        int                           hotspotY = 0;
+        int                           hotspotX      = 0;
+        int                           hotspotY      = 0;
+        int                           shape         = -1;
+        int                           shapePrevious = -1;
+        CTimer                        switchedTimer;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;
     } m_lastCursorData;
@@ -139,6 +142,7 @@ class CHyprRenderer {
     bool shouldBlur(WP<CPopup> p);
 
     bool m_cursorHidden                           = false;
+    bool m_cursorHiddenByCondition                = false;
     bool m_cursorHasSurface                       = false;
     SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;

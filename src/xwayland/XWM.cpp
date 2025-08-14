@@ -55,12 +55,12 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
 
     const auto XSURF = m_surfaces.emplace_back(SP<CXWaylandSurface>(new CXWaylandSurface(e->window, CBox{e->x, e->y, e->width, e->height}, e->override_redirect)));
     XSURF->m_self    = XSURF;
-    Debug::log(LOG, "[xwm] New XSurface at {:x} with xid of {}", (uintptr_t)XSURF.get(), e->window);
+    Debug::log(LOG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), e->window);
 
     const auto WINDOW = CWindow::create(XSURF);
     g_pCompositor->m_windows.emplace_back(WINDOW);
     WINDOW->m_self = WINDOW;
-    Debug::log(LOG, "[xwm] New XWayland window at {:x} for surf {:x}", (uintptr_t)WINDOW.get(), (uintptr_t)XSURF.get());
+    Debug::log(LOG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
 }
 
 void CXWM::handleDestroy(xcb_destroy_notify_event_t* e) {
@@ -211,7 +211,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         propName = getAtomName(atom);
 
     const auto  valueLen = xcb_get_property_value_length(reply);
-    const auto* value    = (const char*)xcb_get_property_value(reply);
+    const auto* value    = sc<const char*>(xcb_get_property_value(reply));
 
     auto        handleWMClass = [&]() {
         XSURF->m_state.appid = std::string{value, valueLen};
@@ -231,12 +231,12 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWindowType = [&]() {
-        auto* atomsArr = (xcb_atom_t*)value;
+        auto* atomsArr = rc<const xcb_atom_t*>(value);
         XSURF->m_atoms.assign(atomsArr, atomsArr + reply->value_len);
     };
 
     auto handleWMState = [&]() {
-        auto* atoms = (xcb_atom_t*)value;
+        auto* atoms = rc<const xcb_atom_t*>(value);
         for (uint32_t i = 0; i < reply->value_len; i++) {
             if (atoms[i] == HYPRATOMS["_NET_WM_STATE_MODAL"])
                 XSURF->m_modal = true;
@@ -264,7 +264,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     auto handleTransientFor = [&]() {
         if (reply->type != XCB_ATOM_WINDOW)
             return;
-        const auto XID     = (xcb_window_t*)value;
+        const auto XID     = rc<const xcb_window_t*>(value);
         XSURF->m_transient = XID;
         if (!XID)
             return;
@@ -306,7 +306,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     auto handleWMProtocols = [&]() {
         if (reply->type != XCB_ATOM_ATOM)
             return;
-        auto* atoms = (xcb_atom_t*)value;
+        auto* atoms = rc<const xcb_atom_t*>(value);
         XSURF->m_protocols.assign(atoms, atoms + reply->value_len);
     };
 
@@ -386,9 +386,9 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
         uint32_t serialLow  = e->data.data32[0];
         uint32_t serialHigh = e->data.data32[1];
-        XSURF->m_wlSerial   = ((uint64_t)serialHigh << 32) | serialLow;
+        XSURF->m_wlSerial   = (sc<uint64_t>(serialHigh) << 32) | serialLow;
 
-        Debug::log(LOG, "[xwm] surface {:x} requests serial {:x}", (uintptr_t)XSURF.get(), XSURF->m_wlSerial);
+        Debug::log(LOG, "[xwm] surface {:x} requests serial {:x}", rc<uintptr_t>(XSURF.get()), XSURF->m_wlSerial);
 
         for (auto const& res : m_shellResources) {
             if (!res)
@@ -500,7 +500,7 @@ void CXWM::sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* d
         .data          = *data,
     };
 
-    xcb_send_event(getConnection(), 0, surf->m_xID, mask, (const char*)&event);
+    xcb_send_event(getConnection(), 0, surf->m_xID, mask, rc<const char*>(&event));
     xcb_flush(getConnection());
 }
 
@@ -569,10 +569,10 @@ void CXWM::selectionSendNotify(xcb_selection_request_event_t* e, bool success) {
         .requestor     = e->requestor,
         .selection     = e->selection,
         .target        = e->target,
-        .property      = success ? e->property : (uint32_t)XCB_ATOM_NONE,
+        .property      = success ? e->property : sc<uint32_t>(XCB_ATOM_NONE),
     };
 
-    xcb_send_event(getConnection(), 0, e->requestor, XCB_EVENT_MASK_NO_EVENT, (const char*)&selection_notify);
+    xcb_send_event(getConnection(), 0, e->requestor, XCB_EVENT_MASK_NO_EVENT, rc<const char*>(&selection_notify));
     xcb_flush(getConnection());
 }
 
@@ -773,20 +773,20 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
 bool CXWM::handleSelectionEvent(xcb_generic_event_t* e) {
     switch (e->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
         case XCB_SELECTION_NOTIFY: {
-            handleSelectionNotify((xcb_selection_notify_event_t*)e);
+            handleSelectionNotify(rc<xcb_selection_notify_event_t*>(e));
             return true;
         }
         case XCB_PROPERTY_NOTIFY: {
-            return handleSelectionPropertyNotify((xcb_property_notify_event_t*)e);
+            return handleSelectionPropertyNotify(rc<xcb_property_notify_event_t*>(e));
         }
         case XCB_SELECTION_REQUEST: {
-            handleSelectionRequest((xcb_selection_request_event_t*)e);
+            handleSelectionRequest(rc<xcb_selection_request_event_t*>(e));
             return true;
         }
     }
 
     if (e->response_type - m_xfixes->first_event == XCB_XFIXES_SELECTION_NOTIFY)
-        return handleSelectionXFixesNotify((xcb_xfixes_selection_notify_event_t*)e);
+        return handleSelectionXFixesNotify(rc<xcb_xfixes_selection_notify_event_t*>(e));
 
     return false;
 }
@@ -818,18 +818,18 @@ int CXWM::onEvent(int fd, uint32_t mask) {
             continue;
 
         switch (event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
-            case XCB_CREATE_NOTIFY: handleCreate((xcb_create_notify_event_t*)event.get()); break;
-            case XCB_DESTROY_NOTIFY: handleDestroy((xcb_destroy_notify_event_t*)event.get()); break;
-            case XCB_CONFIGURE_REQUEST: handleConfigureRequest((xcb_configure_request_event_t*)event.get()); break;
-            case XCB_CONFIGURE_NOTIFY: handleConfigureNotify((xcb_configure_notify_event_t*)event.get()); break;
-            case XCB_MAP_REQUEST: handleMapRequest((xcb_map_request_event_t*)event.get()); break;
-            case XCB_MAP_NOTIFY: handleMapNotify((xcb_map_notify_event_t*)event.get()); break;
-            case XCB_UNMAP_NOTIFY: handleUnmapNotify((xcb_unmap_notify_event_t*)event.get()); break;
-            case XCB_PROPERTY_NOTIFY: handlePropertyNotify((xcb_property_notify_event_t*)event.get()); break;
-            case XCB_CLIENT_MESSAGE: handleClientMessage((xcb_client_message_event_t*)event.get()); break;
-            case XCB_FOCUS_IN: handleFocusIn((xcb_focus_in_event_t*)event.get()); break;
-            case XCB_FOCUS_OUT: handleFocusOut((xcb_focus_out_event_t*)event.get()); break;
-            case 0: handleError((xcb_value_error_t*)event.get()); break;
+            case XCB_CREATE_NOTIFY: handleCreate(rc<xcb_create_notify_event_t*>(event.get())); break;
+            case XCB_DESTROY_NOTIFY: handleDestroy(rc<xcb_destroy_notify_event_t*>(event.get())); break;
+            case XCB_CONFIGURE_REQUEST: handleConfigureRequest(rc<xcb_configure_request_event_t*>(event.get())); break;
+            case XCB_CONFIGURE_NOTIFY: handleConfigureNotify(rc<xcb_configure_notify_event_t*>(event.get())); break;
+            case XCB_MAP_REQUEST: handleMapRequest(rc<xcb_map_request_event_t*>(event.get())); break;
+            case XCB_MAP_NOTIFY: handleMapNotify(rc<xcb_map_notify_event_t*>(event.get())); break;
+            case XCB_UNMAP_NOTIFY: handleUnmapNotify(rc<xcb_unmap_notify_event_t*>(event.get())); break;
+            case XCB_PROPERTY_NOTIFY: handlePropertyNotify(rc<xcb_property_notify_event_t*>(event.get())); break;
+            case XCB_CLIENT_MESSAGE: handleClientMessage(rc<xcb_client_message_event_t*>(event.get())); break;
+            case XCB_FOCUS_IN: handleFocusIn(rc<xcb_focus_in_event_t*>(event.get())); break;
+            case XCB_FOCUS_OUT: handleFocusOut(rc<xcb_focus_out_event_t*>(event.get())); break;
+            case 0: handleError(rc<xcb_value_error_t*>(event.get())); break;
             default: {
                 Debug::log(TRACE, "[xwm] unhandled event {}", event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK);
             }
@@ -1027,10 +1027,10 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
         return;
 
     if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_isX11)) {
-        setActiveWindow((uint32_t)XCB_WINDOW_NONE);
+        setActiveWindow(XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {
-        setActiveWindow(surf ? surf->m_xID : (uint32_t)XCB_WINDOW_NONE);
+        setActiveWindow(surf ? surf->m_xID : sc<uint32_t>(XCB_WINDOW_NONE));
         focusWindow(surf);
     }
 
@@ -1071,7 +1071,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
     if (surf->client() != g_pXWayland->m_server->m_xwaylandClient)
         return;
 
-    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf.get());
+    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", rc<uintptr_t>(surf.get()));
 
     const auto WLID = surf->id();
 
@@ -1087,7 +1087,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
 }
 
 void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
-    Debug::log(LOG, "[xwm] New XWayland resource at {:x}", (uintptr_t)resource.get());
+    Debug::log(LOG, "[xwm] New XWayland resource at {:x}", rc<uintptr_t>(resource.get()));
 
     std::erase_if(m_shellResources, [](const auto& e) { return e.expired(); });
     m_shellResources.emplace_back(resource);
@@ -1135,7 +1135,7 @@ void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     auto existing = std::ranges::find_if(m_surfaces, [wlSurf](const auto& e) { return e->m_surface == wlSurf; });
 
     if (existing != m_surfaces.end()) {
-        Debug::log(WARN, "[xwm] associate() called but surface is already associated to {:x}, ignoring...", (uintptr_t)surf.get());
+        Debug::log(WARN, "[xwm] associate() called but surface is already associated to {:x}, ignoring...", rc<uintptr_t>(surf.get()));
         return;
     }
 
@@ -1157,7 +1157,7 @@ void CXWM::dissociate(SP<CXWaylandSurface> surf) {
     surf->m_surface.reset();
     surf->m_events.resourceChange.emit();
 
-    Debug::log(LOG, "Dissociate for {:x}", (uintptr_t)surf.get());
+    Debug::log(LOG, "Dissociate for {:x}", rc<uintptr_t>(surf.get()));
 }
 
 void CXWM::updateClientList() {
@@ -1237,7 +1237,7 @@ void CXWM::setClipboardToWayland(SXSelection& sel) {
 
     sel.dataSource = source;
 
-    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", (uintptr_t)sel.dataSource.get(), (&sel == &m_clipboard) ? "clipboard" : "primary selection");
+    Debug::log(LOG, "[xwm] X selection at {:x} takes {}", rc<uintptr_t>(sel.dataSource.get()), (&sel == &m_clipboard) ? "clipboard" : "primary selection");
 
     if (&sel == &m_clipboard)
         g_pSeatManager->setCurrentSelection(sel.dataSource);
@@ -1246,7 +1246,7 @@ void CXWM::setClipboardToWayland(SXSelection& sel) {
 }
 
 static int writeDataSource(int fd, uint32_t mask, void* data) {
-    auto selection = (SXSelection*)data;
+    auto selection = sc<SXSelection*>(data);
     return selection->onWrite();
 }
 
@@ -1445,7 +1445,7 @@ int SXSelection::onRead(int fd, uint32_t mask) {
 static int readDataSource(int fd, uint32_t mask, void* data) {
     Debug::log(LOG, "[xwm] readDataSource on fd {}", fd);
 
-    auto selection = (SXSelection*)data;
+    auto selection = sc<SXSelection*>(data);
 
     return selection->onRead(fd, mask);
 }
@@ -1510,7 +1510,7 @@ int SXSelection::onWrite() {
     }
 
     auto&   transfer  = *it;
-    char*   property  = (char*)xcb_get_property_value(transfer->propertyReply);
+    char*   property  = sc<char*>(xcb_get_property_value(transfer->propertyReply));
     int     remainder = xcb_get_property_value_length(transfer->propertyReply) - transfer->propertyStart;
 
     ssize_t len = write(transfer->wlFD.get(), property + transfer->propertyStart, remainder);

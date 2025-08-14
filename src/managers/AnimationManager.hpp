@@ -22,7 +22,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
         constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
         const auto                       PAV     = makeShared<CAnimatedVariable<VarType>>();
 
-        PAV->create(EAVTYPE, static_cast<Hyprutils::Animation::CAnimationManager*>(this), PAV, v);
+        PAV->create(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), PAV, v);
         PAV->setConfig(pConfig);
         PAV->m_Context.eDamagePolicy = policy;
 

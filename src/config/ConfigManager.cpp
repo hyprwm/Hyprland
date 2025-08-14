@@ -63,7 +63,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
     if (!*data)
         *data = new CGradientValueData();
 
-    const auto DATA = reinterpret_cast<CGradientValueData*>(*data);
+    const auto DATA = sc<CGradientValueData*>(*data);
 
     CVarList   varlist(V, 0, ' ');
     DATA->m_colors.clear();
@@ -119,7 +119,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
 static void configHandleGradientDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CGradientValueData*>(*data);
+        delete sc<CGradientValueData*>(*data);
 }
 
 static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data) {
@@ -128,7 +128,7 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
     if (!*data)
         *data = new CCssGapData();
 
-    const auto             DATA = reinterpret_cast<CCssGapData*>(*data);
+    const auto             DATA = sc<CCssGapData*>(*data);
     CVarList               varlist(V);
     Hyprlang::CParseResult result;
 
@@ -144,14 +144,14 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
 
 static void configHandleGapDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CCssGapData*>(*data);
+        delete sc<CCssGapData*>(*data);
 }
 
 static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void** data) {
     if (!*data)
         *data = new CFontWeightConfigValueData();
 
-    const auto             DATA = reinterpret_cast<CFontWeightConfigValueData*>(*data);
+    const auto             DATA = sc<CFontWeightConfigValueData*>(*data);
     Hyprlang::CParseResult result;
 
     try {
@@ -166,7 +166,7 @@ static Hyprlang::CParseResult configHandleFontWeightSet(const char* VALUE, void*
 
 static void configHandleFontWeightDestroy(void** data) {
     if (*data)
-        delete reinterpret_cast<CFontWeightConfigValueData*>(*data);
+        delete sc<CFontWeightConfigValueData*>(*data);
 }
 
 static Hyprlang::CParseResult handleExec(const char* c, const char* v) {
@@ -540,7 +540,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});
     registerConfigVar("debug:disable_time", Hyprlang::INT{1});
     registerConfigVar("debug:enable_stdout_logs", Hyprlang::INT{0});
-    registerConfigVar("debug:damage_tracking", {(Hyprlang::INT)DAMAGE_TRACKING_FULL});
+    registerConfigVar("debug:damage_tracking", {sc<Hyprlang::INT>(DAMAGE_TRACKING_FULL)});
     registerConfigVar("debug:manual_crash", Hyprlang::INT{0});
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});
@@ -863,8 +863,8 @@ CConfigManager::CConfigManager() {
             "https://wiki.hypr.land/Configuring/Variables/#debug");
     }
 
-    Debug::m_disableLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
-    Debug::m_disableTime = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
+    Debug::m_disableLogs = rc<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
+    Debug::m_disableTime = rc<int64_t* const*>(m_config->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());
 
     if (g_pEventLoopManager && ERR.has_value())
         g_pEventLoopManager->doLater([ERR] { g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0}); });
@@ -1233,7 +1233,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (Debug::m_disableStdout && m_isFirstLaunch)
         Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
-    Debug::m_coloredLogs = reinterpret_cast<int64_t* const*>(m_config->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
+    Debug::m_coloredLogs = rc<int64_t* const*>(m_config->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty
@@ -1362,18 +1362,18 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
-            Debug::log(LOG, " > overriding transform: {} -> {}", (uint8_t)rule.transform, (uint8_t)CONFIG->transform);
+            Debug::log(LOG, " > overriding transform: {} -> {}", sc<uint8_t>(rule.transform), sc<uint8_t>(CONFIG->transform));
             rule.transform = CONFIG->transform;
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
-            Debug::log(LOG, " > overriding scale: {} -> {}", (uint8_t)rule.scale, (uint8_t)CONFIG->scale);
+            Debug::log(LOG, " > overriding scale: {} -> {}", sc<uint8_t>(rule.scale), sc<uint8_t>(CONFIG->scale));
             rule.scale = CONFIG->scale;
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
             Debug::log(LOG, " > overriding vrr: {} -> {}", rule.vrr.value_or(0), CONFIG->adaptiveSync);
-            rule.vrr = (int)CONFIG->adaptiveSync;
+            rule.vrr = sc<int>(CONFIG->adaptiveSync);
         }
 
         return rule;
@@ -1534,14 +1534,14 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                     if (ARGS[0] == "*")
                         internalMode = std::nullopt;
                     else if (isNumber(ARGS[0]))
-                        internalMode = (eFullscreenMode)std::stoi(ARGS[0]);
+                        internalMode = sc<eFullscreenMode>(std::stoi(ARGS[0]));
                     else
                         throw std::runtime_error("szFullscreenState internal mode not valid");
 
                     if (ARGS[1] == "*")
                         clientMode = std::nullopt;
                     else if (isNumber(ARGS[1]))
-                        clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
+                        clientMode = sc<eFullscreenMode>(std::stoi(ARGS[1]));
                     else
                         throw std::runtime_error("szFullscreenState client mode not valid");
 
@@ -1634,7 +1634,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
             hasFullscreen = true;
     }
 
-    std::vector<uint64_t> PIDs = {(uint64_t)pWindow->getPID()};
+    std::vector<uint64_t> PIDs = {sc<uint64_t>(pWindow->getPID())};
     while (getPPIDof(PIDs.back()) > 10)
         PIDs.push_back(getPPIDof(PIDs.back()));
 
@@ -1661,7 +1661,7 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
 
     for (auto const& lr : m_layerRules) {
         if (lr->m_targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->m_targetNamespace)
+            if (std::format("address:0x{:x}", rc<uintptr_t>(pLS.get())) != lr->m_targetNamespace)
                 continue;
         } else if (!lr->m_targetNamespaceRegex.passes(pLS->m_layerSurface->m_layerNamespace))
             continue;
@@ -1804,7 +1804,7 @@ void CConfigManager::ensureMonitorStatus() {
 }
 
 void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
-    static auto PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
+    static auto PVRR = rc<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
 
     static auto ensureVRRForDisplay = [&](PHLMONITOR m) -> void {
         if (!m->m_output || m->m_createdByUser)
@@ -2061,7 +2061,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     };
     // clang-format on
 
-    for (; argno < static_cast<int>(args.size()); argno++) {
+    for (; argno < sc<int>(args.size()); argno++) {
         auto key = args[argno];
         std::ranges::transform(key, key.begin(), ::tolower);
 
@@ -2107,7 +2107,7 @@ bool CMonitorRuleParser::parseMode(const std::string& value) {
         m_rule.resolution = Vector2D(-1, -3);
     else if (parseModeLine(value, m_rule.drmMode)) {
         m_rule.resolution  = Vector2D(m_rule.drmMode.hdisplay, m_rule.drmMode.vdisplay);
-        m_rule.refreshRate = float(m_rule.drmMode.vrefresh) / 1000;
+        m_rule.refreshRate = sc<float>(m_rule.drmMode.vrefresh) / 1000;
     } else {
 
         if (!value.contains("x")) {
@@ -2200,7 +2200,7 @@ bool CMonitorRuleParser::parseTransform(const std::string& value) {
         m_error += "invalid transform ";
         return false;
     }
-    m_rule.transform = (wl_output_transform)TSF;
+    m_rule.transform = sc<wl_output_transform>(TSF);
     return true;
 }
 
@@ -2534,7 +2534,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     const int  DESCR_OFFSET = hasDescription ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
+    else if ((ARGS.size() > sc<size_t>(4) + DESCR_OFFSET && !mouse) || (ARGS.size() > sc<size_t>(3) + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2870,7 +2870,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         for (auto const& lsl : m->m_layerSurfaceLayers) {
             for (auto const& ls : lsl) {
                 if (BYADDRESS) {
-                    if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
+                    if (std::format("0x{:x}", rc<uintptr_t>(ls.get())) == matchName)
                         ls->m_forceBlur = forceBlur;
                 } else if (ls->m_namespace == matchName)
                     ls->m_forceBlur = forceBlur;
@@ -3027,7 +3027,7 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         return "source= path " + rawpath + " bogus!";
     }
 
-    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{static_cast<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
                                                         [](glob_t* g) {
                                                             if (g) {
                                                                 globfree(g); // free internal resources allocated by glob()
@@ -3191,7 +3191,7 @@ std::string SConfigOptionDescription::jsonify() const {
                     const auto V = std::any_cast<Hyprlang::VEC2>(CONFIGVALUE);
                     currentValue = std::format("{}, {}", V.x, V.y);
                 } else if (typeid(void*) == std::type_index(CONFIGVALUE.type())) {
-                    const auto DATA = (ICustomConfigValueData*)std::any_cast<void*>(CONFIGVALUE);
+                    const auto DATA = sc<ICustomConfigValueData*>(std::any_cast<void*>(CONFIGVALUE));
                     currentValue    = DATA->toString();
                 }
 
@@ -3264,7 +3264,7 @@ std::string SConfigOptionDescription::jsonify() const {
         {}
     }}
 }})#",
-                                   value, escapeJSONStrings(description), (uint16_t)type, (uint32_t)flags, parseData());
+                                   value, escapeJSONStrings(description), sc<uint16_t>(type), sc<uint32_t>(flags), parseData());
 
     return json;
 }

@@ -3213,3 +3213,24 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
         }
     }
 }
+
+std::optional<unsigned int> CCompositor::getVTNr() {
+    if (!m_aqBackend->hasSession())
+        return std::nullopt;
+
+    unsigned int                   ttynum = 0;
+    Hyprutils::OS::CFileDescriptor fd{open("/dev/tty", O_RDONLY | O_NOCTTY)};
+    if (fd.isValid()) {
+#if defined(VT_GETSTATE)
+        struct vt_stat st;
+        if (!ioctl(fd.get(), VT_GETSTATE, &st))
+            ttynum = st.v_active;
+#elif defined(VT_GETACTIVE)
+        int vt;
+        if (!ioctl(fd.get(), VT_GETACTIVE, &vt))
+            ttynum = vt;
+#endif
+    }
+
+    return ttynum;
+}

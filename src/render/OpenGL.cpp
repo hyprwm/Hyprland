@@ -2856,11 +2856,9 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
         m_lockDeadTexture  = loadAsset("lockdead.png");
         m_lockDead2Texture = loadAsset("lockdead2.png");
 
-        m_lockTtyTextTexture = renderText(std::format("Running on tty {}",
-                                                      g_pCompositor->m_aqBackend->hasSession() && g_pCompositor->m_aqBackend->session->vt > 0 ?
-                                                          std::to_string(g_pCompositor->m_aqBackend->session->vt) :
-                                                          "unknown"),
-                                          CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+        const auto VT = g_pCompositor->getVTNr();
+
+        m_lockTtyTextTexture = renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
     } else {
         m_lockDeadTexture.reset();
         m_lockDead2Texture.reset();

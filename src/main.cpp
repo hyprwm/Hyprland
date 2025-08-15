@@ -7,8 +7,10 @@
 
 #include <cstdio>
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/memory/Casts.hpp>
 #include <print>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Memory;
 
 #include <fcntl.h>
 #include <iostream>
@@ -56,7 +58,7 @@ int main(int argc, char** argv) {
     bool                     ignoreSudo = false, verifyConfig = false;
 
     if (argc > 1) {
-        std::span<char*> args{ argv + 1, static_cast<std::size_t>(argc - 1) };
+        std::span<char*> args{ argv + 1, sc<std::size_t>(argc - 1) };
 
         for (auto it = args.begin(); it != args.end(); it++) {
             std::string_view value = *it;

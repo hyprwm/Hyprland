@@ -382,7 +382,6 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         Debug::log(LOG, "DRM no syncobj support, disabling explicit sync");
 #else
     Debug::log(LOG, "DRM syncobj timeline support: no (not linux)");
-    m_bDrmSyncobjTimelineSupported = false;
 #endif
 
     if (!socketName.empty() && socketFd != -1) {

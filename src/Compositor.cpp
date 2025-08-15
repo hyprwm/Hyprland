@@ -374,9 +374,11 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     if ((m_drm.syncobjSupport = syncObjSupport(m_drm.fd)))
         Debug::log(LOG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
-    else if ((m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd)))
+
+    if ((m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd)))
         Debug::log(LOG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
-    else
+
+    if (!m_drm.syncobjSupport && !m_drmRenderNode.syncObjSupport)
         Debug::log(LOG, "DRM no syncobj support, disabling explicit sync");
 #else
     Debug::log(LOG, "DRM syncobj timeline support: no (not linux)");

@@ -81,6 +81,10 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
+    static auto PRESERVE_HIST = reinterpret_cast<int64_t* const*>(g_pConfigManager->getConfigValuePtr("master:focus_on_close"));
+
+    g_pCompositor->setPreserveHistory(**PRESERVE_HIST > 0 ? true : false);
+
     pWindow->m_wlSurface->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
     return pWindow;
@@ -1077,8 +1081,10 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (CURRENTISFOCUS)
+
+    if (CURRENTISFOCUS){
         g_pCompositor->focusWindow(pWindow);
+    }
 
     g_pHyprRenderer->damageWindow(pWindow);
 

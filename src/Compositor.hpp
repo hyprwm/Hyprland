@@ -12,6 +12,7 @@
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
+#include <optional>
 
 class CWLSurfaceResource;
 struct SWorkspaceRule;
@@ -90,7 +91,7 @@ class CCompositor {
     PHLMONITOR             getMonitorFromCursor();
     PHLMONITOR             getMonitorFromVector(const Vector2D&);
     void                   removeWindowFromVectorSafe(PHLWINDOW);
-    void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr, bool preserveFocusHistory = false);
+    void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr, std::optional<bool> preserveFocusHistory = std::nullopt);
     void                   focusSurface(SP<CWLSurfaceResource>, PHLWINDOW pWindowOwner = nullptr);
     bool                   monitorExists(PHLMONITOR);
     PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint8_t properties, PHLWINDOW pIgnoreWindow = nullptr);
@@ -151,6 +152,7 @@ class CCompositor {
     void                   arrangeMonitors();
     void                   enterUnsafeState();
     void                   leaveUnsafeState();
+    void                   setPreserveHistory(bool preserveHistory);
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
@@ -182,6 +184,8 @@ class CCompositor {
     rlimit                       m_originalNofile = {};
 
     std::vector<PHLWORKSPACEREF> m_workspaces;
+
+    std::optional<bool>    m_preserveHistory = std::nullopt;
 };
 
 inline UP<CCompositor> g_pCompositor;

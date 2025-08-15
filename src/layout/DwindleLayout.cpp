@@ -347,6 +347,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     static auto PFORCESPLIT                = CConfigValue<Hyprlang::INT>("dwindle:force_split");
     static auto PERMANENTDIRECTIONOVERRIDE = CConfigValue<Hyprlang::INT>("dwindle:permanent_direction_override");
     static auto PSMARTSPLIT                = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
+    static auto PSPLITBIAS                 = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
 
     bool        horizontalOverride = false;
     bool        verticalOverride   = false;
@@ -427,9 +428,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     // split in favor of a specific window
-    const auto  first      = NEWPARENT->children[0];
-    static auto PSPLITBIAS = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
-    if ((*PSPLITBIAS == 1 && first == PNODE) || (*PSPLITBIAS == 2 && first == OPENINGON))
+    if (*PSPLITBIAS && NEWPARENT->children[0] == PNODE)
         NEWPARENT->splitRatio = 2.f - NEWPARENT->splitRatio;
 
     // and update the previous parent if it exists

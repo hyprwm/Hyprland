@@ -154,9 +154,8 @@ static bool test() {
         EXPECT(jqProc.exitCode(), 0);
     }
 
-    if (!testGetprop()) {
+    if (!testGetprop())
         return false;
-    }
 
     return !ret;
 }

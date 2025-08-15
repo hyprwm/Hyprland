@@ -988,8 +988,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const bool shouldSkip = m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN &&
-        (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) && m_output->state->state().adaptiveSync;
+    const bool shouldSkip = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
+        m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
@@ -1933,6 +1933,10 @@ bool CMonitor::wantsHDR() {
 
 bool CMonitor::inHDR() {
     return m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+}
+
+bool CMonitor::inFullscreenMode() {
+    return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

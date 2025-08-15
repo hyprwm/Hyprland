@@ -1500,7 +1500,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         //           fullscreen HDR surface: surface settings
 
         bool hdrIsHandled = false;
-        if (pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
+        if (pMonitor->inFullscreenMode()) {
             const auto WINDOW    = pMonitor->m_activeWorkspace->getFullscreenWindow();
             const auto ROOT_SURF = WINDOW->m_wlSurface->resource();
             const auto SURF =
@@ -1554,7 +1554,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     if (*PCT) {
-        if (pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
+        if (pMonitor->inFullscreenMode()) {
             const auto WINDOW = pMonitor->m_activeWorkspace->getFullscreenWindow();
             pMonitor->m_output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
         } else

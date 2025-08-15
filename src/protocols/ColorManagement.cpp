@@ -15,13 +15,13 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES);
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
 
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
     }
 
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
@@ -170,11 +170,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->m_self = RESOURCE;
     });
     m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
-        LOGM(WARN, "New Windows scRGB description id={} (unsupported)", id);
-        if (!PROTO::colorManagement->m_debug) {
-            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Windows scRGB profiles are not supported");
-            return;
-        }
+        LOGM(WARN, "New Windows scRGB description id={}", id);
 
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
@@ -261,11 +257,11 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceV1* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
         PROTO::colorManagement->destroyResource(this);
     });
 
@@ -340,6 +336,16 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
     return m_needsNewMetadata;
 }
 
+bool CColorManagementSurface::isHDR() {
+    return m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_HLG || isWindowsScRGB();
+}
+
+bool CColorManagementSurface::isWindowsScRGB() {
+    return m_imageDescription.windowsScRGB ||
+        // autodetect scRGB, might be incorrect
+        (m_imageDescription.primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR);
+}
+
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :
     m_surface(surface_), m_resource(resource) {
     if UNLIKELY (!good())
@@ -348,13 +354,13 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
     m_client = m_resource->client();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
@@ -614,10 +620,6 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             LOGM(TRACE, "Set image description primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
             if (m_valuesSet & PC_PRIMARIES) {
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Primaries already set");
-                return;
-            }
-            if (!PROTO::colorManagement->m_debug) {
-                r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Custom primaries aren't supported");
                 return;
             }
             m_settings.primariesNameSet = false;

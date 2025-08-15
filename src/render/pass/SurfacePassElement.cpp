@@ -77,8 +77,6 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
-    if (m_data.surface->m_colorManagement.valid())
-        Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;

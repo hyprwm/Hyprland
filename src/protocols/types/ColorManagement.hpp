@@ -203,6 +203,8 @@ namespace NColorManagement {
 
         float getTFMaxLuminance(int sdrMaxLuminance = -1) const {
             switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                    return SDR_MAX_LUMINANCE; // assume Windows scRGB. white color range 1.0 - 125.0 maps to SDR_MAX_LUMINANCE (80) - HDR_MAX_LUMINANCE (10000)
                 case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_GAMMA22:

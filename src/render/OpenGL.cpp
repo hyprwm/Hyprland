@@ -1606,8 +1606,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
         || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
-        || ((*PPASS == 1 || (*PPASS == 2 && canPassHDRSurface)) && m_renderData.pMonitor->m_activeWorkspace && m_renderData.pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
-            m_renderData.pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) /* Fullscreen window with pass cm enabled */;
+        || ((*PPASS == 1 || (*PPASS == 2 && canPassHDRSurface)) && m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
         shader = &m_shaders->m_shCM;

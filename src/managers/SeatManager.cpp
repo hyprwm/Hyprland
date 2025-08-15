@@ -2,6 +2,7 @@
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/DataDeviceWlr.hpp"
+#include "../protocols/ExtDataDevice.hpp"
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../Compositor.hpp"
@@ -578,6 +579,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
         m_selection.destroySelection = source->m_events.destroy.listen([this] { setCurrentSelection(nullptr); });
         PROTO::data->setSelection(source);
         PROTO::dataWlr->setSelection(source, false);
+        PROTO::extDataDevice->setSelection(source, false);
     }
 
     m_events.setSelection.emit();
@@ -603,6 +605,7 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
         m_selection.destroyPrimarySelection = source->m_events.destroy.listen([this] { setCurrentPrimarySelection(nullptr); });
         PROTO::primarySelection->setSelection(source);
         PROTO::dataWlr->setSelection(source, true);
+        PROTO::extDataDevice->setSelection(source, true);
     }
 
     m_events.setPrimarySelection.emit();

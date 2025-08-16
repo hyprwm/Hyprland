@@ -1394,6 +1394,14 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, g_pHyprOpenGL->m_renderData.damage);
     }
 
+    if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
+        // render the DPMS black if we are animating
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+        data.color = Colors::BLACK.modifyA(pMonitor->m_dpmsBlackOpacity->value());
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
+
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     endRender();

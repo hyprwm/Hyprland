@@ -51,6 +51,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_zoomAnimProgress, g_pConfigManager->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
     m_zoomAnimProgress->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
+    m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -80,6 +82,13 @@ void CMonitor::onConnect(bool noRule) {
     m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
+        if (m_pendingDpmsAnimation) {
+            // the first frame after a dpms on has been presented. Let's start the animation
+            m_dpmsBlackOpacity->setValueAndWarp(1.F);
+            *m_dpmsBlackOpacity = 0.F;
+            m_pendingDpmsAnimation = false;
+        }
+
         timespec* ts = event.when;
 
         if (ts && ts->tv_sec <= 2) {
@@ -1561,6 +1570,45 @@ bool CMonitor::attemptDirectScanout() {
     });
 
     return true;
+}
+
+void CMonitor::setDPMS(bool on) {
+    m_dpmsStatus     = on;
+    m_events.dpmsChanged.emit();
+
+    if (on) {
+        // enable the monitor. Wait for the frame to be presented, then begin animation
+        m_dpmsBlackOpacity->setValueAndWarp(1.F);
+        m_dpmsBlackOpacity->setCallbackOnEnd(nullptr);
+        m_pendingDpmsAnimation = true;
+        commitDPMSState(true);
+    } else {
+        // disable the monitor. Begin the animation, then do dpms on its end.
+        m_dpmsBlackOpacity->setValueAndWarp(0.F);
+        *m_dpmsBlackOpacity = 1.F;
+        m_dpmsBlackOpacity->setCallbackOnEnd(
+            [this, self = m_self](auto) {
+                if (!self)
+                    return;
+
+                // commit DPMS to disable the monitor, it's fully black now
+                commitDPMSState(false);
+            },
+            true);
+    }
+}
+
+void CMonitor::commitDPMSState(bool state) {
+    m_output->state->resetExplicitFences();
+    m_output->state->setEnabled(state);
+
+    if (!m_state.commit()) {
+        Debug::log(ERR, "Couldn't commit output {} for DPMS = {}", m_name, state);
+        return;
+    }
+
+    if (state)
+        g_pHyprRenderer->damageMonitor(m_self.lock());
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {

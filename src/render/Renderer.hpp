@@ -104,8 +104,6 @@ class CHyprRenderer {
     wl_event_source*                m_crashingLoop       = nullptr;
     wl_event_source*                m_cursorTicker       = nullptr;
 
-    CTimer                          m_renderTimer;
-
     std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {

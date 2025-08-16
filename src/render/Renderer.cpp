@@ -1186,8 +1186,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
-    static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
@@ -1201,28 +1199,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
-
-    static bool firstLaunch           = true;
-    static bool firstLaunchAnimActive = *PFIRSTLAUNCHANIM;
-
-    float       zoomInFactorFirstLaunch = 1.f;
-
-    if (firstLaunch) {
-        firstLaunch = false;
-        m_renderTimer.reset();
-    }
-
-    if (m_renderTimer.getSeconds() < 1.5f && firstLaunchAnimActive) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
-        if (!*PANIMENABLED) {
-            zoomInFactorFirstLaunch = 1.f;
-            firstLaunchAnimActive   = false;
-        } else {
-            zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_renderTimer.getSeconds() / 1.5);
-            damageMonitor(pMonitor);
-        }
-    } else {
-        firstLaunchAnimActive = false;
-    }
 
     if (*PDEBUGOVERLAY == 1) {
         renderStart = std::chrono::high_resolution_clock::now();
@@ -1334,11 +1310,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     else
         g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
 
-    if (zoomInFactorFirstLaunch > 1.f) {
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
+    if (pMonitor->m_zoomAnimProgress->isBeingAnimated()) {
+        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;
-        pMonitor->m_forceFullFrames                    = 10;
     }
 
     CRegion damage, finalDamage;

@@ -49,6 +49,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, g_pConfigManager->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.F, m_zoomAnimProgress, g_pConfigManager->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
+    m_zoomAnimProgress->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -60,6 +62,8 @@ CMonitor::~CMonitor() {
 void CMonitor::onConnect(bool noRule) {
     EMIT_HOOK_EVENT("preMonitorAdded", m_self.lock());
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
+
+    m_zoomAnimProgress->setValueAndWarp(0.F);
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
@@ -88,6 +92,9 @@ void CMonitor::onConnect(bool noRule) {
             PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
         else
             PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
+
+        if (m_zoomAnimProgress->goal() == 0.F)
+            *m_zoomAnimProgress = 1.F;
 
         m_frameScheduler->onPresented();
     });

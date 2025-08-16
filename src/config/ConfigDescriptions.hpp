@@ -381,12 +381,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "animations:first_launch_animation",
-        .description = "enable first launch animation",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
         .value       = "animations:workspace_wraparound",
         .description = "changes the direction of slide animations between the first and last workspaces",
         .type        = CONFIG_OPTION_BOOL,

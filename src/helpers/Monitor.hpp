@@ -21,6 +21,7 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 
 class CMonitorFrameScheduler;
+class CHLBufferReference;
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {
@@ -157,11 +158,12 @@ class CMonitor {
     SMonitorRule                m_activeMonitorRule;
 
     // explicit sync
-    Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor
+    Hyprutils::OS::CFileDescriptor  m_inFence; // TODO: remove when aq uses CFileDescriptor
 
-    PHLMONITORREF                  m_self;
+    PHLMONITORREF                   m_self;
 
-    UP<CMonitorFrameScheduler>     m_frameScheduler;
+    UP<CMonitorFrameScheduler>      m_frameScheduler;
+    std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     // mirroring
     PHLMONITORREF              m_mirrorOf;

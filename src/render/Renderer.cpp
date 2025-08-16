@@ -2342,7 +2342,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         else
             glFlush(); // mark an implicit sync point
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
 
@@ -2351,22 +2351,22 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
 
     UP<CEGLSync> eglSync = CEGLSync::create();
     if (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
+        for (auto const& buf : PMONITOR->m_usedAsyncBuffers) {
             for (const auto& releaser : buf->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());
             }
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
+        std::erase_if(PMONITOR->m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
+        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(PMONITOR->m_usedAsyncBuffers)]() mutable {
             prevbfs.clear();
             if (renderingDoneCallback)
                 renderingDoneCallback();
         });
-        m_usedAsyncBuffers.clear();
+        PMONITOR->m_usedAsyncBuffers.clear();
 
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
@@ -2375,7 +2375,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     } else {
         Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
     }

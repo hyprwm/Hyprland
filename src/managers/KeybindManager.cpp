@@ -2670,21 +2670,7 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
         if (isToggle)
             enable = !m->m_dpmsStatus;
 
-        m->m_output->state->resetExplicitFences();
-        m->m_output->state->setEnabled(enable);
-
-        m->m_dpmsStatus = enable;
-
-        if (!m->m_state.commit()) {
-            Debug::log(ERR, "Couldn't commit output {}", m->m_name);
-            res.success = false;
-            res.error   = "Couldn't commit output {}";
-        }
-
-        if (enable)
-            g_pHyprRenderer->damageMonitor(m);
-
-        m->m_events.dpmsChanged.emit();
+        m->setDPMS(enable);
     }
 
     g_pCompositor->m_dpmsStateOn = enable;

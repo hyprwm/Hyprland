@@ -427,6 +427,8 @@ int main(int argc, char** argv) {
                     std::println("{}", PLUGIN_HELP);
                 } else if (cmd == "setprop") {
                     std::println("{}", SETPROP_HELP);
+                } else if (cmd == "getprop") {
+                    std::println("{}", GETPROP_HELP);
                 } else if (cmd == "switchxkblayout") {
                     std::println("{}", SWITCHXKBLAYOUT_HELP);
                 } else {

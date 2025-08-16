@@ -63,7 +63,10 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
-    m_listeners.frame      = m_output->events.frame.listen([this] { m_frameScheduler->onFrame(); });
+    m_listeners.frame      = m_output->events.frame.listen([this] {
+        if (m_frameScheduler)
+            m_frameScheduler->onFrame();
+    });
     m_listeners.commit     = m_output->events.commit.listen([this] {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(m_self.lock());
@@ -127,7 +130,8 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&rule);
     });
 
-    m_frameScheduler = makeUnique<CMonitorFrameScheduler>(m_self.lock());
+    m_frameScheduler         = makeUnique<CMonitorFrameScheduler>(m_self.lock());
+    m_frameScheduler->m_self = WP<CMonitorFrameScheduler>(m_frameScheduler);
 
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 

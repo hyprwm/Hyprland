@@ -408,7 +408,7 @@ void CLinuxDMABUFResource::sendMods() {
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
-        int  rendererFD = g_pCompositor->m_drmFD;
+        int  rendererFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {
@@ -465,6 +465,19 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             LOGM(ERR, "failed to get drm dev, disabling linux dmabuf");
             removeGlobal();
             return;
+        }
+
+        if (g_pCompositor->m_drmRenderNode.fd >= 0 && rendererFD == g_pCompositor->m_drmRenderNode.fd) {
+            // Already using the compositor's render node, reuse it.
+            m_mainDeviceFD = CFileDescriptor{fcntl(g_pCompositor->m_drmRenderNode.fd, F_DUPFD_CLOEXEC, 0)};
+            drmFreeDevice(&device);
+            if (!m_mainDeviceFD.isValid()) {
+                LOGM(ERR, "failed to open rendernode, disabling linux dmabuf");
+                removeGlobal();
+                return;
+            }
+
+            return; // already using rendernode.
         }
 
         if (device->available_nodes & (1 << DRM_NODE_RENDER)) {

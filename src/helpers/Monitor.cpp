@@ -85,7 +85,7 @@ void CMonitor::onConnect(bool noRule) {
         if (m_pendingDpmsAnimation) {
             // the first frame after a dpms on has been presented. Let's start the animation
             m_dpmsBlackOpacity->setValueAndWarp(1.F);
-            *m_dpmsBlackOpacity = 0.F;
+            *m_dpmsBlackOpacity    = 0.F;
             m_pendingDpmsAnimation = false;
         }
 
@@ -1573,7 +1573,7 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 void CMonitor::setDPMS(bool on) {
-    m_dpmsStatus     = on;
+    m_dpmsStatus = on;
     m_events.dpmsChanged.emit();
 
     if (on) {

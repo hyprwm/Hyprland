@@ -70,6 +70,8 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual void                     onEnable();
     virtual void                     onDisable();
 
+    virtual PHLWINDOW getNextWindowCandidate(PHLWINDOW) override;
+
   private:
     std::list<SMasterNodeData>        m_masterNodesData;
     std::vector<SMasterWorkspaceData> m_masterWorkspacesData;

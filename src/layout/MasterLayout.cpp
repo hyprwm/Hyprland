@@ -1123,9 +1123,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         return 0;
     }
-    // focusmaster <master | auto>
+    // focusmaster <master | previous | auto>
     // first message argument can have the following values:
     // * master - keep the focus at the new master, even if it was focused before
+    // * previous - focus window which was previously switched from using `focusmaster previous` command, otherwise fallback to `auto`
     // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
     else if (command == "focusmaster") {
         const auto PWINDOW = header.pWindow;
@@ -1138,21 +1139,35 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
+        const auto& ARG = vars[1]; // returns empty string if out of bounds
+
         if (PMASTER->pWindow.lock() != PWINDOW) {
             switchToWindow(PMASTER->pWindow.lock());
-        } else if (vars.size() >= 2 && vars[1] == "master") {
+            // save previously focused window (only for `previous` mode)
+            if (ARG == "previous")
+                getMasterWorkspaceData(PWINDOW->workspaceID())->focusMasterPrev = PWINDOW;
             return 0;
-        } else {
-            // if master is focused keep master focused (don't do anything)
+        }
+
+        const auto focusAuto = [&]() {
+            // focus first non-master window
             for (auto const& n : m_masterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     switchToWindow(n.pWindow.lock());
                     break;
                 }
             }
-        }
+        };
 
-        return 0;
+        if (ARG == "master")
+            return 0;
+        // switch to previously saved window
+        else if (ARG == "previous") {
+            const auto PREVWINDOW = getMasterWorkspaceData(PWINDOW->workspaceID())->focusMasterPrev.lock();
+            const bool VALID      = validMapped(PREVWINDOW) && PWINDOW->workspaceID() == PREVWINDOW->workspaceID() && PWINDOW != PREVWINDOW;
+            VALID ? switchToWindow(PREVWINDOW) : focusAuto();
+        } else
+            focusAuto();
     } else if (command == "cyclenext") {
         const auto PWINDOW = header.pWindow;
 

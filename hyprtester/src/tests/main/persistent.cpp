@@ -25,7 +25,7 @@ static bool test() {
 
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    OK(getFromSocket("/dispatch workspace 1"));
+    getFromSocket("/dispatch workspace 1"); // no OK: we might be on 1 already
 
     OK(getFromSocket("/keyword workspace 5, monitor:HEADLESS-2, persistent:1"));
     OK(getFromSocket("/keyword workspace 6, monitor:HEADLESS-PERSISTENT-TEST, persistent:1"));

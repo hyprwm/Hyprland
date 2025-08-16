@@ -154,7 +154,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here
     if (m_data.surface->m_current.buffer && !m_data.surface->m_current.buffer->isSynchronous())
-        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(m_data.surface->m_current.buffer);
+        m_data.pMonitor->m_usedAsyncBuffers.emplace_back(m_data.surface->m_current.buffer);
 
     g_pHyprOpenGL->blend(true);
 }

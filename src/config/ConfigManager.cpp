@@ -619,7 +619,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:always_keep_position", Hyprlang::INT{0});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
-    registerConfigVar("animations:first_launch_animation", Hyprlang::INT{1});
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});
 
     registerConfigVar("input:follow_mouse", Hyprlang::INT{1});
@@ -985,6 +984,7 @@ void CConfigManager::setDefaultAnimationVars() {
     m_animationTree.createNode("borderangle", "global");
     m_animationTree.createNode("workspaces", "global");
     m_animationTree.createNode("zoomFactor", "global");
+    m_animationTree.createNode("monitorAdded", "global");
 
     // layer
     m_animationTree.createNode("layersIn", "layers");

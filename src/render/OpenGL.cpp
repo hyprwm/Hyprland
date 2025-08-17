@@ -888,7 +888,8 @@ void CHyprOpenGLImpl::end() {
         m_renderData.outFB->bind();
         blend(false);
 
-        if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress)
+        if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress &&
+            (!m_renderData.pMonitor || m_renderData.pMonitor->m_FBimageDescription == m_renderData.pMonitor->m_imageDescription))
             renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
         else
             renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
@@ -1611,7 +1612,7 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
 }
 
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const SImageDescription& imageDescription) {
-    passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
+    passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_FBimageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
 void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, const STextureRenderData& data) {
@@ -1695,11 +1696,14 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     auto       imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
               m_renderData.surface->m_colorManagement->imageDescription() :
-              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
+              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_FBimageDescription : SImageDescription{});
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                                               /* no shader needed */
-        || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
+    const bool isRenderToFB           = m_renderData.surface.valid();
+    const auto targetImageDescription = isRenderToFB ? m_renderData.pMonitor->m_FBimageDescription : m_renderData.pMonitor->m_imageDescription;
+
+    const bool skipCM = !*PENABLECM || !m_cmSupported                         /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                            /* no shader needed */
+        || (imageDescription == targetImageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
         || (((*PPASS && canPassHDRSurface) || (*PPASS == 1 && !isHDRSurface)) && m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
@@ -2023,18 +2027,18 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         useProgram(m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
-        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_FBimageDescription == SImageDescription{};
         m_shaders->m_shBLURPREPARE.setUniformInt(SHADER_SKIP_CM, skipCM);
         if (!skipCM) {
-            passCMUniforms(m_shaders->m_shBLURPREPARE, m_renderData.pMonitor->m_imageDescription, SImageDescription{});
+            passCMUniforms(m_shaders->m_shBLURPREPARE, m_renderData.pMonitor->m_FBimageDescription, SImageDescription{});
             m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_SATURATION,
                                                        m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                               m_renderData.pMonitor->m_FBimageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                                            m_renderData.pMonitor->m_sdrSaturation :
                                                            1.0f);
             m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_BRIGHTNESS,
                                                        m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                               m_renderData.pMonitor->m_FBimageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                                            m_renderData.pMonitor->m_sdrBrightness :
                                                            1.0f);
         }
@@ -2504,7 +2508,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     useProgram(m_shaders->m_shBORDER1.program);
 
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_FBimageDescription == SImageDescription{};
     m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
         passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
@@ -2588,7 +2592,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     useProgram(m_shaders->m_shBORDER1.program);
 
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_FBimageDescription == SImageDescription{};
     m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
         passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
@@ -2666,7 +2670,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     blend(true);
 
     useProgram(m_shaders->m_shSHADOW.program);
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_FBimageDescription == SImageDescription{};
     m_shaders->m_shSHADOW.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
         passCMUniforms(m_shaders->m_shSHADOW, SImageDescription{});

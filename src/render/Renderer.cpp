@@ -27,6 +27,7 @@
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "helpers/Monitor.hpp"
+#include "managers/BufferReleaseManager.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -2244,43 +2245,29 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         else
             glFlush(); // mark an implicit sync point
 
-        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
+    } else {
+        UP<CEGLSync> eglSync = CEGLSync::create();
+        if (eglSync && eglSync->isValid()) {
+            // release buffer refs without release points when EGLSync sync_file/fence is signalled
+            g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback]() {
+                if (renderingDoneCallback)
+                    renderingDoneCallback();
+            });
 
-        return;
-    }
-
-    UP<CEGLSync> eglSync = CEGLSync::create();
-    if (eglSync && eglSync->isValid()) {
-        for (auto const& buf : PMONITOR->m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
-                releaser->addSyncFileFd(eglSync->fd());
+            if (m_renderMode == RENDER_MODE_NORMAL) {
+                PMONITOR->m_inFence = eglSync->takeFd();
+                PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
             }
-        }
-
-        // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(PMONITOR->m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
-
-        // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(PMONITOR->m_usedAsyncBuffers)]() mutable {
-            prevbfs.clear();
+        } else {
+            Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
             if (renderingDoneCallback)
                 renderingDoneCallback();
-        });
-        PMONITOR->m_usedAsyncBuffers.clear();
-
-        if (m_renderMode == RENDER_MODE_NORMAL) {
-            PMONITOR->m_inFence = eglSync->takeFd();
-            PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
-    } else {
-        Debug::log(ERR, "renderer: Explicit sync failed, releasing resources");
-
-        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
     }
+
+    g_pBufferReleaseManager->pageFlip(PMONITOR);
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {

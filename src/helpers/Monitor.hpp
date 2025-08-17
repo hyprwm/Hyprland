@@ -158,12 +158,11 @@ class CMonitor {
     SMonitorRule                m_activeMonitorRule;
 
     // explicit sync
-    Hyprutils::OS::CFileDescriptor  m_inFence; // TODO: remove when aq uses CFileDescriptor
+    Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor
 
-    PHLMONITORREF                   m_self;
+    PHLMONITORREF                  m_self;
 
-    UP<CMonitorFrameScheduler>      m_frameScheduler;
-    std::vector<CHLBufferReference> m_usedAsyncBuffers;
+    UP<CMonitorFrameScheduler>     m_frameScheduler;
 
     // mirroring
     PHLMONITORREF              m_mirrorOf;

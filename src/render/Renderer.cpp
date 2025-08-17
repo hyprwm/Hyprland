@@ -1310,7 +1310,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     else
         g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
 
-    if (pMonitor->m_zoomAnimProgress->isBeingAnimated()) {
+    if (pMonitor->m_zoomAnimProgress->value() != 1) {
         g_pHyprOpenGL->m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;

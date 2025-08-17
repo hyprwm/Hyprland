@@ -66,6 +66,7 @@ void CMonitor::onConnect(bool noRule) {
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     m_zoomAnimProgress->setValueAndWarp(0.F);
+    m_zoomAnimFrameCounter = 0;
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
@@ -83,10 +84,17 @@ void CMonitor::onConnect(bool noRule) {
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
         if (m_pendingDpmsAnimation) {
-            // the first frame after a dpms on has been presented. Let's start the animation
+            m_pendingDpmsAnimationCounter++;
+            // we give ourselves 5 frames of a buffer. The first presentation event still doesn't usually say that we actually
+            // are scanning out to the CRTC, and it could still be modesetting.
+            // this is not ideal (some CRTCs will just eat frames) but it's better than nothing
+
             m_dpmsBlackOpacity->setValueAndWarp(1.F);
-            *m_dpmsBlackOpacity    = 0.F;
-            m_pendingDpmsAnimation = false;
+
+            if (m_pendingDpmsAnimationCounter == 5) {
+                *m_dpmsBlackOpacity    = 0.F;
+                m_pendingDpmsAnimation = false;
+            }
         }
 
         timespec* ts = event.when;
@@ -102,8 +110,26 @@ void CMonitor::onConnect(bool noRule) {
         else
             PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
 
-        if (m_zoomAnimProgress->goal() == 0.F)
-            *m_zoomAnimProgress = 1.F;
+        if (m_zoomAnimFrameCounter < 5) {
+            m_zoomAnimFrameCounter++;
+
+            // we give ourselves 5 frames of a buffer. The first presentation event still doesn't usually say that we actually
+            // are scanning out to the CRTC, and it could still be modesetting.
+            // this is not ideal (some CRTCs will just eat frames) but it's better than nothing
+            m_zoomAnimProgress->setValueAndWarp(0.F);
+            if (m_zoomAnimFrameCounter == 5) {
+                // start the animation for realzies
+                *m_zoomAnimProgress = 1.F;
+            }
+
+            // damage the entire display to force a frame immediately
+            g_pEventLoopManager->doLater([self = m_self] {
+                if (!self)
+                    return;
+
+                g_pHyprRenderer->damageMonitor(self.lock());
+            });
+        }
 
         m_frameScheduler->onPresented();
     });
@@ -1580,7 +1606,8 @@ void CMonitor::setDPMS(bool on) {
         // enable the monitor. Wait for the frame to be presented, then begin animation
         m_dpmsBlackOpacity->setValueAndWarp(1.F);
         m_dpmsBlackOpacity->setCallbackOnEnd(nullptr);
-        m_pendingDpmsAnimation = true;
+        m_pendingDpmsAnimation        = true;
+        m_pendingDpmsAnimationCounter = 0;
         commitDPMSState(true);
     } else {
         // disable the monitor. Begin the animation, then do dpms on its end.

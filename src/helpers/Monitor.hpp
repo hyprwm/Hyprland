@@ -183,12 +183,15 @@ class CMonitor {
 
     // for dpms off anim
     PHLANIMVAR<float> m_dpmsBlackOpacity;
-    bool              m_pendingDpmsAnimation = false;
+    bool              m_pendingDpmsAnimation        = false;
+    int               m_pendingDpmsAnimationCounter = 0;
 
     PHLANIMVAR<float> m_cursorZoom;
 
     // for initial zoom anim
     PHLANIMVAR<float> m_zoomAnimProgress;
+    CTimer            m_newMonitorAnimTimer;
+    int               m_zoomAnimFrameCounter = 0;
 
     struct {
         bool canTear         = false;

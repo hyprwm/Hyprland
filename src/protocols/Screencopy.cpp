@@ -223,10 +223,11 @@ void CScreencopyFrame::renderMon() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE)
+        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut)
             continue;
 
-        const auto REALPOS          = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
+        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
                                           .translate(-m_monitor->m_position)
                                           .scale(m_monitor->m_scale)

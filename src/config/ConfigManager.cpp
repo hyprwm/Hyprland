@@ -824,6 +824,10 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "min_luminance", Hyprlang::FLOAT{-1.0});
     m_config->addSpecialConfigValue("monitorv2", "max_luminance", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("monitorv2", "max_avg_luminance", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "overscan_t", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "overscan_l", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "overscan_r", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "overscan_b", Hyprlang::INT{-1});
 
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});
@@ -1117,6 +1121,19 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "max_avg_luminance", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().maxAvgLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
+
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "overscan_t", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().overscanTL.y = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "overscan_l", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().overscanTL.x = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "overscan_r", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().overscanBR.x = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "overscan_b", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().overscanBR.y = std::any_cast<Hyprlang::INT>(VAL->getValue());
 
     auto newrule = parser.rule();
 
@@ -3155,6 +3172,9 @@ bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
 
     if (pMonitor->m_tearingState.activelyTearing)
         return true;
+
+    if (pMonitor->m_activeMonitorRule.hasOverscan())
+        return true; // translating hw cursors would be annoying, fuck this.
 
     if (*PINVISIBLE != 0)
         return true;

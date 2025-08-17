@@ -834,10 +834,44 @@ void CHyprOpenGLImpl::end() {
         m_renderData.outFB->bind();
         blend(false);
 
-        if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress)
+        if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress && !m_renderData.pMonitor->m_activeMonitorRule.hasOverscan())
             renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
-        else
+        else {
+
+            const auto DAMAGE_BACKUP       = m_renderData.damage;
+            const auto FINAL_DAMAGE_BACKUP = m_renderData.finalDamage;
+
+            if (m_renderData.pMonitor->m_activeMonitorRule.hasOverscan()) {
+
+                // hack to clear undamaged areas
+                // FIXME: buffers should be cleared once, probably...
+
+                const auto OLD_MONBOX = monbox;
+
+                monbox.translate(m_renderData.pMonitor->m_activeMonitorRule.overscanTL);
+                monbox.w -= m_renderData.pMonitor->m_activeMonitorRule.overscanTL.x + m_renderData.pMonitor->m_activeMonitorRule.overscanBR.x;
+                monbox.h -= m_renderData.pMonitor->m_activeMonitorRule.overscanTL.y + m_renderData.pMonitor->m_activeMonitorRule.overscanBR.y;
+
+                m_renderData.damage = CRegion{OLD_MONBOX}.subtract(monbox);
+                clear(Colors::BLACK);
+                m_renderData.damage = DAMAGE_BACKUP;
+
+                // fix damage here, because we squish the image
+                m_renderData.damage.scale(
+                    (m_renderData.pMonitor->m_pixelSize - m_renderData.pMonitor->m_activeMonitorRule.overscanTL - m_renderData.pMonitor->m_activeMonitorRule.overscanBR) /
+                    m_renderData.pMonitor->m_pixelSize);
+                m_renderData.damage.translate(m_renderData.pMonitor->m_activeMonitorRule.overscanTL);
+                m_renderData.finalDamage.scale(
+                    (m_renderData.pMonitor->m_pixelSize - m_renderData.pMonitor->m_activeMonitorRule.overscanTL - m_renderData.pMonitor->m_activeMonitorRule.overscanBR) /
+                    m_renderData.pMonitor->m_pixelSize);
+                m_renderData.finalDamage.translate(m_renderData.pMonitor->m_activeMonitorRule.overscanTL);
+            }
+
             renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
+
+            m_renderData.damage      = DAMAGE_BACKUP;
+            m_renderData.finalDamage = FINAL_DAMAGE_BACKUP;
+        }
 
         blend(true);
 

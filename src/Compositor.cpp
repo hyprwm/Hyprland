@@ -1092,7 +1092,12 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
+void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, std::optional<bool> preserveFocusHistory) {
+
+    bool preserve = false;
+    if(preserveFocusHistory == std::nullopt){
+        preserve = m_preserveHistory.value_or(false);
+    }
 
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
@@ -1214,13 +1219,15 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    if (!preserveFocusHistory) {
+    if (!preserve) {
         // move to front of the window history
         const auto HISTORYPIVOT = std::ranges::find_if(m_windowFocusHistory, [&](const auto& other) { return other.lock() == pWindow; });
         if (HISTORYPIVOT == m_windowFocusHistory.end())
             Debug::log(ERR, "BUG THIS: {} has no pivot in history", pWindow);
         else
             std::rotate(m_windowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
+    } else {
+        m_windowFocusHistory.push_back(pWindow);
     }
 
     if (*PFOLLOWMOUSE == 0)
@@ -2562,7 +2569,20 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
         setActiveMonitor(PMONITORNEW);
 }
 
+void CCompositor::setPreserveHistory(bool preserveHistory){
+    m_preserveHistory = preserveHistory;
+}
+
 void CCompositor::closeWindow(PHLWINDOW pWindow) {
+
+    if(m_preserveHistory.value_or(false)) {
+        PHLWINDOW thisWindow = m_windowFocusHistory.back().lock();
+        m_windowFocusHistory.pop_back();
+        PHLWINDOW prevWindow = m_windowFocusHistory.back().lock();
+        m_windowFocusHistory.pop_back();
+        focusWindow(prevWindow);
+    }
+
     if (pWindow && validMapped(pWindow))
         g_pXWaylandManager->sendCloseWindow(pWindow);
 }

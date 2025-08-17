@@ -617,6 +617,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
     registerConfigVar("master:always_keep_position", Hyprlang::INT{0});
+    registerConfigVar("master:focus_on_close", Hyprlang::INT{1});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});

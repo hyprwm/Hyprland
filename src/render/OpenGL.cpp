@@ -1605,6 +1605,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
                (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                                               /* no shader needed */
         || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
         || ((*PPASS == 1 || (*PPASS == 2 && canPassHDRSurface)) && m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 

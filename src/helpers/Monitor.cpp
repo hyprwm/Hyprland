@@ -515,6 +515,7 @@ void CMonitor::applyCMType(eCMType cmType) {
 
     if (oldImageDescription != m_imageDescription) {
         m_imageDescription.updateId();
+        m_FBimageDescription = m_imageDescription;
         PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
     }
 }

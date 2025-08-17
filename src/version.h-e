@@ -1,8 +1,0 @@
-#pragma once
-#define GIT_COMMIT_HASH    "1c6e59c3aca8209713b9ced99c8067d17a184e6b"
-#define GIT_BRANCH         "workspace-bug"
-#define GIT_COMMIT_MESSAGE "    Fix workspace movement bug with fullscreen windows"
-#define GIT_COMMIT_DATE    "Sun Aug 17 20:48:29 2025"
-#define GIT_DIRTY          ""
-#define GIT_TAG            ""
-#define GIT_COMMITS        "@COMMITS@"

@@ -92,12 +92,12 @@ static void help() {
 
 int main(int argc, char** argv, char** envp) {
 
-    std::string              configPath = "";
-    std::string              binaryPath = "";
-    std::string              pluginPath = std::filesystem::current_path().string();
+    std::string configPath = "";
+    std::string binaryPath = "";
+    std::string pluginPath = std::filesystem::current_path().string();
 
     if (argc > 1) {
-        std::span<char*> args{ argv + 1, sc<std::size_t>(argc - 1) };
+        std::span<char*> args{argv + 1, sc<std::size_t>(argc - 1)};
 
         for (auto it = args.begin(); it != args.end(); it++) {
             std::string_view value = *it;

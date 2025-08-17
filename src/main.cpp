@@ -52,13 +52,13 @@ int main(int argc, char** argv) {
     setenv("MOZ_ENABLE_WAYLAND", "1", 1);
 
     // parse some args
-    std::string              configPath;
-    std::string              socketName;
-    int                      socketFd   = -1;
-    bool                     ignoreSudo = false, verifyConfig = false;
+    std::string configPath;
+    std::string socketName;
+    int         socketFd   = -1;
+    bool        ignoreSudo = false, verifyConfig = false;
 
     if (argc > 1) {
-        std::span<char*> args{ argv + 1, sc<std::size_t>(argc - 1) };
+        std::span<char*> args{argv + 1, sc<std::size_t>(argc - 1)};
 
         for (auto it = args.begin(); it != args.end(); it++) {
             std::string_view value = *it;

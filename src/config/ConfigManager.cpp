@@ -1007,6 +1007,7 @@ void CConfigManager::setDefaultAnimationVars() {
     m_animationTree.createNode("fadePopups", "fade");
     m_animationTree.createNode("fadePopupsIn", "fadePopups");
     m_animationTree.createNode("fadePopupsOut", "fadePopups");
+    m_animationTree.createNode("fadeDpms", "fade");
 
     // workspaces
     m_animationTree.createNode("workspacesIn", "workspaces");

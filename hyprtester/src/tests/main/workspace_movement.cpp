@@ -34,7 +34,7 @@ static bool testWorkspaceMovementWithFullscreen() {
     // Spawn a window on workspace 1
     NLog::log("{}Spawning window on workspace 1", Colors::YELLOW);
     auto kittyProc = Tests::spawnKitty();
-    
+
     if (!kittyProc) {
         NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
@@ -56,7 +56,7 @@ static bool testWorkspaceMovementWithFullscreen() {
 
     // Get initial monitor configuration
     std::string initialMonitors = getFromSocket("/monitors");
-    
+
     // Move workspace 1 to second monitor
     NLog::log("{}Moving workspace 1 to second monitor (HEADLESS-2)", Colors::YELLOW);
     OK(getFromSocket("/dispatch moveworkspacetomonitor 1 HEADLESS-2"));
@@ -67,15 +67,15 @@ static bool testWorkspaceMovementWithFullscreen() {
     {
         auto str = getFromSocket("/monitors");
         NLog::log("{}Monitor status after move: {}", Colors::CYAN, str);
-        
+
         // Check that HEADLESS-1 (source monitor) has a workspace
         EXPECT_CONTAINS(str, "HEADLESS-1");
         // Verify it's not empty - should have some workspace ID
-        
+
         // Parse monitor info to ensure both monitors have workspaces
         size_t headless1Pos = str.find("Monitor HEADLESS-1");
         size_t headless2Pos = str.find("Monitor HEADLESS-2");
-        
+
         if (headless1Pos == std::string::npos || headless2Pos == std::string::npos) {
             NLog::log("{}Error: Could not find both monitors in output", Colors::RED);
             return false;
@@ -83,7 +83,7 @@ static bool testWorkspaceMovementWithFullscreen() {
 
         // Extract info for HEADLESS-1 (source monitor)
         std::string headless1Info = str.substr(headless1Pos, headless2Pos - headless1Pos);
-        
+
         // Should contain "active workspace: " followed by a workspace ID
         if (headless1Info.find("active workspace:") == std::string::npos) {
             NLog::log("{}Error: Source monitor HEADLESS-1 has no active workspace", Colors::RED);
@@ -95,9 +95,9 @@ static bool testWorkspaceMovementWithFullscreen() {
     {
         auto str = getFromSocket("/workspaces");
         EXPECT_CONTAINS(str, "workspace ID 1 (1)");
-        
+
         // Get active workspace on HEADLESS-2
-        auto monitors = getFromSocket("/monitors");
+        auto   monitors     = getFromSocket("/monitors");
         size_t headless2Pos = monitors.find("Monitor HEADLESS-2");
         if (headless2Pos != std::string::npos) {
             std::string headless2Info = monitors.substr(headless2Pos);
@@ -113,7 +113,7 @@ static bool testWorkspaceMovementWithFullscreen() {
 
     NLog::log("{}Cleaning up test", Colors::YELLOW);
     Tests::killAllWindows();
-    
+
     // Remove the second monitor
     OK(getFromSocket("/output remove HEADLESS-2"));
 
@@ -134,7 +134,7 @@ static bool testWorkspaceMovementMultiMonitor() {
     NLog::log("{}Testing regular workspace movement", Colors::YELLOW);
     OK(getFromSocket("/dispatch workspace 1"));
     auto kittyA = Tests::spawnKitty();
-    
+
     if (!kittyA) {
         NLog::log("{}Error: kitty A did not spawn", Colors::RED);
         return false;
@@ -142,14 +142,14 @@ static bool testWorkspaceMovementMultiMonitor() {
 
     // Move to second monitor
     OK(getFromSocket("/dispatch moveworkspacetomonitor 1 HEADLESS-2"));
-    
+
     // Verify source monitor gets a new workspace
     {
         auto str = getFromSocket("/monitors");
         // Both monitors should have active workspaces
         size_t monitor1 = str.find("Monitor HEADLESS-1");
         size_t monitor2 = str.find("Monitor HEADLESS-2");
-        
+
         if (monitor1 == std::string::npos || monitor2 == std::string::npos) {
             NLog::log("{}Error: Could not find monitors", Colors::RED);
             return false;

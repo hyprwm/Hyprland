@@ -546,7 +546,7 @@ bool CWorkspace::isCurrentlyActive() {
 
     // Check if this workspace is visible and has focus on its monitor
     bool isActiveOnMonitor = (PMONITOR->m_activeWorkspace && PMONITOR->m_activeWorkspace->m_id == m_id);
-    
+
     // For fullscreen windows, also check if any window in this workspace is fullscreen and focused
     if (m_hasFullscreenWindow) {
         const auto FULLSCREENWINDOW = getFullscreenWindow();
@@ -554,26 +554,7 @@ bool CWorkspace::isCurrentlyActive() {
             return true;
         }
     }
-    
-    return isActiveOnMonitor && m_visible;
-}
 
-bool CWorkspace::isCurrentlyActive() {
-    const auto PMONITOR = m_monitor.lock();
-    if (!PMONITOR)
-        return false;
-
-    // Check if this workspace is visible and has focus on its monitor
-    bool isActiveOnMonitor = (PMONITOR->m_activeWorkspace && PMONITOR->m_activeWorkspace->m_id == m_id);
-    
-    // For fullscreen windows, also check if any window in this workspace is fullscreen and focused
-    if (m_hasFullscreenWindow) {
-        const auto FULLSCREENWINDOW = getFullscreenWindow();
-        if (FULLSCREENWINDOW && g_pCompositor->m_pLastWindow.lock() == FULLSCREENWINDOW) {
-            return true;
-        }
-    }
-    
     return isActiveOnMonitor && m_visible;
 }
 

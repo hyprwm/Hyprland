@@ -2135,7 +2135,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     const auto POLDMON = pWorkspace->m_monitor.lock();
 
-    const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->m_activeWorkspace == pWorkspace : false;
+    const bool SWITCHINGISACTIVE = POLDMON ? pWorkspace->isCurrentlyActive() : false;
 
     // fix old mon
     WORKSPACEID nextWorkspaceOnMonitorID = WORKSPACE_INVALID;

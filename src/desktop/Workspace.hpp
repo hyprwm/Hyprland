@@ -78,6 +78,7 @@ class CWorkspace {
     PHLWINDOW        getFullscreenWindow();
     bool             isVisible();
     bool             isVisibleNotCovered();
+    bool             isCurrentlyActive();
     void             rename(const std::string& name = "");
     void             forceReportSizesToWindows();
     void             updateWindows();

@@ -140,22 +140,22 @@ class CCompositor {
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
     void                   closeWindow(PHLWINDOW);
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
-    PHLWORKSPACE           createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
-                                              bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
-    void                   setActiveMonitor(PHLMONITOR);
-    bool                   isWorkspaceSpecial(const WORKSPACEID&);
-    WORKSPACEID            getNewSpecialID();
-    void                   performUserChecks();
-    void                   moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
-    PHLWINDOW              getForceFocus();
-    void                   arrangeMonitors();
-    void                   enterUnsafeState();
-    void                   leaveUnsafeState();
-    void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
-    void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
-    void                   updateSuspendedStates();
-    void                   onNewMonitor(SP<Aquamarine::IOutput> output);
-    void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    [[nodiscard]] PHLWORKSPACE          createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
+                                                           bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
+    void                                setActiveMonitor(PHLMONITOR);
+    bool                                isWorkspaceSpecial(const WORKSPACEID&);
+    WORKSPACEID                         getNewSpecialID();
+    void                                performUserChecks();
+    void                                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
+    PHLWINDOW                           getForceFocus();
+    void                                arrangeMonitors();
+    void                                enterUnsafeState();
+    void                                leaveUnsafeState();
+    void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
+    void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
+    void                                updateSuspendedStates();
+    void                                onNewMonitor(SP<Aquamarine::IOutput> output);
+    void                                ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
     std::optional<unsigned int>         getVTNr();
 
     NColorManagement::SImageDescription getPreferredImageDescription();

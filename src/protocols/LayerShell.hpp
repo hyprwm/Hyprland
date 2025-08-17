@@ -58,7 +58,7 @@ class CLayerShellResource {
         Vector2D                                desiredSize;
         zwlrLayerSurfaceV1KeyboardInteractivity interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
         zwlrLayerShellV1Layer                   layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
-        zwlrLayerSurfaceV1Anchor                exclusiveEdge = (zwlrLayerSurfaceV1Anchor)0;
+        zwlrLayerSurfaceV1Anchor                exclusiveEdge = sc<zwlrLayerSurfaceV1Anchor>(0);
         uint32_t                                committed     = 0;
 
         struct {

@@ -89,8 +89,8 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     PLUGIN->m_handle = MODULE;
 
-    PPLUGIN_API_VERSION_FUNC apiVerFunc = (PPLUGIN_API_VERSION_FUNC)dlsym(MODULE, PLUGIN_API_VERSION_FUNC_STR);
-    PPLUGIN_INIT_FUNC        initFunc   = (PPLUGIN_INIT_FUNC)dlsym(MODULE, PLUGIN_INIT_FUNC_STR);
+    PPLUGIN_API_VERSION_FUNC apiVerFunc = rc<PPLUGIN_API_VERSION_FUNC>(dlsym(MODULE, PLUGIN_API_VERSION_FUNC_STR));
+    PPLUGIN_INIT_FUNC        initFunc   = rc<PPLUGIN_INIT_FUNC>(dlsym(MODULE, PLUGIN_INIT_FUNC_STR));
 
     if (!apiVerFunc || !initFunc) {
         Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path);
@@ -120,7 +120,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
         }
     } catch (std::exception& e) {
         m_allowConfigVars = false;
-        Debug::log(ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path, (uintptr_t)MODULE);
+        Debug::log(ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path, rc<uintptr_t>(MODULE));
         unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
         return std::unexpected(std::format("Plugin {} could not be loaded: plugin crashed/threw in main: {}", path, e.what()));
     }
@@ -134,7 +134,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
 
-    Debug::log(LOG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name, (uintptr_t)MODULE, path,
+    Debug::log(LOG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name, rc<uintptr_t>(MODULE), path,
                PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
 
     return PLUGIN;
@@ -145,7 +145,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
         return;
 
     if (!eject) {
-        PPLUGIN_EXIT_FUNC exitFunc = (PPLUGIN_EXIT_FUNC)dlsym(plugin->m_handle, PLUGIN_EXIT_FUNC_STR);
+        PPLUGIN_EXIT_FUNC exitFunc = rc<PPLUGIN_EXIT_FUNC>(dlsym(plugin->m_handle, PLUGIN_EXIT_FUNC_STR));
         if (exitFunc)
             exitFunc();
     }

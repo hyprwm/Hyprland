@@ -80,7 +80,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     CFileDescriptor fds[2];
     allocateSHMFilePair(m_tableSize, fds[0], fds[1]);
 
-    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, m_tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0].get(), 0);
+    auto arr = sc<SDMABUFFormatTableEntry*>(mmap(nullptr, m_tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0].get(), 0));
 
     if (arr == MAP_FAILED) {
         LOGM(ERR, "mmap failed");
@@ -150,7 +150,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
         m_attrs->fds[plane]     = fd;
         m_attrs->strides[plane] = stride;
         m_attrs->offsets[plane] = offset;
-        m_attrs->modifier       = ((uint64_t)modHi << 32) | modLo;
+        m_attrs->modifier       = (sc<uint64_t>(modHi) << 32) | modLo;
     });
 
     m_resource->setCreate([this](CZwpLinuxBufferParamsV1* r, int32_t w, int32_t h, uint32_t fmt, zwpLinuxBufferParamsV1Flags flags) {
@@ -279,11 +279,11 @@ bool CLinuxDMABUFParamsResource::verify() {
         return false;
     }
 
-    for (size_t i = 0; i < (size_t)m_attrs->planes; ++i) {
-        if ((uint64_t)m_attrs->offsets.at(i) + (uint64_t)m_attrs->strides.at(i) * m_attrs->size.y > UINT32_MAX) {
+    for (size_t i = 0; i < sc<size_t>(m_attrs->planes); ++i) {
+        if (sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y > UINT32_MAX) {
             m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_OUT_OF_BOUNDS,
-                              std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, (uint64_t)m_attrs->offsets.at(i),
-                                          (uint64_t)m_attrs->strides.at(i), m_attrs->size.y, (uint64_t)m_attrs->offsets.at(i) + (uint64_t)m_attrs->strides.at(i)));
+                              std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, sc<uint64_t>(m_attrs->offsets.at(i)),
+                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i))));
             return false;
         }
     }
@@ -311,11 +311,11 @@ bool CLinuxDMABUFFeedbackResource::good() {
 void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
     struct wl_array deviceArr = {
         .size = sizeof(tranche.device),
-        .data = (void*)&tranche.device,
+        .data = sc<void*>(&tranche.device),
     };
     m_resource->sendTrancheTargetDevice(&deviceArr);
 
-    m_resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)tranche.flags);
+    m_resource->sendTrancheFlags(sc<zwpLinuxDmabufFeedbackV1TrancheFlags>(tranche.flags));
 
     wl_array indices = {
         .size = tranche.indices.size() * sizeof(tranche.indices.at(0)),
@@ -332,7 +332,7 @@ void CLinuxDMABUFFeedbackResource::sendDefaultFeedback() {
 
     struct wl_array deviceArr = {
         .size = sizeof(mainDevice),
-        .data = (void*)&mainDevice,
+        .data = sc<void*>(&mainDevice),
     };
     m_resource->sendMainDevice(&deviceArr);
 
@@ -577,7 +577,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     struct wl_array deviceArr = {
         .size = sizeof(m_mainDevice),
-        .data = (void*)&m_mainDevice,
+        .data = sc<void*>(&m_mainDevice),
     };
     feedbackResource->m_resource->sendMainDevice(&deviceArr);
 

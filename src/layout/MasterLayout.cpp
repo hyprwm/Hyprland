@@ -392,7 +392,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
                 nextX = (WSSIZE.x - WIDTH) / 2;
 
             PMASTERNODE->size     = Vector2D(WIDTH, WSSIZE.y);
-            PMASTERNODE->position = WSPOS + Vector2D((double)nextX, 0.0);
+            PMASTERNODE->position = WSPOS + Vector2D(nextX, 0.0);
         } else {
             PMASTERNODE->size     = WSSIZE;
             PMASTERNODE->position = WSPOS;
@@ -661,8 +661,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     static auto PANIMATE     = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
     static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto*       PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto*       PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    auto*       PGAPSIN      = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+    auto*       PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -680,9 +680,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto       calcPos  = PWINDOW->m_position;
     auto       calcSize = PWINDOW->m_size;
 
-    const auto OFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto OFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), sc<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto OFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;
@@ -1123,9 +1123,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         return 0;
     }
-    // focusmaster <master | auto>
+    // focusmaster <master | previous | auto>
     // first message argument can have the following values:
     // * master - keep the focus at the new master, even if it was focused before
+    // * previous - focus window which was previously switched from using `focusmaster previous` command, otherwise fallback to `auto`
     // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
     else if (command == "focusmaster") {
         const auto PWINDOW = header.pWindow;
@@ -1138,21 +1139,35 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PMASTER)
             return 0;
 
+        const auto& ARG = vars[1]; // returns empty string if out of bounds
+
         if (PMASTER->pWindow.lock() != PWINDOW) {
             switchToWindow(PMASTER->pWindow.lock());
-        } else if (vars.size() >= 2 && vars[1] == "master") {
+            // save previously focused window (only for `previous` mode)
+            if (ARG == "previous")
+                getMasterWorkspaceData(PWINDOW->workspaceID())->focusMasterPrev = PWINDOW;
             return 0;
-        } else {
-            // if master is focused keep master focused (don't do anything)
+        }
+
+        const auto focusAuto = [&]() {
+            // focus first non-master window
             for (auto const& n : m_masterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     switchToWindow(n.pWindow.lock());
                     break;
                 }
             }
-        }
+        };
 
-        return 0;
+        if (ARG == "master")
+            return 0;
+        // switch to previously saved window
+        else if (ARG == "previous") {
+            const auto PREVWINDOW = getMasterWorkspaceData(PWINDOW->workspaceID())->focusMasterPrev.lock();
+            const bool VALID      = validMapped(PREVWINDOW) && PWINDOW->workspaceID() == PREVWINDOW->workspaceID() && PWINDOW != PREVWINDOW;
+            VALID ? switchToWindow(PREVWINDOW) : focusAuto();
+        } else
+            focusAuto();
     } else if (command == "cyclenext") {
         const auto PWINDOW = header.pWindow;
 
@@ -1382,10 +1397,10 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
         }
     }
 
-    if (nextOrPrev >= (int)cycle.size())
-        nextOrPrev = nextOrPrev % (int)cycle.size();
+    if (nextOrPrev >= sc<int>(cycle.size()))
+        nextOrPrev = nextOrPrev % sc<int>(cycle.size());
     else if (nextOrPrev < 0)
-        nextOrPrev = cycle.size() + (nextOrPrev % (int)cycle.size());
+        nextOrPrev = cycle.size() + (nextOrPrev % sc<int>(cycle.size()));
 
     PWORKSPACEDATA->orientation = cycle.at(nextOrPrev);
     recalculateMonitor(header.pWindow->monitorID());
@@ -1393,7 +1408,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
 
 void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle) {
     for (int i = 0; i <= ORIENTATION_CENTER; ++i) {
-        cycle.push_back((eOrientation)i);
+        cycle.push_back(sc<eOrientation>(i));
     }
 }
 

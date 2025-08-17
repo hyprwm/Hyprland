@@ -49,6 +49,10 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, g_pConfigManager->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.F, m_zoomAnimProgress, g_pConfigManager->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
+    m_zoomAnimProgress->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
+    m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
 
 CMonitor::~CMonitor() {
@@ -61,9 +65,14 @@ void CMonitor::onConnect(bool noRule) {
     EMIT_HOOK_EVENT("preMonitorAdded", m_self.lock());
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
+    m_zoomAnimProgress->setValueAndWarp(0.F);
+
     g_pEventLoopManager->doLater([] { g_pConfigManager->ensurePersistentWorkspacesPresent(); });
 
-    m_listeners.frame      = m_output->events.frame.listen([this] { m_frameScheduler->onFrame(); });
+    m_listeners.frame      = m_output->events.frame.listen([this] {
+        if (m_frameScheduler)
+            m_frameScheduler->onFrame();
+    });
     m_listeners.commit     = m_output->events.commit.listen([this] {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(m_self.lock());
@@ -73,6 +82,13 @@ void CMonitor::onConnect(bool noRule) {
     m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
+        if (m_pendingDpmsAnimation) {
+            // the first frame after a dpms on has been presented. Let's start the animation
+            m_dpmsBlackOpacity->setValueAndWarp(1.F);
+            *m_dpmsBlackOpacity    = 0.F;
+            m_pendingDpmsAnimation = false;
+        }
+
         timespec* ts = event.when;
 
         if (ts && ts->tv_sec <= 2) {
@@ -85,6 +101,9 @@ void CMonitor::onConnect(bool noRule) {
             PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
         else
             PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
+
+        if (m_zoomAnimProgress->goal() == 0.F)
+            *m_zoomAnimProgress = 1.F;
 
         m_frameScheduler->onPresented();
     });
@@ -127,7 +146,8 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&rule);
     });
 
-    m_frameScheduler = makeUnique<CMonitorFrameScheduler>(m_self.lock());
+    m_frameScheduler         = makeUnique<CMonitorFrameScheduler>(m_self.lock());
+    m_frameScheduler->m_self = WP<CMonitorFrameScheduler>(m_frameScheduler);
 
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
@@ -213,7 +233,7 @@ void CMonitor::onConnect(bool noRule) {
 
     m_damage.setSize(m_transformedSize);
 
-    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_output->name, m_position, m_pixelSize, (uintptr_t)m_output.get());
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_output->name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
 
     setupDefaultWS(monitorRule);
 
@@ -577,7 +597,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         addBest3Modes([](auto const& a, auto const& b) {
             if (std::round(a->refreshRate) > std::round(b->refreshRate))
                 return true;
-            else if (DELTALESSTHAN((float)a->refreshRate, (float)b->refreshRate, 1.F) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
+            else if (DELTALESSTHAN(sc<float>(a->refreshRate), sc<float>(b->refreshRate), 1.F) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
             return false;
         });
@@ -770,7 +790,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     bool set10bit = false;
 
-    for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
+    for (auto const& fmt : formats[sc<int>(!RULE->enable10bit)]) {
         m_output->state->setFormat(fmt.second);
         m_prevDrmFormat = m_drmFormat;
         m_drmFormat     = fmt.second;
@@ -902,8 +922,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // reload to fix mirrors
     g_pConfigManager->m_wantsMonitorReload = true;
 
-    Debug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale, (int)m_transform,
-               m_position, (int)m_enabled10bit);
+    Debug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale, sc<int>(m_transform),
+               m_position, sc<int>(m_enabled10bit));
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
@@ -1003,7 +1023,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
 
-    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, (int)(PNEWWORKSPACE != nullptr));
+    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -1078,7 +1098,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         setupDefaultWS(RULE);
 
-        applyMonitorRule((SMonitorRule*)&RULE, true); // will apply the offset and stuff
+        applyMonitorRule(const_cast<SMonitorRule*>(&RULE), true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
         for (auto const& m : g_pCompositor->m_monitors) {
@@ -1469,7 +1489,8 @@ bool CMonitor::attemptDirectScanout() {
     if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
         return false;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", (uintptr_t)PSURFACE.get(), (uintptr_t)PSURFACE->m_current.buffer.m_buffer.get());
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()),
+               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
@@ -1532,7 +1553,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (m_lastScanout.expired()) {
         m_lastScanout = PCANDIDATE;
-        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_title);
+        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->m_title);
     }
 
     m_scanoutNeedsCursorUpdate = false;
@@ -1549,6 +1570,45 @@ bool CMonitor::attemptDirectScanout() {
     });
 
     return true;
+}
+
+void CMonitor::setDPMS(bool on) {
+    m_dpmsStatus = on;
+    m_events.dpmsChanged.emit();
+
+    if (on) {
+        // enable the monitor. Wait for the frame to be presented, then begin animation
+        m_dpmsBlackOpacity->setValueAndWarp(1.F);
+        m_dpmsBlackOpacity->setCallbackOnEnd(nullptr);
+        m_pendingDpmsAnimation = true;
+        commitDPMSState(true);
+    } else {
+        // disable the monitor. Begin the animation, then do dpms on its end.
+        m_dpmsBlackOpacity->setValueAndWarp(0.F);
+        *m_dpmsBlackOpacity = 1.F;
+        m_dpmsBlackOpacity->setCallbackOnEnd(
+            [this, self = m_self](auto) {
+                if (!self)
+                    return;
+
+                // commit DPMS to disable the monitor, it's fully black now
+                commitDPMSState(false);
+            },
+            true);
+    }
+}
+
+void CMonitor::commitDPMSState(bool state) {
+    m_output->state->resetExplicitFences();
+    m_output->state->setEnabled(state);
+
+    if (!m_state.commit()) {
+        Debug::log(ERR, "Couldn't commit output {} for DPMS = {}", m_name, state);
+        return;
+    }
+
+    if (state)
+        g_pHyprRenderer->damageMonitor(m_self.lock());
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {

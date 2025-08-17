@@ -1139,10 +1139,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         // Adjust UV based on the xdg_surface geometry
         if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
-            const auto XPERC = (double)geom.x / (double)pSurface->m_current.size.x;
-            const auto YPERC = (double)geom.y / (double)pSurface->m_current.size.y;
-            const auto WPERC = (double)(geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / (double)pSurface->m_current.size.x;
-            const auto HPERC = (double)(geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / (double)pSurface->m_current.size.y;
+            const auto XPERC = geom.x / pSurface->m_current.size.x;
+            const auto YPERC = geom.y / pSurface->m_current.size.y;
+            const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
+            const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
@@ -1186,8 +1186,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
-    static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
@@ -1201,28 +1199,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
-
-    static bool firstLaunch           = true;
-    static bool firstLaunchAnimActive = *PFIRSTLAUNCHANIM;
-
-    float       zoomInFactorFirstLaunch = 1.f;
-
-    if (firstLaunch) {
-        firstLaunch = false;
-        m_renderTimer.reset();
-    }
-
-    if (m_renderTimer.getSeconds() < 1.5f && firstLaunchAnimActive) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
-        if (!*PANIMENABLED) {
-            zoomInFactorFirstLaunch = 1.f;
-            firstLaunchAnimActive   = false;
-        } else {
-            zoomInFactorFirstLaunch = 2.f - g_pAnimationManager->getBezier("default")->getYForPoint(m_renderTimer.getSeconds() / 1.5);
-            damageMonitor(pMonitor);
-        }
-    } else {
-        firstLaunchAnimActive = false;
-    }
 
     if (*PDEBUGOVERLAY == 1) {
         renderStart = std::chrono::high_resolution_clock::now();
@@ -1334,11 +1310,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     else
         g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
 
-    if (zoomInFactorFirstLaunch > 1.f) {
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
+    if (pMonitor->m_zoomAnimProgress->isBeingAnimated()) {
+        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;
-        pMonitor->m_forceFullFrames                    = 10;
     }
 
     CRegion damage, finalDamage;
@@ -1349,7 +1324,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
-        damage = {0, 0, (int)pMonitor->m_transformedSize.x * 10, (int)pMonitor->m_transformedSize.y * 10};
+        damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
 
     finalDamage = damage;
 
@@ -1375,7 +1350,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                 EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
                 renderCursor = false;
             } else {
-                CBox renderBox = {0, 0, (int)pMonitor->m_pixelSize.x, (int)pMonitor->m_pixelSize.y};
+                CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
                 renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
 
                 renderLockscreen(pMonitor, NOW, renderBox);
@@ -1419,6 +1394,14 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, g_pHyprOpenGL->m_renderData.damage);
     }
 
+    if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
+        // render the DPMS black if we are animating
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+        data.color = Colors::BLACK.modifyA(pMonitor->m_dpmsBlackOpacity->value());
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
+
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     endRender();
@@ -1431,7 +1414,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);
 
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-        frameDamage.add(0, 0, (int)pMonitor->m_transformedSize.x, (int)pMonitor->m_transformedSize.y);
+        frameDamage.add(0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y));
 
     if (*PDAMAGEBLINK)
         frameDamage.add(damage);
@@ -1481,8 +1464,8 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
         default: return NO_HDR_METADATA; // empty metadata for SDR
     }
 
-    const auto toNits  = [](uint32_t value) { return uint16_t(std::round(value)); };
-    const auto to16Bit = [](float value) { return uint16_t(std::round(value * 50000)); };
+    const auto toNits  = [](uint32_t value) { return sc<uint16_t>(std::round(value)); };
+    const auto to16Bit = [](float value) { return sc<uint16_t>(std::round(value * 50000)); };
 
     auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
     auto       luminances  = settings.masteringLuminances.max > 0 ?
@@ -1622,11 +1605,11 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
 void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
-    float    scale     = (float)geometry.width / pMonitor->m_pixelSize.x;
+    float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
 
     TRACY_GPU_ZONE("RenderWorkspace");
 
-    if (!DELTALESSTHAN((double)geometry.width / (double)geometry.height, pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
+    if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
         Debug::log(ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
@@ -1792,7 +1775,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             box.y -= PSTATE->margin.bottom;
 
         if (box.width <= 0 || box.height <= 0) {
-            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
+            Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", rc<uintptr_t>(ls.get()));
             continue;
         }
 
@@ -2126,7 +2109,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - (int)(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
+    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
                                                 ICON_INFO);
 
     g_pHyprRenderer->m_crashingDistort += 0.5f;
@@ -2150,7 +2133,7 @@ void CHyprRenderer::initiateManualCrash() {
 
     g_pHyprOpenGL->m_globalTimer.reset();
 
-    static auto PDT = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
+    static auto PDT = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
 
     **PDT = 0;
 }
@@ -2419,12 +2402,12 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     if (!shouldRenderWindow(pWindow))
         return; // ignore, window is not being rendered
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pWindow.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion      fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
+    CRegion      fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
     PHLWINDOWREF ref{pWindow};
 
@@ -2454,12 +2437,12 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)pLayer.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion fakeDamage{0, 0, (int)PMONITOR->m_transformedSize.x, (int)PMONITOR->m_transformedSize.y};
+    CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
     makeEGLCurrent();
 
@@ -2491,7 +2474,7 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
     if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
         return;
 
-    Debug::log(LOG, "renderer: making a snapshot of {:x}", (uintptr_t)popup.get());
+    Debug::log(LOG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 

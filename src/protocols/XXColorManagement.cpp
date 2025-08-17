@@ -28,7 +28,7 @@ static wpColorManagerV1TransferFunction getWPTransferFunction(xxColorManagerV4Tr
 }
 
 static wpColorManagerV1Primaries getWPPrimaries(xxColorManagerV4Primaries primaries) {
-    return (wpColorManagerV1Primaries)(primaries + 1);
+    return sc<wpColorManagerV1Primaries>(primaries + 1);
 }
 
 CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(resource_) {
@@ -235,7 +235,7 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
     m_resource->setSetImageDescription([this](CXxColorManagementSurfaceV4* r, wl_resource* image_description, uint32_t render_intent) {
         LOGM(TRACE, "Set image description for surface={}, desc={}, intent={}", (uintptr_t)r, (uintptr_t)image_description, render_intent);
 
-        const auto PO = (CXxImageDescriptionV4*)wl_resource_get_user_data(image_description);
+        const auto PO = sc<CXxImageDescriptionV4*>(wl_resource_get_user_data(image_description));
         if (!PO) { // FIXME check validity
             r->error(XX_COLOR_MANAGEMENT_SURFACE_V4_ERROR_IMAGE_DESCRIPTION, "Image description creation failed");
             return;
@@ -425,7 +425,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
             default: r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
-        m_settings.transferFunction = convertTransferFunction(getWPTransferFunction((xxColorManagerV4TransferFunction)tf));
+        m_settings.transferFunction = convertTransferFunction(getWPTransferFunction(sc<xxColorManagerV4TransferFunction>(tf)));
         m_valuesSet |= PC_TF;
     });
     m_resource->setSetTfPower([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t eexp) {
@@ -455,7 +455,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
             case XX_COLOR_MANAGER_V4_PRIMARIES_DISPLAY_P3:
             case XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB:
                 m_settings.primariesNameSet = true;
-                m_settings.primariesNamed   = convertPrimaries(getWPPrimaries((xxColorManagerV4Primaries)primaries));
+                m_settings.primariesNamed   = convertPrimaries(getWPPrimaries(sc<xxColorManagerV4Primaries>(primaries)));
                 m_settings.primaries        = getPrimaries(m_settings.primariesNamed);
                 m_valuesSet |= PC_PRIMARIES;
                 break;
@@ -585,7 +585,7 @@ CXXColorManagementImageDescriptionInfo::CXXColorManagementImageDescriptionInfo(S
 
     m_client = m_resource->client();
 
-    const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
+    const auto toProto = [](float value) { return sc<int32_t>(std::round(value * 10000)); };
 
     if (m_settings.icc.fd >= 0)
         m_resource->sendIccFile(m_settings.icc.fd, m_settings.icc.length);

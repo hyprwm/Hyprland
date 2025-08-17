@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include "ConfigManager.hpp"
 
 inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
@@ -376,12 +377,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "animations:enabled",
         .description = "enable animations",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
-        .value       = "animations:first_launch_animation",
-        .description = "enable first launch animation",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
@@ -1013,10 +1008,22 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:rounding_power",
+        .description = "rounding power of groupbar corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:gradient_rounding",
         .description = "how much to round the groupbar gradient",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:gradient_rounding_power",
+        .description = "rounding power of groupbar gradient corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:round_only_edges",

@@ -36,7 +36,16 @@ void CMonitorFrameScheduler::onSyncFired() {
     m_renderAtFrame = false; // block frame rendering, we already scheduled
 
     m_lastRenderBegun = hrc::now();
+
+    // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
+    // FIXME: this is horrible. "renderMonitor" should not be able to do that.
+    auto self = m_self;
+
     g_pHyprRenderer->renderMonitor(m_monitor.lock(), false);
+
+    if (!self)
+        return;
+
     onFinishRender();
 }
 
@@ -99,14 +108,23 @@ void CMonitorFrameScheduler::onFrame() {
     Debug::log(TRACE, "CMonitorFrameScheduler: {} -> frame event, render = true, rendering normally.", m_monitor->m_name);
 
     m_lastRenderBegun = hrc::now();
+
+    // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
+    // FIXME: this is horrible. "renderMonitor" should not be able to do that.
+    auto self = m_self;
+
     g_pHyprRenderer->renderMonitor(m_monitor.lock());
+
+    if (!self)
+        return;
+
     onFinishRender();
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
     m_sync = CEGLSync::create(); // this destroys the old sync
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, mon = m_monitor] {
-        if (!mon) // might've gotten destroyed
+    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
+        if (!self) // might've gotten destroyed
             return;
         onSyncFired();
     });

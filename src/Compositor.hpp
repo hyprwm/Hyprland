@@ -156,6 +156,7 @@ class CCompositor {
     void                   updateSuspendedStates();
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
     void                   ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    std::optional<unsigned int>         getVTNr();
 
     NColorManagement::SImageDescription getPreferredImageDescription();
     bool                                shouldChangePreferredImageDescription();

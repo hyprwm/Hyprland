@@ -16,7 +16,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    auto* const PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
     // TODO: WORKSPACERULE.gapsOut.value_or()
     auto        gapsOut     = *PGAPSOUT;
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -126,7 +126,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
         static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
         static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
-        const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
+        const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
         // Handle the workspace swipe if there is one
         if (m_activeSwipe.initialDirection == -1) {
             if (*PSWIPEINVR)

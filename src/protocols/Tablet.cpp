@@ -210,7 +210,7 @@ void CTabletToolV2Resource::queueFrame() {
     if (m_frameSource)
         return;
 
-    m_frameSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, [](void* data) { ((CTabletToolV2Resource*)data)->sendFrame(false); }, this);
+    m_frameSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, [](void* data) { sc<CTabletToolV2Resource*>(data)->sendFrame(false); }, this);
 }
 
 void CTabletToolV2Resource::sendFrame(bool removeSource) {
@@ -604,7 +604,7 @@ void CTabletV2Protocol::buttonTool(SP<CTabletTool> tool, uint32_t button, uint32
             continue;
 
         auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()));
-        t->m_resource->sendButton(serial, button, (zwpTabletToolV2ButtonState)state);
+        t->m_resource->sendButton(serial, button, sc<zwpTabletToolV2ButtonState>(state));
         t->queueFrame();
     }
 }

@@ -228,17 +228,17 @@ void CHyprAnimationManager::tick() {
 
         switch (PAV->m_Type) {
             case AVARTYPE_FLOAT: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<float>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated float");
                 handleUpdate(*pTypedAV, warp);
             } break;
             case AVARTYPE_VECTOR: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
                 handleUpdate(*pTypedAV, warp);
             } break;
             case AVARTYPE_COLOR: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
                 handleUpdate(*pTypedAV, warp);
             } break;
@@ -268,7 +268,7 @@ void CHyprAnimationManager::scheduleTick() {
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 
-    m_animationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
+    m_animationTimer->updateTimeout(std::chrono::milliseconds(sc<int>(std::floor(TOPRES))));
 }
 
 void CHyprAnimationManager::onTicked() {

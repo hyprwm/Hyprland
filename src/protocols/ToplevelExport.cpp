@@ -60,11 +60,11 @@ void CToplevelExportClient::onTick() {
     const bool FRAMEAWAITING  = std::ranges::any_of(PROTO::toplevelExport->m_frames, [&](const auto& frame) { return frame->m_client.get() == this; });
 
     if (m_framesInLastHalfSecond > 3 && !m_sentScreencast) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(m_clientOwner)});
         m_sentScreencast = true;
     } else if (m_framesInLastHalfSecond < 4 && m_sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(m_clientOwner)});
         m_sentScreencast = false;
     }
@@ -116,7 +116,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     m_dmabufFormat = PMONITOR->m_output->state->state().drmFormat;
 
-    m_box = {0, 0, (int)(m_window->m_realSize->value().x * PMONITOR->m_scale), (int)(m_window->m_realSize->value().y * PMONITOR->m_scale)};
+    m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 
     m_box.transform(wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y).round();
 
@@ -180,7 +180,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
             m_resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::toplevelExport->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != m_shmStride) {
+        } else if (attrs.stride != m_shmStride) {
             m_resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             PROTO::toplevelExport->destroyResource(this);
             return;
@@ -217,7 +217,7 @@ void CToplevelExportFrame::share() {
         }
     }
 
-    m_resource->sendFlags((hyprlandToplevelExportFrameV1Flags)0);
+    m_resource->sendFlags(sc<hyprlandToplevelExportFrameV1Flags>(0));
 
     if (!m_ignoreDamage)
         m_resource->sendDamage(0, 0, m_box.width, m_box.height);

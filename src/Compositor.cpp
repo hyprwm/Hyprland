@@ -1058,7 +1058,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
 
     pWindow->m_wlSurface->resource()->breadthfirst(
         [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-            const auto PDATA = (std::tuple<SP<CWLSurfaceResource>, Vector2D>*)data;
+            const auto PDATA = sc<std::tuple<SP<CWLSurfaceResource>, Vector2D>*>(data);
             if (surf == std::get<0>(*PDATA))
                 std::get<1>(*PDATA) = offset;
         },
@@ -1133,7 +1133,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-        EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
+        EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
@@ -1206,7 +1206,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     // Send an event
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", (uintptr_t)pWindow.get())});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
@@ -1239,7 +1239,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         return;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
-        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", (uintptr_t)pSurface.get());
+        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", rc<uintptr_t>(pSurface.get()));
         return;
     }
 
@@ -1253,7 +1253,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
-        EMIT_HOOK_EVENT("keyboardFocus", (SP<CWLSurfaceResource>)nullptr);
+        EMIT_HOOK_EVENT("keyboardFocus", SP<CWLSurfaceResource>{nullptr});
         m_lastFocus.reset();
         return;
     }
@@ -1262,9 +1262,9 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         g_pSeatManager->setKeyboardFocus(pSurface);
 
     if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", (uintptr_t)pSurface.get(), pWindowOwner);
+        Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", rc<uintptr_t>(pSurface.get()), pWindowOwner);
     else
-        Debug::log(LOG, "Set keyboard focus to surface {:x}", (uintptr_t)pSurface.get());
+        Debug::log(LOG, "Set keyboard focus to surface {:x}", rc<uintptr_t>(pSurface.get()));
 
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_lastFocus = pSurface;
@@ -1334,7 +1334,7 @@ PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
 
 PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {
     for (auto const& w : m_windows) {
-        if ((uint32_t)(((uint64_t)w.get()) & 0xFFFFFFFF) == handle) {
+        if (sc<uint32_t>(rc<uint64_t>(w.get()) & 0xFFFFFFFF) == handle) {
             return w;
         }
     }
@@ -1727,6 +1727,14 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
             lowest = w->m_id;
     }
 
+    // Give priority to persistent workspaces to avoid any conflicts between them.
+    for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
+        if (!rule.isPersistent)
+            continue;
+        if (rule.workspaceId < -1 && rule.workspaceId < lowest)
+            lowest = rule.workspaceId;
+    }
+
     return lowest - 1;
 }
 
@@ -1860,14 +1868,14 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
 
-    auto* const ACTIVECOL              = (CGradientValueData*)(PACTIVECOL.ptr())->getData();
-    auto* const INACTIVECOL            = (CGradientValueData*)(PINACTIVECOL.ptr())->getData();
-    auto* const NOGROUPACTIVECOL       = (CGradientValueData*)(PNOGROUPACTIVECOL.ptr())->getData();
-    auto* const NOGROUPINACTIVECOL     = (CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
-    auto* const GROUPACTIVECOL         = (CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
-    auto* const GROUPINACTIVECOL       = (CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
-    auto* const GROUPACTIVELOCKEDCOL   = (CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
-    auto* const GROUPINACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
+    auto* const ACTIVECOL              = sc<CGradientValueData*>((PACTIVECOL.ptr())->getData());
+    auto* const INACTIVECOL            = sc<CGradientValueData*>((PINACTIVECOL.ptr())->getData());
+    auto* const NOGROUPACTIVECOL       = sc<CGradientValueData*>((PNOGROUPACTIVECOL.ptr())->getData());
+    auto* const NOGROUPINACTIVECOL     = sc<CGradientValueData*>((PNOGROUPINACTIVECOL.ptr())->getData());
+    auto* const GROUPACTIVECOL         = sc<CGradientValueData*>((PGROUPACTIVECOL.ptr())->getData());
+    auto* const GROUPINACTIVECOL       = sc<CGradientValueData*>((PGROUPINACTIVECOL.ptr())->getData());
+    auto* const GROUPACTIVELOCKEDCOL   = sc<CGradientValueData*>((PGROUPACTIVELOCKEDCOL.ptr())->getData());
+    auto* const GROUPINACTIVELOCKEDCOL = sc<CGradientValueData*>((PGROUPINACTIVELOCKEDCOL.ptr())->getData());
 
     auto        setBorderColor = [&](CGradientValueData grad) -> void {
         if (grad == pWindow->m_realBorderColor)
@@ -2062,7 +2070,7 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
         offsetLeft     = offsetLeft < 0 ? -((-offsetLeft) % m_monitors.size()) : offsetLeft % m_monitors.size();
 
         int currentPlace = 0;
-        for (int i = 0; i < (int)m_monitors.size(); i++) {
+        for (int i = 0; i < sc<int>(m_monitors.size()); i++) {
             if (m_monitors[i] == m_lastMonitor) {
                 currentPlace = i;
                 break;
@@ -2077,9 +2085,9 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
             currentPlace = currentPlace % m_monitors.size();
         }
 
-        if (currentPlace != std::clamp(currentPlace, 0, (int)m_monitors.size() - 1)) {
+        if (currentPlace != std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1)) {
             Debug::log(WARN, "Error in getMonitorFromString: Vaxry's code sucks.");
-            currentPlace = std::clamp(currentPlace, 0, (int)m_monitors.size() - 1);
+            currentPlace = std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1);
         }
 
         return m_monitors[currentPlace];
@@ -2094,7 +2102,7 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
             return nullptr;
         }
 
-        if (monID > -1 && monID < (MONITORID)m_monitors.size()) {
+        if (monID > -1 && monID < sc<MONITORID>(m_monitors.size())) {
             return getMonitorFromID(monID);
         } else {
             Debug::log(ERR, "Error in getMonitorFromString: invalid arg 1");
@@ -2186,8 +2194,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
                     }
                 } else
                     *w->m_realPosition = Vector2D{
-                        (pMonitor->m_size.x != 0) ? (int)w->m_realPosition->goal().x % (int)pMonitor->m_size.x : 0,
-                        (pMonitor->m_size.y != 0) ? (int)w->m_realPosition->goal().y % (int)pMonitor->m_size.y : 0,
+                        (pMonitor->m_size.x != 0) ? sc<int>(w->m_realPosition->goal().x) % sc<int>(pMonitor->m_size.x) : 0,
+                        (pMonitor->m_size.y != 0) ? sc<int>(w->m_realPosition->goal().y) % sc<int>(pMonitor->m_size.y) : 0,
                     };
             }
 
@@ -2289,8 +2297,9 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenClient(PWINDOW,
-                              (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_fullscreenState.client | (uint8_t)MODE : ((uint8_t)PWINDOW->m_fullscreenState.client & (uint8_t)~MODE)));
+    setWindowFullscreenClient(
+        PWINDOW,
+        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
 }
 
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
@@ -2314,14 +2323,14 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     if (!validMapped(PWINDOW) || g_pCompositor->m_unsafeState)
         return;
 
-    state.internal = std::clamp(state.internal, (eFullscreenMode)0, FSMODE_MAX);
-    state.client   = std::clamp(state.client, (eFullscreenMode)0, FSMODE_MAX);
+    state.internal = std::clamp(state.internal, sc<eFullscreenMode>(0), FSMODE_MAX);
+    state.client   = std::clamp(state.client, sc<eFullscreenMode>(0), FSMODE_MAX);
 
     const auto            PMONITOR   = PWINDOW->m_monitor.lock();
     const auto            PWORKSPACE = PWINDOW->m_workspace;
 
-    const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_fullscreenState.internal);
-    const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
+    const eFullscreenMode CURRENT_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
+    const eFullscreenMode EFFECTIVE_MODE         = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
 
     if (PWINDOW->m_isFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE && EFFECTIVE_MODE != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(PWINDOW);
@@ -2361,7 +2370,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     PWORKSPACE->m_fullscreenMode        = EFFECTIVE_MODE;
     PWORKSPACE->m_hasFullscreenWindow   = EFFECTIVE_MODE != FSMODE_NONE;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string((int)EFFECTIVE_MODE != FSMODE_NONE)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
     EMIT_HOOK_EVENT("fullscreen", PWINDOW);
 
     PWINDOW->updateDynamicRules();
@@ -2512,7 +2521,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
                 break;
             }
             case MODE_ADDRESS: {
-                std::string addr = std::format("0x{:x}", (uintptr_t)w.get());
+                std::string addr = std::format("0x{:x}", rc<uintptr_t>(w.get()));
                 if (matchCheck != addr)
                     continue;
                 break;
@@ -2836,7 +2845,7 @@ PHLWINDOW CCompositor::getForceFocus() {
 }
 
 void CCompositor::arrangeMonitors() {
-    static auto* const      PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
+    static auto* const      PXWLFORCESCALEZERO = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling"));
 
     std::vector<PHLMONITOR> toArrange(m_monitors.begin(), m_monitors.end());
     std::vector<PHLMONITOR> arranged;
@@ -2992,12 +3001,12 @@ void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, d
 
     const auto PSURFACE = CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
-        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredScaleForSurface", (uintptr_t)pSurface.get());
+        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredScaleForSurface", rc<uintptr_t>(pSurface.get()));
         return;
     }
 
     PSURFACE->m_lastScaleFloat = scale;
-    PSURFACE->m_lastScaleInt   = static_cast<int32_t>(std::ceil(scale));
+    PSURFACE->m_lastScaleInt   = sc<int32_t>(std::ceil(scale));
 }
 
 void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform) {
@@ -3005,7 +3014,7 @@ void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurfac
 
     const auto PSURFACE = CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
-        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredTransformForSurface", (uintptr_t)pSurface.get());
+        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredTransformForSurface", rc<uintptr_t>(pSurface.get()));
         return;
     }
 
@@ -3203,4 +3212,25 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             ws->setPersistent(false);
         }
     }
+}
+
+std::optional<unsigned int> CCompositor::getVTNr() {
+    if (!m_aqBackend->hasSession())
+        return std::nullopt;
+
+    unsigned int                   ttynum = 0;
+    Hyprutils::OS::CFileDescriptor fd{open("/dev/tty", O_RDONLY | O_NOCTTY)};
+    if (fd.isValid()) {
+#if defined(VT_GETSTATE)
+        struct vt_stat st;
+        if (!ioctl(fd.get(), VT_GETSTATE, &st))
+            ttynum = st.v_active;
+#elif defined(VT_GETACTIVE)
+        int vt;
+        if (!ioctl(fd.get(), VT_GETACTIVE, &vt))
+            ttynum = vt;
+#endif
+    }
+
+    return ttynum;
 }

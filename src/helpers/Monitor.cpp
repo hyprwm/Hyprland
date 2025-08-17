@@ -1734,8 +1734,14 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
+    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
         reasons |= DS_BLOCK_DMA;
+        if (!full)
+            return reasons;
+    }
+
+    if (!canNoShaderCM())
+        reasons |= DS_BLOCK_CM;
 
     return reasons;
 }
@@ -1937,6 +1943,48 @@ bool CMonitor::inHDR() {
 
 bool CMonitor::inFullscreenMode() {
     return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+}
+
+std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescription() {
+    if (!inFullscreenMode())
+        return {};
+
+    const auto FS_WINDOW = m_activeWorkspace->getFullscreenWindow();
+    if (!FS_WINDOW)
+        return {}; // should be unreachable
+
+    const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
+    const auto SURF      = ROOT_SURF->findWithCM();
+    return SURF ? SURF->m_colorManagement->imageDescription() : SImageDescription{};
+}
+
+bool CMonitor::needsCM() {
+    return getFSImageDescription() != m_imageDescription;
+}
+
+// TODO support more drm properties
+bool CMonitor::canNoShaderCM() {
+    const auto SRC_DESC = getFSImageDescription();
+    if (!SRC_DESC.has_value())
+        return false;
+
+    if (SRC_DESC.value() == m_imageDescription)
+        return true; // no CM needed
+
+    if (SRC_DESC->icc.fd >= 0 || m_imageDescription.icc.fd >= 0)
+        return false; // no ICC support
+
+    // only primaries differ
+    if (SRC_DESC->transferFunction == m_imageDescription.transferFunction && SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower &&
+        SRC_DESC->luminances == m_imageDescription.luminances && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
+        SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
+        return true;
+
+    return false;
+}
+
+bool CMonitor::doesNoShaderCM() {
+    return m_noShaderCTM;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

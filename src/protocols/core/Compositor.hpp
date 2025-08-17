@@ -108,6 +108,7 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
+    SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::SImageDescription    getPreferredImageDescription();

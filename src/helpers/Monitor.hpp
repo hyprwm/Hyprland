@@ -229,8 +229,9 @@ class CMonitor {
         DS_BLOCK_DMA       = (1 << 10),
         DS_BLOCK_TEARING   = (1 << 11),
         DS_BLOCK_FAILED    = (1 << 12),
+        DS_BLOCK_CM        = (1 << 13),
 
-        DS_CHECKS_COUNT = 13,
+        DS_CHECKS_COUNT = 14,
     };
 
     // keep in sync with HyprCtl
@@ -320,12 +321,19 @@ class CMonitor {
     bool        inHDR();
 
     /// Has an active workspace with a real fullscreen window
-    bool                                inFullscreenMode();
+    bool                                               inFullscreenMode();
+    std::optional<NColorManagement::SImageDescription> getFSImageDescription();
+
+    bool                                               needsCM();
+    /// Can do CM without shader
+    bool                                canNoShaderCM();
+    bool                                doesNoShaderCM();
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;
     NColorManagement::SImageDescription m_imageDescription;
+    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
 
     // For the list lookup
 

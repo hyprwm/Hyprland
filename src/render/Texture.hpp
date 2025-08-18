@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
+#include "../protocols/types/ColorManagement.hpp"
 
 class IHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
@@ -26,6 +27,7 @@ class CTexture {
     CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false);
 
     CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    CTexture(const SP<Aquamarine::IBuffer> buffer, const NColorManagement::SImageDescription& imageDescription);
     // this ctor takes ownership of the eglImage.
     CTexture(const Aquamarine::SDMABUFAttrs&, void* image);
     ~CTexture();
@@ -47,6 +49,9 @@ class CTexture {
     bool                        m_opaque        = false;
     uint32_t                    m_drmFormat     = 0; // for shm
     bool                        m_isSynchronous = false;
+
+    //
+    std::optional<NColorManagement::SImageDescription> m_imageDescription;
 
   private:
     enum eTextureParam : uint8_t {

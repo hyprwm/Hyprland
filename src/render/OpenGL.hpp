@@ -200,8 +200,9 @@ class CHyprOpenGLImpl {
         bool                   noAA                  = false;
         bool                   blockBlurOptimization = false;
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
-        bool                   cmBackToSRGB = false;
-        SP<CMonitor>           cmBackToSRGBSource;
+
+        //
+        std::optional<NColorManagement::SImageDescription> targetImageDescription;
     };
 
     struct SBorderRenderData {

@@ -109,6 +109,8 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
     if UNLIKELY (!good())
         return;
 
+    m_resource->setData(this);
+
     m_resource->setRelease([this](CWlPointer* r) { PROTO::seat->destroyResource(this); });
     m_resource->setOnDestroy([this](CWlPointer* r) { PROTO::seat->destroyResource(this); });
 
@@ -143,6 +145,11 @@ int CWLPointerResource::version() {
 
 bool CWLPointerResource::good() {
     return m_resource->resource();
+}
+
+SP<CWLPointerResource> CWLPointerResource::fromResource(wl_resource* res) {
+    auto data = sc<CWLPointerResource*>(sc<CWlPointer*>(wl_resource_get_user_data(res))->data());
+    return data ? data->m_self.lock() : nullptr;
 }
 
 void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local) {
@@ -438,6 +445,8 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : m_resource(resource_) 
             PROTO::seat->m_pointers.pop_back();
             return;
         }
+
+        RESOURCE->m_self = RESOURCE;
 
         m_pointers.emplace_back(RESOURCE);
     });

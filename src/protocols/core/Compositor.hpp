@@ -35,13 +35,13 @@ class CContentType;
 
 class CWLCallbackResource {
   public:
-    CWLCallbackResource(SP<CWlCallback> resource_);
+    CWLCallbackResource(UP<CWlCallback>&& resource_);
 
     bool good();
     void send(const Time::steady_tp& now);
 
   private:
-    SP<CWlCallback> m_resource;
+    UP<CWlCallback> m_resource;
 };
 
 class CWLRegionResource {
@@ -95,7 +95,7 @@ class CWLSurfaceResource {
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
 
-    std::vector<SP<CWLCallbackResource>>   m_callbacks;
+    std::vector<UP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;

@@ -1693,17 +1693,18 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
     const bool canPassHDRSurface = isHDRSurface && !m_renderData.surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
-
-    auto       imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-              m_renderData.surface->m_colorManagement->imageDescription() :
-              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_FBimageDescription : SImageDescription{});
+    auto       imageDescription  = tex->m_imageDescription.has_value() ?
+               tex->m_imageDescription.value() :
+               (m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->imageDescription() : (SImageDescription{}));
 
     const bool isRenderToFB           = m_renderData.surface.valid();
-    const auto targetImageDescription = isRenderToFB ? m_renderData.pMonitor->m_FBimageDescription : m_renderData.pMonitor->m_imageDescription;
+    const auto targetImageDescription = data.targetImageDescription.has_value() ?
+        data.targetImageDescription.value() :
+        (isRenderToFB ? m_renderData.pMonitor->m_FBimageDescription : m_renderData.pMonitor->m_imageDescription);
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                         /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                            /* no shader needed */
-        || (imageDescription == targetImageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
+    const bool skipCM = !*PENABLECM || !m_cmSupported /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()    /* no shader needed */
+        || imageDescription == targetImageDescription /* Source and target have the same image description */
         || (((*PPASS && canPassHDRSurface) || (*PPASS == 1 && !isHDRSurface)) && m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
@@ -1713,15 +1714,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     if (shader == &m_shaders->m_shCM) {
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
-        if (data.cmBackToSRGB) {
-            // revert luma changes to avoid black screenshots.
-            // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
-            imageDescription.luminances = {};
-            static auto PSDREOTF        = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
-            auto        chosenSdrEotf   = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
-            passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}, true, -1, -1);
-        } else
-            passCMUniforms(*shader, imageDescription);
+        passCMUniforms(*shader, imageDescription, targetImageDescription, data.modifySDR);
     }
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());

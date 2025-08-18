@@ -245,9 +245,9 @@ class CMonitor {
 
     bool                                supportsWideColor();
     bool                                supportsHDR();
-    float                               minLuminance();
-    int                                 maxLuminance();
-    int                                 maxAvgLuminance();
+    float                               minLuminance(float defaultValue = 0);
+    int                                 maxLuminance(int defaultValue = 80);
+    int                                 maxAvgLuminance(int defaultValue = 80);
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;

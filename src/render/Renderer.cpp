@@ -1455,7 +1455,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
 static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
 
-static hdr_output_metadata       createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
+static hdr_output_metadata       createHDRMetadata(SImageDescription settings, SP<CMonitor> monitor) {
     uint8_t eotf = 0;
     switch (settings.transferFunction) {
         case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
@@ -1468,9 +1468,8 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, A
     const auto to16Bit = [](float value) { return sc<uint16_t>(std::round(value * 50000)); };
 
     auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
-    auto       luminances  = settings.masteringLuminances.max > 0 ?
-                     settings.masteringLuminances :
-                     SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
+    auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
+                                                                          SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)};
 
     Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
                      colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
@@ -1530,7 +1529,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     // passthrough
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate())
-                        SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor->m_output->parsedEDID));
+                        SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
                     if (needsHdrMetadataUpdate)
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
                     hdrIsHandled = true;
@@ -1548,7 +1547,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
                     pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);
                 }
-                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor->m_output->parsedEDID) : NO_HDR_METADATA);
+                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
             }
             pMonitor->m_previousFSWindow.reset();
         }

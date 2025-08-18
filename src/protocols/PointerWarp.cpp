@@ -18,15 +18,19 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         return;
     }
 
-    RESOURCE->setOnDestroy([this](CWpPointerWarpV1* pMgr) { this->destroyManager(pMgr); });
-    RESOURCE->setDestroy([this](CWpPointerWarpV1* pMgr) { this->destroyManager(pMgr); });
+    RESOURCE->setOnDestroy([this](CWpPointerWarpV1* pMgr) { destroyManager(pMgr); });
+    RESOURCE->setDestroy([this](CWpPointerWarpV1* pMgr) { destroyManager(pMgr); });
 
     RESOURCE->setWarpPointer([](CWpPointerWarpV1* pMgr, wl_resource* surface, wl_resource* pointer, wl_fixed_t x, wl_fixed_t y, uint32_t serial) {
         const auto PSURFACE = CWLSurfaceResource::fromResource(surface);
         if (g_pSeatManager->m_state.pointerFocus != PSURFACE)
             return;
 
-        const auto SURFBOX   = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal().value_or(CBox{});
+        const auto SURFBOXV = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
+        if (!SURFBOXV.has_value())
+            return;
+
+        const auto SURFBOX   = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal()->expand(1);
         const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
         if (!SURFBOX.containsPoint(GLOBALPOS))

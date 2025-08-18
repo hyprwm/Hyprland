@@ -2,6 +2,7 @@
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
+#include <numbers>
 #include <random>
 #include <pango/pangocairo.h>
 #include "OpenGL.hpp"

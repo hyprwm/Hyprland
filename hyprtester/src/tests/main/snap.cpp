@@ -46,17 +46,17 @@ static void expectSnapMove(const Vector2D FROM, const Vector2D* TO) {
 }
 
 static void testWindowSnap(const bool RESPECTGAPS) {
-    const double BORDERSIZE = 2;
-    const double WINDOWSIZE = 100;
+    const int BORDERSIZE = 2;
+    const int WINDOWSIZE = 100;
 
-    const double OTHER     = 500;
-    const double WINDOWGAP = 8;
-    const double GAPSIN    = 5;
-    const double GAP       = (RESPECTGAPS ? 2 * GAPSIN : 0) + (2 * BORDERSIZE);
-    const double END       = GAP + WINDOWSIZE;
+    const int OTHER     = 500;
+    const int WINDOWGAP = 8;
+    const int GAPSIN    = 5;
+    const int GAP       = (RESPECTGAPS ? 2 * GAPSIN : 0) + (2 * BORDERSIZE);
+    const int END       = GAP + WINDOWSIZE;
 
-    double       x;
-    Vector2D     predict;
+    int       x;
+    Vector2D  predict;
 
     x = WINDOWGAP + END;
     expectSnapMove({OTHER + x, OTHER}, nullptr);
@@ -71,17 +71,17 @@ static void testWindowSnap(const bool RESPECTGAPS) {
 }
 
 static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
-    const double BORDERSIZE = 2;
-    const double WINDOWSIZE = 100;
+    const int BORDERSIZE = 2;
+    const int WINDOWSIZE = 100;
 
-    const double MONITORGAP = 10;
-    const double GAPSOUT    = 20;
-    const double RESP       = (RESPECTGAPS ? GAPSOUT : 0);
-    const double GAP        = RESP + (OVERLAP ? 0 : BORDERSIZE);
-    const double END        = GAP + WINDOWSIZE;
+    const int MONITORGAP = 10;
+    const int GAPSOUT    = 20;
+    const int RESP       = (RESPECTGAPS ? GAPSOUT : 0);
+    const int GAP        = RESP + (OVERLAP ? 0 : BORDERSIZE);
+    const int END        = GAP + WINDOWSIZE;
 
-    double       x;
-    Vector2D     predict;
+    int       x;
+    Vector2D  predict;
 
     x = MONITORGAP + GAP;
     expectSnapMove({x, x}, nullptr);
@@ -94,9 +94,9 @@ static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
     expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - END, 1080 - END}));
 
     // test reserved area
-    const double RESERVED = 200;
-    const double RGAP     = RESERVED + RESP + BORDERSIZE;
-    const double REND     = RGAP + WINDOWSIZE;
+    const int RESERVED = 200;
+    const int RGAP     = RESERVED + RESP + BORDERSIZE;
+    const int REND     = RGAP + WINDOWSIZE;
 
     x = MONITORGAP + RGAP;
     expectSnapMove({x, x}, nullptr);

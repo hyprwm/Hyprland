@@ -1827,9 +1827,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "dwindle:split_bias",
-        .description = "specifies which window will receive the larger half of a split. positional - 0, current window - 1, opening window - 2 [0/1/2]",
+        .description = "specifies which window will receive the split ratio. 0 -> directional (the top or left window), 1 -> the current window",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "positional,current,opening"},
+        .data        = SConfigOptionDescription::SChoiceData{0, "directional,current"},
     },
     SConfigOptionDescription{
         .value       = "dwindle:precise_mouse_move",

@@ -102,6 +102,17 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         }
     }
 
+    if (!m_xkbKeymapV1 && !m_xkbFileV1Path.empty()) {
+        auto path = absolutePath(m_xkbFileV1Path, g_pConfigManager->m_configCurrentPath);
+
+        if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
+            Debug::log(ERR, "Cannot open input:kb_file_v1= file for reading");
+        else {
+            m_xkbKeymapV1 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            fclose(KEYMAPFILE);
+        }
+    }
+
     if (!m_xkbKeymapV1)
         m_xkbKeymapV1 = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 

@@ -1669,16 +1669,17 @@ bool CMonitor::supportsHDR() {
     return supportsWideColor() && (m_supportsHDR || (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false));
 }
 
-float CMonitor::minLuminance() {
-    return m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0);
+float CMonitor::minLuminance(float defaultValue) {
+    return m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : defaultValue);
 }
 
-int CMonitor::maxLuminance() {
-    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 80);
+int CMonitor::maxLuminance(int defaultValue) {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : defaultValue);
 }
 
-int CMonitor::maxAvgLuminance() {
-    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 80);
+int CMonitor::maxAvgLuminance(int defaultValue) {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance :
+                                    (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : defaultValue);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

@@ -92,7 +92,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
     }
 
     if (!m_xkbKeymap)
-        m_xkbKeymap = xkb_keymap_new_from_names(CONTEXT, &XKBRULES, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!m_xkbKeymap) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
@@ -108,7 +108,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_currentRules.options = "";
         m_currentRules.layout  = "us";
 
-        m_xkbKeymap = xkb_keymap_new_from_names(CONTEXT, &XKBRULES, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
     updateXKBTranslationState(m_xkbKeymap);
@@ -220,19 +220,19 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
             rules.model   = model.c_str();
             rules.variant = variant.c_str();
 
-            auto KEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            auto KEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
             if (!KEYMAP) {
                 Debug::log(ERR, "updateXKBTranslationState: keymap failed 1, fallback without model/variant");
                 rules.model   = "";
                 rules.variant = "";
-                KEYMAP        = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+                KEYMAP        = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
 
             if (!KEYMAP) {
                 Debug::log(ERR, "updateXKBTranslationState: keymap failed 2, fallback to us");
                 rules.layout = "us";
-                KEYMAP       = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+                KEYMAP       = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
 
             m_xkbState       = xkb_state_new(KEYMAP);
@@ -256,7 +256,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
         .options = m_currentRules.options.c_str(),
     };
 
-    const auto NEWKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    const auto NEWKEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     m_xkbState       = xkb_state_new(NEWKEYMAP);
     m_xkbStaticState = xkb_state_new(NEWKEYMAP);

@@ -75,6 +75,7 @@ class CHyprRenderer {
     SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
     bool                            isIntel();
+    bool                            isSoftware();
     bool                            isMgpu();
     void                            makeEGLCurrent();
     void                            unsetEGL();
@@ -143,6 +144,7 @@ class CHyprRenderer {
     eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
     bool                    m_nvidia              = false;
     bool                    m_intel               = false;
+    bool                    m_software            = false;
     bool                    m_mgpu                = false;
 
     struct {

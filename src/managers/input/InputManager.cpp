@@ -1057,12 +1057,13 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto NUMLOCKON         = g_pConfigManager->getDeviceInt(devname, "numlock_by_default", "input:numlock_by_default");
     const auto RESOLVEBINDSBYSYM = g_pConfigManager->getDeviceInt(devname, "resolve_binds_by_sym", "input:resolve_binds_by_sym");
 
-    const auto FILEPATH = g_pConfigManager->getDeviceString(devname, "kb_file", "input:kb_file");
-    const auto RULES    = g_pConfigManager->getDeviceString(devname, "kb_rules", "input:kb_rules");
-    const auto MODEL    = g_pConfigManager->getDeviceString(devname, "kb_model", "input:kb_model");
-    const auto LAYOUT   = g_pConfigManager->getDeviceString(devname, "kb_layout", "input:kb_layout");
-    const auto VARIANT  = g_pConfigManager->getDeviceString(devname, "kb_variant", "input:kb_variant");
-    const auto OPTIONS  = g_pConfigManager->getDeviceString(devname, "kb_options", "input:kb_options");
+    const auto FILEPATH   = g_pConfigManager->getDeviceString(devname, "kb_file", "input:kb_file");
+    const auto FILEPATHV1 = g_pConfigManager->getDeviceString(devname, "kb_file_v1", "input:kb_file_v1");
+    const auto RULES      = g_pConfigManager->getDeviceString(devname, "kb_rules", "input:kb_rules");
+    const auto MODEL      = g_pConfigManager->getDeviceString(devname, "kb_model", "input:kb_model");
+    const auto LAYOUT     = g_pConfigManager->getDeviceString(devname, "kb_layout", "input:kb_layout");
+    const auto VARIANT    = g_pConfigManager->getDeviceString(devname, "kb_variant", "input:kb_variant");
+    const auto OPTIONS    = g_pConfigManager->getDeviceString(devname, "kb_options", "input:kb_options");
 
     const auto ENABLED    = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
     const auto ALLOWBINDS = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "keybinds") : true;
@@ -1095,7 +1096,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     try {
         if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES == pKeyboard->m_currentRules.rules &&
             MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout && VARIANT == pKeyboard->m_currentRules.variant &&
-            OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
+            OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath && FILEPATHV1 == pKeyboard->m_xkbFileV1Path) {
             Debug::log(LOG, "Not applying config to keyboard, it did not change.");
             return;
         }
@@ -1104,11 +1105,11 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         // we can ignore those and just apply
     }
 
-    pKeyboard->m_repeatRate  = std::max(0, REPEATRATE);
-    pKeyboard->m_repeatDelay = std::max(0, REPEATDELAY);
-    pKeyboard->m_numlockOn   = NUMLOCKON;
-    pKeyboard->m_xkbFilePath = FILEPATH;
-
+    pKeyboard->m_repeatRate    = std::max(0, REPEATRATE);
+    pKeyboard->m_repeatDelay   = std::max(0, REPEATDELAY);
+    pKeyboard->m_numlockOn     = NUMLOCKON;
+    pKeyboard->m_xkbFilePath   = FILEPATH;
+    pKeyboard->m_xkbFileV1Path = FILEPATHV1;
     pKeyboard->setKeymap(IKeyboard::SStringRuleNames{LAYOUT, MODEL, VARIANT, OPTIONS, RULES});
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();

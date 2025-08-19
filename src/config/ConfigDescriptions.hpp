@@ -429,7 +429,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
-        .description = "Appropriate XKB keymap parameter",
+        .description = "Appropriate XKB keymap file",
+        .type        = CONFIG_OPTION_STRING_LONG,
+        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+    },
+    SConfigOptionDescription{
+        .value       = "input:kb_file_v1",
+        .description = "Appropriate XKB keymap v1 file - will be used as fallback when clients do not support the V2 format",
         .type        = CONFIG_OPTION_STRING_LONG,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },

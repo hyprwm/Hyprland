@@ -655,6 +655,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:sensitivity", {0.f});
     registerConfigVar("input:accel_profile", {STRVAL_EMPTY});
     registerConfigVar("input:kb_file", {STRVAL_EMPTY});
+    registerConfigVar("input:kb_file_v1", {STRVAL_EMPTY});
+
     registerConfigVar("input:kb_layout", {"us"});
     registerConfigVar("input:kb_variant", {STRVAL_EMPTY});
     registerConfigVar("input:kb_options", {STRVAL_EMPTY});

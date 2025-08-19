@@ -3,16 +3,17 @@
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "render/OpenGL.hpp"
 
-void CBufferReleaseManager::add(PHLMONITORREF monitor, const CHLBufferReference& buf) {
+bool CBufferReleaseManager::add(PHLMONITORREF monitor, const CHLBufferReference& buf) {
     if (!monitor)
-        return;
+        return false;
 
     auto it = std::ranges::find_if(m_buffers[monitor], [&buf](auto& b) { return b == buf; });
 
     if (it != m_buffers[monitor].end())
-        return;
+        return false;
 
     m_buffers[monitor].emplace_back(buf);
+    return true;
 }
 
 void CBufferReleaseManager::pageFlip(PHLMONITORREF monitor) {

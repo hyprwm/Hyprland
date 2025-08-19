@@ -160,18 +160,16 @@ void CSurfacePassElement::draw(const CRegion& damage) {
             if (!m)
                 continue;
 
-            if (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m)) {
+            if (m_data.pMonitor == m)
                 g_pBufferReleaseManager->add(m, m_data.surface->m_current.buffer);
+            else if (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m) && g_pBufferReleaseManager->add(m, m_data.surface->m_current.buffer)) {
+                CBox wbox = {m_data.pWindow->m_realPosition->value(), m_data.pWindow->m_realSize->value()};
 
-                if (m != m_data.pMonitor) {
-                    CBox wbox = {m_data.pWindow->m_realPosition->value(), m_data.pWindow->m_realSize->value()};
+                if (m_data.pWindow->m_isFloating)
+                    wbox = m_data.pWindow->getFullWindowBoundingBox();
 
-                    if (m_data.pWindow->m_isFloating)
-                        wbox = m_data.pWindow->getFullWindowBoundingBox();
-
-                    m->addDamage(wbox.intersection({m->m_position, m->m_size}));
-                    g_pCompositor->scheduleFrameForMonitor(m);
-                }
+                m->addDamage(wbox.intersection({m->m_position, m->m_size}));
+                g_pCompositor->scheduleFrameForMonitor(m);
             }
         }
     }

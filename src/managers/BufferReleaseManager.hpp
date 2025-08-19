@@ -6,7 +6,7 @@
 class CBufferReleaseManager {
   public:
     CBufferReleaseManager() = default;
-    void add(PHLMONITORREF monitor, const CHLBufferReference& buf);
+    bool add(PHLMONITORREF monitor, const CHLBufferReference& buf);
     void pageFlip(PHLMONITORREF monitor);
     void destroy(PHLMONITORREF monitor);
 

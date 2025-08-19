@@ -1599,6 +1599,10 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 void CMonitor::setDPMS(bool on) {
+    // Don't trigger animation if the target state is the same
+    if (m_dpmsStatus == on)
+        return;
+
     m_dpmsStatus = on;
     m_events.dpmsChanged.emit();
 

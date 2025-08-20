@@ -1,0 +1,22 @@
+diff --git a/src/Compositor.cpp b/src/Compositor.cpp
+index 7b6a9e08..b06710f6 100644
+--- a/src/Compositor.cpp
++++ b/src/Compositor.cpp
+@@ -2142,6 +2142,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
+     if (!SWITCHINGISACTIVE)
+         nextWorkspaceOnMonitorID = pWorkspace->m_id;
+     else {
++        PHLWORKSPACE newWorkspace; // for holding a ref to the new workspace that might be created
++
+         for (auto const& w : getWorkspaces()) {
+             if (w->m_monitor == POLDMON && w->m_id != pWorkspace->m_id && !w->m_isSpecialWorkspace) {
+                 nextWorkspaceOnMonitorID = w->m_id;
+@@ -2161,7 +2163,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
+             Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
+ 
+             if (POLDMON)
+-                g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->m_id);
++                newWorkspace = g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->m_id);
+         }
+ 
+         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);

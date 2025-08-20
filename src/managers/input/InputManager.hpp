@@ -313,6 +313,7 @@ class CInputManager {
 
     friend class CKeybindManager;
     friend class CWLSurface;
+    friend class CWorkspaceSwipeGesture;
 };
 
 inline UP<CInputManager> g_pInputManager;

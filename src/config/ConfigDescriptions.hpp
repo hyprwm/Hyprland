@@ -757,24 +757,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      * gestures:
      */
 
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe",
-        .description = "enable workspace swipe gesture on touchpad",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_fingers",
-        .description = "how many fingers for the touchpad gesture",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{3, 0, 5}, //##TODO RANGE?
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_min_fingers",
-        .description = "if enabled, workspace_swipe_fingers is considered the minimum number of fingers to swipe",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
+
     SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_distance",
         .description = "in px, the distance of the touchpad gesture",

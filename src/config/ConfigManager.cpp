@@ -26,6 +26,10 @@
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
 
+#include "../managers/input/trackpad/TrackpadGestures.hpp"
+#include "../managers/input/trackpad/gestures/DispatcherGesture.hpp"
+#include "../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
+
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include <cstddef>
@@ -46,6 +50,7 @@
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/ConstVarList.hpp>
 #include <filesystem>
 #include <memory>
 using namespace Hyprutils::String;
@@ -409,6 +414,18 @@ static Hyprlang::CParseResult handlePermission(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleGesture(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleGesture(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_config->addConfigValue(name, val);
@@ -691,9 +708,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("binds:allow_pin_fullscreen", Hyprlang::INT{0});
     registerConfigVar("binds:drag_threshold", Hyprlang::INT{0});
 
-    registerConfigVar("gestures:workspace_swipe", Hyprlang::INT{0});
-    registerConfigVar("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
-    registerConfigVar("gestures:workspace_swipe_min_fingers", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_distance", Hyprlang::INT{300});
     registerConfigVar("gestures:workspace_swipe_invert", Hyprlang::INT{1});
     registerConfigVar("gestures:workspace_swipe_min_speed_to_force", Hyprlang::INT{30});
@@ -845,6 +859,7 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handleBlurLS, "blurls", {false});
     m_config->registerHandler(&::handlePlugin, "plugin", {false});
     m_config->registerHandler(&::handlePermission, "permission", {false});
+    m_config->registerHandler(&::handleGesture, "gesture", {false});
     m_config->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -1028,6 +1043,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+    g_pTrackpadGestures->clearGestures();
 
     m_mAdditionalReservedAreas.clear();
     m_blurLSNamespaces.clear();
@@ -3143,6 +3159,34 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
+}
+
+std::optional<std::string> CConfigManager::handleGesture(const std::string& command, const std::string& value) {
+    CConstVarList                                data(value);
+
+    size_t                                       fingerCount = 0;
+    CTrackpadGestures::eTrackpadGestureDirection direction   = CTrackpadGestures::TRACKPAD_GESTURE_DIR_NONE;
+
+    try {
+        fingerCount = std::stoul(std::string{data[0]});
+    } catch (...) { return std::format("Invalid value {} for finger count", data[0]); }
+
+    if (fingerCount <= 1 || fingerCount >= 10)
+        return std::format("Invalid value {} for finger count", data[0]);
+
+    direction = g_pTrackpadGestures->dirForString(data[1]);
+
+    if (direction == CTrackpadGestures::TRACKPAD_GESTURE_DIR_NONE)
+        return std::format("Invalid direction: {}", data[1]);
+
+    if (data[2] == "dispatcher")
+        g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[3]}, std::string{data[4]}), fingerCount, direction);
+    else if (data[2] == "workspace")
+        g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction);
+    else
+        return std::format("Invalid gesture: {}", data[2]);
+
+    return std::nullopt;
 }
 
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {

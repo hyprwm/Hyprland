@@ -41,6 +41,8 @@
 #include "../../helpers/time/Time.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
+#include "trackpad/TrackpadGestures.hpp"
+
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {

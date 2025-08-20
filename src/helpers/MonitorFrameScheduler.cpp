@@ -57,23 +57,15 @@ void CMonitorFrameScheduler::onPresented() {
         return;
 
     Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", m_monitor->m_name);
-
     m_pendingThird = false;
 
-    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", m_monitor->m_name);
+    auto m = m_monitor.lock();
+    g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
 
-    m_pendingThird = false;
-
-    g_pEventLoopManager->doLater([m = m_monitor.lock()] {
-        if (!m)
-            return;
-        g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
-
-        // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
-        // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
-        if (m->m_damage.hasChanged())
-            g_pCompositor->scheduleFrameForMonitor(m);
-    });
+    // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
+    // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
+    if (m->m_damage.hasChanged())
+        g_pCompositor->scheduleFrameForMonitor(m);
 }
 
 void CMonitorFrameScheduler::onFrame() {
@@ -122,10 +114,15 @@ void CMonitorFrameScheduler::onFrame() {
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
-    m_sync = CEGLSync::create(); // this destroys the old sync
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
+    if (m_pendingSync)
+        return;
+
+    m_pendingSync = true;
+    g_pEventLoopManager->doOnReadable(m_monitor->m_inFence.duplicate(), [this, self = m_self] {
         if (!self) // might've gotten destroyed
             return;
+
+        m_pendingSync = false;
         onSyncFired();
     });
 }

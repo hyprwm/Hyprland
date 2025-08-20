@@ -89,7 +89,14 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
             m_touchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
         }
     } else if (!m_touchData.touchFocusLS.expired()) {
-        local = g_pInputManager->getMouseCoordsInternal() - m_touchData.touchFocusLS->m_geometry.pos();
+        PHLLS    foundSurf;
+        Vector2D foundCoords;
+        auto     surf = g_pCompositor->vectorToLayerPopupSurface(g_pInputManager->getMouseCoordsInternal(), PMONITOR, &foundCoords, &foundSurf);
+        if (surf) {
+            local                         = foundCoords;
+            m_touchData.touchFocusSurface = surf;
+        } else
+            local = g_pInputManager->getMouseCoordsInternal() - m_touchData.touchFocusLS->m_geometry.pos();
 
         m_touchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else

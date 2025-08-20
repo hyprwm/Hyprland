@@ -40,9 +40,9 @@ void CMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
 
     // tiled: attempt to move window in the given direction
 
-    m_window->m_floatingOffset = {};
-
     const auto WINDOWPOS = m_window->m_realPosition->goal() + m_window->m_floatingOffset;
+
+    m_window->m_floatingOffset = {};
 
     if (std::abs(m_lastDelta.x) > std::abs(m_lastDelta.y)) {
         // horizontal

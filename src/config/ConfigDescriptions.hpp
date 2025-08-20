@@ -757,7 +757,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      * gestures:
      */
 
-
     SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_distance",
         .description = "in px, the distance of the touchpad gesture",

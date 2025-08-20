@@ -179,8 +179,6 @@ class CInputManager {
     void              recheckIdleInhibitorStatus();
     bool              isWindowInhibiting(const PHLWINDOW& pWindow, bool onlyHl = true);
 
-    SSwipeGesture     m_activeSwipe;
-
     CTimer            m_lastCursorMovement;
 
     CInputMethodRelay m_relay;
@@ -276,13 +274,8 @@ class CInputManager {
     };
     std::vector<UP<SIdleInhibitor>> m_idleInhibitors;
 
-    // swipe
-    void beginWorkspaceSwipe();
-    void updateWorkspaceSwipe(double);
-    void endWorkspaceSwipe();
-
-    void setBorderCursorIcon(eBorderIconDirection);
-    void setCursorIconOnBorder(PHLWINDOW w);
+    void                            setBorderCursorIcon(eBorderIconDirection);
+    void                            setCursorIconOnBorder(PHLWINDOW w);
 
     // temporary. Obeys setUntilUnset.
     void setCursorImageOverride(const std::string& name);

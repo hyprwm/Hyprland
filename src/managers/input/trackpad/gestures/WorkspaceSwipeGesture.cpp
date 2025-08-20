@@ -3,13 +3,13 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../render/Renderer.hpp"
-#include "../../../../helpers/Monitor.hpp"
-#include "../../../../desktop/LayerSurface.hpp"
+
+#include "../../UnifiedWorkspaceSwipeGesture.hpp"
 
 void CWorkspaceSwipeGesture::begin(const IPointer::SSwipeUpdateEvent& e) {
     static auto PSWIPENEW = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
-    if (g_pSessionLockManager->isSessionLocked())
+    if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 
     int onMonitor = 0;
@@ -21,24 +21,24 @@ void CWorkspaceSwipeGesture::begin(const IPointer::SSwipeUpdateEvent& e) {
     if (onMonitor < 2 && !*PSWIPENEW)
         return; // disallow swiping when there's 1 workspace on a monitor
 
-    g_pInputManager->beginWorkspaceSwipe();
+    g_pUnifiedWorkspaceSwipe->begin();
 }
 
 void CWorkspaceSwipeGesture::update(const IPointer::SSwipeUpdateEvent& e) {
-    if (!g_pInputManager->m_activeSwipe.pWorkspaceBegin)
+    if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 
     static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
-    const auto   ANIMSTYLE  = g_pInputManager->m_activeSwipe.pWorkspaceBegin->m_renderOffset->getStyle();
+    const auto   ANIMSTYLE  = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
     const bool   VERTANIMS  = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
-    const double D = g_pInputManager->m_activeSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
-    g_pInputManager->updateWorkspaceSwipe(D);
+    const double D = g_pUnifiedWorkspaceSwipe->m_delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
+    g_pUnifiedWorkspaceSwipe->update(D);
 }
 
 void CWorkspaceSwipeGesture::end(const IPointer::SSwipeEndEvent& e) {
-    if (!g_pInputManager->m_activeSwipe.pWorkspaceBegin)
+    if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 
-    g_pInputManager->endWorkspaceSwipe();
+    g_pUnifiedWorkspaceSwipe->end();
 }

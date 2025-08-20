@@ -1948,3 +1948,21 @@ void CInputManager::recheckMouseWarpOnMouseInput() {
     if (!m_lastInputMouse && *PWARPFORNONMOUSE)
         g_pPointerManager->warpTo(m_lastMousePos);
 }
+
+void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
+
+    g_pTrackpadGestures->gestureBegin(e);
+}
+
+void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeUpdate", e);
+
+    g_pTrackpadGestures->gestureUpdate(e);
+}
+
+void CInputManager::onSwipeEnd(IPointer::SSwipeEndEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeEnd", e);
+
+    g_pTrackpadGestures->gestureEnd(e);
+}

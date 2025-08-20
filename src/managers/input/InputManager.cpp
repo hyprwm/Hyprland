@@ -164,13 +164,13 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_lastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {
     m_lastInputMouse = mouse;
 
     if (!g_pCompositor->m_readyToProcess || g_pCompositor->m_isShuttingDown || g_pCompositor->m_unsafeState)
         return;
 
-    Vector2D const mouseCoords        = getMouseCoordsInternal();
+    Vector2D const mouseCoords        = overridePos.value_or(getMouseCoordsInternal());
     auto const     MOUSECOORDSFLOORED = mouseCoords.floor();
 
     if (MOUSECOORDSFLOORED == m_lastCursorPosFloored && !refocus)
@@ -1488,8 +1488,8 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
     return !pKeyboard || (client && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == client);
 }
 
-void CInputManager::refocus() {
-    mouseMoveUnified(0, true);
+void CInputManager::refocus(std::optional<Vector2D> overridePos) {
+    mouseMoveUnified(0, true, false, overridePos);
 }
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {

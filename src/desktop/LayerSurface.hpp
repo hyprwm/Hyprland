@@ -85,3 +85,23 @@ class CLayerSurface {
         return m_layerSurface == rhs.m_layerSurface && m_monitor == rhs.m_monitor;
     }
 };
+
+inline bool valid(PHLLS l) {
+    return l;
+}
+
+inline bool valid(PHLLSREF l) {
+    return l;
+}
+
+inline bool validMapped(PHLLS l) {
+    if (!valid(l))
+        return false;
+    return l->m_mapped;
+}
+
+inline bool validMapped(PHLLSREF l) {
+    if (!valid(l))
+        return false;
+    return l->m_mapped;
+}

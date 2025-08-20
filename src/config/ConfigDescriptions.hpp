@@ -434,12 +434,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
     SConfigOptionDescription{
-        .value       = "input:kb_file_v1",
-        .description = "Appropriate XKB keymap v1 file - if a V2 format is used in input:kb_file, it will be used as fallback when clients do not support the V2 format",
-        .type        = CONFIG_OPTION_STRING_LONG,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
-    },
-    SConfigOptionDescription{
         .value       = "input:numlock_by_default",
         .description = "Engage numlock by default.",
         .type        = CONFIG_OPTION_BOOL,

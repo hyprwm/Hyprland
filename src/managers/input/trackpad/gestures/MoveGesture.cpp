@@ -28,7 +28,7 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
 
     // funny name but works on tiled too lmao
     m_lastDelta += DELTA;
-    m_window->m_floatingOffset = m_lastDelta * 0.5F;
+    m_window->m_floatingOffset = (m_lastDelta * 0.5F).clamp(Vector2D{-100.F, -100.F}, Vector2D{100.F, 100.F});
 
     g_pHyprRenderer->damageWindow(m_window.lock());
 }

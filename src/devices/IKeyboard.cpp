@@ -91,32 +91,15 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
             Debug::log(ERR, "Cannot open input:kb_file= file for reading");
         else {
-            m_xkbKeymapV1 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-            // try v2 format if v1 does not succeed
-            if (!m_xkbKeymapV1) {
-                fseek(KEYMAPFILE, 0, SEEK_SET);
-                m_xkbKeymap = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
-            }
-
+            m_xkbKeymap = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             fclose(KEYMAPFILE);
         }
     }
 
-    if (!m_xkbKeymapV1 && !m_xkbFileV1Path.empty()) {
-        auto path = absolutePath(m_xkbFileV1Path, g_pConfigManager->m_configCurrentPath);
+    if (!m_xkbKeymap)
+        m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-        if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
-            Debug::log(ERR, "Cannot open input:kb_file_v1= file for reading");
-        else {
-            m_xkbKeymapV1 = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-            fclose(KEYMAPFILE);
-        }
-    }
-
-    if (!m_xkbKeymapV1)
-        m_xkbKeymapV1 = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-
-    if (!m_xkbKeymapV1) {
+    if (!m_xkbKeymap) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
                                         ", options: " + rules.options + ", layout: " + rules.layout + " )");
 
@@ -130,11 +113,17 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_currentRules.options = "";
         m_currentRules.layout  = "us";
 
-        m_xkbKeymapV1 = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    if (!m_xkbKeymap)
-        m_xkbKeymap = xkb_keymap_ref(m_xkbKeymapV1);
+    auto cKeymapStr = xkb_keymap_get_as_string(m_xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
+    if (!cKeymapStr) {
+        Debug::log(ERR, "Couldn't convert keymap to V1 format");
+        m_xkbKeymapV1 = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    } else {
+        m_xkbKeymapV1 = xkb_keymap_new_from_string(CONTEXT, cKeymapStr, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        free(cKeymapStr);
+    }
 
     updateXKBTranslationState(m_xkbKeymap);
 

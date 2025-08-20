@@ -2,15 +2,18 @@
 
 #include "../ITrackpadGesture.hpp"
 
-class CDispatcherTrackpadGesture : public ITrackpadGesture {
+#include "../../../../desktop/DesktopTypes.hpp"
+
+class CMoveTrackpadGesture : public ITrackpadGesture {
   public:
-    CDispatcherTrackpadGesture(const std::string& dispatcher, const std::string& data);
-    virtual ~CDispatcherTrackpadGesture() = default;
+    CMoveTrackpadGesture()          = default;
+    virtual ~CMoveTrackpadGesture() = default;
 
     virtual void begin(const ITrackpadGesture::STrackpadGestureBegin& e);
     virtual void update(const ITrackpadGesture::STrackpadGestureUpdate& e);
     virtual void end(const ITrackpadGesture::STrackpadGestureEnd& e);
 
   private:
-    std::string m_dispatcher, m_data;
+    PHLWINDOWREF m_window;
+    Vector2D     m_lastDelta;
 };

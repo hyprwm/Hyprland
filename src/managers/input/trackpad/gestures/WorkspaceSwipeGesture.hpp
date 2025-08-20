@@ -8,7 +8,7 @@ class CWorkspaceSwipeGesture : public ITrackpadGesture {
     CWorkspaceSwipeGesture()          = default;
     virtual ~CWorkspaceSwipeGesture() = default;
 
-    virtual void begin(const IPointer::SSwipeUpdateEvent& e);
-    virtual void update(const IPointer::SSwipeUpdateEvent& e);
-    virtual void end(const IPointer::SSwipeEndEvent& e);
+    virtual void begin(const ITrackpadGesture::STrackpadGestureBegin& e);
+    virtual void update(const ITrackpadGesture::STrackpadGestureUpdate& e);
+    virtual void end(const ITrackpadGesture::STrackpadGestureEnd& e);
 };

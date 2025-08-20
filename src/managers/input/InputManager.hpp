@@ -141,6 +141,10 @@ class CInputManager {
     void               onSwipeEnd(IPointer::SSwipeEndEvent);
     void               onSwipeUpdate(IPointer::SSwipeUpdateEvent);
 
+    void               onPinchBegin(IPointer::SPinchBeginEvent);
+    void               onPinchUpdate(IPointer::SPinchUpdateEvent);
+    void               onPinchEnd(IPointer::SPinchEndEvent);
+
     void               onTabletAxis(CTablet::SAxisEvent);
     void               onTabletProximity(CTablet::SProximityEvent);
     void               onTabletTip(CTablet::STipEvent);

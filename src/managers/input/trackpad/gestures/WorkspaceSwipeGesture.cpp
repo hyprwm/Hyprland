@@ -6,7 +6,7 @@
 
 #include "../../UnifiedWorkspaceSwipeGesture.hpp"
 
-void CWorkspaceSwipeGesture::begin(const IPointer::SSwipeUpdateEvent& e) {
+void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     static auto PSWIPENEW = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
     if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
@@ -24,19 +24,21 @@ void CWorkspaceSwipeGesture::begin(const IPointer::SSwipeUpdateEvent& e) {
     g_pUnifiedWorkspaceSwipe->begin();
 }
 
-void CWorkspaceSwipeGesture::update(const IPointer::SSwipeUpdateEvent& e) {
+void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
     if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
+
+    const Vector2D DELTA = e.swipe ? e.swipe->delta : e.pinch->delta;
 
     static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
     const auto   ANIMSTYLE  = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
     const bool   VERTANIMS  = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
-    const double D = g_pUnifiedWorkspaceSwipe->m_delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
+    const double D = g_pUnifiedWorkspaceSwipe->m_delta + (VERTANIMS ? (*PSWIPEINVR ? -DELTA.y : DELTA.y) : (*PSWIPEINVR ? -DELTA.x : DELTA.x));
     g_pUnifiedWorkspaceSwipe->update(D);
 }
 
-void CWorkspaceSwipeGesture::end(const IPointer::SSwipeEndEvent& e) {
+void CWorkspaceSwipeGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
     if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 

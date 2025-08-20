@@ -6,15 +6,15 @@ CDispatcherTrackpadGesture::CDispatcherTrackpadGesture(const std::string& dispat
     ;
 }
 
-void CDispatcherTrackpadGesture::begin(const IPointer::SSwipeUpdateEvent& e) {
+void CDispatcherTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ; // intentionally blank
 }
 
-void CDispatcherTrackpadGesture::update(const IPointer::SSwipeUpdateEvent& e) {
+void CDispatcherTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
     ; // intentionally blank
 }
 
-void CDispatcherTrackpadGesture::end(const IPointer::SSwipeEndEvent& e) {
+void CDispatcherTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
     if (!g_pKeybindManager->m_dispatchers.contains(m_dispatcher))
         return;
 

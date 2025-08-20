@@ -29,6 +29,9 @@
 #include "../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../managers/input/trackpad/gestures/DispatcherGesture.hpp"
 #include "../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
+#include "../managers/input/trackpad/gestures/ResizeGesture.hpp"
+#include "../managers/input/trackpad/gestures/MoveGesture.hpp"
+#include "../managers/input/trackpad/gestures/SpecialWorkspaceGesture.hpp"
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -3179,12 +3182,27 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     if (direction == CTrackpadGestures::TRACKPAD_GESTURE_DIR_NONE)
         return std::format("Invalid direction: {}", data[1]);
 
-    if (data[2] == "dispatcher")
-        g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[3]}, std::string{data[4]}), fingerCount, direction);
-    else if (data[2] == "workspace")
-        g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction);
+    int      startDataIdx = 2;
+    uint32_t modMask      = 0;
+
+    if (data[2].starts_with("mod:")) {
+        startDataIdx = 3;
+        modMask      = g_pKeybindManager->stringToModMask(std::string{data[2].substr(4)});
+    }
+
+    if (data[startDataIdx] == "dispatcher")
+        g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount, direction,
+                                        modMask);
+    else if (data[startDataIdx] == "workspace")
+        g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask);
+    else if (data[startDataIdx] == "resize")
+        g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask);
+    else if (data[startDataIdx] == "move")
+        g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask);
+    else if (data[startDataIdx] == "special")
+        g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
     else
-        return std::format("Invalid gesture: {}", data[2]);
+        return std::format("Invalid gesture: {}", data[startDataIdx]);
 
     return std::nullopt;
 }

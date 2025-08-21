@@ -2,7 +2,7 @@
 
 #include "../../../../Compositor.hpp"
 #include "../../../../managers/LayoutManager.hpp"
-#include "../../../../managers/AnimationManager.hpp"
+#include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
 constexpr const float MAX_DISTANCE = 200.F;
@@ -26,7 +26,7 @@ void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     m_posFrom   = m_window->m_realPosition->goal();
     m_sizeFrom  = m_window->m_realSize->goal();
 
-    g_pAnimationManager->onWindowPostCreateClose(m_window.lock(), true, true);
+    g_pDesktopAnimationManager->startAnimation(m_window.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT, true);
     *m_window->m_alpha = 0.f;
 
     m_alphaTo = m_window->m_alpha->goal();

@@ -14,6 +14,7 @@
 #include "debug/Log.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
@@ -2327,7 +2328,8 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
             // don't make floating implicitly fs
             if (!PWINDOW->m_createdOverFullscreen) {
                 g_pCompositor->changeWindowZOrder(PWINDOW, true);
-                g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
+                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             }
 
             g_pCompositor->focusWindow(PWINDOW);

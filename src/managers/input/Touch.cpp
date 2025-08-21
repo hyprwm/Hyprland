@@ -7,7 +7,7 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
-#include "managers/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
 #include "../HookSystemManager.hpp"
 #include "debug/Log.hpp"
 #include "UnifiedWorkspaceSwipeGesture.hpp"

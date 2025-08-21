@@ -12,7 +12,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "defaultConfig.hpp"
 

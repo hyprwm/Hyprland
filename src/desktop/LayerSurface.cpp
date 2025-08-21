@@ -4,7 +4,8 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../helpers/Monitor.hpp"
@@ -99,7 +100,7 @@ void CLayerSurface::onDestroy() {
         } else {
             Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
             if (m_alpha)
-                m_alpha->setValueAndWarp(0.f);
+                g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             m_fadingOut = true;
             g_pCompositor->addToFadingOutSafe(m_self.lock());
         }
@@ -511,8 +512,8 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
         }
 
         m_realSize->setValueAndWarp(m_geometry.size());
-        m_alpha->setValueAndWarp(in ? 0.f : 1.f);
-        *m_alpha = in ? 1.f : 0.f;
+
+        g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
         Vector2D prePos;
 

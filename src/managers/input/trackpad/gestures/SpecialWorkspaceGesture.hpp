@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ITrackpadGesture.hpp"
+#include "ITrackpadGesture.hpp"
 
 #include "../../../../desktop/DesktopTypes.hpp"
 
@@ -18,7 +18,7 @@ class CSpecialWorkspaceGesture : public ITrackpadGesture {
     PHLWORKSPACE  m_specialWorkspace;
     PHLMONITORREF m_monitor;
     bool          m_animatingOut = false;
-    Vector2D      m_lastDelta;
+    float         m_lastDelta    = 0.F;
 
     // animated properties, kinda sucks
     float    m_monitorDimFrom = 0.F, m_monitorDimTo = 0.F;

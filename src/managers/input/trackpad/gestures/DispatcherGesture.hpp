@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ITrackpadGesture.hpp"
+#include "ITrackpadGesture.hpp"
 
 class CDispatcherTrackpadGesture : public ITrackpadGesture {
   public:

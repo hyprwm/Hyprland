@@ -45,7 +45,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
         pav->m_Context.pLayer = pLayer;
     }
 
-    void                onWindowPostCreateClose(PHLWINDOW, bool close = false);
+    void                onWindowPostCreateClose(PHLWINDOW, bool close = false, bool force = false);
 
     std::string         styleValidInConfigVar(const std::string&, const std::string&);
 

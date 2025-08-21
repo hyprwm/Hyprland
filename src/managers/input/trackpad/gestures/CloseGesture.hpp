@@ -4,10 +4,10 @@
 
 #include "../../../../desktop/DesktopTypes.hpp"
 
-class CResizeTrackpadGesture : public ITrackpadGesture {
+class CCloseTrackpadGesture : public ITrackpadGesture {
   public:
-    CResizeTrackpadGesture()          = default;
-    virtual ~CResizeTrackpadGesture() = default;
+    CCloseTrackpadGesture()          = default;
+    virtual ~CCloseTrackpadGesture() = default;
 
     virtual void begin(const ITrackpadGesture::STrackpadGestureBegin& e);
     virtual void update(const ITrackpadGesture::STrackpadGestureUpdate& e);
@@ -15,4 +15,9 @@ class CResizeTrackpadGesture : public ITrackpadGesture {
 
   private:
     PHLWINDOWREF m_window;
+
+    Vector2D     m_posFrom, m_posTo, m_sizeFrom, m_sizeTo;
+    float        m_alphaFrom = 0.F, m_alphaTo = 0.F;
+
+    float        m_lastDelta = 0.F;
 };

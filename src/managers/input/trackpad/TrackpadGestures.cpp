@@ -8,7 +8,7 @@ void CTrackpadGestures::clearGestures() {
     m_gestures.clear();
 }
 
-CTrackpadGestures::eTrackpadGestureDirection CTrackpadGestures::dirForString(const std::string_view& s) {
+eTrackpadGestureDirection CTrackpadGestures::dirForString(const std::string_view& s) {
     std::string lc = std::string{s};
     std::ranges::transform(lc, lc.begin(), ::tolower);
 
@@ -85,7 +85,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
                 continue;
 
             m_activeGesture = g;
-            m_activeGesture->gesture->begin({.swipe = &e});
+            m_activeGesture->gesture->begin({.swipe = &e, .direction = direction});
             break;
         }
 
@@ -95,14 +95,14 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
         }
     }
 
-    m_activeGesture->gesture->update({.swipe = &e});
+    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->direction});
 }
 
 void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
     if (!m_activeGesture)
         return;
 
-    m_activeGesture->gesture->end({.swipe = &e});
+    m_activeGesture->gesture->end({.swipe = &e, .direction = m_activeGesture->direction});
 
     m_activeGesture.reset();
 }
@@ -147,7 +147,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
                 continue;
 
             m_activeGesture = g;
-            m_activeGesture->gesture->begin({.pinch = &e});
+            m_activeGesture->gesture->begin({.pinch = &e, .direction = direction});
             break;
         }
 
@@ -157,14 +157,14 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
         }
     }
 
-    m_activeGesture->gesture->update({.pinch = &e});
+    m_activeGesture->gesture->update({.pinch = &e, .direction = m_activeGesture->direction});
 }
 
 void CTrackpadGestures::gestureEnd(const IPointer::SPinchEndEvent& e) {
     if (!m_activeGesture)
         return;
 
-    m_activeGesture->gesture->end({.pinch = &e});
+    m_activeGesture->gesture->end({.pinch = &e, .direction = m_activeGesture->direction});
 
     m_activeGesture.reset();
 }

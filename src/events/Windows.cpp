@@ -840,7 +840,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
 
     // anims
-    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
+    if (!PWINDOW->m_noOutAnim)
+        g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
     *PWINDOW->m_alpha = 0.f;
 
     // recheck idle inhibitors

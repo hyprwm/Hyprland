@@ -32,6 +32,8 @@
 #include "../managers/input/trackpad/gestures/ResizeGesture.hpp"
 #include "../managers/input/trackpad/gestures/MoveGesture.hpp"
 #include "../managers/input/trackpad/gestures/SpecialWorkspaceGesture.hpp"
+#include "../managers/input/trackpad/gestures/CloseGesture.hpp"
+#include "../managers/input/trackpad/gestures/FloatGesture.hpp"
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -3165,10 +3167,10 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleGesture(const std::string& command, const std::string& value) {
-    CConstVarList                                data(value);
+    CConstVarList             data(value);
 
-    size_t                                       fingerCount = 0;
-    CTrackpadGestures::eTrackpadGestureDirection direction   = CTrackpadGestures::TRACKPAD_GESTURE_DIR_NONE;
+    size_t                    fingerCount = 0;
+    eTrackpadGestureDirection direction   = TRACKPAD_GESTURE_DIR_NONE;
 
     try {
         fingerCount = std::stoul(std::string{data[0]});
@@ -3179,7 +3181,7 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 
     direction = g_pTrackpadGestures->dirForString(data[1]);
 
-    if (direction == CTrackpadGestures::TRACKPAD_GESTURE_DIR_NONE)
+    if (direction == TRACKPAD_GESTURE_DIR_NONE)
         return std::format("Invalid direction: {}", data[1]);
 
     int      startDataIdx = 2;
@@ -3201,6 +3203,10 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
         g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask);
     else if (data[startDataIdx] == "special")
         g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
+    else if (data[startDataIdx] == "close")
+        g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask);
+    else if (data[startDataIdx] == "float")
+        g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
 

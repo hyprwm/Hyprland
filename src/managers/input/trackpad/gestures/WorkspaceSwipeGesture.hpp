@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ITrackpadGesture.hpp"
+#include "ITrackpadGesture.hpp"
 #include "../../../../desktop/DesktopTypes.hpp"
 
 class CWorkspaceSwipeGesture : public ITrackpadGesture {

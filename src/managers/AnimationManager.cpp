@@ -372,7 +372,7 @@ void CHyprAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
     }
 }
 
-void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
+void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close, bool force) {
     if (!close) {
         pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
         pWindow->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
@@ -389,11 +389,11 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
     CVarList animList(ANIMSTYLE, 0, 's');
 
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
-    if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated())
+    if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated() && !force)
         return;
 
     // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
-    if (!pWindow->m_realPosition->enabled())
+    if (!pWindow->m_realPosition->enabled() && !force)
         return;
 
     if (pWindow->m_windowData.animationStyle.hasValue()) {

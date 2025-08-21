@@ -9,7 +9,8 @@ using namespace Hyprutils::Memory;
 
 constexpr const float MAX_DISTANCE = 150.F;
 
-static Vector2D       lerpVal(const Vector2D& from, const Vector2D& to, const float& t) {
+//
+static Vector2D lerpVal(const Vector2D& from, const Vector2D& to, const float& t) {
     return Vector2D{
         from.x + ((to.x - from.x) * t),
         from.y + ((to.y - from.y) * t),
@@ -26,7 +27,7 @@ CSpecialWorkspaceGesture::CSpecialWorkspaceGesture(const std::string& workspaceN
 
 void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     m_specialWorkspace.reset();
-    m_lastDelta = {};
+    m_lastDelta = 0.F;
     m_monitor.reset();
 
     m_specialWorkspace = g_pCompositor->getWorkspaceByName("special:" + m_specialWorkspaceName);
@@ -68,11 +69,9 @@ void CSpecialWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUp
 
     g_pHyprRenderer->damageMonitor(m_specialWorkspace->m_monitor.lock());
 
-    const auto DELTA = (e.swipe ? e.swipe->delta : e.pinch->delta);
-    m_lastDelta += DELTA;
+    m_lastDelta += distance(e);
 
-    const auto FADEPERCENT =
-        m_animatingOut ? 1.F - std::clamp(sc<float>(m_lastDelta.size()) / MAX_DISTANCE, 0.F, 1.F) : std::clamp(sc<float>(m_lastDelta.size()) / MAX_DISTANCE, 0.F, 1.F);
+    const auto FADEPERCENT = m_animatingOut ? 1.F - std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F) : std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
     m_monitor->m_specialFade->setValueAndWarp(lerpVal(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
     m_specialWorkspace->m_alpha->setValueAndWarp(lerpVal(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
@@ -83,7 +82,7 @@ void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
     if (!m_specialWorkspace || !m_monitor)
         return;
 
-    const auto COMPLETION = std::clamp(sc<float>(m_lastDelta.size()) / MAX_DISTANCE, 0.F, 1.F);
+    const auto COMPLETION = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
     if (COMPLETION < 0.3F) {
         // cancel the operation, which effectively means just flip the animation direction

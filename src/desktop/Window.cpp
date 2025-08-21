@@ -564,8 +564,6 @@ void CWindow::onMap() {
 
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    m_noOutAnim = false;
-
     if (m_borderAngleAnimationProgress->enabled()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
         m_borderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);

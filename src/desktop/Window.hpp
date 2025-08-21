@@ -314,9 +314,6 @@ class CWindow {
     // For the noclosefor windowrule
     Time::steady_tp m_closeableSince = Time::steadyNow();
 
-    // for 1:1 animations
-    bool m_noOutAnim = false;
-
     // For the list lookup
     bool operator==(const CWindow& rhs) const {
         return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&

@@ -839,9 +839,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
 
     // anims
-    if (!PWINDOW->m_noOutAnim)
-        g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-    *PWINDOW->m_alpha = 0.f;
+    g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();

@@ -11,7 +11,7 @@ class CDesktopAnimationManager {
     };
 
     void startAnimation(PHLWINDOW w, eAnimationType type, bool force = false);
-    void startAnimation(PHLLS ls, eAnimationType type);
+    void startAnimation(PHLLS ls, eAnimationType type, bool instant = false);
     void startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left = true, bool instant = false);
 
     void setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimationType type);

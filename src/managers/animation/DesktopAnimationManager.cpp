@@ -87,12 +87,147 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     }
 }
 
-void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type) {
-    if (type == ANIMATION_TYPE_IN) {
+void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, bool instant) {
+    const bool IN = type == ANIMATION_TYPE_IN;
+
+    if (IN) {
         ls->m_alpha->setValueAndWarp(0.F);
         *ls->m_alpha = 1.F;
     } else
         *ls->m_alpha = 0.F;
+
+    if (IN) {
+        ls->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        ls->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"));
+    } else {
+        ls->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        ls->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
+    }
+
+    const auto ANIMSTYLE = ls->m_animationStyle.value_or(ls->m_realPosition->getStyle());
+    if (ANIMSTYLE.starts_with("slide")) {
+        // get closest edge
+        const auto MIDDLE = ls->m_geometry.middle();
+
+        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+
+        if (!PMONITOR) { // can rarely happen on exit
+            ls->m_alpha->setValueAndWarp(IN ? 1.F : 0.F);
+            return;
+        }
+
+        int      force = -1;
+
+        CVarList args(ANIMSTYLE, 0, 's');
+        if (args.size() > 1) {
+            const auto ARG2 = args[1];
+            if (ARG2 == "top")
+                force = 0;
+            else if (ARG2 == "bottom")
+                force = 1;
+            else if (ARG2 == "left")
+                force = 2;
+            else if (ARG2 == "right")
+                force = 3;
+        }
+
+        const std::array<Vector2D, 4> edgePoints = {
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, 0.0},
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, PMONITOR->m_size.y},
+            PMONITOR->m_position + Vector2D{0.0, PMONITOR->m_size.y},
+            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x, PMONITOR->m_size.y / 2},
+        };
+
+        float closest = std::numeric_limits<float>::max();
+        int   leader  = force;
+        if (leader == -1) {
+            for (size_t i = 0; i < 4; ++i) {
+                float dist = MIDDLE.distance(edgePoints[i]);
+                if (dist < closest) {
+                    leader  = i;
+                    closest = dist;
+                }
+            }
+        }
+
+        ls->m_realSize->setValueAndWarp(ls->m_geometry.size());
+
+        g_pDesktopAnimationManager->startAnimation(ls->m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
+
+        Vector2D prePos;
+
+        switch (leader) {
+            case 0:
+                // TOP
+                prePos = {ls->m_geometry.x, PMONITOR->m_position.y - ls->m_geometry.h};
+                break;
+            case 1:
+                // BOTTOM
+                prePos = {ls->m_geometry.x, PMONITOR->m_position.y + PMONITOR->m_size.y};
+                break;
+            case 2:
+                // LEFT
+                prePos = {PMONITOR->m_position.x - ls->m_geometry.w, ls->m_geometry.y};
+                break;
+            case 3:
+                // RIGHT
+                prePos = {PMONITOR->m_position.x + PMONITOR->m_size.x, ls->m_geometry.y};
+                break;
+            default: UNREACHABLE();
+        }
+
+        if (IN) {
+            ls->m_realPosition->setValueAndWarp(prePos);
+            *ls->m_realPosition = ls->m_geometry.pos();
+        } else {
+            ls->m_realPosition->setValueAndWarp(ls->m_geometry.pos());
+            *ls->m_realPosition = prePos;
+        }
+
+    } else if (ANIMSTYLE.starts_with("popin")) {
+        float minPerc = 0.f;
+        if (ANIMSTYLE.find("%") != std::string::npos) {
+            try {
+                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
+                minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+            } catch (std::exception& e) {
+                ; // oops
+            }
+        }
+
+        minPerc *= 0.01;
+
+        const auto GOALSIZE = (ls->m_geometry.size() * minPerc).clamp({5, 5});
+        const auto GOALPOS  = ls->m_geometry.pos() + (ls->m_geometry.size() - GOALSIZE) / 2.f;
+
+        ls->m_alpha->setValueAndWarp(IN ? 0.f : 1.f);
+        *ls->m_alpha = IN ? 1.f : 0.f;
+
+        if (IN) {
+            ls->m_realSize->setValueAndWarp(GOALSIZE);
+            ls->m_realPosition->setValueAndWarp(GOALPOS);
+            *ls->m_realSize     = ls->m_geometry.size();
+            *ls->m_realPosition = ls->m_geometry.pos();
+        } else {
+            ls->m_realSize->setValueAndWarp(ls->m_geometry.size());
+            ls->m_realPosition->setValueAndWarp(ls->m_geometry.pos());
+            *ls->m_realSize     = GOALSIZE;
+            *ls->m_realPosition = GOALPOS;
+        }
+    } else {
+        // fade
+        ls->m_realPosition->setValueAndWarp(ls->m_geometry.pos());
+        ls->m_realSize->setValueAndWarp(ls->m_geometry.size());
+        *ls->m_alpha = IN ? 1.f : 0.f;
+    }
+
+    if (instant) {
+        ls->m_realPosition->warp();
+        ls->m_realSize->warp();
+        ls->m_alpha->warp();
+    }
 }
 
 void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left, bool instant) {

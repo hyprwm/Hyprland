@@ -4,8 +4,12 @@
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../../managers/eventLoop/EventLoopTimer.hpp"
 
-constexpr const float MAX_DISTANCE = 200.F;
+constexpr const float                   MAX_DISTANCE = 200.F;
+
+static std::vector<SP<CEventLoopTimer>> trackpadCloseTimers;
 
 //
 static Vector2D lerpVal(const Vector2D& from, const Vector2D& to, const float& t) {
@@ -79,26 +83,55 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     const auto CURRENT_POS   = m_window->m_realPosition->value();
     const auto CURRENT_SIZE  = m_window->m_realSize->value();
 
-    // FIXME: what if we close a window but it gives a popup and refuses to close?
-    /// maybe like a timer? xdg ping?
-
     g_pCompositor->closeWindow(m_window.lock());
-
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_window.lock());
-
-    m_window->m_noOutAnim = true;
-
-    const auto GOAL_ALPHA = m_window->m_alpha->goal();
-    const auto GOAL_POS   = m_window->m_realPosition->goal();
-    const auto GOAL_SIZE  = m_window->m_realSize->goal();
 
     m_window->m_alpha->setValueAndWarp(CURRENT_ALPHA);
     m_window->m_realPosition->setValueAndWarp(CURRENT_POS);
     m_window->m_realSize->setValueAndWarp(CURRENT_SIZE);
 
-    *m_window->m_alpha        = GOAL_ALPHA;
-    *m_window->m_realPosition = GOAL_POS;
-    *m_window->m_realSize     = GOAL_SIZE;
+    // this is a kinda hack, but oh well.
+    m_window->m_realPosition->setCallbackOnBegin(
+        [CURRENT_POS, window = m_window](auto) {
+            if (!window || !window->m_isMapped)
+                return;
+
+            window->m_realPosition->setValueAndWarp(CURRENT_POS);
+        },
+        false);
+
+    m_window->m_realSize->setCallbackOnBegin(
+        [CURRENT_SIZE, window = m_window](auto) {
+            if (!window || !window->m_isMapped)
+                return;
+
+            window->m_realSize->setValueAndWarp(CURRENT_SIZE);
+        },
+        false);
+
+    // we give windows 2s to close. If they don't, pop them back in.
+    auto timer = makeShared<CEventLoopTimer>(
+        std::chrono::seconds(2),
+        [window = m_window](SP<CEventLoopTimer> self, void* data) {
+            std::erase(trackpadCloseTimers, self);
+
+            // if after 2 seconds the window is still alive and mapped, we revert our changes.
+            if (!window)
+                return;
+
+            window->m_realPosition->setCallbackOnBegin(nullptr);
+            window->m_realSize->setCallbackOnBegin(nullptr);
+
+            if (!window->m_isMapped)
+                return;
+
+            g_pLayoutManager->getCurrentLayout()->recalculateWindow(window.lock());
+            g_pCompositor->updateWindowAnimatedDecorationValues(window.lock());
+            window->sendWindowSize(true);
+            *window->m_alpha = 1.F;
+        },
+        nullptr);
+    trackpadCloseTimers.emplace_back(timer);
+    g_pEventLoopManager->addTimer(timer);
 
     m_window.reset();
 }

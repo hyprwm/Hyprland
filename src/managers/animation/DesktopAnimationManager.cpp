@@ -154,8 +154,6 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
 
         ls->m_realSize->setValueAndWarp(ls->m_geometry.size());
 
-        g_pDesktopAnimationManager->startAnimation(ls->m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
-
         Vector2D prePos;
 
         switch (leader) {

@@ -136,8 +136,6 @@ void CMonitor::onConnect(bool noRule) {
                 g_pHyprRenderer->damageMonitor(self.lock());
             });
         }
-
-        m_frameScheduler->onPresented();
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

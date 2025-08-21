@@ -232,6 +232,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
     },
     SConfigOptionDescription{
+        .value       = "decoration:dim_modal",
+        .description = "enables dimming of parents of modal windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "decoration:dim_inactive",
         .description = "enables dimming of inactive windows",
         .type        = CONFIG_OPTION_BOOL,

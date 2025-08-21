@@ -1867,6 +1867,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:shadow:color_inactive");
     static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
+    static auto PDIMMODAL               = CConfigValue<Hyprlang::INT>("decoration:dim_modal");
 
     auto* const ACTIVECOL              = sc<CGradientValueData*>((PACTIVECOL.ptr())->getData());
     auto* const INACTIVECOL            = sc<CGradientValueData*>((PINACTIVECOL.ptr())->getData());
@@ -1924,7 +1925,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     else
         goalDim = *PDIMSTRENGTH;
 
-    if (IS_SHADOWED_BY_MODAL)
+    if (IS_SHADOWED_BY_MODAL && *PDIMMODAL)
         goalDim += (1.F - goalDim) / 2.F;
 
     *pWindow->m_dimPercent = goalDim;

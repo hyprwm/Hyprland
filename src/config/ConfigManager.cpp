@@ -582,6 +582,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("decoration:shadow:color", Hyprlang::INT{0xee1a1a1a});
     registerConfigVar("decoration:shadow:color_inactive", Hyprlang::INT{-1});
     registerConfigVar("decoration:dim_inactive", Hyprlang::INT{0});
+    registerConfigVar("decoration:dim_modal", Hyprlang::INT{1});
     registerConfigVar("decoration:dim_strength", {0.5f});
     registerConfigVar("decoration:dim_special", {0.2f});
     registerConfigVar("decoration:dim_around", {0.4f});

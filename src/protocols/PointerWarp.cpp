@@ -26,11 +26,11 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (g_pSeatManager->m_state.pointerFocus != PSURFACE)
             return;
 
-        const auto SURFBOXV = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
+        auto SURFBOXV = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
         if (!SURFBOXV.has_value())
             return;
 
-        const auto SURFBOX   = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal()->expand(1);
+        const auto SURFBOX   = SURFBOXV->expand(1);
         const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
         if (!SURFBOX.containsPoint(GLOBALPOS))
@@ -39,6 +39,8 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         const auto PSEAT = CWLPointerResource::fromResource(pointer)->m_owner.lock();
         if (!g_pSeatManager->serialValid(PSEAT, serial))
             return;
+
+        LOGM(LOG, "warped pointer to {}", GLOBALPOS);
 
         g_pPointerManager->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);

@@ -1,5 +1,8 @@
+#include <sys/poll.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <print>
+#include <cstring>
 
 #include <wayland-client.h>
 #include <wayland.hpp>
@@ -8,11 +11,9 @@
 
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/math/Vector2D.hpp>
-#include <print>
-#include <algorithm>
-#include <cstring>
+#include <hyprutils/os/FileDescriptor.hpp>
 
-using namespace Hyprutils::Math;
+using Hyprutils::Math::Vector2D;
 using namespace Hyprutils::Memory;
 
 struct SWlState {
@@ -41,6 +42,7 @@ struct SWlState {
 
     // pointer
     CSharedPointer<CCWlPointer> pointer;
+    uint32_t                    enterSerial;
 };
 
 static bool bindRegistry(SWlState& state) {
@@ -69,7 +71,7 @@ static bool bindRegistry(SWlState& state) {
 
     wl_display_roundtrip(state.display);
 
-    if (!state.wlCompositor || !state.wlShm || !state.wlSeat || !state.xdgShell /* || !pointerWarp */) {
+    if (!state.wlCompositor || !state.wlShm || !state.wlSeat || !state.xdgShell || !state.pointerWarp) {
         std::println("Failed to get protocols from Hyprland");
         return false;
     }
@@ -179,24 +181,42 @@ static bool setupToplevel(SWlState& state) {
 }
 
 static bool setupSeat(SWlState& state) {
-    // not really needed
-    // state.wlSeat->setCapabilities([&](CCWlSeat*, enum wl_seat_capability cap) {
-    //     if (cap | WL_SEAT_CAPABILITY_POINTER) {
-    //     }
-    // });
-
     state.pointer = makeShared<CCWlPointer>(state.wlSeat->sendGetPointer());
     if (!state.pointer->resource())
         return false;
 
-    state.pointer->setEnter(
-        [&](CCWlPointer* p, uint32_t serial, wl_proxy* surf, wl_fixed_t x, wl_fixed_t y) { std::println("Got pointer enter event, serial {}, x {}, y {}", serial, x, y); });
+    state.pointer->setEnter([&](CCWlPointer* p, uint32_t serial, wl_proxy* surf, wl_fixed_t x, wl_fixed_t y) {
+        std::println("Got pointer enter event, serial {}, x {}, y {}", serial, x, y);
+        state.enterSerial = serial;
+    });
 
     state.pointer->setLeave([&](CCWlPointer* p, uint32_t serial, wl_proxy* surf) { std::println("Got pointer leave event, serial {}", serial); });
 
     state.pointer->setMotion([&](CCWlPointer* p, uint32_t serial, wl_fixed_t x, wl_fixed_t y) { std::println("Got pointer motion event, serial {}, x {}, y {}", serial, x, y); });
 
     return true;
+}
+
+// format is like below
+// "warp 20 20" would ask to warp cursor to x=20,y=20 in surface local coords
+static void parseRequest(SWlState& state, std::string req) {
+    if (!req.starts_with("warp "))
+        return;
+
+    auto it = req.find_first_of(' ');
+    if (it == std::string::npos)
+        return;
+
+    req = req.substr(it + 1);
+
+    it = req.find_first_of(' ');
+
+    int x = std::stoi(req.substr(0, it));
+    int y = std::stoi(req.substr(it + 1));
+
+    std::println("parsed request to move to x:{}, y:{}", x, y);
+
+    state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), x, y, state.enterSerial);
 }
 
 int main() {
@@ -212,7 +232,23 @@ int main() {
     if (!bindRegistry(state) || !setupSeat(state) || !setupToplevel(state))
         return -1;
 
-    while (wl_display_dispatch(state.display) != -1) {}
+    // probably should use wl_display event fd here instead of this wonkiness, but eh it works
+    std::array<char, 1024> readBuf;
+    struct pollfd          fds;
+    fds.fd     = STDIN_FILENO;
+    fds.events = POLLIN;
+    while (wl_display_dispatch(state.display) != -1) {
+        int ret = poll(&fds, 1, 0);
+        if (ret != 1 || !(fds.revents & POLLIN))
+            continue;
+
+        readBuf.fill(0);
+        size_t bytesRead = read(fds.fd, readBuf.data(), 1023);
+        if (bytesRead == -1)
+            continue;
+
+        parseRequest(state, std::string{readBuf.data()});
+    }
 
     wl_display_disconnect(state.display);
     return 0;

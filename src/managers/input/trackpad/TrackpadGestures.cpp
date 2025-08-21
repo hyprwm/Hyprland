@@ -36,8 +36,56 @@ eTrackpadGestureDirection CTrackpadGestures::dirForString(const std::string_view
     return TRACKPAD_GESTURE_DIR_NONE;
 }
 
-void CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask) {
+const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
+    switch (dir) {
+        case TRACKPAD_GESTURE_DIR_HORIZONTAL: return "HORIZONTAL";
+        case TRACKPAD_GESTURE_DIR_VERTICAL: return "VERTICAL";
+        case TRACKPAD_GESTURE_DIR_LEFT: return "LEFT";
+        case TRACKPAD_GESTURE_DIR_RIGHT: return "RIGHT";
+        case TRACKPAD_GESTURE_DIR_UP: return "UP";
+        case TRACKPAD_GESTURE_DIR_DOWN: return "DOWN";
+        case TRACKPAD_GESTURE_DIR_SWIPE: return "SWIPE";
+        case TRACKPAD_GESTURE_DIR_PINCH: return "PINCH";
+        case TRACKPAD_GESTURE_DIR_PINCH_IN: return "PINCH_IN";
+        case TRACKPAD_GESTURE_DIR_PINCH_OUT: return "PINCH_OUT";
+        default: return "ERROR";
+    }
+    return "ERROR";
+}
+
+std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask) {
+    for (const auto& g : m_gestures) {
+        if (g->fingerCount != fingerCount)
+            continue;
+
+        if (g->modMask != modMask)
+            continue;
+
+        eTrackpadGestureDirection axis = TRACKPAD_GESTURE_DIR_NONE;
+        switch (direction) {
+            case TRACKPAD_GESTURE_DIR_UP:
+            case TRACKPAD_GESTURE_DIR_DOWN:
+            case TRACKPAD_GESTURE_DIR_VERTICAL: axis = TRACKPAD_GESTURE_DIR_VERTICAL; break;
+            case TRACKPAD_GESTURE_DIR_LEFT:
+            case TRACKPAD_GESTURE_DIR_RIGHT:
+            case TRACKPAD_GESTURE_DIR_HORIZONTAL: axis = TRACKPAD_GESTURE_DIR_HORIZONTAL; break;
+            case TRACKPAD_GESTURE_DIR_SWIPE: axis = TRACKPAD_GESTURE_DIR_SWIPE; break;
+            case TRACKPAD_GESTURE_DIR_PINCH:
+            case TRACKPAD_GESTURE_DIR_PINCH_IN:
+            case TRACKPAD_GESTURE_DIR_PINCH_OUT: axis = TRACKPAD_GESTURE_DIR_PINCH; break;
+            default: TRACKPAD_GESTURE_DIR_NONE; break;
+        }
+
+        if (g->direction == axis || g->direction == direction ||
+            ((axis == TRACKPAD_GESTURE_DIR_VERTICAL || axis == TRACKPAD_GESTURE_DIR_HORIZONTAL) && g->direction == TRACKPAD_GESTURE_DIR_SWIPE)) {
+            return std::unexpected(
+                std::format("Gesture will be overshadowed by a previous gesture. Previous {} shadows new {}", stringForDir(g->direction), stringForDir(direction)));
+        }
+    }
+
     m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction));
+
+    return {};
 }
 
 void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {

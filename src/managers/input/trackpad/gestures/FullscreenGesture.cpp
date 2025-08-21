@@ -1,4 +1,4 @@
-#include "FloatGesture.hpp"
+#include "FullscreenGesture.hpp"
 
 #include "../../../../Compositor.hpp"
 #include "../../../../managers/LayoutManager.hpp"
@@ -14,31 +14,27 @@ static Vector2D lerpVal(const Vector2D& from, const Vector2D& to, const float& t
     };
 }
 
-CFloatTrackpadGesture::CFloatTrackpadGesture(const std::string_view& data) {
-    std::string lc = std::string{data};
+CFullscreenTrackpadGesture::CFullscreenTrackpadGesture(const std::string_view& mode) {
+    std::string lc = std::string{mode};
     std::ranges::transform(lc, lc.begin(), ::tolower);
 
-    if (lc.starts_with("float"))
-        m_mode = FLOAT_MODE_FLOAT;
-    else if (lc.starts_with("tile"))
-        m_mode == FLOAT_MODE_TILE;
+    if (lc.starts_with("fullscreen"))
+        m_mode = MODE_FULLSCREEN;
+    else if (lc.starts_with("maximize"))
+        m_mode == MODE_MAXIMIZE;
     else
-        m_mode = FLOAT_MODE_TOGGLE;
+        m_mode = MODE_FULLSCREEN;
 }
 
-void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     m_window = g_pCompositor->m_lastWindow;
 
-    if ((m_window->m_isFloating && m_mode == FLOAT_MODE_FLOAT) || (!m_window->m_isFloating && m_mode == FLOAT_MODE_TILE)) {
-        m_window.reset();
-        return;
-    }
+    m_posFrom  = m_window->m_realPosition->goal();
+    m_sizeFrom = m_window->m_realSize->goal();
 
-    m_window->m_isFloating = !m_window->m_isFloating;
-    g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+    m_originalMode = m_window->m_fullscreenState.internal;
 
-    m_posFrom  = m_window->m_realPosition->begun();
-    m_sizeFrom = m_window->m_realSize->begun();
+    g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? fsModeForMode(m_mode) : FSMODE_NONE);
 
     m_posTo  = m_window->m_realPosition->goal();
     m_sizeTo = m_window->m_realSize->goal();
@@ -46,7 +42,7 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     m_lastDelta = 0.F;
 }
 
-void CFloatTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
+void CFullscreenTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
     if (!m_window)
         return;
 
@@ -64,7 +60,7 @@ void CFloatTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
     g_pHyprRenderer->damageWindow(m_window.lock());
 }
 
-void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
     if (!m_window)
         return;
 
@@ -74,10 +70,19 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
         m_window->m_isFloating = !m_window->m_isFloating;
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+        g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE);
         return;
     }
 
     *m_window->m_realPosition = m_posTo;
     *m_window->m_realSize     = m_sizeTo;
+}
+
+eFullscreenMode CFullscreenTrackpadGesture::fsModeForMode(eMode mode) {
+    switch (mode) {
+        case MODE_FULLSCREEN: return FSMODE_FULLSCREEN;
+        case MODE_MAXIMIZE: return FSMODE_MAXIMIZED;
+        default: break;
+    }
+    return FSMODE_FULLSCREEN;
 }

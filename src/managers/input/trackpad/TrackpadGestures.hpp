@@ -6,21 +6,23 @@
 #include "GestureTypes.hpp"
 
 #include <vector>
+#include <expected>
 
 class CTrackpadGestures {
   public:
-    void                      clearGestures();
-    void                      addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask);
+    void                             clearGestures();
+    std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask);
 
-    void                      gestureBegin(const IPointer::SSwipeBeginEvent& e);
-    void                      gestureUpdate(const IPointer::SSwipeUpdateEvent& e);
-    void                      gestureEnd(const IPointer::SSwipeEndEvent& e);
+    void                             gestureBegin(const IPointer::SSwipeBeginEvent& e);
+    void                             gestureUpdate(const IPointer::SSwipeUpdateEvent& e);
+    void                             gestureEnd(const IPointer::SSwipeEndEvent& e);
 
-    void                      gestureBegin(const IPointer::SPinchBeginEvent& e);
-    void                      gestureUpdate(const IPointer::SPinchUpdateEvent& e);
-    void                      gestureEnd(const IPointer::SPinchEndEvent& e);
+    void                             gestureBegin(const IPointer::SPinchBeginEvent& e);
+    void                             gestureUpdate(const IPointer::SPinchUpdateEvent& e);
+    void                             gestureEnd(const IPointer::SPinchEndEvent& e);
 
-    eTrackpadGestureDirection dirForString(const std::string_view& s);
+    eTrackpadGestureDirection        dirForString(const std::string_view& s);
+    const char*                      stringForDir(eTrackpadGestureDirection dir);
 
   private:
     struct SGestureData {

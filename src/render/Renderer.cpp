@@ -37,7 +37,6 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
-#include "protocols/types/ColorManagement.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;

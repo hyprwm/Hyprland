@@ -242,9 +242,12 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks
-    ws->m_renderOffset->setUpdateCallback([&](auto) {
+    ws->m_renderOffset->setUpdateCallback([weak = PHLWORKSPACEREF{ws}](auto) {
+        if (!weak)
+            return;
+
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!validMapped(w) || w->workspaceID() != ws->m_id)
+            if (!validMapped(w) || w->workspaceID() != weak->m_id)
                 continue;
 
             w->onWorkspaceAnimUpdate();

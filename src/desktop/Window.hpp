@@ -105,6 +105,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               renderUnfocused    = false;
     CWindowOverridableVar<bool>               noFollowMouse      = false;
     CWindowOverridableVar<bool>               noScreenShare      = false;
+    CWindowOverridableVar<bool>               noVRR              = false;
 
     CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), sc<Hyprlang::INT>(0), std::nullopt};
     CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), sc<Hyprlang::INT>(0), std::nullopt};
@@ -488,6 +489,7 @@ namespace NWindowProperties {
         {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.opaque; }},
         {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.RGBX; }},
         {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.syncFullscreen; }},
+        {"novrr", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noVRR; }},
         {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.tearing; }},
         {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.xray; }},
         {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFollowMouse; }},

@@ -39,6 +39,7 @@ class CWindowRule {
         RULE_CONTENT,
         RULE_PERSISTENTSIZE,
         RULE_NOCLOSEFOR,
+        RULE_NOVRR,
     };
 
     eRuleType         m_ruleType = RULE_INVALID;

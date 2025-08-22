@@ -1460,6 +1460,9 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     switch (settings.transferFunction) {
         case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
         case CM_TRANSFER_FUNCTION_ST2084_PQ: eotf = 2; break;
+        case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+            eotf = 2;
+            break; // should be Windows scRGB
         // case CM_TRANSFER_FUNCTION_HLG: eotf = 3; break; TODO check display capabilities first
         default: return NO_HDR_METADATA; // empty metadata for SDR
     }
@@ -1501,7 +1504,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
 
     const bool  configuredHDR = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
-    const bool  hdsIsActive   = pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
     bool        wantHDR       = configuredHDR;
 
     if (pMonitor->supportsHDR()) {
@@ -1524,7 +1526,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
-                const bool surfaceIsHDR = SURF->m_colorManagement->imageDescription().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ;
+                const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
                 if (*PPASS == 1 || (*PPASS == 2 && surfaceIsHDR)) {
                     // passthrough
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
@@ -1541,8 +1543,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
 
         if (!hdrIsHandled) {
-            if (hdsIsActive != wantHDR) {
-                if (*PAUTOHDR && !(hdsIsActive && configuredHDR)) {
+            if (pMonitor->inHDR() != wantHDR) {
+                if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
                     pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);
@@ -1553,7 +1555,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    const bool needsWCG = pMonitor->m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2 || pMonitor->m_imageDescription.primariesNamed == CM_PRIMARIES_BT2020;
+    const bool needsWCG = pMonitor->wantsWideColor();
     if (pMonitor->m_output->state->state().wideColorGamut != needsWCG) {
         Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
         pMonitor->m_output->state->setWideColorGamut(needsWCG);

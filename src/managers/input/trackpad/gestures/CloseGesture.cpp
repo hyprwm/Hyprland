@@ -24,6 +24,8 @@ static float lerpVal(const float& from, const float& to, const float& t) {
 }
 
 void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     m_window = g_pCompositor->m_lastWindow;
 
     m_alphaFrom = m_window->m_alpha->goal();

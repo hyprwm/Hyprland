@@ -7,6 +7,8 @@
 #include "../../UnifiedWorkspaceSwipeGesture.hpp"
 
 void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     static auto PSWIPENEW = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
     if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())

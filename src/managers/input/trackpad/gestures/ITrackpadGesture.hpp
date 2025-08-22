@@ -26,10 +26,13 @@ class ITrackpadGesture {
         eTrackpadGestureDirection       direction = TRACKPAD_GESTURE_DIR_NONE;
     };
 
-    virtual void  begin(const STrackpadGestureBegin& e)   = 0;
+    virtual void  begin(const STrackpadGestureBegin& e);
     virtual void  update(const STrackpadGestureUpdate& e) = 0;
     virtual void  end(const STrackpadGestureEnd& e)       = 0;
 
     virtual float distance(const STrackpadGestureBegin& e);
     virtual float distance(const STrackpadGestureUpdate& e);
+
+  protected:
+    float m_lastPinchScale = 1.F;
 };

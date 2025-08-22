@@ -26,6 +26,8 @@ CSpecialWorkspaceGesture::CSpecialWorkspaceGesture(const std::string& workspaceN
 }
 
 void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     m_specialWorkspace.reset();
     m_lastDelta = 0.F;
     m_monitor.reset();

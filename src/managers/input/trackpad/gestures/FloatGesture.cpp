@@ -27,6 +27,8 @@ CFloatTrackpadGesture::CFloatTrackpadGesture(const std::string_view& data) {
 }
 
 void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     m_window = g_pCompositor->m_lastWindow;
 
     if ((m_window->m_isFloating && m_mode == FLOAT_MODE_FLOAT) || (!m_window->m_isFloating && m_mode == FLOAT_MODE_TILE)) {

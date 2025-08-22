@@ -5,6 +5,8 @@
 #include "../../../../render/Renderer.hpp"
 
 void CResizeTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     m_window = g_pCompositor->m_lastWindow;
 }
 

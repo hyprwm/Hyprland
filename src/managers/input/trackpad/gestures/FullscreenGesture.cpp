@@ -27,6 +27,8 @@ CFullscreenTrackpadGesture::CFullscreenTrackpadGesture(const std::string_view& m
 }
 
 void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    ITrackpadGesture::begin(e);
+
     m_window = g_pCompositor->m_lastWindow;
 
     m_posFrom  = m_window->m_realPosition->goal();

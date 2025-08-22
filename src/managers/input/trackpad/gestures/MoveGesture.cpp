@@ -35,6 +35,9 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
 
 void CMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
 
+    if (!m_window)
+        return;
+
     if (m_window->m_isFloating || m_lastDelta.size() < 0.1F)
         return;
 

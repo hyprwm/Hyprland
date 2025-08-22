@@ -170,8 +170,8 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
     if (m_gestureFindFailed)
         return;
 
-    // 0.05 was chosen because I felt like that's a good number.
-    if (!m_activeGesture && std::abs(e.scale - 1.F) < 0.05) {
+    // 0.1 was chosen because I felt like that's a good number.
+    if (!m_activeGesture && std::abs(e.scale - 1.F) < 0.1) {
         Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (pinch): gesture delta too small to start considering, waiting");
         return;
     }
@@ -180,7 +180,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
         // try to find a gesture that matches our current state
 
         auto       direction = TRACKPAD_GESTURE_DIR_PINCH;
-        auto       axis      = e.scale > 1.F ? TRACKPAD_GESTURE_DIR_PINCH_OUT : TRACKPAD_GESTURE_DIR_PINCH_IN;
+        auto       axis      = e.scale < 1.F ? TRACKPAD_GESTURE_DIR_PINCH_OUT : TRACKPAD_GESTURE_DIR_PINCH_IN;
 
         const auto MODS = g_pInputManager->getModsFromAllKBs();
 

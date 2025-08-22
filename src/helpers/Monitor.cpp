@@ -1671,6 +1671,7 @@ bool CMonitor::updateTearing() {
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+    static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
 
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
@@ -1740,7 +1741,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (!canNoShaderCM())
+    if (!canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) && *PPASS != 1)
         reasons |= DS_BLOCK_CM;
 
     return reasons;

@@ -1485,6 +1485,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PPASS    = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
 
+    static bool needsHDRupdate = false;
+
     const bool  configuredHDR = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
     bool        wantHDR       = configuredHDR;
 
@@ -1492,17 +1494,18 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
+        // HDR scRGB - monitor settings
+        // HDR PQ surface & DS is active - surface settings
         // PPASS = 0 monitor settings
         // PPASS = 1
         //           windowed: monitor settings
-        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, ctm, gamma if needed
+        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, gamma if needed
         // PPASS = 2
         //           windowed: monitor settings
         //           fullscreen SDR surface: monitor settings
         //           fullscreen HDR surface: surface settings
 
-        bool        hdrIsHandled   = false;
-        static bool needsHDRupdate = false;
+        bool hdrIsHandled = false;
         if (FS_WINDOW) {
             const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
             const auto SURF      = ROOT_SURF->findWithCM();
@@ -1510,7 +1513,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
-                if (*PPASS == 1 || (*PPASS == 2 && surfaceIsHDR)) {
+                if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
                     // passthrough
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || needsHDRupdate;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate())

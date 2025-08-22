@@ -725,6 +725,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("gestures:workspace_swipe_use_r", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_touch", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
+    registerConfigVar("gestures:close_max_timeout", Hyprlang::INT{1000});
 
     registerConfigVar("xwayland:enabled", Hyprlang::INT{1});
     registerConfigVar("xwayland:use_nearest_neighbor", Hyprlang::INT{1});

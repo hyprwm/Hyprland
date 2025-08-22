@@ -823,6 +823,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "gestures:close_max_timeout",
+        .description = "Timeout for closing windows with the close gesture, in ms.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1000, 10, 2000},
+    },
 
     /*
      * group:

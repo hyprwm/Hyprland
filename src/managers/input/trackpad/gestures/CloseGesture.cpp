@@ -6,6 +6,7 @@
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../../managers/eventLoop/EventLoopTimer.hpp"
+#include "../../../../config/ConfigValue.hpp"
 
 constexpr const float                   MAX_DISTANCE = 200.F;
 
@@ -66,6 +67,8 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 }
 
 void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+    static const auto PTIMEOUT = CConfigValue<Hyprlang::INT>("gestures:close_max_timeout");
+
     if (!m_window)
         return;
 
@@ -112,7 +115,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
 
     // we give windows 2s to close. If they don't, pop them back in.
     auto timer = makeShared<CEventLoopTimer>(
-        std::chrono::seconds(2),
+        std::chrono::milliseconds(*PTIMEOUT),
         [window = m_window](SP<CEventLoopTimer> self, void* data) {
             std::erase(trackpadCloseTimers, self);
 

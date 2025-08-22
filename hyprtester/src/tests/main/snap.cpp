@@ -168,6 +168,7 @@ static bool test() {
 
     NLog::log("{}Reloading the config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
+    OK(getFromSocket("/dispatch workspace 1"));
 
     return !ret;
 }

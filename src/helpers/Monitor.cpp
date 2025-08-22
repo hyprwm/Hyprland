@@ -18,6 +18,7 @@
 #include "../managers/PointerManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/LayoutManager.hpp"
@@ -1491,33 +1492,260 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
-bool CMonitor::attemptDirectScanout() {
-    if (!m_mirrors.empty() || isMirror() || g_pHyprRenderer->m_directScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+uint16_t CMonitor::isSolitaryBlocked(bool full) {
+    uint16_t reasons = 0;
 
-    if (g_pPointerManager->softwareLockedFor(m_self.lock()))
-        return false;
+    if (g_pHyprNotificationOverlay->hasAny()) {
+        reasons |= SC_NOTIFICATION;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        reasons |= SC_LOCK;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PWORKSPACE = m_activeWorkspace;
+    if (!PWORKSPACE) {
+        reasons |= SC_WORKSPACE;
+        return reasons;
+    }
+
+    if (!PWORKSPACE->m_hasFullscreenWindow) {
+        reasons |= SC_WINDOWED;
+        if (!full)
+            return reasons;
+    }
+
+    if (PROTO::data->dndActive()) {
+        reasons |= SC_DND;
+        if (!full)
+            return reasons;
+    }
+
+    if (m_activeSpecialWorkspace) {
+        reasons |= SC_SPECIAL;
+        if (!full)
+            return reasons;
+    }
+
+    if (PWORKSPACE->m_alpha->value() != 1.f) {
+        reasons |= SC_ALPHA;
+        if (!full)
+            return reasons;
+    }
+
+    if (PWORKSPACE->m_renderOffset->value() != Vector2D{}) {
+        reasons |= SC_OFFSET;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
+
+    if (!PCANDIDATE) {
+        reasons |= SC_CANDIDATE;
+        return reasons;
+    }
+
+    if (!PCANDIDATE->opaque()) {
+        reasons |= SC_OPAQUE;
+        if (!full)
+            return reasons;
+    }
+
+    if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
+        PCANDIDATE->m_realSize->isBeingAnimated()) {
+        reasons |= SC_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
+
+    if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
+        reasons |= SC_OVERLAYS;
+        if (!full)
+            return reasons;
+    }
+
+    for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        if (topls->m_alpha->value() != 0.f) {
+            reasons |= SC_OVERLAYS;
+            if (!full)
+                return reasons;
+        }
+    }
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
+            continue;
+
+        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(m_self.lock())) {
+            reasons |= SC_FLOAT;
+            if (!full)
+                return reasons;
+        }
+    }
+
+    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
+            continue;
+
+        reasons |= SC_WORKSPACES;
+        if (!full)
+            return reasons;
+    }
+
+    // check if it did not open any subsurfaces or shit
+    if (!PCANDIDATE->getSolitaryResource())
+        reasons |= SC_SURFACES;
+
+    return reasons;
+}
+
+void CMonitor::recheckSolitary() {
+    m_solitaryClient.reset(); // reset it, if we find one it will be set.
+    if (isSolitaryBlocked())
+        return;
+
+    m_solitaryClient = m_activeWorkspace->getFullscreenWindow();
+}
+
+uint8_t CMonitor::isTearingBlocked(bool full) {
+    uint8_t     reasons = 0;
+
+    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+
+    if (!m_tearingState.nextRenderTorn) {
+        reasons |= TC_NOT_TORN;
+        if (!full)
+            return reasons;
+    }
+
+    if (!*PTEARINGENABLED) {
+        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+        reasons |= TC_USER;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+        reasons |= TC_ZOOM;
+        if (!full)
+            return reasons;
+    }
+
+    if (!m_tearingState.canTear) {
+        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+        reasons |= TC_SUPPORT;
+        if (!full)
+            return reasons;
+    }
+
+    if (m_solitaryClient.expired()) {
+        reasons |= TC_CANDIDATE;
+        return reasons;
+    }
+
+    if (!m_solitaryClient->canBeTorn())
+        reasons |= TC_WINDOW;
+
+    return reasons;
+}
+
+bool CMonitor::updateTearing() {
+    m_tearingState.activelyTearing = !isTearingBlocked();
+    m_tearingState.nextRenderTorn  = false;
+    return m_tearingState.activelyTearing;
+}
+
+uint16_t CMonitor::isDSBlocked(bool full) {
+    uint16_t    reasons        = 0;
+    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+
+    if (*PDIRECTSCANOUT == 0) {
+        reasons |= DS_BLOCK_USER;
+        if (!full)
+            return reasons;
+    }
+
+    if (*PDIRECTSCANOUT == 2) {
+        if (!m_activeWorkspace || !m_activeWorkspace->m_hasFullscreenWindow || m_activeWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN) {
+            reasons |= DS_BLOCK_WINDOWED;
+            if (!full)
+                return reasons;
+        } else if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
+            reasons |= DS_BLOCK_CONTENT;
+            if (!full)
+                return reasons;
+        }
+    }
+
+    if (m_tearingState.activelyTearing) {
+        reasons |= DS_BLOCK_TEARING;
+        if (!full)
+            return reasons;
+    }
+
+    if (!m_mirrors.empty() || isMirror()) {
+        reasons |= DS_BLOCK_MIRROR;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pHyprRenderer->m_directScanoutBlocked) {
+        reasons |= DS_BLOCK_RECORD;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pPointerManager->softwareLockedFor(m_self.lock())) {
+        reasons |= DS_BLOCK_SW;
+        if (!full)
+            return reasons;
+    }
 
     const auto PCANDIDATE = m_solitaryClient.lock();
+    if (!PCANDIDATE) {
+        reasons |= DS_BLOCK_CANDIDATE;
+        return reasons;
+    }
 
-    if (!PCANDIDATE)
-        return false;
+    const auto PSURFACE = PCANDIDATE->getSolitaryResource();
+    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
+        reasons |= DS_BLOCK_SURFACE;
+        return reasons;
+    }
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
-
-    if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer)
-        return false;
-
-    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform)
-        return false;
+    if (PSURFACE->m_current.bufferSize != m_pixelSize || PSURFACE->m_current.transform != m_transform) {
+        reasons |= DS_BLOCK_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
     if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
-        return false;
+        reasons |= DS_BLOCK_DMA;
 
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {}", rc<uintptr_t>(PSURFACE.get()),
-               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()));
+    return reasons;
+}
+
+bool CMonitor::attemptDirectScanout() {
+    const auto blockedReason = isDSBlocked();
+    if (blockedReason) {
+        Debug::log(TRACE, "attemptDirectScanout: blocked by {}", blockedReason);
+        return false;
+    }
+
+    const auto PCANDIDATE = m_solitaryClient.lock();
+    const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
+    const auto params     = PSURFACE->m_current.buffer->dmabuf();
+
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
@@ -1526,7 +1754,7 @@ bool CMonitor::attemptDirectScanout() {
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
-                Debug::log(TRACE, "attemptDirectScanout: failed basic test");
+                Debug::log(TRACE, "attemptDirectScanout: failed basic test on cursor update");
                 return false;
             }
 
@@ -1555,6 +1783,7 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
+    Debug::log(TRACE, "attemptDirectScanout: setting presentation mode");
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 

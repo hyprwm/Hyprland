@@ -80,7 +80,7 @@ void CMonitorFrameScheduler::onFrame() {
     if (!canRender())
         return;
 
-    g_pHyprRenderer->recheckSolitaryForMonitor(m_monitor.lock());
+    m_monitor->recheckSolitary();
 
     m_monitor->m_tearingState.busy = false;
 

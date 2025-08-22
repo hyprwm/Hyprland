@@ -1188,9 +1188,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -1230,47 +1228,19 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
 
     // tearing and DS first
-    bool shouldTear = false;
-    if (pMonitor->m_tearingState.nextRenderTorn) {
-        pMonitor->m_tearingState.nextRenderTorn = false;
+    bool shouldTear = pMonitor->updateTearing();
 
-        if (!*PTEARINGENABLED) {
-            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
-            return;
-        }
+    if (pMonitor->attemptDirectScanout()) {
+        return;
+    } else if (!pMonitor->m_lastScanout.expired()) {
+        Debug::log(LOG, "Left a direct scanout.");
+        pMonitor->m_lastScanout.reset();
 
-        if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
-            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
-            return;
-        }
+        // reset DRM format, but only if needed since it might modeset
+        if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
+            pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
 
-        if (!pMonitor->m_tearingState.canTear) {
-            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
-            return;
-        }
-
-        if (!pMonitor->m_solitaryClient.expired())
-            shouldTear = true;
-    }
-
-    pMonitor->m_tearingState.activelyTearing = shouldTear;
-
-    if ((*PDIRECTSCANOUT == 1 ||
-         (*PDIRECTSCANOUT == 2 && pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow &&
-          pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN && pMonitor->m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        !shouldTear) {
-        if (pMonitor->attemptDirectScanout()) {
-            return;
-        } else if (!pMonitor->m_lastScanout.expired()) {
-            Debug::log(LOG, "Left a direct scanout.");
-            pMonitor->m_lastScanout.reset();
-
-            // reset DRM format, but only if needed since it might modeset
-            if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
-                pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
-
-            pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
-        }
+        pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);
@@ -2141,70 +2111,6 @@ void CHyprRenderer::initiateManualCrash() {
     static auto PDT = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
 
     **PDT = 0;
-}
-
-void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
-    pMonitor->m_solitaryClient.reset(); // reset it, if we find one it will be set.
-
-    if (g_pHyprNotificationOverlay->hasAny() || g_pSessionLockManager->isSessionLocked())
-        return;
-
-    const auto PWORKSPACE = pMonitor->m_activeWorkspace;
-
-    if (!PWORKSPACE || !PWORKSPACE->m_hasFullscreenWindow || PROTO::data->dndActive() || pMonitor->m_activeSpecialWorkspace || PWORKSPACE->m_alpha->value() != 1.f ||
-        PWORKSPACE->m_renderOffset->value() != Vector2D{})
-        return;
-
-    const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
-
-    if (!PCANDIDATE)
-        return; // ????
-
-    if (!PCANDIDATE->opaque())
-        return;
-
-    if (PCANDIDATE->m_realSize->value() != pMonitor->m_size || PCANDIDATE->m_realPosition->value() != pMonitor->m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
-        PCANDIDATE->m_realSize->isBeingAnimated())
-        return;
-
-    if (!pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty())
-        return;
-
-    for (auto const& topls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (topls->m_alpha->value() != 0.f)
-            return;
-    }
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
-            continue;
-
-        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(pMonitor))
-            return;
-    }
-
-    if (pMonitor->m_activeSpecialWorkspace)
-        return;
-
-    for (auto const& ws : g_pCompositor->getWorkspaces()) {
-        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != pMonitor)
-            continue;
-
-        return;
-    }
-
-    // check if it did not open any subsurfaces or shit
-    int surfaceCount = 0;
-    if (PCANDIDATE->m_isX11)
-        surfaceCount = 1;
-    else
-        surfaceCount = PCANDIDATE->popupsCount() + PCANDIDATE->surfacesCount();
-
-    if (surfaceCount > 1)
-        return;
-
-    // found one!
-    pMonitor->m_solitaryClient = PCANDIDATE;
 }
 
 SP<CRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {

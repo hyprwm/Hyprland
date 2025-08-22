@@ -212,6 +212,66 @@ class CMonitor {
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
 
+    // keep in sync with HyprCtl
+    enum eDSBlockReason : uint16_t {
+        DS_OK = 0,
+
+        DS_BLOCK_UNKNOWN   = (1 << 0),
+        DS_BLOCK_USER      = (1 << 1),
+        DS_BLOCK_WINDOWED  = (1 << 2),
+        DS_BLOCK_CONTENT   = (1 << 3),
+        DS_BLOCK_MIRROR    = (1 << 4),
+        DS_BLOCK_RECORD    = (1 << 5),
+        DS_BLOCK_SW        = (1 << 6),
+        DS_BLOCK_CANDIDATE = (1 << 7),
+        DS_BLOCK_SURFACE   = (1 << 8),
+        DS_BLOCK_TRANSFORM = (1 << 9),
+        DS_BLOCK_DMA       = (1 << 10),
+        DS_BLOCK_TEARING   = (1 << 11),
+        DS_BLOCK_FAILED    = (1 << 12),
+
+        DS_CHECKS_COUNT = 13,
+    };
+
+    // keep in sync with HyprCtl
+    enum eSolitaryCheck : uint16_t {
+        SC_OK = 0,
+
+        SC_UNKNOWN      = (1 << 0),
+        SC_NOTIFICATION = (1 << 1),
+        SC_LOCK         = (1 << 2),
+        SC_WORKSPACE    = (1 << 3),
+        SC_WINDOWED     = (1 << 4),
+        SC_DND          = (1 << 5),
+        SC_SPECIAL      = (1 << 6),
+        SC_ALPHA        = (1 << 7),
+        SC_OFFSET       = (1 << 8),
+        SC_CANDIDATE    = (1 << 9),
+        SC_OPAQUE       = (1 << 10),
+        SC_TRANSFORM    = (1 << 11),
+        SC_OVERLAYS     = (1 << 12),
+        SC_FLOAT        = (1 << 13),
+        SC_WORKSPACES   = (1 << 14),
+        SC_SURFACES     = (1 << 15),
+
+        SC_CHECKS_COUNT = 16,
+    };
+
+    // keep in sync with HyprCtl
+    enum eTearingCheck : uint8_t {
+        TC_OK = 0,
+
+        TC_UNKNOWN   = (1 << 0),
+        TC_NOT_TORN  = (1 << 1),
+        TC_USER      = (1 << 2),
+        TC_ZOOM      = (1 << 3),
+        TC_SUPPORT   = (1 << 4),
+        TC_CANDIDATE = (1 << 5),
+        TC_WINDOW    = (1 << 6),
+
+        TC_CHECKS_COUNT = 7,
+    };
+
     // methods
     void                                onConnect(bool noRule);
     void                                onDisconnect(bool destroy = false);
@@ -236,6 +296,11 @@ class CMonitor {
     WORKSPACEID                         activeSpecialWorkspaceID();
     CBox                                logicalBox();
     void                                scheduleDone();
+    uint16_t                            isSolitaryBlocked(bool full = false);
+    void                                recheckSolitary();
+    uint8_t                             isTearingBlocked(bool full = false);
+    bool                                updateTearing();
+    uint16_t                            isDSBlocked(bool full = false);
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);
     void                                onCursorMovedOnMonitor();

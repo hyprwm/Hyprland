@@ -1692,7 +1692,9 @@ bool CWindow::isModal() {
 }
 
 Vector2D CWindow::requestedMinSize() {
-    if ((m_isX11 && !m_xwaylandSurface->m_sizeHints) || (!m_isX11 && !m_xdgSurface->m_toplevel))
+    bool hasSizeHints = m_xwaylandSurface ? m_xwaylandSurface->m_sizeHints : false;
+    bool hasTopLevel  = m_xdgSurface ? m_xdgSurface->m_toplevel : false;
+    if ((m_isX11 && !hasSizeHints) || (!m_isX11 && !hasTopLevel))
         return Vector2D(1, 1);
 
     Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->min_width, m_xwaylandSurface->m_sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();

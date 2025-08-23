@@ -1631,24 +1631,27 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     }
 
     if (!*PTEARINGENABLED) {
-        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
         reasons |= TC_USER;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return reasons;
+        }
     }
 
     if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
-        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
         reasons |= TC_ZOOM;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
             return reasons;
+        }
     }
 
     if (!m_tearingState.canTear) {
-        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         reasons |= TC_SUPPORT;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return reasons;
+        }
     }
 
     if (m_solitaryClient.expired()) {

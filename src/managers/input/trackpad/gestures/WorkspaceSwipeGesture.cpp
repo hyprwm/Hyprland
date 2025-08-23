@@ -33,10 +33,8 @@ void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpda
     const float  DELTA = distance(e);
 
     static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
-    const auto   ANIMSTYLE  = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
-    const bool   VERTANIMS  = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
-    const double D = g_pUnifiedWorkspaceSwipe->m_delta + (VERTANIMS ? (*PSWIPEINVR ? -DELTA : DELTA) : (*PSWIPEINVR ? -DELTA : DELTA));
+    const double D = g_pUnifiedWorkspaceSwipe->m_delta + (*PSWIPEINVR ? -DELTA : DELTA);
     g_pUnifiedWorkspaceSwipe->update(D);
 }
 

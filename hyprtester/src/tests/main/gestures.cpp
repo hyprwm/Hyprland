@@ -65,6 +65,56 @@ static bool test() {
     }
 
     OK(getFromSocket("/dispatch plugin:test:alt 1"));
+
+    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "ID 2 (2)");
+    }
+
+    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
+    }
+
+    // check for crashes
+    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
+    }
+
+    OK(getFromSocket("/keyword gestures:workspace_swipe_invert 0"));
+
+    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "ID 2 (2)");
+    }
+
+    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
+    }
+
+    OK(getFromSocket("/keyword gestures:workspace_swipe_invert 1"));
+    OK(getFromSocket("/keyword gestures:workspace_swipe_create_new 0"));
+
+    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_CONTAINS(str, "ID 1 (1)");
+    }
+
     OK(getFromSocket("/dispatch plugin:test:gesture down,3"));
 
     {

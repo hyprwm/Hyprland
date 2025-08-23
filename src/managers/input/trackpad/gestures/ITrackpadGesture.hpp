@@ -33,7 +33,7 @@ class ITrackpadGesture {
     virtual float distance(const STrackpadGestureBegin& e);
     virtual float distance(const STrackpadGestureUpdate& e);
 
-    virtual bool isDirectionSensitive();
+    virtual bool  isDirectionSensitive();
 
   protected:
     float m_lastPinchScale = 1.F;

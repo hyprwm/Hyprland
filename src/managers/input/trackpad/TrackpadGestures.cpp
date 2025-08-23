@@ -133,7 +133,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
                 continue;
 
             m_activeGesture     = g;
-            g->currentDirection = direction;
+            g->currentDirection = g->gesture->isDirectionSensitive() ? g->direction : direction;
             m_activeGesture->gesture->begin({.swipe = &e, .direction = direction});
             break;
         }
@@ -196,7 +196,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
                 continue;
 
             m_activeGesture     = g;
-            g->currentDirection = direction;
+            g->currentDirection = g->gesture->isDirectionSensitive() ? g->direction : direction;
             m_activeGesture->gesture->begin({.pinch = &e, .direction = direction});
             break;
         }

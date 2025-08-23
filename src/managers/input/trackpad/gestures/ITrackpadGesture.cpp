@@ -41,3 +41,7 @@ float ITrackpadGesture::distance(const STrackpadGestureUpdate& e) {
 
     return e.swipe ? e.swipe->delta.size() : e.pinch->delta.size();
 }
+
+bool ITrackpadGesture::isDirectionSensitive() {
+    return false;
+}

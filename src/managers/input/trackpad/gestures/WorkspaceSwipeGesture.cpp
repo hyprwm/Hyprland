@@ -46,3 +46,7 @@ void CWorkspaceSwipeGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e)
 
     g_pUnifiedWorkspaceSwipe->end();
 }
+
+bool CWorkspaceSwipeGesture::isDirectionSensitive() {
+    return true;
+}

@@ -23,7 +23,7 @@ in {
         "HYPRLAND_TRACE" = "1";
         "XDG_RUNTIME_DIR" = "/tmp";
         "XDG_CACHE_HOME" = "/tmp";
-        "KITTY_CONFIG_DIRECTORY" = "/etc/kitty/kitty.conf";
+        "KITTY_CONFIG_DIRECTORY" = "/etc/kitty";
       };
 
       environment.etc."kitty/kitty.conf".text = ''

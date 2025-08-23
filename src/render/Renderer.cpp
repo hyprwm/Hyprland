@@ -3,6 +3,7 @@
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
+#include <cstdint>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
@@ -1516,10 +1517,14 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
                     // passthrough
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || needsHDRupdate;
-                    if (SURF->m_colorManagement->needsHdrMetadataUpdate())
+                    if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
+                        Debug::log(INFO, "[CM] Recreating HDR metadata for surface");
                         SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
-                    if (needsHdrMetadataUpdate)
+                    }
+                    if (needsHdrMetadataUpdate) {
+                        Debug::log(INFO, "[CM] Updating HDR metadata from surface");
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
+                    }
                     hdrIsHandled   = true;
                     needsHDRupdate = false;
                 } else if (*PAUTOHDR && surfaceIsHDR)
@@ -1532,8 +1537,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
-                    pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);
+                    const auto targetCM = wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType;
+                    Debug::log(INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+                    pMonitor->applyCMType(targetCM);
+                    pMonitor->m_previousFSWindow.reset(); // trigger CTM update
                 }
+                Debug::log(INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
             }
             needsHDRupdate = true;

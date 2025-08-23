@@ -132,7 +132,8 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
             if (g->modMask != MODS)
                 continue;
 
-            m_activeGesture = g;
+            m_activeGesture     = g;
+            g->currentDirection = direction;
             m_activeGesture->gesture->begin({.swipe = &e, .direction = direction});
             break;
         }
@@ -143,7 +144,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
         }
     }
 
-    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->direction});
+    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->currentDirection});
 }
 
 void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
@@ -179,8 +180,8 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
     if (!m_activeGesture) {
         // try to find a gesture that matches our current state
 
-        auto       direction = TRACKPAD_GESTURE_DIR_PINCH;
-        auto       axis      = e.scale < 1.F ? TRACKPAD_GESTURE_DIR_PINCH_OUT : TRACKPAD_GESTURE_DIR_PINCH_IN;
+        auto       direction = e.scale < 1.F ? TRACKPAD_GESTURE_DIR_PINCH_OUT : TRACKPAD_GESTURE_DIR_PINCH_IN;
+        auto       axis      = TRACKPAD_GESTURE_DIR_PINCH;
 
         const auto MODS = g_pInputManager->getModsFromAllKBs();
 
@@ -194,7 +195,8 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
             if (g->modMask != MODS)
                 continue;
 
-            m_activeGesture = g;
+            m_activeGesture     = g;
+            g->currentDirection = direction;
             m_activeGesture->gesture->begin({.pinch = &e, .direction = direction});
             break;
         }
@@ -205,7 +207,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
         }
     }
 
-    m_activeGesture->gesture->update({.pinch = &e, .direction = m_activeGesture->direction});
+    m_activeGesture->gesture->update({.pinch = &e, .direction = m_activeGesture->currentDirection});
 }
 
 void CTrackpadGestures::gestureEnd(const IPointer::SPinchEndEvent& e) {

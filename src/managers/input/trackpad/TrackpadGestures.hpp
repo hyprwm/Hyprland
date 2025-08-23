@@ -27,9 +27,10 @@ class CTrackpadGestures {
   private:
     struct SGestureData {
         UP<ITrackpadGesture>      gesture;
-        size_t                    fingerCount = 0;
-        uint32_t                  modMask     = 0;
-        eTrackpadGestureDirection direction   = TRACKPAD_GESTURE_DIR_NONE;
+        size_t                    fingerCount      = 0;
+        uint32_t                  modMask          = 0;
+        eTrackpadGestureDirection direction        = TRACKPAD_GESTURE_DIR_NONE; // configured dir
+        eTrackpadGestureDirection currentDirection = TRACKPAD_GESTURE_DIR_NONE; // actual dir of that select swipe
     };
 
     std::vector<SP<SGestureData>> m_gestures;

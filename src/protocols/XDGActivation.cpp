@@ -1,6 +1,7 @@
 #include "XDGActivation.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
 
@@ -20,6 +21,12 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
         // if it was used? the protocol spec doesn't say _when_ it should be sent...
         if UNLIKELY (m_committed) {
             LOGM(WARN, "possible protocol error, two commits from one token. Ignoring.");
+            return;
+        }
+
+        if (!g_pSeatManager->serialValid(g_pSeatManager->seatResourceForClient(m_resource->client()), m_serial)) {
+            LOGM(LOG, "serial not found, sending invalid token");
+            m_resource->sendDone("__invalid__");
             return;
         }
 

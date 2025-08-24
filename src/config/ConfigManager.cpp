@@ -553,6 +553,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("decoration:rounding", Hyprlang::INT{0});
     registerConfigVar("decoration:rounding_power", {2.F});
+    registerConfigVar("decoration:flat_corners", Hyprlang::INT{0});
     registerConfigVar("decoration:blur:enabled", Hyprlang::INT{1});
     registerConfigVar("decoration:blur:size", Hyprlang::INT{8});
     registerConfigVar("decoration:blur:passes", Hyprlang::INT{1});

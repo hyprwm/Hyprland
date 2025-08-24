@@ -1205,8 +1205,8 @@ float CWindow::rounding() {
 
 float CWindow::roundingPower() {
     static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
-
-    return m_windowData.roundingPower.valueOr(std::clamp(*PROUNDINGPOWER, 2.0f, 10.0f));
+    static auto FLAT_CORNERS   = CConfigValue<Hyprlang::INT>("decoration:flat_corners");
+	return m_windowData.roundingPower.valueOr(*FLAT_CORNERS ? 1.0f : std::clamp(*PROUNDINGPOWER, 2.0f, 10.0f));
 }
 
 void CWindow::updateWindowData() {

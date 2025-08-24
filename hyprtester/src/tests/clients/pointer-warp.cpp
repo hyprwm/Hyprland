@@ -8,6 +8,7 @@
 #include <hyprutils/os/Process.hpp>
 
 #include <sys/poll.h>
+#include <thread>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
@@ -60,6 +61,14 @@ static bool startClient(SClient& client) {
         return false;
     }
 
+    // hack to make sure window m_realPosition.value() == m_realPosition.goal()
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+    if (getFromSocket(std::format("/dispatch focuswindow pid:{}", client.proc->pid())) != "ok") {
+        NLog::log("{}Failed to focus pointer-warp client", Colors::RED, ret);
+        return false;
+    }
+
     NLog::log("{}Started pointer-warp client", Colors::YELLOW);
 
     return true;
@@ -74,13 +83,19 @@ static bool testWarp(SClient& client, int x, int y) {
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
-    // we just want to know that the request went through, data isn't important
     if (poll(&client.fds, 1, 500) != 1 || !(client.fds.revents & POLLIN))
         return false;
-    if (read(client.fds.fd, client.readBuf.data(), 1023) == -1)
+    ssize_t bytesRead = read(client.fds.fd, client.readBuf.data(), 1023);
+    if (bytesRead == -1)
         return false;
 
-    NLog::log("{}pointer-warp: client recieved command", Colors::YELLOW);
+    client.readBuf[bytesRead] = 0;
+    std::string recieved      = std::string{client.readBuf.data()};
+    recieved.pop_back();
+    NLog::log("{}pointer-warp: recieved \"{}\"", Colors::YELLOW, recieved);
+
+    // wait for warp to happen
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // TODO: add a better way to do this using test plugin?
     std::string res = getFromSocket("/cursorpos");

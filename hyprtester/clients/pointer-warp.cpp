@@ -247,7 +247,7 @@ static void parseRequest(SWlState& state, std::string req) {
 
     clientLog("parsed request to move to x:{}, y:{}", x, y);
 
-    state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), x, y, state.enterSerial);
+    state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), wl_fixed_from_int(x), wl_fixed_from_int(y), state.enterSerial);
 }
 
 int main(int argc, char** argv) {
@@ -269,22 +269,37 @@ int main(int argc, char** argv) {
     if (!bindRegistry(state) || !setupSeat(state) || !setupToplevel(state))
         return -1;
 
-    // probably should use wl_display event fd here instead of this wonkiness, but eh it works
     std::array<char, 1024> readBuf;
-    struct pollfd          fds;
-    fds.fd     = STDIN_FILENO;
-    fds.events = POLLIN;
-    while (wl_display_dispatch(state.display) != -1) {
-        int ret = poll(&fds, 1, 0);
-        if (ret != 1 || !(fds.revents & POLLIN))
-            continue;
+    readBuf.fill(0);
 
-        readBuf.fill(0);
-        ssize_t bytesRead = read(fds.fd, readBuf.data(), 1023);
-        if (bytesRead == -1)
-            continue;
+    wl_display_flush(state.display);
 
-        parseRequest(state, std::string{readBuf.data()});
+    struct pollfd fds[2] = {{.fd = wl_display_get_fd(state.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
+    while (poll(fds, 2, 0) != -1) {
+        if (fds[0].revents & POLLIN) {
+            wl_display_flush(state.display);
+
+            if (wl_display_prepare_read(state.display) == 0) {
+                wl_display_read_events(state.display);
+                wl_display_dispatch_pending(state.display);
+            } else
+                wl_display_dispatch(state.display);
+
+            int ret = 0;
+            do {
+                ret = wl_display_dispatch_pending(state.display);
+                wl_display_flush(state.display);
+            } while (ret > 0);
+        }
+
+        if (fds[1].revents & POLLIN) {
+            ssize_t bytesRead = read(fds[1].fd, readBuf.data(), 1023);
+            if (bytesRead == -1)
+                continue;
+            readBuf[bytesRead] = 0;
+
+            parseRequest(state, std::string{readBuf.data()});
+        }
     }
 
     wl_display_disconnect(state.display);

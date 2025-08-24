@@ -43,7 +43,6 @@ static bool startClient(SClient& client) {
     client.proc->setStdoutFD(pipeFds2[1]);
 
     client.proc->runAsync();
-    NLog::log("{}Launched pointer-warp client", Colors::YELLOW);
 
     close(pipeFds1[0]);
     close(pipeFds2[1]);
@@ -61,6 +60,9 @@ static bool startClient(SClient& client) {
         NLog::log("{}Failed to start pointer-warp client, read {}", Colors::RED, ret);
         return false;
     }
+
+    // wait for window to appear
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
     if (getFromSocket(std::format("/dispatch setprop pid:{} noanim 1", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to disable animations for client window", Colors::RED, ret);
@@ -87,10 +89,8 @@ static void stopClient(SClient& client) {
 
 // format is like below
 // "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
-static bool testWarp(SClient& client, int x, int y) {
-    std::string cmd = std::format("warp {} {}", x, y);
-    NLog::log("{}pointer-warp: sending client command \"{}\"", Colors::YELLOW, cmd);
-    cmd += '\n';
+static bool sendWarp(SClient& client, int x, int y) {
+    std::string cmd = std::format("warp {} {}\n", x, y);
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
@@ -103,11 +103,14 @@ static bool testWarp(SClient& client, int x, int y) {
     client.readBuf[bytesRead] = 0;
     std::string recieved      = std::string{client.readBuf.data()};
     recieved.pop_back();
-    NLog::log("{}pointer-warp: recieved \"{}\"", Colors::YELLOW, recieved);
 
     // wait for warp to happen
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 
+    return true;
+}
+
+static bool isCursorPos(int x, int y) {
     // TODO: add a better way to do this using test plugin?
     std::string res = getFromSocket("/cursorpos");
     if (res == "error")
@@ -120,21 +123,16 @@ static bool testWarp(SClient& client, int x, int y) {
     int cursorX = std::stoi(res.substr(0, it - 1));
     int cursorY = std::stoi(res.substr(it + 1));
 
-    res = getFromSocket("/clients");
-    res = res.substr(res.find("pointer-warp"));
-    res = res.substr(res.find("at: ") + 4);
-    res = res.substr(0, res.find_first_of('\n'));
+    // somehow this is always gives 1 less than surfbox->pos()??
+    res = getFromSocket("/activewindow");
+    it  = res.find("at: ") + 4;
+    res = res.substr(it, res.find_first_of('\n', it) - it);
 
     it          = res.find_first_of(',');
-    int clientX = cursorX - std::stoi(res.substr(0, it));
-    int clientY = cursorY - std::stoi(res.substr(it + 1));
+    int clientX = cursorX - std::stoi(res.substr(0, it)) + 1;
+    int clientY = cursorY - std::stoi(res.substr(it + 1)) + 1;
 
-    NLog::log("{}pointer-warp: clientX:{}, clientY:{}", Colors::YELLOW, clientX, clientY);
-
-    client.proc->pid();
-
-    // sometimes hyprctl /cursorpos can be off by 1?? probably something to do with window position animations
-    return std::abs(clientX - x) <= 1 && abs(clientY - y) <= 1;
+    return clientX == x && clientY == y;
 }
 
 static bool test() {
@@ -143,7 +141,35 @@ static bool test() {
     if (!startClient(client))
         return false;
 
-    EXPECT(testWarp(client, 100, 100), true);
+    EXPECT(sendWarp(client, 100, 100), true);
+    EXPECT(isCursorPos(100, 100), true);
+
+    EXPECT(sendWarp(client, 0, 0), true);
+    EXPECT(isCursorPos(0, 0), true);
+
+    EXPECT(sendWarp(client, 200, 200), true);
+    EXPECT(isCursorPos(200, 200), true);
+
+    EXPECT(sendWarp(client, 100, -100), true);
+    EXPECT(isCursorPos(200, 200), true);
+
+    EXPECT(sendWarp(client, 234, 345), true);
+    EXPECT(isCursorPos(234, 345), true);
+
+    EXPECT(sendWarp(client, -1, -1), true);
+    EXPECT(isCursorPos(234, 345), true);
+
+    EXPECT(sendWarp(client, 1, -1), true);
+    EXPECT(isCursorPos(234, 345), true);
+
+    EXPECT(sendWarp(client, 13, 37), true);
+    EXPECT(isCursorPos(13, 37), true);
+
+    EXPECT(sendWarp(client, -100, 100), true);
+    EXPECT(isCursorPos(13, 37), true);
+
+    EXPECT(sendWarp(client, -1, 1), true);
+    EXPECT(isCursorPos(13, 37), true);
 
     stopClient(client);
 

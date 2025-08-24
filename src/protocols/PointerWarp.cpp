@@ -4,6 +4,7 @@
 #include "../desktop/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../desktop/Window.hpp"
 
 CPointerWarpProtocol::CPointerWarpProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
@@ -37,7 +38,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
             return;
 
         const auto PSEAT = CWLPointerResource::fromResource(pointer)->m_owner.lock();
-        if (!g_pSeatManager->serialValid(PSEAT, serial))
+        if (!g_pSeatManager->serialValid(PSEAT, serial, false))
             return;
 
         LOGM(LOG, "warped pointer to {}", GLOBALPOS);

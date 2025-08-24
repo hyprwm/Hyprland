@@ -206,22 +206,20 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_instanceSignature.c_str(), true);
 
-    if (!std::filesystem::exists(m_hyprTempDataRoot))
-        mkdir(m_hyprTempDataRoot.c_str(), S_IRWXU);
-    else if (!std::filesystem::is_directory(m_hyprTempDataRoot)) {
-        std::println("Bailing out, {} is not a directory", m_hyprTempDataRoot);
+    std::error_code ec;
+    std::filesystem::create_directories(m_hyprTempDataRoot, ec);
+    if (ec) {
+        std::println("Bailing out, could not create or access {} : {}", m_hyprTempDataRoot, ec.message());
         throw std::runtime_error("CCompositor() failed");
     }
 
-    m_instancePath = m_hyprTempDataRoot + "/" + m_instanceSignature;
+    m_instancePath = (std::filesystem::path(m_hyprTempDataRoot) / m_instanceSignature).string();
+    if (!std::filesystem::create_directory(m_instancePath, ec)) {
+        if (ec) {
+            std::println("Bailing out, couldn't create {} : {}", m_instancePath, ec.message());
+        } else
+            std::println("Bailing out, {} exists??", m_instancePath);
 
-    if (std::filesystem::exists(m_instancePath)) {
-        std::println("Bailing out, {} exists??", m_instancePath);
-        throw std::runtime_error("CCompositor() failed");
-    }
-
-    if (mkdir(m_instancePath.c_str(), S_IRWXU) < 0) {
-        std::println("Bailing out, couldn't create {}", m_instancePath);
         throw std::runtime_error("CCompositor() failed");
     }
 

@@ -69,6 +69,8 @@ CHyprRenderer::CHyprRenderer() {
                 m_nvidia = true;
             else if (name.contains("i915"))
                 m_intel = true;
+            else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
+                m_software = true;
 
             Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
@@ -79,7 +81,7 @@ CHyprRenderer::CHyprRenderer() {
     } else {
         Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
-        const auto DRMV = drmGetVersion(g_pCompositor->m_drmFD);
+        const auto DRMV = drmGetVersion(g_pCompositor->m_drm.fd);
 
         if (DRMV) {
             std::string name = std::string{DRMV->name, DRMV->name_len};
@@ -89,6 +91,8 @@ CHyprRenderer::CHyprRenderer() {
                 m_nvidia = true;
             else if (name.contains("i915"))
                 m_intel = true;
+            else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
+                m_software = true;
 
             Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
@@ -2234,8 +2238,8 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Debug::log(TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
 
-        // nvidia doesn't have implicit sync, so we have to explicitly wait here
-        if (isNvidia() && *PNVIDIAANTIFLICKER)
+        // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderer seems to bug out aswell.
+        if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
             glFinish();
         else
             glFlush(); // mark an implicit sync point
@@ -2293,6 +2297,10 @@ bool CHyprRenderer::isNvidia() {
 
 bool CHyprRenderer::isIntel() {
     return m_intel;
+}
+
+bool CHyprRenderer::isSoftware() {
+    return m_software;
 }
 
 bool CHyprRenderer::isMgpu() {

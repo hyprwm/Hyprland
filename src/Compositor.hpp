@@ -27,9 +27,18 @@ class CCompositor {
     CCompositor(bool onlyConfig = false);
     ~CCompositor();
 
-    wl_display*                                  m_wlDisplay   = nullptr;
-    wl_event_loop*                               m_wlEventLoop = nullptr;
-    int                                          m_drmFD       = -1;
+    wl_display*    m_wlDisplay   = nullptr;
+    wl_event_loop* m_wlEventLoop = nullptr;
+    struct {
+        int  fd             = -1;
+        bool syncobjSupport = false;
+    } m_drm;
+
+    struct {
+        int  fd             = -1;
+        bool syncObjSupport = false;
+    } m_drmRenderNode;
+
     bool                                         m_initialized = false;
     SP<Aquamarine::CBackend>                     m_aqBackend;
 
@@ -174,8 +183,6 @@ class CCompositor {
     void                         createLockFile();
     void                         removeLockFile();
     void                         setMallocThreshold();
-
-    bool                         m_bDrmSyncobjTimelineSupported = false;
 
     uint64_t                     m_hyprlandPID    = 0;
     wl_event_source*             m_critSigSource  = nullptr;

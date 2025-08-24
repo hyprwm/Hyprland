@@ -169,7 +169,7 @@ void CCompositor::restoreNofile() {
 }
 
 bool CCompositor::supportsDrmSyncobjTimeline() const {
-    return m_bDrmSyncobjTimelineSupported;
+    return m_drm.syncobjSupport || m_drmRenderNode.syncObjSupport;
 }
 
 void CCompositor::setMallocThreshold() {
@@ -356,22 +356,32 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     m_initialized = true;
 
-    m_drmFD = m_aqBackend->drmFD();
-    Debug::log(LOG, "Running on DRMFD: {}", m_drmFD);
+    m_drm.fd = m_aqBackend->drmFD();
+    Debug::log(LOG, "Running on DRMFD: {}", m_drm.fd);
+
+    m_drmRenderNode.fd = m_aqBackend->drmRenderNodeFD();
+    Debug::log(LOG, "Using RENDERNODEFD: {}", m_drmRenderNode.fd);
 
 #if defined(__linux__)
-    if (m_drmFD >= 0) {
-        uint64_t cap                   = 0;
-        int      ret                   = drmGetCap(m_drmFD, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
-        m_bDrmSyncobjTimelineSupported = (ret == 0 && cap != 0);
-        Debug::log(LOG, "DRM syncobj timeline support: {}", m_bDrmSyncobjTimelineSupported ? "yes" : "no");
-    } else {
-        m_bDrmSyncobjTimelineSupported = false;
-        Debug::log(LOG, "DRM syncobj timeline support: no (no DRM FD)");
-    }
+    auto syncObjSupport = [](auto fd) {
+        if (fd < 0)
+            return false;
+
+        uint64_t cap = 0;
+        int      ret = drmGetCap(fd, DRM_CAP_SYNCOBJ_TIMELINE, &cap);
+        return ret == 0 && cap != 0;
+    };
+
+    if ((m_drm.syncobjSupport = syncObjSupport(m_drm.fd)))
+        Debug::log(LOG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
+
+    if ((m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd)))
+        Debug::log(LOG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
+
+    if (!m_drm.syncobjSupport && !m_drmRenderNode.syncObjSupport)
+        Debug::log(LOG, "DRM no syncobj support, disabling explicit sync");
 #else
     Debug::log(LOG, "DRM syncobj timeline support: no (not linux)");
-    m_bDrmSyncobjTimelineSupported = false;
 #endif
 
     if (!socketName.empty() && socketFd != -1) {

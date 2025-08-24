@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "managers/BufferReleaseManager.hpp"
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
@@ -32,7 +33,6 @@ void CMonitorFrameScheduler::onSyncFired() {
     Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed.", m_monitor->m_name);
 
     // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
-    m_pendingThird  = true;
     m_renderAtFrame = false; // block frame rendering, we already scheduled
 
     m_lastRenderBegun = hrc::now();
@@ -43,30 +43,12 @@ void CMonitorFrameScheduler::onSyncFired() {
 
     g_pHyprRenderer->renderMonitor(m_monitor.lock(), false);
 
-    if (!self)
-        return;
-
-    onFinishRender();
-}
-
-void CMonitorFrameScheduler::onPresented() {
-    if (!newSchedulingEnabled())
-        return;
-
-    if (!m_pendingThird)
-        return;
-
-    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", m_monitor->m_name);
-
-    m_pendingThird = false;
-
-    Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", m_monitor->m_name);
-
-    m_pendingThird = false;
-
-    g_pEventLoopManager->doLater([m = m_monitor.lock()] {
-        if (!m)
+    auto sync = CEGLSync::create();
+    g_pEventLoopManager->doOnReadable(sync->fd().duplicate(), [self, mon = m_monitor]() {
+        if (!self || !mon)
             return;
+
+        auto m = mon.lock();
         g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
 
         // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
@@ -74,6 +56,11 @@ void CMonitorFrameScheduler::onPresented() {
         if (m->m_damage.hasChanged())
             g_pCompositor->scheduleFrameForMonitor(m);
     });
+
+    if (!self)
+        return;
+
+    onFinishRender(std::move(sync->fd()));
 }
 
 void CMonitorFrameScheduler::onFrame() {
@@ -121,11 +108,16 @@ void CMonitorFrameScheduler::onFrame() {
     onFinishRender();
 }
 
-void CMonitorFrameScheduler::onFinishRender() {
-    m_sync = CEGLSync::create(); // this destroys the old sync
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
+void CMonitorFrameScheduler::onFinishRender(Hyprutils::OS::CFileDescriptor syncFd) {
+    if (m_pendingSync)
+        return;
+
+    m_pendingSync = true;
+    g_pEventLoopManager->doOnReadable(syncFd.isValid() ? std::move(syncFd) : m_monitor->m_inFence.duplicate(), [this, self = m_self] {
         if (!self) // might've gotten destroyed
             return;
+
+        m_pendingSync = false;
         onSyncFired();
     });
 }

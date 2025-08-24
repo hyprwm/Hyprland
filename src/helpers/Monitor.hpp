@@ -21,6 +21,7 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 
 class CMonitorFrameScheduler;
+class CHLBufferReference;
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {

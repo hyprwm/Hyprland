@@ -2,7 +2,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <print>
-#include <cstring>
+#include <format>
+#include <string>
 
 #include <wayland-client.h>
 #include <wayland.hpp>
@@ -45,33 +46,42 @@ struct SWlState {
     uint32_t                    enterSerial;
 };
 
+static bool debug = false;
+
+template <typename... Args>
+static void debugLog(std::format_string<Args...> fmt, Args&&... args) {
+    if (!debug)
+        return;
+    std::println("{}", std::vformat(fmt.get(), std::make_format_args(args...)));
+}
+
 static bool bindRegistry(SWlState& state) {
     state.registry = makeShared<CCWlRegistry>((wl_proxy*)wl_display_get_registry(state.display));
 
     state.registry->setGlobal([&](CCWlRegistry* r, uint32_t id, const char* name, uint32_t version) {
         const std::string NAME = name;
         if (NAME == "wl_compositor") {
-            std::println("  > binding to global: {} (version {}) with id {}", name, version, id);
+            debugLog("  > binding to global: {} (version {}) with id {}", name, version, id);
             state.wlCompositor = makeShared<CCWlCompositor>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_compositor_interface, 6));
         } else if (NAME == "wl_shm") {
-            std::println("  > binding to global: {} (version {}) with id {}", name, version, id);
+            debugLog("  > binding to global: {} (version {}) with id {}", name, version, id);
             state.wlShm = makeShared<CCWlShm>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_shm_interface, 1));
         } else if (NAME == "wl_seat") {
-            std::println("  > binding to global: {} (version {}) with id {}", name, version, id);
+            debugLog("  > binding to global: {} (version {}) with id {}", name, version, id);
             state.wlSeat = makeShared<CCWlSeat>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_seat_interface, 9));
         } else if (NAME == "xdg_wm_base") {
-            std::println("  > binding to global: {} (version {}) with id {}", name, version, id);
+            debugLog("  > binding to global: {} (version {}) with id {}", name, version, id);
             state.xdgShell = makeShared<CCXdgWmBase>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &xdg_wm_base_interface, 1));
         } else if (NAME == "wp_pointer_warp_v1") {
-            std::println("  > binding to global: {} (version {}) with id {}", name, version, id);
+            debugLog("  > binding to global: {} (version {}) with id {}", name, version, id);
             state.pointerWarp = makeShared<CCWpPointerWarpV1>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wp_pointer_warp_v1_interface, 1));
         }
     });
-    state.registry->setGlobalRemove([](CCWlRegistry* r, uint32_t id) { std::println("Global {} removed", id); });
+    state.registry->setGlobalRemove([](CCWlRegistry* r, uint32_t id) { debugLog("Global {} removed", id); });
 
     wl_display_roundtrip(state.display);
 
-    if (!state.wlCompositor || !state.wlShm || !state.wlSeat || !state.xdgShell || !state.pointerWarp) {
+    if (!state.wlCompositor || !state.wlShm || /* !state.wlSeat */ || !state.xdgShell || !state.pointerWarp) {
         std::println("Failed to get protocols from Hyprland");
         return false;
     }
@@ -160,15 +170,16 @@ static bool setupToplevel(SWlState& state) {
     });
 
     state.xdgSurf->setConfigure([&](CCXdgSurface* p, uint32_t serial) {
-        if (!state.shmBuf) {
-            std::println("xdgSurf configure but no buf made yet?");
-        }
+        if (!state.shmBuf)
+            debugLog("xdgSurf configure but no buf made yet?");
 
         state.xdgSurf->sendSetWindowGeometry(0, 0, state.geom.x, state.geom.y);
         state.surf->sendAttach(state.shmBuf.get(), 0, 0);
         state.surf->sendCommit();
 
         state.xdgSurf->sendAckConfigure(serial);
+
+        std::println("started");
     });
 
     state.xdgToplevel->sendSetTitle("pointer-warp test client");
@@ -186,24 +197,30 @@ static bool setupSeat(SWlState& state) {
         return false;
 
     state.pointer->setEnter([&](CCWlPointer* p, uint32_t serial, wl_proxy* surf, wl_fixed_t x, wl_fixed_t y) {
-        std::println("Got pointer enter event, serial {}, x {}, y {}", serial, x, y);
+        debugLog("Got pointer enter event, serial {}, x {}, y {}", serial, x, y);
         state.enterSerial = serial;
     });
 
-    state.pointer->setLeave([&](CCWlPointer* p, uint32_t serial, wl_proxy* surf) { std::println("Got pointer leave event, serial {}", serial); });
+    state.pointer->setLeave([&](CCWlPointer* p, uint32_t serial, wl_proxy* surf) { debugLog("Got pointer leave event, serial {}", serial); });
 
-    state.pointer->setMotion([&](CCWlPointer* p, uint32_t serial, wl_fixed_t x, wl_fixed_t y) { std::println("Got pointer motion event, serial {}, x {}, y {}", serial, x, y); });
+    state.pointer->setMotion([&](CCWlPointer* p, uint32_t serial, wl_fixed_t x, wl_fixed_t y) { debugLog("Got pointer motion event, serial {}, x {}, y {}", serial, x, y); });
 
     return true;
 }
 
 // format is like below
-// "warp 20 20" would ask to warp cursor to x=20,y=20 in surface local coords
+// "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
 static void parseRequest(SWlState& state, std::string req) {
     if (!req.starts_with("warp "))
         return;
 
-    auto it = req.find_first_of(' ');
+    auto it = req.find_first_of('\n');
+    if (it == std::string::npos)
+        return;
+
+    req = req.substr(0, it);
+
+    it = req.find_first_of(' ');
     if (it == std::string::npos)
         return;
 
@@ -219,7 +236,13 @@ static void parseRequest(SWlState& state, std::string req) {
     state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), x, y, state.enterSerial);
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc != 1 && argc != 2)
+        std::println("Only the \"--debug\" switch is allowed, it turns on debug logs.");
+
+    if (argc == 2 && std::string{argv[1]} == "--debug")
+        debug = true;
+
     SWlState state;
 
     // WAYLAND_DISPLAY env should be set to the correct one
@@ -243,7 +266,7 @@ int main() {
             continue;
 
         readBuf.fill(0);
-        size_t bytesRead = read(fds.fd, readBuf.data(), 1023);
+        ssize_t bytesRead = read(fds.fd, readBuf.data(), 1023);
         if (bytesRead == -1)
             continue;
 

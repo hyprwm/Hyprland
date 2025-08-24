@@ -74,6 +74,7 @@ class CHyprRenderer {
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
+    bool                            isIntel();
     bool                            isMgpu();
     void                            makeEGLCurrent();
     void                            unsetEGL();
@@ -141,6 +142,7 @@ class CHyprRenderer {
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
     eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
     bool                    m_nvidia              = false;
+    bool                    m_intel               = false;
     bool                    m_mgpu                = false;
 
     struct {

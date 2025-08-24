@@ -64,7 +64,7 @@ std::optional<bool> CSyncTimeline::check(uint64_t point, uint32_t flags) {
     return ret == 0;
 }
 
-bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t point, uint32_t flags) {
+bool CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags) {
     auto eventFd = CFileDescriptor(eventfd(0, EFD_CLOEXEC));
 
     if (!eventFd.isValid()) {
@@ -77,7 +77,7 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
         return false;
     }
 
-    g_pEventLoopManager->doOnReadable(std::move(eventFd), waiter);
+    g_pEventLoopManager->doOnReadable(std::move(eventFd), std::move(waiter));
 
     return true;
 }

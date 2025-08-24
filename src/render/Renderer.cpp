@@ -67,6 +67,8 @@ CHyprRenderer::CHyprRenderer() {
 
             if (name.contains("nvidia"))
                 m_nvidia = true;
+            else if (name.contains("i915"))
+                m_intel = true;
 
             Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
@@ -85,6 +87,8 @@ CHyprRenderer::CHyprRenderer() {
 
             if (name.contains("nvidia"))
                 m_nvidia = true;
+            else if (name.contains("i915"))
+                m_intel = true;
 
             Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                        std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
@@ -2285,6 +2289,10 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_nvidia;
+}
+
+bool CHyprRenderer::isIntel() {
+    return m_intel;
 }
 
 bool CHyprRenderer::isMgpu() {

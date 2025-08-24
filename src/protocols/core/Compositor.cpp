@@ -161,7 +161,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         if (state->updated.bits.acquire) {
             // wait on acquire point for this surface, from explicit sync protocol
-            state->acquire.addWaiter(whenReadable);
+            state->acquire.addWaiter(std::move(whenReadable));
         } else if (state->buffer->isSynchronous()) {
             // synchronous (shm) buffers can be read immediately
             whenReadable();
@@ -170,7 +170,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             auto syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
 
             if (syncFd.isValid())
-                g_pEventLoopManager->doOnReadable(std::move(syncFd), whenReadable);
+                g_pEventLoopManager->doOnReadable(std::move(syncFd), std::move(whenReadable));
             else
                 whenReadable();
         } else {

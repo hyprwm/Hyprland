@@ -30,6 +30,11 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test.conf
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/plugin/hyprtestplugin.so
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/tests/clients/build.hpp
+  "#include <string>\n"
+  "static const std::string binaryDir = \"${CMAKE_CURRENT_BINARY_DIR}\";"
+)
+
 ######## wayland protocols testing stuff
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)

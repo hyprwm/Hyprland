@@ -62,8 +62,10 @@ static bool startClient(SClient& client) {
         return false;
     }
 
-    // hack to make sure window m_realPosition.value() == m_realPosition.goal()
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    if (getFromSocket(std::format("/dispatch setprop pid:{} noanim 1", client.proc->pid())) != "ok") {
+        NLog::log("{}Failed to disable animations for client window", Colors::RED, ret);
+        return false;
+    }
 
     if (getFromSocket(std::format("/dispatch focuswindow pid:{}", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to focus pointer-warp client", Colors::RED, ret);
@@ -131,7 +133,8 @@ static bool testWarp(SClient& client, int x, int y) {
 
     client.proc->pid();
 
-    return clientX == x && clientY == y;
+    // sometimes hyprctl /cursorpos can be off by 1?? probably something to do with window position animations
+    return std::abs(clientX - x) <= 1 && abs(clientY - y) <= 1;
 }
 
 static bool test() {

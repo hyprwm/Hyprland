@@ -29,6 +29,9 @@ void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
 
     m_window = g_pCompositor->m_lastWindow;
 
+    if (!m_window)
+        return;
+
     m_alphaFrom = m_window->m_alpha->goal();
     m_posFrom   = m_window->m_realPosition->goal();
     m_sizeFrom  = m_window->m_realSize->goal();

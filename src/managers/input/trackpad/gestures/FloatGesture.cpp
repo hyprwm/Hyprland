@@ -31,6 +31,9 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
 
     m_window = g_pCompositor->m_lastWindow;
 
+    if (!m_window)
+        return;
+
     if ((m_window->m_isFloating && m_mode == FLOAT_MODE_FLOAT) || (!m_window->m_isFloating && m_mode == FLOAT_MODE_TILE)) {
         m_window.reset();
         return;

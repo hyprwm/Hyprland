@@ -31,6 +31,9 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
 
     m_window = g_pCompositor->m_lastWindow;
 
+    if (!m_window)
+        return;
+
     m_posFrom  = m_window->m_realPosition->goal();
     m_sizeFrom = m_window->m_realSize->goal();
 

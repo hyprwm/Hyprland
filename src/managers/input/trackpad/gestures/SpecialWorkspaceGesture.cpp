@@ -57,6 +57,9 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
         m_specialWorkspace = WS;
     }
 
+    if (!m_specialWorkspace)
+        return;
+
     m_monitorDimFrom      = m_monitor->m_specialFade->begun();
     m_monitorDimTo        = m_monitor->m_specialFade->goal();
     m_workspaceAlphaFrom  = m_specialWorkspace->m_alpha->begun();
@@ -66,7 +69,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
 }
 
 void CSpecialWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
-    if (!m_specialWorkspace)
+    if (!m_specialWorkspace || !m_monitor)
         return;
 
     g_pHyprRenderer->damageMonitor(m_specialWorkspace->m_monitor.lock());

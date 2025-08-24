@@ -8,6 +8,7 @@
 #include <hyprutils/os/Process.hpp>
 
 #include <sys/poll.h>
+#include <csignal>
 #include <thread>
 
 using namespace Hyprutils::OS;
@@ -74,6 +75,14 @@ static bool startClient(SClient& client) {
     return true;
 }
 
+static void stopClient(SClient& client) {
+    std::string cmd = "exit\n";
+    write(client.writeFd.get(), cmd.c_str(), cmd.length());
+
+    kill(client.proc->pid(), SIGKILL);
+    client.proc.reset();
+}
+
 // format is like below
 // "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
 static bool testWarp(SClient& client, int x, int y) {
@@ -132,6 +141,8 @@ static bool test() {
         return false;
 
     EXPECT(testWarp(client, 100, 100), true);
+
+    stopClient(client);
 
     return true;
 }

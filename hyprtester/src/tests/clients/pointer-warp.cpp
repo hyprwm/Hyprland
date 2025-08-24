@@ -21,24 +21,21 @@ struct SClient {
     struct pollfd          fds;
 };
 
-//
+static int  ret;
+
 static bool startClient(SClient& client) {
     client.proc = makeShared<CProcess>(binaryDir + "/pointer-warp", std::vector<std::string>{});
 
-    int pipeFds1[2];
-    if (pipe(pipeFds1) != 0) {
+    client.proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
+
+    int pipeFds1[2], pipeFds2[2];
+    if (pipe(pipeFds1) != 0 || pipe(pipeFds2) != 0) {
         NLog::log("{}Unable to open pipe to client", Colors::RED);
         return false;
     }
 
     client.writeFd = CFileDescriptor(pipeFds1[1]);
     client.proc->setStdinFD(pipeFds1[0]);
-
-    int pipeFds2[2];
-    if (pipe(pipeFds2) != 0) {
-        NLog::log("{}Unable to open pipe to client", Colors::RED);
-        return false;
-    }
 
     client.readFd = CFileDescriptor(pipeFds2[0]);
     client.proc->setStdoutFD(pipeFds2[1]);
@@ -49,9 +46,12 @@ static bool startClient(SClient& client) {
     close(pipeFds1[0]);
     close(pipeFds2[1]);
 
-    client.readBuf.fill(0);
     client.fds = {.fd = client.readFd.get(), .events = POLLIN};
     if (poll(&client.fds, 1, 1000) != 1 || !(client.fds.revents & POLLIN))
+        return false;
+
+    client.readBuf.fill(0);
+    if (read(client.readFd.get(), client.readBuf.data(), client.readBuf.size() - 1) == -1)
         return false;
 
     std::string ret = std::string{client.readBuf.data()};
@@ -68,8 +68,9 @@ static bool startClient(SClient& client) {
 // format is like below
 // "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
 static bool testWarp(SClient& client, int x, int y) {
-    std::string cmd = std::format("warp {} {}\n", x, y);
+    std::string cmd = std::format("warp {} {}", x, y);
     NLog::log("{}pointer-warp: sending client command \"{}\"", Colors::YELLOW, cmd);
+    cmd += '\n';
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
@@ -81,6 +82,7 @@ static bool testWarp(SClient& client, int x, int y) {
 
     NLog::log("{}pointer-warp: client recieved command", Colors::YELLOW);
 
+    // TODO: add a better way to do this using test plugin?
     std::string res = getFromSocket("/cursorpos");
     if (res == "error")
         return false;
@@ -89,10 +91,23 @@ static bool testWarp(SClient& client, int x, int y) {
     if (res.at(it - 1) != ',')
         return false;
 
-    int resX = std::stoi(res.substr(0, it - 1));
-    int resY = std::stoi(res.substr(it + 1));
+    int cursorX = std::stoi(res.substr(0, it - 1));
+    int cursorY = std::stoi(res.substr(it + 1));
 
-    return resX == x && resY == y;
+    res = getFromSocket("/clients");
+    res = res.substr(res.find("pointer-warp"));
+    res = res.substr(res.find("at: ") + 4);
+    res = res.substr(0, res.find_first_of('\n'));
+
+    it          = res.find_first_of(',');
+    int clientX = cursorX - std::stoi(res.substr(0, it));
+    int clientY = cursorY - std::stoi(res.substr(it + 1));
+
+    NLog::log("{}pointer-warp: clientX:{}, clientY:{}", Colors::YELLOW, clientX, clientY);
+
+    client.proc->pid();
+
+    return clientX == x && clientY == y;
 }
 
 static bool test() {
@@ -100,8 +115,6 @@ static bool test() {
 
     if (!startClient(client))
         return false;
-
-    int ret;
 
     EXPECT(testWarp(client, 100, 100), true);
 

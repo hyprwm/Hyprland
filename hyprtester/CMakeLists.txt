@@ -83,7 +83,7 @@ function(clientNew sourceName)
 
   add_executable(${sourceName} clients/${sourceName}.cpp)
 
-  target_include_directories(${sourceName} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/protocols")
+  target_include_directories(${sourceName} BEFORE PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/protocols")
   target_link_libraries(${sourceName} PUBLIC PkgConfig::protocols_deps)
 
   target_sources(${sourceName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/protocols/wayland.cpp ${CMAKE_CURRENT_SOURCE_DIR}/protocols/wayland.hpp)

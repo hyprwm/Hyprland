@@ -1,3 +1,4 @@
+#include <cstring>
 #include <sys/poll.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -46,13 +47,23 @@ struct SWlState {
     uint32_t                    enterSerial;
 };
 
-static bool debug = false;
+static bool debug   = false;
+static bool started = false;
 
 template <typename... Args>
+//NOLINTNEXTLINE
+static void clientLog(std::format_string<Args...> fmt, Args&&... args) {
+    std::println("{}", std::vformat(fmt.get(), std::make_format_args(args...)));
+    std::fflush(stdout);
+}
+
+template <typename... Args>
+//NOLINTNEXTLINE
 static void debugLog(std::format_string<Args...> fmt, Args&&... args) {
     if (!debug)
         return;
     std::println("{}", std::vformat(fmt.get(), std::make_format_args(args...)));
+    std::fflush(stdout);
 }
 
 static bool bindRegistry(SWlState& state) {
@@ -81,8 +92,8 @@ static bool bindRegistry(SWlState& state) {
 
     wl_display_roundtrip(state.display);
 
-    if (!state.wlCompositor || !state.wlShm || /* !state.wlSeat */ || !state.xdgShell || !state.pointerWarp) {
-        std::println("Failed to get protocols from Hyprland");
+    if (!state.wlCompositor || !state.wlShm || !state.wlSeat || !state.xdgShell || !state.pointerWarp) {
+        clientLog("Failed to get protocols from Hyprland");
         return false;
     }
 
@@ -179,7 +190,10 @@ static bool setupToplevel(SWlState& state) {
 
         state.xdgSurf->sendAckConfigure(serial);
 
-        std::println("started");
+        if (!started) {
+            started = true;
+            clientLog("started");
+        }
     });
 
     state.xdgToplevel->sendSetTitle("pointer-warp test client");
@@ -231,14 +245,14 @@ static void parseRequest(SWlState& state, std::string req) {
     int x = std::stoi(req.substr(0, it));
     int y = std::stoi(req.substr(it + 1));
 
-    std::println("parsed request to move to x:{}, y:{}", x, y);
+    clientLog("parsed request to move to x:{}, y:{}", x, y);
 
     state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), x, y, state.enterSerial);
 }
 
 int main(int argc, char** argv) {
     if (argc != 1 && argc != 2)
-        std::println("Only the \"--debug\" switch is allowed, it turns on debug logs.");
+        clientLog("Only the \"--debug\" switch is allowed, it turns on debug logs.");
 
     if (argc == 2 && std::string{argv[1]} == "--debug")
         debug = true;
@@ -248,7 +262,7 @@ int main(int argc, char** argv) {
     // WAYLAND_DISPLAY env should be set to the correct one
     state.display = wl_display_connect(nullptr);
     if (!state.display) {
-        std::println("Failed to connect to wayland display");
+        clientLog("Failed to connect to wayland display");
         return -1;
     }
 

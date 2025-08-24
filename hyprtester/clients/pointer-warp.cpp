@@ -306,6 +306,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    wl_display_disconnect(state.display);
+    wl_display* display = state.display;
+    state               = {};
+
+    wl_display_disconnect(display);
     return 0;
 }

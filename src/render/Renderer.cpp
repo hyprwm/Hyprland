@@ -1485,43 +1485,50 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PPASS    = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
 
+    static bool needsHDRupdate = false;
+
     const bool  configuredHDR = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
     bool        wantHDR       = configuredHDR;
 
+    const auto  FS_WINDOW = pMonitor->inFullscreenMode() ? pMonitor->m_activeWorkspace->getFullscreenWindow() : nullptr;
+
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by
+        // HDR scRGB - monitor settings
+        // HDR PQ surface & DS is active - surface settings
         // PPASS = 0 monitor settings
         // PPASS = 1
         //           windowed: monitor settings
-        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, ctm, gamma if needed
+        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, gamma if needed
         // PPASS = 2
         //           windowed: monitor settings
         //           fullscreen SDR surface: monitor settings
         //           fullscreen HDR surface: surface settings
 
         bool hdrIsHandled = false;
-        if (pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
-            const auto WINDOW    = pMonitor->m_activeWorkspace->getFullscreenWindow();
-            const auto ROOT_SURF = WINDOW->m_wlSurface->resource();
-            const auto SURF =
-                ROOT_SURF->findFirstPreorder([ROOT_SURF](SP<CWLSurfaceResource> surf) { return surf->m_colorManagement.valid() && surf->extends() == ROOT_SURF->extends(); });
+        if (FS_WINDOW) {
+            const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
+            const auto SURF      = ROOT_SURF->findWithCM();
 
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
-                if (*PPASS == 1 || (*PPASS == 2 && surfaceIsHDR)) {
+                if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
                     // passthrough
-                    bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != WINDOW;
-                    if (SURF->m_colorManagement->needsHdrMetadataUpdate())
+                    bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || needsHDRupdate;
+                    if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
+                        Debug::log(INFO, "[CM] Recreating HDR metadata for surface");
                         SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
-                    if (needsHdrMetadataUpdate)
+                    }
+                    if (needsHdrMetadataUpdate) {
+                        Debug::log(INFO, "[CM] Updating HDR metadata from surface");
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
-                    hdrIsHandled = true;
+                    }
+                    hdrIsHandled   = true;
+                    needsHDRupdate = false;
                 } else if (*PAUTOHDR && surfaceIsHDR)
                     wantHDR = true; // auto-hdr: hdr on
             }
-
-            pMonitor->m_previousFSWindow = WINDOW;
         }
 
         if (!hdrIsHandled) {
@@ -1529,11 +1536,15 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
-                    pMonitor->applyCMType(wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType);
+                    const auto targetCM = wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType;
+                    Debug::log(INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+                    pMonitor->applyCMType(targetCM);
+                    pMonitor->m_previousFSWindow.reset(); // trigger CTM update
                 }
+                Debug::log(INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
             }
-            pMonitor->m_previousFSWindow.reset();
+            needsHDRupdate = true;
         }
     }
 
@@ -1553,18 +1564,38 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    if (*PCT) {
-        if (pMonitor->m_activeWorkspace && pMonitor->m_activeWorkspace->m_hasFullscreenWindow && pMonitor->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) {
-            const auto WINDOW = pMonitor->m_activeWorkspace->getFullscreenWindow();
-            pMonitor->m_output->state->setContentType(NContentType::toDRM(WINDOW->getContentType()));
-        } else
-            pMonitor->m_output->state->setContentType(NContentType::toDRM(CONTENT_TYPE_NONE));
+    if (*PCT)
+        pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
+
+    if (FS_WINDOW != pMonitor->m_previousFSWindow) {
+        if (!FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM()) {
+            if (pMonitor->m_noShaderCTM) {
+                Debug::log(INFO, "[CM] No fullscreen CTM, restoring previous one");
+                pMonitor->m_noShaderCTM = false;
+                pMonitor->m_ctmUpdated  = true;
+            }
+        } else {
+            const auto FS_DESC = pMonitor->getFSImageDescription();
+            if (FS_DESC.has_value()) {
+                Debug::log(INFO, "[CM] Updating fullscreen CTM");
+                pMonitor->m_noShaderCTM        = true;
+                const auto                 mat = FS_DESC->getPrimaries().convertMatrix(pMonitor->m_imageDescription.getPrimaries()).mat();
+                const std::array<float, 9> CTM = {
+                    mat[0][0], mat[0][1], mat[0][2], //
+                    mat[1][0], mat[1][1], mat[1][2], //
+                    mat[2][0], mat[2][1], mat[2][2], //
+                };
+                pMonitor->m_output->state->setCTM(CTM);
+            }
+        }
     }
 
-    if (pMonitor->m_ctmUpdated) {
+    if (pMonitor->m_ctmUpdated && !pMonitor->m_noShaderCTM) {
         pMonitor->m_ctmUpdated = false;
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
+
+    pMonitor->m_previousFSWindow = FS_WINDOW;
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

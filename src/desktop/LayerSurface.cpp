@@ -183,7 +183,7 @@ void CLayerSurface::onMap() {
 
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
-    const bool FULLSCREEN = PMONITOR->m_activeWorkspace && PMONITOR->m_activeWorkspace->m_hasFullscreenWindow && PMONITOR->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+    const bool FULLSCREEN = PMONITOR->inFullscreenMode();
 
     startAnimation(!(m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
     m_readyToDelete = false;

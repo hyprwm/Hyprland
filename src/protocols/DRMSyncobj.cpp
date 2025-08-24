@@ -27,9 +27,9 @@ UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
     return makeUnique<CSyncReleaser>(m_timeline, m_point);
 }
 
-bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
+bool CDRMSyncPointState::addWaiter(std::function<void()>&& waiter) {
     m_acquireCommitted = true;
-    return m_timeline->addWaiter(waiter, m_point, 0u);
+    return m_timeline->addWaiter(std::move(waiter), m_point, 0u);
 }
 
 bool CDRMSyncPointState::committed() {

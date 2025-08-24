@@ -63,7 +63,7 @@ class CEventLoopManager {
 
     // schedule function to when fd is readable (WL_EVENT_READABLE / POLLIN),
     // takes ownership of fd
-    void doOnReadable(Hyprutils::OS::CFileDescriptor fd, const std::function<void()>& fn);
+    void doOnReadable(Hyprutils::OS::CFileDescriptor fd, std::function<void()>&& fn);
     void onFdReadable(SReadableWaiter* waiter);
 
   private:

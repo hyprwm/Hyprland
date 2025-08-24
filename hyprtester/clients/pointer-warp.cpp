@@ -47,8 +47,7 @@ struct SWlState {
     uint32_t                    enterSerial;
 };
 
-static bool debug   = false;
-static bool started = false;
+static bool debug, started, shouldExit;
 
 template <typename... Args>
 //NOLINTNEXTLINE
@@ -225,6 +224,11 @@ static bool setupSeat(SWlState& state) {
 // format is like below
 // "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
 static void parseRequest(SWlState& state, std::string req) {
+    if (req.contains("exit")) {
+        shouldExit = true;
+        return;
+    }
+
     if (!req.starts_with("warp "))
         return;
 
@@ -275,7 +279,7 @@ int main(int argc, char** argv) {
     wl_display_flush(state.display);
 
     struct pollfd fds[2] = {{.fd = wl_display_get_fd(state.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
-    while (poll(fds, 2, 0) != -1) {
+    while (!shouldExit && poll(fds, 2, 0) != -1) {
         if (fds[0].revents & POLLIN) {
             wl_display_flush(state.display);
 

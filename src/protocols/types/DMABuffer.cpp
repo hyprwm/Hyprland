@@ -118,8 +118,12 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
         if (fd == -1)
             continue;
 
-        if (CFileDescriptor::isReadable(fd))
-            continue;
+        // buffer readability checks are rather slow on some Intel laptops
+        // see https://gitlab.freedesktop.org/drm/intel/-/issues/9415
+        if (g_pHyprRenderer && !g_pHyprRenderer->isIntel()) {
+            if (CFileDescriptor::isReadable(fd))
+                continue;
+        }
 
         dma_buf_export_sync_file request{
             .flags = DMA_BUF_SYNC_READ,

@@ -27,9 +27,9 @@ UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
     return makeUnique<CSyncReleaser>(m_timeline, m_point);
 }
 
-bool CDRMSyncPointState::addWaiter(const std::function<void()>& waiter) {
+bool CDRMSyncPointState::addWaiter(std::function<void()>&& waiter) {
     m_acquireCommitted = true;
-    return m_timeline->addWaiter(waiter, m_point, 0u);
+    return m_timeline->addWaiter(std::move(waiter), m_point, 0u);
 }
 
 bool CDRMSyncPointState::committed() {
@@ -199,8 +199,18 @@ bool CDRMSyncobjManagerResource::good() {
     return m_resource->resource();
 }
 
-CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
-    IWaylandProtocol(iface, ver, name), m_drmFD(g_pCompositor->m_drmFD) {}
+CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+    if (g_pCompositor->m_drmRenderNode.syncObjSupport)
+        m_drmFD = g_pCompositor->m_drmRenderNode.fd;
+    else if (g_pCompositor->m_drm.syncobjSupport)
+        m_drmFD = g_pCompositor->m_drm.fd;
+    else {
+        LOGM(ERR, "CDRMSyncobjProtocol: no nodes support explicit sync?");
+        return;
+    }
+
+    LOGM(LOG, "CDRMSyncobjProtocol: using fd {}", m_drmFD);
+}
 
 void CDRMSyncobjProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto& RESOURCE = m_managers.emplace_back(makeUnique<CDRMSyncobjManagerResource>(makeUnique<CWpLinuxDrmSyncobjManagerV1>(client, ver, id)));

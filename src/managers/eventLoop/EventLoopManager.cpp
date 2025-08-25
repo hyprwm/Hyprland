@@ -193,13 +193,13 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
         &m_idle);
 }
 
-void CEventLoopManager::doOnReadable(CFileDescriptor fd, const std::function<void()>& fn) {
+void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&& fn) {
     if (!fd.isValid() || fd.isReadable()) {
         fn();
         return;
     }
 
-    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), fn));
+    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
     waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
 }
 

@@ -3197,7 +3197,7 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
             startDataIdx++;
         } else if (data[startDataIdx].starts_with("scale:")) {
             try {
-                deltaScale = std::stof(std::string{data[startDataIdx].substr(6)});
+                deltaScale = std::clamp(std::stof(std::string{data[startDataIdx].substr(6)}), 0.1F, 10.F);
                 startDataIdx++;
             } catch (...) { return std::format("Invalid delta scale: {}", std::string{data[startDataIdx].substr(6)}); }
         }

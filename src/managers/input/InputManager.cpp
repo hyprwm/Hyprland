@@ -1471,10 +1471,10 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
     PROTO::inputCapture->sendKey(event.keycode, (hyprlandInputCaptureManagerV1KeyState)event.state);
-    bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
+    bool passEvent = DISALLOWACTION;
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
+        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();;
 
     if (passEvent) {
         if (USEIME) {

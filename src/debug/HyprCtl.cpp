@@ -178,7 +178,7 @@ const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = 
 
 std::string CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
-    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
+    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && !m->m_currentTearing.expired()))
         return "null";
 
     std::string reasonStr = "";
@@ -234,8 +234,9 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "solitary": "{:x}",
     "solitaryBlockedBy": {},
     "activelyTearing": {},
+    "currentTearing": "{:x}",
     "tearingBlockedBy": {},
-    "directScanoutTo": "{:x}",
+    "currentScanout": "{:x}",
     "directScanoutBlockedBy": {},
     "disabled": {},
     "currentFormat": "{}",
@@ -250,15 +251,15 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y),
             sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
             (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), rc<uint64_t>(m->m_solitaryClient.get()),
-            getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"), getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()),
-            getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat),
+            getSolitaryBlockedReason(m, format), (m->m_currentTearing.expired() ? "false" : "true"), rc<uint64_t>(m->m_currentTearing.get()), getTearingBlockedReason(m, format),
+            rc<uint64_t>(m->m_currentScanout.get()), getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
 
     } else {
         result += std::format(
             "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tphysical size (mm): {}x{}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
             "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\ttearingBlockedBy: {}\n\tdirectScanoutTo: "
+            "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\tcurrentTearing: {:x}\n\ttearingBlockedBy: {}\n\tcurrentScanout: "
             "{:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
             "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\n",
@@ -267,9 +268,9 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
             sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale,
             sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
-            rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
-            rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
-            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
+            rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), !m->m_currentTearing.expired(), rc<uint64_t>(m->m_currentTearing.get()),
+            getTearingBlockedReason(m, format), rc<uint64_t>(m->m_currentScanout.get()), getDSBlockedReason(m, format), !m->m_enabled,
+            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format));
     }
 
     return result;

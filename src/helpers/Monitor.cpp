@@ -42,6 +42,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using enum Aquamarine::eOutputPresentationMode;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
@@ -177,7 +178,8 @@ void CMonitor::onConnect(bool noRule) {
     m_frameScheduler         = makeUnique<CMonitorFrameScheduler>(m_self.lock());
     m_frameScheduler->m_self = WP<CMonitorFrameScheduler>(m_frameScheduler);
 
-    m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
+    // TODO: add a way to get backend->drmProps.supportsAsyncCommit from aq and use it here
+    m_canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     m_name = m_output->name;
 
@@ -1617,12 +1619,6 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
 
     static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
 
-    if (!m_tearingState.nextRenderTorn) {
-        reasons |= TC_NOT_TORN;
-        if (!full)
-            return reasons;
-    }
-
     if (!*PTEARINGENABLED) {
         Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
         reasons |= TC_USER;
@@ -1637,7 +1633,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
             return reasons;
     }
 
-    if (!m_tearingState.canTear) {
+    if (!m_canTear) {
         Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         reasons |= TC_SUPPORT;
         if (!full)
@@ -1655,10 +1651,23 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     return reasons;
 }
 
-bool CMonitor::updateTearing() {
-    m_tearingState.activelyTearing = !isTearingBlocked();
-    m_tearingState.nextRenderTorn  = false;
-    return m_tearingState.activelyTearing;
+void CMonitor::updateTearing() {
+    if (!isTearingBlocked()) {
+        if (!m_currentTearing.expired())
+            return;
+
+        m_currentTearing = m_solitaryClient;
+
+        // TODO: remove this when kernel allows tearing + hw cursor updated
+        // hw cursor can't be updated at the same time as tearing, so lock sw cursor
+        g_pPointerManager->lockSoftwareForMonitor(m_self.lock());
+
+        Debug::log(LOG, "Tearing started for window {} on monitor {}", m_currentTearing->m_title, m_name);
+    } else if (!m_currentTearing.expired()) {
+        Debug::log(LOG, "Tearing stopped for window {} on monitor {}", m_currentTearing->m_title, m_name);
+        m_currentTearing.reset();
+        g_pPointerManager->unlockSoftwareForMonitor(m_self.lock());
+    }
 }
 
 uint16_t CMonitor::isDSBlocked(bool full) {
@@ -1683,7 +1692,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         }
     }
 
-    if (m_tearingState.activelyTearing) {
+    if (!m_currentTearing.expired()) {
         reasons |= DS_BLOCK_TEARING;
         if (!full)
             return reasons;
@@ -1734,25 +1743,20 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    const auto blockedReason = isDSBlocked();
-    if (blockedReason) {
-        Debug::log(TRACE, "attemptDirectScanout: blocked by {}", blockedReason);
-        return false;
-    }
-
-    const auto PCANDIDATE = m_solitaryClient.lock();
+    const auto PCANDIDATE = m_currentScanout.lock();
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
+    const auto PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
     const auto params     = PSURFACE->m_current.buffer->dmabuf();
-
-    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
-               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
-
-    auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
+            Debug::log(TRACE, "attemptDirectScanout: committing hw cursor updated for window {} on monitor {}", PCANDIDATE->m_title, m_name);
+
+            m_output->state->resetExplicitFences();
+            m_output->state->setPresentationMode(AQ_OUTPUT_PRESENTATION_VSYNC);
+
             if (!m_state.test()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed basic test on cursor update");
                 return false;
@@ -1760,7 +1764,6 @@ bool CMonitor::attemptDirectScanout() {
 
             if (!m_output->commit()) {
                 Debug::log(TRACE, "attemptDirectScanout: failed to commit cursor update");
-                m_lastScanout.reset();
                 return false;
             }
 
@@ -1770,22 +1773,23 @@ bool CMonitor::attemptDirectScanout() {
         return true;
     }
 
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
+
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
 
-    // entering into scanout, so save monitor format
-    if (m_lastScanout.expired())
-        m_prevDrmFormat = m_drmFormat;
-
     if (m_drmFormat != params.format) {
-        m_output->state->setFormat(params.format);
-        m_drmFormat = params.format;
+        m_prevDrmFormat = m_drmFormat;
+        m_drmFormat     = params.format;
     }
 
+    // reset DRM format, but only if needed since it might modeset
+    if (m_output->state->state().drmFormat != m_drmFormat)
+        m_output->state->setFormat(m_drmFormat);
+
     m_output->state->setBuffer(PBUFFER);
-    Debug::log(TRACE, "attemptDirectScanout: setting presentation mode");
-    m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
-                                                                          Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+    m_output->state->setPresentationMode(m_currentTearing.expired() ? AQ_OUTPUT_PRESENTATION_VSYNC : AQ_OUTPUT_PRESENTATION_IMMEDIATE);
 
     if (!m_state.test()) {
         Debug::log(TRACE, "attemptDirectScanout: failed basic test");
@@ -1803,14 +1807,10 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!ok) {
         Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
-        m_lastScanout.reset();
         return false;
     }
 
-    if (m_lastScanout.expired()) {
-        m_lastScanout = PCANDIDATE;
-        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->m_title);
-    }
+    m_pageFlipPending = true;
 
     m_scanoutNeedsCursorUpdate = false;
 
@@ -1826,6 +1826,32 @@ bool CMonitor::attemptDirectScanout() {
     });
 
     return true;
+}
+
+bool CMonitor::updateDirectScanout() {
+    const uint16_t blockedReason = isDSBlocked();
+    if (blockedReason) {
+        Debug::log(TRACE, "Direct scanout blocked by {}", blockedReason);
+    } else if (m_currentScanout.expired()) {
+        m_currentScanout = m_solitaryClient.lock();
+        Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)m_currentScanout.get(), m_currentScanout->m_title);
+    }
+
+    if (blockedReason == 0 && attemptDirectScanout())
+        return true;
+
+    if (!m_currentScanout.expired()) {
+        Debug::log(LOG, "Direct scanout stopped for window {} on monitor {}", m_currentScanout->m_title, m_name);
+        m_currentScanout.reset();
+
+        // reset DRM format, but only if needed since it might modeset
+        if (m_output->state->state().drmFormat != m_prevDrmFormat)
+            m_output->state->setFormat(m_prevDrmFormat);
+
+        m_drmFormat = m_prevDrmFormat;
+    }
+
+    return false;
 }
 
 void CMonitor::setDPMS(bool on) {
@@ -1878,8 +1904,10 @@ void CMonitor::debugLastPresentation(const std::string& message) {
 }
 
 void CMonitor::onCursorMovedOnMonitor() {
-    if (!m_tearingState.activelyTearing || !m_solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
-        return;
+    // TODO: actually use this when kernel allows tearing + hw cursor updated
+    //
+    // if (!m_tearingState.activelyTearing || !m_solitaryClient || !g_pHyprRenderer->shouldRenderCursor())
+    //     return;
 
     // submit a frame immediately. This will only update the cursor pos.
     // output->state->setBuffer(output->state->state().buffer);
@@ -1892,7 +1920,7 @@ void CMonitor::onCursorMovedOnMonitor() {
     // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
     // this will throw too but fix it if we use sw cursors
 
-    m_tearingState.frameScheduledWhileBusy = true;
+    // m_tearingState.frameScheduledWhileBusy = true;
 }
 
 bool CMonitor::supportsWideColor() {

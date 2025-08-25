@@ -82,16 +82,7 @@ void CMonitorFrameScheduler::onFrame() {
 
     m_monitor->recheckSolitary();
 
-    m_monitor->m_tearingState.busy = false;
-
-    if (m_monitor->m_tearingState.activelyTearing && m_monitor->m_solitaryClient.lock() /* can be invalidated by a recheck */) {
-
-        if (!m_monitor->m_tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        m_monitor->m_tearingState.nextRenderTorn          = true;
-        m_monitor->m_tearingState.frameScheduledWhileBusy = false;
-    }
+    m_monitor->m_pageFlipPending = false;
 
     if (!newSchedulingEnabled()) {
         m_monitor->m_lastPresentationTimer.reset();

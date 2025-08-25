@@ -52,6 +52,9 @@
   nvidiaPatches ? false,
   hidpiXWayland ? false,
   legacyRenderer ? false,
+  # whether to use the mold linker
+  # disable this for older machines without SSE4_2 and AVX2 support
+  withMold ? true,
 }: let
   inherit (builtins) foldl' readFile;
   inherit (lib.asserts) assertMsg;
@@ -61,7 +64,7 @@
   fs = lib.fileset;
 
   adapters = flatten [
-    stdenvAdapters.useMoldLinker
+    (lib.optional withMold stdenvAdapters.useMoldLinker)
     (lib.optional debug stdenvAdapters.keepDebugInfo)
   ];
 
@@ -134,7 +137,7 @@ in
 
       buildInputs = concatLists [
         [
-          aquamarine
+          (aquamarine.override {inherit withMold;})
           cairo
           git
           glaze
@@ -142,7 +145,7 @@ in
           hyprgraphics
           hyprland-protocols
           hyprlang
-          hyprutils
+          (hyprutils.override {inherit withMold;})
           libdrm
           libGL
           libinput

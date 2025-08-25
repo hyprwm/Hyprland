@@ -53,7 +53,8 @@ const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
     return "ERROR";
 }
 
-std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask) {
+std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask,
+                                                               float deltaScale) {
     for (const auto& g : m_gestures) {
         if (g->fingerCount != fingerCount)
             continue;
@@ -83,7 +84,7 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
         }
     }
 
-    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction));
+    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale));
 
     return {};
 }
@@ -134,7 +135,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
 
             m_activeGesture     = g;
             g->currentDirection = g->gesture->isDirectionSensitive() ? g->direction : direction;
-            m_activeGesture->gesture->begin({.swipe = &e, .direction = direction});
+            m_activeGesture->gesture->begin({.swipe = &e, .direction = direction, .scale = g->deltaScale});
             break;
         }
 
@@ -144,14 +145,14 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
         }
     }
 
-    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->currentDirection});
+    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->currentDirection, .scale = m_activeGesture->deltaScale});
 }
 
 void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
     if (!m_activeGesture)
         return;
 
-    m_activeGesture->gesture->end({.swipe = &e, .direction = m_activeGesture->direction});
+    m_activeGesture->gesture->end({.swipe = &e, .direction = m_activeGesture->direction, .scale = m_activeGesture->deltaScale});
 
     m_activeGesture.reset();
 }

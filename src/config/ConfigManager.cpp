@@ -3188,31 +3188,40 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 
     int      startDataIdx = 2;
     uint32_t modMask      = 0;
+    float    deltaScale   = 1.F;
 
-    if (data[2].starts_with("mod:")) {
-        startDataIdx = 3;
-        modMask      = g_pKeybindManager->stringToModMask(std::string{data[2].substr(4)});
+    while (true) {
+
+        if (data[startDataIdx].starts_with("mod:")) {
+            modMask = g_pKeybindManager->stringToModMask(std::string{data[startDataIdx].substr(4)});
+            startDataIdx++;
+        } else if (data[startDataIdx].starts_with("scale:")) {
+            try {
+                deltaScale = std::stof(std::string{data[startDataIdx].substr(6)});
+                startDataIdx++;
+            } catch (...) { return std::format("Invalid delta scale: {}", std::string{data[startDataIdx].substr(6)}); }
+        }
     }
 
     std::expected<void, std::string> result;
 
     if (data[startDataIdx] == "dispatcher")
         result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
-                                                 direction, modMask);
+                                                 direction, modMask, deltaScale);
     else if (data[startDataIdx] == "workspace")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "resize")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "move")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "special")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "close")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "float")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "fullscreen")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
 

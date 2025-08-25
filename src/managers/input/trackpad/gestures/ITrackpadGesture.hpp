@@ -12,18 +12,21 @@ class ITrackpadGesture {
         const IPointer::SSwipeUpdateEvent* swipe     = nullptr;
         const IPointer::SPinchUpdateEvent* pinch     = nullptr;
         eTrackpadGestureDirection          direction = TRACKPAD_GESTURE_DIR_NONE;
+        float                              scale     = 1.F;
     };
 
     struct STrackpadGestureUpdate {
         const IPointer::SSwipeUpdateEvent* swipe     = nullptr;
         const IPointer::SPinchUpdateEvent* pinch     = nullptr;
         eTrackpadGestureDirection          direction = TRACKPAD_GESTURE_DIR_NONE;
+        float                              scale     = 1.F;
     };
 
     struct STrackpadGestureEnd {
         const IPointer::SSwipeEndEvent* swipe     = nullptr;
         const IPointer::SPinchEndEvent* pinch     = nullptr;
         eTrackpadGestureDirection       direction = TRACKPAD_GESTURE_DIR_NONE;
+        float                           scale     = 1.F;
     };
 
     virtual void  begin(const STrackpadGestureBegin& e);
@@ -36,5 +39,5 @@ class ITrackpadGesture {
     virtual bool  isDirectionSensitive();
 
   protected:
-    float m_lastPinchScale = 1.F;
+    float m_lastPinchScale = 1.F, m_scale = 1.F;
 };

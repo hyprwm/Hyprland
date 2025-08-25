@@ -22,7 +22,8 @@
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/LayoutManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
@@ -271,7 +272,7 @@ void CMonitor::onConnect(bool noRule) {
 
         if (ws->m_lastMonitor == m_name || g_pCompositor->m_monitors.size() == 1 /* avoid lost workspaces on recover */) {
             g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
-            ws->startAnim(true, true, true);
+            g_pDesktopAnimationManager->startAnimation(ws, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
             ws->m_lastMonitor = "";
         }
     }
@@ -422,7 +423,7 @@ void CMonitor::onDisconnect(bool destroy) {
         for (auto const& w : wspToMove) {
             w->m_lastMonitor = m_name;
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
-            w->startAnim(true, true, true);
+            g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
     } else {
         g_pCompositor->m_lastFocus.reset();
@@ -1058,7 +1059,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, m_self.lock());
         m_activeWorkspace = PNEWWORKSPACE;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
-        PNEWWORKSPACE->startAnim(true, true, true);
+        g_pDesktopAnimationManager->startAnimation(PNEWWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
     } else {
         if (newDefaultWorkspaceName.empty())
             newDefaultWorkspaceName = std::to_string(wsID);
@@ -1145,7 +1146,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         for (auto const& w : wspToMove) {
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
-            w->startAnim(true, true, true);
+            g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
 
         m_activeWorkspace.reset();
@@ -1235,8 +1236,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (!internal) {
         const auto ANIMTOLEFT = POLDWORKSPACE && (shouldWraparound(pWorkspace->m_id, POLDWORKSPACE->m_id) ^ (pWorkspace->m_id > POLDWORKSPACE->m_id));
         if (POLDWORKSPACE)
-            POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
-        pWorkspace->startAnim(true, ANIMTOLEFT);
+            g_pDesktopAnimationManager->startAnimation(POLDWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, ANIMTOLEFT);
+        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, ANIMTOLEFT);
 
         // move pinned windows
         for (auto const& w : g_pCompositor->m_windows) {
@@ -1277,14 +1278,16 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     g_pConfigManager->ensureVRR(m_self.lock());
 
     g_pCompositor->updateSuspendedStates();
 
     if (m_activeSpecialWorkspace)
-        g_pCompositor->updateFullscreenFadeOnWorkspace(m_activeSpecialWorkspace);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            m_activeSpecialWorkspace, m_activeSpecialWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -1306,7 +1309,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         // remove special if exists
         if (m_activeSpecialWorkspace) {
             m_activeSpecialWorkspace->m_visible = false;
-            m_activeSpecialWorkspace->startAnim(false, false);
+            g_pDesktopAnimationManager->startAnimation(m_activeSpecialWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + m_name});
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
         }
@@ -1324,7 +1327,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 g_pInputManager->refocus();
         }
 
-        g_pCompositor->updateFullscreenFadeOnWorkspace(m_activeWorkspace);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            m_activeWorkspace, m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         g_pConfigManager->ensureVRR(m_self.lock());
 
@@ -1335,7 +1339,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     if (m_activeSpecialWorkspace) {
         m_activeSpecialWorkspace->m_visible = false;
-        m_activeSpecialWorkspace->startAnim(false, false);
+        g_pDesktopAnimationManager->startAnimation(m_activeSpecialWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
     }
 
     bool wasActive = false;
@@ -1348,7 +1352,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
 
         const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
-        g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
+                                                               PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
+                                                                                                                             CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }
@@ -1368,7 +1374,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         pWorkspace->m_events.activeChanged.emit();
 
     if (!wasActive)
-        pWorkspace->startAnim(true, true);
+        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true);
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == pWorkspace) {
@@ -1408,7 +1414,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     g_pConfigManager->ensureVRR(m_self.lock());
 

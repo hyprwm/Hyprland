@@ -4,7 +4,8 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../helpers/Monitor.hpp"
@@ -99,7 +100,7 @@ void CLayerSurface::onDestroy() {
         } else {
             Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
             if (m_alpha)
-                m_alpha->setValueAndWarp(0.f);
+                g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             m_fadingOut = true;
             g_pCompositor->addToFadingOutSafe(m_self.lock());
         }
@@ -183,9 +184,9 @@ void CLayerSurface::onMap() {
 
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
-    const bool FULLSCREEN = PMONITOR->m_activeWorkspace && PMONITOR->m_activeWorkspace->m_hasFullscreenWindow && PMONITOR->m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
 
-    startAnimation(!(m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
+    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
+
     m_readyToDelete = false;
     m_fadingOut     = false;
 
@@ -213,7 +214,7 @@ void CLayerSurface::onUnmap() {
         if (m_layerSurface && m_layerSurface->m_surface)
             m_layerSurface->m_surface->unmap();
 
-        startAnimation(false);
+        g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
         return;
     }
 
@@ -224,7 +225,9 @@ void CLayerSurface::onUnmap() {
     // make a snapshot and start fade
     g_pHyprRenderer->makeSnapshot(m_self.lock());
 
-    startAnimation(false);
+    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+
+    m_fadingOut = true;
 
     m_mapped = false;
     if (m_layerSurface && m_layerSurface->m_surface)
@@ -451,138 +454,6 @@ void CLayerSurface::applyRules() {
             default: break;
         }
     }
-}
-
-void CLayerSurface::startAnimation(bool in, bool instant) {
-    if (in) {
-        m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
-        m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
-        m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"));
-    } else {
-        m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
-        m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
-        m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
-    }
-
-    const auto ANIMSTYLE = m_animationStyle.value_or(m_realPosition->getStyle());
-    if (ANIMSTYLE.starts_with("slide")) {
-        // get closest edge
-        const auto MIDDLE = m_geometry.middle();
-
-        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
-
-        if (!PMONITOR) { // can rarely happen on exit
-            m_alpha->setValueAndWarp(in ? 1.F : 0.F);
-            return;
-        }
-
-        int      force = -1;
-
-        CVarList args(ANIMSTYLE, 0, 's');
-        if (args.size() > 1) {
-            const auto ARG2 = args[1];
-            if (ARG2 == "top")
-                force = 0;
-            else if (ARG2 == "bottom")
-                force = 1;
-            else if (ARG2 == "left")
-                force = 2;
-            else if (ARG2 == "right")
-                force = 3;
-        }
-
-        const std::array<Vector2D, 4> edgePoints = {
-            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, 0.0},
-            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x / 2, PMONITOR->m_size.y},
-            PMONITOR->m_position + Vector2D{0.0, PMONITOR->m_size.y},
-            PMONITOR->m_position + Vector2D{PMONITOR->m_size.x, PMONITOR->m_size.y / 2},
-        };
-
-        float closest = std::numeric_limits<float>::max();
-        int   leader  = force;
-        if (leader == -1) {
-            for (size_t i = 0; i < 4; ++i) {
-                float dist = MIDDLE.distance(edgePoints[i]);
-                if (dist < closest) {
-                    leader  = i;
-                    closest = dist;
-                }
-            }
-        }
-
-        m_realSize->setValueAndWarp(m_geometry.size());
-        m_alpha->setValueAndWarp(in ? 0.f : 1.f);
-        *m_alpha = in ? 1.f : 0.f;
-
-        Vector2D prePos;
-
-        switch (leader) {
-            case 0:
-                // TOP
-                prePos = {m_geometry.x, PMONITOR->m_position.y - m_geometry.h};
-                break;
-            case 1:
-                // BOTTOM
-                prePos = {m_geometry.x, PMONITOR->m_position.y + PMONITOR->m_size.y};
-                break;
-            case 2:
-                // LEFT
-                prePos = {PMONITOR->m_position.x - m_geometry.w, m_geometry.y};
-                break;
-            case 3:
-                // RIGHT
-                prePos = {PMONITOR->m_position.x + PMONITOR->m_size.x, m_geometry.y};
-                break;
-            default: UNREACHABLE();
-        }
-
-        if (in) {
-            m_realPosition->setValueAndWarp(prePos);
-            *m_realPosition = m_geometry.pos();
-        } else {
-            m_realPosition->setValueAndWarp(m_geometry.pos());
-            *m_realPosition = prePos;
-        }
-
-    } else if (ANIMSTYLE.starts_with("popin")) {
-        float minPerc = 0.f;
-        if (ANIMSTYLE.find("%") != std::string::npos) {
-            try {
-                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
-                minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
-            } catch (std::exception& e) {
-                ; // oops
-            }
-        }
-
-        minPerc *= 0.01;
-
-        const auto GOALSIZE = (m_geometry.size() * minPerc).clamp({5, 5});
-        const auto GOALPOS  = m_geometry.pos() + (m_geometry.size() - GOALSIZE) / 2.f;
-
-        m_alpha->setValueAndWarp(in ? 0.f : 1.f);
-        *m_alpha = in ? 1.f : 0.f;
-
-        if (in) {
-            m_realSize->setValueAndWarp(GOALSIZE);
-            m_realPosition->setValueAndWarp(GOALPOS);
-            *m_realSize     = m_geometry.size();
-            *m_realPosition = m_geometry.pos();
-        } else {
-            m_realSize->setValueAndWarp(m_geometry.size());
-            m_realPosition->setValueAndWarp(m_geometry.pos());
-            *m_realSize     = GOALSIZE;
-            *m_realPosition = GOALPOS;
-        }
-    } else {
-        // fade
-        m_realPosition->setValueAndWarp(m_geometry.pos());
-        m_realSize->setValueAndWarp(m_geometry.size());
-        *m_alpha = in ? 1.f : 0.f;
-    }
-
-    if (!in)
-        m_fadingOut = true;
 }
 
 bool CLayerSurface::isFadedOut() {

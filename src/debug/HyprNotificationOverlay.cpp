@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
 
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 

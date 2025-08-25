@@ -14,7 +14,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../managers/TokenManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"

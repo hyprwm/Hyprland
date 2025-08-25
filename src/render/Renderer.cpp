@@ -10,7 +10,7 @@
 #include "../managers/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"

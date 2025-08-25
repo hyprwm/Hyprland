@@ -17,6 +17,7 @@
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/main/tests.hpp"
+#include "tests/clients/tests.hpp"
 #include "tests/plugin/plugin.hpp"
 
 #include <filesystem>
@@ -227,7 +228,15 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
+    NLog::log("{}Running main tests", Colors::YELLOW);
+
     for (const auto& fn : testFns) {
+        EXPECT(fn(), true);
+    }
+
+    NLog::log("{}Running protocol client tests", Colors::YELLOW);
+
+    for (const auto& fn : clientTestFns) {
         EXPECT(fn(), true);
     }
 

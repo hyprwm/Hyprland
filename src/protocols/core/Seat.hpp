@@ -88,15 +88,21 @@ class CWLPointerResource {
 
     WP<CWLSeatResource> m_owner;
 
+    //
+    static SP<CWLPointerResource> fromResource(wl_resource* res);
+
   private:
     SP<CWlPointer>         m_resource;
     WP<CWLSurfaceResource> m_currentSurface;
+    WP<CWLPointerResource> m_self;
 
     std::vector<uint32_t>  m_pressedButtons;
 
     struct {
         CHyprSignalListener destroySurface;
     } m_listeners;
+
+    friend class CWLSeatResource;
 };
 
 class CWLKeyboardResource {

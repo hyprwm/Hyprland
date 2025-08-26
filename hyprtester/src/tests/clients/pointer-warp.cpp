@@ -133,8 +133,6 @@ static bool isCursorPos(int x, int y) {
     int clientX = cursorX - std::stoi(res.substr(0, it)) + 1;
     int clientY = cursorY - std::stoi(res.substr(it + 1)) + 1;
 
-    NLog::log("{}Cursor pos: [{}, {}]", Colors::RESET, clientX, clientY);
-
     return clientX == x && clientY == y;
 }
 

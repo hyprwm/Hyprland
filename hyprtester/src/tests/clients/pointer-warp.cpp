@@ -94,7 +94,7 @@ static bool sendWarp(SClient& client, int x, int y) {
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
-    if (poll(&client.fds, 1, 500) != 1 || !(client.fds.revents & POLLIN))
+    if (poll(&client.fds, 1, 1500) != 1 || !(client.fds.revents & POLLIN))
         return false;
     ssize_t bytesRead = read(client.fds.fd, client.readBuf.data(), 1023);
     if (bytesRead == -1)
@@ -104,21 +104,22 @@ static bool sendWarp(SClient& client, int x, int y) {
     std::string recieved      = std::string{client.readBuf.data()};
     recieved.pop_back();
 
-    // wait for warp to happen
-    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
     return true;
 }
 
 static bool isCursorPos(int x, int y) {
     // TODO: add a better way to do this using test plugin?
     std::string res = getFromSocket("/cursorpos");
-    if (res == "error")
+    if (res == "error") {
+        NLog::log("{}Cursorpos err'd: {}", Colors::RED, res);
         return false;
+    }
 
     auto it = res.find_first_of(' ');
-    if (res.at(it - 1) != ',')
+    if (res.at(it - 1) != ',') {
+        NLog::log("{}Cursorpos err'd: {}", Colors::RED, res);
         return false;
+    }
 
     int cursorX = std::stoi(res.substr(0, it - 1));
     int cursorY = std::stoi(res.substr(it + 1));
@@ -131,6 +132,8 @@ static bool isCursorPos(int x, int y) {
     it          = res.find_first_of(',');
     int clientX = cursorX - std::stoi(res.substr(0, it)) + 1;
     int clientY = cursorY - std::stoi(res.substr(it + 1)) + 1;
+
+    NLog::log("{}Cursor pos: [{}, {}]", Colors::RESET, clientX, clientY);
 
     return clientX == x && clientY == y;
 }

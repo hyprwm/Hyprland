@@ -249,9 +249,12 @@ static void parseRequest(SWlState& state, std::string req) {
     int x = std::stoi(req.substr(0, it));
     int y = std::stoi(req.substr(it + 1));
 
-    clientLog("parsed request to move to x:{}, y:{}", x, y);
-
     state.pointerWarp->sendWarpPointer(state.surf->resource(), state.pointer->resource(), wl_fixed_from_int(x), wl_fixed_from_int(y), state.enterSerial);
+
+    // sync the request then reply
+    wl_display_roundtrip(state.display);
+
+    clientLog("parsed request to move to x:{}, y:{}", x, y);
 }
 
 int main(int argc, char** argv) {

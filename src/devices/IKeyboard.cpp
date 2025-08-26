@@ -266,6 +266,20 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     xkb_context_unref(PCONTEXT);
 }
 
+xkb_layout_index_t IKeyboard::getActiveLayoutIndex() {
+    const auto KEYMAP     = m_xkbKeymap;
+    const auto STATE      = m_xkbState;
+    const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
+
+    for (xkb_layout_index_t i = 0; i < LAYOUTSNUM; ++i) {
+        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE) == 1) {
+            return i;
+        }
+    }
+
+    return 0;
+}
+
 std::string IKeyboard::getActiveLayout() {
     const auto KEYMAP     = m_xkbKeymap;
     const auto STATE      = m_xkbState;

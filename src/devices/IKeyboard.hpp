@@ -67,6 +67,7 @@ class IKeyboard : public IHID {
 
     void                    setKeymap(const SStringRuleNames& rules);
     void                    updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+    xkb_layout_index_t      getActiveLayoutIndex();
     std::string             getActiveLayout();
     std::optional<uint32_t> getLEDs();
     void                    updateLEDs();

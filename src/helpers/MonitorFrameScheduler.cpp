@@ -43,6 +43,9 @@ void CMonitorFrameScheduler::onSyncFired() {
 
     g_pHyprRenderer->renderMonitor(m_monitor.lock(), false);
 
+    if (!self)
+        return;
+
     auto sync = CEGLSync::create();
     g_pEventLoopManager->doOnReadable(sync->fd().duplicate(), [self, mon = m_monitor]() {
         if (!self || !mon)
@@ -56,9 +59,6 @@ void CMonitorFrameScheduler::onSyncFired() {
         if (m->m_damage.hasChanged())
             g_pCompositor->scheduleFrameForMonitor(m);
     });
-
-    if (!self)
-        return;
 
     onFinishRender(std::move(sync->fd()));
 }

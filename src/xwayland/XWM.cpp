@@ -425,6 +425,10 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
                 if (prop == HYPRATOMS["_NET_WM_STATE_FULLSCREEN"])
                     XSURF->m_state.requestsFullscreen = updateState(action, XSURF->m_fullscreen);
+                if (prop == HYPRATOMS["_NET_WM_STATE_HIDDEN"])
+                    XSURF->m_state.requestsMinimize = updateState(action, XSURF->m_minimized);
+                if (prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"] || prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"])
+                    XSURF->m_state.requestsMaximize = updateState(action, XSURF->m_maximized);
             }
 
             XSURF->m_events.stateChanged.emit();

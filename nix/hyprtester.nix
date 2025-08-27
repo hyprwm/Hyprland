@@ -51,7 +51,7 @@ in
     '';
 
     postInstall = ''
-      install -m755 /build/source/hyprtester/build/pointer-warp -t $out/bin
+      install pointer-warp -t $out/bin
     '';
 
     cmakeBuildType = "Debug";

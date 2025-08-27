@@ -3195,12 +3195,16 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
         if (data[startDataIdx].starts_with("mod:")) {
             modMask = g_pKeybindManager->stringToModMask(std::string{data[startDataIdx].substr(4)});
             startDataIdx++;
+            continue;
         } else if (data[startDataIdx].starts_with("scale:")) {
             try {
                 deltaScale = std::clamp(std::stof(std::string{data[startDataIdx].substr(6)}), 0.1F, 10.F);
                 startDataIdx++;
+                continue;
             } catch (...) { return std::format("Invalid delta scale: {}", std::string{data[startDataIdx].substr(6)}); }
         }
+
+        break;
     }
 
     std::expected<void, std::string> result;

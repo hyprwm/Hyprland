@@ -434,7 +434,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
             XSURF->m_events.stateChanged.emit();
         }
     } else if (e->type == HYPRATOMS["WM_CHANGE_STATE"]) {
-		int state = e->data.data32[0];
+        int state = e->data.data32[0];
         if (state == XCB_ICCCM_WM_STATE_ICONIC || state == XCB_ICCCM_WM_STATE_WITHDRAWN) {
             XSURF->m_state.requestsMinimize = true;
         } else if (state == XCB_ICCCM_WM_STATE_NORMAL) {

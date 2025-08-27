@@ -104,7 +104,6 @@ class CHyprRenderer {
     float            m_crashingDistort    = 0.5f;
     wl_event_source* m_crashingLoop       = nullptr;
     wl_event_source* m_cursorTicker       = nullptr;
-    CTimer           m_renderTimer;
 
     struct {
         int                           hotspotX = 0;

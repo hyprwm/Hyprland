@@ -40,10 +40,18 @@ in
     buildInputs = hyprland.buildInputs;
 
     preConfigure = ''
+      substituteInPlace hyprtester/CMakeLists.txt --replace-fail \
+        "\''${CMAKE_CURRENT_BINARY_DIR}" \
+        "${placeholder "out"}/bin"
+
       cmake -S . -B .
       cmake --build . --target generate-protocol-headers -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
       cd hyprtester
+    '';
+
+    postInstall = ''
+      install -m755 /build/source/hyprtester/build/pointer-warp -t $out/bin
     '';
 
     cmakeBuildType = "Debug";

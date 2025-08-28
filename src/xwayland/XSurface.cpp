@@ -195,6 +195,7 @@ void CXWaylandSurface::configure(const CBox& box) {
 void CXWaylandSurface::activate(bool activate) {
     if (m_overrideRedirect && !activate)
         return;
+    setWithdrawn(false);
     g_pXWayland->m_wm->activateSurface(m_self.lock(), activate);
 }
 

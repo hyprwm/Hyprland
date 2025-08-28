@@ -4,7 +4,7 @@
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
-#include "managers/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 

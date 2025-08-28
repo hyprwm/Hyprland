@@ -15,12 +15,13 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
-#include "managers/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
+#include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -688,9 +689,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
 
     // do animations
-    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
-    PWINDOW->m_alpha->setValueAndWarp(0.f);
-    *PWINDOW->m_alpha = 1.f;
+    g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
     PWINDOW->m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
     PWINDOW->m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
@@ -838,11 +837,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pCompositor->addToFadingOutSafe(PWINDOW);
 
     if (!PWINDOW->m_X11DoesntWantBorders)                                                     // don't animate out if they weren't animated in.
-        *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
+        *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
 
     // anims
-    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
-    *PWINDOW->m_alpha = 0.f;
+    g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();

@@ -26,6 +26,14 @@ enum eRectCorner : uint8_t {
     CORNER_BOTTOMLEFT  = (1 << 3),
 };
 
+inline eRectCorner cornerFromBox(const CBox& box, const Vector2D& pos) {
+    const auto CENTER = box.middle();
+
+    if (pos.x < CENTER.x)
+        return pos.y < CENTER.y ? CORNER_TOPLEFT : CORNER_BOTTOMLEFT;
+    return pos.y < CENTER.y ? CORNER_TOPRIGHT : CORNER_BOTTOMRIGHT;
+}
+
 enum eSnapEdge : uint8_t {
     SNAP_INVALID = 0,
     SNAP_UP      = (1 << 0),

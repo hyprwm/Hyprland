@@ -12,7 +12,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "defaultConfig.hpp"
 
@@ -25,6 +25,16 @@
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../plugins/PluginSystem.hpp"
+
+#include "../managers/input/trackpad/TrackpadGestures.hpp"
+#include "../managers/input/trackpad/gestures/DispatcherGesture.hpp"
+#include "../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
+#include "../managers/input/trackpad/gestures/ResizeGesture.hpp"
+#include "../managers/input/trackpad/gestures/MoveGesture.hpp"
+#include "../managers/input/trackpad/gestures/SpecialWorkspaceGesture.hpp"
+#include "../managers/input/trackpad/gestures/CloseGesture.hpp"
+#include "../managers/input/trackpad/gestures/FloatGesture.hpp"
+#include "../managers/input/trackpad/gestures/FullscreenGesture.hpp"
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -46,6 +56,7 @@
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/ConstVarList.hpp>
 #include <filesystem>
 #include <memory>
 using namespace Hyprutils::String;
@@ -409,6 +420,18 @@ static Hyprlang::CParseResult handlePermission(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleGesture(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleGesture(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_config->addConfigValue(name, val);
@@ -692,9 +715,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("binds:allow_pin_fullscreen", Hyprlang::INT{0});
     registerConfigVar("binds:drag_threshold", Hyprlang::INT{0});
 
-    registerConfigVar("gestures:workspace_swipe", Hyprlang::INT{0});
-    registerConfigVar("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
-    registerConfigVar("gestures:workspace_swipe_min_fingers", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_distance", Hyprlang::INT{300});
     registerConfigVar("gestures:workspace_swipe_invert", Hyprlang::INT{1});
     registerConfigVar("gestures:workspace_swipe_min_speed_to_force", Hyprlang::INT{30});
@@ -706,6 +726,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("gestures:workspace_swipe_use_r", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_touch", Hyprlang::INT{0});
     registerConfigVar("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
+    registerConfigVar("gestures:close_max_timeout", Hyprlang::INT{1000});
 
     registerConfigVar("xwayland:enabled", Hyprlang::INT{1});
     registerConfigVar("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
@@ -846,6 +867,7 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handleBlurLS, "blurls", {false});
     m_config->registerHandler(&::handlePlugin, "plugin", {false});
     m_config->registerHandler(&::handlePermission, "permission", {false});
+    m_config->registerHandler(&::handleGesture, "gesture", {false});
     m_config->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -1029,6 +1051,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+    g_pTrackpadGestures->clearGestures();
 
     m_mAdditionalReservedAreas.clear();
     m_blurLSNamespaces.clear();
@@ -3147,6 +3170,73 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
 
     return {};
+}
+
+std::optional<std::string> CConfigManager::handleGesture(const std::string& command, const std::string& value) {
+    CConstVarList             data(value);
+
+    size_t                    fingerCount = 0;
+    eTrackpadGestureDirection direction   = TRACKPAD_GESTURE_DIR_NONE;
+
+    try {
+        fingerCount = std::stoul(std::string{data[0]});
+    } catch (...) { return std::format("Invalid value {} for finger count", data[0]); }
+
+    if (fingerCount <= 1 || fingerCount >= 10)
+        return std::format("Invalid value {} for finger count", data[0]);
+
+    direction = g_pTrackpadGestures->dirForString(data[1]);
+
+    if (direction == TRACKPAD_GESTURE_DIR_NONE)
+        return std::format("Invalid direction: {}", data[1]);
+
+    int      startDataIdx = 2;
+    uint32_t modMask      = 0;
+    float    deltaScale   = 1.F;
+
+    while (true) {
+
+        if (data[startDataIdx].starts_with("mod:")) {
+            modMask = g_pKeybindManager->stringToModMask(std::string{data[startDataIdx].substr(4)});
+            startDataIdx++;
+            continue;
+        } else if (data[startDataIdx].starts_with("scale:")) {
+            try {
+                deltaScale = std::clamp(std::stof(std::string{data[startDataIdx].substr(6)}), 0.1F, 10.F);
+                startDataIdx++;
+                continue;
+            } catch (...) { return std::format("Invalid delta scale: {}", std::string{data[startDataIdx].substr(6)}); }
+        }
+
+        break;
+    }
+
+    std::expected<void, std::string> result;
+
+    if (data[startDataIdx] == "dispatcher")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
+                                                 direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "workspace")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "resize")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "move")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "special")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "close")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "float")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "fullscreen")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else
+        return std::format("Invalid gesture: {}", data[startDataIdx]);
+
+    if (!result)
+        return result.error();
+
+    return std::nullopt;
 }
 
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {

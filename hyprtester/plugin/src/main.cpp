@@ -9,11 +9,14 @@
 #include <src/layout/IHyprLayout.hpp>
 #include <src/managers/LayoutManager.hpp>
 #include <src/managers/input/InputManager.hpp>
+#include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/Compositor.hpp>
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/VarList.hpp>
 using namespace Hyprutils::Utils;
+using namespace Hyprutils::String;
 
 #include "globals.hpp"
 
@@ -88,6 +91,41 @@ class CTestKeyboard : public IKeyboard {
     bool m_isVirtual;
 };
 
+static SDispatchResult pressAlt(std::string in) {
+    g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
+
+    return {.success = true};
+}
+
+static SDispatchResult simulateGesture(std::string in) {
+    CVarList data(in);
+
+    uint32_t fingers = 3;
+    try {
+        fingers = std::stoul(data[1]);
+    } catch (...) { return {.success = false}; }
+
+    if (data[0] == "down") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {0, 300}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else if (data[0] == "up") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {0, -300}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else if (data[0] == "left") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {-300, 0}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {300, 0}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    }
+
+    return {.success = true};
+}
+
 static SDispatchResult vkb(std::string in) {
     auto tkb0 = CTestKeyboard::create(false);
     auto tkb1 = CTestKeyboard::create(false);
@@ -141,6 +179,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:test", ::test);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:snapmove", ::snapMove);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:vkb", ::vkb);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:alt", ::pressAlt);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:gesture", ::simulateGesture);
 
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};
 }

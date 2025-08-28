@@ -53,7 +53,8 @@
 #include "config/ConfigManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
-#include "managers/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
+#include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
@@ -2035,8 +2036,10 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);
 
-    updateFullscreenFadeOnWorkspace(PWORKSPACEB);
-    updateFullscreenFadeOnWorkspace(PWORKSPACEA);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        PWORKSPACEA, PWORKSPACEA->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     if (pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id || pMonitorB->m_id == g_pCompositor->m_lastMonitor->m_id) {
         const auto LASTWIN = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
@@ -2221,7 +2224,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
         if (valid(pMonitor->m_activeWorkspace)) {
             pMonitor->m_activeWorkspace->m_visible = false;
-            pMonitor->m_activeWorkspace->startAnim(false, false);
+            g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
         }
 
         if (*PHIDESPECIALONWORKSPACECHANGE)
@@ -2239,7 +2242,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
 
-        pWorkspace->startAnim(true, true, true);
+        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         pWorkspace->m_visible = true;
 
         if (!noWarpCursor)
@@ -2252,11 +2255,14 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     if (POLDMON) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->m_id);
         if (valid(POLDMON->m_activeWorkspace))
-            updateFullscreenFadeOnWorkspace(POLDMON->m_activeWorkspace);
+            g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
+                                                                   POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
+                                                                                                                       CDesktopAnimationManager::ANIMATION_TYPE_OUT);
         updateSuspendedStates();
     }
 
-    updateFullscreenFadeOnWorkspace(pWorkspace);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
     updateSuspendedStates();
 
     // event
@@ -2277,36 +2283,6 @@ bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
     }
 
     return std::clamp(id, lowestID, highestID) != id;
-}
-
-void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
-
-    if (!pWorkspace)
-        return;
-
-    const auto FULLSCREEN = pWorkspace->m_hasFullscreenWindow;
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == pWorkspace) {
-
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
-                continue;
-
-            if (!FULLSCREEN)
-                *w->m_alpha = 1.f;
-            else if (!w->isFullscreen())
-                *w->m_alpha = !w->m_createdOverFullscreen ? 0.f : 1.f;
-        }
-    }
-
-    const auto PMONITOR = pWorkspace->m_monitor.lock();
-
-    if (pWorkspace->m_id == PMONITOR->activeWorkspaceID() || pWorkspace->m_id == PMONITOR->activeSpecialWorkspaceID()) {
-        for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            if (!ls->m_fadingOut)
-                *ls->m_alpha = FULLSCREEN && pWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
-        }
-    }
 }
 
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
@@ -2396,7 +2372,8 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
             w->m_createdOverFullscreen = false;
     }
 
-    updateFullscreenFadeOnWorkspace(PWORKSPACE);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     PWINDOW->sendWindowSize(true);
 

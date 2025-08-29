@@ -810,6 +810,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_button_lock", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_points", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("device", "scroll_factor", Hyprlang::FLOAT{-1});
     m_config->addSpecialConfigValue("device", "transform", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
@@ -1335,11 +1336,16 @@ Hyprlang::CConfigValue* CConfigManager::getConfigValueSafeDevice(const std::stri
 
     const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
 
-    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty()) {
+    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty())
         return m_config->getConfigValuePtr(fallback.c_str());
-    }
 
     return VAL;
+}
+
+bool CConfigManager::deviceConfigExplicitlySet(const std::string& dev, const std::string& val) {
+    const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
+
+    return VAL && VAL->m_bSetByUser;
 }
 
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback) {

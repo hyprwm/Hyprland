@@ -1,6 +1,18 @@
 #include "XDGDecoration.hpp"
 #include <algorithm>
 
+zxdgToplevelDecorationV1Mode xdgDefaultModeCSD(CXDGDecoration* csd) {
+    return ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
+}
+
+zxdgToplevelDecorationV1Mode xdgModeOnRequestCSD(CXDGDecoration* csd, uint32_t modeRequestedByClient) {
+    return xdgDefaultModeCSD(csd);
+}
+
+zxdgToplevelDecorationV1Mode xdgModeOnReleaseCSD(CXDGDecoration* csd) {
+    return xdgDefaultModeCSD(csd);
+}
+
 CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel) : m_resource(resource_), m_toplevelResource(toplevel) {
     if UNLIKELY (!m_resource->resource())
         return;
@@ -17,15 +29,15 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
         }
 
         LOGM(LOG, "setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString, (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
-        m_resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+        m_resource->sendConfigure(xdgModeOnRequestCSD(this, mode));
     });
 
     m_resource->setUnsetMode([this](CZxdgToplevelDecorationV1*) {
         LOGM(LOG, "unsetMode. Sending MODE_SERVER_SIDE.");
-        m_resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+        m_resource->sendConfigure(xdgModeOnReleaseCSD(this));
     });
 
-    m_resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+    m_resource->sendConfigure(xdgDefaultModeCSD(this));
 }
 
 bool CXDGDecoration::good() {

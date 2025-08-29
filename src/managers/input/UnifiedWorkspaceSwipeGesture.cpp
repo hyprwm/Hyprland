@@ -65,7 +65,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
     if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
-        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
+        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) ||
+        (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft && *PSWIPENEW)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -83,7 +84,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     if (m_delta < 0) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-        if (workspaceIDLeft > m_workspaceBegin->m_id || !PWORKSPACE) {
+        if ((workspaceIDLeft > m_workspaceBegin->m_id && *PSWIPENEW) || !PWORKSPACE) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
@@ -123,7 +124,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
-        if (workspaceIDRight < m_workspaceBegin->m_id || !PWORKSPACE) {
+        if ((workspaceIDRight < m_workspaceBegin->m_id && *PSWIPENEW) || !PWORKSPACE) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 

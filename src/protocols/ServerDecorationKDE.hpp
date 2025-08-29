@@ -15,6 +15,9 @@ class CServerDecorationKDE {
 
     SP<CWLSurfaceResource> m_surf;
 
+    uint32_t               mostRecentlySent      = 0;
+    uint32_t               mostRecentlyRequested = 0;
+
   private:
     SP<COrgKdeKwinServerDecoration> m_resource;
 };

@@ -2,15 +2,15 @@
 #include "core/Compositor.hpp"
 
 // 'csd' can be nullptr in the 'bindManager' case
-orgKdeKwinServerDecorationManagerMode kdeDefaultModeCSD(CServerDecorationKDE* csd) {
+uint32_t kdeDefaultModeCSD(CServerDecorationKDE* csd) {
     return ORG_KDE_KWIN_SERVER_DECORATION_MANAGER_MODE_SERVER;
 }
 
-orgKdeKwinServerDecorationManagerMode kdeModeOnRequestCSD(CServerDecorationKDE* csd, uint32_t modeRequestedByClient) {
+uint32_t kdeModeOnRequestCSD(CServerDecorationKDE* csd, uint32_t modeRequestedByClient) {
     return kdeDefaultModeCSD(csd);
 }
 
-orgKdeKwinServerDecorationManagerMode kdeModeOnReleaseCSD(CServerDecorationKDE* csd) {
+uint32_t kdeModeOnReleaseCSD(CServerDecorationKDE* csd) {
     return kdeDefaultModeCSD(csd);
 }
 
@@ -20,11 +20,22 @@ CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resou
 
     m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
     m_resource->setOnDestroy([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
-    m_resource->setRequestMode([this](COrgKdeKwinServerDecoration*, uint32_t mode) { m_resource->sendMode(kdeModeOnRequestCSD(this, mode)); });
-    m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) { m_resource->sendMode(kdeModeOnReleaseCSD(this)); });
+    m_resource->setRequestMode([this](COrgKdeKwinServerDecoration*, uint32_t mode) {
+        auto sendMode = kdeModeOnRequestCSD(this, mode);
+        m_resource->sendMode(sendMode);
+        mostRecentlySent      = sendMode;
+        mostRecentlyRequested = mode;
+    });
+    m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) {
+        auto sendMode = kdeModeOnReleaseCSD(this);
+        m_resource->sendMode(sendMode);
+        mostRecentlySent = sendMode;
+    });
 
     // we send this and ignore request_mode.
-    m_resource->sendMode(kdeDefaultModeCSD(this));
+    auto sendMode = kdeDefaultModeCSD(this);
+    m_resource->sendMode(sendMode);
+    mostRecentlySent = sendMode;
 }
 
 bool CServerDecorationKDE::good() {

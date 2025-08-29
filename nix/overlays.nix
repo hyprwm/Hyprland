@@ -29,6 +29,7 @@ in {
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
     self.overlays.udis86
+    self.overlays.libxkbcommon_1_11_0
 
     # Hyprland packages themselves
     (final: _prev: let
@@ -102,6 +103,21 @@ in {
       };
 
       patches = [];
+    });
+  };
+
+  # TODO: remove when https://github.com/NixOS/nixpkgs/pull/432139 lands in nixpkgs-unstable
+  # Tracking at https://nixpk.gs/pr-tracker.html?pr=432139
+  libxkbcommon_1_11_0 = final: prev: {
+    libxkbcommon = prev.libxkbcommon.overrideAttrs (self: _super: {
+      version = "1.11.0";
+
+      src = final.fetchFromGitHub {
+        owner = "xkbcommon";
+        repo = "libxkbcommon";
+        tag = "xkbcommon-${self.version}";
+        hash = "sha256-IV1dgGM8z44OQCQYQ5PiUUw/zAvG5IIxiBywYVw2ius=";
+      };
     });
   };
 }

@@ -423,6 +423,10 @@ SP<CWLSurfaceResource> CWLSurfaceResource::findFirstPreorder(std::function<bool(
     return findFirstPreorderHelper(m_self.lock(), fn);
 }
 
+SP<CWLSurfaceResource> CWLSurfaceResource::findWithCM() {
+    return findFirstPreorder([this](SP<CWLSurfaceResource> surf) { return surf->m_colorManagement.valid() && surf->extends() == extends(); });
+}
+
 std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2D& localCoords, bool allowsInput) {
     std::vector<std::pair<SP<CWLSurfaceResource>, Vector2D>> surfs;
     breadthfirst([&surfs](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { surfs.emplace_back(std::make_pair<>(surf, offset)); }, &surfs);

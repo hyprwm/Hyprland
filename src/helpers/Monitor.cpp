@@ -988,8 +988,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const bool shouldSkip = m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN &&
-        (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) && m_output->state->state().adaptiveSync;
+    const bool shouldSkip = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
+        m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
@@ -1631,24 +1631,27 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     }
 
     if (!*PTEARINGENABLED) {
-        Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
         reasons |= TC_USER;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return reasons;
+        }
     }
 
     if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
-        Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
         reasons |= TC_ZOOM;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
             return reasons;
+        }
     }
 
     if (!m_tearingState.canTear) {
-        Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
         reasons |= TC_SUPPORT;
-        if (!full)
+        if (!full) {
+            Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return reasons;
+        }
     }
 
     if (m_solitaryClient.expired()) {
@@ -1671,6 +1674,7 @@ bool CMonitor::updateTearing() {
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+    static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
 
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
@@ -1734,8 +1738,14 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */)
+    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
         reasons |= DS_BLOCK_DMA;
+        if (!full)
+            return reasons;
+    }
+
+    if (!canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) && *PPASS != 1)
+        reasons |= DS_BLOCK_CM;
 
     return reasons;
 }
@@ -1933,6 +1943,52 @@ bool CMonitor::wantsHDR() {
 
 bool CMonitor::inHDR() {
     return m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+}
+
+bool CMonitor::inFullscreenMode() {
+    return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+}
+
+std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescription() {
+    if (!inFullscreenMode())
+        return {};
+
+    const auto FS_WINDOW = m_activeWorkspace->getFullscreenWindow();
+    if (!FS_WINDOW)
+        return {}; // should be unreachable
+
+    const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
+    const auto SURF      = ROOT_SURF->findWithCM();
+    return SURF ? SURF->m_colorManagement->imageDescription() : SImageDescription{};
+}
+
+bool CMonitor::needsCM() {
+    return getFSImageDescription() != m_imageDescription;
+}
+
+// TODO support more drm properties
+bool CMonitor::canNoShaderCM() {
+    const auto SRC_DESC = getFSImageDescription();
+    if (!SRC_DESC.has_value())
+        return false;
+
+    if (SRC_DESC.value() == m_imageDescription)
+        return true; // no CM needed
+
+    if (SRC_DESC->icc.fd >= 0 || m_imageDescription.icc.fd >= 0)
+        return false; // no ICC support
+
+    // only primaries differ
+    if (SRC_DESC->transferFunction == m_imageDescription.transferFunction && SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower &&
+        SRC_DESC->luminances == m_imageDescription.luminances && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
+        SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
+        return true;
+
+    return false;
+}
+
+bool CMonitor::doesNoShaderCM() {
+    return m_noShaderCTM;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

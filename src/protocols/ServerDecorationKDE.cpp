@@ -14,7 +14,7 @@ orgKdeKwinServerDecorationManagerMode kdeModeOnReleaseCSD(CServerDecorationKDE* 
     return kdeDefaultModeCSD(csd);
 }
 
-CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf_) : m_resource(resource_), m_surf(su) {
+CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf_) : m_resource(resource_), m_surf(surf_) {
     if UNLIKELY (!good())
         return;
 

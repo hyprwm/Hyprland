@@ -3107,13 +3107,17 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handleEnv(const std::string& command, const std::string& value) {
-    if (!m_isFirstLaunch)
-        return {};
-
     const auto ARGS = CVarList(value, 2);
 
     if (ARGS[0].empty())
         return "env empty";
+
+    if (!m_isFirstLaunch) {
+        // check if env changed at all. If it didn't, ignore. If it did, update it.
+        const auto* ENV = getenv(ARGS[0].c_str());
+        if (ENV && ENV == ARGS[1])
+            return {}; // env hasn't changed
+    }
 
     setenv(ARGS[0].c_str(), ARGS[1].c_str(), 1);
 

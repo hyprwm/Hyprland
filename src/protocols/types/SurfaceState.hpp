@@ -20,6 +20,7 @@ struct SSurfaceState {
             bool offset : 1;
             bool viewport : 1;
             bool acquire : 1;
+            bool tearing : 1;
         } bits;
     } updated;
 
@@ -48,6 +49,9 @@ struct SSurfaceState {
 
     // drm syncobj protocol surface state
     CDRMSyncPointState acquire;
+
+    // tearing control protocol surface state
+    bool tearingHint = false;
 
     // texture of surface content, used for rendering
     SP<CTexture> texture;

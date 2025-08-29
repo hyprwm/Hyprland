@@ -1250,8 +1250,9 @@ float CWindow::getScrollTouchpad() {
 }
 
 bool CWindow::canBeTorn() {
-    static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
-    return m_windowData.tearing.valueOr(m_tearingHint) && *PTEARING;
+    static auto PTEARING    = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+    bool        tearingHint = m_wlSurface->resource()->m_current.tearingHint;
+    return m_windowData.tearing.valueOr(tearingHint) && *PTEARING;
 }
 
 void CWindow::setSuspended(bool suspend) {

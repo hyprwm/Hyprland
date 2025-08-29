@@ -171,11 +171,16 @@ class CMonitor {
     Mat3x3 m_ctm        = Mat3x3::identity();
     bool   m_ctmUpdated = false;
 
-    // for tearing
+    //
     PHLWINDOWREF m_solitaryClient;
 
+    // for tearing
+    PHLWINDOWREF m_currentTearing;
+    bool         m_pageFlipPending = false;
+    bool         m_canTear         = false;
+
     // for direct scanout
-    PHLWINDOWREF m_lastScanout;
+    PHLWINDOWREF m_currentScanout;
     bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur
@@ -192,15 +197,6 @@ class CMonitor {
     PHLANIMVAR<float> m_zoomAnimProgress;
     CTimer            m_newMonitorAnimTimer;
     int               m_zoomAnimFrameCounter = 0;
-
-    struct {
-        bool canTear         = false;
-        bool nextRenderTorn  = false;
-        bool activelyTearing = false;
-
-        bool busy                    = false;
-        bool frameScheduledWhileBusy = false;
-    } m_tearingState;
 
     struct {
         CSignalT<> destroy;
@@ -299,7 +295,8 @@ class CMonitor {
     uint16_t                            isSolitaryBlocked(bool full = false);
     void                                recheckSolitary();
     uint8_t                             isTearingBlocked(bool full = false);
-    bool                                updateTearing();
+    void                                updateTearing();
+    bool                                updateDirectScanout();
     uint16_t                            isDSBlocked(bool full = false);
     bool                                attemptDirectScanout();
     void                                setCTM(const Mat3x3& ctm);

@@ -301,8 +301,6 @@ class CWindow {
     } m_groupData;
     uint16_t m_groupRules = GROUP_NONE;
 
-    bool     m_tearingHint = false;
-
     // stores the currently matched window rules
     std::vector<SP<CWindowRule>> m_matchedRules;
 

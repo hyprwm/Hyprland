@@ -18,21 +18,18 @@ class CMonitorFrameScheduler {
     CMonitorFrameScheduler& operator=(CMonitorFrameScheduler&&)      = delete;
 
     void                    onSyncFired();
-    void                    onPresented();
     void                    onFrame();
 
   private:
     bool                       canRender();
-    void                       onFinishRender();
+    void                       onFinishRender(Hyprutils::OS::CFileDescriptor syncFd = {});
     bool                       newSchedulingEnabled();
 
     bool                       m_renderAtFrame = true;
-    bool                       m_pendingThird  = false;
+    bool                       m_pendingSync   = false;
     hrc::time_point            m_lastRenderBegun;
 
     PHLMONITORREF              m_monitor;
-
-    UP<CEGLSync>               m_sync;
 
     WP<CMonitorFrameScheduler> m_self;
 

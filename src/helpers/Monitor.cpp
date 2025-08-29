@@ -1,6 +1,7 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
+#include "managers/BufferReleaseManager.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
@@ -62,6 +63,9 @@ CMonitor::~CMonitor() {
     m_events.destroy.emit();
     if (g_pHyprOpenGL)
         g_pHyprOpenGL->destroyMonitorResources(m_self);
+
+    if (g_pBufferReleaseManager)
+        g_pBufferReleaseManager->destroy(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -133,8 +137,6 @@ void CMonitor::onConnect(bool noRule) {
                 g_pHyprRenderer->damageMonitor(self.lock());
             });
         }
-
-        m_frameScheduler->onPresented();
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

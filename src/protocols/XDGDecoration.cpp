@@ -1,15 +1,15 @@
 #include "XDGDecoration.hpp"
 #include <algorithm>
 
-uint32_t xdgDefaultModeCSD(CXDGDecoration* csd) {
+zxdgToplevelDecorationV1Mode xdgDefaultModeCSD(CXDGDecoration* csd) {
     return ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
 }
 
-uint32_t xdgModeOnRequestCSD(CXDGDecoration* csd, uint32_t modeRequestedByClient) {
+zxdgToplevelDecorationV1Mode xdgModeOnRequestCSD(CXDGDecoration* csd, uint32_t modeRequestedByClient) {
     return xdgDefaultModeCSD(csd);
 }
 
-uint32_t xdgModeOnReleaseCSD(CXDGDecoration* csd) {
+zxdgToplevelDecorationV1Mode xdgModeOnReleaseCSD(CXDGDecoration* csd) {
     return xdgDefaultModeCSD(csd);
 }
 

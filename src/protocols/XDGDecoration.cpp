@@ -39,7 +39,8 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
         LOGM(LOG, "unsetMode. Sending MODE_SERVER_SIDE.");
         auto sendMode = xdgModeOnReleaseCSD(this);
         m_resource->sendConfigure(sendMode);
-        mostRecentlySent = sendMode;
+        mostRecentlySent      = sendMode;
+        mostRecentlyRequested = 0;
     });
 
     auto sendMode = xdgDefaultModeCSD(this);

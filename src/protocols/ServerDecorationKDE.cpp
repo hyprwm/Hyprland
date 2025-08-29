@@ -29,7 +29,8 @@ CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resou
     m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) {
         auto sendMode = kdeModeOnReleaseCSD(this);
         m_resource->sendMode(sendMode);
-        mostRecentlySent = sendMode;
+        mostRecentlySent      = sendMode;
+        mostRecentlyRequested = 0;
     });
 
     // we send this and ignore request_mode.

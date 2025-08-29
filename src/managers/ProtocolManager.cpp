@@ -64,6 +64,7 @@
 #include "../protocols/XDGBell.hpp"
 #include "../protocols/ExtWorkspace.hpp"
 #include "../protocols/ExtDataDevice.hpp"
+#include "../protocols/PointerWarp.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -192,6 +193,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::xdgBell             = makeUnique<CXDGSystemBellProtocol>(&xdg_system_bell_v1_interface, 1, "XDGBell");
     PROTO::extWorkspace        = makeUnique<CExtWorkspaceProtocol>(&ext_workspace_manager_v1_interface, 1, "ExtWorkspace");
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
+    PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
@@ -295,6 +297,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xdgBell.reset();
     PROTO::extWorkspace.reset();
     PROTO::extDataDevice.reset();
+    PROTO::pointerWarp.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();

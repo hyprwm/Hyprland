@@ -12,6 +12,9 @@ class CXDGDecoration {
     bool         good();
     wl_resource* toplevelResource();
 
+    uint32_t     mostRecentlySent      = 0;
+    uint32_t     mostRecentlyRequested = 0;
+
   private:
     SP<CZxdgToplevelDecorationV1> m_resource;
     wl_resource*                  m_toplevelResource = nullptr; // READ-ONLY.

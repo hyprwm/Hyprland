@@ -11,7 +11,12 @@ class CServerDecorationKDE {
   public:
     CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf);
 
-    bool good();
+    bool                   good();
+
+    SP<CWLSurfaceResource> m_surf;
+
+    uint32_t               mostRecentlySent      = 0;
+    uint32_t               mostRecentlyRequested = 0;
 
   private:
     SP<COrgKdeKwinServerDecoration> m_resource;

@@ -18,11 +18,11 @@ class CServerDecorationKDE {
 
     bool                   good();
 
-    uint32_t               kdeDefaultModeCSD();
-    uint32_t               kdeModeOnRequestCSD(uint32_t modeRequestedByClient);
-    uint32_t               kdeModeOnReleaseCSD();
-
   private:
+    uint32_t                        kdeDefaultModeCSD();
+    uint32_t                        kdeModeOnRequestCSD(uint32_t modeRequestedByClient);
+    uint32_t                        kdeModeOnReleaseCSD();
+
     SP<COrgKdeKwinServerDecoration> m_resource;
 };
 
@@ -32,13 +32,13 @@ class CServerDecorationKDEProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    uint32_t     kdeDefaultManagerModeCSD();
-
   private:
-    void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CServerDecorationKDE* deco);
+    uint32_t kdeDefaultManagerModeCSD();
 
-    void createDecoration(COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* surf);
+    void     onManagerResourceDestroy(wl_resource* res);
+    void     destroyResource(CServerDecorationKDE* deco);
+
+    void     createDecoration(COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* surf);
 
     //
     std::vector<UP<COrgKdeKwinServerDecorationManager>> m_managers;

@@ -9,11 +9,15 @@ class CXDGDecoration {
   public:
     CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel);
 
-    bool         good();
-    wl_resource* toplevelResource();
+    uint32_t                     mostRecentlySent      = 0;
+    uint32_t                     mostRecentlyRequested = 0;
 
-    uint32_t     mostRecentlySent      = 0;
-    uint32_t     mostRecentlyRequested = 0;
+    bool                         good();
+    wl_resource*                 toplevelResource();
+
+    zxdgToplevelDecorationV1Mode xdgDefaultModeCSD();
+    zxdgToplevelDecorationV1Mode xdgModeOnRequestCSD(uint32_t modeRequestedByClient);
+    zxdgToplevelDecorationV1Mode xdgModeOnReleaseCSD();
 
   private:
     SP<CZxdgToplevelDecorationV1> m_resource;

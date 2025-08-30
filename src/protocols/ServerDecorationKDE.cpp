@@ -1,19 +1,6 @@
 #include "ServerDecorationKDE.hpp"
 #include "core/Compositor.hpp"
 
-// 'csd' can be nullptr in the 'bindManager' case
-uint32_t kdeDefaultModeCSD(CServerDecorationKDE* csd) {
-    return ORG_KDE_KWIN_SERVER_DECORATION_MANAGER_MODE_SERVER;
-}
-
-uint32_t kdeModeOnRequestCSD(CServerDecorationKDE* csd, uint32_t modeRequestedByClient) {
-    return kdeDefaultModeCSD(csd);
-}
-
-uint32_t kdeModeOnReleaseCSD(CServerDecorationKDE* csd) {
-    return kdeDefaultModeCSD(csd);
-}
-
 CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf_) : m_surf(surf_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -21,26 +8,38 @@ CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resou
     m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
     m_resource->setOnDestroy([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
     m_resource->setRequestMode([this](COrgKdeKwinServerDecoration*, uint32_t mode) {
-        auto sendMode = kdeModeOnRequestCSD(this, mode);
+        auto sendMode = kdeModeOnRequestCSD(mode);
         m_resource->sendMode(sendMode);
         mostRecentlySent      = sendMode;
         mostRecentlyRequested = mode;
     });
     m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) {
-        auto sendMode = kdeModeOnReleaseCSD(this);
+        auto sendMode = kdeModeOnReleaseCSD();
         m_resource->sendMode(sendMode);
         mostRecentlySent      = sendMode;
         mostRecentlyRequested = 0;
     });
 
     // we send this and ignore request_mode.
-    auto sendMode = kdeDefaultModeCSD(this);
+    auto sendMode = kdeDefaultModeCSD();
     m_resource->sendMode(sendMode);
     mostRecentlySent = sendMode;
 }
 
 bool CServerDecorationKDE::good() {
     return m_resource->resource();
+}
+
+uint32_t CServerDecorationKDE::kdeDefaultModeCSD() {
+    return ORG_KDE_KWIN_SERVER_DECORATION_MANAGER_MODE_SERVER;
+}
+
+uint32_t CServerDecorationKDE::kdeModeOnRequestCSD(uint32_t modeRequestedByClient) {
+    return kdeDefaultModeCSD();
+}
+
+uint32_t CServerDecorationKDE::kdeModeOnReleaseCSD() {
+    return kdeDefaultModeCSD();
 }
 
 CServerDecorationKDEProtocol::CServerDecorationKDEProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -54,7 +53,11 @@ void CServerDecorationKDEProtocol::bindManager(wl_client* client, void* data, ui
     RESOURCE->setCreate([this](COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* pointer) { this->createDecoration(pMgr, id, pointer); });
 
     // send default mode of SSD, as Hyprland will never ask for CSD. Screw Gnome and GTK.
-    RESOURCE->sendDefaultMode(kdeDefaultModeCSD(nullptr));
+    RESOURCE->sendDefaultMode(kdeDefaultManagerModeCSD());
+}
+
+uint32_t CServerDecorationKDEProtocol::kdeDefaultManagerModeCSD() {
+    return ORG_KDE_KWIN_SERVER_DECORATION_MANAGER_MODE_SERVER;
 }
 
 void CServerDecorationKDEProtocol::onManagerResourceDestroy(wl_resource* res) {

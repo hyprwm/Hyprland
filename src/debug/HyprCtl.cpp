@@ -734,8 +734,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"keyboards\": [\n";
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KI = std::to_string(k->getActiveLayoutIndex());
-            const auto KM = k->getActiveLayout();
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -838,8 +839,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n\nKeyboards:\n";
 
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KI = std::to_string(k->getActiveLayoutIndex());
-            const auto KM = k->getActiveLayout();
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive layout index: {}\n\t\t\tactive keymap: "
                                   "{}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",

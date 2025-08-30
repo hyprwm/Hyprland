@@ -385,6 +385,8 @@ protocolnew("staging/ext-workspace" "ext-workspace-v1" false)
 protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-input-capture-v1"
+            true)
 protocolwayland()
 
 # tools

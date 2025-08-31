@@ -753,9 +753,8 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "main": {}
     }},)#",
                 rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
-                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), escapeJSONStrings(KI),
-                escapeJSONStrings(KM), (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"),
-                (k->m_active ? "true" : "false"));
+                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), KI, escapeJSONStrings(KM),
+                (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
         }
 
         trimTrailingComma(result);

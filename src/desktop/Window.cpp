@@ -1466,13 +1466,11 @@ void CWindow::onUpdateState() {
     }
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
-        if (requestsMX.has_value()) {
-            if (m_isMapped) {
-                auto window    = m_self.lock();
-                auto state     = sc<int8_t>(window->m_fullscreenState.client);
-                bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
-                g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);
-            }
+        if (m_isMapped) {
+            auto window    = m_self.lock();
+            auto state     = sc<int8_t>(window->m_fullscreenState.client);
+            bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
+            g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);
         }
     }
 }

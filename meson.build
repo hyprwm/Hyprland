@@ -11,6 +11,7 @@ project(
     'debug=false',
     'cpp_std=c++26',
   ],
+  meson_version: '>= 1.1.0',
 )
 
 datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'

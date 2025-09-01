@@ -1249,6 +1249,14 @@ float CWindow::getScrollTouchpad() {
     return m_windowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
 }
 
+bool CWindow::isScrollMouseOverridden() {
+    return m_windowData.scrollMouse.hasValue();
+}
+
+bool CWindow::isScrollTouchpadOverridden() {
+    return m_windowData.scrollTouchpad.hasValue();
+}
+
 bool CWindow::canBeTorn() {
     static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
     return m_windowData.tearing.valueOr(m_tearingHint) && *PTEARING;

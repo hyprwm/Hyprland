@@ -891,7 +891,11 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
                 if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                     simulateMouseMovement();
             }
-            factor = ISTOUCHPADSCROLL ? PWINDOW->getScrollTouchpad() : PWINDOW->getScrollMouse();
+
+            if (ISTOUCHPADSCROLL && PWINDOW->isScrollMouseOverridden())
+                factor = PWINDOW->getScrollMouse();
+            else if (!ISTOUCHPADSCROLL && PWINDOW->isScrollTouchpadOverridden())
+                factor = PWINDOW->getScrollTouchpad();
         }
     }
 

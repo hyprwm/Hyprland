@@ -97,6 +97,7 @@ class CInputManager {
     void               newKeyboard(SP<IKeyboard>);
     void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
+    void               newMouse(SP<IPointer>);
     void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(SP<Aquamarine::ITouch>);

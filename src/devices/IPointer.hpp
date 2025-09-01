@@ -113,7 +113,7 @@ class IPointer : public IHID {
     bool                 m_flipX        = false; // decide to invert horizontal movement
     bool                 m_flipY        = false; // decide to invert vertical movement
     bool                 m_isTouchpad   = false;
-    std::optional<float> m_scrollFactor = 0;
+    std::optional<float> m_scrollFactor = {};
 
     WP<IPointer>         m_self;
 };

@@ -892,9 +892,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
                     simulateMouseMovement();
             }
 
-            if (ISTOUCHPADSCROLL && PWINDOW->isScrollMouseOverridden())
+            if (!ISTOUCHPADSCROLL && PWINDOW->isScrollMouseOverridden())
                 factor = PWINDOW->getScrollMouse();
-            else if (!ISTOUCHPADSCROLL && PWINDOW->isScrollTouchpadOverridden())
+            else if (ISTOUCHPADSCROLL && PWINDOW->isScrollTouchpadOverridden())
                 factor = PWINDOW->getScrollTouchpad();
         }
     }
@@ -1122,6 +1122,14 @@ void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
     setupMouse(PMOUSE);
 
     Debug::log(LOG, "New virtual mouse created");
+}
+
+void CInputManager::newMouse(SP<IPointer> mouse) {
+    m_pointers.emplace_back(mouse);
+
+    setupMouse(mouse);
+
+    Debug::log(LOG, "New mouse created, pointer Hypr: {:x}", rc<uintptr_t>(mouse.get()));
 }
 
 void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {

@@ -53,12 +53,12 @@ struct SWlState {
 
 static std::ofstream logfile;
 
-static bool debug, started, shouldExit;
+static bool          debug, started, shouldExit;
 
 template <typename... Args>
 //NOLINTNEXTLINE
 static void clientLog(std::format_string<Args...> fmt, Args&&... args) {
-    std::string text = std::vformat(fmt.get(), std::make_format_args(args...)); 
+    std::string text = std::vformat(fmt.get(), std::make_format_args(args...));
     std::println("{}", text);
     logfile << text << std::endl;
     std::fflush(stdout);
@@ -67,7 +67,7 @@ static void clientLog(std::format_string<Args...> fmt, Args&&... args) {
 template <typename... Args>
 //NOLINTNEXTLINE
 static void debugLog(std::format_string<Args...> fmt, Args&&... args) {
-    std::string text = std::vformat(fmt.get(), std::make_format_args(args...)); 
+    std::string text = std::vformat(fmt.get(), std::make_format_args(args...));
     logfile << text << std::endl;
     if (!debug)
         return;

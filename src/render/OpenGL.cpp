@@ -1082,16 +1082,10 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
 
-        try {
-            const auto capSrc = loadShader("capture.glsl");
-            includes.insert({"capture.glsl", std::string{m_mrtSupported ? "#define ENABLE_CAPTURE_MRT 1\n" : "#undef ENABLE_CAPTURE_MRT\n"} + capSrc});
-        } catch (const std::exception& e) {
-            Debug::log(WARN, "capture.glsl missing from assets, falling back to inline macro only: {}", e.what());
-            if (m_mrtSupported)
-                includes.insert({"capture.glsl", "layout(location = 1) out vec4 fragColorCapture;\n#define CAPTURE_WRITE(v) fragColorCapture = (v);\n"});
-            else
-                includes.insert({"capture.glsl", "#define CAPTURE_WRITE(v)\n"});
-        }
+        if (m_mrtSupported)
+            includes.insert({"capture.glsl", "layout(location = 1) out vec4 fragColorCapture;\n#define CAPTURE_WRITE(v) fragColorCapture = (v);\n"});
+        else
+            includes.insert({"capture.glsl", "#define CAPTURE_WRITE(v)\n"});
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);

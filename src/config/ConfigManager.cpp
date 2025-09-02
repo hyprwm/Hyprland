@@ -2196,8 +2196,14 @@ bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
             m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
             return false;
         } else {
-            m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
-            m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            try {
+                m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
+                m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            } catch (...) {
+                m_error += "invalid offset ";
+                m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+                return false;
+            }
         }
     }
     return true;

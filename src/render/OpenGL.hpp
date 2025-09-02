@@ -28,6 +28,7 @@
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -112,6 +113,7 @@ struct SMonitorRenderData {
 
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
+    bool         captureMRTValid    = false;
 };
 
 struct SCurrentRenderData {
@@ -268,7 +270,12 @@ class CHyprOpenGLImpl {
 
     void         ensureBackgroundTexturePresence();
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
+    void         setCaptureWritesEnabled(bool enable);
+    Hyprutils::Utils::CScopeGuard               scopedWindowContext(PHLWINDOWREF w);
+    Hyprutils::Utils::CScopeGuard               scopedWindowContext(PHLWINDOWREF w, bool excludeHere);
+
+    uint32_t                                    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
@@ -361,6 +368,9 @@ class CHyprOpenGLImpl {
     bool                          m_blend                = false;
     bool                          m_offloadedFramebuffer = false;
     bool                          m_cmSupported          = true;
+
+    bool                          m_captureWritesEnabled = true;
+    bool                          m_mrtSupported         = false;
 
     bool                          m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>              m_monitorTransformStack;

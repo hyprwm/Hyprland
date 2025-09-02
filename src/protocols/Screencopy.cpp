@@ -149,6 +149,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     m_buffer = CHLBufferReference(PBUFFER->m_buffer.lock());
 
     PROTO::screencopy->m_framesAwaitingWrite.emplace_back(m_self);
+    g_pHyprRenderer->setScreencopyPendingForMonitor(m_monitor.lock(), true);
 
     g_pHyprRenderer->m_directScanoutBlocked = true;
 
@@ -192,7 +193,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto       TEXTURE = g_pHyprOpenGL->getMonitorCaptureTexture(m_monitor.lock());
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -203,66 +204,70 @@ void CScreencopyFrame::renderMon() {
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
-                                 {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
-                                 });
+    if (TEXTURE && TEXTURE->m_texID) {
+        g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
+                                     {
+                                         .cmBackToSRGB       = !IS_CM_AWARE,
+                                         .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
+                                     });
+    } else { // fallback to scanout texture
+        auto TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+        g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
+                                     {
+                                         .cmBackToSRGB       = !IS_CM_AWARE,
+                                         .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
+                                     });
+
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (!g_pHyprRenderer->isWindowVisibleOnMonitor(w, m_monitor.lock()))
+                continue;
+
+            const auto PWORKSPACE = w->m_workspace;
+
+            if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
+                continue;
+
+            const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+            const auto REALPOS          = w->m_realPosition->value() + renderOffset;
+            const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
+                                              .translate(-m_monitor->m_position)
+                                              .scale(m_monitor->m_scale)
+                                              .translate(-m_box.pos());
+
+            const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
+            const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
+            const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+
+            g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
+
+            if (w->m_isX11 || !w->m_popupHead)
+                continue;
+
+            const auto     geom            = w->m_xdgSurface->m_current.geometry;
+            const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+
+            w->m_popupHead->breadthfirst(
+                [&](WP<CPopup> popup, void*) {
+                    if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+                        return;
+
+                    const auto popRel = popup->coordsRelativeToParent();
+                    popup->m_wlSurface->resource()->breadthfirst(
+                        [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
+                            const auto size = surf->m_current.size;
+                            const auto surfBox =
+                                CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+                            if LIKELY (surfBox.w > 0 && surfBox.h > 0)
+                                g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                        },
+                        nullptr);
+                },
+                nullptr);
+        }
+    }
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
-            continue;
-
-        if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
-            continue;
-
-        if (w->isHidden())
-            continue;
-
-        const auto PWORKSPACE = w->m_workspace;
-
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
-            continue;
-
-        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
-        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
-                                          .translate(-m_monitor->m_position)
-                                          .scale(m_monitor->m_scale)
-                                          .translate(-m_box.pos());
-
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
-        const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
-
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
-
-        if (w->m_isX11 || !w->m_popupHead)
-            continue;
-
-        const auto     geom            = w->m_xdgSurface->m_current.geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-
-        w->m_popupHead->breadthfirst(
-            [&](WP<CPopup> popup, void*) {
-                if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
-                    return;
-
-                const auto popRel = popup->coordsRelativeToParent();
-                popup->m_wlSurface->resource()->breadthfirst(
-                    [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                        const auto size    = surf->m_current.size;
-                        const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
-
-                        if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
-                    },
-                    nullptr);
-            },
-            nullptr);
-    }
 
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
@@ -541,4 +546,15 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     for (auto const& f : framesToRemove) {
         std::erase(m_framesAwaitingWrite, f);
     }
+
+    // update pending state for this monitor
+    bool anyPendingForMonitor = false;
+    for (const auto& wf : m_framesAwaitingWrite) {
+        auto f = wf.lock();
+        if (f && f->m_monitor && f->m_monitor.lock() == pMonitor) {
+            anyPendingForMonitor = true;
+            break;
+        }
+    }
+    g_pHyprRenderer->setScreencopyPendingForMonitor(pMonitor, anyPendingForMonitor);
 }

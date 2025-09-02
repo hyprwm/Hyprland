@@ -6,6 +6,7 @@
 class CWLSurfaceResource;
 class CTexture;
 class CSyncTimeline;
+class CRenderPass;
 
 class CSurfacePassElement : public IPassElement {
   public:
@@ -68,4 +69,6 @@ class CSurfacePassElement : public IPassElement {
     SRenderData m_data;
 
     CBox        getTexBox();
+
+    friend class CRenderPass;
 };

@@ -28,6 +28,7 @@
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprgraphics/resource/resources/ImageResource.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -149,6 +150,7 @@ struct SMonitorRenderData {
 
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
+    bool         captureMRTValid    = false;
 };
 
 struct SCurrentRenderData {
@@ -307,7 +309,12 @@ class CHyprOpenGLImpl {
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    DRMFormat    getPreferredReadFormat(PHLMONITOR pMonitor);
+    SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
+    void         setCaptureWritesEnabled(bool enable);
+    Hyprutils::Utils::CScopeGuard                     scopedWindowContext(PHLWINDOWREF w);
+    Hyprutils::Utils::CScopeGuard                     scopedWindowContext(PHLWINDOWREF w, bool excludeHere);
+
+    DRMFormat                                         getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                           getDRMFormats();
     std::vector<uint64_t>                             getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
@@ -410,9 +417,13 @@ class CHyprOpenGLImpl {
     bool                              m_offloadedFramebuffer = false;
     bool                              m_cmSupported          = true;
 
+    bool                              m_captureWritesEnabled = true;
+    bool                              m_mrtSupported         = false;
+
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;
     SP<CTexture>                      m_missingAssetTexture;
+    SP<CTexture>                      m_backgroundTexture;
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;

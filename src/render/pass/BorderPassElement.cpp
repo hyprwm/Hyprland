@@ -6,6 +6,8 @@ CBorderPassElement::CBorderPassElement(const CBorderPassElement::SBorderData& da
 }
 
 void CBorderPassElement::draw(const CRegion& damage) {
+    auto guard = g_pHyprOpenGL->scopedWindowContext(m_data.pWindow);
+
     if (m_data.hasGrad2)
         g_pHyprOpenGL->renderBorder(
             m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,
@@ -14,6 +16,8 @@ void CBorderPassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->renderBorder(
             m_data.box, m_data.grad1,
             {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
+
+    (void)guard;
 }
 
 bool CBorderPassElement::needsLiveBlur() {

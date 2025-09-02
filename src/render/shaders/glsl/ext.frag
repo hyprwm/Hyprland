@@ -9,6 +9,7 @@ uniform samplerExternalOES tex;
 uniform float alpha;
 
 #include "rounding.glsl"
+#include "capture.glsl"
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -34,5 +35,7 @@ void main() {
     if (radius > 0.0)
 		pixColor = rounding(pixColor);
 
-    fragColor = pixColor * alpha;
+    vec4 outColor = pixColor * alpha;
+    fragColor     = outColor;
+    CAPTURE_WRITE(outColor);
 }

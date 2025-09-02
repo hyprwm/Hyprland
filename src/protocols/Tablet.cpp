@@ -97,7 +97,6 @@ bool CTabletPadV2Resource::good() {
 }
 
 void CTabletPadV2Resource::sendData() {
-    // this is dodgy as fuck. I hate wl_array. it's expanded wl_array_for_each because C++ would complain about the implicit casts
     for (auto const& p : m_pad->aq()->paths) {
         m_resource->sendPath(p.c_str());
     }

@@ -425,10 +425,21 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
                 if (prop == HYPRATOMS["_NET_WM_STATE_FULLSCREEN"])
                     XSURF->m_state.requestsFullscreen = updateState(action, XSURF->m_fullscreen);
+                if (prop == HYPRATOMS["_NET_WM_STATE_HIDDEN"])
+                    XSURF->m_state.requestsMinimize = updateState(action, XSURF->m_minimized);
+                if (prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"] || prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"])
+                    XSURF->m_state.requestsMaximize = updateState(action, XSURF->m_maximized);
             }
 
             XSURF->m_events.stateChanged.emit();
         }
+    } else if (e->type == HYPRATOMS["WM_CHANGE_STATE"]) {
+        int state = e->data.data32[0];
+        if (state == XCB_ICCCM_WM_STATE_ICONIC || state == XCB_ICCCM_WM_STATE_WITHDRAWN)
+            XSURF->m_state.requestsMinimize = true;
+        else if (state == XCB_ICCCM_WM_STATE_NORMAL)
+            XSURF->m_state.requestsMinimize = false;
+        XSURF->m_events.stateChanged.emit();
     } else if (e->type == HYPRATOMS["_NET_ACTIVE_WINDOW"]) {
         XSURF->m_events.activate.emit();
     } else if (e->type == HYPRATOMS["XdndStatus"]) {

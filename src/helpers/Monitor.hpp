@@ -229,8 +229,9 @@ class CMonitor {
         DS_BLOCK_DMA       = (1 << 10),
         DS_BLOCK_TEARING   = (1 << 11),
         DS_BLOCK_FAILED    = (1 << 12),
+        DS_BLOCK_CM        = (1 << 13),
 
-        DS_CHECKS_COUNT = 13,
+        DS_CHECKS_COUNT = 14,
     };
 
     // keep in sync with HyprCtl
@@ -273,56 +274,66 @@ class CMonitor {
     };
 
     // methods
-    void                                onConnect(bool noRule);
-    void                                onDisconnect(bool destroy = false);
-    void                                applyCMType(eCMType cmType);
-    bool                                applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
-    void                                addDamage(const pixman_region32_t* rg);
-    void                                addDamage(const CRegion& rg);
-    void                                addDamage(const CBox& box);
-    bool                                shouldSkipScheduleFrameOnMouseEvent();
-    void                                setMirror(const std::string&);
-    bool                                isMirror();
-    bool                                matchesStaticSelector(const std::string& selector) const;
-    float                               getDefaultScale();
-    void                                changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void                                changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void                                setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-    void                                setSpecialWorkspace(const WORKSPACEID& id);
-    void                                moveTo(const Vector2D& pos);
-    Vector2D                            middle();
-    void                                updateMatrix();
-    WORKSPACEID                         activeWorkspaceID();
-    WORKSPACEID                         activeSpecialWorkspaceID();
-    CBox                                logicalBox();
-    void                                scheduleDone();
-    uint16_t                            isSolitaryBlocked(bool full = false);
-    void                                recheckSolitary();
-    uint8_t                             isTearingBlocked(bool full = false);
-    bool                                updateTearing();
-    uint16_t                            isDSBlocked(bool full = false);
-    bool                                attemptDirectScanout();
-    void                                setCTM(const Mat3x3& ctm);
-    void                                onCursorMovedOnMonitor();
-    void                                setDPMS(bool on);
+    void        onConnect(bool noRule);
+    void        onDisconnect(bool destroy = false);
+    void        applyCMType(eCMType cmType);
+    bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
+    void        addDamage(const pixman_region32_t* rg);
+    void        addDamage(const CRegion& rg);
+    void        addDamage(const CBox& box);
+    bool        shouldSkipScheduleFrameOnMouseEvent();
+    void        setMirror(const std::string&);
+    bool        isMirror();
+    bool        matchesStaticSelector(const std::string& selector) const;
+    float       getDefaultScale();
+    void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+    void        setSpecialWorkspace(const WORKSPACEID& id);
+    void        moveTo(const Vector2D& pos);
+    Vector2D    middle();
+    void        updateMatrix();
+    WORKSPACEID activeWorkspaceID();
+    WORKSPACEID activeSpecialWorkspaceID();
+    CBox        logicalBox();
+    void        scheduleDone();
+    uint16_t    isSolitaryBlocked(bool full = false);
+    void        recheckSolitary();
+    uint8_t     isTearingBlocked(bool full = false);
+    bool        updateTearing();
+    uint16_t    isDSBlocked(bool full = false);
+    bool        attemptDirectScanout();
+    void        setCTM(const Mat3x3& ctm);
+    void        onCursorMovedOnMonitor();
+    void        setDPMS(bool on);
 
-    void                                debugLastPresentation(const std::string& message);
+    void        debugLastPresentation(const std::string& message);
 
-    bool                                supportsWideColor();
-    bool                                supportsHDR();
-    float                               minLuminance(float defaultValue = 0);
-    int                                 maxLuminance(int defaultValue = 80);
-    int                                 maxAvgLuminance(int defaultValue = 80);
+    bool        supportsWideColor();
+    bool        supportsHDR();
+    float       minLuminance(float defaultValue = 0);
+    int         maxLuminance(int defaultValue = 80);
+    int         maxAvgLuminance(int defaultValue = 80);
 
-    bool                                wantsWideColor();
-    bool                                wantsHDR();
+    bool        wantsWideColor();
+    bool        wantsHDR();
 
-    bool                                inHDR();
+    bool        inHDR();
+
+    /// Has an active workspace with a real fullscreen window
+    bool                                               inFullscreenMode();
+    std::optional<NColorManagement::SImageDescription> getFSImageDescription();
+
+    bool                                               needsCM();
+    /// Can do CM without shader
+    bool                                canNoShaderCM();
+    bool                                doesNoShaderCM();
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;
     NColorManagement::SImageDescription m_imageDescription;
+    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
 
     // For the list lookup
 

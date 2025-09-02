@@ -51,7 +51,7 @@ using namespace Hyprutils::OS;
 #include "../managers/XWaylandManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
@@ -141,12 +141,12 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
 
 const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"",  "\"RECORD\"", "\"SW\"",
-    "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"TEARING\"", "\"FAILED\"",
+    "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"TEARING\"", "\"FAILED\"", "\"CM\"",
 };
 
 const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
     "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors", "screen record/screenshot", "software renders/cursors",
-    "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "tearing",         "activation failed",
+    "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "tearing",         "activation failed",        "color management",
 };
 
 std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {

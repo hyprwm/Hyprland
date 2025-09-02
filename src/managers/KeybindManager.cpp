@@ -14,6 +14,7 @@
 #include "debug/Log.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
@@ -1607,15 +1608,9 @@ SDispatchResult CKeybindManager::focusCurrentOrLast(std::string args) {
 }
 
 SDispatchResult CKeybindManager::swapActive(std::string args) {
-    char arg = args[0];
-
-    if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
-        return {.success = false, .error = std::format("Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
-    }
-
-    Debug::log(LOG, "Swapping active window in direction {}", arg);
-    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
+    char       arg               = args[0];
+    const auto PLASTWINDOW       = g_pCompositor->m_lastWindow.lock();
+    PHLWINDOW  PWINDOWTOCHANGETO = nullptr;
 
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
@@ -1623,14 +1618,21 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     if (PLASTWINDOW->isFullscreen())
         return {.success = false, .error = "Can't swap fullscreen window"};
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
-    if (!PWINDOWTOCHANGETO)
-        return {.success = false, .error = "Window to swap with not found"};
+    if (isDirection(args))
+        PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    else
+        PWINDOWTOCHANGETO = g_pCompositor->getWindowByRegex(args);
+
+    if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == PLASTWINDOW) {
+        Debug::log(ERR, "Can't swap with {}, invalid window", args);
+        return {.success = false, .error = std::format("Can't swap with {}, invalid window", args)};
+    }
+
+    Debug::log(LOG, "Swapping active window with {}", args);
 
     updateRelativeCursorCoords();
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
     PLASTWINDOW->warpCursor();
-
     return {};
 }
 
@@ -2327,7 +2329,8 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
             // don't make floating implicitly fs
             if (!PWINDOW->m_createdOverFullscreen) {
                 g_pCompositor->changeWindowZOrder(PWINDOW, true);
-                g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
+                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             }
 
             g_pCompositor->focusWindow(PWINDOW);

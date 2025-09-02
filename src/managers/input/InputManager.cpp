@@ -12,6 +12,7 @@
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/RelativePointer.hpp"
 #include "../../protocols/PointerConstraints.hpp"
+#include "../../protocols/PointerGestures.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/SessionLock.hpp"
 #include "../../protocols/InputMethodV2.hpp"
@@ -40,6 +41,8 @@
 
 #include "../../helpers/time/Time.hpp"
 #include "../../helpers/MiscFunctions.hpp"
+
+#include "trackpad/TrackpadGestures.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
@@ -1945,4 +1948,52 @@ void CInputManager::recheckMouseWarpOnMouseInput() {
 
     if (!m_lastInputMouse && *PWARPFORNONMOUSE)
         g_pPointerManager->warpTo(m_lastMousePos);
+}
+
+void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
+
+    g_pTrackpadGestures->gestureBegin(e);
+
+    PROTO::pointerGestures->swipeBegin(e.timeMs, e.fingers);
+}
+
+void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeUpdate", e);
+
+    g_pTrackpadGestures->gestureUpdate(e);
+
+    PROTO::pointerGestures->swipeUpdate(e.timeMs, e.delta);
+}
+
+void CInputManager::onSwipeEnd(IPointer::SSwipeEndEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeEnd", e);
+
+    g_pTrackpadGestures->gestureEnd(e);
+
+    PROTO::pointerGestures->swipeEnd(e.timeMs, e.cancelled);
+}
+
+void CInputManager::onPinchBegin(IPointer::SPinchBeginEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("pinchBegin", e);
+
+    g_pTrackpadGestures->gestureBegin(e);
+
+    PROTO::pointerGestures->pinchBegin(e.timeMs, e.fingers);
+}
+
+void CInputManager::onPinchUpdate(IPointer::SPinchUpdateEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("pinchUpdate", e);
+
+    g_pTrackpadGestures->gestureUpdate(e);
+
+    PROTO::pointerGestures->pinchUpdate(e.timeMs, e.delta, e.scale, e.rotation);
+}
+
+void CInputManager::onPinchEnd(IPointer::SPinchEndEvent e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("pinchEnd", e);
+
+    g_pTrackpadGestures->gestureEnd(e);
+
+    PROTO::pointerGestures->pinchEnd(e.timeMs, e.cancelled);
 }

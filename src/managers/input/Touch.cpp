@@ -7,9 +7,10 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
-#include "managers/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
 #include "../HookSystemManager.hpp"
 #include "debug/Log.hpp"
+#include "UnifiedWorkspaceSwipeGesture.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     m_lastInputTouch = true;
@@ -39,7 +40,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     }
 
     // Don't propagate new touches when a workspace swipe is in progress.
-    if (m_activeSwipe.pWorkspaceBegin) {
+    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         return;
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (m_foundLSToFocus.expired() || m_foundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
@@ -50,13 +51,13 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x));
         const double POSITION    = (VERTANIMS ? e.pos.y : e.pos.x);
         if (POSITION < TARGETLEFT || POSITION > TARGETRIGHT) {
-            beginWorkspaceSwipe();
-            m_activeSwipe.touch_id = e.touchID;
+            g_pUnifiedWorkspaceSwipe->begin();
+            g_pUnifiedWorkspaceSwipe->m_touchID = e.touchID;
             // Set the initial direction based on which edge you started from
             if (POSITION > 0.5)
-                m_activeSwipe.initialDirection = *PSWIPEINVR ? -1 : 1;
+                g_pUnifiedWorkspaceSwipe->m_initialDirection = *PSWIPEINVR ? -1 : 1;
             else
-                m_activeSwipe.initialDirection = *PSWIPEINVR ? 1 : -1;
+                g_pUnifiedWorkspaceSwipe->m_initialDirection = *PSWIPEINVR ? 1 : -1;
             return;
         }
     }
@@ -109,10 +110,10 @@ void CInputManager::onTouchUp(ITouch::SUpEvent e) {
     m_lastInputTouch = true;
 
     EMIT_HOOK_EVENT_CANCELLABLE("touchUp", e);
-    if (m_activeSwipe.pWorkspaceBegin) {
+    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         // If there was a swipe from this finger, end it.
-        if (e.touchID == m_activeSwipe.touch_id)
-            endWorkspaceSwipe();
+        if (e.touchID == g_pUnifiedWorkspaceSwipe->m_touchID)
+            g_pUnifiedWorkspaceSwipe->end();
         return;
     }
 
@@ -124,30 +125,30 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
     m_lastInputTouch = true;
 
     EMIT_HOOK_EVENT_CANCELLABLE("touchMove", e);
-    if (m_activeSwipe.pWorkspaceBegin) {
+    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         // Do nothing if this is using a different finger.
-        if (e.touchID != m_activeSwipe.touch_id)
+        if (e.touchID != g_pUnifiedWorkspaceSwipe->m_touchID)
             return;
 
-        const auto  ANIMSTYLE     = m_activeSwipe.pWorkspaceBegin->m_renderOffset->getStyle();
+        const auto  ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
         const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
         static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
         static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
         const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
         // Handle the workspace swipe if there is one
-        if (m_activeSwipe.initialDirection == -1) {
+        if (g_pUnifiedWorkspaceSwipe->m_initialDirection == -1) {
             if (*PSWIPEINVR)
                 // go from 0 to -SWIPEDISTANCE
-                updateWorkspaceSwipe(SWIPEDISTANCE * ((VERTANIMS ? e.pos.y : e.pos.x) - 1));
+                g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * ((VERTANIMS ? e.pos.y : e.pos.x) - 1));
             else
                 // go from 0 to -SWIPEDISTANCE
-                updateWorkspaceSwipe(SWIPEDISTANCE * (-1 * (VERTANIMS ? e.pos.y : e.pos.x)));
+                g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (-1 * (VERTANIMS ? e.pos.y : e.pos.x)));
         } else if (*PSWIPEINVR)
             // go from 0 to SWIPEDISTANCE
-            updateWorkspaceSwipe(SWIPEDISTANCE * (VERTANIMS ? e.pos.y : e.pos.x));
+            g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (VERTANIMS ? e.pos.y : e.pos.x));
         else
             // go from 0 to SWIPEDISTANCE
-            updateWorkspaceSwipe(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
+            g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
         return;
     }
     if (m_touchData.touchFocusLockSurface) {

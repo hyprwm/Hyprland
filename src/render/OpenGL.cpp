@@ -42,6 +42,7 @@
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Utils;
 using namespace NColorManagement;
 
 const std::vector<const char*> ASSET_PATHS = {
@@ -375,6 +376,12 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     TRACY_GPU_CONTEXT;
 
     initDRMFormats();
+
+    GLint maxColorAttachments = 0, maxDrawBuffers = 0;
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
+    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+    m_mrtSupported = maxColorAttachments >= 2 && maxDrawBuffers >= 2;
+    Debug::log(LOG, "MRT support: {} (colorAttachments={}, drawBuffers={})", m_mrtSupported ? "yes" : "no", maxColorAttachments, maxDrawBuffers);
 
     initAssets();
 
@@ -836,7 +843,29 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         applyScreenShader(*PSHADER);
     }
 
+    const bool PREV_CAPTURE_MRT                   = m_renderData.pCurrentMonData->captureMRTValid;
+    const bool ENABLE_CAPTURE_MRT                 = m_mrtSupported && g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
+    m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
+
     m_renderData.pCurrentMonData->offloadFB.bind();
+    if (ENABLE_CAPTURE_MRT) {
+        if (m_renderData.pCurrentMonData->offloadFB.ensureSecondColorAttachment()) {
+            const GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+            glDrawBuffers(2, bufs);
+            // deterministic baseline for capture by clearing attachment 1 to transparent
+            const GLfloat transparent[4] = {0.f, 0.f, 0.f, 0.f};
+            glClearBufferfv(GL_COLOR, 1, transparent);
+        } else {
+            Debug::log(WARN, "Failed to ensure second color attachment; disabling capture MRT for this frame");
+            m_renderData.pCurrentMonData->captureMRTValid = false;
+            const GLenum bufs[1]                          = {GL_COLOR_ATTACHMENT0};
+            glDrawBuffers(1, bufs);
+        }
+    } else {
+        const GLenum bufs[1] = {GL_COLOR_ATTACHMENT0};
+        glDrawBuffers(1, bufs);
+    }
+
     m_renderData.currentFB = &m_renderData.pCurrentMonData->offloadFB;
     m_offloadedFramebuffer = true;
 
@@ -844,6 +873,15 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     m_renderData.outFB  = fb ? fb : g_pHyprRenderer->getCurrentRBO()->getFB();
 
     pushMonitorTransformEnabled(false);
+    setCaptureWritesEnabled(true);
+
+    if (PREV_CAPTURE_MRT != m_renderData.pCurrentMonData->captureMRTValid) {
+        Debug::log(TRACE, "renderer: capture MRT {} for monitor {}", m_renderData.pCurrentMonData->captureMRTValid ? "ENABLED" : "DISABLED", pMonitor->m_name);
+        if (m_renderData.pCurrentMonData->captureMRTValid) {
+            // full repaint on first enable to populate capture attachment (without this, non-window draws can hide undamaged windows in capture)
+            g_pHyprRenderer->damageMonitor(pMonitor);
+        }
+    }
 }
 
 void CHyprOpenGLImpl::end() {
@@ -921,9 +959,59 @@ void CHyprOpenGLImpl::end() {
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
+SP<CTexture> CHyprOpenGLImpl::getMonitorCaptureTexture(PHLMONITOR pMonitor) {
+    if (!pMonitor)
+        return nullptr;
+    if (!m_monitorRenderResources.contains(pMonitor))
+        return nullptr;
+    auto& res = m_monitorRenderResources[pMonitor];
+    if (!m_mrtSupported || !res.captureMRTValid)
+        return nullptr;
+    return res.offloadFB.getCaptureTexture();
+}
+
+void CHyprOpenGLImpl::setCaptureWritesEnabled(bool enable) {
+    if (!m_mrtSupported)
+        return;
+    if (m_captureWritesEnabled == enable)
+        return;
+    m_captureWritesEnabled = enable;
+    glColorMaski(1, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE);
+}
+
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
     m_renderData.damage.set(damage_);
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+}
+
+CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w) {
+    using namespace Hyprutils::Utils;
+    const auto prevWindow   = m_renderData.currentWindow;
+    const bool prevCaptures = m_captureWritesEnabled;
+
+    m_renderData.currentWindow = w;
+    const auto sw              = w.lock();
+    const bool exclude         = sw && sw->m_windowData.noScreenShare.valueOrDefault();
+    setCaptureWritesEnabled(!exclude);
+
+    return CScopeGuard([this, prevWindow, prevCaptures]() {
+        m_renderData.currentWindow = prevWindow;
+        setCaptureWritesEnabled(prevCaptures);
+    });
+}
+
+CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w, bool excludeHere) {
+    using namespace Hyprutils::Utils;
+    const auto prevWindow   = m_renderData.currentWindow;
+    const bool prevCaptures = m_captureWritesEnabled;
+
+    m_renderData.currentWindow = w;
+    setCaptureWritesEnabled(!excludeHere);
+
+    return CScopeGuard([this, prevWindow, prevCaptures]() {
+        m_renderData.currentWindow = prevWindow;
+        setCaptureWritesEnabled(prevCaptures);
+    });
 }
 
 // TODO notify user if bundled shader is newer than ~/.config override
@@ -993,6 +1081,17 @@ bool CHyprOpenGLImpl::initShaders() {
         std::map<std::string, std::string> includes;
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
+
+        try {
+            const auto capSrc = loadShader("capture.glsl");
+            includes.insert({"capture.glsl", std::string{m_mrtSupported ? "#define ENABLE_CAPTURE_MRT 1\n" : "#undef ENABLE_CAPTURE_MRT\n"} + capSrc});
+        } catch (const std::exception& e) {
+            Debug::log(WARN, "capture.glsl missing from assets, falling back to inline macro only: {}", e.what());
+            if (m_mrtSupported)
+                includes.insert({"capture.glsl", "layout(location = 1) out vec4 fragColorCapture;\n#define CAPTURE_WRITE(v) fragColorCapture = (v);\n"});
+            else
+                includes.insert({"capture.glsl", "#define CAPTURE_WRITE(v)\n"});
+        }
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
@@ -1527,6 +1626,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     }
 
     glBindVertexArray(0);
+
     scissor(nullptr);
 }
 

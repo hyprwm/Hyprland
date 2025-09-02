@@ -1547,9 +1547,14 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -2486,7 +2491,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
         renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
     else
@@ -2498,7 +2505,10 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
                                          .allowCustomUV = true,
                                          .wrapX         = data.wrapX,
                                          .wrapY         = data.wrapY}); // discard opaque
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);

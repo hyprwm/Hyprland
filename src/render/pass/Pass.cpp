@@ -9,6 +9,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "SurfacePassElement.hpp"
 
 bool CRenderPass::empty() const {
     return false;
@@ -84,9 +85,14 @@ void CRenderPass::simplify() {
                     opaque.subtract(infringement);
                 }
             }
-            newDamage.subtract(opaque);
-            if (*PDEBUGPASS)
-                m_occludedRegions.emplace_back(opaque);
+
+            auto surf           = dynamic_cast<CSurfacePassElement*>(el->element.get());
+            bool shouldSubtract = !surf || !surf->m_data.pWindow || !surf->m_data.pWindow->m_windowData.noScreenShare.valueOrDefault();
+            if (shouldSubtract) {
+                newDamage.subtract(opaque);
+                if (*PDEBUGPASS)
+                    m_occludedRegions.emplace_back(opaque);
+            }
         }
     }
 

@@ -149,6 +149,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     m_buffer = CHLBufferReference(PBUFFER->m_buffer.lock());
 
     PROTO::screencopy->m_framesAwaitingWrite.emplace_back(m_self);
+    g_pHyprRenderer->setScreencopyPendingForMonitor(m_monitor.lock(), true);
 
     g_pHyprRenderer->m_directScanoutBlocked = true;
 
@@ -192,22 +193,37 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto monitor = m_monitor.lock();
+    if (!monitor)
+        return;
 
-    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
 
-    CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
-                      .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
+    CBox monbox = CBox{0, 0, monitor->m_pixelSize.x, monitor->m_pixelSize.y}
+                      .translate({-m_box.x, -m_box.y})
+                      .transform(wlTransformToHyprutils(invertTransform(monitor->m_transform)), monitor->m_pixelSize.x, monitor->m_pixelSize.y);
+
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
-                                 {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
-                                 });
+
+    auto captureTexture = g_pHyprOpenGL->getMonitorCaptureTexture(monitor);
+    if (captureTexture && captureTexture->m_texID) {
+        g_pHyprOpenGL->renderTexture(captureTexture, monbox,
+                                     {
+                                         .cmBackToSRGB       = !IS_CM_AWARE,
+                                         .cmBackToSRGBSource = !IS_CM_AWARE ? monitor : nullptr,
+                                     });
+    } else {
+        auto fallbackTexture = makeShared<CTexture>(monitor->m_output->state->state().buffer);
+        g_pHyprOpenGL->renderTexture(fallbackTexture, monbox,
+                                     {
+                                         .cmBackToSRGB       = !IS_CM_AWARE,
+                                         .cmBackToSRGBSource = !IS_CM_AWARE ? monitor : nullptr,
+                                     });
+    }
+
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
@@ -220,7 +236,7 @@ void CScreencopyFrame::renderMon() {
             popup->m_wlSurface->resource()->breadthfirst(
                 [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
                     const auto size    = surf->m_current.size;
-                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(monitor->m_position).scale(monitor->m_scale).translate(-m_box.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
                         g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
@@ -240,7 +256,7 @@ void CScreencopyFrame::renderMon() {
         const auto REALSIZE = l->m_realSize->value();
 
         const auto noScreenShareBox =
-            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-monitor->m_position).scale(monitor->m_scale).translate(-m_box.pos());
 
         g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
 
@@ -254,7 +270,7 @@ void CScreencopyFrame::renderMon() {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
             continue;
 
-        if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
+        if (!g_pHyprRenderer->shouldRenderWindow(w, monitor))
             continue;
 
         if (w->isHidden())
@@ -268,12 +284,12 @@ void CScreencopyFrame::renderMon() {
         const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
         const auto REALPOS          = w->m_realPosition->value() + renderOffset;
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
-                                          .translate(-m_monitor->m_position)
-                                          .scale(m_monitor->m_scale)
+                                          .translate(-monitor->m_position)
+                                          .scale(monitor->m_scale)
                                           .translate(-m_box.pos());
 
         const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
-        const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
+        const auto rounding      = dontRound ? 0 : w->rounding() * monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
         g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
@@ -288,8 +304,8 @@ void CScreencopyFrame::renderMon() {
     }
 
     if (m_overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(m_monitor.lock(), Time::steadyNow(), fakeDamage,
-                                                    g_pInputManager->getMouseCoordsInternal() - m_monitor->m_position - m_box.pos() / m_monitor->m_scale, true);
+        g_pPointerManager->renderSoftwareCursorsFor(monitor, Time::steadyNow(), fakeDamage,
+                                                    g_pInputManager->getMouseCoordsInternal() - monitor->m_position - m_box.pos() / monitor->m_scale, true);
 }
 
 void CScreencopyFrame::storeTempFB() {
@@ -568,4 +584,15 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     for (auto const& f : framesToRemove) {
         std::erase(m_framesAwaitingWrite, f);
     }
+
+    // update pending state for this monitor
+    bool anyPendingForMonitor = false;
+    for (const auto& wf : m_framesAwaitingWrite) {
+        auto f = wf.lock();
+        if (f && f->m_monitor && f->m_monitor.lock() == pMonitor) {
+            anyPendingForMonitor = true;
+            break;
+        }
+    }
+    g_pHyprRenderer->setScreencopyPendingForMonitor(pMonitor, anyPendingForMonitor);
 }

@@ -93,6 +93,13 @@ class CHyprRenderer {
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
+    bool shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+
+    bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
+
+    void setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
+    bool isScreencopyPendingForMonitor(PHLMONITOR pMonitor) const;
+
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
     PHLMONITORREF                   m_mostHzMonitor;
@@ -163,6 +170,22 @@ class CHyprRenderer {
     std::vector<SP<CRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
+
+    std::map<PHLMONITOR, bool>     m_prevHasPending; // tracks screencopy pending per monitor
+
+    struct SCaptureMRTCacheEntry {
+        bool valid = false;
+        bool value = false;
+    };
+    std::map<PHLMONITOR, SCaptureMRTCacheEntry> m_captureMRTCache;
+
+    void                                        invalidateCaptureMRTCache(PHLMONITOR pMonitor) {
+        m_captureMRTCache[pMonitor].valid = false;
+    }
+    void invalidateCaptureMRTCacheAll() {
+        for (auto& [mon, entry] : m_captureMRTCache)
+            entry.valid = false;
+    }
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

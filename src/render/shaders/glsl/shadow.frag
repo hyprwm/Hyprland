@@ -1,27 +1,28 @@
 #version 300 es
 #extension GL_ARB_shading_language_include : enable
 
-precision highp float;
-in vec4 v_color;
-in vec2 v_texcoord;
+precision      highp float;
+in vec4        v_color;
+in vec2        v_texcoord;
 
-uniform int skipCM;
-uniform int sourceTF; // eTransferFunction
-uniform int targetTF; // eTransferFunction
+uniform int    skipCM;
+uniform int    sourceTF; // eTransferFunction
+uniform int    targetTF; // eTransferFunction
 uniform mat4x2 targetPrimaries;
 
-uniform vec2 topLeft;
-uniform vec2 bottomRight;
-uniform vec2 fullSize;
-uniform float radius;
-uniform float roundingPower;
-uniform float range;
-uniform float shadowPower;
+uniform vec2   topLeft;
+uniform vec2   bottomRight;
+uniform vec2   fullSize;
+uniform float  radius;
+uniform float  roundingPower;
+uniform float  range;
+uniform float  shadowPower;
 
 #include "CM.glsl"
+#include "capture.glsl"
 
 float pixAlphaRoundedDistance(float distanceToCorner) {
-     if (distanceToCorner > radius) {
+    if (distanceToCorner > radius) {
         return 0.0;
     }
 
@@ -33,18 +34,18 @@ float pixAlphaRoundedDistance(float distanceToCorner) {
 }
 
 float modifiedLength(vec2 a) {
-    return pow(pow(abs(a.x),roundingPower)+pow(abs(a.y),roundingPower),1.0/roundingPower);
+    return pow(pow(abs(a.x), roundingPower) + pow(abs(a.y), roundingPower), 1.0 / roundingPower);
 }
 
 layout(location = 0) out vec4 fragColor;
 void main() {
 
-	vec4 pixColor = v_color;
+    vec4  pixColor      = v_color;
     float originalAlpha = pixColor[3];
 
-    bool done = false;
+    bool  done = false;
 
-	vec2 pixCoord = fullSize * v_texcoord;
+    vec2  pixCoord = fullSize * v_texcoord;
 
     // ok, now we check the distance to a border.
 
@@ -52,21 +53,21 @@ void main() {
         if (pixCoord[1] < topLeft[1]) {
             // top left
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - topLeft));
-            done = true;
+            done        = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom left
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(topLeft[0], bottomRight[1])));
-            done = true;
+            done        = true;
         }
     } else if (pixCoord[0] > bottomRight[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top right
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(bottomRight[0], topLeft[1])));
-            done = true;
+            done        = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom right
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - bottomRight));
-            done = true;
+            done        = true;
         }
     }
 
@@ -86,14 +87,16 @@ void main() {
     }
 
     if (pixColor[3] == 0.0) {
-        discard; return;
+        discard;
+        return;
     }
 
     // premultiply
     pixColor.rgb *= pixColor[3];
 
-	if (skipCM == 0)
+    if (skipCM == 0)
         pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
-	fragColor = pixColor;
+    fragColor = pixColor;
+    CAPTURE_WRITE(pixColor);
 }

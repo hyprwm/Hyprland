@@ -363,6 +363,8 @@ class CWindow {
     int                        getRealBorderSize();
     float                      getScrollMouse();
     float                      getScrollTouchpad();
+    bool                       isScrollMouseOverridden();
+    bool                       isScrollTouchpadOverridden();
     void                       updateWindowData();
     void                       updateWindowData(const struct SWorkspaceRule&);
     void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);

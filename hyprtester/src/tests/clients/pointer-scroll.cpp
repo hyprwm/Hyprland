@@ -26,7 +26,7 @@ struct SClient {
 static int  ret = 0;
 
 static bool startClient(SClient& client) {
-    client.proc = makeShared<CProcess>(binaryDir + "/pointer-warp", std::vector<std::string>{});
+    client.proc = makeShared<CProcess>(binaryDir + "/pointer-scroll", std::vector<std::string>{});
 
     client.proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
 
@@ -57,7 +57,7 @@ static bool startClient(SClient& client) {
 
     std::string ret = std::string{client.readBuf.data()};
     if (ret.find("started") == std::string::npos) {
-        NLog::log("{}Failed to start pointer-warp client, read {}", Colors::RED, ret);
+        NLog::log("{}Failed to start pointer-scroll client, read {}", Colors::RED, ret);
         return false;
     }
 
@@ -70,11 +70,11 @@ static bool startClient(SClient& client) {
     }
 
     if (getFromSocket(std::format("/dispatch focuswindow pid:{}", client.proc->pid())) != "ok") {
-        NLog::log("{}Failed to focus pointer-warp client", Colors::RED, ret);
+        NLog::log("{}Failed to focus pointer-scroll client", Colors::RED, ret);
         return false;
     }
 
-    NLog::log("{}Started pointer-warp client", Colors::YELLOW);
+    NLog::log("{}Started pointer-scroll client", Colors::YELLOW);
 
     return true;
 }
@@ -87,10 +87,8 @@ static void stopClient(SClient& client) {
     client.proc.reset();
 }
 
-// format is like below
-// "warp 20 20\n" would ask to warp cursor to x=20,y=20 in surface local coords
-static bool sendWarp(SClient& client, int x, int y) {
-    std::string cmd = std::format("warp {} {}\n", x, y);
+static int getLastDelta(SClient& client) {
+    std::string cmd = "hypr";
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
@@ -101,39 +99,16 @@ static bool sendWarp(SClient& client, int x, int y) {
         return false;
 
     client.readBuf[bytesRead] = 0;
-    std::string recieved      = std::string{client.readBuf.data()};
-    recieved.pop_back();
+    std::string received      = std::string{client.readBuf.data()};
+    received.pop_back();
 
-    return true;
+    try {
+        return std::stoi(received);
+    } catch (...) { return -1; }
 }
 
-static bool isCursorPos(int x, int y) {
-    // TODO: add a better way to do this using test plugin?
-    std::string res = getFromSocket("/cursorpos");
-    if (res == "error") {
-        NLog::log("{}Cursorpos err'd: {}", Colors::RED, res);
-        return false;
-    }
-
-    auto it = res.find_first_of(' ');
-    if (res.at(it - 1) != ',') {
-        NLog::log("{}Cursorpos err'd: {}", Colors::RED, res);
-        return false;
-    }
-
-    int cursorX = std::stoi(res.substr(0, it - 1));
-    int cursorY = std::stoi(res.substr(it + 1));
-
-    // somehow this is always gives 1 less than surfbox->pos()??
-    res = getFromSocket("/activewindow");
-    it  = res.find("at: ") + 4;
-    res = res.substr(it, res.find_first_of('\n', it) - it);
-
-    it          = res.find_first_of(',');
-    int clientX = cursorX - std::stoi(res.substr(0, it)) + 1;
-    int clientY = cursorY - std::stoi(res.substr(it + 1)) + 1;
-
-    return clientX == x && clientY == y;
+static bool sendScroll(int delta) {
+    return getFromSocket(std::format("/dispatch plugin:test:scroll {}", delta)) == "ok";
 }
 
 static bool test() {
@@ -142,35 +117,22 @@ static bool test() {
     if (!startClient(client))
         return false;
 
-    EXPECT(sendWarp(client, 100, 100), true);
-    EXPECT(isCursorPos(100, 100), true);
+    EXPECT(getFromSocket("/keyword input:emulate_discrete_scroll 0"), "ok");
 
-    EXPECT(sendWarp(client, 0, 0), true);
-    EXPECT(isCursorPos(0, 0), true);
+    EXPECT(sendScroll(10), true);
+    EXPECT(getLastDelta(client), 10);
 
-    EXPECT(sendWarp(client, 200, 200), true);
-    EXPECT(isCursorPos(200, 200), true);
+    EXPECT(getFromSocket("/keyword input:scroll_factor 2"), "ok");
+    EXPECT(sendScroll(10), true);
+    EXPECT(getLastDelta(client), 20);
 
-    EXPECT(sendWarp(client, 100, -100), true);
-    EXPECT(isCursorPos(200, 200), true);
+    EXPECT(getFromSocket("r/keyword device[test-mouse-1]:scroll_factor 3"), "ok");
+    EXPECT(sendScroll(10), true);
+    EXPECT(getLastDelta(client), 30);
 
-    EXPECT(sendWarp(client, 234, 345), true);
-    EXPECT(isCursorPos(234, 345), true);
-
-    EXPECT(sendWarp(client, -1, -1), true);
-    EXPECT(isCursorPos(234, 345), true);
-
-    EXPECT(sendWarp(client, 1, -1), true);
-    EXPECT(isCursorPos(234, 345), true);
-
-    EXPECT(sendWarp(client, 13, 37), true);
-    EXPECT(isCursorPos(13, 37), true);
-
-    EXPECT(sendWarp(client, -100, 100), true);
-    EXPECT(isCursorPos(13, 37), true);
-
-    EXPECT(sendWarp(client, -1, 1), true);
-    EXPECT(isCursorPos(13, 37), true);
+    EXPECT(getFromSocket("r/dispatch setprop active scrollmouse 4"), "ok");
+    EXPECT(sendScroll(10), true);
+    EXPECT(getLastDelta(client), 40);
 
     stopClient(client);
 

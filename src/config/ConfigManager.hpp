@@ -210,6 +210,7 @@ class CConfigManager {
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
     Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
     std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
+    bool                                                            deviceConfigExplicitlySet(const std::string&, const std::string&);
     bool                                                            deviceConfigExists(const std::string&);
     Hyprlang::CConfigValue*                                         getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
     bool                                                            shouldBlurLS(const std::string&);

@@ -722,10 +722,11 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}",
-        "defaultSpeed": {:.5f}
+        "defaultSpeed": {:.5f},
+        "scrollFactor": {:.2f}
     }},)#",
                 rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName),
-                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
+                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f, m->m_scrollFactor.value_or(-1));
         }
 
         trimTrailingComma(result);
@@ -826,8 +827,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_pointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
-                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n\t\t\tscroll factor: {:.2f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
+                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f),
+                                  m->m_scrollFactor.value_or(-1));
         }
 
         result += "\n\nKeyboards:\n";

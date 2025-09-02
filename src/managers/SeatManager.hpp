@@ -76,7 +76,7 @@ class CSeatManager {
 
     uint32_t nextSerial(SP<CWLSeatResource> seatResource);
     // pops the serial if it was valid, meaning it is consumed.
-    bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial);
+    bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial, bool erase = true);
 
     void                onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot);
 

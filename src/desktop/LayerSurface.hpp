@@ -18,7 +18,6 @@ class CLayerSurface {
     ~CLayerSurface();
 
     void                    applyRules();
-    void                    startAnimation(bool in, bool instant = false);
     bool                    isFadedOut();
     int                     popupsCount();
 

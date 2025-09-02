@@ -14,7 +14,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../managers/TokenManager.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -1206,7 +1206,7 @@ float CWindow::rounding() {
 float CWindow::roundingPower() {
     static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
 
-    return m_windowData.roundingPower.valueOr(std::clamp(*PROUNDINGPOWER, 2.0f, 10.0f));
+    return m_windowData.roundingPower.valueOr(std::clamp(*PROUNDINGPOWER, 1.F, 10.F));
 }
 
 void CWindow::updateWindowData() {
@@ -1466,8 +1466,12 @@ void CWindow::onUpdateState() {
     }
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
-        if (m_isMapped)
-            g_pCompositor->changeWindowFullscreenModeClient(m_self.lock(), FSMODE_MAXIMIZED, requestsMX.value());
+        if (m_isMapped) {
+            auto window    = m_self.lock();
+            auto state     = sc<int8_t>(window->m_fullscreenState.client);
+            bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
+            g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);
+        }
     }
 }
 

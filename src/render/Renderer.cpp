@@ -2647,14 +2647,16 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
 
-    CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = windowBox;
-    data.a            = pWindow->m_alpha->value();
-    data.damage       = fakeDamage;
+    if (!pWindow->m_windowData.noScreenShare.valueOrDefault()) {
+        CTexPassElement::SRenderData data;
+        data.flipEndFrame = true;
+        data.tex          = FBDATA->getTexture();
+        data.box          = windowBox;
+        data.a            = pWindow->m_alpha->value();
+        data.damage       = fakeDamage;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    }
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2715,9 +2717,13 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
     if (!PMONITOR)
         return;
 
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(popup);
+    const bool SHOULD_BLUR = shouldBlur(popup);
+
+    if (popup->m_fadingOut) {
+        return;
+    }
 
     CTexPassElement::SRenderData data;
     data.flipEndFrame          = true;

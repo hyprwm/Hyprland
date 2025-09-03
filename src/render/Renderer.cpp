@@ -530,8 +530,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pWindow = pWindow;
 
     // scoped window context controls capture writes for noscreenshare windows
-    const bool visibleHere    = isWindowVisibleOnMonitor(pWindow, pMonitor);
-    auto       windowCtxGuard = g_pHyprOpenGL->scopedWindowContext(pWindow, visibleHere);
+    auto windowCtxGuard = g_pHyprOpenGL->scopedWindowContext(pWindow);
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
@@ -2386,6 +2385,10 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
 
     bool needed = false;
     for (const auto& w : g_pCompositor->m_windows) {
+        if (!w || !w->m_isMapped || w->isHidden())
+            continue;
+        if (!w->m_windowData.noScreenShare.valueOrDefault())
+            continue;
         if (isWindowVisibleOnMonitor(w, pMonitor)) {
             needed = true;
             break;
@@ -2400,8 +2403,12 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
+    const bool prev            = m_prevHasPending[pMonitor];
     m_prevHasPending[pMonitor] = pending;
     invalidateCaptureMRTCache(pMonitor);
+
+    if (!prev && pending)
+        damageMonitor(pMonitor);
 }
 
 bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) const {

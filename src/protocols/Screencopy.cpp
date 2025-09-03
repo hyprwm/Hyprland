@@ -150,11 +150,12 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
 
     PROTO::screencopy->m_framesAwaitingWrite.emplace_back(m_self);
     g_pHyprRenderer->setScreencopyPendingForMonitor(m_monitor.lock(), true);
-
     g_pHyprRenderer->m_directScanoutBlocked = true;
 
     if (!m_withDamage)
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
+    else
+        g_pCompositor->scheduleFrameForMonitor(m_monitor.lock());
 }
 
 void CScreencopyFrame::share() {
@@ -220,6 +221,9 @@ void CScreencopyFrame::renderMon() {
 
         for (auto const& w : g_pCompositor->m_windows) {
             if (!g_pHyprRenderer->isWindowVisibleOnMonitor(w, m_monitor.lock()))
+                continue;
+
+            if (!w->m_windowData.noScreenShare.valueOrDefault())
                 continue;
 
             const auto PWORKSPACE = w->m_workspace;

@@ -1365,6 +1365,8 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
         m_renderData.damage.forEachRect([this, &col](const auto& RECT) {
             scissor(&RECT);
             glClearBufferfv(GL_COLOR, 0, col);
+            if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+                glClearBufferfv(GL_COLOR, 1, col);
         });
     }
 
@@ -1464,8 +1466,8 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
     glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
-        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
-                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -2355,8 +2357,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
                                          .wrapY         = data.wrapY}); // discard opaque
     glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
-        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
-                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);

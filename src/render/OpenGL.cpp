@@ -1149,6 +1149,8 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
         m_renderData.damage.forEachRect([this, &col](const auto& RECT) {
             scissor(&RECT);
             glClearBufferfv(GL_COLOR, 0, col);
+            if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+                glClearBufferfv(GL_COLOR, 1, col);
         });
     }
 }

@@ -852,9 +852,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         if (m_renderData.pCurrentMonData->offloadFB.ensureSecondColorAttachment()) {
             const GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
             glDrawBuffers(2, bufs);
-            // deterministic baseline for capture by clearing attachment 1 to transparent
-            const GLfloat transparent[4] = {0.f, 0.f, 0.f, 0.f};
-            glClearBufferfv(GL_COLOR, 1, transparent);
         } else {
             Debug::log(WARN, "Failed to ensure second color attachment; disabling capture MRT for this frame");
             m_renderData.pCurrentMonData->captureMRTValid = false;
@@ -1442,12 +1439,12 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
     TRACY_GPU_ZONE("RenderClear");
 
-    glClearColor(color.r, color.g, color.b, color.a);
+    const GLfloat col[4] = {color.r, color.g, color.b, color.a};
 
     if (!m_renderData.damage.empty()) {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
+        m_renderData.damage.forEachRect([this, &col](const auto& RECT) {
             scissor(&RECT);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClearBufferfv(GL_COLOR, 0, col);
         });
     }
 

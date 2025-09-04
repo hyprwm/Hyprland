@@ -13,8 +13,8 @@ class CServerDecorationKDE {
 
     SP<CWLSurfaceResource> m_surf;
 
-    uint32_t               mostRecentlySent      = 0;
-    uint32_t               mostRecentlyRequested = 0;
+    uint32_t               m_mostRecentlySent      = 0;
+    uint32_t               m_mostRecentlyRequested = 0;
 
     bool                   good();
 
@@ -24,6 +24,8 @@ class CServerDecorationKDE {
     uint32_t                        kdeModeOnReleaseCSD();
 
     SP<COrgKdeKwinServerDecoration> m_resource;
+
+    uint32_t                        m_requestsSent = 0;
 };
 
 class CServerDecorationKDEProtocol : public IWaylandProtocol {

@@ -8,16 +8,20 @@ CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resou
     m_resource->setRelease([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
     m_resource->setOnDestroy([this](COrgKdeKwinServerDecoration* pMgr) { PROTO::serverDecorationKDE->destroyResource(this); });
     m_resource->setRequestMode([this](COrgKdeKwinServerDecoration*, uint32_t mode) {
+        if (m_requestsSent > 3)
+            return; // don't start a tug of war
+
         auto sendMode = kdeModeOnRequestCSD(mode);
         m_resource->sendMode(sendMode);
-        mostRecentlySent      = sendMode;
-        mostRecentlyRequested = mode;
+        m_mostRecentlySent      = sendMode;
+        m_mostRecentlyRequested = mode;
+        m_requestsSent++;
     });
 
     // we send this and ignore request_mode.
     auto sendMode = kdeDefaultModeCSD();
     m_resource->sendMode(sendMode);
-    mostRecentlySent = sendMode;
+    m_mostRecentlySent = sendMode;
 }
 
 bool CServerDecorationKDE::good() {

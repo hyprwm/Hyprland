@@ -1104,7 +1104,6 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     pKeyboard->m_repeatDelay = std::max(0, REPEATDELAY);
     pKeyboard->m_numlockOn   = NUMLOCKON;
     pKeyboard->m_xkbFilePath = FILEPATH;
-
     pKeyboard->setKeymap(IKeyboard::SStringRuleNames{LAYOUT, MODEL, VARIANT, OPTIONS, RULES});
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();

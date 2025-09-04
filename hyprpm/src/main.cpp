@@ -25,8 +25,8 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ Flags:
 ┃
-┣ --notify       | -n    → Send a hyprland notification for important events (including both successes and fail events).
-┣ --notify-fail  | -nn   → Send a hyprland notification for fail events only.
+┣ --notify       | -n    → Send a hyprland notification confirming successful plugin load.
+┃                          Warnings/Errors trigger notifications regardless of this flag.
 ┣ --help         | -h    → Show this menu.
 ┣ --verbose      | -v    → Enable too much logging.
 ┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f).
@@ -47,7 +47,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -57,8 +57,6 @@ int                        main(int argc, char** argv, char** envp) {
                 return 0;
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
-            } else if (ARGS[i] == "--notify-fail" || ARGS[i] == "-nn") {
-                notifyFail = notify = true;
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
@@ -149,8 +147,9 @@ int                        main(int argc, char** argv, char** envp) {
 
             if (ret2 != LOADSTATE_OK)
                 return 1;
-        } else if (notify)
+        } else {
             g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");
+        }
     } else if (command[0] == "enable") {
         if (command.size() < 2) {
             std::println(stderr, "{}", failureString("Not enough args for enable."));
@@ -194,19 +193,17 @@ int                        main(int argc, char** argv, char** envp) {
         auto ret = g_pPluginManager->ensurePluginsLoadState(force);
 
         if (ret != LOADSTATE_OK) {
-            if (notify) {
-                switch (ret) {
-                    case LOADSTATE_FAIL:
-                    case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
-                    case LOADSTATE_HEADERS_OUTDATED:
-                        g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
-                        break;
-                    default: break;
-                }
+            switch (ret) {
+                case LOADSTATE_FAIL:
+                case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
+                case LOADSTATE_HEADERS_OUTDATED:
+                    g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
+                    break;
+                default: break;
             }
 
             return 1;
-        } else if (notify && !notifyFail) {
+        } else if (notify) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
     } else if (command[0] == "purge-cache") {

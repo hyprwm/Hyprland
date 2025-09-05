@@ -62,6 +62,14 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     m_backgroundOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+
+    if (m_output) {
+        // reset properties
+        // TODO move to AQ?
+        m_output->state->setCTM(m_ctm);
+        m_output->state->setGammaLut({});
+        m_output->state->setDeGammaLut({});
+    }
 }
 
 CMonitor::~CMonitor() {

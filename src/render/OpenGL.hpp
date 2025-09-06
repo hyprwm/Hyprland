@@ -416,6 +416,10 @@ class CHyprOpenGLImpl {
     void          renderTextureInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
     void          renderTextureWithBlurInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
 
+    void          prepareOutputShader(SShader* shader);
+    void          prepareSurfaceShader(const STextureRenderData& data, SShader* shader, CBox transformBox); // copy CBox for transformation
+    void          drawDamageWithClipping(const STextureRenderData& data);
+
     void          preBlurForCurrentMonitor();
 
     friend class CHyprRenderer;

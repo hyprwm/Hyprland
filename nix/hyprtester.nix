@@ -52,6 +52,7 @@ in
 
     postInstall = ''
       install pointer-warp -t $out/bin
+      install pointer-scroll -t $out/bin
     '';
 
     cmakeBuildType = "Debug";

@@ -74,15 +74,20 @@ class CPopup {
     std::vector<UP<CPopup>> m_children;
     UP<CSubsurface>         m_subsurfaceHead;
 
-    struct {
-        CHyprSignalListener newPopup;
-        CHyprSignalListener destroy;
-        CHyprSignalListener map;
-        CHyprSignalListener unmap;
-        CHyprSignalListener commit;
-        CHyprSignalListener dismissed;
-        CHyprSignalListener reposition;
-    } m_listeners;
+  struct {
+      CHyprSignalListener newPopup;
+      CHyprSignalListener reposition;
+      CHyprSignalListener map;
+      CHyprSignalListener unmap;
+      CHyprSignalListener commit;
+      CHyprSignalListener dismissed;
+      CHyprSignalListener destroy;
+
+      // added for dynamic re-clamp
+      CHyprSignalListener monModeChanged;
+      CHyprSignalListener monWorkareaChanged; // optional; keep if you later wire it
+  } m_listeners;
+
 
     void        initAllSignals();
     void        reposition();

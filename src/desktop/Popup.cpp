@@ -85,6 +85,13 @@ void CPopup::initAllSignals() {
     m_listeners.destroy    = m_resource->m_surface->m_events.destroy.listen([this] { this->onDestroy(); });
     m_listeners.commit     = m_resource->m_surface->m_events.commit.listen([this] { this->onCommit(); });
     m_listeners.newPopup   = m_resource->m_surface->m_events.newPopup.listen([this](const auto& resource) { this->onNewPopup(resource); });
+
+    // Keep the popup within the work area when the monitor mode/scale changes
+    if (auto mon = g_pCompositor->getMonitorFromVector(t1ParentCoords())) {
+        m_listeners.monModeChanged = mon->m_events.modeChanged.listen([this] {
+            this->reposition();
+        });
+    }
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
@@ -281,8 +288,9 @@ void CPopup::reposition() {
 
     if (!PMONITOR)
         return;
-
-    CBox box = {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
+    const Vector2D wsPos  = PMONITOR->m_position + PMONITOR->m_reservedTopLeft;
+    const Vector2D wsSize = PMONITOR->m_size     - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight;
+    CBox box = {wsPos.x, wsPos.y, wsSize.x, wsSize.y};
     m_resource->applyPositioning(box, COORDS);
 }
 

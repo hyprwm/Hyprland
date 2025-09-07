@@ -108,6 +108,8 @@ class CScreencopyProtocol : public IWaylandProtocol {
     bool                               copyFrameDmabuf(CScreencopyFrame* frame);
     bool                               copyFrameShm(CScreencopyFrame* frame, const Time::steady_tp& now);
 
+    uint32_t                           drmFormatForMonitor(PHLMONITOR pMonitor);
+
     friend class CScreencopyFrame;
     friend class CScreencopyClient;
 };

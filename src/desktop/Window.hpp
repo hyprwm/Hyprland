@@ -23,6 +23,8 @@
 class CXDGSurfaceResource;
 class CXWaylandSurface;
 
+enum eFocusWindowMode : uint8_t;
+
 enum eIdleInhibitMode : uint8_t {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
@@ -416,6 +418,8 @@ class CWindow {
     PHLWINDOW                  parent();
     bool                       priorityFocus();
     SP<CWLSurfaceResource>     getSolitaryResource();
+    bool                       matchesStaticSelector(const std::string& regexp);
+    bool                       matchesStaticSelector(eFocusWindowMode mode, const std::string& matchCheck);
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

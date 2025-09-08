@@ -10,6 +10,7 @@
 #include <format>
 
 class CHyprDwindleLayout;
+class CDwindlePreset;
 enum eFullscreenMode : int8_t;
 
 struct SDwindleNodeData {
@@ -60,6 +61,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to);
     virtual Vector2D                 predictSizeForNewWindowTiled();
+    virtual void                     presetsChanged(const std::vector<std::string>& presets);
 
     virtual void                     onEnable();
     virtual void                     onDisable();
@@ -74,21 +76,25 @@ class CHyprDwindleLayout : public IHyprLayout {
         bool yExtent = false;
     } m_pseudoDragFlags;
 
-    std::optional<Vector2D> m_overrideFocalPoint; // for onWindowCreatedTiling.
+    std::optional<Vector2D>         m_overrideFocalPoint; // for onWindowCreatedTiling.
+    std::vector<SP<CDwindlePreset>> m_presets;
 
-    int                     getNodesOnWorkspace(const WORKSPACEID&);
-    void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
-    void                    calculateWorkspace(const PHLWORKSPACE& pWorkspace);
-    SDwindleNodeData*       getNodeFromWindow(PHLWINDOW);
-    SDwindleNodeData*       getFirstNodeOnWorkspace(const WORKSPACEID&);
-    SDwindleNodeData*       getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
-    SDwindleNodeData*       getMasterNodeOnWorkspace(const WORKSPACEID&);
+    void                            onWindowCreatedTilingInternal(PHLWINDOW, eDirection direction, PHLWINDOW overrideOpeningOn = nullptr);
 
-    void                    toggleSplit(PHLWINDOW);
-    void                    swapSplit(PHLWINDOW);
-    void                    moveToRoot(PHLWINDOW, bool stable = true);
+    int                             getNodesOnWorkspace(const WORKSPACEID&);
+    void                            applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
+    void                            calculateWorkspace(const PHLWORKSPACE& pWorkspace);
+    SDwindleNodeData*               getNodeFromWindow(PHLWINDOW);
+    SDwindleNodeData*               getFirstNodeOnWorkspace(const WORKSPACEID&);
+    SDwindleNodeData*               getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
+    SDwindleNodeData*               getMasterNodeOnWorkspace(const WORKSPACEID&);
+    std::string                     usePreset(const std::string& name);
 
-    eDirection              m_overrideDirection = DIRECTION_DEFAULT;
+    void                            toggleSplit(PHLWINDOW);
+    void                            swapSplit(PHLWINDOW);
+    void                            moveToRoot(PHLWINDOW, bool stable = true);
+
+    eDirection                      m_overrideDirection = DIRECTION_DEFAULT;
 
     friend struct SDwindleNodeData;
 };

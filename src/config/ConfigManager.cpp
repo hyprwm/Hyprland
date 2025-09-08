@@ -1301,7 +1301,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (!m_isFirstLaunch)
         ensurePersistentWorkspacesPresent();
 
-    g_pLayoutManager->getCurrentLayout()->presetsChanged(m_layoutPresets);
+    updateLayoutPresets();
 
     EMIT_HOOK_EVENT("configReloaded", nullptr);
     if (g_pEventManager)
@@ -3415,6 +3415,10 @@ std::string SConfigOptionDescription::jsonify() const {
 
 void CConfigManager::ensurePersistentWorkspacesPresent() {
     g_pCompositor->ensurePersistentWorkspacesPresent(m_workspaceRules);
+}
+
+void CConfigManager::updateLayoutPresets() {
+    g_pLayoutManager->getCurrentLayout()->presetsChanged(m_layoutPresets);
 }
 
 void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {

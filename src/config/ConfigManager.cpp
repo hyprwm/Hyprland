@@ -3247,6 +3247,8 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
         result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "fullscreen")
         result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "unset")
+        result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
 

@@ -33,5 +33,5 @@ class CDwindlePreset {
 
     std::vector<SDwindlePresetNodeData> m_data;
 
-    bool addChunk(const std::string_view& data);
+    bool                                addChunk(const std::string_view& data);
 };

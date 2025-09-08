@@ -249,7 +249,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", rc<uintptr_t>(client)));
     else if (client) {
         std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}</b> ({})", binaryName, binaryPath));
+        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", binaryName, binaryPath));
     } else {
         std::string lookup = "";
         if (pid < 0)
@@ -261,10 +261,10 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
         if (type == PERMISSION_TYPE_PLUGIN) {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", lookup, binaryPath));
         } else {
             const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
+            description       = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", lookup, binaryPath));
         }
     }
 

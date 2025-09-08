@@ -60,7 +60,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = m_monitor->m_output->state->state().drmFormat;
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};

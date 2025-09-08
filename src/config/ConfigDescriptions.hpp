@@ -1321,6 +1321,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
     },
+    SConfigOptionDescription{
+        .value       = "misc:screencopy_force_8b",
+        .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * binds:

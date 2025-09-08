@@ -80,6 +80,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     std::vector<SP<CDwindlePreset>> m_presets;
 
     void                            onWindowCreatedTilingInternal(PHLWINDOW, eDirection direction, PHLWINDOW overrideOpeningOn = nullptr);
+    void                            onWindowRemovedTilingInternal(PHLWINDOW);
 
     int                             getNodesOnWorkspace(const WORKSPACEID&);
     void                            applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
@@ -89,6 +90,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     SDwindleNodeData*               getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
     SDwindleNodeData*               getMasterNodeOnWorkspace(const WORKSPACEID&);
     std::string                     usePreset(const std::string& name);
+    void                            recheckPresetRule(PHLWORKSPACE);
 
     void                            toggleSplit(PHLWINDOW);
     void                            swapSplit(PHLWINDOW);

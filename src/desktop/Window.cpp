@@ -1910,3 +1910,86 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
 
     return nullptr;
 }
+
+bool CWindow::matchesStaticSelector(const std::string& regexp) {
+    if (m_hidden)
+        return false;
+
+    if (regexp.starts_with("active"))
+        return g_pCompositor->m_lastWindow == m_self;
+    else if (regexp.starts_with("floating") || regexp.starts_with("tiled")) {
+        // first floating on the current ws
+        if (!valid(g_pCompositor->m_lastWindow))
+            return false;
+
+        const bool FLOAT = regexp.starts_with("floating");
+
+        return m_isFloating == FLOAT && m_workspace == g_pCompositor->m_lastWindow->m_workspace;
+    }
+
+    eFocusWindowMode mode = MODE_CLASS_REGEX;
+
+    std::string      regexCheck;
+    if (regexp.starts_with("class:")) {
+        regexCheck = regexp.substr(6);
+    } else if (regexp.starts_with("initialclass:")) {
+        mode       = MODE_INITIAL_CLASS_REGEX;
+        regexCheck = regexp.substr(13);
+    } else if (regexp.starts_with("title:")) {
+        mode       = MODE_TITLE_REGEX;
+        regexCheck = regexp.substr(6);
+    } else if (regexp.starts_with("initialtitle:")) {
+        mode       = MODE_INITIAL_TITLE_REGEX;
+        regexCheck = regexp.substr(13);
+    } else if (regexp.starts_with("tag:")) {
+        mode       = MODE_TAG_REGEX;
+        regexCheck = regexp.substr(4);
+    } else if (regexp.starts_with("address:")) {
+        mode       = MODE_ADDRESS;
+        regexCheck = regexp.substr(8);
+    } else if (regexp.starts_with("pid:")) {
+        mode       = MODE_PID;
+        regexCheck = regexp.substr(4);
+    }
+
+    return matchesStaticSelector(mode, regexCheck);
+}
+
+bool CWindow::matchesStaticSelector(eFocusWindowMode mode, const std::string& regexCheck) {
+    if (!m_isMapped || (isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(m_self.lock())))
+        return false;
+
+    switch (mode) {
+        case MODE_CLASS_REGEX: return RE2::FullMatch(m_class, regexCheck);
+
+        case MODE_INITIAL_CLASS_REGEX: return RE2::FullMatch(m_initialClass, regexCheck);
+
+        case MODE_TITLE_REGEX: return RE2::FullMatch(m_title, regexCheck);
+
+        case MODE_INITIAL_TITLE_REGEX: return RE2::FullMatch(m_initialTitle, regexCheck);
+
+        case MODE_TAG_REGEX: {
+            bool tagMatched = false;
+            for (auto const& t : m_tags.getTags()) {
+                if (RE2::FullMatch(t, regexCheck)) {
+                    tagMatched = true;
+                    break;
+                }
+            }
+            return tagMatched;
+        }
+
+        case MODE_ADDRESS: {
+            std::string addr = std::format("0x{:x}", rc<uintptr_t>(this));
+            return regexCheck == addr;
+        }
+
+        case MODE_PID: {
+            std::string pid = std::format("{}", getPID());
+            return regexCheck == pid;
+        }
+        default: break;
+    }
+
+    return false;
+}

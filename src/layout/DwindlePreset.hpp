@@ -19,9 +19,10 @@ class CDwindlePreset {
     };
 
     struct SDwindlePresetNodeData {
-        bool                        splitHorizontal = true, splitRight = true;
+        bool                        splitHorizontal = true, splitRight = true, root = false;
         float                       splitRatio = 1.F;
         std::vector<eMoveDirection> moves;
+        std::string                 windowSelector;
     };
 
     const std::vector<SDwindlePresetNodeData>& data();

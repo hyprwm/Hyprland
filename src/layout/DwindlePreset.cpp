@@ -36,7 +36,8 @@ bool CDwindlePreset::addChunk(const std::string_view& dataStr) {
 
     SDwindlePresetNodeData chunk;
 
-    size_t                 step = 0;
+    size_t                 step           = 0;
+    std::string            windowSelector = "";
 
     for (const auto& d : data) {
         switch (step) {
@@ -50,6 +51,11 @@ bool CDwindlePreset::addChunk(const std::string_view& dataStr) {
                     break;
                 } else if (d == "right") {
                     chunk.moves.emplace_back(PRESET_MOVE_RIGHT);
+                    break;
+                } else if (d == "root") {
+                    // special treatment to select root
+                    step       = 4;
+                    chunk.root = true;
                     break;
                 }
 
@@ -106,13 +112,29 @@ bool CDwindlePreset::addChunk(const std::string_view& dataStr) {
                 break;
             }
 
-            case 4:
+            case 4: {
+
+                // add to window selector
+                windowSelector += d;
+                windowSelector += " ";
+
+                break;
+            }
+
             default: {
                 Debug::log(ERR, "CDwindlePreset::addChunk: failed to parse chunk \"{}\", trailing data", dataStr);
                 return false;
             }
         }
     }
+
+    if (!windowSelector.empty())
+        windowSelector.pop_back();
+
+    chunk.windowSelector = windowSelector;
+
+    if (m_data.empty() && !chunk.root)
+        m_data.emplace_back(SDwindlePresetNodeData{.root = true});
 
     m_data.emplace_back(std::move(chunk));
 

@@ -166,7 +166,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
             // otherwise middle of parent if available
             if (!pWindow->m_isX11) {
                 if (const auto PARENT = pWindow->parent(); PARENT) {
-                    *pWindow->m_realPosition = PARENT->m_position + PARENT->m_size / 2.F - desiredGeometry.size() / 2.F;
+                    *pWindow->m_realPosition = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
                     pWindow->m_workspace     = PARENT->m_workspace;
                     pWindow->m_monitor       = PARENT->m_monitor;
                     centeredOnParent         = true;

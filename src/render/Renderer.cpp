@@ -204,7 +204,9 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
             return true;
 
         // if hidden behind fullscreen
-        if (PWINDOWWORKSPACE->m_hasFullscreenWindow && !pWindow->isFullscreen() && (!pWindow->m_isFloating || !pWindow->m_createdOverFullscreen) && pWindow->m_alpha->value() == 0)
+        if (PWINDOWWORKSPACE->m_hasFullscreenWindow && !pWindow->isFullscreen() && (!pWindow->m_isFloating || !pWindow->m_createdOverFullscreen) &&
+            pWindow->m_alpha->value() == 0 &&
+            !(pWindow->m_wlSurface && pWindow->m_wlSurface->getLayer() && pWindow->m_wlSurface->getLayer()->m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP))
             return false;
 
         if (!PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOWWORKSPACE->m_alpha->isBeingAnimated() && !PWINDOWWORKSPACE->isVisible())

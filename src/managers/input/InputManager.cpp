@@ -1031,6 +1031,10 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     g_pSeatManager->setKeyboard(keeb);
 
     keeb->updateLEDs();
+
+    // in case m_lastFocus was set without a keyboard
+    if (m_keyboards.size() == 1 && g_pCompositor->m_lastFocus)
+        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
 }
 
 void CInputManager::setKeyboardLayout() {

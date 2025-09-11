@@ -333,9 +333,9 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    std::string_view                keymap = keyboard->m_xkbKeymapString;
-    Hyprutils::OS::CFileDescriptor& fd     = keyboard->m_xkbKeymapFD;
-    uint32_t                        size   = keyboard->m_xkbKeymapString.length() + 1;
+    std::string_view                keymap = keyboard->m_xkbKeymapV1String;
+    Hyprutils::OS::CFileDescriptor& fd     = keyboard->m_xkbKeymapV1FD;
+    uint32_t                        size   = keyboard->m_xkbKeymapV1String.length() + 1;
 
     if (keymap == m_lastKeymap)
         return;

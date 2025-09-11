@@ -392,6 +392,7 @@ void CLayerSurface::applyRules() {
     m_dimAround        = false;
     m_xray             = -1;
     m_animationStyle.reset();
+    m_noScreenshare = false;
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(m_self.lock())) {
         switch (rule->m_ruleType) {
@@ -423,6 +424,10 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_DIMAROUND: {
                 m_dimAround = true;
+                break;
+            }
+            case CLayerRule::RULE_NOSCREENSHARE: {
+                m_noScreenshare = true;
                 break;
             }
             case CLayerRule::RULE_XRAY: {

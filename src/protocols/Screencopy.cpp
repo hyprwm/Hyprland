@@ -211,6 +211,19 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
+    for (auto const& l : g_pCompositor->m_layers) {
+        if (!l->m_noScreenshare)
+            continue;
+
+        const auto noScreenShareBox =
+            CBox{l->m_realPosition->value().x, l->m_realPosition->value().y, std::max(l->m_realSize->value().x, 5.0), std::max(l->m_realSize->value().y, 5.0)}
+                .translate(-m_monitor->m_position)
+                .scale(m_monitor->m_scale)
+                .translate(-m_box.pos());
+
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+    }
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
             continue;

@@ -2876,7 +2876,7 @@ void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
     static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
 
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, -1L, 2L);
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
 
     if (*PNOWALLPAPER)
         m_backgroundTexture.reset();

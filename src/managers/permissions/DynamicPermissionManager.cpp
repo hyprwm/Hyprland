@@ -59,10 +59,10 @@ static const char* permissionToString(eDynamicPermissionType type) {
 
 static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{:?}</b> is requesting an unknown permission.";
-        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{:?}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
-        case PERMISSION_TYPE_PLUGIN: return "An application <b>{:?}</b> is trying to load a plugin: <b>{:?}</b>.<br/><br/>Do you want to load it?";
-        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: <b>{:?}</b>.<br/><br/>Do you want to allow it to operate?";
+        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{}</b> is requesting an unknown permission.";
+        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
+        case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
+        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: <b>{}</b>.<br/><br/>Do you want to allow it to operate?";
     }
 
     return "error";
@@ -260,9 +260,9 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         }
 
         if (type == PERMISSION_TYPE_PLUGIN)
-            description = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
+            description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{:?}", lookup), std::format("{:?}", binaryPath));
         else if (type == PERMISSION_TYPE_KEYBOARD)
-            description = std::format(std::runtime_format(permissionToHumanString(type)), binaryPath);
+            description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{:?}", binaryPath));
         else
             description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{:?}<br/>({:?})", lookup, binaryPath));
     }

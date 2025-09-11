@@ -1908,6 +1908,7 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
     y = std::stoi(y_str);
 
     g_pCompositor->warpCursorTo({x, y}, true);
+    g_pInputManager->simulateMouseMovement();
 
     return {};
 }

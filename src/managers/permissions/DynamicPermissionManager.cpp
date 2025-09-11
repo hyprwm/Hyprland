@@ -59,10 +59,10 @@ static const char* permissionToString(eDynamicPermissionType type) {
 
 static const char* permissionToHumanString(eDynamicPermissionType type) {
     switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{}</b> is requesting an unknown permission.";
-        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
-        case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
-        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: {}.<br/><br/>Do you want to allow it to operate?";
+        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{:?}</b> is requesting an unknown permission.";
+        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{:?}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
+        case PERMISSION_TYPE_PLUGIN: return "An application <b>{:?}</b> is trying to load a plugin: <b>{:?}</b>.<br/><br/>Do you want to load it?";
+        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: <b>{:?}</b>.<br/><br/>Do you want to allow it to operate?";
     }
 
     return "error";
@@ -248,8 +248,8 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     if (binaryPath.empty())
         description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", rc<uintptr_t>(client)));
     else if (client) {
-        std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", binaryName, binaryPath));
+        std::string binaryName = std::filesystem::path(binaryPath).filename().string();
+        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{:?}<br/>({:?})", binaryName, binaryPath));
     } else {
         std::string lookup = "";
         if (pid < 0)
@@ -259,13 +259,12 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
             lookup            = LOOKUP.value_or("Unknown");
         }
 
-        if (type == PERMISSION_TYPE_PLUGIN) {
-            const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", lookup, binaryPath));
-        } else {
-            const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}<br/> ({})", lookup, binaryPath));
-        }
+        if (type == PERMISSION_TYPE_PLUGIN)
+            description = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
+        else if (type == PERMISSION_TYPE_KEYBOARD)
+            description = std::format(std::runtime_format(permissionToHumanString(type)), binaryPath);
+        else
+            description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{:?}<br/>({:?})", lookup, binaryPath));
     }
 
     std::vector<std::string> options;

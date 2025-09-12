@@ -1787,8 +1787,13 @@ void CInputManager::setTabletConfigs() {
             const auto ACTIVE_AREA_SIZE = g_pConfigManager->getDeviceVec(NAME, "active_area_size", "input:tablet:active_area_size");
             const auto ACTIVE_AREA_POS  = g_pConfigManager->getDeviceVec(NAME, "active_area_position", "input:tablet:active_area_position");
             if (ACTIVE_AREA_SIZE.x != 0 || ACTIVE_AREA_SIZE.y != 0) {
-                t->m_activeArea = CBox{ACTIVE_AREA_POS.x / t->aq()->physicalSize.x, ACTIVE_AREA_POS.y / t->aq()->physicalSize.y,
-                                       (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / t->aq()->physicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / t->aq()->physicalSize.y};
+                // Rotations with an odd index (90 and 270 degrees, and their flipped variants) swap the X and Y axes.
+                // Use swapped dimensions when the axes are rotated, otherwise keep the original ones.
+                const Vector2D effectivePhysicalSize = (ROTATION % 2) ? Vector2D{t->aq()->physicalSize.y, t->aq()->physicalSize.x} : t->aq()->physicalSize;
+
+                // Scale the active area coordinates into normalized space (0–1) using the effective dimensions.
+                t->m_activeArea = CBox{ACTIVE_AREA_POS.x / effectivePhysicalSize.x, ACTIVE_AREA_POS.y / effectivePhysicalSize.y,
+                                       (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / effectivePhysicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / effectivePhysicalSize.y};
             }
         }
     }

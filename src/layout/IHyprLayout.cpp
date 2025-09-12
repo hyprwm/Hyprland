@@ -1029,3 +1029,7 @@ bool IHyprLayout::updateDragWindow() {
 
     return false;
 }
+
+void IHyprLayout::presetsChanged(const std::vector<std::string>& presets) {
+    Debug::log(LOG, "IHyprLayout: ignoring presets -> current layout doesn't support them");
+}

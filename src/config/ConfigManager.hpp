@@ -231,6 +231,7 @@ class CConfigManager {
     std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
     std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
     void                                                            ensurePersistentWorkspacesPresent();
+    void                                                            updateLayoutPresets();
 
     const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
 
@@ -286,6 +287,7 @@ class CConfigManager {
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
     std::optional<std::string> handleGesture(const std::string&, const std::string&);
+    std::optional<std::string> handlePreset(const std::string&, const std::string&);
 
     std::optional<std::string> handleMonitorv2(const std::string& output);
     Hyprlang::CParseResult     handleMonitorv2();
@@ -322,6 +324,7 @@ class CConfigManager {
     std::vector<SP<CWindowRule>>                     m_windowRules;
     std::vector<SP<CLayerRule>>                      m_layerRules;
     std::vector<std::string>                         m_blurLSNamespaces;
+    std::vector<std::string>                         m_layoutPresets;
 
     bool                                             m_firstExecDispatched  = false;
     bool                                             m_manualCrashInitiated = false;

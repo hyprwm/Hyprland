@@ -1063,6 +1063,7 @@ void CConfigManager::setDefaultAnimationVars() {
 std::optional<std::string> CConfigManager::resetHLConfig() {
     m_monitorRules.clear();
     m_windowRules.clear();
+    m_layoutPresets.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));

@@ -7,6 +7,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "DwindlePreset.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
@@ -520,7 +521,11 @@ void CHyprDwindleLayout::onWindowRemovedTilingInternal(PHLWINDOW pWindow) {
 void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     onWindowRemovedTilingInternal(pWindow);
 
-    recheckPresetRule(pWindow->m_workspace);
+    g_pEventLoopManager->doLater([this, ws = PHLWORKSPACEREF{pWindow->m_workspace}]() {
+        if (!ws || g_pLayoutManager->getCurrentLayout() != this)
+            return;
+        recheckPresetRule(ws.lock());
+    });
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
@@ -1295,7 +1300,6 @@ void CHyprDwindleLayout::presetsChanged(const std::vector<std::string>& presets)
     }
 
     for (const auto& w : g_pCompositor->getWorkspaces()) {
-
         if (!w || !w->isVisible())
             continue;
 

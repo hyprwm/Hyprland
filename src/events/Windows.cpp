@@ -697,7 +697,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     // avoid this window being visible
-    if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_isFloating)
+    if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_isFloating &&
+        !(PWINDOW->m_wlSurface && PWINDOW->m_wlSurface->getLayer() && PWINDOW->m_wlSurface->getLayer()->m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP))
         PWINDOW->m_alpha->setValueAndWarp(0.f);
 
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_scale);

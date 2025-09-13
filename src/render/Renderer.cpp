@@ -528,8 +528,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     renderdata.pWindow = pWindow;
 
-    // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+    // scoped window context controls capture writes for noscreenshare windows
+    auto windowCtxGuard = g_pHyprOpenGL->scopedWindowContext(pWindow);
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
@@ -703,8 +703,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
-
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    (void)windowCtxGuard;
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -1931,6 +1930,8 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+
+    invalidateCaptureMRTCacheAll();
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2314,6 +2315,52 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
+bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
+    if (!pMonitor)
+        return false;
+    // only needed if a screencopy frame is pending for this monitor
+    if (!isScreencopyPendingForMonitor(pMonitor))
+        return false;
+
+    auto& entry = m_captureMRTCache[pMonitor];
+    if (entry.valid)
+        return entry.value;
+
+    bool needed = false;
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!w || !w->m_isMapped || w->isHidden())
+            continue;
+        if (!w->m_windowData.noScreenShare.valueOrDefault())
+            continue;
+        if (isWindowVisibleOnMonitor(w, pMonitor)) {
+            needed = true;
+            break;
+        }
+    }
+
+    entry.value = needed;
+    entry.valid = true;
+    return needed;
+}
+
+void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
+    if (!pMonitor)
+        return;
+    const bool prev            = m_prevHasPending[pMonitor];
+    m_prevHasPending[pMonitor] = pending;
+    invalidateCaptureMRTCache(pMonitor);
+
+    if (!prev && pending)
+        damageMonitor(pMonitor);
+}
+
+bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) const {
+    if (!pMonitor)
+        return false;
+    auto it = m_prevHasPending.find(pMonitor);
+    return it != m_prevHasPending.end() && it->second;
+}
+
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
@@ -2332,6 +2379,26 @@ bool CHyprRenderer::isIntel() {
 
 bool CHyprRenderer::isSoftware() {
     return m_software;
+}
+
+bool CHyprRenderer::isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
+    if (!pWindow || !pMonitor)
+        return false;
+
+    if (!pWindow->m_isMapped || pWindow->isHidden())
+        return false;
+
+    bool visibleHere = shouldRenderWindow(pWindow, pMonitor);
+    if (visibleHere)
+        return true;
+
+    CBox windowBox = pWindow->getFullWindowBoundingBox();
+    if (const auto ws = pWindow->m_workspace; ws && ws->m_renderOffset->isBeingAnimated())
+        windowBox.translate(ws->m_renderOffset->value());
+    windowBox.translate(pWindow->m_floatingOffset);
+
+    const CBox monitorBox = {pMonitor->m_position, pMonitor->m_size};
+    return !windowBox.intersection(monitorBox).empty();
 }
 
 bool CHyprRenderer::isMgpu() {
@@ -2523,14 +2590,16 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
 
-    CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = windowBox;
-    data.a            = pWindow->m_alpha->value();
-    data.damage       = fakeDamage;
+    if (!pWindow->m_windowData.noScreenShare.valueOrDefault()) {
+        CTexPassElement::SRenderData data;
+        data.flipEndFrame = true;
+        data.tex          = FBDATA->getTexture();
+        data.box          = windowBox;
+        data.a            = pWindow->m_alpha->value();
+        data.damage       = fakeDamage;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    }
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2591,9 +2660,13 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
     if (!PMONITOR)
         return;
 
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(popup);
+    const bool SHOULD_BLUR = shouldBlur(popup);
+
+    if (popup->m_fadingOut) {
+        return;
+    }
 
     CTexPassElement::SRenderData data;
     data.flipEndFrame = true;

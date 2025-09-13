@@ -192,13 +192,19 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto        TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
 
-    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    static auto PROUNDING      = CConfigValue<Hyprlang::INT>("decoration:rounding");
+    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
 
-    const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
+    const auto  ROUNDINGPOWER = *PROUNDINGPOWER;
+    const int   ROUNDING      = ((*PROUNDING) * (ROUNDINGPOWER / 2.0)) * m_monitor->m_scale;
 
-    CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
+    CRegion     fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+
+    const bool  IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
+
+    CBox        monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
@@ -210,6 +216,22 @@ void CScreencopyFrame::renderMon() {
                                  });
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
+
+    for (auto const& l : g_pCompositor->m_layers) {
+        if (!l->m_noScreenShare)
+            continue;
+
+        if UNLIKELY (!l->m_mapped && !l->m_fadingOut && l->m_alpha->value() != 0.f)
+            continue;
+
+        const auto REALPOS  = l->m_realPosition->value();
+        const auto REALSIZE = l->m_realSize->value();
+
+        const auto noScreenShareBox =
+            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = ROUNDING, .roundingPower = ROUNDINGPOWER});
+    }
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())
@@ -233,11 +255,9 @@ void CScreencopyFrame::renderMon() {
                                           .scale(m_monitor->m_scale)
                                           .translate(-m_box.pos());
 
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
-        const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+        const auto dontRound = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = dontRound ? 0 : ROUNDING, .roundingPower = dontRound ? 2.0f : ROUNDINGPOWER});
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;

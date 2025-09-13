@@ -228,6 +228,23 @@ static bool test() {
 
     testSwapWindow();
 
+    NLog::log("{}Testing window rules", Colors::YELLOW);
+    if (!spawnKitty("kitty_C"))
+        return false;
+    {
+        auto      str  = getFromSocket("/activewindow");
+        const int SIZE = 200;
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
+        EXPECT_NOT_CONTAINS(str, "pinned: 1");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
     return !ret;
 }
 

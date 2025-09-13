@@ -8,8 +8,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "config/ConfigValue.hpp"
-#include "desktop/WindowRule.hpp"
-#include "helpers/varlist/VarList.hpp"
+#include "../desktop/WindowRule.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
@@ -43,7 +42,6 @@
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
 #include <cstring>
-#include <stdexcept>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -54,7 +52,6 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
@@ -2660,20 +2657,20 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
     //const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto                   VARLIST     = CVarList(value, 0, ',', true);
-    std::string                  classifiers = "";
+    const auto                   VARLIST    = CVarList(value, 0, ',', true);
+    std::string                  parameters = "";
     std::vector<std::string>     tokens;
     std::vector<SP<CWindowRule>> rules;
 
     for (const auto& var : VARLIST) {
         if (var.find(':') != std::string::npos) {
-            classifiers += "," + var;
+            parameters += "," + var;
         } else {
             tokens.emplace_back(var);
         }
     }
     for (const auto& token : tokens) {
-        auto rule = makeShared<CWindowRule>(token, classifiers, true);
+        auto rule = makeShared<CWindowRule>(token, parameters, true);
 
         if (rule->m_ruleType == CWindowRule::RULE_INVALID && token != "unset") {
             Debug::log(ERR, "Invalid rulev2 found: {}", token);
@@ -2683,43 +2680,43 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     }
 
     // now we estract shit from the value
-    const auto TAGPOS             = classifiers.find("tag:");
-    const auto TITLEPOS           = classifiers.find("title:");
-    const auto CLASSPOS           = classifiers.find("class:");
-    const auto INITIALTITLEPOS    = classifiers.find("initialTitle:");
-    const auto INITIALCLASSPOS    = classifiers.find("initialClass:");
-    const auto X11POS             = classifiers.find("xwayland:");
-    const auto FLOATPOS           = classifiers.find("floating:");
-    const auto FULLSCREENPOS      = classifiers.find("fullscreen:");
-    const auto PINNEDPOS          = classifiers.find("pinned:");
-    const auto FOCUSPOS           = classifiers.find("focus:");
-    const auto FULLSCREENSTATEPOS = classifiers.find("fullscreenstate:");
-    const auto ONWORKSPACEPOS     = classifiers.find("onworkspace:");
-    const auto CONTENTTYPEPOS     = classifiers.find("content:");
-    const auto XDGTAGPOS          = classifiers.find("xdgTag:");
-    const auto GROUPPOS           = classifiers.find("group:");
+    const auto TAGPOS             = parameters.find("tag:");
+    const auto TITLEPOS           = parameters.find("title:");
+    const auto CLASSPOS           = parameters.find("class:");
+    const auto INITIALTITLEPOS    = parameters.find("initialTitle:");
+    const auto INITIALCLASSPOS    = parameters.find("initialClass:");
+    const auto X11POS             = parameters.find("xwayland:");
+    const auto FLOATPOS           = parameters.find("floating:");
+    const auto FULLSCREENPOS      = parameters.find("fullscreen:");
+    const auto PINNEDPOS          = parameters.find("pinned:");
+    const auto FOCUSPOS           = parameters.find("focus:");
+    const auto FULLSCREENSTATEPOS = parameters.find("fullscreenstate:");
+    const auto ONWORKSPACEPOS     = parameters.find("onworkspace:");
+    const auto CONTENTTYPEPOS     = parameters.find("content:");
+    const auto XDGTAGPOS          = parameters.find("xdgTag:");
+    const auto GROUPPOS           = parameters.find("group:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
-    size_t currentPos   = classifiers.find("workspace:");
+    size_t currentPos   = parameters.find("workspace:");
     while (currentPos != std::string::npos) {
-        if (currentPos == 0 || classifiers[currentPos - 1] != 'n') {
+        if (currentPos == 0 || parameters[currentPos - 1] != 'n') {
             WORKSPACEPOS = currentPos;
             break;
         }
-        currentPos = classifiers.find("workspace:", currentPos + 1);
+        currentPos = parameters.find("workspace:", currentPos + 1);
     }
 
     const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  FULLSCREENPOS,
                                              PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS, GROUPPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
-        Debug::log(ERR, "Invalid rulev2 syntax: {}", classifiers);
-        return "Invalid rulev2 syntax: " + classifiers;
+        Debug::log(ERR, "Invalid rulev2 syntax: {}", parameters);
+        return "Invalid rulev2 syntax: " + parameters;
     }
 
     auto extract = [&](size_t pos) -> std::string {
         std::string result;
-        result = classifiers.substr(pos);
+        result = parameters.substr(pos);
 
         size_t min = 999999;
         if (TAGPOS > pos && TAGPOS < min)

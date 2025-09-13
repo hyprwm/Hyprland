@@ -69,8 +69,16 @@ struct SMonitorRule {
     int                maxLuminance    = -1;    // >= 0 overrides EDID
     int                maxAvgLuminance = -1;    // >= 0 overrides EDID
 
+    Vector2D           overscanTL = {0, 0};
+    Vector2D           overscanBR = {0, 0};
+
     drmModeModeInfo    drmMode = {};
     std::optional<int> vrr;
+
+    //
+    bool hasOverscan() {
+        return overscanTL != Vector2D{0, 0} || overscanBR != Vector2D{0, 0};
+    }
 };
 
 class CMonitor;

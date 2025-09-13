@@ -58,6 +58,10 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
     createFromDma(attrs, image);
 }
 
+CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, const NColorManagement::SImageDescription& imageDescription) : CTexture(buffer, false) {
+    m_imageDescription = imageDescription;
+}
+
 void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 

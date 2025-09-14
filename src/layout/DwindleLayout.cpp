@@ -338,7 +338,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     NEWPARENT->isNode      = true; // it is a node
     NEWPARENT->splitRatio  = std::clamp(*PDEFAULTSPLIT, 0.1f, 1.9f);
 
-    static auto PWIDTHMULTIPLIER = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+    static auto PWIDTHMULTIPLIER   = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+    static auto PSMARTSPLITONDDROP = CConfigValue<Hyprlang::INT>("dwindle:smart_split_on_drop");
 
     // if cursor over first child, make it first, etc
     const auto SIDEBYSIDE = NEWPARENT->box.w > NEWPARENT->box.h * *PWIDTHMULTIPLIER;
@@ -373,7 +374,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             m_overrideDirection = DIRECTION_DEFAULT;
-    } else if (*PSMARTSPLIT == 1) {
+    } else if (*PSMARTSPLIT == 1 && (!*PSMARTSPLITONDDROP || g_pInputManager->m_wasDraggingWindow)) {
+        // Smart split with cursor position - applies when:
+        // 1. smart_split_on_drop is disabled (use smart_split for everything)
+        // 2. OR this is a mouse drop operation (only use smart split for drops)
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
         const auto DELTA              = MOUSECOORDS - PARENT_CENTER;

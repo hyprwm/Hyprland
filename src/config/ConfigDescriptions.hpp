@@ -1794,6 +1794,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value = "dwindle:smart_split_on_drop",
+        .description =
+            "if enabled, smart split (cursor-position-based splitting) is only used for mouse drop operations. Otherwise, uses regular split_width_multiplier-based splitting.",
+        .type = CONFIG_OPTION_BOOL,
+        .data = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value = "dwindle:smart_resizing",
         .description =
             "if enabled, resizing direction will be determined by the mouse's position on the window (nearest to which corner). Else, it is based on the window's tiling position.",

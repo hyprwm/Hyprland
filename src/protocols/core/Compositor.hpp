@@ -87,6 +87,7 @@ class CWLSurfaceResource {
     SP<CWlSurface>                getResource();
     CBox                          extends();
     void                          resetRole();
+    void                          init();
 
     struct {
         CSignalT<>                          precommit; // before commit
@@ -101,8 +102,10 @@ class CWLSurfaceResource {
 
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
+
     std::queue<UP<SSurfaceState>>          m_pendingStates;
-    bool                                   m_pendingWaiting = false;
+
+    void                                   progressStates();
 
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;

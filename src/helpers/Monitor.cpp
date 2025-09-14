@@ -135,6 +135,8 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         m_frameScheduler->onPresented();
+
+        m_events.presented.emit();
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

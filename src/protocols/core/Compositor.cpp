@@ -146,18 +146,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
         m_pending.reset();
 
-        auto whenReadable = [this, surf = m_self, state = WP<SSurfaceState>(m_pendingStates.back())] {
-            if (!surf || state.expired())
+        auto whenReadable = [this, surf = m_self] {
+            if (!surf)
                 return;
 
-            while (!m_pendingStates.empty() && m_pendingStates.front() != state) {
-                commitState(*m_pendingStates.front());
-                m_pendingStates.pop();
-            }
-
-            commitState(*m_pendingStates.front());
-            m_pendingStates.pop();
+            unlockState();
         };
+
+        lockState();
 
         if (state->updated.bits.acquire) {
             // wait on acquire point for this surface, from explicit sync protocol
@@ -267,6 +263,23 @@ void CWLSurfaceResource::dropPendingBuffer() {
 
 void CWLSurfaceResource::dropCurrentBuffer() {
     m_current.buffer = {};
+}
+
+void CWLSurfaceResource::lockState() {
+    m_stateLocks++;
+}
+
+void CWLSurfaceResource::unlockState() {
+    RASSERT(!!m_stateLocks, "Tried to unlock an unlocked wl_surface state");
+    m_stateLocks--;
+
+    if (m_stateLocks)
+        return;
+
+    while (!m_pendingStates.empty()) {
+        commitState(*m_pendingStates.front());
+        m_pendingStates.pop();
+    }
 }
 
 SP<CWLSurfaceResource> CWLSurfaceResource::fromResource(wl_resource* res) {

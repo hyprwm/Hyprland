@@ -95,6 +95,10 @@ class CWLSurfaceResource {
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
 
+    void                                   lockState();
+    void                                   unlockState();
+    size_t                                 m_stateLocks = 0;
+
     std::vector<UP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;

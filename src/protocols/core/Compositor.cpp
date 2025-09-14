@@ -127,18 +127,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             return;
         }
 
+        lockState();
+
         if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
         ) {
-            commitState(m_pending);
-
-            if (!m_pending.buffer && !m_pending.texture) {
-                // null buffer attached, remove any pending states.
-                while (!m_pendingStates.empty()) {
-                    m_pendingStates.pop();
-                }
-            }
-            m_pending.reset();
+            unlockState();
             return;
         }
 
@@ -152,8 +146,6 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
             unlockState();
         };
-
-        lockState();
 
         if (state->updated.bits.acquire) {
             // wait on acquire point for this surface, from explicit sync protocol

@@ -132,6 +132,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
         ) {
+            m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
             unlockState();
             return;
         }

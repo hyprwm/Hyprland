@@ -129,17 +129,16 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         lockState();
 
-        if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
-            (!m_pending.buffer && !m_pending.texture) // null buffer attached
-        ) {
-            m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
-            unlockState();
-            return;
-        }
-
         // save state while we wait for buffer to become ready to read
         const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
         m_pending.reset();
+
+        if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
+            (!m_pending.buffer && !m_pending.texture) // null buffer attached
+        ) {
+            unlockState();
+            return;
+        }
 
         auto whenReadable = [this, surf = m_self] {
             if (!surf)

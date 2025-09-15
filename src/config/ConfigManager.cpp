@@ -689,7 +689,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
-    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{0});
+    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{2});
     registerConfigVar("input:virtualkeyboard:release_pressed_on_close", Hyprlang::INT{0});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
     registerConfigVar("input:tablet:output", {STRVAL_EMPTY});

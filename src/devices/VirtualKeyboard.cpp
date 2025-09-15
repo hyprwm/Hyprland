@@ -44,8 +44,11 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
         m_keyboardEvents.keymap.emit(event);
     });
 
-    m_deviceName  = keeb_->m_name;
-    m_shareStates = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
+    m_deviceName = keeb_->m_name;
+
+    const auto SHARESTATES = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
+    m_shareStates          = SHARESTATES != 0;
+    m_shareStatesAuto      = SHARESTATES == 2;
 }
 
 bool CVirtualKeyboard::isVirtual() {

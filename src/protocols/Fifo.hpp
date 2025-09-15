@@ -5,6 +5,8 @@
 #include "WaylandProtocol.hpp"
 #include "fifo-v1.hpp"
 
+#include "../helpers/signal/Signal.hpp"
+
 class CWLSurfaceResource;
 
 class CFifoResource {
@@ -18,10 +20,19 @@ class CFifoResource {
     UP<CWpFifoV1>          m_resource;
 
     WP<CWLSurfaceResource> m_surface;
-    bool                   m_surfaceLocked = false;
-    bool                   m_barrierSet    = false;
 
-    void                   presented();
+    struct SState {
+        bool barrierSet    = false;
+        bool surfaceLocked = false;
+    };
+
+    SState m_current, m_pending;
+
+    struct {
+        CHyprSignalListener surfacePrecommit;
+    } m_listeners;
+
+    void presented();
 
     friend class CFifoProtocol;
     friend class CFifoManagerResource;

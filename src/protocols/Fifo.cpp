@@ -16,7 +16,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        m_barrierSet = true;
+        m_pending.barrierSet = true;
     });
 
     m_resource->setWaitBarrier([this](CWpFifoV1* r) {
@@ -25,16 +25,24 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        if (!m_barrierSet) // likely already too late, a presentation was fired.
+        if (!m_pending.barrierSet)
             return;
 
-        m_surfaceLocked = true;
+        m_pending.surfaceLocked = true;
+    });
+
+    m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this]() {
+        m_current = m_pending;
+
+        if (!m_current.surfaceLocked)
+            return;
+
         m_surface->lockState();
     });
 }
 
 CFifoResource::~CFifoResource() {
-    if (m_surfaceLocked && m_surface)
+    if (m_current.surfaceLocked && m_surface)
         m_surface->unlockState();
 }
 
@@ -46,11 +54,14 @@ void CFifoResource::presented() {
 
     // reset barrier if the app did setBarrier then we had a presentation and then
     // it did wait because it's already past
-    if (m_barrierSet && !m_surfaceLocked)
-        m_barrierSet = false;
+    if (m_current.barrierSet && !m_current.surfaceLocked)
+        m_current.barrierSet = false;
 
-    if (m_surfaceLocked && m_surface)
+    if (m_current.surfaceLocked && m_surface) {
         m_surface->unlockState();
+        m_current.surfaceLocked = false;
+        m_current.barrierSet    = false;
+    }
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {

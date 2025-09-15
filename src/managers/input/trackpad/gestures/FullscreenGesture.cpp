@@ -21,7 +21,7 @@ CFullscreenTrackpadGesture::CFullscreenTrackpadGesture(const std::string_view& m
     if (lc.starts_with("fullscreen"))
         m_mode = MODE_FULLSCREEN;
     else if (lc.starts_with("maximize"))
-        m_mode == MODE_MAXIMIZE;
+        m_mode = MODE_MAXIMIZE;
     else
         m_mode = MODE_FULLSCREEN;
 }

@@ -51,7 +51,6 @@ bool CFifoResource::good() {
 }
 
 void CFifoResource::presented() {
-
     // reset barrier if the app did setBarrier then we had a presentation and then
     // it did wait because it's already past
     if (m_current.barrierSet && !m_current.surfaceLocked)
@@ -143,7 +142,7 @@ void CFifoProtocol::destroyResource(CFifoResource* res) {
 
 void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
     for (const auto& fifo : m_fifos) {
-        if (!fifo->m_surfaceLocked || !fifo->m_surface)
+        if (!fifo->m_surface)
             continue;
 
         // Signal all surfaces

@@ -64,7 +64,7 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const T
     if (sizeof(time_t) > 4)
         tv_sec = TIMESPEC.tv_sec >> 32;
 
-    uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive ? 0 : untilRefreshNs;
+    uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
 
     if (data->m_wasPresented)
         m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), sc<uint32_t>(TIMESPEC.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),

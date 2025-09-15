@@ -7,6 +7,8 @@
 #include "WaylandProtocol.hpp"
 #include "ext-image-capture-source-v1.hpp"
 
+class CImageCopyCaptureSession;
+
 class CImageCaptureSource {
   public:
     CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLMONITOR pMonitor);
@@ -26,8 +28,10 @@ class CImageCaptureSource {
         CHyprSignalListener destroy;
     } m_listeners;
 
-    PHLMONITOR m_monitor;
-    PHLWINDOW  m_window;
+    PHLMONITORREF m_monitor;
+    PHLWINDOWREF  m_window;
+
+    friend class CImageCopyCaptureSession;
 };
 
 class COutputImageCaptureSourceProtocol : public IWaylandProtocol {

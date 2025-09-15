@@ -4,7 +4,7 @@
 #include "../managers/eventLoop/EventLoopTimer.hpp"
 
 CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
-    if UNLIKELY (!resource_->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
     m_resource->setDestroy([this](CWpCommitTimerV1* r) { PROTO::commitTiming->destroyResource(this); });
@@ -66,7 +66,7 @@ void CCommitTimerResource::ensureTimerPresent() {
 }
 
 CCommitTimingManagerResource::CCommitTimingManagerResource(UP<CWpCommitTimingManagerV1>&& resource_) : m_resource(std::move(resource_)) {
-    if UNLIKELY (!resource_->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
     m_resource->setDestroy([this](CWpCommitTimingManagerV1* r) { PROTO::commitTiming->destroyResource(this); });

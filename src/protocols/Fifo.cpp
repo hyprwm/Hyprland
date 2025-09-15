@@ -4,7 +4,7 @@
 #include "../helpers/Monitor.hpp"
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
-    if UNLIKELY (!resource_->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
     m_resource->setDestroy([this](CWpFifoV1* r) { PROTO::fifo->destroyResource(this); });
@@ -64,7 +64,7 @@ void CFifoResource::presented() {
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {
-    if UNLIKELY (!resource_->resource())
+    if UNLIKELY (!m_resource->resource())
         return;
 
     m_resource->setDestroy([this](CWpFifoManagerV1* r) { PROTO::fifo->destroyResource(this); });

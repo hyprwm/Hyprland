@@ -50,6 +50,7 @@
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
 #include "../protocols/HyprlandSurface.hpp"
+#include "../protocols/ImageCaptureSource.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -200,6 +201,10 @@ CProtocolManager::CProtocolManager() {
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
     PROTO::commitTiming        = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
+    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>();
+
+    // ! please read the top of this file before adding another protocol
+
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
 
@@ -207,8 +212,6 @@ CProtocolManager::CProtocolManager() {
         PROTO::xxColorManagement   = makeUnique<CXXColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "XXColorManagement");
         PROTO::frogColorManagement = makeUnique<CFrogColorManagementProtocol>(&frog_color_management_factory_v1_interface, 1, "FrogColorManagement");
     }
-
-    // ! please read the top of this file before adding another protocol
 
     for (auto const& b : g_pCompositor->m_aqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
@@ -305,6 +308,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
     PROTO::commitTiming.reset();
+    PROTO::imageCaptureSource.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();

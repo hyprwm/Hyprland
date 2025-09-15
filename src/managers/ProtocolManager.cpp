@@ -51,6 +51,7 @@
 #include "../protocols/CTMControl.hpp"
 #include "../protocols/HyprlandSurface.hpp"
 #include "../protocols/ImageCaptureSource.hpp"
+#include "../protocols/ImageCopyCapture.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -203,7 +204,8 @@ CProtocolManager::CProtocolManager() {
     // Screensharing Protocols
     PROTO::screencopy         = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport     = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
-    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>();
+    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(); // ctor inits actual protos, output and toplevel
+    PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);

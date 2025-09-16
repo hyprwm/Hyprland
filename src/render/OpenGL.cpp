@@ -976,6 +976,12 @@ static std::string   processShader(const std::string& filename, const std::map<s
     return source;
 }
 
+static void prepareCaptureInclude(std::map<std::string, std::string>& includes, bool enableCaptureAttachment) {
+    auto captureSource = loadShader("capture.glsl");
+    if (enableCaptureAttachment)
+        captureSource.insert(0, "#define HYPR_USE_CAPTURE_ATTACHMENT\n");
+    includes["capture.glsl"] = std::move(captureSource);
+}
 bool CHyprOpenGLImpl::initShaders() {
     auto                               shaders = makeShared<SPreparedShaders>();
     std::map<std::string, std::string> includes;
@@ -1005,10 +1011,7 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("gain.glsl", includes);
         loadShaderInclude("border.glsl", includes);
 
-        if (m_mrtSupported)
-            includes.insert({"capture.glsl", "layout(location = 1) out vec4 fragColorCapture;\n#define CAPTURE_WRITE(v) fragColorCapture = (v);\n"});
-        else
-            includes.insert({"capture.glsl", "#define CAPTURE_WRITE(v)\n"});
+        prepareCaptureInclude(includes, m_mrtSupported);
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);

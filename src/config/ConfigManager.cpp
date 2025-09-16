@@ -2675,7 +2675,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                 return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
 
             std::string_view key = var.substr(0, sep);
-            std::string_view val = var.substr(sep + 1);
+            // somewhat ugly trim. But since CVarList string_view trim isn't available, let's be lazy.
+            std::string_view val = var.substr(var.find_first_not_of(' ', sep + 1));
 
             params[key] = val;
         }

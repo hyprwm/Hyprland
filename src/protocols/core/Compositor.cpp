@@ -127,11 +127,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             return;
         }
 
-        lockState();
-
         // save state while we wait for buffer to become ready to read
         const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
-        m_pending.reset();
+        progressState();
+
+        lockState();
 
         if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
@@ -140,11 +140,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             return;
         }
 
-        auto whenReadable = [this, surf = m_self] {
+        auto whenReadable = [this, surf = m_self, until = state->seq] {
             if (!surf)
                 return;
 
-            unlockState();
+            unlockState(until);
         };
 
         if (state->updated.bits.acquire) {
@@ -261,14 +261,14 @@ void CWLSurfaceResource::lockState() {
     m_stateLocks++;
 }
 
-void CWLSurfaceResource::unlockState() {
+void CWLSurfaceResource::unlockState(std::optional<size_t> seq) {
     RASSERT(!!m_stateLocks, "Tried to unlock an unlocked wl_surface state");
     m_stateLocks--;
 
     if (m_stateLocks)
         return;
 
-    while (!m_pendingStates.empty()) {
+    while (!m_pendingStates.empty() && (!seq || m_pendingStates.front()->seq <= *seq)) {
         commitState(*m_pendingStates.front());
         m_pendingStates.pop();
     }
@@ -635,6 +635,12 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     else
         FEEDBACK->presented();
     PROTO::presentation->queueData(std::move(FEEDBACK));
+}
+
+void CWLSurfaceResource::progressState() {
+    const auto SEQ = m_pending.seq + 1;
+    m_pending.reset();
+    m_pending.seq = SEQ;
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_resource(resource_) {

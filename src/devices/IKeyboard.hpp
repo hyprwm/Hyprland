@@ -65,23 +65,24 @@ class IKeyboard : public IHID {
         std::string rules   = "";
     };
 
-    void                    setKeymap(const SStringRuleNames& rules);
-    void                    updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
-    std::string             getActiveLayout();
-    std::optional<uint32_t> getLEDs();
-    void                    updateLEDs();
-    void                    updateLEDs(uint32_t leds);
-    uint32_t                getModifiers();
-    void                    updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
-    bool                    updateModifiersState(); // rets whether changed
-    void                    updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
-    void                    updateKeymapFD();
-    bool                    getPressed(uint32_t key);
-    bool                    shareStates();
+    void                              setKeymap(const SStringRuleNames& rules);
+    void                              updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+    std::optional<xkb_layout_index_t> getActiveLayoutIndex();
+    std::string                       getActiveLayout();
+    std::optional<uint32_t>           getLEDs();
+    void                              updateLEDs();
+    void                              updateLEDs(uint32_t leds);
+    uint32_t                          getModifiers();
+    void                              updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
+    bool                              updateModifiersState(); // rets whether changed
+    void                              updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
+    void                              updateKeymapFD();
+    bool                              getPressed(uint32_t key);
+    bool                              shareStates();
 
-    bool                    m_active     = false;
-    bool                    m_enabled    = true;
-    bool                    m_allowBinds = true;
+    bool                              m_active     = false;
+    bool                              m_enabled    = true;
+    bool                              m_allowBinds = true;
 
     // permission flag: whether this keyboard is allowed to be processed
     bool m_allowed = true;
@@ -98,7 +99,8 @@ class IKeyboard : public IHID {
     xkb_state*  m_xkbStaticState = nullptr;
     xkb_state*  m_xkbSymState    = nullptr; // same as static but gets layouts
 
-    xkb_keymap* m_xkbKeymap = nullptr;
+    xkb_keymap* m_xkbKeymap   = nullptr;
+    xkb_keymap* m_xkbKeymapV1 = nullptr;
 
     struct {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;
@@ -111,6 +113,9 @@ class IKeyboard : public IHID {
     std::string                    m_xkbFilePath     = "";
     std::string                    m_xkbKeymapString = "";
     Hyprutils::OS::CFileDescriptor m_xkbKeymapFD;
+
+    std::string                    m_xkbKeymapV1String = "";
+    Hyprutils::OS::CFileDescriptor m_xkbKeymapV1FD;
 
     SStringRuleNames               m_currentRules;
     int                            m_repeatRate        = 0;

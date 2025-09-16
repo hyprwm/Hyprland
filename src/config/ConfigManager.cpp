@@ -521,6 +521,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{1});
+    registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});
     registerConfigVar("group:focus_removed_window", Hyprlang::INT{1});
@@ -810,6 +811,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_button_lock", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_points", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("device", "scroll_factor", Hyprlang::FLOAT{-1});
     m_config->addSpecialConfigValue("device", "transform", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
@@ -1335,11 +1337,16 @@ Hyprlang::CConfigValue* CConfigManager::getConfigValueSafeDevice(const std::stri
 
     const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
 
-    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty()) {
+    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty())
         return m_config->getConfigValuePtr(fallback.c_str());
-    }
 
     return VAL;
+}
+
+bool CConfigManager::deviceConfigExplicitlySet(const std::string& dev, const std::string& val) {
+    const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
+
+    return VAL && VAL->m_bSetByUser;
 }
 
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback) {
@@ -2196,8 +2203,14 @@ bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
             m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
             return false;
         } else {
-            m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
-            m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            try {
+                m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
+                m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            } catch (...) {
+                m_error += "invalid offset ";
+                m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+                return false;
+            }
         }
     }
     return true;
@@ -3234,6 +3247,8 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
         result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "fullscreen")
         result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "unset")
+        result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
 

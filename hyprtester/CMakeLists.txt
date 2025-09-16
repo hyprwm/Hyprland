@@ -98,3 +98,4 @@ protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("stable/xdg-shell" "xdg-shell" false)
 
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
+clientNew("pointer-scroll" PROTOS "xdg-shell")

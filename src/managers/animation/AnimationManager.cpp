@@ -300,7 +300,7 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
     } else if (config.starts_with("workspaces") || config.starts_with("specialWorkspace")) {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
-        else if (style.starts_with("slidefade")) {
+        else if (style.starts_with("slide")) {
             // try parsing
             float movePerc = 0.f;
             if (style.find('%') != std::string::npos) {

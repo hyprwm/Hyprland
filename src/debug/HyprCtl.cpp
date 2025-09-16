@@ -722,10 +722,11 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}",
-        "defaultSpeed": {:.5f}
+        "defaultSpeed": {:.5f},
+        "scrollFactor": {:.2f}
     }},)#",
                 rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName),
-                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
+                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f, m->m_scrollFactor.value_or(-1));
         }
 
         trimTrailingComma(result);
@@ -733,7 +734,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"keyboards\": [\n";
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KM = k->getActiveLayout();
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -743,13 +746,14 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "layout": "{}",
         "variant": "{}",
         "options": "{}",
+        "active_layout_index": {},
         "active_keymap": "{}",
         "capsLock": {},
         "numLock": {},
         "main": {}
     }},)#",
                 rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
-                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), escapeJSONStrings(KM),
+                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), KI, escapeJSONStrings(KM),
                 (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
         }
 
@@ -826,18 +830,22 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_pointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
-                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n\t\t\tscroll factor: {:.2f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
+                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f),
+                                  m->m_scrollFactor.value_or(-1));
         }
 
         result += "\n\nKeyboards:\n";
 
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KM = k->getActiveLayout();
-            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
+            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive layout index: {}\n\t\t\tactive keymap: "
+                                  "{}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
                                   rc<uintptr_t>(k.get()), k->m_hlName, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout, k->m_currentRules.variant,
-                                  k->m_currentRules.options, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
+                                  k->m_currentRules.options, KI, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
                                   (k->m_active ? "yes" : "no"));
         }
 

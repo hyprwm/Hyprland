@@ -12,6 +12,7 @@ class CTrackpadGestures {
   public:
     void                             clearGestures();
     std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
+    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
 
     void                             gestureBegin(const IPointer::SSwipeBeginEvent& e);
     void                             gestureUpdate(const IPointer::SSwipeUpdateEvent& e);

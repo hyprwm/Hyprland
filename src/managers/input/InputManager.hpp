@@ -90,13 +90,14 @@ class CInputManager {
     void               onMouseMoved(IPointer::SMotionEvent);
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
     void               onMouseButton(IPointer::SButtonEvent);
-    void               onMouseWheel(IPointer::SAxisEvent);
+    void               onMouseWheel(IPointer::SAxisEvent, SP<IPointer> pointer = nullptr);
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
     void               newKeyboard(SP<IKeyboard>);
     void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
+    void               newMouse(SP<IPointer>);
     void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(SP<Aquamarine::ITouch>);

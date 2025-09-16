@@ -114,7 +114,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = PMONITOR->m_output->state->state().drmFormat;
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 

@@ -429,7 +429,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
-        .description = "Appropriate XKB keymap parameter",
+        .description = "Appropriate XKB keymap file",
         .type        = CONFIG_OPTION_STRING_LONG,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
@@ -1320,6 +1320,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "number of missed pings before showing the ANR dialog",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:screencopy_force_8b",
+        .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
     /*

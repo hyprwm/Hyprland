@@ -1231,7 +1231,7 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_windowData.noBorder.valueOrDefault() || (m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)))
+    if (m_windowData.noBorder.valueOrDefault() || (m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_windowData.decorate.valueOrDefault())
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -1247,6 +1247,14 @@ float CWindow::getScrollMouse() {
 float CWindow::getScrollTouchpad() {
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
     return m_windowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
+}
+
+bool CWindow::isScrollMouseOverridden() {
+    return m_windowData.scrollMouse.hasValue();
+}
+
+bool CWindow::isScrollTouchpadOverridden() {
+    return m_windowData.scrollTouchpad.hasValue();
 }
 
 bool CWindow::canBeTorn() {

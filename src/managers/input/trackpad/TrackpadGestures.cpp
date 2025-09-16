@@ -89,6 +89,18 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
     return {};
 }
 
+std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale) {
+    const auto IT = std::ranges::find_if(
+        m_gestures, [&](const auto& g) { return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale; });
+
+    if (IT == m_gestures.end())
+        return std::unexpected("Can't remove a non-existent gesture");
+
+    std::erase(m_gestures, *IT);
+
+    return {};
+}
+
 void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
     if (m_activeGesture) {
         Debug::log(ERR, "CTrackpadGestures::gestureBegin (swipe) but m_activeGesture is already present");

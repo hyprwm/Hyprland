@@ -254,8 +254,9 @@ class CMonitor {
         SC_FLOAT        = (1 << 13),
         SC_WORKSPACES   = (1 << 14),
         SC_SURFACES     = (1 << 15),
+        SC_ERRORBAR     = (1 << 16),
 
-        SC_CHECKS_COUNT = 16,
+        SC_CHECKS_COUNT = 17,
     };
 
     // keep in sync with HyprCtl

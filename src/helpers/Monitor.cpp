@@ -25,6 +25,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../hyprerror/HyprError.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
@@ -1504,6 +1505,12 @@ uint16_t CMonitor::isSolitaryBlocked(bool full) {
 
     if (g_pHyprNotificationOverlay->hasAny()) {
         reasons |= SC_NOTIFICATION;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == m_self) {
+        reasons |= SC_ERRORBAR;
         if (!full)
             return reasons;
     }

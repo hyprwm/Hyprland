@@ -1950,7 +1950,8 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 
-    invalidateCaptureMRTCacheAll();
+    cleanupCaptureState();
+    m_captureMRTCache.clear();
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2372,6 +2373,11 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
+void CHyprRenderer::cleanupCaptureState() {
+    std::erase_if(m_prevHasPending, [](const auto& entry) { return entry.first.expired(); });
+    std::erase_if(m_captureMRTCache, [](const auto& entry) { return entry.first.expired(); });
+}
+
 bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor)
         return false;
@@ -2379,9 +2385,11 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (!isScreencopyPendingForMonitor(pMonitor))
         return false;
 
-    auto& entry = m_captureMRTCache[pMonitor];
-    if (entry.valid)
-        return entry.value;
+    cleanupCaptureState();
+
+    const auto key = PHLMONITORREF{pMonitor};
+    if (const auto it = m_captureMRTCache.find(key); it != m_captureMRTCache.end())
+        return it->second;
 
     bool needed = false;
     for (const auto& w : g_pCompositor->m_windows) {
@@ -2395,26 +2403,28 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
         }
     }
 
-    entry.value = needed;
-    entry.valid = true;
+    m_captureMRTCache.emplace(key, needed);
     return needed;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
-    const bool prev            = m_prevHasPending[pMonitor];
-    m_prevHasPending[pMonitor] = pending;
-    invalidateCaptureMRTCache(pMonitor);
+    cleanupCaptureState();
+    const auto key        = PHLMONITORREF{pMonitor};
+    const bool prev       = m_prevHasPending[key];
+    m_prevHasPending[key] = pending;
+    m_captureMRTCache.erase(key);
 
     if (!prev && pending)
         damageMonitor(pMonitor);
 }
 
-bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) const {
+bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor)
         return false;
-    auto it = m_prevHasPending.find(pMonitor);
+    cleanupCaptureState();
+    auto it = m_prevHasPending.find(PHLMONITORREF{pMonitor});
     return it != m_prevHasPending.end() && it->second;
 }
 

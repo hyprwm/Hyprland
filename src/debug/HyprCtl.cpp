@@ -129,7 +129,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";

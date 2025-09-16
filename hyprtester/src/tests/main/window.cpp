@@ -229,7 +229,7 @@ static bool test() {
     testSwapWindow();
 
     NLog::log("{}Testing window rules", Colors::YELLOW);
-    if (!spawnKitty("kitty_C"))
+    if (!spawnKitty("wr_kitty"))
         return false;
     {
         auto      str  = getFromSocket("/activewindow");

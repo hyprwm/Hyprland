@@ -1500,8 +1500,8 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
-uint16_t CMonitor::isSolitaryBlocked(bool full) {
-    uint16_t reasons = 0;
+uint32_t CMonitor::isSolitaryBlocked(bool full) {
+    uint32_t reasons = 0;
 
     if (g_pHyprNotificationOverlay->hasAny()) {
         reasons |= SC_NOTIFICATION;

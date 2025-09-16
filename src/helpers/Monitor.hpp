@@ -235,7 +235,7 @@ class CMonitor {
     };
 
     // keep in sync with HyprCtl
-    enum eSolitaryCheck : uint16_t {
+    enum eSolitaryCheck : uint32_t {
         SC_OK = 0,
 
         SC_UNKNOWN      = (1 << 0),
@@ -298,7 +298,7 @@ class CMonitor {
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
     void        scheduleDone();
-    uint16_t    isSolitaryBlocked(bool full = false);
+    uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();
     uint8_t     isTearingBlocked(bool full = false);
     bool        updateTearing();

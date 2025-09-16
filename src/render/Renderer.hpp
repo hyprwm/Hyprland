@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <list>
+#include <map>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "OpenGL.hpp"
@@ -98,7 +99,7 @@ class CHyprRenderer {
     bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
 
     void setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
-    bool isScreencopyPendingForMonitor(PHLMONITOR pMonitor) const;
+    bool isScreencopyPendingForMonitor(PHLMONITOR pMonitor);
 
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
@@ -171,21 +172,9 @@ class CHyprRenderer {
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
-    std::map<PHLMONITOR, bool>     m_prevHasPending; // tracks screencopy pending per monitor
-
-    struct SCaptureMRTCacheEntry {
-        bool valid = false;
-        bool value = false;
-    };
-    std::map<PHLMONITOR, SCaptureMRTCacheEntry> m_captureMRTCache;
-
-    void                                        invalidateCaptureMRTCache(PHLMONITOR pMonitor) {
-        m_captureMRTCache[pMonitor].valid = false;
-    }
-    void invalidateCaptureMRTCacheAll() {
-        for (auto& [mon, entry] : m_captureMRTCache)
-            entry.valid = false;
-    }
+    void                           cleanupCaptureState();
+    std::map<PHLMONITORREF, bool>  m_prevHasPending; // tracks screencopy pending per monitor
+    std::map<PHLMONITORREF, bool>  m_captureMRTCache;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

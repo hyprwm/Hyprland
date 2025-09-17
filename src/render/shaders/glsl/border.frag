@@ -1,6 +1,8 @@
 #version 300 es
 #extension GL_ARB_shading_language_include : enable
 
+# define M_SQRT1_2	0.70710678118654752440
+
 precision highp float;
 in vec2 v_texcoord;
 
@@ -125,7 +127,8 @@ void main() {
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoordOuter = pixCoord;
     pixCoord -= fullSize * 0.5 - radius;
-    pixCoordOuter -= fullSize * 0.5 - radiusOuter;
+    float correctionOffset = thick * (M_SQRT1_2 - 0.5) * max(2.0 - roundingPower, 0.0);
+    pixCoordOuter -= fullSize * 0.5 - radius + correctionOffset;
 
     // center the pixes don't make it top-left
     pixCoord += vec2(1.0, 1.0) / fullSize;

@@ -111,13 +111,14 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
 }
 
 const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
-    "\"UNKNOWN\"", "\"NOTIFICATION\"", "\"LOCK\"",   "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",   "\"SPECIAL\"",    "\"ALPHA\"",
-    "\"OFFSET\"",  "\"CANDIDATE\"",    "\"OPAQUE\"", "\"TRANSFORM\"", "\"OVERLAYS\"", "\"FLOAT\"", "\"WORKSPACES\"", "\"SURFACES\"",
+    "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
+    "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
 };
 
 const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
-    "unknown reason",   "notification",      "session lock", "invalid workspace",       "windowed mode",  "dnd active",       "special workspace", "alpha channel",
-    "workspace offset", "missing candidate", "not opaque",   "surface transformations", "other overlays", "floating windows", "other workspaces",  "subsurfaces",
+    "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
+    "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
+    "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
 };
 
 std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
@@ -128,7 +129,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";

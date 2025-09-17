@@ -407,17 +407,16 @@ vec4 tonemap(vec4 color, mat3 dstXYZ) {
     return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE, color[3]);
 }
 
-vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat4x2 dstPrimaries) {
+vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 dstPrimariesXYZ) {
     pixColor.rgb /= max(pixColor.a, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
     pixColor.rgb = convertMatrix * pixColor.rgb;
     pixColor = toNit(pixColor, srcTFRange);
     pixColor.rgb *= pixColor.a;
-    mat3 dstxyz = primaries2xyz(dstPrimaries);
-    pixColor = tonemap(pixColor, dstxyz);
+    pixColor = tonemap(pixColor, dstPrimariesXYZ);
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
     if (srcTF == CM_TRANSFER_FUNCTION_SRGB && dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
-        pixColor = saturate(pixColor, dstxyz, sdrSaturation);
+        pixColor = saturate(pixColor, dstPrimariesXYZ, sdrSaturation);
         pixColor.rgb *= sdrBrightnessMultiplier;
     }
     return pixColor;

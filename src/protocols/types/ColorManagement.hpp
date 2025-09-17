@@ -122,6 +122,28 @@ namespace NColorManagement {
 
     const SPCPRimaries& getPrimaries(ePrimaries name);
 
+    class CPrimaries {
+      public:
+        static const CPrimaries&        from(const SPCPRimaries& primaries);
+        static const CPrimaries&        from(const ePrimaries name);
+        static const CPrimaries&        from(const uint primariesId);
+
+        const Hyprgraphics::CColor::xy& red() const;
+        const Hyprgraphics::CColor::xy& green() const;
+        const Hyprgraphics::CColor::xy& blue() const;
+        const Hyprgraphics::CColor::xy& white() const;
+        const SPCPRimaries&             primaries() const;
+        uint                            id() const;
+
+        Hyprgraphics::CMatrix3&         toXYZ() const;                              // toXYZ() * rgb -> xyz
+        Hyprgraphics::CMatrix3&         convertMatrix(const CPrimaries& dst) const; // convertMatrix(dst) * rgb with "this" primaries -> rgb with dst primaries
+
+      private:
+        CPrimaries(const SPCPRimaries& primaries, const uint primariesId);
+        SPCPRimaries m_primaries;
+        uint         m_id;
+    };
+
     struct SImageDescription {
         uint32_t id = 0; // FIXME needs id setting
 

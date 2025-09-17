@@ -1468,7 +1468,8 @@ void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, STextureR
     scissor(nullptr);
 }
 
-static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
+static std::map<std::pair<uint, uint>, std::array<GLfloat, 9>> primariesConversionCache;
+static std::map<uint, std::array<GLfloat, 9>>                  primariesXYZCache;
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
     // might be too strict
@@ -1482,15 +1483,17 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
     shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
     shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
 
-    const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
-                          getPrimaries(targetImageDescription.primariesNamed) :
-                          targetImageDescription.primaries;
-
-    const std::array<GLfloat, 8> glTargetPrimaries = {
-        targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
-        targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
-    };
-    shader.setUniformMatrix4x2fv(SHADER_TARGET_PRIMARIES, 1, false, glTargetPrimaries);
+    const auto TARGET_PRIMARIES = NColorManagement::CPrimaries::from(targetImageDescription.getPrimaries());
+    if (!primariesXYZCache.contains(TARGET_PRIMARIES.id())) {
+        const auto                   mat         = TARGET_PRIMARIES.toXYZ().mat();
+        const std::array<GLfloat, 9> glXYZMatrix = {
+            mat[0][0], mat[1][0], mat[2][0], //
+            mat[0][1], mat[1][1], mat[2][1], //
+            mat[0][2], mat[1][2], mat[2][2], //
+        };
+        primariesXYZCache.insert(std::make_pair(TARGET_PRIMARIES.id(), glXYZMatrix));
+    }
+    shader.setUniformMatrix3fv(SHADER_TARGET_PRIMARIES, 1, false, primariesXYZCache[TARGET_PRIMARIES.id()]);
 
     const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription, targetImageDescription);
 
@@ -1505,9 +1508,11 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
     shader.setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription.luminances.reference);
     shader.setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
     shader.setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);
-    const auto cacheKey = std::make_pair(imageDescription.getId(), targetImageDescription.getId());
+
+    const auto SOURCE_PRIMARIES = NColorManagement::CPrimaries::from(imageDescription.getPrimaries());
+    const auto cacheKey         = std::make_pair(SOURCE_PRIMARIES.id(), TARGET_PRIMARIES.id());
     if (!primariesConversionCache.contains(cacheKey)) {
-        const auto                   mat             = imageDescription.getPrimaries().convertMatrix(targetImageDescription.getPrimaries()).mat();
+        const auto                   mat             = SOURCE_PRIMARIES.convertMatrix(TARGET_PRIMARIES).mat();
         const std::array<GLfloat, 9> glConvertMatrix = {
             mat[0][0], mat[1][0], mat[2][0], //
             mat[0][1], mat[1][1], mat[2][1], //

@@ -7,7 +7,7 @@ in vec2 v_texcoord;
 uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 targetPrimaries;
+uniform mat3 targetPrimaries;
 
 uniform vec2 fullSizeUntransformed;
 uniform float radiusOuter;

@@ -11,7 +11,7 @@ uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
 // uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 targetPrimaries;
+uniform mat3 targetPrimaries;
 
 uniform float alpha;
 

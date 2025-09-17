@@ -2798,7 +2798,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         if (rule->m_ruleType == CWindowRule::RULE_SIZE || rule->m_ruleType == CWindowRule::RULE_MAXSIZE || rule->m_ruleType == CWindowRule::RULE_MINSIZE)
             m_windowRules.insert(m_windowRules.begin(), rule);
         else
-            m_windowRules.push_back(rule);
+            m_windowRules.emplace_back(rule);
     }
 
     return {};

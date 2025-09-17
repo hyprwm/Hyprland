@@ -2682,68 +2682,13 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         }
     }
 
-    std::vector<SP<CWindowRule>> rules;
-
-    for (auto token : tokens) {
-        if (token.starts_with("unset")) {
-            std::string ruleName = std::string(token.substr(0, 6));
-            auto        rule     = makeShared<CWindowRule>(ruleName, value, true);
-            std::erase_if(m_windowRules, [&](const auto& other) {
-                if (!other->m_v2)
-                    return other->m_class == rule->m_class && !rule->m_class.empty();
-
-                if (!rule->m_tag.empty() && rule->m_tag != other->m_tag)
-                    return false;
-                if (!rule->m_class.empty() && rule->m_class != other->m_class)
-                    return false;
-                if (!rule->m_title.empty() && rule->m_title != other->m_title)
-                    return false;
-                if (!rule->m_initialClass.empty() && rule->m_initialClass != other->m_initialClass)
-                    return false;
-                if (!rule->m_initialTitle.empty() && rule->m_initialTitle != other->m_initialTitle)
-                    return false;
-                if (rule->m_X11 != -1 && rule->m_X11 != other->m_X11)
-                    return false;
-                if (rule->m_floating != -1 && rule->m_floating != other->m_floating)
-                    return false;
-                if (rule->m_fullscreen != -1 && rule->m_fullscreen != other->m_fullscreen)
-                    return false;
-                if (rule->m_pinned != -1 && rule->m_pinned != other->m_pinned)
-                    return false;
-                if (!rule->m_fullscreenState.empty() && rule->m_fullscreenState != other->m_fullscreenState)
-                    return false;
-                if (!rule->m_workspace.empty() && rule->m_workspace != other->m_workspace)
-                    return false;
-                if (rule->m_focus != -1 && rule->m_focus != other->m_focus)
-                    return false;
-                if (!rule->m_onWorkspace.empty() && rule->m_onWorkspace != other->m_onWorkspace)
-                    return false;
-                if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
-                    return false;
-                if (rule->m_group != -1 && rule->m_group != other->m_group)
-                    return false;
-                return true;
-            });
-        } else {
-            auto rule = makeShared<CWindowRule>(std::string(token), value, true);
-            if (rule->m_ruleType == CWindowRule::RULE_INVALID) {
-                Debug::log(ERR, "Invalid rule found: {}, Invalid value: {}", value, token);
-                return std::format("Invalid rule found: {}, Invalid value: {}", value, token);
-            }
-            rules.emplace_back(rule);
-        }
-    }
-
-    if (rules.empty() && tokens.empty())
-        return "Invalid rule syntax: no rules provided";
-
     auto get = [&](std::string_view key) -> std::string_view {
         if (auto it = params.find(key); it != params.end())
             return it->second;
         return {};
     };
 
-    for (auto& rule : rules) {
+    auto applyParams = [&](SP<CWindowRule> rule) -> void {
         if (auto v = get("class"); !v.empty()) {
             rule->m_class      = v;
             rule->m_classRegex = {std::string(v)};
@@ -2784,7 +2729,72 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             rule->m_xdgTag = v;
         if (auto v = get("group"); !v.empty())
             rule->m_group = (v == "1");
+    };
 
+    std::vector<SP<CWindowRule>> rules;
+
+    for (auto token : tokens) {
+        if (token.starts_with("unset")) {
+            std::string ruleName = "";
+            if (token.size() <= 6 || token.contains("all"))
+                ruleName = "all";
+            else
+                ruleName = std::string(token.substr(6));
+            auto rule = makeShared<CWindowRule>(ruleName, value, true);
+            applyParams(rule);
+            std::erase_if(m_windowRules, [&](const auto& other) {
+                if (!other->m_v2)
+                    return other->m_class == rule->m_class && !rule->m_class.empty();
+
+                if (rule->m_ruleType != other->m_ruleType && ruleName != "all")
+                    return false;
+                if (!rule->m_tag.empty() && rule->m_tag != other->m_tag)
+                    return false;
+                if (!rule->m_class.empty() && rule->m_class != other->m_class)
+                    return false;
+                if (!rule->m_title.empty() && rule->m_title != other->m_title)
+                    return false;
+                if (!rule->m_initialClass.empty() && rule->m_initialClass != other->m_initialClass)
+                    return false;
+                if (!rule->m_initialTitle.empty() && rule->m_initialTitle != other->m_initialTitle)
+                    return false;
+                if (rule->m_X11 != -1 && rule->m_X11 != other->m_X11)
+                    return false;
+                if (rule->m_floating != -1 && rule->m_floating != other->m_floating)
+                    return false;
+                if (rule->m_fullscreen != -1 && rule->m_fullscreen != other->m_fullscreen)
+                    return false;
+                if (rule->m_pinned != -1 && rule->m_pinned != other->m_pinned)
+                    return false;
+                if (!rule->m_fullscreenState.empty() && rule->m_fullscreenState != other->m_fullscreenState)
+                    return false;
+                if (!rule->m_workspace.empty() && rule->m_workspace != other->m_workspace)
+                    return false;
+                if (rule->m_focus != -1 && rule->m_focus != other->m_focus)
+                    return false;
+                if (!rule->m_onWorkspace.empty() && rule->m_onWorkspace != other->m_onWorkspace)
+                    return false;
+                if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
+                    return false;
+                if (rule->m_group != -1 && rule->m_group != other->m_group)
+                    return false;
+                return true;
+            });
+        } else {
+            auto rule = makeShared<CWindowRule>(std::string(token), value, true);
+            if (rule->m_ruleType == CWindowRule::RULE_INVALID) {
+                Debug::log(ERR, "Invalid rule found: {}, Invalid value: {}", value, token);
+                return std::format("Invalid rule found: {}, Invalid value: {}", value, token);
+            }
+            applyParams(rule);
+            rules.emplace_back(rule);
+        }
+    }
+
+    if (rules.empty() && tokens.empty())
+        return "Invalid rule syntax: no rules provided";
+
+    for (auto& rule : rules) {
         if (rule->m_ruleType == CWindowRule::RULE_SIZE || rule->m_ruleType == CWindowRule::RULE_MAXSIZE || rule->m_ruleType == CWindowRule::RULE_MINSIZE)
             m_windowRules.insert(m_windowRules.begin(), rule);
         else

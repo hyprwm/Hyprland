@@ -15,6 +15,8 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
 
     // if no pending frames, and no sessions are sharing, then unblock ds
     if (m_pendingFrames.empty()) {
+        g_pHyprRenderer->setScreencopyPendingForMonitor(monitor, false);
+
         for (const auto& session : m_sessions) {
             if (!session->m_stopped && session->m_sharing)
                 return;
@@ -41,6 +43,28 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
     });
 
     std::erase_if(m_pendingFrames, [&](const WP<CScreenshareFrame>& frame) { return frame.expired(); });
+
+    bool anyPendingForMonitor = false;
+    for (const auto& frameRef : m_pendingFrames) {
+        const auto frame = frameRef.lock();
+        if (!frame || !frame->m_shared || frame->done())
+            continue;
+
+        const auto frameMonitor = frame->m_session->monitor();
+        if (!frameMonitor || frameMonitor != monitor)
+            continue;
+
+        if (frame->m_session->m_type == SHARE_WINDOW) {
+            const CBox geometry = {frame->m_session->m_window->m_realPosition->value(), frame->m_session->m_window->m_realSize->value()};
+            if (geometry.intersection({monitor->m_position, monitor->m_size}).empty())
+                continue;
+        }
+
+        anyPendingForMonitor = true;
+        break;
+    }
+
+    g_pHyprRenderer->setScreencopyPendingForMonitor(monitor, anyPendingForMonitor);
 }
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor) {

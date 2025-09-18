@@ -13,6 +13,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <optional>
 
 #include <cairo/cairo.h>
 
@@ -102,18 +103,21 @@ struct SPreparedShaders {
 };
 
 struct SMonitorRenderData {
-    CFramebuffer offloadFB;
-    CFramebuffer mirrorFB;     // these are used for some effects,
-    CFramebuffer mirrorSwapFB; // etc
-    CFramebuffer offMainFB;
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
-    CFramebuffer blurFB;
+    CFramebuffer        offloadFB;
+    CFramebuffer        mirrorFB;     // these are used for some effects,
+    CFramebuffer        mirrorSwapFB; // etc
+    CFramebuffer        offMainFB;
+    CFramebuffer        monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
+    CFramebuffer        blurFB;
 
-    SP<CTexture> stencilTex = makeShared<CTexture>();
+    SP<CTexture>        stencilTex = makeShared<CTexture>();
 
-    bool         blurFBDirty        = true;
-    bool         blurFBShouldRender = false;
-    bool         captureMRTValid    = false;
+    bool                blurFBDirty           = true;
+    bool                blurFBShouldRender    = false;
+    bool                captureMRTValid       = false;
+    bool                screencopyPending     = false;
+    bool                captureNeedsFullFrame = false;
+    std::optional<bool> captureMRTNeeded;
 };
 
 struct SCurrentRenderData {
@@ -132,11 +136,12 @@ struct SCurrentRenderData {
     CRegion                finalDamage; // damage used for funal off -> main
 
     SRenderModifData       renderModif;
-    float                  mouseZoomFactor    = 1.f;
-    bool                   mouseZoomUseMouse  = true; // true by default
-    bool                   useNearestNeighbor = false;
-    bool                   blockScreenShader  = false;
-    bool                   simplePass         = false;
+    float                  mouseZoomFactor            = 1.f;
+    bool                   mouseZoomUseMouse          = true; // true by default
+    bool                   useNearestNeighbor         = false;
+    bool                   blockScreenShader          = false;
+    bool                   simplePass                 = false;
+    bool                   forcedFullDamageForCapture = false;
 
     Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);

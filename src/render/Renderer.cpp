@@ -1319,6 +1319,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
     }
 
+    if (g_pHyprOpenGL->m_renderData.forcedFullDamageForCapture)
+        damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
+
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
         damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
@@ -1950,8 +1953,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 
-    cleanupCaptureState();
-    m_captureMRTCache.clear();
+    invalidateCaptureRequirementCache();
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2373,23 +2375,24 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
-void CHyprRenderer::cleanupCaptureState() {
-    std::erase_if(m_prevHasPending, [](const auto& entry) { return entry.first.expired(); });
-    std::erase_if(m_captureMRTCache, [](const auto& entry) { return entry.first.expired(); });
+void CHyprRenderer::invalidateCaptureRequirementCache() {
+    for (auto& [monitorRef, data] : g_pHyprOpenGL->m_monitorRenderResources)
+        data.captureMRTNeeded.reset();
 }
 
 bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor)
         return false;
-    // only needed if a screencopy frame is pending for this monitor
-    if (!isScreencopyPendingForMonitor(pMonitor))
+    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
+    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
         return false;
 
-    cleanupCaptureState();
+    auto& data = it->second;
+    if (!data.screencopyPending)
+        return false;
 
-    const auto key = PHLMONITORREF{pMonitor};
-    if (const auto it = m_captureMRTCache.find(key); it != m_captureMRTCache.end())
-        return it->second;
+    if (data.captureMRTNeeded.has_value())
+        return *data.captureMRTNeeded;
 
     bool needed = false;
     for (const auto& w : g_pCompositor->m_windows) {
@@ -2403,29 +2406,50 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
         }
     }
 
-    m_captureMRTCache.emplace(key, needed);
+    data.captureMRTNeeded = needed;
     return needed;
+}
+
+bool CHyprRenderer::shouldForceFullCaptureFrame(PHLMONITOR pMonitor) {
+    if (!pMonitor)
+        return false;
+    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
+    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
+        return false;
+    return it->second.captureNeedsFullFrame;
+}
+
+void CHyprRenderer::notifyCaptureFrameRendered(PHLMONITOR pMonitor, bool wasFullDamage) {
+    if (!pMonitor)
+        return;
+    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
+    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
+        return;
+
+    if (wasFullDamage)
+        it->second.captureNeedsFullFrame = false;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
-    cleanupCaptureState();
-    const auto key        = PHLMONITORREF{pMonitor};
-    const bool prev       = m_prevHasPending[key];
-    m_prevHasPending[key] = pending;
-    m_captureMRTCache.erase(key);
+    auto&      data        = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
+    const bool prev        = data.screencopyPending;
+    data.screencopyPending = pending;
+    data.captureMRTNeeded.reset();
 
     if (!prev && pending)
-        damageMonitor(pMonitor);
+        data.captureNeedsFullFrame = true;
+
+    if (!pending)
+        data.captureNeedsFullFrame = false;
 }
 
 bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor)
         return false;
-    cleanupCaptureState();
-    auto it = m_prevHasPending.find(PHLMONITORREF{pMonitor});
-    return it != m_prevHasPending.end() && it->second;
+    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
+    return it != g_pHyprOpenGL->m_monitorRenderResources.end() && it->second.screencopyPending;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {

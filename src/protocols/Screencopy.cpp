@@ -90,7 +90,9 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    if UNLIKELY (!g_pCompositor->monitorExists(m_monitor.lock())) {
+    const auto monitor = m_monitor.lock();
+
+    if UNLIKELY (!monitor || !g_pCompositor->monitorExists(monitor)) {
         LOGM(ERR, "Client requested sharing of a monitor that is gone");
         m_resource->sendFailed();
         return;
@@ -149,13 +151,11 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     m_buffer = CHLBufferReference(PBUFFER->m_buffer.lock());
 
     PROTO::screencopy->m_framesAwaitingWrite.emplace_back(m_self);
-    g_pHyprRenderer->setScreencopyPendingForMonitor(m_monitor.lock(), true);
+    g_pHyprRenderer->setScreencopyPendingForMonitor(monitor, true);
     g_pHyprRenderer->m_directScanoutBlocked = true;
 
     if (!m_withDamage)
-        g_pHyprRenderer->damageMonitor(m_monitor.lock());
-    else
-        g_pCompositor->scheduleFrameForMonitor(m_monitor.lock());
+        g_pHyprRenderer->damageMonitor(monitor);
 }
 
 void CScreencopyFrame::share() {
@@ -308,6 +308,8 @@ void CScreencopyFrame::renderMon() {
         g_pPointerManager->renderSoftwareCursorsFor(monitor, Time::steadyNow(), fakeDamage,
                                                     g_pInputManager->getMouseCoordsInternal() - monitor->m_position - m_box.pos() / monitor->m_scale, true);
 }
+
+void CScreencopyFrame::storeTempFB
 
 void CScreencopyFrame::storeTempFB() {
     g_pHyprRenderer->makeEGLCurrent();

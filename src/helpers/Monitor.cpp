@@ -908,7 +908,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                     Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
                     static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
                     if (!*PDISABLENOTIFICATION)
-                        g_pHyprNotificationOverlay->addNotification(std::format("Invalid scale pased to monitor: {}, using suggested scale: {}", m_scale, searchScale),
+                        g_pHyprNotificationOverlay->addNotification(std::format("Invalid scale passed to monitor: {}, using suggested scale: {}", m_scale, searchScale),
                                                                     CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
                 }
                 m_scale = searchScale;

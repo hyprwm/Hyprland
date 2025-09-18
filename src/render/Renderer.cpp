@@ -2596,16 +2596,16 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
     const bool                   SHOULD_BLUR = shouldBlur(popup);
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = {{}, PMONITOR->m_transformedSize};
-    data.a            = popup->m_alpha->value();
-    data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.flipEndFrame          = true;
+    data.tex                   = FBDATA->getTexture();
+    data.box                   = {{}, PMONITOR->m_transformedSize};
+    data.a                     = popup->m_alpha->value();
+    data.damage                = fakeDamage;
+    data.blur                  = SHOULD_BLUR;
+    data.blurA                 = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.blockBlurOptimization = SHOULD_BLUR; // force no xray on this (popups never have xray)
     if (SHOULD_BLUR)
         data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
-    ;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

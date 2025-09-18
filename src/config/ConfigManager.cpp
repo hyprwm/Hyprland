@@ -2623,7 +2623,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if ((!KEY.empty()) || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
-        if (parsedKey.catchAll && m_currentSubmap.empty()) {
+        if (parsedKey.catchAll && m_currentSubmap.name.empty()) {
             Debug::log(ERR, "Catchall not allowed outside of submap!");
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
@@ -3055,12 +3055,18 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     return {};
 }
 
-std::optional<std::string> CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
-    if (submap == "reset")
-        m_currentSubmap = "";
-    else
-        m_currentSubmap = submap;
-
+std::optional<std::string> CConfigManager::handleSubmap(const std::string&, const std::string& submap) {
+    if (auto pos = submap.find("oneshot"); pos != std::string::npos) {
+        m_currentSubmap.parent  = m_currentSubmap.name;
+        m_currentSubmap.name    = trim(submap.substr(0, pos));
+        m_currentSubmap.oneshot = true;
+    } else if (submap.empty() || submap == "reset") {
+        m_currentSubmap = {};
+    } else {
+        m_currentSubmap.parent  = m_currentSubmap.name;
+        m_currentSubmap.name    = trim(submap);
+        m_currentSubmap.oneshot = false;
+    }
     return {};
 }
 

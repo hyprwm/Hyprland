@@ -22,6 +22,7 @@
 #include "../helpers/memory/Memory.hpp"
 #include "../desktop/WindowRule.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../managers/KeybindManager.hpp"
 
 #include <hyprlang.hpp>
 
@@ -307,7 +308,7 @@ class CConfigManager {
 
     Hyprutils::Animation::CAnimationConfigTree       m_animationTree;
 
-    std::string                                      m_currentSubmap = ""; // For storing the current keybind submap
+    SSubmap                                          m_currentSubmap;
 
     std::vector<SExecRequestedRule>                  m_execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 

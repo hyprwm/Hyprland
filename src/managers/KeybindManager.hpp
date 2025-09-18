@@ -17,6 +17,15 @@ class IKeyboard;
 
 enum eMouseBindMode : int8_t;
 
+struct SSubmap {
+    std::string name    = "";
+    bool        oneshot = false;
+    std::string parent  = "";
+    bool        operator==(const SSubmap& other) const {
+        return name == other.name;
+    }
+};
+
 struct SKeybind {
     std::string            key            = "";
     std::set<xkb_keysym_t> sMkKeys        = {};
@@ -27,7 +36,7 @@ struct SKeybind {
     std::string            handler        = "";
     std::string            arg            = "";
     bool                   locked         = false;
-    std::string            submap         = "";
+    SSubmap                submap         = {};
     std::string            description    = "";
     bool                   release        = false;
     bool                   repeat         = false;
@@ -63,7 +72,7 @@ struct SPressedKeyWithMods {
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
-    std::string  submapAtPress      = "";
+    SSubmap      submapAtPress      = {};
     Vector2D     mousePosAtPress    = {};
 };
 
@@ -98,7 +107,7 @@ class CKeybindManager {
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
     void                                                                         clearKeybinds();
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
-    std::string                                                                  getCurrentSubmap();
+    SSubmap                                                                      getCurrentSubmap();
 
     std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_dispatchers;
 
@@ -117,7 +126,7 @@ class CKeybindManager {
   private:
     std::vector<SPressedKeyWithMods> m_pressedKeys;
 
-    inline static std::string        m_currentSelectedSubmap = "";
+    inline static SSubmap            m_currentSelectedSubmap = {};
 
     std::vector<WP<SKeybind>>        m_activeKeybinds;
     WP<SKeybind>                     m_lastLongPressKeybind;

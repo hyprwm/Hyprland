@@ -26,20 +26,18 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
-    // non-window surfaces (like wallpapers) should only contribute to capture when
-    // capture MRT is not actively used to produce transparency for noscreenshare
     const bool prevCaptureWrites = g_pHyprOpenGL->m_captureWritesEnabled;
-    if (!m_data.pWindow) {
+    if (m_data.captureWrites.has_value()) {
+        g_pHyprOpenGL->setCaptureWritesEnabled(*m_data.captureWrites);
+    } else if (!m_data.pWindow) {
+        // non-window surfaces (like wallpapers) should only contribute to capture when
+        // capture MRT is not actively used to produce transparency for noscreenshare
         if (!g_pHyprOpenGL->m_renderData.pCurrentMonData->captureMRTValid)
             g_pHyprOpenGL->setCaptureWritesEnabled(true);
     } else {
         const bool noshare = m_data.pWindow->m_windowData.noScreenShare.valueOrDefault();
-        if (!noshare) {
+        if (!noshare)
             g_pHyprOpenGL->setCaptureWritesEnabled(true);
-        } else {
-            const bool visibleHere = g_pHyprRenderer->isWindowVisibleOnMonitor(m_data.pWindow, m_data.pMonitor->m_self.lock());
-            g_pHyprOpenGL->setCaptureWritesEnabled(!visibleHere);
-        }
     }
 
     CScopeGuard x = {[prevCaptureWrites]() {

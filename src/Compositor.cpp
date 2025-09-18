@@ -59,6 +59,7 @@
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
+#include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
@@ -605,6 +606,7 @@ void CCompositor::cleanup() {
     g_pDonationNagManager.reset();
     g_pANRManager.reset();
     g_pConfigWatcher.reset();
+    g_pAsyncResourceGatherer.reset();
 
     if (m_aqBackend)
         m_aqBackend.reset();
@@ -655,6 +657,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the EventManager!");
             g_pEventManager = makeUnique<CEventManager>();
+
+            Debug::log(LOG, "Creating the AsyncResourceGatherer!");
+            g_pAsyncResourceGatherer = makeUnique<Hyprgraphics::CAsyncResourceGatherer>();
         } break;
         case STAGE_BASICINIT: {
             Debug::log(LOG, "Creating the CHyprOpenGLImpl!");

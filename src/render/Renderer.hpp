@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <list>
+#include <map>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "OpenGL.hpp"
@@ -92,6 +93,13 @@ class CHyprRenderer {
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
+    bool shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+
+    bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
+
+    void setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
+    bool isScreencopyPendingForMonitor(PHLMONITOR pMonitor);
+
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
     PHLMONITORREF                   m_mostHzMonitor;
@@ -157,6 +165,10 @@ class CHyprRenderer {
     std::vector<SP<CRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
+
+    void                           cleanupCaptureState();
+    std::map<PHLMONITORREF, bool>  m_prevHasPending; // tracks screencopy pending per monitor
+    std::map<PHLMONITORREF, bool>  m_captureMRTCache;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

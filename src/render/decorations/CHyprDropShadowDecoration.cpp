@@ -148,7 +148,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         return; // don't draw invisible shadows
 
     g_pHyprOpenGL->scissor(nullptr);
-    g_pHyprOpenGL->m_renderData.currentWindow = m_window;
+    auto guard = g_pHyprOpenGL->scopedWindowContext(m_window);
 
     // we'll take the liberty of using this as it should not be used rn
     CFramebuffer& alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
@@ -220,7 +220,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     if (m_extents != m_reportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
 
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    (void)guard;
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

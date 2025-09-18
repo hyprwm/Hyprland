@@ -1,8 +1,6 @@
 #version 300 es
 #extension GL_ARB_shading_language_include : enable
 
-# define M_SQRT1_2	0.70710678118654752440
-
 precision highp float;
 in vec2 v_texcoord;
 
@@ -136,9 +134,6 @@ void main() {
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
 	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
 	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
-
-        float correctionOffset = thick * (M_SQRT1_2 - 0.5) * max(2.0 - roundingPower, 0.0);
-        distOuter -= correctionOffset;
 
         float h = (thick / 2.0);
 

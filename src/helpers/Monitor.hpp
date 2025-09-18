@@ -188,6 +188,9 @@ class CMonitor {
 
     PHLANIMVAR<float> m_cursorZoom;
 
+    // for fading in the wallpaper because it doesn't happen instantly (it's loaded async)
+    PHLANIMVAR<float> m_backgroundOpacity;
+
     // for initial zoom anim
     PHLANIMVAR<float> m_zoomAnimProgress;
     CTimer            m_newMonitorAnimTimer;

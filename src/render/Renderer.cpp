@@ -846,8 +846,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
     static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
 
@@ -883,10 +881,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        if (*PRENDERTEX /* inverted cfg flag */)
-            m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-        else
-            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        renderBackground(pMonitor);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -910,10 +905,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     if (!*PXPMODE) {
-        if (*PRENDERTEX /* inverted cfg flag */)
-            m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-        else
-            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        renderBackground(pMonitor);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -1009,6 +1001,17 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     renderDragIcon(pMonitor, time);
 
     //g_pHyprOpenGL->restoreMatrix();
+}
+
+void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
+    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+
+    if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
+        m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+
+    if (!*PRENDERTEX)
+        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 }
 
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {

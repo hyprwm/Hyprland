@@ -28,6 +28,7 @@
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprgraphics/resource/resources/ImageResource.hpp>
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -261,12 +262,12 @@ class CHyprOpenGLImpl {
     void         renderOffToMain(CFramebuffer* off);
     void         bindBackOnMain();
 
+    std::string  resolveAssetPath(const std::string& file);
     SP<CTexture> loadAsset(const std::string& file);
+    SP<CTexture> texFromCairo(cairo_surface_t* cairo);
     SP<CTexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
-
-    void         ensureBackgroundTexturePresence();
 
     uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
@@ -348,38 +349,40 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    std::unordered_map<int, bool> m_capStatus;
+    std::unordered_map<int, bool>     m_capStatus;
 
-    std::vector<SDRMFormat>       m_drmFormats;
-    bool                          m_hasModifiers = false;
+    std::vector<SDRMFormat>           m_drmFormats;
+    bool                              m_hasModifiers = false;
 
-    int                           m_drmFD = -1;
-    std::string                   m_extensions;
+    int                               m_drmFD = -1;
+    std::string                       m_extensions;
 
-    bool                          m_fakeFrame            = false;
-    bool                          m_applyFinalShader     = false;
-    bool                          m_blend                = false;
-    bool                          m_offloadedFramebuffer = false;
-    bool                          m_cmSupported          = true;
+    bool                              m_fakeFrame            = false;
+    bool                              m_applyFinalShader     = false;
+    bool                              m_blend                = false;
+    bool                              m_offloadedFramebuffer = false;
+    bool                              m_cmSupported          = true;
 
-    bool                          m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>              m_monitorTransformStack;
-    SP<CTexture>                  m_missingAssetTexture;
-    SP<CTexture>                  m_backgroundTexture;
-    SP<CTexture>                  m_lockDeadTexture;
-    SP<CTexture>                  m_lockDead2Texture;
-    SP<CTexture>                  m_lockTtyTextTexture;
-    SShader                       m_finalScreenShader;
-    CTimer                        m_globalTimer;
-    GLuint                        m_currentProgram;
+    bool                              m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>                  m_monitorTransformStack;
+    SP<CTexture>                      m_missingAssetTexture;
+    SP<CTexture>                      m_lockDeadTexture;
+    SP<CTexture>                      m_lockDead2Texture;
+    SP<CTexture>                      m_lockTtyTextTexture;
+    SShader                           m_finalScreenShader;
+    CTimer                            m_globalTimer;
+    GLuint                            m_currentProgram;
+    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
+    bool                              m_backgroundResourceFailed = false;
 
-    void                          logShaderError(const GLuint&, bool program = false, bool silent = false);
-    void                          createBGTextureForMonitor(PHLMONITOR);
-    void                          initDRMFormats();
-    void                          initEGL(bool gbm);
-    EGLDeviceEXT                  eglDeviceFromDRMFD(int drmFD);
-    void                          initAssets();
-    void                          initMissingAssetTexture();
+    void                              logShaderError(const GLuint&, bool program = false, bool silent = false);
+    void                              createBGTextureForMonitor(PHLMONITOR);
+    void                              initDRMFormats();
+    void                              initEGL(bool gbm);
+    EGLDeviceEXT                      eglDeviceFromDRMFD(int drmFD);
+    void                              initAssets();
+    void                              initMissingAssetTexture();
+    void                              requestBackgroundResource();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

@@ -70,14 +70,18 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             m_window->m_realBorderColorPrevious.m_angle = grad.m_angle;
     }
 
-    int                             borderSize    = m_window->getRealBorderSize();
-    const auto                      ROUNDING      = m_window->rounding() * pMonitor->m_scale;
-    const auto                      ROUNDINGPOWER = m_window->roundingPower();
+    int                             borderSize       = m_window->getRealBorderSize();
+    const auto                      ROUNDINGBASE     = m_window->rounding();
+    const auto                      ROUNDING         = ROUNDINGBASE * pMonitor->m_scale;
+    const auto                      ROUNDINGPOWER    = m_window->roundingPower();
+    const auto                      CORRECTIONOFFSET = (borderSize * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
+    const auto                      OUTERROUND       = ((ROUNDINGBASE + borderSize) - CORRECTIONOFFSET) * pMonitor->m_scale;
 
     CBorderPassElement::SBorderData data;
     data.box           = windowBox;
     data.grad1         = grad;
     data.round         = ROUNDING;
+    data.outerRound    = OUTERROUND;
     data.roundingPower = ROUNDINGPOWER;
     data.a             = a;
     data.borderSize    = borderSize;

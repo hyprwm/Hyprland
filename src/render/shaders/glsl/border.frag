@@ -127,8 +127,7 @@ void main() {
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoordOuter = pixCoord;
     pixCoord -= fullSize * 0.5 - radius;
-    float correctionOffset = thick * (M_SQRT1_2 - 0.5) * max(2.0 - roundingPower, 0.0);
-    pixCoordOuter -= fullSize * 0.5 - radius + correctionOffset;
+    pixCoordOuter -= fullSize * 0.5 - radiusOuter;
 
     // center the pixes don't make it top-left
     pixCoord += vec2(1.0, 1.0) / fullSize;
@@ -137,6 +136,10 @@ void main() {
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
 	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
 	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
+
+        float correctionOffset = thick * (M_SQRT1_2 - 0.5) * max(2.0 - roundingPower, 0.0);
+        distOuter -= correctionOffset;
+
         float h = (thick / 2.0);
 
 	    if (dist < radius - h) {

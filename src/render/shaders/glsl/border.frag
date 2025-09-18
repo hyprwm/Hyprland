@@ -134,7 +134,6 @@ void main() {
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
 	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
 	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
-
         float h = (thick / 2.0);
 
 	    if (dist < radius - h) {

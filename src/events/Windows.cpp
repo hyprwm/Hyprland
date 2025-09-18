@@ -749,7 +749,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pConfigManager->storeFloatingSize(PWINDOW, PWINDOW->m_realSize->value());
     }
 
-    PROTO::toplevelExport->onWindowUnmap(PWINDOW);
+    PWINDOW->m_events.unmap.emit();
 
     if (PWINDOW->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);

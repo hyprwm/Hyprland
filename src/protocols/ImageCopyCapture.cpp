@@ -1,0 +1,225 @@
+#include "ImageCopyCapture.hpp"
+#include "desktop/Window.hpp"
+#include "helpers/Monitor.hpp"
+#include "../render/Renderer.hpp"
+#include "../Compositor.hpp"
+#include "LinuxDMABUF.hpp"
+#include <cstring>
+
+CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
+    m_resource(resource), m_source(source), m_paintCursor(options & EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS) {
+
+    m_listeners.destroy = source->m_events.destroy.registerListener([this](std::any data) { PROTO::imageCopyCapture->destroyResource(this); });
+
+    m_resource->setDestroy([this](CExtImageCopyCaptureSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
+
+    m_resource->setCreateFrame([this](CExtImageCopyCaptureSessionV1* pMgr, uint32_t id) {
+        if (!m_frame.expired()) {
+            LOGM(LOG, "Duplicate frame in session for source: {}", m_source->getName());
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_SESSION_V1_ERROR_DUPLICATE_FRAME, "duplicate frame");
+            return;
+        }
+
+        auto PFRAME =
+            PROTO::imageCopyCapture->m_frames.emplace_back(makeShared<CImageCopyCaptureFrame>(makeShared<CExtImageCopyCaptureFrameV1>(pMgr->client(), pMgr->version(), id)));
+        PFRAME->m_session = m_self;
+
+        m_frame = PFRAME;
+    });
+
+    const auto PMONITOR = m_source->m_monitor ? m_source->m_monitor.lock() : m_source->m_window->m_monitor.lock();
+
+    if UNLIKELY (!g_pCompositor->monitorExists(PMONITOR)) {
+        m_resource->sendStopped();
+        m_resource->error(-1, "monitor no longer exists");
+        return;
+    }
+
+    m_format = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    if UNLIKELY (m_format.drmFormat == DRM_FORMAT_INVALID) {
+        m_resource->sendStopped();
+        m_resource->error(-1, "no formats available");
+        return;
+    }
+
+    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT won't work here
+    // if (m_shmFormat == DRM_FORMAT_XRGB2101010 || m_shmFormat == DRM_FORMAT_ARGB2101010)
+    //     m_shmFormat = DRM_FORMAT_XBGR2101010;
+    m_resource->sendShmFormat(NFormatUtils::drmToShm(m_format.drmFormat));
+
+    if (!m_format.modifiers.empty()) {
+        wl_array modsArr;
+        wl_array_init(&modsArr);
+        wl_array_add(&modsArr, m_format.modifiers.size() * sizeof(uint64_t));
+        memcpy(modsArr.data, m_format.modifiers.data(), m_format.modifiers.size() * sizeof(uint64_t));
+        m_resource->sendDmabufFormat(m_format.drmFormat, &modsArr);
+        wl_array_release(&modsArr);
+    }
+
+    dev_t           device    = PROTO::linuxDma->getMainDevice();
+    struct wl_array deviceArr = {
+        .size = sizeof(device),
+        .data = sc<void*>(&device),
+    };
+    m_resource->sendDmabufDevice(&deviceArr);
+
+    // TODO: proper transform and scale
+    if (m_source->m_monitor)
+        m_size = PMONITOR->m_size;
+    else
+        m_size = m_source->m_window->m_size;
+
+    m_resource->sendBufferSize(m_size.x, m_size.y);
+
+    m_resource->sendDone();
+
+    g_pHyprRenderer->m_directScanoutBlocked = true;
+}
+
+CImageCopyCaptureSession::~CImageCopyCaptureSession() {
+    // TODO: properly fail/close screenshare
+    g_pHyprRenderer->m_directScanoutBlocked = false;
+    m_resource->sendStopped();
+}
+
+CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> resource) : m_resource(resource) {
+    m_resource->setDestroy([this](CExtImageCopyCaptureFrameV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
+
+    m_resource->setAttachBuffer([this](CExtImageCopyCaptureFrameV1* pMgr, wl_resource* buf) {
+        if (m_captured) {
+            LOGM(ERR, "Frame already captured in attach_buffer, {:x}", (uintptr_t)this);
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
+            return;
+        }
+
+        auto PBUFFERRES = CWLBufferResource::fromResource(buf);
+        if (!PBUFFERRES || !PBUFFERRES->m_buffer) {
+            LOGM(ERR, "Invalid buffer in attach_buffer {:x}", (uintptr_t)this);
+            m_resource->error(-1, "invalid buffer");
+            return;
+        }
+
+        m_buffer = PBUFFERRES->m_buffer.lock();
+    });
+
+    m_resource->setDamageBuffer([this](CExtImageCopyCaptureFrameV1* pMgr, int32_t x, int32_t y, int32_t w, int32_t h) {
+        if (m_captured) {
+            LOGM(ERR, "Frame already captured in damage_buffer, {:x}", (uintptr_t)this);
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
+            return;
+        }
+
+        if (x < 0 || y < 0 || w <= 0 || h <= 0) {
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_INVALID_BUFFER_DAMAGE, "invalid buffer damage");
+            return;
+        }
+
+        m_damage.add(x, y, w, h);
+    });
+
+    m_resource->setCapture([this](CExtImageCopyCaptureFrameV1* pMgr) {
+        if (m_captured) {
+            LOGM(ERR, "Frame already captured in capture, {:x}", (uintptr_t)this);
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
+            return;
+        }
+
+        if (!m_buffer) {
+            LOGM(ERR, "Invalid/no buffer in capture, {:x}", (uintptr_t)this);
+            m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_NO_BUFFER, "no buffer attached");
+            return;
+        }
+
+        if (m_buffer->size != m_session->m_size) {
+            LOGM(ERR, "Invalid buffer dimensions in {:x}", (uintptr_t)this);
+            m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS);
+            return;
+        }
+
+        if (auto attrs = m_buffer->dmabuf(); attrs.success && attrs.format != m_session->m_format.drmFormat) {
+            LOGM(ERR, "Invalid dmabuf format in {:x}", (uintptr_t)this);
+            m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS);
+            return;
+        } else if (auto attrs = m_buffer->shm(); attrs.success && attrs.format != m_session->m_format.drmFormat) {
+            LOGM(ERR, "Invalid shm format in {:x}", (uintptr_t)this);
+            m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS);
+            return;
+        } else {
+            LOGM(ERR, "Invalid buffer in {:x}", (uintptr_t)this);
+            m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS);
+        }
+
+        // TODO: permission manager stuff?
+
+        // TODO: actually copy screen over
+    });
+}
+
+CImageCopyCaptureFrame::~CImageCopyCaptureFrame() {
+    if (m_session)
+        m_session->m_frame.reset();
+}
+
+CImageCopyCaptureProtocol::CImageCopyCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+    ;
+}
+
+void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CExtImageCopyCaptureManagerV1>(client, ver, id));
+
+    if UNLIKELY (!RESOURCE->resource()) {
+        wl_client_post_no_memory(client);
+        m_managers.pop_back();
+        return;
+    }
+
+    RESOURCE->setDestroy([this](CExtImageCopyCaptureManagerV1* pMgr) { destroyResource(pMgr); });
+    RESOURCE->setOnDestroy([this](CExtImageCopyCaptureManagerV1* pMgr) { destroyResource(pMgr); });
+
+    RESOURCE->setCreateSession([this](CExtImageCopyCaptureManagerV1* pMgr, uint32_t id, wl_resource* source_, extImageCopyCaptureManagerV1Options options) {
+        auto source = PROTO::imageCaptureSource->sourceFromResource(source_);
+        if (!source) {
+            LOGM(LOG, "Client tried to create image copy capture session from invalid source");
+            pMgr->error(-1, "invalid image capture source");
+            return;
+        }
+
+        if (options > 1) {
+            LOGM(LOG, "Client tried to create image copy capture session with invalid options");
+            pMgr->error(EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_ERROR_INVALID_OPTION, "Options can't be above 1");
+            return;
+        }
+
+        auto& PSESSION =
+            m_sessions.emplace_back(makeShared<CImageCopyCaptureSession>(makeShared<CExtImageCopyCaptureSessionV1>(pMgr->client(), pMgr->version(), id), source, options));
+        PSESSION->m_self = PSESSION;
+        LOGM(LOG, "New image copy capture session for source ({}): {}", source->getTypeName(), source->getName());
+    });
+
+    RESOURCE->setCreatePointerCursorSession([this](CExtImageCopyCaptureManagerV1* pMgr, uint32_t id, wl_resource* source_, wl_resource* pointer_) {
+        SP<CImageCaptureSource> source = PROTO::imageCaptureSource->sourceFromResource(source_);
+        if (!source) {
+            LOGM(LOG, "Client tried to create image copy capture session from invalid source");
+            destroyResource(pMgr);
+            return;
+        }
+
+        // TODO: find out what this would be, then implement constructor aswell
+        // auto pointer = CWLPointerResource::fromResource(pointer_);
+
+        // m_sessions.emplace_back(makeShared<CImageCopyCaptureSession>(makeShared<CExtImageCopyCaptureSessionV1>(pMgr->client(), pMgr->version(), id), source, pointer));
+        // LOGM(LOG, "New image copy capture session for source ({}): {}", source->getTypeName(), source->getName());
+    });
+}
+
+void CImageCopyCaptureProtocol::destroyResource(CExtImageCopyCaptureManagerV1* resource) {
+    std::erase_if(m_managers, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CImageCopyCaptureProtocol::destroyResource(CImageCopyCaptureSession* resource) {
+    std::erase_if(m_sessions, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CImageCopyCaptureProtocol::destroyResource(CImageCopyCaptureFrame* resource) {
+    std::erase_if(m_frames, [&](const auto& other) { return other.get() == resource; });
+}

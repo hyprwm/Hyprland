@@ -21,6 +21,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/ScreenshareManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
@@ -80,8 +81,9 @@ void CMonitor::onConnect(bool noRule) {
     });
     m_listeners.commit     = m_output->events.commit.listen([this] {
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
-            PROTO::screencopy->onOutputCommit(m_self.lock());
-            PROTO::toplevelExport->onOutputCommit(m_self.lock());
+            g_pScreenshareManager->onOutputCommit(m_self.lock());
+            // PROTO::screencopy->onOutputCommit(m_self.lock());
+            // PROTO::toplevelExport->onOutputCommit(m_self.lock());
         }
     });
     m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });

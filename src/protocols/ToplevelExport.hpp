@@ -61,11 +61,15 @@ class CToplevelExportFrame {
     int                                m_shmStride    = 0;
     CBox                               m_box          = {};
 
-    void                               copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
-    bool                               copyDmabuf(const Time::steady_tp& now);
-    bool                               copyShm(const Time::steady_tp& now);
-    void                               share();
-    bool                               shouldOverlayCursor() const;
+    struct {
+        CHyprSignalListener windowUnmap;
+    } m_listeners;
+
+    void copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
+    bool copyDmabuf(const Time::steady_tp& now);
+    bool copyShm(const Time::steady_tp& now);
+    void share();
+    bool shouldOverlayCursor() const;
 
     friend class CToplevelExportProtocol;
 };
@@ -78,7 +82,6 @@ class CToplevelExportProtocol : IWaylandProtocol {
     void destroyResource(CToplevelExportClient* client);
     void destroyResource(CToplevelExportFrame* frame);
 
-    void onWindowUnmap(PHLWINDOW pWindow);
     void onOutputCommit(PHLMONITOR pMonitor);
 
   private:

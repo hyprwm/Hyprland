@@ -880,13 +880,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     pushMonitorTransformEnabled(false);
     setCaptureWritesEnabled(true);
 
-    if (PREV_CAPTURE_MRT != m_renderData.pCurrentMonData->captureMRTValid) {
+    if (PREV_CAPTURE_MRT != m_renderData.pCurrentMonData->captureMRTValid)
         Debug::log(TRACE, "renderer: capture MRT {} for monitor {}", m_renderData.pCurrentMonData->captureMRTValid ? "ENABLED" : "DISABLED", pMonitor->m_name);
-        if (m_renderData.pCurrentMonData->captureMRTValid) {
-            // full repaint on first enable to populate capture attachment (without this, non-window draws can hide undamaged windows in capture)
-            g_pHyprRenderer->damageMonitor(pMonitor);
-        }
-    }
 }
 
 void CHyprOpenGLImpl::end() {

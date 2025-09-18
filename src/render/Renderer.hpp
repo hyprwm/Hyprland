@@ -173,7 +173,7 @@ class CHyprRenderer {
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
-    void                           invalidateCaptureRequirementCache();
+    void                           invalidateCaptureHint(PHLMONITOR pMonitor);
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

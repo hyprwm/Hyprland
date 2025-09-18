@@ -528,6 +528,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         renderdata.alpha = 1.f;
 
     renderdata.pWindow = pWindow;
+    if (pWindow->m_windowData.noScreenShare.valueOrDefault())
+        renderdata.captureWrites = !isWindowVisibleOnMonitor(pWindow, pMonitor);
+    else
+        renderdata.captureWrites = true;
 
     // scoped window context controls capture writes for noscreenshare windows
     auto windowCtxGuard = g_pHyprOpenGL->scopedWindowContext(pWindow);

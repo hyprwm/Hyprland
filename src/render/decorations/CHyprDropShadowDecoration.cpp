@@ -117,11 +117,13 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDINGBASE    = PWINDOW->rounding();
-    const auto ROUNDINGPOWER   = PWINDOW->roundingPower();
-    const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
-    const auto PWORKSPACE      = PWINDOW->m_workspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto BORDERSIZE       = PWINDOW->getRealBorderSize();
+    const auto ROUNDINGBASE     = PWINDOW->rounding();
+    const auto ROUNDINGPOWER    = PWINDOW->roundingPower();
+    const auto CORRECTIONOFFSET = (BORDERSIZE * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
+    const auto ROUNDING         = ROUNDINGBASE > 0 ? (ROUNDINGBASE + BORDERSIZE) - CORRECTIONOFFSET : 0;
+    const auto PWORKSPACE       = PWINDOW->m_workspace;
+    const auto WORKSPACEOFFSET  = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;

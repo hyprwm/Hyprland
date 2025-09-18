@@ -2116,7 +2116,11 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 }
 
 CMonitorRuleParser::CMonitorRuleParser(const std::string& name) {
-    m_rule.name = name;
+    const auto MONITOR = g_pCompositor->getMonitorFromString(name);
+    if (MONITOR)
+        m_rule.name = MONITOR->m_name;
+    else
+        m_rule.name = name;
 }
 
 const std::string& CMonitorRuleParser::name() {

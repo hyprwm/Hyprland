@@ -2,7 +2,6 @@
 
 #include "../defines.hpp"
 #include <list>
-#include <map>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "OpenGL.hpp"
@@ -95,6 +94,8 @@ class CHyprRenderer {
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
     bool shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+    bool shouldForceFullCaptureFrame(PHLMONITOR pMonitor);
+    void notifyCaptureFrameRendered(PHLMONITOR pMonitor, bool wasFullDamage);
 
     bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
 
@@ -172,9 +173,7 @@ class CHyprRenderer {
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
-    void                           cleanupCaptureState();
-    std::map<PHLMONITORREF, bool>  m_prevHasPending; // tracks screencopy pending per monitor
-    std::map<PHLMONITORREF, bool>  m_captureMRTCache;
+    void                           invalidateCaptureRequirementCache();
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

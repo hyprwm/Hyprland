@@ -847,6 +847,14 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     const bool ENABLE_CAPTURE_MRT                 = m_mrtSupported && g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
 
+    m_renderData.forcedFullDamageForCapture = false;
+    if (m_renderData.pCurrentMonData->captureMRTValid && g_pHyprRenderer->shouldForceFullCaptureFrame(pMonitor)) {
+        CRegion fullDamage = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        m_renderData.damage.set(fullDamage);
+        m_renderData.finalDamage.set(fullDamage);
+        m_renderData.forcedFullDamageForCapture = true;
+    }
+
     m_renderData.pCurrentMonData->offloadFB.bind();
     if (ENABLE_CAPTURE_MRT) {
         if (m_renderData.pCurrentMonData->offloadFB.ensureSecondColorAttachment()) {
@@ -886,6 +894,9 @@ void CHyprOpenGLImpl::end() {
     static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
 
     TRACY_GPU_ZONE("RenderEnd");
+
+    const bool captureMRTActive        = m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
+    const bool forcedCaptureFullDamage = m_renderData.forcedFullDamageForCapture;
 
     // end the render, copy the data to the main framebuffer
     if (m_offloadedFramebuffer) {
@@ -932,6 +943,12 @@ void CHyprOpenGLImpl::end() {
         m_applyFinalShader              = false;
         popMonitorTransformEnabled();
     }
+
+    if (captureMRTActive) {
+        if (auto monitor = m_renderData.pMonitor.lock())
+            g_pHyprRenderer->notifyCaptureFrameRendered(monitor, forcedCaptureFullDamage);
+    }
+    m_renderData.forcedFullDamageForCapture = false;
 
     // reset our data
     m_renderData.pMonitor.reset();
@@ -982,7 +999,6 @@ void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> f
 }
 
 CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w) {
-    using namespace Hyprutils::Utils;
     const auto prevWindow   = m_renderData.currentWindow;
     const bool prevCaptures = m_captureWritesEnabled;
 
@@ -998,7 +1014,6 @@ CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w) {
 }
 
 CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w, bool excludeHere) {
-    using namespace Hyprutils::Utils;
     const auto prevWindow   = m_renderData.currentWindow;
     const bool prevCaptures = m_captureWritesEnabled;
 
@@ -1444,15 +1459,19 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
     TRACY_GPU_ZONE("RenderClear");
 
     const GLfloat col[4] = {color.r, color.g, color.b, color.a};
-
-    if (!m_renderData.damage.empty()) {
-        m_renderData.damage.forEachRect([this, &col](const auto& RECT) {
-            scissor(&RECT);
-            glClearBufferfv(GL_COLOR, 0, col);
-            if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
-                glClearBufferfv(GL_COLOR, 1, col);
-        });
+    if (m_renderData.damage.empty()) {
+        scissor(nullptr);
+        return;
     }
+
+    const bool shouldClearCapture = m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid && color.a > 0.0f;
+    m_renderData.damage.forEachRect([this, &col, shouldClearCapture](const auto& rect) {
+        scissor(&rect);
+        glClearBufferfv(GL_COLOR, 0, col);
+        if (shouldClearCapture) {
+            glClearBufferfv(GL_COLOR, 1, col);
+        }
+    });
 
     scissor(nullptr);
 }

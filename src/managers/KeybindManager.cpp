@@ -795,7 +795,9 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 break;
             }
             if (k->handler != "submap" && k->submap.oneshot) {
-                setSubmap(k->submap.parent);
+                // NOTE: What i wanted to do. But doesn't feel good without a stack.
+                //setSubmap(k->submap.parent);
+                setSubmap("reset");
             }
         }
 

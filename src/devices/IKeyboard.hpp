@@ -99,8 +99,7 @@ class IKeyboard : public IHID {
     xkb_state*  m_xkbStaticState = nullptr;
     xkb_state*  m_xkbSymState    = nullptr; // same as static but gets layouts
 
-    xkb_keymap* m_xkbKeymap   = nullptr;
-    xkb_keymap* m_xkbKeymapV1 = nullptr;
+    xkb_keymap* m_xkbKeymap = nullptr;
 
     struct {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;

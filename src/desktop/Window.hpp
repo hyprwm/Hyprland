@@ -416,6 +416,7 @@ class CWindow {
     PHLWINDOW                  parent();
     bool                       priorityFocus();
     SP<CWLSurfaceResource>     getSolitaryResource();
+    Vector2D                   getReportedSize();
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

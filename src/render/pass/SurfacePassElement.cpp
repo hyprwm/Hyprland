@@ -174,27 +174,31 @@ CBox CSurfacePassElement::getTexBox() {
 
         // center the surface if it's smaller than the viewport we assign it
         if (PSURFACE && !PSURFACE->m_fillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
-            const auto CORRECT = PSURFACE->correctSmallVec();
-            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
+            const auto CORRECT  = PSURFACE->correctSmallVec();
+            const auto SIZE     = PSURFACE->getViewporterCorrectedSize();
+            const auto REPORTED = PWINDOW->getReportedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.translate(CORRECT);
 
-                windowBox.width  = SIZE.x * (PWINDOW->m_realSize->value().x / PWINDOW->m_reportedSize.x);
-                windowBox.height = SIZE.y * (PWINDOW->m_realSize->value().y / PWINDOW->m_reportedSize.y);
+                windowBox.width  = SIZE.x * (PWINDOW->m_realSize->value().x / REPORTED.x);
+                windowBox.height = SIZE.y * (PWINDOW->m_realSize->value().y / REPORTED.y);
             } else {
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
             }
         }
-
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y,
-                     std::max(sc<float>(m_data.surface->m_current.size.x), 2.F), std::max(sc<float>(m_data.surface->m_current.size.y), 2.F)};
+
+        const auto SURFSIZE = m_data.surface->m_current.viewport.hasSource ? m_data.surface->m_current.viewport.source.size() : m_data.surface->m_current.size;
+
+        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(sc<float>(SURFSIZE.x), 2.F),
+                     std::max(sc<float>(SURFSIZE.y), 2.F)};
         if (m_data.pWindow && m_data.pWindow->m_realSize->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / m_data.pWindow->m_reportedSize.x) * m_data.pWindow->m_realSize->value().x;
-            windowBox.height = (windowBox.height / m_data.pWindow->m_reportedSize.y) * m_data.pWindow->m_realSize->value().y;
+            const auto REPORTED = m_data.pWindow->getReportedSize();
+            windowBox.width     = (windowBox.width / REPORTED.x) * m_data.pWindow->m_realSize->value().x;
+            windowBox.height    = (windowBox.height / REPORTED.y) * m_data.pWindow->m_realSize->value().y;
         }
     }
 

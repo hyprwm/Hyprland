@@ -1910,3 +1910,11 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
 
     return nullptr;
 }
+
+Vector2D CWindow::getReportedSize() {
+    if (m_isX11)
+        return m_reportedSize;
+    if (m_wlSurface && m_wlSurface->resource())
+        return m_wlSurface->resource()->m_current.ackedSize;
+    return m_reportedSize;
+}

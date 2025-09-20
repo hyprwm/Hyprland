@@ -1000,7 +1000,7 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
                 ret += "d";
 
             ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
-                               kb->submap, kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
+                               kb->submap.name, kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
         }
     } else {
         // json
@@ -1026,8 +1026,8 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     "arg": "{}"
 }},)#",
                 kb->locked ? "true" : "false", kb->mouse ? "true" : "false", kb->release ? "true" : "false", kb->repeat ? "true" : "false", kb->longPress ? "true" : "false",
-                kb->nonConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap), escapeJSONStrings(kb->key), kb->keycode,
-                kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
+                kb->nonConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap.name), escapeJSONStrings(kb->key),
+                kb->keycode, kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
         }
         trimTrailingComma(ret);
         ret += "]";
@@ -1946,7 +1946,7 @@ static std::string getDescriptions(eHyprCtlOutputFormat format, std::string requ
 }
 
 static std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
-    std::string submap = g_pKeybindManager->getCurrentSubmap();
+    std::string submap = g_pKeybindManager->getCurrentSubmap().name;
     if (submap.empty())
         submap = "default";
 

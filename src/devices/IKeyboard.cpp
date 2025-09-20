@@ -429,3 +429,8 @@ bool IKeyboard::getPressed(uint32_t key) {
 bool IKeyboard::shareStates() {
     return m_shareStates;
 }
+
+void IKeyboard::setShareStatesAuto(bool shareStates) {
+    if (m_shareStatesAuto)
+        m_shareStates = shareStates;
+}

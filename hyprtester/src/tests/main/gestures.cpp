@@ -18,6 +18,20 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectation, int waitMillis = 100, int maxWaitCnt = 50) {
+    int counter = 0;
+    while (Tests::windowCount() != expectedWindowCnt) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitMillis));
+
+        if (counter > maxWaitCnt) {
+            NLog::log("{}Unmet expectation: {}", Colors::RED, expectation);
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing gestures", Colors::GREEN);
 
@@ -27,19 +41,21 @@ static bool test() {
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     getFromSocket("/dispatch workspace 1"); // no OK: we might be on 1 already
 
+    Tests::spawnKitty();
+    EXPECT(Tests::windowCount(), 1);
+
+    // Give the shell a moment to initialize
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    OK(getFromSocket("/dispatch plugin:test:gesture up,4"));
+
+    EXPECT(waitForWindowCount(0, "Gesture sent ctrl+d to kitty"), true);
+
+    EXPECT(Tests::windowCount(), 0);
+
     OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
 
-    // wait while kitty spawns
-    int counter = 0;
-    while (Tests::windowCount() != 1) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 50) {
-            NLog::log("{}Gesture didnt spawn kitty", Colors::RED);
-            return false;
-        }
-    }
+    EXPECT(waitForWindowCount(1, "Gesture spawned kitty"), true);
 
     EXPECT(Tests::windowCount(), 1);
 
@@ -126,16 +142,7 @@ static bool test() {
 
     OK(getFromSocket("/dispatch plugin:test:gesture up,3"));
 
-    counter = 0;
-    while (Tests::windowCount() != 0) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 50) {
-            NLog::log("{}Gesture didnt close kitty", Colors::RED);
-            return false;
-        }
-    }
+    EXPECT(waitForWindowCount(0, "Gesture closed kitty"), true);
 
     EXPECT(Tests::windowCount(), 0);
 

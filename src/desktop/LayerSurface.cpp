@@ -388,8 +388,9 @@ void CLayerSurface::applyRules() {
     m_noAnimations     = false;
     m_forceBlur        = false;
     m_ignoreAlpha      = false;
-    m_ignoreAlphaValue = 0.f;
     m_dimAround        = false;
+    m_noScreenShare    = false;
+    m_ignoreAlphaValue = 0.f;
     m_xray             = -1;
     m_animationStyle.reset();
 
@@ -423,6 +424,10 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_DIMAROUND: {
                 m_dimAround = true;
+                break;
+            }
+            case CLayerRule::RULE_NOSCREENSHARE: {
+                m_noScreenShare = true;
                 break;
             }
             case CLayerRule::RULE_XRAY: {

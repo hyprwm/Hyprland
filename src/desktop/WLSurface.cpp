@@ -62,9 +62,10 @@ bool CWLSurface::small() const {
     if (!m_resource->m_current.texture)
         return false;
 
-    const auto O = m_windowOwner.lock();
+    const auto O             = m_windowOwner.lock();
+    const auto REPORTED_SIZE = O->getReportedSize();
 
-    return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
+    return REPORTED_SIZE.x > m_resource->m_current.size.x + 1 || REPORTED_SIZE.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {

@@ -3,3 +3,4 @@ option('systemd', type: 'feature', value: 'auto', description: 'Enable systemd i
 option('uwsm', type: 'feature', value: 'enabled', description: 'Enable uwsm integration (only if systemd is enabled)')
 option('hyprpm', type: 'feature', value: 'enabled', description: 'Enable hyprpm')
 option('tracy_enable', type: 'boolean', value: false , description: 'Enable profiling')
+ 

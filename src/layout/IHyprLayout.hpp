@@ -225,6 +225,11 @@ class IHyprLayout {
     */
     virtual void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
 
+    /*
+        Config manager will send this when presets change
+    */
+    virtual void presetsChanged(const std::vector<std::string>& presets);
+
   private:
     int          m_mouseMoveEventCount;
     Vector2D     m_beginDragXY;

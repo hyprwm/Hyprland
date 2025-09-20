@@ -7,6 +7,8 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
+#include "DwindlePreset.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -127,7 +129,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     if (!validMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
-        onWindowRemovedTiling(PWINDOW);
+        onWindowRemovedTilingInternal(PWINDOW);
         return;
     }
 
@@ -244,6 +246,12 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 }
 
 void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection direction) {
+    onWindowCreatedTilingInternal(pWindow, direction, nullptr);
+
+    recheckPresetRule(pWindow->m_workspace);
+}
+
+void CHyprDwindleLayout::onWindowCreatedTilingInternal(PHLWINDOW pWindow, eDirection direction, PHLWINDOW overrideOpeningOn) {
     if (pWindow->m_isFloating)
         return;
 
@@ -264,31 +272,34 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     PNODE->isNode      = false;
     PNODE->layout      = this;
 
-    SDwindleNodeData* OPENINGON;
+    SDwindleNodeData* OPENINGON = overrideOpeningOn ? getNodeFromWindow(overrideOpeningOn) : nullptr;
 
     const auto        MOUSECOORDS   = m_overrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
-    if (PMONITOR->m_id == MONFROMCURSOR->m_id &&
-        (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | SKIP_FULLSCREEN_PRIORITY));
+    if (!OPENINGON) {
+        if (PMONITOR->m_id == MONFROMCURSOR->m_id &&
+            (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->m_activeSpecialWorkspace)) &&
+            !*PUSEACTIVE) {
+            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | SKIP_FULLSCREEN_PRIORITY));
 
-        if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
-            OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
+            if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
+                OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
 
-    } else if (*PUSEACTIVE) {
-        if (g_pCompositor->m_lastWindow.lock() && !g_pCompositor->m_lastWindow->m_isFloating && g_pCompositor->m_lastWindow.lock() != pWindow &&
-            g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace && g_pCompositor->m_lastWindow->m_isMapped) {
-            OPENINGON = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
-        } else {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
-        }
+        } else if (*PUSEACTIVE) {
+            if (g_pCompositor->m_lastWindow.lock() && !g_pCompositor->m_lastWindow->m_isFloating && g_pCompositor->m_lastWindow.lock() != pWindow &&
+                g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace && g_pCompositor->m_lastWindow->m_isMapped) {
+                OPENINGON = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
+            } else {
+                OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
+            }
 
-        if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
-            OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
+            if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
+                OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
 
-    } else
-        OPENINGON = getFirstNodeOnWorkspace(pWindow->workspaceID());
+        } else
+            OPENINGON = getFirstNodeOnWorkspace(pWindow->workspaceID());
+    }
 
     Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->m_id);
 
@@ -459,7 +470,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     recalculateMonitor(pWindow->monitorID());
 }
 
-void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
+void CHyprDwindleLayout::onWindowRemovedTilingInternal(PHLWINDOW pWindow) {
 
     const auto PNODE = getNodeFromWindow(pWindow);
 
@@ -505,6 +516,16 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     m_dwindleNodesData.remove(*PPARENT);
     m_dwindleNodesData.remove(*PNODE);
+}
+
+void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
+    onWindowRemovedTilingInternal(pWindow);
+
+    g_pEventLoopManager->doLater([this, ws = PHLWORKSPACEREF{pWindow->m_workspace}]() {
+        if (!ws || g_pLayoutManager->getCurrentLayout() != this)
+            return;
+        recheckPresetRule(ws.lock());
+    });
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
@@ -858,7 +879,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
 
     pWindow->setAnimationsToMove();
 
-    onWindowRemovedTiling(pWindow);
+    onWindowRemovedTilingInternal(pWindow);
 
     m_overrideFocalPoint = focalPoint;
 
@@ -878,7 +899,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
         }
     }
 
-    onWindowCreatedTiling(pWindow);
+    onWindowCreatedTilingInternal(pWindow, DIRECTION_DEFAULT);
 
     m_overrideFocalPoint.reset();
 
@@ -1003,6 +1024,125 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
                 break;
             }
         }
+    } else if (ARGS[0] == "preset")
+        return usePreset(ARGS[1]);
+
+    return "";
+}
+
+std::string CHyprDwindleLayout::usePreset(const std::string& name) {
+    SP<CDwindlePreset> preset = nullptr;
+    for (const auto& p : m_presets) {
+        if (p->m_name != name)
+            continue;
+        preset = p;
+        break;
+    }
+
+    if (!preset)
+        return "no such preset";
+
+    const auto& DATA = preset->data();
+
+    // gather all windows for the current workspace
+
+    std::deque<PHLWINDOW> windows, windowsPreOrder;
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!validMapped(w) || w->m_isFloating || !getNodeFromWindow(w) ||
+            w->workspaceID() !=
+                (g_pCompositor->m_lastMonitor->m_activeSpecialWorkspace ? g_pCompositor->m_lastMonitor->activeSpecialWorkspaceID() :
+                                                                          g_pCompositor->m_lastMonitor->activeWorkspaceID()))
+            continue;
+
+        windowsPreOrder.emplace_back(w);
+    }
+
+    if (windowsPreOrder.empty())
+        return "";
+
+    windows.resize(windowsPreOrder.size());
+    // order windows by selectors
+    for (size_t i = 0; i < windows.size() && i < DATA.size(); ++i) {
+        if (DATA[i].windowSelector.empty())
+            continue;
+
+        // has a selector: try to match
+        for (auto& w : windowsPreOrder) {
+            if (!w || !w->matchesStaticSelector(DATA[i].windowSelector))
+                continue;
+
+            // match: remove from pre and add at idx
+            windows[i] = w;
+            w.reset();
+        }
+    }
+
+    // add remaining windows
+    size_t i = 0;
+    for (const auto& w : windowsPreOrder) {
+        if (!w)
+            continue;
+
+        while (i < windows.size() && windows[i]) {
+            i++;
+        }
+
+        windows[i] = w;
+    }
+
+    // remove all windows from the tiling grid
+    for (const auto& w : windows) {
+        onWindowRemovedTilingInternal(w);
+    }
+
+    // add them following our rules
+    SDwindleNodeData* currentNode = nullptr;
+
+    // add first window
+    onWindowCreatedTilingInternal(windows.front(), DIRECTION_DEFAULT);
+
+    currentNode = getNodeFromWindow(windows.front());
+
+    windows.pop_front();
+
+    for (i = 1; i < DATA.size() && !windows.empty(); ++i) {
+
+        while (!windows.empty() && windows.front() == nullptr) {
+            windows.pop_front();
+        }
+
+        if (windows.empty())
+            break;
+
+        PHLWINDOW currentWindow = windows.front();
+
+        // first move according to directions
+        for (const auto& m : DATA[i].moves) {
+            if (m == CDwindlePreset::PRESET_MOVE_UP)
+                currentNode = currentNode->pParent ? currentNode->pParent : currentNode;
+            else if (m == CDwindlePreset::PRESET_MOVE_LEFT)
+                currentNode = currentNode->children[0] ? currentNode->children[0] : currentNode;
+            else if (m == CDwindlePreset::PRESET_MOVE_RIGHT)
+                currentNode = currentNode->children[1] ? currentNode->children[1] : currentNode;
+        }
+
+        // then open new window with the direction specified
+        auto direction = DATA[i].splitHorizontal ? (DATA[i].splitRight ? DIRECTION_RIGHT : DIRECTION_LEFT) : (DATA[i].splitRight ? DIRECTION_DOWN : DIRECTION_UP);
+
+        onWindowCreatedTilingInternal(currentWindow, direction, currentNode->pWindow.lock());
+        currentNode = getNodeFromWindow(currentWindow);
+        if (currentNode->pParent)
+            currentNode->pParent->splitRatio = DATA[i].splitRatio;
+
+        windows.pop_front();
+    }
+
+    // if any left, just add them normally
+    if (!windows.empty()) {
+        for (size_t j = 0; j < windows.size(); ++j) {
+            onWindowCreatedTilingInternal(windows[j], DIRECTION_DEFAULT);
+        }
     }
 
     return "";
@@ -1094,7 +1234,7 @@ void CHyprDwindleLayout::onEnable() {
         if (w->m_isFloating || !w->m_isMapped || w->isHidden())
             continue;
 
-        onWindowCreatedTiling(w);
+        onWindowCreatedTiling(w); // intentional: run hooks for normal creations like presets
     }
 }
 
@@ -1145,4 +1285,34 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
     }
 
     return {};
+}
+
+void CHyprDwindleLayout::presetsChanged(const std::vector<std::string>& presets) {
+    m_presets.clear();
+
+    for (const auto& p : presets) {
+        auto up = CDwindlePreset::create(p);
+
+        if (!up)
+            continue;
+
+        m_presets.emplace_back(std::move(up));
+    }
+
+    for (const auto& w : g_pCompositor->getWorkspaces()) {
+        if (!w || !w->isVisible())
+            continue;
+
+        recheckPresetRule(w.lock());
+    }
+}
+
+void CHyprDwindleLayout::recheckPresetRule(PHLWORKSPACE w) {
+    if (!w)
+        return;
+
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(w);
+
+    if (WORKSPACERULE.layoutopts.contains("preset"))
+        usePreset(WORKSPACERULE.layoutopts.at("preset"));
 }

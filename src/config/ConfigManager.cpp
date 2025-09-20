@@ -432,6 +432,18 @@ static Hyprlang::CParseResult handleGesture(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handlePreset(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handlePreset(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_config->addConfigValue(name, val);
@@ -871,6 +883,7 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handlePlugin, "plugin", {false});
     m_config->registerHandler(&::handlePermission, "permission", {false});
     m_config->registerHandler(&::handleGesture, "gesture", {false});
+    m_config->registerHandler(&::handlePreset, "preset", {false});
     m_config->registerHandler(&::handleEnv, "env", {true});
 
     // pluginza
@@ -1051,6 +1064,7 @@ void CConfigManager::setDefaultAnimationVars() {
 std::optional<std::string> CConfigManager::resetHLConfig() {
     m_monitorRules.clear();
     m_windowRules.clear();
+    m_layoutPresets.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
@@ -1286,6 +1300,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // update persistent workspaces
     if (!m_isFirstLaunch)
         ensurePersistentWorkspacesPresent();
+
+    updateLayoutPresets();
 
     EMIT_HOOK_EVENT("configReloaded", nullptr);
     if (g_pEventManager)
@@ -3017,14 +3033,21 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             wsRule.onCreatedEmptyRunCmd = *X;
         } else if ((delim = rule.find("layoutopt:")) != std::string::npos) {
             std::string opt = rule.substr(delim + 10);
-            if (!opt.contains(":")) {
-                // invalid
-                Debug::log(ERR, "Invalid workspace rule found: {}", rule);
-                return "Invalid workspace rule found: " + rule;
-            }
 
-            std::string val = opt.substr(opt.find(':') + 1);
-            opt             = opt.substr(0, opt.find(':'));
+            size_t      delimPos = 0;
+            if (!opt.contains(':')) {
+                if (!opt.contains(' ')) {
+                    // invalid
+                    Debug::log(ERR, "Invalid workspace rule found: {}", rule);
+                    return "Invalid workspace rule found: " + rule;
+                }
+
+                delimPos = opt.find(' ');
+            } else
+                delimPos = opt.find(':');
+
+            std::string val = opt.substr(delimPos + 1);
+            opt             = opt.substr(0, delimPos);
 
             wsRule.layoutopts[opt] = val;
         }
@@ -3261,6 +3284,12 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     return std::nullopt;
 }
 
+std::optional<std::string> CConfigManager::handlePreset(const std::string& command, const std::string& value) {
+    m_layoutPresets.emplace_back(value);
+
+    return std::nullopt;
+}
+
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {
     return CONFIG_OPTIONS;
 }
@@ -3390,6 +3419,10 @@ std::string SConfigOptionDescription::jsonify() const {
 
 void CConfigManager::ensurePersistentWorkspacesPresent() {
     g_pCompositor->ensurePersistentWorkspacesPresent(m_workspaceRules);
+}
+
+void CConfigManager::updateLayoutPresets() {
+    g_pLayoutManager->getCurrentLayout()->presetsChanged(m_layoutPresets);
 }
 
 void CConfigManager::storeFloatingSize(PHLWINDOW window, const Vector2D& size) {

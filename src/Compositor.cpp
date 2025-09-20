@@ -2478,62 +2478,8 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     }
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || (w->isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w)))
-            continue;
-
-        switch (mode) {
-            case MODE_CLASS_REGEX: {
-                const auto windowClass = w->m_class;
-                if (!RE2::FullMatch(windowClass, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_INITIAL_CLASS_REGEX: {
-                const auto initialWindowClass = w->m_initialClass;
-                if (!RE2::FullMatch(initialWindowClass, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_TITLE_REGEX: {
-                const auto windowTitle = w->m_title;
-                if (!RE2::FullMatch(windowTitle, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_INITIAL_TITLE_REGEX: {
-                const auto initialWindowTitle = w->m_initialTitle;
-                if (!RE2::FullMatch(initialWindowTitle, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_TAG_REGEX: {
-                bool tagMatched = false;
-                for (auto const& t : w->m_tags.getTags()) {
-                    if (RE2::FullMatch(t, regexCheck)) {
-                        tagMatched = true;
-                        break;
-                    }
-                }
-                if (!tagMatched)
-                    continue;
-                break;
-            }
-            case MODE_ADDRESS: {
-                std::string addr = std::format("0x{:x}", rc<uintptr_t>(w.get()));
-                if (matchCheck != addr)
-                    continue;
-                break;
-            }
-            case MODE_PID: {
-                std::string pid = std::format("{}", w->getPID());
-                if (matchCheck != pid)
-                    continue;
-                break;
-            }
-            default: break;
-        }
-
-        return w;
+        if (w->matchesStaticSelector(mode, matchCheck))
+            return w;
     }
 
     return nullptr;

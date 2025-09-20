@@ -2109,6 +2109,8 @@ std::string CHyprCtl::getReply(std::string request) {
             g_pCompositor->updateWindowAnimatedDecorationValues(w);
         }
 
+        g_pConfigManager->updateLayoutPresets();
+
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);

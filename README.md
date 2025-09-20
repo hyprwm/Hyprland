@@ -11,7 +11,7 @@
 [![Badge Issues]][Issues] 
 ![Badge Hi Mom]<br>
 
-<br>
+<br>wdwdwdw
 
 Hyprland is a 100% independent, dynamic tiling Wayland compositor that doesn't sacrifice on its looks.
 

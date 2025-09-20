@@ -16,6 +16,7 @@
 #include "../managers/TokenManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Subcompositor.hpp"
@@ -576,7 +577,12 @@ void CWindow::onMap() {
             if (!m_isMapped || isX11OverrideRedirect())
                 return;
 
-            sendWindowSize();
+            g_pEventLoopManager->doLater([this, self = m_self] {
+                if (!self)
+                    return;
+
+                sendWindowSize();
+            });
         },
         false);
 
@@ -1556,6 +1562,13 @@ void CWindow::onAck(uint32_t serial) {
 
     m_pendingSizeAck = *SERIAL;
     std::erase_if(m_pendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
+
+    if (m_isX11)
+        return;
+
+    m_wlSurface->resource()->m_pending.ackedSize          = m_pendingSizeAck->second; // apply pending size. We pinged, the window ponged.
+    m_wlSurface->resource()->m_pending.updated.bits.acked = true;
+    m_pendingSizeAck.reset();
 }
 
 void CWindow::onResourceChangeX11() {

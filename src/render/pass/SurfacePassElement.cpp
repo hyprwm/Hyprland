@@ -190,15 +190,17 @@ CBox CSurfacePassElement::getTexBox() {
         }
     } else { //  here we clamp to 2, these might be some tiny specks
 
-        const auto SURFSIZE = m_data.surface->m_current.viewport.hasSource ? m_data.surface->m_current.viewport.source.size() : m_data.surface->m_current.size;
+        const auto SURFSIZE = m_data.surface->m_current.size;
 
         windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(sc<float>(SURFSIZE.x), 2.F),
                      std::max(sc<float>(SURFSIZE.y), 2.F)};
         if (m_data.pWindow && m_data.pWindow->m_realSize->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
             const auto REPORTED = m_data.pWindow->getReportedSize();
-            windowBox.width     = (windowBox.width / REPORTED.x) * m_data.pWindow->m_realSize->value().x;
-            windowBox.height    = (windowBox.height / REPORTED.y) * m_data.pWindow->m_realSize->value().y;
+            if (REPORTED.x != 0 && REPORTED.y != 0) {
+                windowBox.width  = (windowBox.width / REPORTED.x) * m_data.pWindow->m_realSize->value().x;
+                windowBox.height = (windowBox.height / REPORTED.y) * m_data.pWindow->m_realSize->value().y;
+            }
         }
     }
 

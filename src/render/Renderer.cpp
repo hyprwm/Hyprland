@@ -1129,11 +1129,16 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
                     .round();
 
             const auto RATIO = projSize / EXPECTED_SIZE;
-            if (!SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
-                // this will not work with shm AFAIK, idk why.
-                // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
-                const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
-                uvBR           = uvBR * FIX;
+            if (!SCALE_UNAWARE) {
+                if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
+                    const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
+                    uvBR           = uvBR * FIX;
+                }
+
+                if (RATIO.x < 1 || RATIO.y < 1) {
+                    const auto FIX = RATIO.clamp(Vector2D{0.0001, 0.0001}, Vector2D{1, 1});
+                    uvBR           = uvBR * FIX;
+                }
             }
         }
 
@@ -1164,29 +1169,6 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         //     uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
         //     uvTL               = uvTL + TOADDTL;
         // }
-
-        // Only for clamping: extend edges is done before
-        if (!pSurface->m_current.viewport.hasSource) {
-            const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->m_current.scale && !pSurface->m_current.viewport.hasDestination;
-            auto       maxSize =
-                ((pSurface->m_current.viewport.hasDestination ?
-                      pSurface->m_current.viewport.destination :
-                      (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() : pSurface->m_current.bufferSize) / pSurface->m_current.scale) *
-                 pMonitor->m_scale)
-                    .round();
-
-            if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
-                maxSize = pWindow->m_wlSurface->getViewporterCorrectedSize();
-
-            const auto RATIO = projSize / maxSize;
-            if (!SCALE_UNAWARE && (RATIO.x < 1 || RATIO.y < 1)) {
-                // this will not work with shm AFAIK, idk why.
-                // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
-                const auto FIX = RATIO.clamp(Vector2D{0.0001, 0.0001}, Vector2D{1, 1});
-                uvBR           = uvBR * FIX;
-            }
-        }
 
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;

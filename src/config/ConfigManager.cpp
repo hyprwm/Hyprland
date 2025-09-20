@@ -3056,7 +3056,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 }
 
 std::optional<std::string> CConfigManager::handleSubmap(const std::string&, const std::string& submap) {
-    const auto SUBMAP = CConstVarList(submap);
+    const auto SUBMAP  = CConstVarList(submap);
     m_currentSubmap.name  = SUBMAP[0];
     m_currentSubmap.reset = SUBMAP[1];
     return {};

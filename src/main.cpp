@@ -5,6 +5,7 @@
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 
+#include <csignal>
 #include <cstdio>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/memory/Casts.hpp>
@@ -33,6 +34,17 @@ static void help() {
     --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
     --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version)");
+}
+
+static void reapZombieChildrenAutomatically() {
+    struct sigaction act;
+    act.sa_handler = SIG_DFL;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = SA_NOCLDWAIT;
+#ifdef SA_RESTORER
+    act.sa_restorer = NULL;
+#endif
+    sigaction(SIGCHLD, &act, nullptr);
 }
 
 int main(int argc, char** argv) {
@@ -182,6 +194,8 @@ int main(int argc, char** argv) {
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();
+
+    reapZombieChildrenAutomatically();
 
     Debug::log(LOG, "Hyprland init finished.");
 

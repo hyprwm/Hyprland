@@ -1127,10 +1127,12 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
                 ((pSurface->m_current.viewport.hasDestination ? pSurface->m_current.viewport.destination : pSurface->m_current.bufferSize / pSurface->m_current.scale) *
                  pMonitor->m_scale)
                     .round();
-            if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
+
+            const auto RATIO = projSize / EXPECTED_SIZE;
+            if (!SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
                 // this will not work with shm AFAIK, idk why.
                 // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
-                const auto FIX = (projSize / EXPECTED_SIZE).clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
+                const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
                 uvBR           = uvBR * FIX;
             }
         }
@@ -1147,31 +1149,37 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (!main || !pWindow)
             return;
 
-        CBox geom = pWindow->m_xdgSurface->m_current.geometry;
+        // FIXME: this doesn't work. We always set MAXIMIZED anyways, so this doesn't need to work, but it's problematic.
 
-        // Adjust UV based on the xdg_surface geometry
-        if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
-            const auto XPERC = geom.x / pSurface->m_current.size.x;
-            const auto YPERC = geom.y / pSurface->m_current.size.y;
-            const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
-            const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
+        // CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
-            const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
-            uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
-            uvTL               = uvTL + TOADDTL;
-        }
+        // // Adjust UV based on the xdg_surface geometry
+        // if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
+        //     const auto XPERC = geom.x / pSurface->m_current.size.x;
+        //     const auto YPERC = geom.y / pSurface->m_current.size.y;
+        //     const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
+        //     const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
 
-        // Adjust UV based on our animation progress
-        if (pSurface->m_current.size.x > projSizeUnscaled.x || pSurface->m_current.size.y > projSizeUnscaled.y) {
-            auto maxSize = projSizeUnscaled;
+        //     const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
+        //     uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
+        //     uvTL               = uvTL + TOADDTL;
+        // }
+
+        // Only for clamping: extend edges is done before
+        {
+            auto maxSize = ((pSurface->m_current.viewport.hasDestination ? pSurface->m_current.viewport.destination : pSurface->m_current.bufferSize / pSurface->m_current.scale) *
+                            pMonitor->m_scale)
+                               .round();
 
             if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
                 maxSize = pWindow->m_wlSurface->getViewporterCorrectedSize();
 
-            if (pSurface->m_current.size.x > maxSize.x)
-                uvBR.x = uvBR.x * (maxSize.x / pSurface->m_current.size.x);
-            if (pSurface->m_current.size.y > maxSize.y)
-                uvBR.y = uvBR.y * (maxSize.y / pSurface->m_current.size.y);
+            const auto RATIO = projSize / maxSize;
+
+            if (RATIO.x < 1.F)
+                uvBR.x = uvBR.x * RATIO.x;
+            if (RATIO.y < 1.F)
+                uvBR.y = uvBR.y * RATIO.y;
         }
 
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;

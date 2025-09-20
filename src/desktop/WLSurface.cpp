@@ -64,7 +64,10 @@ bool CWLSurface::small() const {
 
     const auto O = m_windowOwner.lock();
 
-    return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
+    if (O->m_isX11)
+        return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
+    else
+        return m_resource->m_current.ackedSize.x > m_resource->m_current.size.x + 1 || m_resource->m_current.ackedSize.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {

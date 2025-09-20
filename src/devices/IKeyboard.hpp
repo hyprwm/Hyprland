@@ -79,6 +79,7 @@ class IKeyboard : public IHID {
     void                              updateKeymapFD();
     bool                              getPressed(uint32_t key);
     bool                              shareStates();
+    void                              setShareStatesAuto(bool shareStates);
 
     bool                              m_active     = false;
     bool                              m_enabled    = true;
@@ -131,5 +132,6 @@ class IKeyboard : public IHID {
 
   protected:
     bool updatePressed(uint32_t key, bool pressed);
-    bool m_shareStates = true;
+    bool m_shareStates     = true;
+    bool m_shareStatesAuto = true;
 };

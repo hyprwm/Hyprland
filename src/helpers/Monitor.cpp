@@ -1,6 +1,7 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
+#include "SharedDefs.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
@@ -907,11 +908,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             } else {
                 if (!autoScale) {
                     Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
-                    g_pConfigManager->addParseError(
-                        std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", m_name, searchScale));
-                    m_scale = getDefaultScale();
-                } else
-                    m_scale = searchScale;
+                    static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
+                    if (!*PDISABLENOTIFICATION)
+                        g_pHyprNotificationOverlay->addNotification(std::format("Invalid scale passed to monitor: {}, using suggested scale: {}", m_scale, searchScale),
+                                                                    CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
+                }
+                m_scale = searchScale;
             }
         }
     }

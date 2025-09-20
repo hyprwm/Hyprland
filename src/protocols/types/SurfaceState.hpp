@@ -37,6 +37,9 @@ struct SSurfaceState {
     Vector2D size, bufferSize;
     Vector2D offset;
 
+    // sequence
+    size_t   seq = 0;
+
     // viewporter protocol surface state
     struct {
         bool     hasDestination = false;

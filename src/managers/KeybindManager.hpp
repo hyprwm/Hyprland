@@ -18,9 +18,8 @@ class IKeyboard;
 enum eMouseBindMode : int8_t;
 
 struct SSubmap {
-    std::string name    = "";
-    bool        oneshot = false;
-    std::string parent  = "";
+    std::string name  = "";
+    std::string reset = "";
     bool        operator==(const SSubmap& other) const {
         return name == other.name;
     }

@@ -3056,17 +3056,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 }
 
 std::optional<std::string> CConfigManager::handleSubmap(const std::string&, const std::string& submap) {
-    if (auto pos = submap.find("oneshot"); pos != std::string::npos) {
-        m_currentSubmap.parent  = m_currentSubmap.name;
-        m_currentSubmap.name    = trim(submap.substr(0, pos));
-        m_currentSubmap.oneshot = true;
-    } else if (submap.empty() || submap == "reset") {
-        m_currentSubmap = {};
-    } else {
-        m_currentSubmap.parent  = m_currentSubmap.name;
-        m_currentSubmap.name    = trim(submap);
-        m_currentSubmap.oneshot = false;
-    }
+    const auto SUBMAP = CConstVarList(submap);
+    m_currentSubmap.name  = SUBMAP[0];
+    m_currentSubmap.reset = SUBMAP[1];
     return {};
 }
 

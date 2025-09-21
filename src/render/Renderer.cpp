@@ -1849,15 +1849,9 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     PMONITOR->m_reservedTopLeft     = Vector2D(usableArea.x, usableArea.y) - PMONITOR->m_position;
     PMONITOR->m_reservedBottomRight = PMONITOR->m_size - Vector2D(usableArea.width, usableArea.height) - PMONITOR->m_reservedTopLeft;
 
-    auto ADDITIONALRESERVED = g_pConfigManager->m_mAdditionalReservedAreas.find(PMONITOR->m_name);
-    if (ADDITIONALRESERVED == g_pConfigManager->m_mAdditionalReservedAreas.end()) {
-        ADDITIONALRESERVED = g_pConfigManager->m_mAdditionalReservedAreas.find(""); // glob wildcard
-    }
-
-    if (ADDITIONALRESERVED != g_pConfigManager->m_mAdditionalReservedAreas.end()) {
-        PMONITOR->m_reservedTopLeft     = PMONITOR->m_reservedTopLeft + Vector2D(ADDITIONALRESERVED->second.left, ADDITIONALRESERVED->second.top);
-        PMONITOR->m_reservedBottomRight = PMONITOR->m_reservedBottomRight + Vector2D(ADDITIONALRESERVED->second.right, ADDITIONALRESERVED->second.bottom);
-    }
+    const auto RESERVED             = (PMONITOR->m_activeMonitorRule.addReservedArea) ? PMONITOR->m_activeMonitorRule.addReservedArea : g_pConfigManager->m_mAdditionalReservedArea;
+    PMONITOR->m_reservedTopLeft     = PMONITOR->m_reservedTopLeft + Vector2D(RESERVED.left, RESERVED.top);
+    PMONITOR->m_reservedBottomRight = PMONITOR->m_reservedBottomRight + Vector2D(RESERVED.right, RESERVED.bottom);
 
     // damage the monitor if can
     damageMonitor(PMONITOR);

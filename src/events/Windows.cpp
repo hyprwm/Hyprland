@@ -868,10 +868,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_isMapped || PWINDOW->isHidden())
         return;
 
-    if (PWINDOW->m_pendingSizeAck && PWINDOW->m_isX11) {
-        PWINDOW->m_reportedSize = PWINDOW->m_pendingSizeAck->second;
-        PWINDOW->m_pendingSizeAck.reset();
-    }
+    if (PWINDOW->m_isX11)
+        PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize;
 
     if (!PWINDOW->m_isX11 && !PWINDOW->isFullscreen() && PWINDOW->m_isFloating) {
         const auto MINSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMinSize();

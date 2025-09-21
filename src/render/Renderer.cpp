@@ -1133,7 +1133,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
                                            .round();
 
             const auto RATIO = projSize / EXPECTED_SIZE;
-            if (!SCALE_UNAWARE && MONITOR_WL_SCALE != 1) {
+            if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
                 if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
                     const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
                     uvBR           = uvBR * FIX;

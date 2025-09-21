@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../defines.hpp"
 #include <stack>
 #include <vector>
 #include "../SharedDefs.hpp"
@@ -11,10 +10,8 @@
 
 #include <xf86drmMode.h>
 #include "time/Timer.hpp"
-#include "math/Math.hpp"
 #include <optional>
 #include "../protocols/types/ColorManagement.hpp"
-#include "signal/Signal.hpp"
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <aquamarine/allocator/Swapchain.hpp>
@@ -44,6 +41,23 @@ enum eCMType : uint8_t {
     CM_HDR_EDID, // same as CM_HDR with edid primaries
 };
 
+struct SMonitorAdditionalReservedArea {
+    int top    = 0;
+    int bottom = 0;
+    int left   = 0;
+    int right  = 0;
+
+    SMonitorAdditionalReservedArea() = default;
+    SMonitorAdditionalReservedArea(int t, int b, int l, int r) : top(t), bottom(b), left(l), right(r), _set(true) {}
+
+    explicit operator bool() const {
+        return _set;
+    }
+
+  private:
+    bool _set = false;
+};
+
 struct SMonitorRule {
     eAutoDirs           autoDir       = DIR_AUTO_NONE;
     std::string         name          = "";
@@ -65,12 +79,14 @@ struct SMonitorRule {
     int                 sdrMaxLuminance   = 80;    // SDR -> HDR
 
     // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
-    float              minLuminance    = -1.0f; // >= 0 overrides EDID
-    int                maxLuminance    = -1;    // >= 0 overrides EDID
-    int                maxAvgLuminance = -1;    // >= 0 overrides EDID
+    float                          minLuminance    = -1.0f; // >= 0 overrides EDID
+    int                            maxLuminance    = -1;    // >= 0 overrides EDID
+    int                            maxAvgLuminance = -1;    // >= 0 overrides EDID
 
-    drmModeModeInfo    drmMode = {};
-    std::optional<int> vrr;
+    drmModeModeInfo                drmMode = {};
+    std::optional<int>             vrr;
+
+    SMonitorAdditionalReservedArea addReservedArea = {};
 };
 
 class CMonitor;

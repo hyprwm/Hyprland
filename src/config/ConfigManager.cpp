@@ -1056,7 +1056,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     g_pTrackpadGestures->clearGestures();
 
-    m_mAdditionalReservedAreas.clear();
+    m_mAdditionalReservedArea = {};
     m_blurLSNamespaces.clear();
     m_workspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
@@ -1098,7 +1098,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
-        parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        parser.setReserved({std::stoi(ARGS[0]), std::stoi(ARGS[1]), std::stoi(ARGS[2]), std::stoi(ARGS[3])});
+        if (parser.name().empty())
+            m_mAdditionalReservedArea = parser.rule().addReservedArea;
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
     if (VAL && VAL->m_bSetByUser)
@@ -2310,7 +2312,7 @@ void CMonitorRuleParser::setMirror(const std::string& value) {
 }
 
 bool CMonitorRuleParser::setReserved(const SMonitorAdditionalReservedArea& value) {
-    g_pConfigManager->m_mAdditionalReservedAreas[name()] = value;
+    m_rule.addReservedArea = value;
     return true;
 }
 
@@ -2320,7 +2322,6 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
     const auto ARGS = CVarList(args);
 
     auto       parser = CMonitorRuleParser(ARGS[0]);
-
     if (ARGS[1] == "disable" || ARGS[1] == "disabled" || ARGS[1] == "addreserved" || ARGS[1] == "transform") {
         if (ARGS[1] == "disable" || ARGS[1] == "disabled")
             parser.setDisabled();
@@ -2340,8 +2341,19 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
-            return {};
+            parser.setReserved({std::stoi(ARGS[2]), std::stoi(ARGS[3]), std::stoi(ARGS[4]), std::stoi(ARGS[5])});
+            if (ARGS[0].empty()) {
+                m_mAdditionalReservedArea = parser.rule().addReservedArea;
+                return {};
+            } else {
+                for (auto& r : m_monitorRules)
+                    // If we already have a monitor rule, overwrite it instead of discard it.
+                    // V2 will always set and discard previous rules.
+                    if (r.name == parser.name()) {
+                        r.addReservedArea = parser.rule().addReservedArea;
+                        return {};
+                    }
+            }
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
             return "parse error: curitem bogus";

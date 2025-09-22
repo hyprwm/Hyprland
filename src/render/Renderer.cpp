@@ -1125,7 +1125,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // there is no way to fix this if that's the case
         if (*PEXPANDEDGES) {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->m_current.scale && !pSurface->m_current.viewport.hasDestination;
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
             const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
                                                 pSurface->m_current.viewport.destination :
                                                 (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
@@ -1133,7 +1133,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
                                            .round();
 
             const auto RATIO = projSize / EXPECTED_SIZE;
-            if (!SCALE_UNAWARE) {
+            if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
                 if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
                     const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
                     uvBR           = uvBR * FIX;

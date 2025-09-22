@@ -128,23 +128,24 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         }
 
         // save state while we wait for buffer to become ready to read
-        const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
-        progressState();
+        const auto& state = m_pendingStates.emplace(makeShared<SSurfaceState>(m_pending));
+        m_pending.reset();
+        m_pending.lock = makeShared<CSurfaceStateLock>(m_self.lock());
 
-        lockState();
+        state->lock->lock();
 
         if ((!m_pending.updated.bits.buffer) ||       // no new buffer attached
             (!m_pending.buffer && !m_pending.texture) // null buffer attached
         ) {
-            unlockState();
+            state->lock->unlock();
             return;
         }
 
-        auto whenReadable = [this, surf = m_self, until = state->seq] {
+        auto whenReadable = [s = state, surf = m_self] {
             if (!surf)
                 return;
 
-            unlockState(until);
+            s->lock->unlock();
         };
 
         if (state->updated.bits.acquire) {
@@ -257,18 +258,8 @@ void CWLSurfaceResource::dropCurrentBuffer() {
     m_current.buffer = {};
 }
 
-void CWLSurfaceResource::lockState() {
-    m_stateLocks++;
-}
-
-void CWLSurfaceResource::unlockState(std::optional<size_t> seq) {
-    RASSERT(!!m_stateLocks, "Tried to unlock an unlocked wl_surface state");
-    m_stateLocks--;
-
-    if (m_stateLocks)
-        return;
-
-    while (!m_pendingStates.empty() && (!seq || m_pendingStates.front()->seq <= *seq)) {
+void CWLSurfaceResource::progressStates() {
+    while (!m_pendingStates.empty() && !m_pendingStates.front()->lock->locked()) {
         commitState(*m_pendingStates.front());
         m_pendingStates.pop();
     }
@@ -637,10 +628,9 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }
 
-void CWLSurfaceResource::progressState() {
-    const auto SEQ = m_pending.seq + 1;
-    m_pending.reset();
-    m_pending.seq = SEQ;
+void CWLSurfaceResource::init() {
+    m_pending.lock = makeShared<CSurfaceStateLock>(m_self.lock());
+    m_current.lock = makeShared<CSurfaceStateLock>(m_self.lock());
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_resource(resource_) {
@@ -659,6 +649,7 @@ CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_re
         }
 
         RESOURCE->m_self = RESOURCE;
+        RESOURCE->init();
 
         LOGM(LOG, "New wl_surface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
 

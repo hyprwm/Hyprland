@@ -2,6 +2,40 @@
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
 #include "render/Texture.hpp"
+#include "../core/Compositor.hpp"
+
+CSurfaceStateLock::CSurfaceStateLock(SP<CWLSurfaceResource> surf) : m_surface(surf) {
+    ;
+}
+
+void CSurfaceStateLock::lock() {
+    m_locks++;
+}
+
+void CSurfaceStateLock::unlock() {
+    RASSERT(m_locks, "Tried to unlock an unlocked surface state");
+
+    m_locks--;
+
+    if (!m_locks)
+        m_surface->progressStates();
+}
+
+bool CSurfaceStateLock::locked() {
+    return m_locks;
+}
+
+SP<CSurfaceScopeLock> CSurfaceScopeLock::create(SP<CSurfaceStateLock> lock) {
+    return makeShared<CSurfaceScopeLock>(lock);
+}
+
+CSurfaceScopeLock::CSurfaceScopeLock(SP<CSurfaceStateLock> lock) : m_lock(lock) {
+    m_lock->lock();
+}
+
+CSurfaceScopeLock::~CSurfaceScopeLock() {
+    m_lock->unlock();
+}
 
 Vector2D SSurfaceState::sourceSize() {
     if UNLIKELY (!texture)

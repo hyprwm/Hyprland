@@ -79,6 +79,7 @@ class CWLSurfaceResource {
     SP<CWlSurface>                getResource();
     CBox                          extends();
     void                          resetRole();
+    void                          init();
 
     struct {
         CSignalT<>                          precommit; // before commit
@@ -93,11 +94,9 @@ class CWLSurfaceResource {
 
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
-    std::queue<UP<SSurfaceState>>          m_pendingStates;
+    std::queue<SP<SSurfaceState>>          m_pendingStates;
 
-    void                                   lockState();
-    void                                   unlockState(std::optional<size_t> seq = std::nullopt);
-    size_t                                 m_stateLocks = 0;
+    void                                   progressStates();
 
     std::vector<UP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
@@ -133,7 +132,6 @@ class CWLSurfaceResource {
     void                   bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource> findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
     void                   updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
-    void                   progressState();
 
     friend class CWLPointerResource;
 };

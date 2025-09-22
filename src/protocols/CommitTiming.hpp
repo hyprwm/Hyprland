@@ -7,6 +7,7 @@
 
 class CWLSurfaceResource;
 class CEventLoopTimer;
+class CSurfaceScopeLock;
 
 class CCommitTimerResource {
   public:
@@ -21,7 +22,7 @@ class CCommitTimerResource {
     UP<CWpCommitTimerV1>   m_resource;
 
     WP<CWLSurfaceResource> m_surface;
-    bool                   m_surfaceLocked = false;
+    SP<CSurfaceScopeLock>  m_lock;
 
     SP<CEventLoopTimer>    m_timer;
 

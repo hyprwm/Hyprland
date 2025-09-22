@@ -16,7 +16,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        if (m_surfaceLocked) {
+        if (m_lock) {
             r->error(WP_COMMIT_TIMER_V1_ERROR_TIMESTAMP_EXISTS, "Timestamp is already set");
             return;
         }
@@ -36,6 +36,8 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
+        m_lock = CSurfaceScopeLock::create(m_surface->m_pending.lock);
+
         // FIXME: this doesn't *exactly* guarantee we wont fire a few dozen ns before
         // the desired time...
         m_timer->updateTimeout(TIME - TIME_NOW);
@@ -43,8 +45,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
 }
 
 CCommitTimerResource::~CCommitTimerResource() {
-    if (m_surfaceLocked && m_surface)
-        m_surface->unlockState();
+    ;
 }
 
 bool CCommitTimerResource::good() {
@@ -59,8 +60,7 @@ void CCommitTimerResource::ensureTimerPresent() {
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
             // unlock the state if applicable
-            if (m_surfaceLocked && m_surface)
-                m_surface->unlockState();
+            m_lock.reset();
         },
         nullptr);
 }

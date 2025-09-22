@@ -8,6 +8,7 @@
 #include "../helpers/signal/Signal.hpp"
 
 class CWLSurfaceResource;
+class CSurfaceScopeLock;
 
 class CFifoResource {
   public:
@@ -22,8 +23,9 @@ class CFifoResource {
     WP<CWLSurfaceResource> m_surface;
 
     struct SState {
-        bool barrierSet    = false;
-        bool surfaceLocked = false;
+        bool                  barrierSet    = false;
+        bool                  surfaceLocked = false;
+        SP<CSurfaceScopeLock> lock;
     };
 
     SState m_current, m_pending;

@@ -37,13 +37,12 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (!m_current.surfaceLocked)
             return;
 
-        m_surface->lockState();
+        m_current.lock = CSurfaceScopeLock::create(m_surface->m_pending.lock);
     });
 }
 
 CFifoResource::~CFifoResource() {
-    if (m_current.surfaceLocked && m_surface)
-        m_surface->unlockState();
+    ;
 }
 
 bool CFifoResource::good() {
@@ -57,7 +56,7 @@ void CFifoResource::presented() {
         m_current.barrierSet = false;
 
     if (m_current.surfaceLocked && m_surface) {
-        m_surface->unlockState();
+        m_current.lock.reset();
         m_current.surfaceLocked = false;
         m_current.barrierSet    = false;
     }

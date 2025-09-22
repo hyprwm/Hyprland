@@ -44,7 +44,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
                 TIME - TIME_NOW,
                 [this](SP<CEventLoopTimer> self, void* data) {
                     // unlock the state if applicable
-                    std::erase(m_timers, self);
+                    std::erase_if(m_timers, [self](const auto& e) { return e->timer == self; });
                 },
                 nullptr),
             .lock = CSurfaceScopeLock::create(m_surface->m_pending.lock),

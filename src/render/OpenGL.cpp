@@ -817,6 +817,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
 
     // ensure a framebuffer for the monitor exists
+    bool fbResized = false;
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {
         m_renderData.pCurrentMonData->stencilTex->allocate();
 
@@ -827,7 +828,11 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         m_renderData.pCurrentMonData->offloadFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
         m_renderData.pCurrentMonData->mirrorFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
         m_renderData.pCurrentMonData->mirrorSwapFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
+        fbResized = true;
     }
+
+    if (fbResized)
+        m_renderData.pCurrentMonData->captureNeedsFullFrame = true;
 
     if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
         m_renderData.pCurrentMonData->monitorMirrorFB.release();
@@ -843,9 +848,13 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         applyScreenShader(*PSHADER);
     }
 
+    const bool hadCaptureAttachment               = m_renderData.pCurrentMonData->offloadFB.getCaptureTexture() != nullptr;
     const bool PREV_CAPTURE_MRT                   = m_renderData.pCurrentMonData->captureMRTValid;
     const bool ENABLE_CAPTURE_MRT                 = m_mrtSupported && g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
+
+    if (ENABLE_CAPTURE_MRT && !hadCaptureAttachment)
+        m_renderData.pCurrentMonData->captureNeedsFullFrame = true;
 
     m_renderData.forcedFullDamageForCapture = false;
     if (m_renderData.pCurrentMonData->captureMRTValid && g_pHyprRenderer->shouldForceFullCaptureFrame(pMonitor)) {

@@ -154,6 +154,11 @@ bool CFramebuffer::ensureSecondColorAttachment() {
     if (m_captureTex)
         return true;
 
+    GLint prevDrawFB = 0;
+    GLint prevReadFB = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prevDrawFB);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevReadFB);
+
     uint32_t glFormat = NFormatUtils::drmFormatToGL(m_drmFormat);
     uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
 
@@ -173,10 +178,14 @@ bool CFramebuffer::ensureSecondColorAttachment() {
     auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         Debug::log(ERR, "Failed to add second color attachment to framebuffer (status {}, glerr 0x{:x})", status, sc<int>(glGetError()));
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDrawFB);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, prevReadFB);
+        m_captureTex->unbind();
         m_captureTex.reset();
         return false;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    m_captureTex->unbind();
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDrawFB);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, prevReadFB);
     return true;
 }

@@ -16,7 +16,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        if (m_lock) {
+        if (m_timerPresent) {
             r->error(WP_COMMIT_TIMER_V1_ERROR_TIMESTAMP_EXISTS, "Timestamp is already set");
             return;
         }
@@ -24,8 +24,6 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
         timespec ts;
         ts.tv_sec  = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo;
         ts.tv_nsec = tvNsec;
-
-        ensureTimerPresent();
 
         const auto TIME     = Time::fromTimespec(&ts);
         const auto TIME_NOW = Time::steadyNow();
@@ -36,12 +34,24 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        m_lock = CSurfaceScopeLock::create(m_surface->m_pending.lock);
+        m_lock         = CSurfaceScopeLock::create(m_surface->m_pending.lock);
+        m_timerPresent = true;
 
         // FIXME: this doesn't *exactly* guarantee we wont fire a few dozen ns before
         // the desired time...
-        m_timer->updateTimeout(TIME - TIME_NOW);
+        m_timers.emplace_back(makeShared<STimerLock>(STimerLock{
+            .timer = makeShared<CEventLoopTimer>(
+                TIME - TIME_NOW,
+                [this](SP<CEventLoopTimer> self, void* data) {
+                    // unlock the state if applicable
+                    std::erase(m_timers, self);
+                },
+                nullptr),
+            .lock = CSurfaceScopeLock::create(m_surface->m_pending.lock),
+        }));
     });
+
+    m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this] { m_timerPresent = false; });
 }
 
 CCommitTimerResource::~CCommitTimerResource() {
@@ -50,19 +60,6 @@ CCommitTimerResource::~CCommitTimerResource() {
 
 bool CCommitTimerResource::good() {
     return m_resource->resource();
-}
-
-void CCommitTimerResource::ensureTimerPresent() {
-    if (m_timer)
-        return;
-
-    m_timer = makeShared<CEventLoopTimer>(
-        std::nullopt,
-        [this](SP<CEventLoopTimer> self, void* data) {
-            // unlock the state if applicable
-            m_lock.reset();
-        },
-        nullptr);
 }
 
 CCommitTimingManagerResource::CCommitTimingManagerResource(UP<CWpCommitTimingManagerV1>&& resource_) : m_resource(std::move(resource_)) {

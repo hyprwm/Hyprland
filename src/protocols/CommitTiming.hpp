@@ -5,6 +5,8 @@
 #include "WaylandProtocol.hpp"
 #include "commit-timing-v1.hpp"
 
+#include "../helpers/signal/Signal.hpp"
+
 class CWLSurfaceResource;
 class CEventLoopTimer;
 class CSurfaceScopeLock;
@@ -24,9 +26,18 @@ class CCommitTimerResource {
     WP<CWLSurfaceResource> m_surface;
     SP<CSurfaceScopeLock>  m_lock;
 
-    SP<CEventLoopTimer>    m_timer;
+    bool                   m_timerPresent = false;
 
-    void                   ensureTimerPresent();
+    struct STimerLock {
+        SP<CEventLoopTimer>   timer;
+        SP<CSurfaceScopeLock> lock;
+    };
+
+    std::vector<SP<STimerLock>> m_timers;
+
+    struct {
+        CHyprSignalListener surfacePrecommit;
+    } m_listeners;
 
     friend class CCommitTimingProtocol;
     friend class CCommitTimingManagerResource;

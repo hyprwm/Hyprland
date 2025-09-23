@@ -794,9 +794,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // don't process keybinds on submap change.
                 break;
             }
-            if (k->handler != "submap" && !k->submap.reset.empty()) {
+            if (k->handler != "submap" && !k->submap.reset.empty())
                 setSubmap(k->submap.reset);
-            }
         }
 
         if (k->repeat) {

@@ -949,17 +949,9 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
-    int        socket[2];
-    if (pipe(socket) != 0) {
-        Debug::log(LOG, "Unable to create pipe for fork");
-    }
-
-    CFileDescriptor pipeSock[2] = {CFileDescriptor{socket[0]}, CFileDescriptor{socket[1]}};
-
-    pid_t           child, grandchild;
-    child = fork();
+    pid_t      child = fork();
     if (child < 0) {
-        Debug::log(LOG, "Fail to create the first fork");
+        Debug::log(LOG, "Fail to fork");
         return 0;
     }
     if (child == 0) {
@@ -970,41 +962,28 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
         sigemptyset(&set);
         sigprocmask(SIG_SETMASK, &set, nullptr);
 
-        grandchild = fork();
-        if (grandchild == 0) {
-            // run in grandchild
-            for (auto const& e : HLENV) {
-                setenv(e.first.c_str(), e.second.c_str(), 1);
-            }
-            setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
-
-            int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
-            if (devnull != -1) {
-                dup2(devnull, STDOUT_FILENO);
-                dup2(devnull, STDERR_FILENO);
-                close(devnull);
-            }
-
-            execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
-            // exit grandchild
-            _exit(0);
+        for (auto const& e : HLENV) {
+            setenv(e.first.c_str(), e.second.c_str(), 1);
         }
-        write(pipeSock[1].get(), &grandchild, sizeof(grandchild));
+        setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
+
+        int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
+        if (devnull != -1) {
+            dup2(devnull, STDOUT_FILENO);
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+
+        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+
         // exit child
         _exit(0);
     }
     // run in parent
-    read(pipeSock[0].get(), &grandchild, sizeof(grandchild));
-    // clear child and leave grandchild to init
-    waitpid(child, nullptr, 0);
-    if (grandchild < 0) {
-        Debug::log(LOG, "Fail to create the second fork");
-        return 0;
-    }
 
-    Debug::log(LOG, "Process Created with pid {}", grandchild);
+    Debug::log(LOG, "Process Created with pid {}", child);
 
-    return grandchild;
+    return child;
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {

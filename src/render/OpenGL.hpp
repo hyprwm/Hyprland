@@ -14,7 +14,6 @@
 #include <unordered_map>
 #include <stack>
 #include <map>
-#include <optional>
 
 #include <cairo/cairo.h>
 
@@ -30,7 +29,6 @@
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprgraphics/resource/resources/ImageResource.hpp>
-#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -104,21 +102,20 @@ struct SPreparedShaders {
 };
 
 struct SMonitorRenderData {
-    CFramebuffer        offloadFB;
-    CFramebuffer        mirrorFB;     // these are used for some effects,
-    CFramebuffer        mirrorSwapFB; // etc
-    CFramebuffer        offMainFB;
-    CFramebuffer        monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
-    CFramebuffer        blurFB;
+    CFramebuffer offloadFB;
+    CFramebuffer mirrorFB;     // these are used for some effects,
+    CFramebuffer mirrorSwapFB; // etc
+    CFramebuffer offMainFB;
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
+    CFramebuffer blurFB;
 
-    SP<CTexture>        stencilTex = makeShared<CTexture>();
+    SP<CTexture> stencilTex = makeShared<CTexture>();
 
-    bool                blurFBDirty           = true;
-    bool                blurFBShouldRender    = false;
-    bool                captureMRTValid       = false;
-    bool                screencopyPending     = false;
-    bool                captureNeedsFullFrame = false;
-    std::optional<bool> captureMRTNeeded;
+    bool         blurFBDirty           = true;
+    bool         blurFBShouldRender    = false;
+    bool         captureMRTValid       = false;
+    bool         screencopyPending     = false;
+    bool         forceFullCaptureFrame = false;
 };
 
 struct SCurrentRenderData {
@@ -280,8 +277,7 @@ class CHyprOpenGLImpl {
 
     SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
     void         setCaptureWritesEnabled(bool enable);
-    Hyprutils::Utils::CScopeGuard scopedWindowContext(PHLWINDOWREF w);
-    Hyprutils::Utils::CScopeGuard scopedWindowContext(PHLWINDOWREF w, bool excludeHere);
+    bool         captureWritesEnabled() const;
 
     uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();

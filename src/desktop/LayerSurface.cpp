@@ -385,6 +385,8 @@ void CLayerSurface::onCommit() {
 }
 
 void CLayerSurface::applyRules() {
+    const bool wasNoScreenShare = m_noScreenShare;
+
     m_noAnimations     = false;
     m_forceBlur        = false;
     m_ignoreAlpha      = false;
@@ -459,6 +461,9 @@ void CLayerSurface::applyRules() {
             default: break;
         }
     }
+
+    if (g_pHyprRenderer && wasNoScreenShare != m_noScreenShare)
+        g_pHyprRenderer->handleLayerNoScreenShareChanged(m_self.lock());
 }
 
 bool CLayerSurface::isFadedOut() {

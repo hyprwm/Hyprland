@@ -10,9 +10,6 @@ static bool testTags() {
 
     EXPECT(Tests::windowCount(), 0);
 
-    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    OK(getFromSocket("/dispatch workspace 1"));
-
     NLog::log("{}Spawning kittyProcA&B on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty("tagged");
     auto kittyProcB = Tests::spawnKitty("untagged");

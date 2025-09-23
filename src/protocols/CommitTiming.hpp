@@ -24,7 +24,6 @@ class CCommitTimerResource {
     UP<CWpCommitTimerV1>   m_resource;
 
     WP<CWLSurfaceResource> m_surface;
-    SP<CSurfaceScopeLock>  m_lock;
 
     bool                   m_timerPresent = false;
 

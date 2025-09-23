@@ -34,7 +34,6 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        m_lock         = CSurfaceScopeLock::create(m_surface->m_pending.lock);
         m_timerPresent = true;
 
         // FIXME: this doesn't *exactly* guarantee we wont fire a few dozen ns before

@@ -3145,7 +3145,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
                 continue;
         }
 
-        const auto PMONITOR = getMonitorFromString(rule.monitor);
+        auto PMONITOR = getMonitorFromString(rule.monitor);
 
         if (!rule.monitor.empty() && !PMONITOR)
             continue; // don't do anything yet, as the monitor is not yet present.
@@ -3165,8 +3165,11 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
                 continue;
             }
             PWORKSPACE = getWorkspaceByID(id);
+            if (!PMONITOR)
+                PMONITOR = m_lastMonitor.lock();
+
             if (!PWORKSPACE)
-                PWORKSPACE = createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
+                PWORKSPACE = createNewWorkspace(id, PMONITOR->m_id, wsname, false);
         }
 
         if (!PMONITOR) {

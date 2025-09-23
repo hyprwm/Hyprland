@@ -43,15 +43,11 @@ void IKeyboard::clearManuallyAllocd() {
     if (m_xkbKeymap)
         xkb_keymap_unref(m_xkbKeymap);
 
-    if (m_xkbKeymapV1)
-        xkb_keymap_unref(m_xkbKeymapV1);
-
     if (m_xkbSymState)
         xkb_state_unref(m_xkbSymState);
 
     m_xkbSymState    = nullptr;
     m_xkbKeymap      = nullptr;
-    m_xkbKeymapV1    = nullptr;
     m_xkbState       = nullptr;
     m_xkbStaticState = nullptr;
     m_xkbKeymapFD.reset();
@@ -116,15 +112,6 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    auto cKeymapStr = xkb_keymap_get_as_string(m_xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
-    if (!cKeymapStr) {
-        Debug::log(ERR, "Couldn't convert keymap to V1 format");
-        m_xkbKeymapV1 = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    } else {
-        m_xkbKeymapV1 = xkb_keymap_new_from_string(CONTEXT, cKeymapStr, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-        free(cKeymapStr);
-    }
-
     updateXKBTranslationState(m_xkbKeymap);
 
     const auto NUMLOCKON = g_pConfigManager->getDeviceInt(m_hlName, "numlock_by_default", "input:numlock_by_default");
@@ -169,7 +156,7 @@ void IKeyboard::updateKeymapFD() {
     auto cKeymapStr   = xkb_keymap_get_as_string(m_xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V2);
     m_xkbKeymapString = cKeymapStr;
     free(cKeymapStr);
-    auto cKeymapV1Str   = xkb_keymap_get_as_string(m_xkbKeymapV1, XKB_KEYMAP_FORMAT_TEXT_V1);
+    auto cKeymapV1Str   = xkb_keymap_get_as_string(m_xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
     m_xkbKeymapV1String = cKeymapV1Str;
     free(cKeymapV1Str);
 
@@ -459,4 +446,9 @@ bool IKeyboard::getPressed(uint32_t key) {
 
 bool IKeyboard::shareStates() {
     return m_shareStates;
+}
+
+void IKeyboard::setShareStatesAuto(bool shareStates) {
+    if (m_shareStatesAuto)
+        m_shareStates = shareStates;
 }

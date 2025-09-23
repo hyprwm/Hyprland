@@ -522,6 +522,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{1});
     registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
+    registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});
     registerConfigVar("group:focus_removed_window", Hyprlang::INT{1});
@@ -689,7 +690,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
-    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{0});
+    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{2});
     registerConfigVar("input:virtualkeyboard:release_pressed_on_close", Hyprlang::INT{0});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
     registerConfigVar("input:tablet:output", {STRVAL_EMPTY});
@@ -1186,8 +1187,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTabletConfigs();
 
         g_pHyprOpenGL->m_reloadScreenShader = true;
-
-        g_pHyprOpenGL->ensureBackgroundTexturePresence();
     }
 
     // parseError will be displayed next frame
@@ -3228,10 +3227,14 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 
     std::expected<void, std::string> result;
 
-    if (data[startDataIdx] == "dispatcher")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
-                                                 direction, modMask, deltaScale);
-    else if (data[startDataIdx] == "workspace")
+    if (data[startDataIdx] == "dispatcher") {
+        auto dispatcherArgsIt = value.begin();
+        for (int i = 0; i < startDataIdx + 2 && dispatcherArgsIt < value.end(); ++i) {
+            dispatcherArgsIt = std::find(dispatcherArgsIt, value.end(), ',') + 1;
+        }
+        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string(dispatcherArgsIt, value.end())),
+                                                 fingerCount, direction, modMask, deltaScale);
+    } else if (data[startDataIdx] == "workspace")
         result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "resize")
         result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);

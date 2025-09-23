@@ -148,7 +148,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (PMONITOR && (PMONITOR->m_id != g_pCompositor->m_lastMonitor->m_id))
                     invalidWSes.insert(rule.workspaceId);
             }
@@ -227,7 +227,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 }
             }
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (!PMONITOR || PMONITOR->m_id == g_pCompositor->m_lastMonitor->m_id) {
                     // Can't be invalid
                     continue;

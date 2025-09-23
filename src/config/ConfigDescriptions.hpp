@@ -683,9 +683,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "input:virtualkeyboard:share_states",
-        .description = "Unify key down states and modifier states with other keyboards",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "Unify key down states and modifier states with other keyboards. 0 -> no, 1 -> yes, 2 -> yes unless IME client",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:virtualkeyboard:release_pressed_on_close",
@@ -1326,6 +1326,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_scale_notification",
+        .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*

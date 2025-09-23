@@ -34,7 +34,7 @@ endif
 
 aquamarine = dependency('aquamarine', version: '>=0.9.3')
 hyprcursor = dependency('hyprcursor', version: '>=0.1.7')
-hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.3')
+hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.6')
 hyprlang = dependency('hyprlang', version: '>= 0.3.2')
 hyprutils = dependency('hyprutils', version: '>= 0.8.2')
 aquamarine_version_list = aquamarine.version().split('.')

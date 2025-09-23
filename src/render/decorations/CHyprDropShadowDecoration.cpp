@@ -4,6 +4,10 @@
 #include "../../config/ConfigValue.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../../desktop/Window.hpp"
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -152,7 +156,19 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         return; // don't draw invisible shadows
 
     g_pHyprOpenGL->scissor(nullptr);
-    auto guard = g_pHyprOpenGL->scopedWindowContext(m_window);
+
+    const auto prevWindow   = g_pHyprOpenGL->m_renderData.currentWindow;
+    const bool prevCaptures = g_pHyprOpenGL->captureWritesEnabled();
+
+    g_pHyprOpenGL->m_renderData.currentWindow = m_window;
+    const auto window                         = m_window.lock();
+    const bool allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+    g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
+
+    CScopeGuard captureGuard{[prevWindow, prevCaptures]() {
+        g_pHyprOpenGL->m_renderData.currentWindow = prevWindow;
+        g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptures);
+    }};
 
     // we'll take the liberty of using this as it should not be used rn
     CFramebuffer& alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
@@ -223,8 +239,6 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     if (m_extents != m_reportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
-
-    (void)guard;
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

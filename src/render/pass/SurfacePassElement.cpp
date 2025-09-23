@@ -27,21 +27,17 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
-    const bool prevCaptureWrites = g_pHyprOpenGL->m_captureWritesEnabled;
-    if (m_data.captureWrites.has_value()) {
-        g_pHyprOpenGL->setCaptureWritesEnabled(*m_data.captureWrites);
-    } else if (!m_data.pWindow) {
-        // non-window surfaces (like wallpapers) should only contribute to capture when
-        // capture MRT is not actively used to produce transparency for noscreenshare
-        if (!g_pHyprOpenGL->m_renderData.pCurrentMonData->captureMRTValid)
-            g_pHyprOpenGL->setCaptureWritesEnabled(true);
-    } else {
-        const bool noshare = m_data.pWindow->m_ruleApplicator->noScreenShare().valueOrDefault();
-        if (!noshare)
-            g_pHyprOpenGL->setCaptureWritesEnabled(true);
-    }
+    const auto monitor  = m_data.pMonitor.lock();
+    const bool blackout = monitor && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    const bool maskWindow =
+        blackout && m_data.pWindow && m_data.pWindow->m_ruleApplicator->noScreenShare().valueOrDefault() && g_pHyprRenderer->isWindowVisibleOnMonitor(m_data.pWindow, monitor);
+    const bool  maskLayer    = blackout && m_data.pLS && m_data.pLS->m_ruleApplicator->noScreenShare().valueOrDefault() && m_data.pLS->m_monitor.lock() == monitor;
+    const bool  maskApplied  = maskWindow || maskLayer;
+    const bool  allowCapture = m_data.captureWrites || maskApplied;
 
-    CScopeGuard x = {[prevCaptureWrites]() {
+    auto        captureState = g_pHyprOpenGL->captureStateGuard(allowCapture, maskApplied);
+
+    CScopeGuard x = {[]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
@@ -54,7 +50,6 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
-        g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
     }};
 
     if (!m_data.texture)

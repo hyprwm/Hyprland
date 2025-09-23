@@ -47,7 +47,6 @@
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
-using namespace Hyprutils::Utils;
 using namespace NColorManagement;
 
 const std::vector<const char*> ASSET_PATHS = {
@@ -756,7 +755,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     }
 
     if (fbResized)
-        m_renderData.pCurrentMonData->captureNeedsFullFrame = true;
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
 
     if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
         m_renderData.pCurrentMonData->monitorMirrorFB.release();
@@ -779,10 +778,10 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
 
     if (ENABLE_CAPTURE_MRT && !hadCaptureAttachment)
-        m_renderData.pCurrentMonData->captureNeedsFullFrame = true;
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
 
     m_renderData.forcedFullDamageForCapture = false;
-    if (m_renderData.pCurrentMonData->captureMRTValid && g_pHyprRenderer->shouldForceFullCaptureFrame(pMonitor)) {
+    if (m_renderData.pCurrentMonData->captureMRTValid && m_renderData.pCurrentMonData->forceFullCaptureFrame) {
         CRegion fullDamage = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
         m_renderData.damage.set(fullDamage);
         m_renderData.finalDamage.set(fullDamage);
@@ -825,6 +824,9 @@ void CHyprOpenGLImpl::end() {
 
     const bool captureMRTActive        = m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
     const bool forcedCaptureFullDamage = m_renderData.forcedFullDamageForCapture;
+
+    if (captureMRTActive && forcedCaptureFullDamage)
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = false;
 
     // end the render, copy the data to the main framebuffer
     if LIKELY (m_offloadedFramebuffer) {
@@ -871,10 +873,6 @@ void CHyprOpenGLImpl::end() {
     m_renderData.pCurrentMonData->offMainFB.bind();
     m_renderData.pCurrentMonData->offMainFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
 
-    if (captureMRTActive) {
-        if (auto monitor = m_renderData.pMonitor.lock())
-            g_pHyprRenderer->notifyCaptureFrameRendered(monitor, forcedCaptureFullDamage);
-    }
     m_renderData.forcedFullDamageForCapture = false;
 
     // reset our data
@@ -924,37 +922,13 @@ void CHyprOpenGLImpl::setCaptureWritesEnabled(bool enable) {
     glColorMaski(1, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE);
 }
 
+bool CHyprOpenGLImpl::captureWritesEnabled() const {
+    return m_captureWritesEnabled;
+}
+
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
     m_renderData.damage.set(damage_);
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
-}
-
-CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w) {
-    const auto prevWindow   = m_renderData.currentWindow;
-    const bool prevCaptures = m_captureWritesEnabled;
-
-    m_renderData.currentWindow = w;
-    const auto sw              = w.lock();
-    const bool exclude         = sw && sw->m_ruleApplicator->noScreenShare().valueOrDefault();
-    setCaptureWritesEnabled(!exclude);
-
-    return CScopeGuard([this, prevWindow, prevCaptures]() {
-        m_renderData.currentWindow = prevWindow;
-        setCaptureWritesEnabled(prevCaptures);
-    });
-}
-
-CScopeGuard CHyprOpenGLImpl::scopedWindowContext(PHLWINDOWREF w, bool excludeHere) {
-    const auto prevWindow   = m_renderData.currentWindow;
-    const bool prevCaptures = m_captureWritesEnabled;
-
-    m_renderData.currentWindow = w;
-    setCaptureWritesEnabled(!excludeHere);
-
-    return CScopeGuard([this, prevWindow, prevCaptures]() {
-        m_renderData.currentWindow = prevWindow;
-        setCaptureWritesEnabled(prevCaptures);
-    });
 }
 
 // TODO notify user if bundled shader is newer than ~/.config override
@@ -1346,7 +1320,6 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     }
 
     glBindVertexArray(0);
-
     scissor(nullptr);
 }
 

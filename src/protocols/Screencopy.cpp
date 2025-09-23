@@ -198,11 +198,11 @@ void CScreencopyFrame::renderMon() {
     if (!monitor)
         return;
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
 
-    CBox monbox = CBox{0, 0, monitor->m_pixelSize.x, monitor->m_pixelSize.y}
+    CBox       monbox = CBox{0, 0, monitor->m_pixelSize.x, monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y})
                       .transform(wlTransformToHyprutils(invertTransform(monitor->m_transform)), monitor->m_pixelSize.x, monitor->m_pixelSize.y);
 
@@ -210,106 +210,26 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(false);
 
     auto captureTexture = g_pHyprOpenGL->getMonitorCaptureTexture(monitor);
-    if (captureTexture && captureTexture->m_texID) {
-        g_pHyprOpenGL->renderTexture(captureTexture, monbox,
-                                     {
-                                         .cmBackToSRGB       = !IS_CM_AWARE,
-                                         .cmBackToSRGBSource = !IS_CM_AWARE ? monitor : nullptr,
-                                     });
-    } else {
-        auto fallbackTexture = makeShared<CTexture>(monitor->m_output->state->state().buffer);
-        g_pHyprOpenGL->renderTexture(fallbackTexture, monbox,
-                                     {
-                                         .cmBackToSRGB       = !IS_CM_AWARE,
-                                         .cmBackToSRGBSource = !IS_CM_AWARE ? monitor : nullptr,
-                                     });
+    if (!captureTexture || !captureTexture->m_texID) {
+        g_pHyprOpenGL->setRenderModifEnabled(true);
+        g_pHyprOpenGL->popMonitorTransformEnabled();
+        return;
     }
+
+    g_pHyprOpenGL->renderTexture(captureTexture, monbox,
+                                 {
+                                     .cmBackToSRGB       = !IS_CM_AWARE,
+                                     .cmBackToSRGBSource = !IS_CM_AWARE ? monitor : nullptr,
+                                 });
 
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
-    auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
-            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
-                return;
-
-            const auto popRel = popup->coordsRelativeToParent();
-            popup->m_wlSurface->resource()->breadthfirst(
-                [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                    const auto size    = surf->m_current.size;
-                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(monitor->m_position).scale(monitor->m_scale).translate(-m_box.pos());
-
-                    if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
-                },
-                nullptr);
-        };
-    };
-
-    for (auto const& l : g_pCompositor->m_layers) {
-        if (!l->m_noScreenShare)
-            continue;
-
-        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
-            continue;
-
-        const auto REALPOS  = l->m_realPosition->value();
-        const auto REALSIZE = l->m_realSize->value();
-
-        const auto noScreenShareBox =
-            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-monitor->m_position).scale(monitor->m_scale).translate(-m_box.pos());
-
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
-
-        const auto     geom            = l->m_geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-        if (l->m_popupHead)
-            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
-    }
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
-            continue;
-
-        if (!g_pHyprRenderer->shouldRenderWindow(w, monitor))
-            continue;
-
-        if (w->isHidden())
-            continue;
-
-        const auto PWORKSPACE = w->m_workspace;
-
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
-            continue;
-
-        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
-        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
-                                          .translate(-monitor->m_position)
-                                          .scale(monitor->m_scale)
-                                          .translate(-m_box.pos());
-
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
-        const auto rounding      = dontRound ? 0 : w->rounding() * monitor->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
-
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
-
-        if (w->m_isX11 || !w->m_popupHead)
-            continue;
-
-        const auto     geom            = w->m_xdgSurface->m_current.geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-
-        w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
-    }
 
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(monitor, Time::steadyNow(), fakeDamage,
                                                     g_pInputManager->getMouseCoordsInternal() - monitor->m_position - m_box.pos() / monitor->m_scale, true);
 }
-
-void CScreencopyFrame::storeTempFB
 
 void CScreencopyFrame::storeTempFB() {
     g_pHyprRenderer->makeEGLCurrent();

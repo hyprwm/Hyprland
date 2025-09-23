@@ -1,6 +1,5 @@
 #pragma once
 #include "PassElement.hpp"
-#include <optional>
 #include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
@@ -38,18 +37,18 @@ class CSurfacePassElement : public IPassElement {
         bool      popup = false;
 
         // counts how many surfaces this pass has rendered
-        int                 surfaceCounter = 0;
+        int      surfaceCounter = 0;
 
-        CBox                clipBox = {}; // scaled coordinates
+        CBox     clipBox = {}; // scaled coordinates
 
-        uint32_t            discardMode    = 0;
-        float               discardOpacity = 0.f;
+        uint32_t discardMode    = 0;
+        float    discardOpacity = 0.f;
 
-        bool                useNearestNeighbor = false;
+        bool     useNearestNeighbor = false;
 
-        bool                flipEndFrame = false;
+        bool     flipEndFrame = false;
 
-        std::optional<bool> captureWrites = std::nullopt;
+        bool     captureWrites = true;
     };
 
     CSurfacePassElement(const SRenderData& data);

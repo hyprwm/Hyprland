@@ -14,6 +14,7 @@
 #include "../protocols/OutputManagement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/Rule.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -2850,8 +2851,33 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
+    auto reapplyLayerRules = [](auto&& predicate) {
+        if (!g_pCompositor)
+            return;
+
+        for (const auto& layer : g_pCompositor->m_layers) {
+            if (!layer)
+                continue;
+
+            if (predicate(layer))
+                layer->applyRules();
+        }
+    };
+
     if (RULE == "unset") {
         std::erase_if(m_layerRules, [&](const auto& other) { return other->m_targetNamespace == VALUE; });
+        const bool          isAddress = VALUE.starts_with("address:0x");
+        CRuleRegexContainer matcher{VALUE};
+        reapplyLayerRules([&](PHLLS layer) {
+            if (isAddress)
+                return std::format("address:0x{:x}", rc<uintptr_t>(layer.get())) == VALUE;
+
+            const auto surface = layer->m_layerSurface.lock();
+            if (!surface)
+                return false;
+
+            return matcher.passes(surface->m_layerNamespace);
+        });
         return {};
     }
 
@@ -2865,11 +2891,16 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     rule->m_targetNamespaceRegex = {VALUE};
 
     m_layerRules.emplace_back(rule);
+    reapplyLayerRules([&](PHLLS layer) {
+        if (rule->m_targetNamespace.starts_with("address:0x"))
+            return std::format("address:0x{:x}", rc<uintptr_t>(layer.get())) == rule->m_targetNamespace;
 
-    for (auto const& m : g_pCompositor->m_monitors)
-        for (auto const& lsl : m->m_layerSurfaceLayers)
-            for (auto const& ls : lsl)
-                ls->applyRules();
+        const auto surface = layer->m_layerSurface.lock();
+        if (!surface)
+            return false;
+
+        return rule->m_targetNamespaceRegex.passes(surface->m_layerNamespace);
+    });
 
     return {};
 }

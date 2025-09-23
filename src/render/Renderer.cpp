@@ -533,9 +533,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     else
         renderdata.captureWrites = true;
 
-    // scoped window context controls capture writes for noscreenshare windows
-    auto windowCtxGuard = g_pHyprOpenGL->scopedWindowContext(pWindow);
-
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
@@ -708,7 +705,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
-    (void)windowCtxGuard;
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -748,6 +744,10 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.h                                = REALSIZ.y;
     renderdata.pLS                              = pLayer;
     renderdata.blockBlurOptimization            = pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+
+    const auto layerMonitor  = pLayer->m_monitor.lock();
+    const bool blocksCapture = pLayer->m_noScreenShare && layerMonitor && layerMonitor == pMonitor;
+    renderdata.captureWrites = !blocksCapture;
 
     renderdata.clipBox = CBox{0, 0, pMonitor->m_size.x, pMonitor->m_size.y}.scale(pMonitor->m_scale);
 
@@ -1941,17 +1941,12 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
     windowBox.translate(pWindow->m_floatingOffset);
 
-    const bool affectsCapture = pWindow->m_windowData.noScreenShare.valueOrDefault();
-
     for (auto const& m : g_pCompositor->m_monitors) {
         const bool rendersHere = forceFull || shouldRenderWindow(pWindow, m);
         if (rendersHere) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->m_position.x, windowBox.y - m->m_position.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->m_scale);
             m->addDamage(fixedDamageBox);
-
-            if (affectsCapture)
-                invalidateCaptureHint(m);
         }
     }
 
@@ -1962,6 +1957,19 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+}
+
+void CHyprRenderer::handleLayerNoScreenShareChanged(PHLLS pLayer) {
+    if (!pLayer)
+        return;
+
+    if (!pLayer->m_mapped)
+        return;
+
+    if (!pLayer->m_surface || !pLayer->m_surface->resource())
+        return;
+
+    damageSurface(pLayer->m_surface->resource(), pLayer->m_position.x, pLayer->m_position.y);
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2383,17 +2391,6 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
-void CHyprRenderer::invalidateCaptureHint(PHLMONITOR pMonitor) {
-    if (!pMonitor)
-        return;
-
-    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
-        return;
-
-    it->second.captureMRTNeeded.reset();
-}
-
 bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor)
         return false;
@@ -2404,9 +2401,6 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     auto& data = it->second;
     if (!data.screencopyPending)
         return false;
-
-    if (data.captureMRTNeeded.has_value())
-        return *data.captureMRTNeeded;
 
     bool needed = false;
     for (const auto& w : g_pCompositor->m_windows) {
@@ -2420,28 +2414,23 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
         }
     }
 
-    data.captureMRTNeeded = needed;
+    if (!needed) {
+        for (const auto& layer : g_pCompositor->m_layers) {
+            if (!layer || !layer->m_noScreenShare)
+                continue;
+            if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
+                continue;
+
+            const auto layerMonitor = layer->m_monitor.lock();
+            if (layerMonitor != pMonitor)
+                continue;
+
+            needed = true;
+            break;
+        }
+    }
+
     return needed;
-}
-
-bool CHyprRenderer::shouldForceFullCaptureFrame(PHLMONITOR pMonitor) {
-    if (!pMonitor)
-        return false;
-    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
-        return false;
-    return it->second.captureNeedsFullFrame;
-}
-
-void CHyprRenderer::notifyCaptureFrameRendered(PHLMONITOR pMonitor, bool wasFullDamage) {
-    if (!pMonitor)
-        return;
-    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
-        return;
-
-    if (wasFullDamage)
-        it->second.captureNeedsFullFrame = false;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
@@ -2450,13 +2439,11 @@ void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pen
     auto&      data        = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
     const bool prev        = data.screencopyPending;
     data.screencopyPending = pending;
-    data.captureMRTNeeded.reset();
-
-    if (!prev && pending)
-        data.captureNeedsFullFrame = true;
+    if (pending && !prev)
+        data.forceFullCaptureFrame = true;
 
     if (!pending)
-        data.captureNeedsFullFrame = false;
+        data.forceFullCaptureFrame = false;
 }
 
 bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) {

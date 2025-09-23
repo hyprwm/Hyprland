@@ -63,6 +63,7 @@ class CHyprRenderer {
     void damageMirrorsWith(PHLMONITOR, const CRegion&);
     bool shouldRenderWindow(PHLWINDOW, PHLMONITOR);
     bool shouldRenderWindow(PHLWINDOW);
+    void handleLayerNoScreenShareChanged(PHLLS pLayer);
     void ensureCursorRenderingMode();
     bool shouldRenderCursor();
     void setCursorHidden(bool hide);
@@ -94,8 +95,6 @@ class CHyprRenderer {
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
     bool shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
-    bool shouldForceFullCaptureFrame(PHLMONITOR pMonitor);
-    void notifyCaptureFrameRendered(PHLMONITOR pMonitor, bool wasFullDamage);
 
     bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
 
@@ -172,8 +171,6 @@ class CHyprRenderer {
     std::vector<SP<CRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
-
-    void                           invalidateCaptureHint(PHLMONITOR pMonitor);
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

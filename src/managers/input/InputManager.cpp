@@ -1479,6 +1479,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     auto       MODS    = pKeyboard->m_modifiersState;
     const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
     MODS.depressed     = ALLMODS;
+    m_lastMods         = MODS.depressed;
 
     const auto IME = m_relay.m_inputMethod.lock();
 
@@ -1488,7 +1489,6 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     } else {
         g_pSeatManager->setKeyboard(pKeyboard);
         g_pSeatManager->sendKeyboardMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
-        m_lastMods = MODS.depressed;
     }
 
     updateKeyboardsLeds(pKeyboard);
@@ -1506,12 +1506,20 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 }
 
 bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
+    if (!pKeyboard)
+        return true;
+
     if (!pKeyboard->isVirtual())
         return false;
 
-    auto client = pKeyboard->getClient();
+    const auto CLIENT = pKeyboard->getClient();
 
-    return !pKeyboard || (client && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == client);
+    const auto DISALLOWACTION = CLIENT && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == CLIENT;
+
+    if (DISALLOWACTION)
+        pKeyboard->setShareStatesAuto(false);
+
+    return DISALLOWACTION;
 }
 
 void CInputManager::refocus(std::optional<Vector2D> overridePos) {

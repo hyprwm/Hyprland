@@ -846,8 +846,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
     static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
 
@@ -883,10 +881,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        if (*PRENDERTEX /* inverted cfg flag */)
-            m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-        else
-            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        renderBackground(pMonitor);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -910,10 +905,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     if (!*PXPMODE) {
-        if (*PRENDERTEX /* inverted cfg flag */)
-            m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-        else
-            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+        renderBackground(pMonitor);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -1009,6 +1001,17 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     renderDragIcon(pMonitor, time);
 
     //g_pHyprOpenGL->restoreMatrix();
+}
+
+void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
+    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+
+    if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
+        m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+
+    if (!*PRENDERTEX)
+        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 }
 
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
@@ -1122,16 +1125,26 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // there is no way to fix this if that's the case
         if (*PEXPANDEDGES) {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->m_current.scale && !pSurface->m_current.viewport.hasDestination;
-            const auto EXPECTED_SIZE =
-                ((pSurface->m_current.viewport.hasDestination ? pSurface->m_current.viewport.destination : pSurface->m_current.bufferSize / pSurface->m_current.scale) *
-                 pMonitor->m_scale)
-                    .round();
-            if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
-                // this will not work with shm AFAIK, idk why.
-                // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
-                const auto FIX = (projSize / EXPECTED_SIZE).clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
-                uvBR           = uvBR * FIX;
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
+            const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
+                                                pSurface->m_current.viewport.destination :
+                                                (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
+                                        pMonitor->m_scale)
+                                           .round();
+
+            const auto RATIO = projSize / EXPECTED_SIZE;
+            if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
+                if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
+                    const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
+                    uvBR           = uvBR * FIX;
+                }
+
+                // FIXME: probably do this for in anims on all views...
+                const auto SHOULD_SKIP = !pWindow || pWindow->m_animatingIn;
+                if (!SHOULD_SKIP && (RATIO.x < 1 || RATIO.y < 1)) {
+                    const auto FIX = RATIO.clamp(Vector2D{0.0001, 0.0001}, Vector2D{1, 1});
+                    uvBR           = uvBR * FIX;
+                }
             }
         }
 
@@ -1147,32 +1160,21 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (!main || !pWindow)
             return;
 
-        CBox geom = pWindow->m_xdgSurface->m_current.geometry;
+        // FIXME: this doesn't work. We always set MAXIMIZED anyways, so this doesn't need to work, but it's problematic.
 
-        // Adjust UV based on the xdg_surface geometry
-        if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
-            const auto XPERC = geom.x / pSurface->m_current.size.x;
-            const auto YPERC = geom.y / pSurface->m_current.size.y;
-            const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
-            const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
+        // CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
-            const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
-            uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
-            uvTL               = uvTL + TOADDTL;
-        }
+        // // Adjust UV based on the xdg_surface geometry
+        // if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
+        //     const auto XPERC = geom.x / pSurface->m_current.size.x;
+        //     const auto YPERC = geom.y / pSurface->m_current.size.y;
+        //     const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
+        //     const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
 
-        // Adjust UV based on our animation progress
-        if (pSurface->m_current.size.x > projSizeUnscaled.x || pSurface->m_current.size.y > projSizeUnscaled.y) {
-            auto maxSize = projSizeUnscaled;
-
-            if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
-                maxSize = pWindow->m_wlSurface->getViewporterCorrectedSize();
-
-            if (pSurface->m_current.size.x > maxSize.x)
-                uvBR.x = uvBR.x * (maxSize.x / pSurface->m_current.size.x);
-            if (pSurface->m_current.size.y > maxSize.y)
-                uvBR.y = uvBR.y * (maxSize.y / pSurface->m_current.size.y);
-        }
+        //     const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
+        //     uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
+        //     uvTL               = uvTL + TOADDTL;
+        // }
 
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;

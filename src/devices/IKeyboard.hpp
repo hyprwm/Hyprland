@@ -79,6 +79,7 @@ class IKeyboard : public IHID {
     void                              updateKeymapFD();
     bool                              getPressed(uint32_t key);
     bool                              shareStates();
+    void                              setShareStatesAuto(bool shareStates);
 
     bool                              m_active     = false;
     bool                              m_enabled    = true;
@@ -99,8 +100,7 @@ class IKeyboard : public IHID {
     xkb_state*  m_xkbStaticState = nullptr;
     xkb_state*  m_xkbSymState    = nullptr; // same as static but gets layouts
 
-    xkb_keymap* m_xkbKeymap   = nullptr;
-    xkb_keymap* m_xkbKeymapV1 = nullptr;
+    xkb_keymap* m_xkbKeymap = nullptr;
 
     struct {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;
@@ -132,5 +132,6 @@ class IKeyboard : public IHID {
 
   protected:
     bool updatePressed(uint32_t key, bool pressed);
-    bool m_shareStates = true;
+    bool m_shareStates     = true;
+    bool m_shareStatesAuto = true;
 };

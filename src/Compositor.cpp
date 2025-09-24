@@ -59,6 +59,7 @@
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
+#include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
@@ -605,6 +606,7 @@ void CCompositor::cleanup() {
     g_pDonationNagManager.reset();
     g_pANRManager.reset();
     g_pConfigWatcher.reset();
+    g_pAsyncResourceGatherer.reset();
 
     if (m_aqBackend)
         m_aqBackend.reset();
@@ -655,6 +657,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the EventManager!");
             g_pEventManager = makeUnique<CEventManager>();
+
+            Debug::log(LOG, "Creating the AsyncResourceGatherer!");
+            g_pAsyncResourceGatherer = makeUnique<Hyprgraphics::CAsyncResourceGatherer>();
         } break;
         case STAGE_BASICINIT: {
             Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
@@ -3140,7 +3145,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
                 continue;
         }
 
-        const auto PMONITOR = getMonitorFromString(rule.monitor);
+        auto PMONITOR = getMonitorFromString(rule.monitor);
 
         if (!rule.monitor.empty() && !PMONITOR)
             continue; // don't do anything yet, as the monitor is not yet present.
@@ -3160,8 +3165,11 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
                 continue;
             }
             PWORKSPACE = getWorkspaceByID(id);
+            if (!PMONITOR)
+                PMONITOR = m_lastMonitor.lock();
+
             if (!PWORKSPACE)
-                PWORKSPACE = createNewWorkspace(id, PMONITOR ? PMONITOR->m_id : m_lastMonitor->m_id, wsname, false);
+                PWORKSPACE = createNewWorkspace(id, PMONITOR->m_id, wsname, false);
         }
 
         if (!PMONITOR) {

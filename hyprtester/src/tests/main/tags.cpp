@@ -21,6 +21,10 @@ static bool testTags() {
 
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
 
+    OK(getFromSocket("/keyword windowrule tag +testTag, class:tagged"));
+    OK(getFromSocket("/keyword windowrule noshadow, tag:negative:testTag"));
+    OK(getFromSocket("/keyword windowrule noborder, tag:testTag"));
+
     EXPECT(Tests::windowCount(), 2);
     OK(getFromSocket("/dispatch focuswindow class:tagged"));
     NLog::log("{}Testing tagged window for noborder & noshadow", Colors::YELLOW);
@@ -35,6 +39,8 @@ static bool testTags() {
 
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
+
+    OK(getFromSocket("/reload"));
 
     return ret == 0;
 }

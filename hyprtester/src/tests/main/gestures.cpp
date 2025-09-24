@@ -146,6 +146,16 @@ static bool test() {
 
     EXPECT(Tests::windowCount(), 0);
 
+    // This test ensures that `movecursortocorner`, which expects
+    // a single-character direction argument, is parsed correctly.
+    Tests::spawnKitty();
+    OK(getFromSocket("/dispatch movecursortocorner 0"));
+    const std::string cursorPos1 = getFromSocket("/cursorpos");
+    OK(getFromSocket("/dispatch plugin:test:gesture left,4"));
+    const std::string cursorPos2 = getFromSocket("/cursorpos");
+    // The cursor should have moved because of the gesture
+    EXPECT(cursorPos1 != cursorPos2, true);
+
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

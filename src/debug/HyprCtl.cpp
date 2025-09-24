@@ -1202,8 +1202,8 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
             }
         } else
             result += "\nBackend not initialized";
-    }
-    result += "\nCompositor not initialized\n";
+    } else
+        result += "\nCompositor not initialized\n";
 
     if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {
         result += "\n======Config-Start======\n";

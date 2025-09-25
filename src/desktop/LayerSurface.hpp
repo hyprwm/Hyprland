@@ -3,6 +3,7 @@
 #include <string>
 #include "../defines.hpp"
 #include "WLSurface.hpp"
+#include "NoScreenShareMask.hpp"
 #include "../helpers/AnimatedVariable.hpp"
 
 class CLayerShellResource;
@@ -42,13 +43,14 @@ class CLayerSurface {
     bool                       m_noProcess     = false;
     bool                       m_noAnimations  = false;
 
-    bool                       m_forceBlur                   = false;
-    bool                       m_forceBlurPopups             = false;
-    int64_t                    m_xray                        = -1;
-    bool                       m_ignoreAlpha                 = false;
-    float                      m_ignoreAlphaValue            = 0.f;
-    bool                       m_dimAround                   = false;
-    bool                       m_noScreenShare               = false;
+    bool                       m_forceBlur        = false;
+    bool                       m_forceBlurPopups  = false;
+    int64_t                    m_xray             = -1;
+    bool                       m_ignoreAlpha      = false;
+    float                      m_ignoreAlphaValue = 0.f;
+    bool                       m_dimAround        = false;
+    bool                       m_noScreenShare    = false;
+    SNoScreenShareMaskOptions  m_noScreenShareMask;
     int64_t                    m_order                       = 0;
     bool                       m_aboveLockscreen             = false;
     bool                       m_aboveLockscreenInteractable = false;

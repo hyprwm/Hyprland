@@ -162,7 +162,9 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     g_pHyprOpenGL->m_renderData.currentWindow = m_window;
     const auto window                         = m_window.lock();
-    const bool allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+
+    const bool allowCapture = !window || !window->m_windowData.noScreenShare.valueOrDefault() || window->m_windowData.noScreenShareMask.valueOrDefault().decorationsEnabled();
+
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 
     CScopeGuard captureGuard{[prevWindow, prevCaptures]() {

@@ -1579,6 +1579,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:capture_mrt_mode",
+        .description = "(Debug) 0 - auto, 1 - force MRT capture path, 2 - force fallback compositing path.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
 
     /*
      * cursor:

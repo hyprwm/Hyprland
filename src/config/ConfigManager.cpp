@@ -8,7 +8,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "config/ConfigValue.hpp"
-#include "helpers/varlist/VarList.hpp"
+#include "../desktop/WindowRule.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
@@ -52,7 +52,6 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
@@ -2656,215 +2655,150 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = value.substr(value.find_first_of(',') + 1);
+    const auto                                             VARLIST = CVarList(value, 0, ',', true);
 
-    auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
+    std::vector<std::string_view>                          tokens;
+    std::unordered_map<std::string_view, std::string_view> params;
 
-    if (rule->m_ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
-        Debug::log(ERR, "Invalid rulev2 found: {}", RULE);
-        return "Invalid rulev2 found: " + RULE;
-    }
+    bool                                                   parsingParams = false;
 
-    // now we estract shit from the value
-    const auto TAGPOS             = VALUE.find("tag:");
-    const auto TITLEPOS           = VALUE.find("title:");
-    const auto CLASSPOS           = VALUE.find("class:");
-    const auto INITIALTITLEPOS    = VALUE.find("initialTitle:");
-    const auto INITIALCLASSPOS    = VALUE.find("initialClass:");
-    const auto X11POS             = VALUE.find("xwayland:");
-    const auto FLOATPOS           = VALUE.find("floating:");
-    const auto FULLSCREENPOS      = VALUE.find("fullscreen:");
-    const auto PINNEDPOS          = VALUE.find("pinned:");
-    const auto FOCUSPOS           = VALUE.find("focus:");
-    const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
-    const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
-    const auto CONTENTTYPEPOS     = VALUE.find("content:");
-    const auto XDGTAGPOS          = VALUE.find("xdgTag:");
-    const auto GROUPPOS           = VALUE.find("group:");
+    for (const auto& varStr : VARLIST) {
+        std::string_view var = varStr;
 
-    // find workspacepos that isn't onworkspacepos
-    size_t WORKSPACEPOS = std::string::npos;
-    size_t currentPos   = VALUE.find("workspace:");
-    while (currentPos != std::string::npos) {
-        if (currentPos == 0 || VALUE[currentPos - 1] != 'n') {
-            WORKSPACEPOS = currentPos;
-            break;
+        if (!parsingParams && var.find(':') == std::string_view::npos) {
+            tokens.emplace_back(var);
+        } else {
+            parsingParams = true;
+            auto sep      = var.find(':');
+            if (sep == std::string_view::npos)
+                return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
+
+            std::string_view key = var.substr(0, sep);
+            // somewhat ugly trim. But since CVarList string_view trim isn't available, let's be lazy.
+            std::string_view val = var.substr(var.find_first_not_of(' ', sep + 1));
+
+            params[key] = val;
         }
-        currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  FULLSCREENPOS,
-                                             PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS, GROUPPOS};
-    if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
-        Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
-        return "Invalid rulev2 syntax: " + VALUE;
-    }
-
-    auto extract = [&](size_t pos) -> std::string {
-        std::string result;
-        result = VALUE.substr(pos);
-
-        size_t min = 999999;
-        if (TAGPOS > pos && TAGPOS < min)
-            min = TAGPOS;
-        if (TITLEPOS > pos && TITLEPOS < min)
-            min = TITLEPOS;
-        if (CLASSPOS > pos && CLASSPOS < min)
-            min = CLASSPOS;
-        if (INITIALTITLEPOS > pos && INITIALTITLEPOS < min)
-            min = INITIALTITLEPOS;
-        if (INITIALCLASSPOS > pos && INITIALCLASSPOS < min)
-            min = INITIALCLASSPOS;
-        if (X11POS > pos && X11POS < min)
-            min = X11POS;
-        if (FLOATPOS > pos && FLOATPOS < min)
-            min = FLOATPOS;
-        if (FULLSCREENPOS > pos && FULLSCREENPOS < min)
-            min = FULLSCREENPOS;
-        if (PINNEDPOS > pos && PINNEDPOS < min)
-            min = PINNEDPOS;
-        if (FULLSCREENSTATEPOS > pos && FULLSCREENSTATEPOS < min)
-            min = FULLSCREENSTATEPOS;
-        if (ONWORKSPACEPOS > pos && ONWORKSPACEPOS < min)
-            min = ONWORKSPACEPOS;
-        if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
-            min = WORKSPACEPOS;
-        if (FOCUSPOS > pos && FOCUSPOS < min)
-            min = FOCUSPOS;
-        if (CONTENTTYPEPOS > pos && CONTENTTYPEPOS < min)
-            min = CONTENTTYPEPOS;
-        if (XDGTAGPOS > pos && XDGTAGPOS < min)
-            min = XDGTAGPOS;
-        if (GROUPPOS > pos && GROUPPOS < min)
-            min = GROUPPOS;
-
-        result = result.substr(0, min - pos);
-
-        result = trim(result);
-
-        if (!result.empty() && result.back() == ',')
-            result.pop_back();
-
-        return result;
+    auto get = [&](std::string_view key) -> std::string_view {
+        if (auto it = params.find(key); it != params.end())
+            return it->second;
+        return {};
     };
 
-    if (TAGPOS != std::string::npos)
-        rule->m_tag = extract(TAGPOS + 4);
+    auto applyParams = [&](SP<CWindowRule> rule) -> void {
+        if (auto v = get("class"); !v.empty()) {
+            rule->m_class      = v;
+            rule->m_classRegex = {std::string(v)};
+        }
+        if (auto v = get("title"); !v.empty()) {
+            rule->m_title      = v;
+            rule->m_titleRegex = {std::string(v)};
+        }
+        if (auto v = get("tag"); !v.empty())
+            rule->m_tag = v;
+        if (auto v = get("initialClass"); !v.empty()) {
+            rule->m_initialClass      = v;
+            rule->m_initialClassRegex = {std::string(v)};
+        }
+        if (auto v = get("initialTitle"); !v.empty()) {
+            rule->m_initialTitle      = v;
+            rule->m_initialTitleRegex = {std::string(v)};
+        }
+        if (auto v = get("xwayland"); !v.empty())
+            rule->m_X11 = (v == "1");
+        if (auto v = get("floating"); !v.empty())
+            rule->m_floating = (v == "1");
+        if (auto v = get("fullscreen"); !v.empty())
+            rule->m_fullscreen = (v == "1");
+        if (auto v = get("pinned"); !v.empty())
+            rule->m_pinned = (v == "1");
+        if (auto v = get("fullscreenstate"); !v.empty())
+            rule->m_fullscreenState = v;
+        if (auto v = get("workspace"); !v.empty())
+            rule->m_workspace = v;
+        if (auto v = get("focus"); !v.empty())
+            rule->m_focus = (v == "1");
+        if (auto v = get("onworkspace"); !v.empty())
+            rule->m_onWorkspace = v;
+        if (auto v = get("content"); !v.empty())
+            rule->m_contentType = v;
+        if (auto v = get("xdgTag"); !v.empty())
+            rule->m_xdgTag = v;
+        if (auto v = get("group"); !v.empty())
+            rule->m_group = (v == "1");
+    };
 
-    if (CLASSPOS != std::string::npos) {
-        rule->m_class      = extract(CLASSPOS + 6);
-        rule->m_classRegex = {rule->m_class};
-    }
+    std::vector<SP<CWindowRule>> rules;
 
-    if (TITLEPOS != std::string::npos) {
-        rule->m_title      = extract(TITLEPOS + 6);
-        rule->m_titleRegex = {rule->m_title};
-    }
+    for (auto token : tokens) {
+        if (token.starts_with("unset")) {
+            std::string ruleName = "";
+            if (token.size() <= 6 || token.contains("all"))
+                ruleName = "all";
+            else
+                ruleName = std::string(token.substr(6));
+            auto rule = makeShared<CWindowRule>(ruleName, value, true);
+            applyParams(rule);
+            std::erase_if(m_windowRules, [&](const auto& other) {
+                if (!other->m_v2)
+                    return other->m_class == rule->m_class && !rule->m_class.empty();
 
-    if (INITIALCLASSPOS != std::string::npos) {
-        rule->m_initialClass      = extract(INITIALCLASSPOS + 13);
-        rule->m_initialClassRegex = {rule->m_initialClass};
-    }
-
-    if (INITIALTITLEPOS != std::string::npos) {
-        rule->m_initialTitle      = extract(INITIALTITLEPOS + 13);
-        rule->m_initialTitleRegex = {rule->m_initialTitle};
-    }
-
-    if (X11POS != std::string::npos)
-        rule->m_X11 = extract(X11POS + 9) == "1" ? 1 : 0;
-
-    if (FLOATPOS != std::string::npos)
-        rule->m_floating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
-
-    if (FULLSCREENPOS != std::string::npos)
-        rule->m_fullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
-
-    if (PINNEDPOS != std::string::npos)
-        rule->m_pinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
-
-    if (FULLSCREENSTATEPOS != std::string::npos)
-        rule->m_fullscreenState = extract(FULLSCREENSTATEPOS + 16);
-
-    if (WORKSPACEPOS != std::string::npos)
-        rule->m_workspace = extract(WORKSPACEPOS + 10);
-
-    if (FOCUSPOS != std::string::npos)
-        rule->m_focus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
-
-    if (ONWORKSPACEPOS != std::string::npos)
-        rule->m_onWorkspace = extract(ONWORKSPACEPOS + 12);
-
-    if (CONTENTTYPEPOS != std::string::npos)
-        rule->m_contentType = extract(CONTENTTYPEPOS + 8);
-
-    if (XDGTAGPOS != std::string::npos)
-        rule->m_xdgTag = extract(XDGTAGPOS + 8);
-
-    if (GROUPPOS != std::string::npos)
-        rule->m_group = extract(GROUPPOS + 6) == "1" ? 1 : 0;
-
-    if (RULE == "unset") {
-        std::erase_if(m_windowRules, [&](const auto& other) {
-            if (!other->m_v2)
-                return other->m_class == rule->m_class && !rule->m_class.empty();
-            else {
+                if (rule->m_ruleType != other->m_ruleType && ruleName != "all")
+                    return false;
                 if (!rule->m_tag.empty() && rule->m_tag != other->m_tag)
                     return false;
-
                 if (!rule->m_class.empty() && rule->m_class != other->m_class)
                     return false;
-
                 if (!rule->m_title.empty() && rule->m_title != other->m_title)
                     return false;
-
                 if (!rule->m_initialClass.empty() && rule->m_initialClass != other->m_initialClass)
                     return false;
-
                 if (!rule->m_initialTitle.empty() && rule->m_initialTitle != other->m_initialTitle)
                     return false;
-
                 if (rule->m_X11 != -1 && rule->m_X11 != other->m_X11)
                     return false;
-
                 if (rule->m_floating != -1 && rule->m_floating != other->m_floating)
                     return false;
-
                 if (rule->m_fullscreen != -1 && rule->m_fullscreen != other->m_fullscreen)
                     return false;
-
                 if (rule->m_pinned != -1 && rule->m_pinned != other->m_pinned)
                     return false;
-
                 if (!rule->m_fullscreenState.empty() && rule->m_fullscreenState != other->m_fullscreenState)
                     return false;
-
                 if (!rule->m_workspace.empty() && rule->m_workspace != other->m_workspace)
                     return false;
-
                 if (rule->m_focus != -1 && rule->m_focus != other->m_focus)
                     return false;
-
                 if (!rule->m_onWorkspace.empty() && rule->m_onWorkspace != other->m_onWorkspace)
                     return false;
-
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
-
                 if (rule->m_group != -1 && rule->m_group != other->m_group)
                     return false;
-
                 return true;
+            });
+        } else {
+            auto rule = makeShared<CWindowRule>(std::string(token), value, true);
+            if (rule->m_ruleType == CWindowRule::RULE_INVALID) {
+                Debug::log(ERR, "Invalid rule found: {}, Invalid value: {}", value, token);
+                return std::format("Invalid rule found: {}, Invalid value: {}", value, token);
             }
-        });
-        return {};
+            applyParams(rule);
+            rules.emplace_back(rule);
+        }
     }
 
-    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
-        m_windowRules.insert(m_windowRules.begin(), rule);
-    else
-        m_windowRules.push_back(rule);
+    if (rules.empty() && tokens.empty())
+        return "Invalid rule syntax: no rules provided";
+
+    for (auto& rule : rules) {
+        if (rule->m_ruleType == CWindowRule::RULE_SIZE || rule->m_ruleType == CWindowRule::RULE_MAXSIZE || rule->m_ruleType == CWindowRule::RULE_MINSIZE)
+            m_windowRules.insert(m_windowRules.begin(), rule);
+        else
+            m_windowRules.emplace_back(rule);
+    }
 
     return {};
 }

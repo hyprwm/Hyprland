@@ -36,6 +36,7 @@
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
+using namespace Hyprland::NoScreenShare;
 using enum NContentType::eContentType;
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
@@ -790,6 +791,38 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         case CWindowRule::RULE_RENDERUNFOCUSED: {
             m_windowData.renderUnfocused = CWindowOverridableVar(true, priority);
             g_pHyprRenderer->addWindowToRenderUnfocused(m_self.lock());
+            break;
+        }
+        case CWindowRule::RULE_NOSCREENSHARE: {
+            const CVarList tokens{r->m_rule, 0, ' '};
+
+            auto           mask            = m_windowData.noScreenShareMask.valueOrDefault();
+            bool           maskTouched     = false;
+            bool           requestedUnset  = false;
+            bool           enable          = true;
+            bool           enableSpecified = false;
+
+            parseNoScreenShareTokens(tokens, requestedUnset, enableSpecified, enable, mask, maskTouched);
+
+            if (requestedUnset) {
+                m_windowData.noScreenShare.unset(priority);
+                m_windowData.noScreenShareMask.unset(priority);
+                g_pHyprRenderer->damageWindow(m_self.lock());
+                break;
+            }
+
+            if (!enable) {
+                m_windowData.noScreenShare = CWindowOverridableVar(false, priority);
+                m_windowData.noScreenShareMask.unset(priority);
+                g_pHyprRenderer->damageWindow(m_self.lock());
+                break;
+            }
+
+            m_windowData.noScreenShare = CWindowOverridableVar(true, priority);
+            if (maskTouched)
+                m_windowData.noScreenShareMask = CWindowOverridableVar(mask, priority);
+
+            g_pHyprRenderer->damageWindow(m_self.lock());
             break;
         }
         case CWindowRule::RULE_PROP: {

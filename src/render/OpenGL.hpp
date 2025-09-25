@@ -13,6 +13,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <array>
 
 #include <cairo/cairo.h>
 
@@ -277,8 +278,13 @@ class CHyprOpenGLImpl {
     SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
     void         setCaptureWritesEnabled(bool enable);
     bool         captureWritesEnabled() const;
+    void         setCaptureNoScreenShareMask(bool enabled, const std::array<float, 4>& color, bool force = false);
+    bool         captureNoScreenShareMaskEnabled() const;
+    const std::array<float, 4>&                 captureNoScreenShareMaskColor() const;
+    bool                                        captureMRTActiveForCurrentMonitor() const;
+    bool                                        isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const;
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    uint32_t                                    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
@@ -379,8 +385,10 @@ class CHyprOpenGLImpl {
     bool                              m_offloadedFramebuffer = false;
     bool                              m_cmSupported          = true;
 
-    bool                              m_captureWritesEnabled = true;
-    bool                              m_mrtSupported         = false;
+    bool                              m_captureWritesEnabled      = true;
+    bool                              m_captureNoScreenShareMask  = false;
+    std::array<float, 4>              m_captureNoScreenShareColor = {0.f, 0.f, 0.f, 1.f};
+    bool                              m_mrtSupported              = false;
 
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;

@@ -999,6 +999,64 @@ bool CHyprOpenGLImpl::captureWritesEnabled() const {
     return m_captureWritesEnabled;
 }
 
+void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, const std::array<float, 4>& color, bool force) {
+    if (!m_mrtSupported)
+        return;
+    if (!force && m_captureNoScreenShareMask == enabled && m_captureNoScreenShareColor == color)
+        return;
+
+    const GLuint previousProgram = m_currentProgram;
+
+    auto         updateShaderUniforms = [&](SShader& shader) {
+        if (!shader.program)
+            return;
+
+        useProgram(shader.program);
+
+        if (shader.uniformLocations[SHADER_CAPTURE] != -1)
+            shader.setUniformInt(SHADER_CAPTURE, enabled ? 1 : 0);
+        if (shader.uniformLocations[SHADER_CAPTURE_COLOR] != -1)
+            shader.setUniformFloat4(SHADER_CAPTURE_COLOR, color[0], color[1], color[2], color[3]);
+    };
+
+    if (m_shaders) {
+        for (SShader* shader : {&m_shaders->m_shCM, &m_shaders->m_shQUAD, &m_shaders->m_shRGBA, &m_shaders->m_shPASSTHRURGBA, &m_shaders->m_shMATTE, &m_shaders->m_shRGBX,
+                                &m_shaders->m_shEXT, &m_shaders->m_shBLUR1, &m_shaders->m_shBLUR2, &m_shaders->m_shBLURPREPARE, &m_shaders->m_shBLURFINISH, &m_shaders->m_shSHADOW,
+                                &m_shaders->m_shBORDER1, &m_shaders->m_shGLITCH})
+            updateShaderUniforms(*shader);
+    }
+
+    updateShaderUniforms(m_finalScreenShader);
+
+    useProgram(previousProgram);
+
+    m_captureNoScreenShareMask  = enabled;
+    m_captureNoScreenShareColor = color;
+}
+
+bool CHyprOpenGLImpl::captureNoScreenShareMaskEnabled() const {
+    return m_captureNoScreenShareMask;
+}
+
+const std::array<float, 4>& CHyprOpenGLImpl::captureNoScreenShareMaskColor() const {
+    return m_captureNoScreenShareColor;
+}
+
+bool CHyprOpenGLImpl::captureMRTActiveForCurrentMonitor() const {
+    return m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
+}
+
+bool CHyprOpenGLImpl::isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const {
+    if (!pMonitor)
+        return false;
+
+    auto it = m_monitorRenderResources.find(pMonitor);
+    if (it == m_monitorRenderResources.end())
+        return false;
+
+    return it->second.captureMRTValid;
+}
+
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
     m_renderData.damage.set(damage_);
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
@@ -1069,6 +1127,11 @@ static void getRoundingShaderUniforms(SShader& shader) {
     shader.uniformLocations[SHADER_ROUNDING_POWER] = glGetUniformLocation(shader.program, "roundingPower");
 }
 
+static void getCaptureUniforms(SShader& shader) {
+    shader.uniformLocations[SHADER_CAPTURE]       = glGetUniformLocation(shader.program, "capture");
+    shader.uniformLocations[SHADER_CAPTURE_COLOR] = glGetUniformLocation(shader.program, "captureColor");
+}
+
 bool CHyprOpenGLImpl::initShaders() {
     auto              shaders   = makeShared<SPreparedShaders>();
     const bool        isDynamic = m_shadersInitialized;
@@ -1115,6 +1178,7 @@ bool CHyprOpenGLImpl::initShaders() {
                 shaders->m_shCM.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
                 shaders->m_shCM.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
                 shaders->m_shCM.createVao();
+                getCaptureUniforms(shaders->m_shCM);
             } else
                 Debug::log(ERR,
                            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports "
@@ -1144,6 +1208,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shQUAD.uniformLocations[SHADER_COLOR]      = glGetUniformLocation(prog, "color");
         shaders->m_shQUAD.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
         shaders->m_shQUAD.createVao();
+        getCaptureUniforms(shaders->m_shQUAD);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic);
         if (!prog)
@@ -1164,6 +1229,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
         shaders->m_shRGBA.createVao();
+        getCaptureUniforms(shaders->m_shRGBA);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU, isDynamic);
         if (!prog)
@@ -1174,6 +1240,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shPASSTHRURGBA.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(prog, "texcoord");
         shaders->m_shPASSTHRURGBA.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
         shaders->m_shPASSTHRURGBA.createVao();
+        getCaptureUniforms(shaders->m_shPASSTHRURGBA);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE, isDynamic);
         if (!prog)
@@ -1185,6 +1252,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shMATTE.uniformLocations[SHADER_TEX_ATTRIB]  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shMATTE.uniformLocations[SHADER_POS_ATTRIB]  = glGetAttribLocation(prog, "pos");
         shaders->m_shMATTE.createVao();
+        getCaptureUniforms(shaders->m_shMATTE);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGGLITCH, isDynamic);
         if (!prog)
@@ -1198,6 +1266,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shGLITCH.uniformLocations[SHADER_TIME]       = glGetUniformLocation(prog, "time");
         shaders->m_shGLITCH.uniformLocations[SHADER_FULL_SIZE]  = glGetUniformLocation(prog, "screenSize");
         shaders->m_shGLITCH.createVao();
+        getCaptureUniforms(shaders->m_shGLITCH);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX, isDynamic);
         if (!prog)
@@ -1215,6 +1284,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBX.createVao();
+        getCaptureUniforms(shaders->m_shRGBX);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT, isDynamic);
         if (!prog)
@@ -1232,6 +1302,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shEXT.createVao();
+        getCaptureUniforms(shaders->m_shEXT);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR1, isDynamic);
         if (!prog)
@@ -1248,6 +1319,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR1.uniformLocations[SHADER_VIBRANCY]          = glGetUniformLocation(prog, "vibrancy");
         shaders->m_shBLUR1.uniformLocations[SHADER_VIBRANCY_DARKNESS] = glGetUniformLocation(prog, "vibrancy_darkness");
         shaders->m_shBLUR1.createVao();
+        getCaptureUniforms(shaders->m_shBLUR1);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR2, isDynamic);
         if (!prog)
@@ -1261,6 +1333,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.uniformLocations[SHADER_RADIUS]     = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.uniformLocations[SHADER_HALFPIXEL]  = glGetUniformLocation(prog, "halfpixel");
         shaders->m_shBLUR2.createVao();
+        getCaptureUniforms(shaders->m_shBLUR2);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
@@ -1275,6 +1348,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_CONTRAST]   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_BRIGHTNESS] = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURPREPARE.createVao();
+        getCaptureUniforms(shaders->m_shBLURPREPARE);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
@@ -1289,6 +1363,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.uniformLocations[SHADER_BRIGHTNESS] = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.uniformLocations[SHADER_NOISE]      = glGetUniformLocation(prog, "noise");
         shaders->m_shBLURFINISH.createVao();
+        getCaptureUniforms(shaders->m_shBLURFINISH);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
@@ -1305,6 +1380,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.uniformLocations[SHADER_SHADOW_POWER] = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.uniformLocations[SHADER_COLOR]        = glGetUniformLocation(prog, "color");
         shaders->m_shSHADOW.createVao();
+        getCaptureUniforms(shaders->m_shSHADOW);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
@@ -1329,6 +1405,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBORDER1.uniformLocations[SHADER_GRADIENT_LERP]           = glGetUniformLocation(prog, "gradientLerp");
         shaders->m_shBORDER1.uniformLocations[SHADER_ALPHA]                   = glGetUniformLocation(prog, "alpha");
         shaders->m_shBORDER1.createVao();
+        getCaptureUniforms(shaders->m_shBORDER1);
 
     } catch (const std::exception& e) {
         if (!m_shadersInitialized)
@@ -1340,6 +1417,8 @@ bool CHyprOpenGLImpl::initShaders() {
 
     m_shaders            = shaders;
     m_shadersInitialized = true;
+
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, m_captureNoScreenShareColor, true);
 
     Debug::log(LOG, "Shaders initialized successfully.");
     return true;
@@ -1429,6 +1508,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     uniformRequireNoDamage(SHADER_POINTER_SHAPE_PREVIOUS, "pointer_shape_previous");
 
     m_finalScreenShader.createVao();
+    getCaptureUniforms(m_finalScreenShader);
+
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, m_captureNoScreenShareColor, true);
 }
 
 void CHyprOpenGLImpl::clear(const CHyprColor& color) {

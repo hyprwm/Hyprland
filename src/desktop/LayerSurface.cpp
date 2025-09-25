@@ -12,6 +12,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/EventManager.hpp"
+using namespace Hyprland::NoScreenShare;
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
@@ -400,12 +401,14 @@ void CLayerSurface::onCommit() {
 
 void CLayerSurface::applyRules() {
     const bool wasNoScreenShare = m_noScreenShare;
+    const auto previousMask     = m_noScreenShareMask;
 
-    m_noAnimations     = false;
-    m_forceBlur        = false;
-    m_ignoreAlpha      = false;
-    m_dimAround        = false;
-    m_noScreenShare    = false;
+    m_noAnimations  = false;
+    m_forceBlur     = false;
+    m_ignoreAlpha   = false;
+    m_dimAround     = false;
+    m_noScreenShare = false;
+    m_noScreenShareMask.reset();
     m_ignoreAlphaValue = 0.f;
     m_xray             = -1;
     m_animationStyle.reset();
@@ -444,6 +447,20 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_NOSCREENSHARE: {
                 m_noScreenShare = true;
+
+                const CVarList tokens{rule->m_rule, 0, ' '};
+                bool           maskTouched     = false;
+                bool           requestedUnset  = false;
+                bool           enable          = true;
+                bool           enableSpecified = false;
+
+                parseNoScreenShareTokens(tokens, requestedUnset, enableSpecified, enable, m_noScreenShareMask, maskTouched);
+
+                if (requestedUnset || !enable) {
+                    m_noScreenShare = false;
+                    m_noScreenShareMask.reset();
+                }
+
                 break;
             }
             case CLayerRule::RULE_XRAY: {
@@ -476,7 +493,9 @@ void CLayerSurface::applyRules() {
         }
     }
 
-    if (g_pHyprRenderer && wasNoScreenShare != m_noScreenShare)
+    const bool maskChanged = previousMask != m_noScreenShareMask;
+
+    if (g_pHyprRenderer && (wasNoScreenShare != m_noScreenShare || maskChanged))
         g_pHyprRenderer->handleLayerNoScreenShareChanged(m_self.lock());
 }
 

@@ -2398,49 +2398,54 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
         return false;
 
-    auto& data = it->second;
-    if (!data.screencopyPending)
+    static auto PMRTFORCEMODE = CConfigValue<Hyprlang::INT>("render:capture_mrt_mode");
+
+    auto&       data = it->second;
+
+    const int   mode = std::clamp<int>(*PMRTFORCEMODE, 0, 2);
+    if (mode == 2)
         return false;
 
-    bool needed = false;
+    if (!data.screencopyPending && mode != 1)
+        return false;
+
     for (const auto& w : g_pCompositor->m_windows) {
         if (!w || !w->m_isMapped || w->isHidden())
             continue;
         if (!w->m_windowData.noScreenShare.valueOrDefault())
             continue;
         if (isWindowVisibleOnMonitor(w, pMonitor)) {
-            needed = true;
-            break;
+            return true;
         }
     }
 
-    if (!needed) {
-        for (const auto& layer : g_pCompositor->m_layers) {
-            if (!layer || !layer->m_noScreenShare)
-                continue;
-            if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
-                continue;
+    for (const auto& layer : g_pCompositor->m_layers) {
+        if (!layer || !layer->m_noScreenShare)
+            continue;
+        if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
+            continue;
 
-            const auto layerMonitor = layer->m_monitor.lock();
-            if (layerMonitor != pMonitor)
-                continue;
+        const auto layerMonitor = layer->m_monitor.lock();
+        if (layerMonitor != pMonitor)
+            continue;
 
-            needed = true;
-            break;
-        }
+        return true;
     }
 
-    return needed;
+    if (mode == 1)
+        return true;
+
+    return false;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
-    auto&      data        = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
-    const bool prev        = data.screencopyPending;
-    data.screencopyPending = pending;
-    if (pending && !prev)
+    auto& data = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
+    if (pending && !data.screencopyPending)
         data.forceFullCaptureFrame = true;
+
+    data.screencopyPending = pending;
 
     if (!pending)
         data.forceFullCaptureFrame = false;

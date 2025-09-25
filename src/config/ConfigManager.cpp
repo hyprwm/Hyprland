@@ -784,6 +784,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:capture_mrt_mode", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});

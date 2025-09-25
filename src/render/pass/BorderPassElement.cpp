@@ -15,7 +15,9 @@ void CBorderPassElement::draw(const CRegion& damage) {
 
     g_pHyprOpenGL->m_renderData.currentWindow = m_data.pWindow;
     const auto window                         = m_data.pWindow.lock();
-    const bool allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+
+    const bool allowCapture = !window || !window->m_windowData.noScreenShare.valueOrDefault() || window->m_windowData.noScreenShareMask.valueOrDefault().decorationsEnabled();
+
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 
     CScopeGuard guard{[prevWindow, prevCaptures]() {

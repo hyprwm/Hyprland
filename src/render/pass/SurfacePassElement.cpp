@@ -1,6 +1,7 @@
 #include "SurfacePassElement.hpp"
 #include "../OpenGL.hpp"
 #include "../../desktop/WLSurface.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../desktop/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
@@ -27,9 +28,38 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     const bool prevCaptureWrites = g_pHyprOpenGL->captureWritesEnabled();
-    g_pHyprOpenGL->setCaptureWritesEnabled(m_data.captureWrites);
+    const bool prevMaskEnabled   = g_pHyprOpenGL->captureNoScreenShareMaskEnabled();
+    const auto prevMaskColor     = g_pHyprOpenGL->captureNoScreenShareMaskColor();
 
-    CScopeGuard x = {[prevCaptureWrites]() {
+    bool       maskApplied  = false;
+    bool       allowCapture = m_data.captureWrites;
+    const auto monitor      = m_data.pMonitor.lock();
+
+    auto       applyMask = [&](const SNoScreenShareMaskOptions& opts) {
+        const float resolvedOpacity = opts.resolvedOpacity();
+        if (resolvedOpacity <= 0.f)
+            return;
+        if (!g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
+            return;
+
+        allowCapture = true;
+        g_pHyprOpenGL->setCaptureNoScreenShareMask(true, opts.maskColor(resolvedOpacity));
+        maskApplied = true;
+    };
+
+    if (m_data.pWindow) {
+        const auto window = m_data.pWindow;
+        if (window->m_windowData.noScreenShare.valueOrDefault() && monitor && g_pHyprRenderer->isWindowVisibleOnMonitor(window, monitor))
+            applyMask(window->m_windowData.noScreenShareMask.valueOrDefault());
+    } else if (m_data.pLS) {
+        const auto layerMonitor = m_data.pLS->m_monitor.lock();
+        if (m_data.pLS->m_noScreenShare && monitor && layerMonitor == monitor)
+            applyMask(m_data.pLS->m_noScreenShareMask);
+    }
+
+    g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
+
+    CScopeGuard x = {[prevCaptureWrites, prevMaskEnabled, prevMaskColor, maskApplied]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
@@ -43,6 +73,8 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
         g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
+        if (maskApplied)
+            g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled, prevMaskColor);
     }};
 
     if (!m_data.texture)

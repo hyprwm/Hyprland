@@ -1542,6 +1542,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
     },
+    SConfigOptionDescription{
+        .value       = "render:capture_mrt_mode",
+        .description = "(TODO: HERE FOR DEBUGGING PURPOSES ONLY FOR NOW) 0 - auto, 1 - force mrt, 2 - force fallback"
+                       "fallback compositing.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
 
     /*
      * cursor:

@@ -19,6 +19,10 @@
 #include <algorithm>
 #include <functional>
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t overlay_cursor, wl_resource* output, CBox box_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -194,6 +198,8 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
+    TRACY_GPU_ZONE("ScreencopyRenderMon");
+
     auto monitor = m_monitor.lock();
     if (!monitor)
         return;

@@ -37,6 +37,7 @@ class CTrackpadGestures {
 
     std::vector<SP<SGestureData>> m_gestures;
 
+    Vector2D                      m_currentTotalDelta = {};
     SP<SGestureData>              m_activeGesture     = nullptr;
     bool                          m_gestureFindFailed = false;
 };

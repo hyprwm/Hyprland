@@ -15,8 +15,29 @@ CTexPassElement::CTexPassElement(CTexPassElement::SRenderData&& data) : m_data(s
 void CTexPassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
-    CScopeGuard x = {[this]() {
-        //
+    const bool prevCaptureWrites = g_pHyprOpenGL->captureWritesEnabled();
+    const bool prevMaskEnabled   = g_pHyprOpenGL->captureNoScreenShareMaskEnabled();
+    const auto prevMaskColor     = g_pHyprOpenGL->captureNoScreenShareMaskColor();
+
+    bool       maskApplied  = false;
+    bool       allowCapture = m_data.captureWrites;
+
+    if (m_data.captureMaskColor.has_value()) {
+        const auto& maskColor = *m_data.captureMaskColor;
+        if (maskColor[3] > 0.0f && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
+            g_pHyprOpenGL->setCaptureNoScreenShareMask(true, maskColor);
+            maskApplied  = true;
+            allowCapture = true;
+        }
+    }
+
+    g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
+
+    CScopeGuard x = {[this, prevCaptureWrites, prevMaskEnabled, prevMaskColor, maskApplied]() {
+        g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
+        if (maskApplied)
+            g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled, prevMaskColor);
+
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)

@@ -237,6 +237,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
         EXPECT_NOT_CONTAINS(str, "pinned: 1");
+        EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
 
     NLog::log("{}Killing all windows", Colors::YELLOW);

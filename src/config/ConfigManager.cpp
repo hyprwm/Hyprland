@@ -2664,21 +2664,24 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 
     for (const auto& varStr : VARLIST) {
         std::string_view var = varStr;
+        auto             sep = var.find(':');
+        std::string_view key = (sep != std::string_view::npos) ? var.substr(0, sep) : var;
 
-        if (!parsingParams && var.find(':') == std::string_view::npos) {
-            tokens.emplace_back(var);
-        } else {
+        if (!parsingParams) {
+            // Don't be alarmed, ends_with is a single memcmp, i went and checked.
+            if (sep == std::string_view::npos || key.ends_with("plugin") || key.ends_with("special")) {
+                tokens.emplace_back(var);
+                continue;
+            }
             parsingParams = true;
-            auto sep      = var.find(':');
-            if (sep == std::string_view::npos)
-                return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
-
-            std::string_view key = var.substr(0, sep);
-            // somewhat ugly trim. But since CVarList string_view trim isn't available, let's be lazy.
-            std::string_view val = var.substr(var.find_first_not_of(' ', sep + 1));
-
-            params[key] = val;
         }
+
+        if (sep == std::string_view::npos)
+            return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
+
+        auto             pos = var.find_first_not_of(' ', sep + 1);
+        std::string_view val = (pos != std::string_view::npos) ? var.substr(pos) : std::string_view{};
+        params[key]          = val;
     }
 
     auto get = [&](std::string_view key) -> std::string_view {

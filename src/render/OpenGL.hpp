@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <stack>
 #include <map>
+#include <array>
 
 #include <cairo/cairo.h>
 
@@ -111,8 +112,11 @@ struct SMonitorRenderData {
 
     SP<CTexture> stencilTex = makeShared<CTexture>();
 
-    bool         blurFBDirty        = true;
-    bool         blurFBShouldRender = false;
+    bool         blurFBDirty           = true;
+    bool         blurFBShouldRender    = false;
+    bool         captureMRTValid       = false;
+    bool         screencopyPending     = false;
+    bool         forceFullCaptureFrame = false;
 };
 
 struct SCurrentRenderData {
@@ -131,11 +135,12 @@ struct SCurrentRenderData {
     CRegion                finalDamage; // damage used for funal off -> main
 
     SRenderModifData       renderModif;
-    float                  mouseZoomFactor    = 1.f;
-    bool                   mouseZoomUseMouse  = true; // true by default
-    bool                   useNearestNeighbor = false;
-    bool                   blockScreenShader  = false;
-    bool                   simplePass         = false;
+    float                  mouseZoomFactor            = 1.f;
+    bool                   mouseZoomUseMouse          = true; // true by default
+    bool                   useNearestNeighbor         = false;
+    bool                   blockScreenShader          = false;
+    bool                   simplePass                 = false;
+    bool                   forcedFullDamageForCapture = false;
 
     Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
@@ -269,7 +274,18 @@ class CHyprOpenGLImpl {
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    void         ensureBackgroundTexturePresence();
+
+    SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
+    void         setCaptureWritesEnabled(bool enable);
+    bool         captureWritesEnabled() const;
+    void         setCaptureNoScreenShareMask(bool enabled, const std::array<float, 4>& color, bool force = false);
+    bool         captureNoScreenShareMaskEnabled() const;
+    const std::array<float, 4>&                 captureNoScreenShareMaskColor() const;
+    bool                                        captureMRTActiveForCurrentMonitor() const;
+    bool                                        isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const;
+
+    uint32_t                                    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
@@ -363,9 +379,15 @@ class CHyprOpenGLImpl {
     bool                              m_offloadedFramebuffer = false;
     bool                              m_cmSupported          = true;
 
+    bool                              m_captureWritesEnabled      = true;
+    bool                              m_captureNoScreenShareMask  = false;
+    std::array<float, 4>              m_captureNoScreenShareColor = {0.f, 0.f, 0.f, 1.f};
+    bool                              m_mrtSupported              = false;
+
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;
     SP<CTexture>                      m_missingAssetTexture;
+    SP<CTexture>                      m_backgroundTexture;
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;

@@ -5,7 +5,6 @@
 
 #include <map>
 #include <unordered_map>
-#include "../defines.hpp"
 #include <variant>
 #include <vector>
 #include <optional>
@@ -47,13 +46,6 @@ struct SWorkspaceRule {
     std::optional<std::string>         onCreatedEmptyRunCmd;
     std::optional<std::string>         defaultName;
     std::map<std::string, std::string> layoutopts;
-};
-
-struct SMonitorAdditionalReservedArea {
-    int top    = 0;
-    int bottom = 0;
-    int left   = 0;
-    int right  = 0;
 };
 
 struct SPluginKeyword {
@@ -202,39 +194,39 @@ class CConfigManager {
   public:
     CConfigManager();
 
-    void                                                            init();
-    void                                                            reload();
-    std::string                                                     verify();
+    void                                         init();
+    void                                         reload();
+    std::string                                  verify();
 
-    int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
-    float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
-    Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
-    std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
-    bool                                                            deviceConfigExplicitlySet(const std::string&, const std::string&);
-    bool                                                            deviceConfigExists(const std::string&);
-    Hyprlang::CConfigValue*                                         getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
-    bool                                                            shouldBlurLS(const std::string&);
+    int                                          getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
+    float                                        getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
+    Vector2D                                     getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
+    std::string                                  getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
+    bool                                         deviceConfigExplicitlySet(const std::string&, const std::string&);
+    bool                                         deviceConfigExists(const std::string&);
+    Hyprlang::CConfigValue*                      getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
+    bool                                         shouldBlurLS(const std::string&);
 
-    void* const*                                                    getConfigValuePtr(const std::string&);
-    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    std::string                                                     getMainConfigPath();
-    std::string                                                     getConfigString();
+    void* const*                                 getConfigValuePtr(const std::string&);
+    Hyprlang::CConfigValue*                      getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
+    std::string                                  getMainConfigPath();
+    std::string                                  getConfigString();
 
-    SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
-    SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
-    std::string                                                     getDefaultWorkspaceFor(const std::string&);
+    SMonitorRule                                 getMonitorRuleFor(const PHLMONITOR);
+    SWorkspaceRule                               getWorkspaceRuleFor(PHLWORKSPACE workspace);
+    std::string                                  getDefaultWorkspaceFor(const std::string&);
 
-    PHLMONITOR                                                      getBoundMonitorForWS(const std::string&);
-    std::string                                                     getBoundMonitorStringForWS(const std::string&);
-    const std::vector<SWorkspaceRule>&                              getAllWorkspaceRules();
+    PHLMONITOR                                   getBoundMonitorForWS(const std::string&);
+    std::string                                  getBoundMonitorStringForWS(const std::string&);
+    const std::vector<SWorkspaceRule>&           getAllWorkspaceRules();
 
-    std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
-    std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
-    void                                                            ensurePersistentWorkspacesPresent();
+    std::vector<SP<CWindowRule>>                 getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
+    std::vector<SP<CLayerRule>>                  getMatchingRules(PHLLS);
+    void                                         ensurePersistentWorkspacesPresent();
 
-    const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
+    const std::vector<SConfigOptionDescription>& getAllDescriptions();
 
-    std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
+    SMonitorAdditionalReservedArea               m_mAdditionalReservedArea = {};
 
     const std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>>& getAnimationConfig();
 

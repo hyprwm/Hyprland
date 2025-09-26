@@ -237,9 +237,6 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
         EXPECT_NOT_CONTAINS(str, "pinned: 1");
-<<<<<<< HEAD
-<<<<<<< HEAD
-
         OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
         OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
         OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));

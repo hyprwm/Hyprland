@@ -3163,14 +3163,10 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 
     std::expected<void, std::string> result;
 
-    if (data[startDataIdx] == "dispatcher") {
-        auto dispatcherArgsIt = value.begin();
-        for (int i = 0; i < startDataIdx + 2 && dispatcherArgsIt < value.end(); ++i) {
-            dispatcherArgsIt = std::find(dispatcherArgsIt, value.end(), ',') + 1;
-        }
-        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string(dispatcherArgsIt, value.end())),
-                                                 fingerCount, direction, modMask, deltaScale);
-    } else if (data[startDataIdx] == "workspace")
+    if (data[startDataIdx] == "dispatcher")
+        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, data.join(",", startDataIdx + 2)), fingerCount,
+                                                 direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "workspace")
         result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "resize")
         result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale);

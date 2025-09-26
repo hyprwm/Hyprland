@@ -2664,21 +2664,24 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 
     for (const auto& varStr : VARLIST) {
         std::string_view var = varStr;
+        auto             sep = var.find(':');
+        std::string_view key = (sep != std::string_view::npos) ? var.substr(0, sep) : var;
 
-        if (!parsingParams && var.find(':') == std::string_view::npos) {
-            tokens.emplace_back(var);
-        } else {
+        if (!parsingParams) {
+            // Don't be alarmed, ends_with is a single memcmp, i went and checked.
+            if (sep == std::string_view::npos || key.ends_with("plugin") || key.ends_with("special")) {
+                tokens.emplace_back(var);
+                continue;
+            }
             parsingParams = true;
-            auto sep      = var.find(':');
-            if (sep == std::string_view::npos)
-                return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
-
-            std::string_view key = var.substr(0, sep);
-            // somewhat ugly trim. But since CVarList string_view trim isn't available, let's be lazy.
-            std::string_view val = var.substr(var.find_first_not_of(' ', sep + 1));
-
-            params[key] = val;
         }
+
+        if (sep == std::string_view::npos)
+            return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
+
+        auto             pos = var.find_first_not_of(' ', sep + 1);
+        std::string_view val = (pos != std::string_view::npos) ? var.substr(pos) : std::string_view{};
+        params[key]          = val;
     }
 
     auto get = [&](std::string_view key) -> std::string_view {
@@ -2687,47 +2690,53 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         return {};
     };
 
-    auto applyParams = [&](SP<CWindowRule> rule) -> void {
+    auto applyParams = [&](SP<CWindowRule> rule) -> bool {
+        bool set = false;
+
         if (auto v = get("class"); !v.empty()) {
-            rule->m_class      = v;
+            set |= (rule->m_class = v, true);
             rule->m_classRegex = {std::string(v)};
         }
         if (auto v = get("title"); !v.empty()) {
-            rule->m_title      = v;
+            set |= (rule->m_title = v, true);
             rule->m_titleRegex = {std::string(v)};
         }
         if (auto v = get("tag"); !v.empty())
-            rule->m_tag = v;
+            set |= (rule->m_tag = v, true);
         if (auto v = get("initialClass"); !v.empty()) {
-            rule->m_initialClass      = v;
+            set |= (rule->m_initialClass = v, true);
             rule->m_initialClassRegex = {std::string(v)};
         }
         if (auto v = get("initialTitle"); !v.empty()) {
-            rule->m_initialTitle      = v;
+            set |= (rule->m_initialTitle = v, true);
             rule->m_initialTitleRegex = {std::string(v)};
         }
+
         if (auto v = get("xwayland"); !v.empty())
-            rule->m_X11 = (v == "1");
+            set |= (rule->m_X11 = (v == "1"), true);
         if (auto v = get("floating"); !v.empty())
-            rule->m_floating = (v == "1");
+            set |= (rule->m_floating = (v == "1"), true);
         if (auto v = get("fullscreen"); !v.empty())
-            rule->m_fullscreen = (v == "1");
+            set |= (rule->m_fullscreen = (v == "1"), true);
         if (auto v = get("pinned"); !v.empty())
-            rule->m_pinned = (v == "1");
-        if (auto v = get("fullscreenstate"); !v.empty())
-            rule->m_fullscreenState = v;
-        if (auto v = get("workspace"); !v.empty())
-            rule->m_workspace = v;
+            set |= (rule->m_pinned = (v == "1"), true);
         if (auto v = get("focus"); !v.empty())
-            rule->m_focus = (v == "1");
-        if (auto v = get("onworkspace"); !v.empty())
-            rule->m_onWorkspace = v;
-        if (auto v = get("content"); !v.empty())
-            rule->m_contentType = v;
-        if (auto v = get("xdgTag"); !v.empty())
-            rule->m_xdgTag = v;
+            set |= (rule->m_focus = (v == "1"), true);
         if (auto v = get("group"); !v.empty())
-            rule->m_group = (v == "1");
+            set |= (rule->m_group = (v == "1"), true);
+
+        if (auto v = get("fullscreenstate"); !v.empty())
+            set |= (rule->m_fullscreenState = v, true);
+        if (auto v = get("workspace"); !v.empty())
+            set |= (rule->m_workspace = v, true);
+        if (auto v = get("onworkspace"); !v.empty())
+            set |= (rule->m_onWorkspace = v, true);
+        if (auto v = get("content"); !v.empty())
+            set |= (rule->m_contentType = v, true);
+        if (auto v = get("xdgTag"); !v.empty())
+            set |= (rule->m_xdgTag = v, true);
+
+        return set;
     };
 
     std::vector<SP<CWindowRule>> rules;
@@ -2785,8 +2794,12 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                 Debug::log(ERR, "Invalid rule found: {}, Invalid value: {}", value, token);
                 return std::format("Invalid rule found: {}, Invalid value: {}", value, token);
             }
-            applyParams(rule);
-            rules.emplace_back(rule);
+            if (applyParams(rule))
+                rules.emplace_back(rule);
+            else {
+                Debug::log(INFO, "===== Skipping rule: {}, Invalid parameters", rule->m_value);
+                return std::format("Invalid parameters found in: {}", value);
+            }
         }
     }
 

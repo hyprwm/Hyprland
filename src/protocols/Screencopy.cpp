@@ -192,7 +192,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer, m_monitor->m_FBimageDescription);
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -203,11 +203,14 @@ void CScreencopyFrame::renderMon() {
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
-                                 {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
-                                 });
+
+    if (!IS_CM_AWARE)
+        // revert luma changes to avoid black screenshots.
+        // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
+        TEXTURE->m_imageDescription->luminances = {};
+
+    // For CM aware no extra CM needed (TEXTURE desc == FB desc), for not aware TEXTURE description is current monitor FB with modifications, target is default sRGB
+    g_pHyprOpenGL->renderTexture(TEXTURE, monbox, {.targetImageDescription = IS_CM_AWARE ? m_monitor->m_FBimageDescription : NColorManagement::SImageDescription{}});
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 

@@ -2687,16 +2687,25 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
 
-    if (!pWindow->m_windowData.noScreenShare.valueOrDefault()) {
-        CTexPassElement::SRenderData data;
-        data.flipEndFrame = true;
-        data.tex          = FBDATA->getTexture();
-        data.box          = windowBox;
-        data.a            = pWindow->m_alpha->value();
-        data.damage       = fakeDamage;
+    const bool                   windowNoShare = pWindow->m_windowData.noScreenShare.valueOrDefault();
 
-        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    CTexPassElement::SRenderData data;
+    data.flipEndFrame  = true;
+    data.tex           = FBDATA->getTexture();
+    data.box           = windowBox;
+    data.a             = pWindow->m_alpha->value();
+    data.damage        = fakeDamage;
+    data.captureWrites = !windowNoShare;
+
+    if (windowNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
+        const auto  maskOpts   = pWindow->m_windowData.noScreenShareMask.valueOrDefault();
+        const float baseAlpha  = maskOpts.resolvedOpacity();
+        const float finalAlpha = std::clamp(baseAlpha * data.a, 0.f, 1.f);
+        if (finalAlpha > 0.0f)
+            data.captureMaskColor = std::array<float, 4>{0.f, 0.f, 0.f, finalAlpha};
     }
+
+    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2725,18 +2734,27 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 
     CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+    const bool                   SHOULD_BLUR  = shouldBlur(pLayer);
+    const bool                   layerNoShare = pLayer->m_noScreenShare;
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = layerBox;
-    data.a            = pLayer->m_alpha->value();
-    data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.flipEndFrame  = true;
+    data.tex           = FBDATA->getTexture();
+    data.box           = layerBox;
+    data.a             = pLayer->m_alpha->value();
+    data.damage        = fakeDamage;
+    data.blur          = SHOULD_BLUR;
+    data.blurA         = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.captureWrites = !layerNoShare;
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
+
+    if (layerNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
+        const float baseAlpha  = pLayer->m_noScreenShareMask.resolvedOpacity();
+        const float finalAlpha = std::clamp(baseAlpha * data.a, 0.f, 1.f);
+        if (finalAlpha > 0.0f)
+            data.captureMaskColor = std::array<float, 4>{0.f, 0.f, 0.f, finalAlpha};
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

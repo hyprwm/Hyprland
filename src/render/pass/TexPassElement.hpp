@@ -1,5 +1,6 @@
 #pragma once
 #include "PassElement.hpp"
+#include <array>
 #include <optional>
 
 class CWLSurfaceResource;
@@ -9,19 +10,38 @@ class CSyncTimeline;
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<CTexture>          tex;
-        CBox                  box;
-        float                 a     = 1.F;
-        float                 blurA = 1.F;
-        CRegion               damage;
-        int                   round         = 0;
-        float                 roundingPower = 2.0f;
-        bool                  flipEndFrame  = false;
-        std::optional<Mat3x3> replaceProjection;
-        CBox                  clipBox;
-        bool                  blur = false;
-        std::optional<float>  ignoreAlpha;
-        std::optional<bool>   blockBlurOptimization;
+<<<<<<< HEAD
+        SP<CTexture>                        tex;
+        CBox                                box;
+        float                               a     = 1.F;
+        float                               blurA = 1.F;
+        CRegion                             damage;
+        int                                 round         = 0;
+        float                               roundingPower = 2.0f;
+        bool                                flipEndFrame  = false;
+        std::optional<Mat3x3>               replaceProjection;
+        CBox                                clipBox;
+        bool                                blur = false;
+        std::optional<float>                ignoreAlpha;
+        std::optional<bool>                 blockBlurOptimization;
+        bool                                captureWrites = true;
+        std::optional<std::array<float, 4>> captureMaskColor;
+=======
+        SP<CTexture>                        tex;
+        CBox                                box;
+        float                               a     = 1.F;
+        float                               blurA = 1.F;
+        CRegion                             damage;
+        int                                 round         = 0;
+        float                               roundingPower = 2.0f;
+        bool                                flipEndFrame  = false;
+        std::optional<Mat3x3>               replaceProjection;
+        CBox                                clipBox;
+        bool                                blur = false;
+        std::optional<float>                ignoreAlpha;
+        bool                                captureWrites = true;
+        std::optional<std::array<float, 4>> captureMaskColor;
+>>>>>>> db274332 (rework fadeout agane)
     };
 
     CTexPassElement(const SRenderData& data);

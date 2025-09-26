@@ -2724,16 +2724,17 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
 
-    if (!pWindow->m_ruleApplicator->noScreenShare().valueOrDefault()) {
-        CTexPassElement::SRenderData data;
-        data.flipEndFrame = true;
-        data.tex          = FBDATA->getTexture();
-        data.box          = windowBox;
-        data.a            = pWindow->m_alpha->value();
-        data.damage       = fakeDamage;
+    const bool                   windowNoShare = pWindow->m_ruleApplicator->noScreenShare().valueOrDefault();
 
-        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
-    }
+    CTexPassElement::SRenderData data;
+    data.flipEndFrame  = true;
+    data.tex           = FBDATA->getTexture();
+    data.box           = windowBox;
+    data.a             = pWindow->m_alpha->value();
+    data.damage        = fakeDamage;
+    data.captureWrites = !windowNoShare;
+
+    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2762,16 +2763,18 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 
     CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+    const bool                   SHOULD_BLUR  = shouldBlur(pLayer);
+    const bool                   layerNoShare = pLayer->m_ruleApplicator->noScreenShare().valueOrDefault();
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = layerBox;
-    data.a            = pLayer->m_alpha->value();
-    data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.flipEndFrame  = true;
+    data.tex           = FBDATA->getTexture();
+    data.box           = layerBox;
+    data.a             = pLayer->m_alpha->value();
+    data.damage        = fakeDamage;
+    data.blur          = SHOULD_BLUR;
+    data.blurA         = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.captureWrites = !layerNoShare;
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
 

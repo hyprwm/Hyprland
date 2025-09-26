@@ -36,13 +36,21 @@ void CTexPassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.discardOpacity = *m_data.ignoreAlpha;
     }
 
-    if (m_data.blur)
-        g_pHyprOpenGL->renderTexture(
-            m_data.tex, m_data.box,
-            {.a = m_data.a, .blur = true, .blurA = m_data.blurA, .overallA = 1.F, .round = m_data.round, .roundingPower = m_data.roundingPower, .blockBlurOptimization = false});
-    else
+    if (m_data.blur) {
+        g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
+                                     {
+                                         .a                     = m_data.a,
+                                         .blur                  = true,
+                                         .blurA                 = m_data.blurA,
+                                         .overallA              = 1.F,
+                                         .round                 = m_data.round,
+                                         .roundingPower         = m_data.roundingPower,
+                                         .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
+                                     });
+    } else {
         g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
                                      {.damage = m_data.damage.empty() ? &damage : &m_data.damage, .a = m_data.a, .round = m_data.round, .roundingPower = m_data.roundingPower});
+    }
 }
 
 bool CTexPassElement::needsLiveBlur() {

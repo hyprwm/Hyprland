@@ -21,6 +21,7 @@ class CTexPassElement : public IPassElement {
         CBox                  clipBox;
         bool                  blur = false;
         std::optional<float>  ignoreAlpha;
+        std::optional<bool>   blockBlurOptimization;
     };
 
     CTexPassElement(const SRenderData& data);

@@ -34,7 +34,7 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
     CBox box = m_assignedGeometry;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window.lock()));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window));
 
     const auto PWORKSPACE = m_window->m_workspace;
 

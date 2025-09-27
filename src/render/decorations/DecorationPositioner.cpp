@@ -15,7 +15,12 @@ CDecorationPositioner::CDecorationPositioner() {
     });
 }
 
-Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pWindow) {
+Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF pWindow) {
+    if (!pWindow) {
+        Debug::log(ERR, "getEdgeDefinedPoint: invalid pWindow");
+        return {};
+    }
+
     const bool TOP    = edges & DECORATION_EDGE_TOP;
     const bool BOTTOM = edges & DECORATION_EDGE_BOTTOM;
     const bool LEFT   = edges & DECORATION_EDGE_LEFT;
@@ -286,14 +291,14 @@ void CDecorationPositioner::onWindowMap(PHLWINDOW pWindow) {
     m_windowDatas[pWindow] = {};
 }
 
-SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOW pWindow) {
+SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOWREF pWindow) {
     try {
         const auto E = m_windowDatas.at(pWindow);
         return E.reserved;
     } catch (std::out_of_range& e) { return {}; }
 }
 
-SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly) {
+SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
     CBox const mainSurfaceBox = pWindow->getWindowMainSurfaceBox();
     CBox       accum          = mainSurfaceBox;
 
@@ -301,7 +306,7 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow,
         if (!data->pDecoration || (inputOnly && !(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT)))
             continue;
 
-        auto const window = data->pWindow.lock();
+        auto const window = data->pWindow;
         if (!window || window != pWindow)
             continue;
 

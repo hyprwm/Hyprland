@@ -596,7 +596,7 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     CBox box = m_assignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window.lock()));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
 
     const auto PWORKSPACE = m_window->m_workspace;
 

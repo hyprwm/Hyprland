@@ -140,6 +140,7 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput>=1.28
+  libeis-1.0
   gbm
   gio-2.0
   re2)

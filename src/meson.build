@@ -22,6 +22,7 @@ executable(
     dependency('egl'),
     dependency('xkbcommon'),
     dependency('libinput', version: '>=1.28'),
+    dependency('libeis-1.0'),
     dependency('re2'),
     xcb_dep,
     xcb_composite_dep,

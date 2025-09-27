@@ -620,7 +620,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::inputCapture->sendButton(e.button, (hyprlandInputCaptureManagerV1ButtonState)e.state);
+    PROTO::inputCapture->button(e.button, e.state);
 
  if (PROTO::inputCapture->isCaptured())
         return;
@@ -863,11 +863,11 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::inputCapture->sendAxis((hyprlandInputCaptureManagerV1Axis)e.axis, e.delta);
+    PROTO::inputCapture->axis(e.axis, e.delta);
     if (e.source == 0)
-        PROTO::inputCapture->sendAxisValue120((hyprlandInputCaptureManagerV1Axis)e.axis, e.delta);
+        PROTO::inputCapture->axisValue120(e.axis, e.delta);
     else if (e.delta == 0)
-        PROTO::inputCapture->sendAxisStop((hyprlandInputCaptureManagerV1Axis)e.axis);
+        PROTO::inputCapture->axisStop(e.axis);
 
     bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e);
 
@@ -954,7 +954,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 }
 
 void CInputManager::onMouseFrame() {
-    PROTO::inputCapture->sendFrame();
+    PROTO::inputCapture->frame();
 
     if (PROTO::inputCapture->isCaptured())
         return;
@@ -1470,7 +1470,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
-    PROTO::inputCapture->sendKey(event.keycode, (hyprlandInputCaptureManagerV1KeyState)event.state);
+    PROTO::inputCapture->key(event.keycode, event.state);
     bool passEvent = DISALLOWACTION;
 
     if (!DISALLOWACTION)
@@ -1513,7 +1513,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     MODS.depressed     = ALLMODS;
     m_lastMods         = MODS.depressed;
 
-    PROTO::inputCapture->sendModifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+    PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     if (PROTO::inputCapture->isCaptured())
         return;

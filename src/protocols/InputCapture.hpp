@@ -40,9 +40,10 @@ class CInputCaptureResource {
     void frame();
     void updateKeymap();
 
-    void activate(double x, double y, uint32_t borderId);
+    bool activate(double x, double y, uint32_t borderId);
     void disable();
 
+	bool enabled();
     bool good();
 
   private:
@@ -100,6 +101,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     //
     void                    onCreateSession(CHyprlandInputCaptureManagerV1* pMgr, uint32_t id, std::string handle);
     std::optional<SBarrier> isColliding(double px, double py, double nx, double ny);
+	std::optional<SP<CInputCaptureResource>> getSession(std::string sessionId);
 };
 
 namespace PROTO {

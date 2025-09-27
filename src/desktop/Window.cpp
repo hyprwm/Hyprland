@@ -751,8 +751,6 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MAXSIZE: {
             try {
-                if (!m_isFloating)
-                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for maxsize");
@@ -767,8 +765,6 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MINSIZE: {
             try {
-                if (!m_isFloating)
-                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for minsize");

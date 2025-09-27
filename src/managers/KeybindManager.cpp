@@ -6,12 +6,14 @@
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
+#include "protocols/InputCapture.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
@@ -142,6 +144,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["event"]                          = event;
     m_dispatchers["global"]                         = global;
     m_dispatchers["setprop"]                        = setProp;
+    m_dispatchers["releaseinputcapture"]            = releaseInputCapture;
 
     m_scrollTimer.reset();
 
@@ -781,6 +784,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             m_passPressed = sc<int>(pressed);
+
+            // We only process the releaseinputcapture dispatcher when input capture is active
+            if (PROTO::inputCapture->isCaptured()) {
+                if (k->handler == "releaseinputcapture")
+                    res = DISPATCHER->second(k->arg);
+                else
+                    break;
+            }
 
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
@@ -3282,4 +3293,9 @@ SDispatchResult CKeybindManager::sendkeystate(std::string args) {
     }
 
     return result;
+}
+
+SDispatchResult CKeybindManager::releaseInputCapture(std::string args) {
+    PROTO::inputCapture->forceRelease();
+    return {};
 }

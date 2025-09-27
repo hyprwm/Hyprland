@@ -214,8 +214,13 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
+    Vector2D availableSpace = calcSize;
+
     calcSize =
         calcSize.clamp(PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
+
+    if (!PWINDOW->onSpecialWorkspace() && !PWINDOW->m_isPseudotiled && (calcSize.x < availableSpace.x || calcSize.y < availableSpace.y))
+        calcPos += (availableSpace - calcSize) / 2.0;
 
     if (PWINDOW->onSpecialWorkspace() && !PWINDOW->isFullscreen()) {
         // if special, we adjust the coords a bit

@@ -264,13 +264,13 @@ uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
 std::string NFormatUtils::drmFormatName(DRMFormat drm) {
     auto        n    = drmGetFormatName(drm);
     std::string name = n;
-    free(n);
+    free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }
 
 std::string NFormatUtils::drmModifierName(uint64_t mod) {
     auto        n    = drmGetFormatModifierName(mod);
     std::string name = n;
-    free(n);
+    free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }

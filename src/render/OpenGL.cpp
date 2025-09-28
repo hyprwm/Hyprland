@@ -109,7 +109,7 @@ static int openRenderNode(int drmFd) {
         if (render_version && render_version->name) {
             Debug::log(LOG, "DRM dev versionName", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
-                free(renderName);
+                free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
                 renderName = strdup("/dev/dri/card0");
             }
             drmFreeVersion(render_version);
@@ -122,7 +122,7 @@ static int openRenderNode(int drmFd) {
     if (renderFD < 0)
         Debug::log(ERR, "openRenderNode failed to open drm device {}", renderName);
 
-    free(renderName);
+    free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
     return renderFD;
 }
 
@@ -505,9 +505,9 @@ void CHyprOpenGLImpl::initDRMFormats() {
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
             modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
-            free(modName);
+            free(modName); // NOLINT(cppcoreguidelines-no-malloc)
         }
-        free(fmtName);
+        free(fmtName); // NOLINT(cppcoreguidelines-no-malloc)
 
         mods.clear();
         std::ranges::sort(modifierData, [](const auto& a, const auto& b) {

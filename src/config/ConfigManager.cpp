@@ -38,7 +38,6 @@
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
-#include "helpers/Monitor.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>

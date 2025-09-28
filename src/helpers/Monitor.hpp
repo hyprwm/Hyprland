@@ -42,6 +42,9 @@ enum eCMType : uint8_t {
     CM_EDID,     // primaries from edid (known to be inaccurate)
     CM_HDR,      // wide color gamut and HDR PQ transfer function
     CM_HDR_EDID, // same as CM_HDR with edid primaries
+    CM_DCIP3,    // movie theatre with greenish white point
+    CM_DP3,      // applle P3 variant with blueish white point
+    CM_ADOBE,    // adobe colorspace
 };
 
 struct SMonitorRule {

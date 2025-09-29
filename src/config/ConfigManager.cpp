@@ -3016,11 +3016,11 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         return "source= path " + rawpath + " bogus!";
     }
 
-    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize NOLINT(cppcoreguidelines-no-malloc)
                                                         [](glob_t* g) {
                                                             if (g) {
                                                                 globfree(g); // free internal resources allocated by glob()
-                                                                free(g);     // free the memory for the glob_t structure
+                                                                free(g);     // free the memory for the glob_t structure NOLINT(cppcoreguidelines-no-malloc)
                                                             }
                                                         }};
 

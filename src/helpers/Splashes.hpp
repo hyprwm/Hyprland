@@ -49,7 +49,7 @@ namespace NSplashes {
         "By dt, do you mean damage tracking or distrotube?",
         "Made in Poland",
         "\"I use Arch, btw\" - John Cena",
-        "\"Hyper\".replace(\"e\", \"\")",
+        R"("Hyper".replace("e", ""))",
         "\"my win11 install runs hyprland that is true\" - raf",
         "\"stop playing league loser\" - hyprBot",
         "\"If it ain't broke, don't fix it\" - Lucascito_03",

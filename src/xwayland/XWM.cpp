@@ -33,7 +33,7 @@ static int       onX11Event(int fd, uint32_t mask, void* data) {
 
 struct SFreeDeleter {
     void operator()(void* ptr) const {
-        std::free(ptr);
+        std::free(ptr); // NOLINT(cppcoreguidelines-no-malloc)
     }
 };
 
@@ -1292,7 +1292,7 @@ void CXWM::getTransferData(SXSelection& sel) {
     if (transfer->propertyReply->type == HYPRATOMS["INCR"]) {
         transfer->incremental   = true;
         transfer->propertyStart = 0;
-        free(transfer->propertyReply);
+        free(transfer->propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
         transfer->propertyReply = nullptr;
         return;
     }
@@ -1544,7 +1544,7 @@ int SXSelection::onWrite() {
         if (!transfer->incremental) {
             transfers.erase(it);
         } else {
-            free(transfer->propertyReply);
+            free(transfer->propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
             transfer->propertyReply = nullptr;
             transfer->propertyStart = 0;
         }
@@ -1559,7 +1559,7 @@ SXTransfer::~SXTransfer() {
     if (incomingWindow)
         xcb_destroy_window(*g_pXWayland->m_wm->m_connection, incomingWindow);
     if (propertyReply)
-        free(propertyReply);
+        free(propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
 }
 
 bool SXTransfer::getIncomingSelectionProp(bool erase) {

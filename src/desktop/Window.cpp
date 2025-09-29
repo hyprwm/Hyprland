@@ -147,7 +147,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     SBoxExtents maxExtents = {.topLeft = {BORDERSIZE + 2, BORDERSIZE + 2}, .bottomRight = {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock());
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self);
 
     maxExtents.topLeft.x = std::max(EXTENTS.topLeft.x, maxExtents.topLeft.x);
 
@@ -241,11 +241,11 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
     SBoxExtents extents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
     if (properties & RESERVED_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self));
     if (properties & INPUT_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, true));
     if (properties & FULL_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, false));
 
     return extents;
 }
@@ -264,7 +264,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
 }
 
 SBoxExtents CWindow::getFullWindowReservedArea() {
-    return g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock());
+    return g_pDecorationPositioner->getWindowDecorationReserved(m_self);
 }
 
 void CWindow::updateWindowDecos() {

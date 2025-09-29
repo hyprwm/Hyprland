@@ -237,7 +237,6 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
         EXPECT_NOT_CONTAINS(str, "pinned: 1");
-
         OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
         OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
         OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));
@@ -246,6 +245,7 @@ static bool test() {
         if (!spawnKitty("magic_kitty"))
             return false;
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
+        EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
     NLog::log("{}Testing faulty rules", Colors::YELLOW);
     {

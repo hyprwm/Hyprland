@@ -2669,16 +2669,17 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     bool                                                   parsingParams = false;
 
     for (const auto& varStr : VARLIST) {
-        std::string_view var = varStr;
-        auto             sep = var.find(':');
-        std::string_view key = (sep != std::string_view::npos) ? var.substr(0, sep) : var;
+        std::string_view var     = varStr;
+        auto             sep     = var.find(':');
+        std::string_view key     = (sep != std::string_view::npos) ? var.substr(0, sep) : var;
+        bool             isParam = (sep != std::string_view::npos && !(key.starts_with("workspace ") || (key.starts_with("monitor ")) || key.ends_with("plugin")));
 
         if (!parsingParams) {
-            // Don't be alarmed, ends_with is a single memcmp, i went and checked.
-            if (sep == std::string_view::npos || key.ends_with("plugin") || key.ends_with("special")) {
+            if (!isParam) {
                 tokens.emplace_back(var);
                 continue;
             }
+
             parsingParams = true;
         }
 
@@ -2964,7 +2965,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             CHECK_OR_THROW(configStringToInt(rule.substr(delim + 11)))
             wsRule.isPersistent = *X;
         } else if ((delim = rule.find("defaultName:")) != std::string::npos)
-            wsRule.defaultName = rule.substr(delim + 12);
+            wsRule.defaultName = trim(rule.substr(delim + 12));
         else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos) {
             CHECK_OR_THROW(cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmptyLen)))
             wsRule.onCreatedEmptyRunCmd = *X;

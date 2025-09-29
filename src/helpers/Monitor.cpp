@@ -474,6 +474,21 @@ void CMonitor::applyCMType(eCMType cmType) {
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
             break;
+        case CM_DCIP3:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)};
+            break;
+        case CM_DP3:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)};
+            break;
+        case CM_ADOBE:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)};
+            break;
         case CM_EDID:
             m_imageDescription = {.primariesNameSet = false,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,

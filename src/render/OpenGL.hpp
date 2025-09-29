@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <list>
 #include <string>
-#include <unordered_map>
 #include <stack>
 #include <map>
 
@@ -341,6 +340,13 @@ class CHyprOpenGLImpl {
 
     eEGLContextVersion m_eglContextVersion = EGL_CONTEXT_GLES_3_2;
 
+    enum eCachedCapStatus : uint8_t {
+        CAP_STATUS_BLEND = 0,
+        CAP_STATUS_SCISSOR_TEST,
+        CAP_STATUS_STENCIL_TEST,
+        CAP_STATUS_END
+    };
+
   private:
     struct {
         GLint   x      = 0;
@@ -349,7 +355,7 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    std::unordered_map<int, bool>     m_capStatus;
+    std::array<bool, CAP_STATUS_END>  m_capStatus;
 
     std::vector<SDRMFormat>           m_drmFormats;
     bool                              m_hasModifiers = false;

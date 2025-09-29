@@ -2263,6 +2263,12 @@ bool CMonitorRuleParser::parseCM(const std::string& value) {
         m_rule.cmType = CM_HDR;
     else if (value == "hdredid")
         m_rule.cmType = CM_HDR_EDID;
+    else if (value == "dcip3")
+        m_rule.cmType = CM_DCIP3;
+    else if (value == "dp3")
+        m_rule.cmType = CM_DP3;
+    else if (value == "adobe")
+        m_rule.cmType = CM_ADOBE;
     else {
         m_error += "invalid cm ";
         return false;
@@ -3017,11 +3023,11 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         return "source= path " + rawpath + " bogus!";
     }
 
-    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize NOLINT(cppcoreguidelines-no-malloc)
                                                         [](glob_t* g) {
                                                             if (g) {
                                                                 globfree(g); // free internal resources allocated by glob()
-                                                                free(g);     // free the memory for the glob_t structure
+                                                                free(g);     // free the memory for the glob_t structure NOLINT(cppcoreguidelines-no-malloc)
                                                             }
                                                         }};
 

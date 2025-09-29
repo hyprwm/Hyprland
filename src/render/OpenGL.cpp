@@ -109,7 +109,7 @@ static int openRenderNode(int drmFd) {
         if (render_version && render_version->name) {
             Debug::log(LOG, "DRM dev versionName", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
-                free(renderName);
+                free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
                 renderName = strdup("/dev/dri/card0");
             }
             drmFreeVersion(render_version);
@@ -122,7 +122,7 @@ static int openRenderNode(int drmFd) {
     if (renderFD < 0)
         Debug::log(ERR, "openRenderNode failed to open drm device {}", renderName);
 
-    free(renderName);
+    free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
     return renderFD;
 }
 
@@ -505,9 +505,9 @@ void CHyprOpenGLImpl::initDRMFormats() {
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
             modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
-            free(modName);
+            free(modName); // NOLINT(cppcoreguidelines-no-malloc)
         }
-        free(fmtName);
+        free(fmtName); // NOLINT(cppcoreguidelines-no-malloc)
 
         mods.clear();
         std::ranges::sort(modifierData, [](const auto& a, const auto& b) {
@@ -3170,18 +3170,36 @@ void CHyprOpenGLImpl::setViewport(GLint x, GLint y, GLsizei width, GLsizei heigh
 }
 
 void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
-    // check if the capability status is already set to the desired status
-    auto it            = m_capStatus.find(cap);
-    bool currentStatus = (it != m_capStatus.end()) ? it->second : false; // default to 'false' if not found
+    const auto getCapIndex = [cap]() {
+        switch (cap) {
+            case GL_BLEND: return CAP_STATUS_BLEND;
+            case GL_SCISSOR_TEST: return CAP_STATUS_SCISSOR_TEST;
+            case GL_STENCIL_TEST: return CAP_STATUS_STENCIL_TEST;
+            default: return CAP_STATUS_END;
+        }
+    };
 
-    if (currentStatus == status)
+    auto idx = getCapIndex();
+
+    if (idx == CAP_STATUS_END) {
+        if (status)
+            glEnable(cap);
+        else
+            glDisable(cap);
+
+        return;
+    }
+
+    if (m_capStatus[idx] == status)
         return;
 
-    m_capStatus[cap] = status;
-
-    // Enable or disable the capability based on status
-    auto func = status ? [](int c) { glEnable(c); } : [](int c) { glDisable(c); };
-    func(cap);
+    if (status) {
+        m_capStatus[idx] = status;
+        glEnable(cap);
+    } else {
+        m_capStatus[idx] = status;
+        glDisable(cap);
+    }
 }
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {

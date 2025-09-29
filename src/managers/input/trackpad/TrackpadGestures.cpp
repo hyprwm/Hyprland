@@ -108,6 +108,7 @@ void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
     }
 
     m_gestureFindFailed = false;
+    m_currentTotalDelta = {};
 
     // nothing here. We need to wait for the first update to determine the delta.
 }
@@ -116,8 +117,10 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
     if (m_gestureFindFailed)
         return;
 
+    m_currentTotalDelta += e.delta;
+
     // 5 was chosen because I felt like that's a good number.
-    if (!m_activeGesture && (std::abs(e.delta.x) < 5 && std::abs(e.delta.y) < 5)) {
+    if (!m_activeGesture && (std::abs(m_currentTotalDelta.x) < 5 && std::abs(m_currentTotalDelta.y) < 5)) {
         Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (swipe): gesture delta too small to start considering, waiting");
         return;
     }
@@ -126,12 +129,12 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
         // try to find a gesture that matches our current state
 
         auto direction = TRACKPAD_GESTURE_DIR_NONE;
-        auto axis      = std::abs(e.delta.x) > std::abs(e.delta.y) ? TRACKPAD_GESTURE_DIR_HORIZONTAL : TRACKPAD_GESTURE_DIR_VERTICAL;
+        auto axis      = std::abs(m_currentTotalDelta.x) > std::abs(m_currentTotalDelta.y) ? TRACKPAD_GESTURE_DIR_HORIZONTAL : TRACKPAD_GESTURE_DIR_VERTICAL;
 
         if (axis == TRACKPAD_GESTURE_DIR_HORIZONTAL)
-            direction = e.delta.x < 0 ? TRACKPAD_GESTURE_DIR_LEFT : TRACKPAD_GESTURE_DIR_RIGHT;
+            direction = m_currentTotalDelta.x < 0 ? TRACKPAD_GESTURE_DIR_LEFT : TRACKPAD_GESTURE_DIR_RIGHT;
         else
-            direction = e.delta.y < 0 ? TRACKPAD_GESTURE_DIR_UP : TRACKPAD_GESTURE_DIR_DOWN;
+            direction = m_currentTotalDelta.y < 0 ? TRACKPAD_GESTURE_DIR_UP : TRACKPAD_GESTURE_DIR_DOWN;
 
         const auto MODS = g_pInputManager->getModsFromAllKBs();
 

@@ -355,14 +355,10 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
         LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
-        if (m_currentPreferred.valid())
-            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CWpColorManagementSurfaceFeedbackV1* r) {
         LOGM(TRACE, "Destroy wp cm feedback surface {}", (uintptr_t)m_surface);
-        if (m_currentPreferred.valid())
-            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
 
@@ -374,9 +370,6 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        if (m_currentPreferred.valid())
-            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
-
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
@@ -386,11 +379,10 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        RESOURCE->m_self   = RESOURCE;
-        m_currentPreferred = RESOURCE;
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = m_surface->getPreferredImageDescription();
 
-        m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
-        RESOURCE->resource()->sendReady(m_currentPreferred->m_settings.updateId());
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings.updateId());
     });
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
@@ -401,9 +393,6 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        if (m_currentPreferred.valid())
-            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
-
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
             makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), true));
 
@@ -413,13 +402,11 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        RESOURCE->m_self   = RESOURCE;
-        m_currentPreferred = RESOURCE;
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = m_surface->getPreferredImageDescription();
+        m_currentPreferredId = RESOURCE->m_settings.updateId();
 
-        m_currentPreferred->m_settings = m_surface->getPreferredImageDescription();
-        m_currentPreferredId           = m_currentPreferred->m_settings.updateId();
-
-        if (!PROTO::colorManagement->m_debug && m_currentPreferred->m_settings.icc.fd >= 0) {
+        if (!PROTO::colorManagement->m_debug && RESOURCE->m_settings.icc.fd >= 0) {
             LOGM(ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
             return;

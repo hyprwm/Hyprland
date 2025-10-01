@@ -1483,9 +1483,10 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
-    static auto PCT      = CConfigValue<Hyprlang::INT>("render:send_content_type");
-    static auto PPASS    = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static auto PAUTOHDR = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
+    static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
+    static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
+    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
 
     static bool needsHDRupdate = false;
 
@@ -1570,7 +1571,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
     if (FS_WINDOW != pMonitor->m_previousFSWindow) {
-        if (!FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM()) {
+        if (!FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() || (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
             if (pMonitor->m_noShaderCTM) {
                 Debug::log(INFO, "[CM] No fullscreen CTM, restoring previous one");
                 pMonitor->m_noShaderCTM = false;

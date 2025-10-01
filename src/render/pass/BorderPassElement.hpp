@@ -13,6 +13,7 @@ class CBorderPassElement : public IPassElement {
         float              lerp = 0.F, a = 1.F;
         int                round = 0, borderSize = 1, outerRound = -1;
         float              roundingPower = 2.F;
+        PHLWINDOWREF       pWindow;
     };
 
     CBorderPassElement(const SBorderData& data_);

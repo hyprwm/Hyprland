@@ -10,6 +10,8 @@
 
 #include <fcntl.h>
 
+constexpr const float WL_FIXED_EPSILON = 1.F / 256.F;
+
 CWLTouchResource::CWLTouchResource(SP<CWlTouch> resource_, SP<CWLSeatResource> owner_) : m_owner(owner_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -169,7 +171,9 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     m_currentSurface           = surface;
     m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
+    const auto fixedLocal = fixPosWithWlFixed(local);
+
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
 void CWLPointerResource::sendLeave() {
@@ -201,7 +205,9 @@ void CWLPointerResource::sendMotion(uint32_t timeMs, const Vector2D& local) {
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
         return;
 
-    m_resource->sendMotion(timeMs, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
+    const auto fixedLocal = fixPosWithWlFixed(local);
+
+    m_resource->sendMotion(timeMs, wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
 void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state) {
@@ -295,6 +301,23 @@ void CWLPointerResource::sendAxisRelativeDirection(wl_pointer_axis axis, wl_poin
         return;
 
     m_resource->sendAxisRelativeDirection(axis, direction);
+}
+
+Vector2D CWLPointerResource::fixPosWithWlFixed(const Vector2D& pos) {
+    if (!m_currentSurface)
+        return pos;
+
+    Vector2D newPos = pos;
+
+    // When our cursor pos is right at the edge, wl_fixed will round it up,
+    // instead of down, meaning 10.999999 -> 11 instead of 10 + 255/256
+    // if we are within that epsilon, move the coord a bit down to account for that.
+    if (std::abs(newPos.x - m_currentSurface->m_current.size.x) < WL_FIXED_EPSILON)
+        newPos.x = m_currentSurface->m_current.size.x - WL_FIXED_EPSILON * 2;
+    if (std::abs(newPos.y - m_currentSurface->m_current.size.y) < WL_FIXED_EPSILON)
+        newPos.y = m_currentSurface->m_current.size.y - WL_FIXED_EPSILON * 2;
+
+    return newPos;
 }
 
 CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatResource> owner_) : m_owner(owner_), m_resource(resource_) {

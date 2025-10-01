@@ -3,6 +3,22 @@
 #include "protocols/types/Buffer.hpp"
 #include "render/Texture.hpp"
 
+SSurfaceStateFrameCB::SSurfaceStateFrameCB(SP<CWlCallback>&& resource_) : m_resource(std::move(resource_)) {
+    ;
+}
+
+bool SSurfaceStateFrameCB::good() {
+    return m_resource && m_resource->resource();
+}
+
+void SSurfaceStateFrameCB::send(const Time::steady_tp& now) {
+    if (!good())
+        return;
+
+    m_resource->sendDone(Time::millis(now));
+    m_resource.reset();
+}
+
 Vector2D SSurfaceState::sourceSize() {
     if UNLIKELY (!texture)
         return {};
@@ -100,4 +116,9 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.bits.acked)
         ackedSize = ref.ackedSize;
+
+    if (ref.updated.bits.frame) {
+        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
+        ref.callbacks.clear();
+    }
 }

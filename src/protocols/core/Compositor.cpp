@@ -27,18 +27,6 @@ class CDefaultSurfaceRole : public ISurfaceRole {
     }
 };
 
-CWLCallbackResource::CWLCallbackResource(UP<CWlCallback>&& resource_) : m_resource(std::move(resource_)) {
-    ;
-}
-
-bool CWLCallbackResource::good() {
-    return m_resource->resource();
-}
-
-void CWLCallbackResource::send(const Time::steady_tp& now) {
-    m_resource->sendDone(Time::millis(now));
-}
-
 CWLRegionResource::CWLRegionResource(SP<CWlRegion> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -239,7 +227,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.opaque = RG->m_region;
     });
 
-    m_resource->setFrame([this](CWlSurface* r, uint32_t id) { m_callbacks.emplace_back(makeUnique<CWLCallbackResource>(makeUnique<CWlCallback>(m_client, 1, id))); });
+    m_resource->setFrame([this](CWlSurface* r, uint32_t id) {
+        m_pending.updated.bits.frame = true;
+        m_pending.callbacks.emplace_back(makeShared<SSurfaceStateFrameCB>(makeShared<CWlCallback>(m_client, 1, id)));
+    });
 
     m_resource->setOffset([this](CWlSurface* r, int32_t x, int32_t y) {
         m_pending.updated.bits.offset = true;
@@ -340,14 +331,14 @@ void CWLSurfaceResource::sendPreferredScale(int32_t scale) {
 }
 
 void CWLSurfaceResource::frame(const Time::steady_tp& now) {
-    if (m_callbacks.empty())
+    if (m_current.callbacks.empty())
         return;
 
-    for (auto const& c : m_callbacks) {
+    for (auto const& c : m_current.callbacks) {
         c->send(now);
     }
 
-    m_callbacks.clear();
+    m_current.callbacks.clear();
 }
 
 void CWLSurfaceResource::resetRole() {

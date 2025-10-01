@@ -693,8 +693,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     Vector2D availableSpace = calcSize;
 
-    calcSize =
-        calcSize.clamp(PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
+    Vector2D minSize = PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
+    Vector2D maxSize = PWINDOW->isFullscreen() ? Vector2D{INFINITY, INFINITY} : PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY});
+    calcSize         = calcSize.clamp(minSize, maxSize);
 
     if (!PWINDOW->onSpecialWorkspace() && (calcSize.x < availableSpace.x || calcSize.y < availableSpace.y))
         calcPos += (availableSpace - calcSize) / 2.0;

@@ -33,17 +33,6 @@ class CColorManagementSurface;
 class CFrogColorManagementSurface;
 class CContentType;
 
-class CWLCallbackResource {
-  public:
-    CWLCallbackResource(UP<CWlCallback>&& resource_);
-
-    bool good();
-    void send(const Time::steady_tp& now);
-
-  private:
-    UP<CWlCallback> m_resource;
-};
-
 class CWLRegionResource {
   public:
     CWLRegionResource(SP<CWlRegion> resource_);
@@ -95,7 +84,6 @@ class CWLSurfaceResource {
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
 
-    std::vector<UP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;

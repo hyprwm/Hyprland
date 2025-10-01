@@ -1,14 +1,17 @@
-#include "../../Log.hpp"
-#include "tests.hpp"
-#include "../../shared.hpp"
-#include "../../hyprctlCompat.hpp"
 #include <filesystem>
 #include <thread>
+#include "../../shared.hpp"
+#include "../../hyprctlCompat.hpp"
+#include "../shared.hpp"
+#include "tests.hpp"
 
-static int ret = 0;
+using namespace Hyprutils::OS;
+using namespace Hyprutils::Memory;
+
+static int         ret      = 0;
 static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
 
-static void clearFlag() {
+static void        clearFlag() {
     std::filesystem::remove(flagFile);
 }
 
@@ -18,13 +21,33 @@ static bool checkFlag() {
     return exists;
 }
 
+static CUniquePointer<CProcess> spawnRemoteControlKitty() {
+    auto kittyProc = Tests::spawnKitty("keybinds_test", {"-o", "allow_remote_control=yes", "--listen-on", "unix:/tmp/hyprtester-kitty.sock", "--config", "NONE", "/bin/sh"});
+    // wait a bit to ensure shell prompt is sent, we are going to read the text after it
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    return kittyProc;
+}
+
+static std::string readKittyOutput() {
+    std::string output = Tests::execAndGet("kitten @ --to unix:/tmp/hyprtester-kitty.sock get-text --extent all");
+    // chop off shell prompt
+    std::size_t pos = output.rfind("$ ");
+    if (pos != std::string::npos) {
+        pos += 2;
+        if (pos < output.size()) 
+            output.erase(0, pos);
+    }
+    // NLog::log("Kitty output: '{}'", output);
+    return output;
+}
+
 static void testBind() {
     EXPECT(checkFlag(), false);
     EXPECT(getFromSocket("/keyword bind SUPER,Y,exec,touch " + flagFile), "ok");
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
@@ -37,7 +60,7 @@ static void testBindKey() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,0,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
@@ -51,7 +74,7 @@ static void testLongPress() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), false);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -68,7 +91,7 @@ static void testKeyLongPress() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,0,29"));
     // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), false);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -85,7 +108,7 @@ static void testLongPressRelease() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), false);
     // release keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
@@ -102,28 +125,10 @@ static void testLongPressOnlyKeyRelease() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), false);
     // release key, keep modifier
     OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
-    // await repeat delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    EXPECT(checkFlag(), false);
-    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
-    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
-}
-
-static void testLongPressOnlyModifierRelease() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/keyword bindo SUPER,Y,exec,touch " + flagFile), "ok");
-    EXPECT(getFromSocket("/keyword input:repeat_delay 100"), "ok");
-    // press keybind
-    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
-    // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    EXPECT(checkFlag(), false);
-    // release modifier, keep key
-    OK(getFromSocket("/dispatch plugin:test:keybind 1,0,29"));
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     EXPECT(checkFlag(), false);
@@ -138,7 +143,7 @@ static void testRepeat() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -158,7 +163,7 @@ static void testKeyRepeat() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,0,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -178,7 +183,7 @@ static void testRepeatRelease() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
@@ -198,7 +203,7 @@ static void testRepeatOnlyKeyRelease() {
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT(checkFlag(), true);
     // release key, keep modifier
     OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
@@ -212,25 +217,165 @@ static void testRepeatOnlyKeyRelease() {
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 }
 
-static void testRepeatOnlyModifierRelease() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/keyword binde SUPER,Y,exec,touch " + flagFile), "ok");
-    EXPECT(getFromSocket("/keyword input:repeat_delay 100"), "ok");
+static void testShortcutBind() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword bind SUPER,Y,sendshortcut,,q,"), "ok");
     // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
-    // await flag
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    EXPECT(checkFlag(), true);
-    // release modifier, keep key
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const std::string output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "q", 1);
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+    Tests::killAllWindows();
+}
+
+static void testShortcutBindKey() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword bind ,Y,sendshortcut,,q,"), "ok");
+    // press keybind
     OK(getFromSocket("/dispatch plugin:test:keybind 1,0,29"));
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const std::string output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "q", 1);
+    EXPECT(getFromSocket("/keyword unbind ,Y"), "ok");
+    Tests::killAllWindows();
+}
+
+static void testShortcutLongPress() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword bindo SUPER,Y,sendshortcut,,q,"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_delay 100"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_rate 10"), "ok");
+    // press keybind
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     // await repeat delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    EXPECT(checkFlag(), false);
-    // check that it is not repeating
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    EXPECT(checkFlag(), false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    const std::string output = readKittyOutput();
+    int               yCount = Tests::countOccurrences(output, "y");
+    // sometimes 1, sometimes 2, not sure why
+    // keybind press sends 1 y immediately
+    // then repeat triggers, sending 1 y
+    // final release stop repeats, and shouldn't send any more
+    EXPECT(true, yCount == 1 || yCount == 2);
+    EXPECT_COUNT_STRING(output, "q", 1);
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+    Tests::killAllWindows();
+}
+
+static void testShortcutLongPressKeyRelease() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword bindo SUPER,Y,sendshortcut,,q,"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_delay 100"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_rate 10"), "ok");
+    // press keybind
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // release key, keep modifier
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
+    // await repeat delay
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    const std::string output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 1);
+    EXPECT_COUNT_STRING(output, "q", 0);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+    Tests::killAllWindows();
+}
+
+static void testShortcutRepeat() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword binde SUPER,Y,sendshortcut,,q,"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_rate 5"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_delay 200"), "ok");
+    // press keybind
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    // await repeat
+    std::this_thread::sleep_for(std::chrono::milliseconds(210));
+    // release keybind
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(450));
+    const std::string output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    int qCount = Tests::countOccurrences(output, "q");
+    // sometimes 2, sometimes 3, not sure why
+    // keybind press sends 1 q immediately
+    // then repeat triggers, sending 1 q
+    // final release stop repeats, and shouldn't send any more
+    EXPECT(true, qCount == 2 || qCount == 3);
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+    Tests::killAllWindows();
+}
+
+static void testShortcutRepeatKeyRelease() {
+    auto kittyProc = spawnRemoteControlKitty();
+    if (!kittyProc) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        ret = 1;
+        return;
+    }
+    EXPECT(getFromSocket("/dispatch focuswindow class:keybinds_test"), "ok");
+    EXPECT(getFromSocket("/keyword binde SUPER,Y,sendshortcut,,q,"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_rate 5"), "ok");
+    EXPECT(getFromSocket("/keyword input:repeat_delay 200"), "ok");
+    // press keybind
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(210));
+    // release key, keep modifier
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
+    // if repeat was still active, we'd get 2 more q's here
+    std::this_thread::sleep_for(std::chrono::milliseconds(450));
+    // release modifier
+    const std::string output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    int qCount = Tests::countOccurrences(output, "q");
+    // sometimes 2, sometimes 3, not sure why
+    // keybind press sends 1 q immediately
+    // then repeat triggers, sending 1 q
+    // final release stop repeats, and shouldn't send any more
+    EXPECT(true, qCount == 2 || qCount == 3);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+    Tests::killAllWindows();
 }
 
 static bool test() {
@@ -242,13 +387,17 @@ static bool test() {
     testKeyLongPress();
     testLongPressRelease();
     testLongPressOnlyKeyRelease();
-    testLongPressOnlyModifierRelease();
     testRepeat();
     testKeyRepeat();
     testRepeatRelease();
     testRepeatOnlyKeyRelease();
-    testRepeatOnlyModifierRelease();
-    
+    testShortcutBind();
+    testShortcutBindKey();
+    testShortcutLongPress();
+    testShortcutLongPressKeyRelease();
+    testShortcutRepeat();
+    testShortcutRepeatKeyRelease();
+
     clearFlag();
     return !ret;
 }

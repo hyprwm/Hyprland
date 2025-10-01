@@ -91,7 +91,6 @@ class CColorManagementFeedbackSurface {
     SP<CWpColorManagementSurfaceFeedbackV1> m_resource;
     wl_client*                              m_client = nullptr;
 
-    WP<CColorManagementImageDescription>    m_currentPreferred;
     uint32_t                                m_currentPreferredId = 0;
 
     struct {

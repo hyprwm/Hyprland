@@ -42,19 +42,15 @@ void CHyprDropShadowDecoration::damageEntire() {
         return; // disabled
 
     const auto PWINDOW = m_window.lock();
-    const auto pos     = PWINDOW->m_realPosition->value();
-    const auto size    = PWINDOW->m_realSize->value();
 
-    CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, pos.x + size.x + m_extents.bottomRight.x, pos.y + size.y + m_extents.bottomRight.y};
+    CBox       shadowBox = {PWINDOW->m_realPosition->value().x - m_extents.topLeft.x, PWINDOW->m_realPosition->value().y - m_extents.topLeft.y,
+                            PWINDOW->m_realSize->value().x + m_extents.topLeft.x + m_extents.bottomRight.x,
+                            PWINDOW->m_realSize->value().y + m_extents.topLeft.y + m_extents.bottomRight.y};
 
-    const auto PWORKSPACE  = PWINDOW->m_workspace;
-    const auto applyOffset = [&](CBox& b) {
-        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
-            b.translate(PWORKSPACE->m_renderOffset->value());
-        b.translate(PWINDOW->m_floatingOffset);
-    };
-
-    applyOffset(shadowBox);
+    const auto PWORKSPACE = PWINDOW->m_workspace;
+    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+        shadowBox.translate(PWORKSPACE->m_renderOffset->value());
+    shadowBox.translate(PWINDOW->m_floatingOffset);
 
     static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
     const auto  ROUNDING            = PWINDOW->rounding();
@@ -63,7 +59,9 @@ void CHyprDropShadowDecoration::damageEntire() {
     CRegion     shadowRegion(shadowBox);
     if (*PSHADOWIGNOREWINDOW) {
         CBox surfaceBox = PWINDOW->getWindowMainSurfaceBox();
-        applyOffset(surfaceBox);
+        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+            surfaceBox.translate(PWORKSPACE->m_renderOffset->value());
+        surfaceBox.translate(PWINDOW->m_floatingOffset);
         surfaceBox.expand(-ROUNDINGSIZE);
         shadowRegion.subtract(CRegion(surfaceBox));
     }
@@ -92,7 +90,7 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     CShadowPassElement::SShadowData data;
     data.deco = this;
     data.a    = a;
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CShadowPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CShadowPassElement>(data));
 }
 
 void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {

@@ -20,7 +20,6 @@ struct SSurfaceState {
             bool offset : 1;
             bool viewport : 1;
             bool acquire : 1;
-            bool acked : 1;
         } bits;
     } updated;
 
@@ -37,9 +36,6 @@ struct SSurfaceState {
     // these don't have well defined initial values in the protocol, but these work
     Vector2D size, bufferSize;
     Vector2D offset;
-
-    // for xdg_shell resizing
-    Vector2D ackedSize;
 
     // viewporter protocol surface state
     struct {

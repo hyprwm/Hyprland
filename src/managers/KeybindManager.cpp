@@ -14,7 +14,6 @@
 #include "debug/Log.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
@@ -291,8 +290,8 @@ void CKeybindManager::updateXKBTranslationState() {
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     FILE* const       KEYMAPFILE = FILEPATH.empty() ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
 
-    auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS) :
-                                             xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
+                                             xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (KEYMAPFILE)
         fclose(KEYMAPFILE);
 
@@ -305,7 +304,7 @@ void CKeybindManager::updateXKBTranslationState() {
                    rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
-        PKEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        PKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
     xkb_context_unref(PCONTEXT);
@@ -949,9 +948,17 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
-    pid_t      child = fork();
+    int        socket[2];
+    if (pipe(socket) != 0) {
+        Debug::log(LOG, "Unable to create pipe for fork");
+    }
+
+    CFileDescriptor pipeSock[2] = {CFileDescriptor{socket[0]}, CFileDescriptor{socket[1]}};
+
+    pid_t           child, grandchild;
+    child = fork();
     if (child < 0) {
-        Debug::log(LOG, "Fail to fork");
+        Debug::log(LOG, "Fail to create the first fork");
         return 0;
     }
     if (child == 0) {
@@ -962,28 +969,41 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
         sigemptyset(&set);
         sigprocmask(SIG_SETMASK, &set, nullptr);
 
-        for (auto const& e : HLENV) {
-            setenv(e.first.c_str(), e.second.c_str(), 1);
+        grandchild = fork();
+        if (grandchild == 0) {
+            // run in grandchild
+            for (auto const& e : HLENV) {
+                setenv(e.first.c_str(), e.second.c_str(), 1);
+            }
+            setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
+
+            int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
+            if (devnull != -1) {
+                dup2(devnull, STDOUT_FILENO);
+                dup2(devnull, STDERR_FILENO);
+                close(devnull);
+            }
+
+            execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+            // exit grandchild
+            _exit(0);
         }
-        setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
-
-        int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
-        if (devnull != -1) {
-            dup2(devnull, STDOUT_FILENO);
-            dup2(devnull, STDERR_FILENO);
-            close(devnull);
-        }
-
-        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
-
+        write(pipeSock[1].get(), &grandchild, sizeof(grandchild));
         // exit child
         _exit(0);
     }
     // run in parent
+    read(pipeSock[0].get(), &grandchild, sizeof(grandchild));
+    // clear child and leave grandchild to init
+    waitpid(child, nullptr, 0);
+    if (grandchild < 0) {
+        Debug::log(LOG, "Fail to create the second fork");
+        return 0;
+    }
 
-    Debug::log(LOG, "Process Created with pid {}", child);
+    Debug::log(LOG, "Process Created with pid {}", grandchild);
 
-    return child;
+    return grandchild;
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
@@ -2309,8 +2329,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
             // don't make floating implicitly fs
             if (!PWINDOW->m_createdOverFullscreen) {
                 g_pCompositor->changeWindowZOrder(PWINDOW, true);
-                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+                g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
             }
 
             g_pCompositor->focusWindow(PWINDOW);

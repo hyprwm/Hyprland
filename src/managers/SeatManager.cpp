@@ -129,7 +129,6 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
                 if (!k)
                     continue;
 
-                k->sendMods(0, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
                 k->sendLeave();
             }
         }

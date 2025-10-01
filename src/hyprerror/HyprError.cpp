@@ -4,7 +4,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
 
@@ -208,7 +208,7 @@ void CHyprError::draw() {
     data.box = monbox;
     data.a   = m_fadeOpacity->value();
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprError::destroy() {

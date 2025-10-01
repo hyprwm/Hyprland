@@ -228,46 +228,6 @@ static bool test() {
 
     testSwapWindow();
 
-    NLog::log("{}Testing window rules", Colors::YELLOW);
-    if (!spawnKitty("wr_kitty"))
-        return false;
-    {
-        auto      str  = getFromSocket("/activewindow");
-        const int SIZE = 200;
-        EXPECT_CONTAINS(str, "floating: 1");
-        EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
-        EXPECT_NOT_CONTAINS(str, "pinned: 1");
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace special:magic, class:magic_kitty"));
-
-        if (!spawnKitty("magic_kitty"))
-            return false;
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
-        EXPECT_NOT_CONTAINS(str, "workspace: 9");
-    }
-    NLog::log("{}Testing faulty rules", Colors::YELLOW);
-    {
-        const auto PARAM  = "Invalid parameter";
-        const auto RULE   = "Invalid value";
-        const auto NORULE = "no rules provided";
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule notarule, class:wr_kitty"), RULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule class:wr_kitty"), NORULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, class:wr_kitty, size"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, classI:wr_kitty"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule workspace:, class:wr_kitty"), NORULE)
-    }
-
-    NLog::log("{}Reloading config", Colors::YELLOW);
-    OK(getFromSocket("/reload"));
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
     return !ret;
 }
 

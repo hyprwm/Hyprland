@@ -43,12 +43,12 @@ class CSinglePixelBufferResource {
 
 class CSinglePixelBufferManagerResource {
   public:
-    CSinglePixelBufferManagerResource(UP<CWpSinglePixelBufferManagerV1>&& resource_);
+    CSinglePixelBufferManagerResource(SP<CWpSinglePixelBufferManagerV1> resource_);
 
     bool good();
 
   private:
-    UP<CWpSinglePixelBufferManagerV1> m_resource;
+    SP<CWpSinglePixelBufferManagerV1> m_resource;
 };
 
 class CSinglePixelProtocol : public IWaylandProtocol {
@@ -62,8 +62,8 @@ class CSinglePixelProtocol : public IWaylandProtocol {
     void destroyResource(CSinglePixelBufferResource* resource);
 
     //
-    std::vector<UP<CSinglePixelBufferManagerResource>> m_managers;
-    std::vector<UP<CSinglePixelBufferResource>>        m_buffers;
+    std::vector<SP<CSinglePixelBufferManagerResource>> m_managers;
+    std::vector<SP<CSinglePixelBufferResource>>        m_buffers;
 
     friend class CSinglePixelBufferManagerResource;
     friend class CSinglePixelBufferResource;

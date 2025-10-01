@@ -429,7 +429,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
-        .description = "Appropriate XKB keymap file",
+        .description = "Appropriate XKB keymap parameter",
         .type        = CONFIG_OPTION_STRING_LONG,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
@@ -764,6 +764,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
+        .value       = "gestures:workspace_swipe",
+        .description = "enable workspace swipe gesture on touchpad",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "gestures:workspace_swipe_fingers",
+        .description = "how many fingers for the touchpad gesture",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{3, 0, 5}, //##TODO RANGE?
+    },
+    SConfigOptionDescription{
+        .value       = "gestures:workspace_swipe_min_fingers",
+        .description = "if enabled, workspace_swipe_fingers is considered the minimum number of fingers to swipe",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_distance",
         .description = "in px, the distance of the touchpad gesture",
         .type        = CONFIG_OPTION_INT,
@@ -828,12 +846,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:close_max_timeout",
-        .description = "Timeout for closing windows with the close gesture, in ms.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1000, 10, 2000},
     },
 
     /*
@@ -1235,6 +1247,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Whether mouse moving into a different monitor should focus it",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:render_ahead_of_time",
+        .description = "[Warning: buggy] starts rendering before your monitor displays a frame in order to lower latency",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:render_ahead_safezone",
+        .description = "how many ms of safezone to add to rendering ahead of time. Recommended 1-2.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
     },
     SConfigOptionDescription{
         .value       = "misc:allow_session_lock_restore",

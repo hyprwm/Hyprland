@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/nix.yml
     secrets: inherit
     with:
-      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}' -L --extra-substituters "https://hyprland.cachix.org"
+      command: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}' -L --extra-substituters "https://hyprland.cachix.org"
 
   xdph:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
@@ -21,7 +21,7 @@ jobs:
     uses: ./.github/workflows/nix.yml
     secrets: inherit
     with:
-      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#xdg-desktop-portal-hyprland' -L --extra-substituters "https://hyprland.cachix.org"
+      command: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#xdg-desktop-portal-hyprland' -L --extra-substituters "https://hyprland.cachix.org"
 
   test:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)

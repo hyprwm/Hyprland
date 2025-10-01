@@ -4,7 +4,7 @@
 #include "alpha-modifier-v1.hpp"
 #include "core/Compositor.hpp"
 
-CAlphaModifier::CAlphaModifier(UP<CWpAlphaModifierSurfaceV1>&& resource, SP<CWLSurfaceResource> surface) : m_surface(surface) {
+CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource, SP<CWLSurfaceResource> surface) : m_surface(surface) {
     setResource(std::move(resource));
 }
 
@@ -12,7 +12,7 @@ bool CAlphaModifier::good() {
     return m_resource->resource();
 }
 
-void CAlphaModifier::setResource(UP<CWpAlphaModifierSurfaceV1>&& resource) {
+void CAlphaModifier::setResource(SP<CWpAlphaModifierSurfaceV1> resource) {
     m_resource = std::move(resource);
 
     if UNLIKELY (!m_resource->resource())
@@ -89,11 +89,11 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
             manager->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
             return;
         } else {
-            iter->second->setResource(makeUnique<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id));
+            iter->second->setResource(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id));
             alphaModifier = iter->second.get();
         }
     } else {
-        alphaModifier = m_alphaModifiers.emplace(surface, makeUnique<CAlphaModifier>(makeUnique<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
+        alphaModifier = m_alphaModifiers.emplace(surface, makeUnique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(manager->client(), manager->version(), id), surface))
                             .first->second.get();
     }
 

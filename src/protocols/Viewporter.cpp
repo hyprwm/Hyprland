@@ -1,7 +1,6 @@
 #include "Viewporter.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
-#include <cmath>
 
 CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceResource> surface_) : m_surface(surface_), m_resource(resource_) {
     if UNLIKELY (!good())
@@ -61,31 +60,9 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
             return;
 
         if (m_surface->m_pending.viewport.hasSource) {
-            auto&       src  = m_surface->m_pending.viewport.source;
-            const auto& size = m_surface->m_pending.bufferSize;
+            auto& src = m_surface->m_pending.viewport.source;
 
-            if (size.x <= 0.0 || size.y <= 0.0)
-                return;
-
-            constexpr wl_fixed_t MAX_TOLERANCE = 1 << 8; // wl_fixed 1.0 = 256
-
-            auto                 clampAxis = [&](double& start, double& length, double limit) -> bool {
-                const double     originalStart = start;
-                const double     originalEnd   = start + length;
-                const double     clampedStart  = std::clamp(start, 0.0, std::max(0.0, limit));
-                const double     clampedEnd    = std::clamp(originalEnd, 0.0, std::max(0.0, limit));
-                const wl_fixed_t startDelta    = std::abs(wl_fixed_from_double(clampedStart) - wl_fixed_from_double(originalStart));
-                const wl_fixed_t endDelta      = std::abs(wl_fixed_from_double(clampedEnd) - wl_fixed_from_double(originalEnd));
-
-                if (startDelta > MAX_TOLERANCE || endDelta > MAX_TOLERANCE)
-                    return false;
-
-                start  = clampedStart;
-                length = clampedEnd - clampedStart;
-                return length > 0.0;
-            };
-
-            if (!clampAxis(src.x, src.w, size.x) || !clampAxis(src.y, src.h, size.y)) {
+            if (src.w + src.x > m_surface->m_pending.bufferSize.x || src.h + src.y > m_surface->m_pending.bufferSize.y) {
                 m_resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
                 m_surface->m_pending.rejected = true;
                 return;

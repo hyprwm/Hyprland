@@ -88,7 +88,7 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        auto xkbKeymap = xkb_keymap_new_from_string(xkbContext, sc<const char*>(keymapData), XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        auto xkbKeymap = xkb_keymap_new_from_string(xkbContext, sc<const char*>(keymapData), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
         munmap(keymapData, len);
 
         if UNLIKELY (!xkbKeymap) {

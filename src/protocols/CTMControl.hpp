@@ -12,14 +12,14 @@ class CMonitor;
 
 class CHyprlandCTMControlResource {
   public:
-    CHyprlandCTMControlResource(UP<CHyprlandCtmControlManagerV1>&& resource_);
+    CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_);
     ~CHyprlandCTMControlResource();
 
     bool good();
     void block();
 
   private:
-    UP<CHyprlandCtmControlManagerV1>        m_resource;
+    SP<CHyprlandCtmControlManagerV1>        m_resource;
 
     std::unordered_map<std::string, Mat3x3> m_ctms;
     bool                                    m_blocked = false;
@@ -38,7 +38,7 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
     bool isCTMAnimationEnabled();
 
     //
-    std::vector<UP<CHyprlandCTMControlResource>> m_managers;
+    std::vector<SP<CHyprlandCTMControlResource>> m_managers;
     WP<CHyprlandCTMControlResource>              m_manager;
 
     //

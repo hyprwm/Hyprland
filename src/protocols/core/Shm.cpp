@@ -9,10 +9,7 @@
 #include "../../render/Renderer.hpp"
 using namespace Hyprutils::OS;
 
-CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
-    if UNLIKELY (!pool_)
-        return;
-
+CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
     if UNLIKELY (!pool_->m_pool->m_data)
         return;
 
@@ -82,16 +79,14 @@ CSHMPool::CSHMPool(CFileDescriptor fd_, size_t size_) : m_fd(std::move(fd_)), m_
 }
 
 CSHMPool::~CSHMPool() {
-    if (m_data != MAP_FAILED)
-        munmap(m_data, m_size);
+    munmap(m_data, m_size);
 }
 
 void CSHMPool::resize(size_t size_) {
     LOGM(LOG, "Resizing a SHM pool from {} to {}", m_size, size_);
 
-    if (m_data != MAP_FAILED)
+    if (m_data)
         munmap(m_data, m_size);
-
     m_size = size_;
     m_data = mmap(nullptr, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd.get(), 0);
 
@@ -109,12 +104,12 @@ static int shmIsSizeValid(CFileDescriptor& fd, size_t size) {
     return sc<size_t>(st.st_size) >= size;
 }
 
-CWLSHMPoolResource::CWLSHMPoolResource(UP<CWlShmPool>&& resource_, CFileDescriptor fd_, size_t size_) : m_resource(std::move(resource_)) {
+CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, CFileDescriptor fd_, size_t size_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
     if UNLIKELY (!shmIsSizeValid(fd_, size_)) {
-        m_resource->error(-1, "The size of the file is not big enough for the shm pool");
+        resource_->error(-1, "The size of the file is not big enough for the shm pool");
         return;
     }
 
@@ -152,7 +147,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(UP<CWlShmPool>&& resource_, CFileDescript
             return;
         }
 
-        const auto& RESOURCE = PROTO::shm->m_buffers.emplace_back(makeShared<CWLSHMBuffer>(m_self, id, offset, Vector2D{w, h}, stride, fmt));
+        const auto RESOURCE = PROTO::shm->m_buffers.emplace_back(makeShared<CWLSHMBuffer>(m_self.lock(), id, offset, Vector2D{w, h}, stride, fmt));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -172,7 +167,7 @@ bool CWLSHMPoolResource::good() {
     return m_resource->resource();
 }
 
-CWLSHMResource::CWLSHMResource(UP<CWlShm>&& resource_) : m_resource(std::move(resource_)) {
+CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -180,7 +175,7 @@ CWLSHMResource::CWLSHMResource(UP<CWlShm>&& resource_) : m_resource(std::move(re
 
     m_resource->setCreatePool([](CWlShm* r, uint32_t id, int32_t fd, int32_t size) {
         CFileDescriptor poolFd{fd};
-        const auto&     RESOURCE = PROTO::shm->m_pools.emplace_back(makeUnique<CWLSHMPoolResource>(makeUnique<CWlShmPool>(r->client(), r->version(), id), std::move(poolFd), size));
+        const auto      RESOURCE = PROTO::shm->m_pools.emplace_back(makeShared<CWLSHMPoolResource>(makeShared<CWlShmPool>(r->client(), r->version(), id), std::move(poolFd), size));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -219,7 +214,7 @@ void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, ui
         }
     }
 
-    const auto& RESOURCE = m_managers.emplace_back(makeUnique<CWLSHMResource>(makeUnique<CWlShm>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CWLSHMResource>(makeShared<CWlShm>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

@@ -14,9 +14,8 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../managers/TokenManager.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
-#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Subcompositor.hpp"
@@ -147,7 +146,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     SBoxExtents maxExtents = {.topLeft = {BORDERSIZE + 2, BORDERSIZE + 2}, .bottomRight = {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self);
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock());
 
     maxExtents.topLeft.x = std::max(EXTENTS.topLeft.x, maxExtents.topLeft.x);
 
@@ -241,11 +240,11 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
     SBoxExtents extents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
     if (properties & RESERVED_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
     if (properties & INPUT_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, true));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
     if (properties & FULL_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, false));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
 
     return extents;
 }
@@ -264,7 +263,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
 }
 
 SBoxExtents CWindow::getFullWindowReservedArea() {
-    return g_pDecorationPositioner->getWindowDecorationReserved(m_self);
+    return g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock());
 }
 
 void CWindow::updateWindowDecos() {
@@ -577,12 +576,7 @@ void CWindow::onMap() {
             if (!m_isMapped || isX11OverrideRedirect())
                 return;
 
-            g_pEventLoopManager->doLater([this, self = m_self] {
-                if (!self)
-                    return;
-
-                sendWindowSize();
-            });
+            sendWindowSize();
         },
         false);
 
@@ -1555,20 +1549,13 @@ std::string CWindow::fetchClass() {
 }
 
 void CWindow::onAck(uint32_t serial) {
-    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks | std::views::reverse, [serial](const auto& e) { return e.first <= serial; });
+    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks | std::views::reverse, [serial](const auto& e) { return e.first == serial; });
 
     if (SERIAL == m_pendingSizeAcks.rend())
         return;
 
     m_pendingSizeAck = *SERIAL;
     std::erase_if(m_pendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
-
-    if (m_isX11)
-        return;
-
-    m_wlSurface->resource()->m_pending.ackedSize          = m_pendingSizeAck->second; // apply pending size. We pinged, the window ponged.
-    m_wlSurface->resource()->m_pending.updated.bits.acked = true;
-    m_pendingSizeAck.reset();
 }
 
 void CWindow::onResourceChangeX11() {
@@ -1818,7 +1805,7 @@ void CWindow::sendWindowSize(bool force) {
     if (m_isX11 && m_xwaylandSurface)
         m_xwaylandSurface->configure({REPORTPOS, REPORTSIZE});
     else if (m_xdgSurface && m_xdgSurface->m_toplevel)
-        m_pendingSizeAcks.emplace_back(m_xdgSurface->m_toplevel->setSize(REPORTSIZE), REPORTSIZE.floor());
+        m_pendingSizeAcks.emplace_back(m_xdgSurface->m_toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
 }
 
 NContentType::eContentType CWindow::getContentType() {
@@ -1922,12 +1909,4 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     }
 
     return nullptr;
-}
-
-Vector2D CWindow::getReportedSize() {
-    if (m_isX11)
-        return m_reportedSize;
-    if (m_wlSurface && m_wlSurface->resource())
-        return m_wlSurface->resource()->m_current.ackedSize;
-    return m_reportedSize;
 }

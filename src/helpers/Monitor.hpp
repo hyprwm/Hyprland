@@ -42,9 +42,6 @@ enum eCMType : uint8_t {
     CM_EDID,     // primaries from edid (known to be inaccurate)
     CM_HDR,      // wide color gamut and HDR PQ transfer function
     CM_HDR_EDID, // same as CM_HDR with edid primaries
-    CM_DCIP3,    // movie theatre with greenish white point
-    CM_DP3,      // applle P3 variant with blueish white point
-    CM_ADOBE,    // adobe colorspace
 };
 
 struct SMonitorRule {
@@ -152,6 +149,7 @@ class CMonitor {
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;
 
+    wl_event_source*            m_renderTimer   = nullptr; // for RAT
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;
 
@@ -190,9 +188,6 @@ class CMonitor {
     int               m_pendingDpmsAnimationCounter = 0;
 
     PHLANIMVAR<float> m_cursorZoom;
-
-    // for fading in the wallpaper because it doesn't happen instantly (it's loaded async)
-    PHLANIMVAR<float> m_backgroundOpacity;
 
     // for initial zoom anim
     PHLANIMVAR<float> m_zoomAnimProgress;

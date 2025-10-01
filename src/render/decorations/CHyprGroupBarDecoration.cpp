@@ -175,21 +175,21 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                         double first     = rect.w - (*PROUNDING * 2);
                         rectdata.round   = *PROUNDING;
                         rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
+                        g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(rectdata));
                         rectdata.round   = 0;
                         rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
                     } else if (i == barsToDraw - 1) {
                         double first     = *PROUNDING * 2;
                         rectdata.round   = 0;
                         rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
+                        g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(rectdata));
                         rectdata.round   = *PROUNDING;
                         rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
                     }
                 } else
                     rectdata.round = *PROUNDING;
             }
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(rectdata));
         }
 
         rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
@@ -216,21 +216,21 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                 double first = rect.w - (*PGRADIENTROUNDING * 2);
                                 data.round   = *PGRADIENTROUNDING;
                                 data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
+                                g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
                                 data.round   = 0;
                                 data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
                             } else if (i == barsToDraw - 1) {
                                 double first = *PGRADIENTROUNDING * 2;
                                 data.round   = 0;
                                 data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
+                                g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
                                 data.round   = *PGRADIENTROUNDING;
                                 data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
                             }
                         } else
                             data.round = *PGRADIENTROUNDING;
                     }
-                    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
+                    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(data));
                 }
             }
 
@@ -260,7 +260,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 data.tex = titleTex;
                 data.box = rect;
                 data.a   = a;
-                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+                g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
             }
         }
 
@@ -596,7 +596,7 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     CBox box = m_assignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window.lock()));
 
     const auto PWORKSPACE = m_window->m_workspace;
 

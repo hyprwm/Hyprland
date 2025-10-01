@@ -628,7 +628,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 
     if (m_currentCursorImage.surface)
         m_currentCursorImage.surface->resource()->frame(now);
@@ -902,7 +902,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->motionAbsolute = pointer->m_pointerEvents.motionAbsolute.listen([](const IPointer::SMotionAbsoluteEvent& event) {
@@ -911,7 +911,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->button = pointer->m_pointerEvents.button.listen([](const IPointer::SButtonEvent& event) {
@@ -941,7 +941,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->swipeEnd = pointer->m_pointerEvents.swipeEnd.listen([](const IPointer::SSwipeEndEvent& event) {
@@ -955,23 +955,21 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->pinchBegin = pointer->m_pointerEvents.pinchBegin.listen([](const IPointer::SPinchBeginEvent& event) {
-        g_pInputManager->onPinchBegin(event);
+        PROTO::pointerGestures->pinchBegin(event.timeMs, event.fingers);
 
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->pinchEnd = pointer->m_pointerEvents.pinchEnd.listen([](const IPointer::SPinchEndEvent& event) {
-        g_pInputManager->onPinchEnd(event);
-
+        PROTO::pointerGestures->pinchEnd(event.timeMs, event.cancelled);
         PROTO::idle->onActivity();
     });
 
     listener->pinchUpdate = pointer->m_pointerEvents.pinchUpdate.listen([](const IPointer::SPinchUpdateEvent& event) {
-        g_pInputManager->onPinchUpdate(event);
-
+        PROTO::pointerGestures->pinchUpdate(event.timeMs, event.delta, event.scale, event.rotation);
         PROTO::idle->onActivity();
     });
 
@@ -1007,7 +1005,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->up = touch->m_touchEvents.up.listen([](const ITouch::SUpEvent& event) {
@@ -1048,7 +1046,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->proximity = tablet->m_tabletEvents.proximity.listen([](const CTablet::SProximityEvent& event) {
@@ -1062,7 +1060,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+            g_pKeybindManager->dpms("on");
     });
 
     listener->button = tablet->m_tabletEvents.button.listen([](const CTablet::SButtonEvent& event) {

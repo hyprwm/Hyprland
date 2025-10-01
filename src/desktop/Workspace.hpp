@@ -60,6 +60,7 @@ class CWorkspace {
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool             inert();
+    void             startAnim(bool in, bool left, bool instant = false);
     MONITORID        monitorID();
     PHLWINDOW        getLastFocusedWindow();
     void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);

@@ -21,7 +21,6 @@ class CLayerRule {
         RULE_ANIMATION,
         RULE_ORDER,
         RULE_ZUMBA,
-        RULE_NOSCREENSHARE
     };
 
     eRuleType           m_ruleType = RULE_INVALID;

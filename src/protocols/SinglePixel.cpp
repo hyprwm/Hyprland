@@ -79,7 +79,7 @@ bool CSinglePixelBufferResource::good() {
     return m_buffer->good();
 }
 
-CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(UP<CWpSinglePixelBufferManagerV1>&& resource_) : m_resource(std::move(resource_)) {
+CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(SP<CWpSinglePixelBufferManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -89,7 +89,7 @@ CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(UP<CWpSingl
     m_resource->setCreateU32RgbaBuffer([this](CWpSinglePixelBufferManagerV1* res, uint32_t id, uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
         CHyprColor  color{r / sc<float>(std::numeric_limits<uint32_t>::max()), g / sc<float>(std::numeric_limits<uint32_t>::max()),
                          b / sc<float>(std::numeric_limits<uint32_t>::max()), a / sc<float>(std::numeric_limits<uint32_t>::max())};
-        const auto& RESOURCE = PROTO::singlePixel->m_buffers.emplace_back(makeUnique<CSinglePixelBufferResource>(id, m_resource->client(), color));
+        const auto& RESOURCE = PROTO::singlePixel->m_buffers.emplace_back(makeShared<CSinglePixelBufferResource>(id, m_resource->client(), color));
 
         if UNLIKELY (!RESOURCE->good()) {
             res->noMemory();
@@ -108,7 +108,7 @@ CSinglePixelProtocol::CSinglePixelProtocol(const wl_interface* iface, const int&
 }
 
 void CSinglePixelProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto& RESOURCE = m_managers.emplace_back(makeUnique<CSinglePixelBufferManagerResource>(makeUnique<CWpSinglePixelBufferManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CSinglePixelBufferManagerResource>(makeShared<CWpSinglePixelBufferManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

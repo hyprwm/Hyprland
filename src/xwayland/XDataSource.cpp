@@ -17,7 +17,7 @@ CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
         return;
 
     if (reply->type != XCB_ATOM_ATOM) {
-        free(reply); // NOLINT(cppcoreguidelines-no-malloc)
+        free(reply);
         return;
     }
 
@@ -41,7 +41,7 @@ CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
         m_mimeAtoms.push_back(value[i]);
     }
 
-    free(reply); // NOLINT(cppcoreguidelines-no-malloc)
+    free(reply);
 }
 
 std::vector<std::string> CXDataSource::mimes() {

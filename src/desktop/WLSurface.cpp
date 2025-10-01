@@ -62,10 +62,9 @@ bool CWLSurface::small() const {
     if (!m_resource->m_current.texture)
         return false;
 
-    const auto O             = m_windowOwner.lock();
-    const auto REPORTED_SIZE = O->getReportedSize();
+    const auto O = m_windowOwner.lock();
 
-    return REPORTED_SIZE.x > m_resource->m_current.size.x + 1 || REPORTED_SIZE.y > m_resource->m_current.size.y + 1;
+    return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -74,9 +73,8 @@ Vector2D CWLSurface::correctSmallVec() const {
 
     const auto SIZE = getViewporterCorrectedSize();
     const auto O    = m_windowOwner.lock();
-    const auto REP  = O->getReportedSize();
 
-    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / REP);
+    return Vector2D{(O->m_reportedSize.x - SIZE.x) / 2, (O->m_reportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / O->m_reportedSize);
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {

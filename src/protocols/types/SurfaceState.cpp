@@ -97,7 +97,4 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.bits.acquire)
         acquire = ref.acquire;
-
-    if (ref.updated.bits.acked)
-        ackedSize = ref.ackedSize;
 }

@@ -99,7 +99,6 @@ class CEventLoopManager {
     wl_event_source* m_configWatcherInotifySource = nullptr;
 
     friend class CAsyncDialogBox;
-    friend class CMainLoopExecutor;
 };
 
 inline UP<CEventLoopManager> g_pEventLoopManager;

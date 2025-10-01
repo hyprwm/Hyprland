@@ -18,6 +18,7 @@ class CLayerSurface {
     ~CLayerSurface();
 
     void                    applyRules();
+    void                    startAnimation(bool in, bool instant = false);
     bool                    isFadedOut();
     int                     popupsCount();
 
@@ -48,7 +49,6 @@ class CLayerSurface {
     bool                       m_ignoreAlpha                 = false;
     float                      m_ignoreAlphaValue            = 0.f;
     bool                       m_dimAround                   = false;
-    bool                       m_noScreenShare               = false;
     int64_t                    m_order                       = 0;
     bool                       m_aboveLockscreen             = false;
     bool                       m_aboveLockscreenInteractable = false;

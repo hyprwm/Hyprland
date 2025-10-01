@@ -33,22 +33,22 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 
     m_lastKeyboard = keyboard;
 
-    auto keymapFD = allocateSHMFile(keyboard->m_xkbKeymapV1String.length() + 1);
+    auto keymapFD = allocateSHMFile(keyboard->m_xkbKeymapString.length() + 1);
     if UNLIKELY (!keymapFD.isValid()) {
         LOGM(ERR, "Failed to create a keymap file for keyboard grab");
         return;
     }
 
-    void* data = mmap(nullptr, keyboard->m_xkbKeymapV1String.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD.get(), 0);
+    void* data = mmap(nullptr, keyboard->m_xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD.get(), 0);
     if UNLIKELY (data == MAP_FAILED) {
         LOGM(ERR, "Failed to mmap a keymap file for keyboard grab");
         return;
     }
 
-    memcpy(data, keyboard->m_xkbKeymapV1String.c_str(), keyboard->m_xkbKeymapV1String.length());
-    munmap(data, keyboard->m_xkbKeymapV1String.length() + 1);
+    memcpy(data, keyboard->m_xkbKeymapString.c_str(), keyboard->m_xkbKeymapString.length());
+    munmap(data, keyboard->m_xkbKeymapString.length() + 1);
 
-    m_resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD.get(), keyboard->m_xkbKeymapV1String.length() + 1);
+    m_resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD.get(), keyboard->m_xkbKeymapString.length() + 1);
 
     sendMods(keyboard->m_modifiersState.depressed, keyboard->m_modifiersState.latched, keyboard->m_modifiersState.locked, keyboard->m_modifiersState.group);
 

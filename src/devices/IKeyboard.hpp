@@ -114,9 +114,6 @@ class IKeyboard : public IHID {
     std::string                    m_xkbKeymapString = "";
     Hyprutils::OS::CFileDescriptor m_xkbKeymapFD;
 
-    std::string                    m_xkbKeymapV1String = "";
-    Hyprutils::OS::CFileDescriptor m_xkbKeymapV1FD;
-
     SStringRuleNames               m_currentRules;
     int                            m_repeatRate        = 0;
     int                            m_repeatDelay       = 0;

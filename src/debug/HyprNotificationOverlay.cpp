@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
 
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 
@@ -248,7 +248,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprNotificationOverlay::hasAny() {

@@ -34,7 +34,7 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
     CBox box = m_assignedGeometry;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window.lock()));
 
     const auto PWORKSPACE = m_window->m_workspace;
 
@@ -93,7 +93,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         data.lerp     = m_window->m_borderFadeAnimationProgress->value();
     }
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeShared<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

@@ -9,15 +9,15 @@
 #include <src/layout/IHyprLayout.hpp>
 #include <src/managers/LayoutManager.hpp>
 #include <src/managers/input/InputManager.hpp>
+
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/Compositor.hpp>
+
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
-#include <hyprutils/string/VarList.hpp>
 using namespace Hyprutils::Utils;
-using namespace Hyprutils::String;
 
 #include "globals.hpp"
 
@@ -92,6 +92,8 @@ class CTestKeyboard : public IKeyboard {
     bool m_isVirtual = false;
 };
 
+<<<<<<< HEAD
+=======
 class CTestMouse : public IPointer {
   public:
     static SP<CTestMouse> create(bool isVirtual) {
@@ -156,6 +158,7 @@ static SDispatchResult simulateGesture(std::string in) {
     return {.success = true};
 }
 
+>>>>>>> 127aab81 (input: add per-device scroll-factor (#11241))
 static SDispatchResult vkb(std::string in) {
     auto tkb0 = CTestKeyboard::create(false);
     auto tkb1 = CTestKeyboard::create(false);
@@ -227,7 +230,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:snapmove", ::snapMove);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:vkb", ::vkb);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:alt", ::pressAlt);
-    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:gesture", ::simulateGesture);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:scroll", ::scroll);
 
     // init mouse

@@ -3,10 +3,10 @@
 #include <hyprutils/animation/AnimationManager.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 
-#include "../../defines.hpp"
-#include "../../helpers/AnimatedVariable.hpp"
-#include "../../desktop/DesktopTypes.hpp"
-#include "../eventLoop/EventLoopTimer.hpp"
+#include "../defines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "eventLoop/EventLoopTimer.hpp"
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
   public:
@@ -45,6 +45,8 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
         pav->m_Context.pLayer = pLayer;
     }
 
+    void                onWindowPostCreateClose(PHLWINDOW, bool close = false);
+
     std::string         styleValidInConfigVar(const std::string&, const std::string&);
 
     SP<CEventLoopTimer> m_animationTimer;
@@ -53,6 +55,11 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
 
   private:
     bool m_tickScheduled = false;
+
+    // Anim stuff
+    void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
+    void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
+    void animationGnomed(PHLWINDOW, bool close = false);
 };
 
 inline UP<CHyprAnimationManager> g_pAnimationManager;

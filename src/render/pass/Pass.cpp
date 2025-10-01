@@ -18,8 +18,8 @@ bool CRenderPass::single() const {
     return m_passElements.size() == 1;
 }
 
-void CRenderPass::add(UP<IPassElement>&& el) {
-    m_passElements.emplace_back(makeUnique<SPassElementData>(CRegion{}, std::move(el)));
+void CRenderPass::add(SP<IPassElement> el) {
+    m_passElements.emplace_back(makeShared<SPassElementData>(CRegion{}, el));
 }
 
 void CRenderPass::simplify() {

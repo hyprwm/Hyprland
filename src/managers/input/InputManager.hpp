@@ -142,10 +142,6 @@ class CInputManager {
     void               onSwipeEnd(IPointer::SSwipeEndEvent);
     void               onSwipeUpdate(IPointer::SSwipeUpdateEvent);
 
-    void               onPinchBegin(IPointer::SPinchBeginEvent);
-    void               onPinchUpdate(IPointer::SPinchUpdateEvent);
-    void               onPinchEnd(IPointer::SPinchEndEvent);
-
     void               onTabletAxis(CTablet::SAxisEvent);
     void               onTabletProximity(CTablet::SProximityEvent);
     void               onTabletTip(CTablet::STipEvent);
@@ -183,6 +179,8 @@ class CInputManager {
     void              newIdleInhibitor(std::any);
     void              recheckIdleInhibitorStatus();
     bool              isWindowInhibiting(const PHLWINDOW& pWindow, bool onlyHl = true);
+
+    SSwipeGesture     m_activeSwipe;
 
     CTimer            m_lastCursorMovement;
 
@@ -279,8 +277,13 @@ class CInputManager {
     };
     std::vector<UP<SIdleInhibitor>> m_idleInhibitors;
 
-    void                            setBorderCursorIcon(eBorderIconDirection);
-    void                            setCursorIconOnBorder(PHLWINDOW w);
+    // swipe
+    void beginWorkspaceSwipe();
+    void updateWorkspaceSwipe(double);
+    void endWorkspaceSwipe();
+
+    void setBorderCursorIcon(eBorderIconDirection);
+    void setCursorIconOnBorder(PHLWINDOW w);
 
     // temporary. Obeys setUntilUnset.
     void setCursorImageOverride(const std::string& name);
@@ -311,7 +314,6 @@ class CInputManager {
 
     friend class CKeybindManager;
     friend class CWLSurface;
-    friend class CWorkspaceSwipeGesture;
 };
 
 inline UP<CInputManager> g_pInputManager;

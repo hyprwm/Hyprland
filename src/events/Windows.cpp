@@ -15,14 +15,12 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "managers/animation/AnimationManager.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
+#include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -148,16 +146,23 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     const auto MONITORSTR = trim(r->m_rule.substr(r->m_rule.find(' ')));
 
-                    if (MONITORSTR == "unset")
+                    if (MONITORSTR == "unset") {
                         PWINDOW->m_monitor = PMONITOR;
-                    else {
-                        const auto MONITOR = g_pCompositor->getMonitorFromString(MONITORSTR);
-
-                        if (MONITOR)
-                            PWINDOW->m_monitor = MONITOR;
-                        else {
-                            Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
-                            continue;
+                    } else {
+                        if (isNumber(MONITORSTR)) {
+                            const MONITORID MONITOR = std::stoi(MONITORSTR);
+                            if (const auto PM = g_pCompositor->getMonitorFromID(MONITOR); PM)
+                                PWINDOW->m_monitor = PM;
+                            else
+                                PWINDOW->m_monitor = g_pCompositor->m_monitors.at(0);
+                        } else {
+                            const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
+                            if (PMONITOR)
+                                PWINDOW->m_monitor = PMONITOR;
+                            else {
+                                Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
+                                continue;
+                            }
                         }
                     }
 
@@ -683,7 +688,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
 
     // do animations
-    g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
+    PWINDOW->m_alpha->setValueAndWarp(0.f);
+    *PWINDOW->m_alpha = 1.f;
 
     PWINDOW->m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
     PWINDOW->m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
@@ -831,10 +838,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pCompositor->addToFadingOutSafe(PWINDOW);
 
     if (!PWINDOW->m_X11DoesntWantBorders)                                                     // don't animate out if they weren't animated in.
-        *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
+        *PWINDOW->m_realPosition = PWINDOW->m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
 
     // anims
-    g_pDesktopAnimationManager->startAnimation(PWINDOW, CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
+    *PWINDOW->m_alpha = 0.f;
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
@@ -862,8 +870,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_isMapped || PWINDOW->isHidden())
         return;
 
-    if (PWINDOW->m_isX11)
-        PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize;
+    PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_isX11 && !PWINDOW->isFullscreen() && PWINDOW->m_isFloating) {
         const auto MINSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMinSize();

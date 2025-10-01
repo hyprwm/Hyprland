@@ -51,7 +51,7 @@ using namespace Hyprutils::OS;
 #include "../managers/XWaylandManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
@@ -1180,24 +1180,19 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     } else
         result += "\tunknown: not runtime\n";
 
-    if (g_pHyprOpenGL) {
-        result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
-        result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
-    }
+    result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
+    result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+    result += std::format("\nBackend: {}", g_pCompositor->m_aqBackend->hasSession() ? "drm" : "sessionless");
 
-    if (g_pCompositor) {
-        result += std::format("\nBackend: {}", g_pCompositor->m_aqBackend->hasSession() ? "drm" : "sessionless");
+    result += "\n\nMonitor info:";
 
-        result += "\n\nMonitor info:";
-
-        for (const auto& m : g_pCompositor->m_monitors) {
-            result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
-                                  "{}\n\t\tnon-desktop {}\n\t\t",
-                                  m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
-                                  backend(m->m_output->getBackend()->type()), check(m->m_output->supportsExplicit), check(m->m_output->parsedEDID.hdrMetadata.has_value()),
-                                  check(m->m_output->parsedEDID.chromaticityCoords.has_value()), check(m->m_output->parsedEDID.supportsBT2020), check(m->m_output->vrrCapable),
-                                  check(m->m_output->nonDesktop));
-        }
+    for (const auto& m : g_pCompositor->m_monitors) {
+        result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
+                              "{}\n\t\tnon-desktop {}\n\t\t",
+                              m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
+                              backend(m->m_output->getBackend()->type()), check(m->m_output->supportsExplicit), check(m->m_output->parsedEDID.hdrMetadata.has_value()),
+                              check(m->m_output->parsedEDID.chromaticityCoords.has_value()), check(m->m_output->parsedEDID.supportsBT2020), check(m->m_output->vrrCapable),
+                              check(m->m_output->nonDesktop));
     }
 
     if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {

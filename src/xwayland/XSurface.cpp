@@ -35,11 +35,11 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_x
             xcb_res_client_id_value_next(&iter);
         }
         if (!ppid) {
-            free(reply); // NOLINT(cppcoreguidelines-no-malloc)
+            free(reply);
             return;
         }
         m_pid = *ppid;
-        free(reply); // NOLINT(cppcoreguidelines-no-malloc)
+        free(reply);
     }
 
     m_events.resourceChange.listenStatic([this] { ensureListeners(); });

@@ -20,7 +20,6 @@ class CWLSHMPoolResource;
 
 class CSHMPool {
   public:
-    CSHMPool() = delete;
     CSHMPool(Hyprutils::OS::CFileDescriptor fd, size_t size);
     ~CSHMPool();
 
@@ -33,7 +32,7 @@ class CSHMPool {
 
 class CWLSHMBuffer : public IHLBuffer {
   public:
-    CWLSHMBuffer(WP<CWLSHMPoolResource> pool, uint32_t id, int32_t offset, const Vector2D& size, int32_t stride, uint32_t fmt);
+    CWLSHMBuffer(SP<CWLSHMPoolResource> pool, uint32_t id, int32_t offset, const Vector2D& size, int32_t stride, uint32_t fmt);
     virtual ~CWLSHMBuffer();
 
     virtual Aquamarine::eBufferCapability          caps();
@@ -59,7 +58,7 @@ class CWLSHMBuffer : public IHLBuffer {
 
 class CWLSHMPoolResource {
   public:
-    CWLSHMPoolResource(UP<CWlShmPool>&& resource_, Hyprutils::OS::CFileDescriptor fd, size_t size);
+    CWLSHMPoolResource(SP<CWlShmPool> resource_, Hyprutils::OS::CFileDescriptor fd, size_t size);
 
     bool                   good();
 
@@ -68,19 +67,19 @@ class CWLSHMPoolResource {
     WP<CWLSHMPoolResource> m_self;
 
   private:
-    UP<CWlShmPool> m_resource;
+    SP<CWlShmPool> m_resource;
 
     friend class CWLSHMBuffer;
 };
 
 class CWLSHMResource {
   public:
-    CWLSHMResource(UP<CWlShm>&& resource_);
+    CWLSHMResource(SP<CWlShm> resource_);
 
     bool good();
 
   private:
-    UP<CWlShm> m_resource;
+    SP<CWlShm> m_resource;
 };
 
 class CWLSHMProtocol : public IWaylandProtocol {
@@ -95,8 +94,8 @@ class CWLSHMProtocol : public IWaylandProtocol {
     void destroyResource(CWLSHMBuffer* resource);
 
     //
-    std::vector<UP<CWLSHMResource>>     m_managers;
-    std::vector<UP<CWLSHMPoolResource>> m_pools;
+    std::vector<SP<CWLSHMResource>>     m_managers;
+    std::vector<SP<CWLSHMPoolResource>> m_pools;
     std::vector<SP<CWLSHMBuffer>>       m_buffers;
 
     //

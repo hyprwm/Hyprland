@@ -64,9 +64,9 @@ xcb_window_t CX11DataDevice::getProxyWindow(xcb_window_t window) {
                 Debug::log(LOG, "Using XdndProxy window {:x} for window {:x}", proxyWindow, window);
             }
         }
-        free(proxyVerifyReply); // NOLINT(cppcoreguidelines-no-malloc)
+        free(proxyVerifyReply);
     }
-    free(proxyReply); // NOLINT(cppcoreguidelines-no-malloc)
+    free(proxyReply);
 
     return targetWindow;
 }

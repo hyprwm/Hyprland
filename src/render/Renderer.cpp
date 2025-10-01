@@ -10,7 +10,7 @@
 #include "../managers/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
@@ -158,10 +158,10 @@ CHyprRenderer::CHyprRenderer() {
                     continue;
 
                 w->m_wlSurface->resource()->frame(Time::steadyNow());
-                auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->m_wlSurface->resource());
+                auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_wlSurface->resource());
                 FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
                 FEEDBACK->discarded();
-                PROTO::presentation->queueData(std::move(FEEDBACK));
+                PROTO::presentation->queueData(FEEDBACK);
             }
 
             if (dirty)
@@ -540,7 +540,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         CRectPassElement::SRectData data;
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
         data.box   = monbox;
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     renderdata.pos.x += pWindow->m_floatingOffset.x;
@@ -596,7 +596,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             data.blur  = true;
             data.blurA = renderdata.fadeAlpha;
             data.xray  = g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow);
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
+            m_renderPass.add(makeShared<CRectPassElement>(data));
             renderdata.blur = false;
         }
 
@@ -607,7 +607,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pWindow->m_wlSurface->resource();
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             nullptr);
@@ -680,7 +680,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                             renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
-                            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                            m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
                             renderdata.surfaceCounter++;
                         },
                         data);
@@ -721,7 +721,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         CRectPassElement::SRectData data;
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     if (pLayer->m_fadingOut) {
@@ -759,7 +759,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pLayer->m_surface->resource();
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -780,7 +780,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 renderdata.texture     = popup->m_wlSurface->resource()->m_current.texture;
                 renderdata.surface     = popup->m_wlSurface->resource();
                 renderdata.mainSurface = false;
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -815,7 +815,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == SURF;
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
@@ -836,7 +836,7 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == pSurface->surface->surface();
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
@@ -846,6 +846,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
     static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
 
@@ -870,18 +872,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
     if (!RENDERMODIFDATA.modifs.empty())
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
+        g_pHyprRenderer->m_renderPass.add(makeShared<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
         }
     });
 
     if (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        renderBackground(pMonitor);
+        if (*PRENDERTEX /* inverted cfg flag */)
+            m_renderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        else
+            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -905,7 +910,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     if (!*PXPMODE) {
-        renderBackground(pMonitor);
+        if (*PRENDERTEX /* inverted cfg flag */)
+            m_renderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        else
+            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
@@ -936,7 +944,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
             data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
 
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(data));
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
         }
 
         if (*PBLURSPECIAL && *PBLUR) {
@@ -946,7 +954,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             data.blur  = true;
             data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
 
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(data));
+            g_pHyprRenderer->m_renderPass.add(makeShared<CRectPassElement>(data));
         }
     }
 
@@ -1003,17 +1011,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     //g_pHyprOpenGL->restoreMatrix();
 }
 
-void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
-    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
-
-    if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
-        m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-
-    if (!*PRENDERTEX)
-        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
-}
-
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
@@ -1061,7 +1058,7 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};
 
-    m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+    m_renderPass.add(makeShared<CRectPassElement>(data));
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
@@ -1075,7 +1072,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     data.box = monbox;
     data.a   = 1;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(data));
+    m_renderPass.add(makeShared<CTexPassElement>(data));
 
     if (!ANY_PRESENT && g_pHyprOpenGL->m_lockTtyTextTexture) {
         // also render text for the tty number
@@ -1083,7 +1080,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
         data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
         data.box    = texbox;
 
-        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        m_renderPass.add(makeShared<CTexPassElement>(data));
     }
 }
 
@@ -1125,26 +1122,16 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // there is no way to fix this if that's the case
         if (*PEXPANDEDGES) {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
-            const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
-                                                pSurface->m_current.viewport.destination :
-                                                (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
-                                        pMonitor->m_scale)
-                                           .round();
-
-            const auto RATIO = projSize / EXPECTED_SIZE;
-            if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
-                if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
-                    const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
-                    uvBR           = uvBR * FIX;
-                }
-
-                // FIXME: probably do this for in anims on all views...
-                const auto SHOULD_SKIP = !pWindow || pWindow->m_animatingIn;
-                if (!SHOULD_SKIP && (RATIO.x < 1 || RATIO.y < 1)) {
-                    const auto FIX = RATIO.clamp(Vector2D{0.0001, 0.0001}, Vector2D{1, 1});
-                    uvBR           = uvBR * FIX;
-                }
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->m_current.scale && !pSurface->m_current.viewport.hasDestination;
+            const auto EXPECTED_SIZE =
+                ((pSurface->m_current.viewport.hasDestination ? pSurface->m_current.viewport.destination : pSurface->m_current.bufferSize / pSurface->m_current.scale) *
+                 pMonitor->m_scale)
+                    .round();
+            if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
+                // this will not work with shm AFAIK, idk why.
+                // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
+                const auto FIX = (projSize / EXPECTED_SIZE).clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
+                uvBR           = uvBR * FIX;
             }
         }
 
@@ -1160,21 +1147,32 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (!main || !pWindow)
             return;
 
-        // FIXME: this doesn't work. We always set MAXIMIZED anyways, so this doesn't need to work, but it's problematic.
+        CBox geom = pWindow->m_xdgSurface->m_current.geometry;
 
-        // CBox geom = pWindow->m_xdgSurface->m_current.geometry;
+        // Adjust UV based on the xdg_surface geometry
+        if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
+            const auto XPERC = geom.x / pSurface->m_current.size.x;
+            const auto YPERC = geom.y / pSurface->m_current.size.y;
+            const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
+            const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
 
-        // // Adjust UV based on the xdg_surface geometry
-        // if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
-        //     const auto XPERC = geom.x / pSurface->m_current.size.x;
-        //     const auto YPERC = geom.y / pSurface->m_current.size.y;
-        //     const auto WPERC = (geom.x + geom.w ? geom.w : pSurface->m_current.size.x) / pSurface->m_current.size.x;
-        //     const auto HPERC = (geom.y + geom.h ? geom.h : pSurface->m_current.size.y) / pSurface->m_current.size.y;
+            const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
+            uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
+            uvTL               = uvTL + TOADDTL;
+        }
 
-        //     const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
-        //     uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
-        //     uvTL               = uvTL + TOADDTL;
-        // }
+        // Adjust UV based on our animation progress
+        if (pSurface->m_current.size.x > projSizeUnscaled.x || pSurface->m_current.size.y > projSizeUnscaled.y) {
+            auto maxSize = projSizeUnscaled;
+
+            if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
+                maxSize = pWindow->m_wlSurface->getViewporterCorrectedSize();
+
+            if (pSurface->m_current.size.x > maxSize.x)
+                uvBR.x = uvBR.x * (maxSize.x / pSurface->m_current.size.x);
+            if (pSurface->m_current.size.y > maxSize.y)
+                uvBR.y = uvBR.y * (maxSize.y / pSurface->m_current.size.y);
+        }
 
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;
@@ -1355,7 +1353,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                     CRectPassElement::SRectData data;
                     data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
                     data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                    m_renderPass.add(makeUnique<CRectPassElement>(data));
+                    m_renderPass.add(makeShared<CRectPassElement>(data));
                     damageBlinkCleanup = 1;
                 } else if (*PDAMAGEBLINK) {
                     damageBlinkCleanup++;
@@ -1383,7 +1381,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         CRectPassElement::SRectData data;
         data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = Colors::BLACK.modifyA(pMonitor->m_dpmsBlackOpacity->value());
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
@@ -2465,7 +2463,7 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = false;
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_renderPass.add(makeShared<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         nullptr);
@@ -2509,7 +2507,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_alpha->value());
 
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_renderPass.add(makeShared<CRectPassElement>(data));
     }
 
     if (shouldBlur(pWindow)) {
@@ -2522,7 +2520,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.roundingPower = pWindow->roundingPower();
         data.xray          = pWindow->m_windowData.xray.valueOr(false);
 
-        m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+        m_renderPass.add(makeShared<CRectPassElement>(std::move(data)));
     }
 
     CTexPassElement::SRenderData data;
@@ -2532,7 +2530,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.a            = pWindow->m_alpha->value();
     data.damage       = fakeDamage;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
@@ -2574,7 +2572,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
@@ -2609,7 +2607,7 @@ void CHyprRenderer::renderSnapshot(WP<CPopup> popup) {
         data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
     ;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    m_renderPass.add(makeShared<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {

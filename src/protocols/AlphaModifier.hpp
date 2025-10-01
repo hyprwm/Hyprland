@@ -11,13 +11,13 @@ class CAlphaModifierProtocol;
 
 class CAlphaModifier {
   public:
-    CAlphaModifier(UP<CWpAlphaModifierSurfaceV1>&& resource_, SP<CWLSurfaceResource> surface);
+    CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, SP<CWLSurfaceResource> surface);
 
     bool good();
-    void setResource(UP<CWpAlphaModifierSurfaceV1>&& resource);
+    void setResource(SP<CWpAlphaModifierSurfaceV1> resource);
 
   private:
-    UP<CWpAlphaModifierSurfaceV1> m_resource;
+    SP<CWpAlphaModifierSurfaceV1> m_resource;
     WP<CWLSurfaceResource>        m_surface;
     float                         m_alpha = 1.0;
 

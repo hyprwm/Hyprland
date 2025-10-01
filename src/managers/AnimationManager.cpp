@@ -1,16 +1,16 @@
 #include "AnimationManager.hpp"
-#include "../../Compositor.hpp"
-#include "../HookSystemManager.hpp"
-#include "../../config/ConfigManager.hpp"
-#include "../../desktop/DesktopTypes.hpp"
-#include "../../helpers/AnimatedVariable.hpp"
-#include "../../macros.hpp"
-#include "../../config/ConfigValue.hpp"
-#include "../../desktop/Window.hpp"
-#include "../../desktop/LayerSurface.hpp"
-#include "../eventLoop/EventLoopManager.hpp"
-#include "../../helpers/varlist/VarList.hpp"
-#include "../../render/Renderer.hpp"
+#include "../Compositor.hpp"
+#include "HookSystemManager.hpp"
+#include "../config/ConfigManager.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../macros.hpp"
+#include "../config/ConfigValue.hpp"
+#include "../desktop/Window.hpp"
+#include "../desktop/LayerSurface.hpp"
+#include "eventLoop/EventLoopManager.hpp"
+#include "../helpers/varlist/VarList.hpp"
+#include "../render/Renderer.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
@@ -275,6 +275,173 @@ void CHyprAnimationManager::onTicked() {
     m_tickScheduled = false;
 }
 
+//
+// Anims
+//
+//
+
+void CHyprAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
+    const auto GOALPOS  = pWindow->m_realPosition->goal();
+    const auto GOALSIZE = pWindow->m_realSize->goal();
+
+    if (!close) {
+        pWindow->m_realSize->setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
+        pWindow->m_realPosition->setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_realSize->value() / 2.f);
+    } else {
+        *pWindow->m_realSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
+        *pWindow->m_realPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_realSize->goal() / 2.f;
+    }
+}
+
+void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
+    pWindow->m_realSize->warp(false); // size we preserve in slide
+
+    const auto GOALPOS  = pWindow->m_realPosition->goal();
+    const auto GOALSIZE = pWindow->m_realSize->goal();
+
+    const auto PMONITOR = pWindow->m_monitor.lock();
+
+    if (!PMONITOR)
+        return; // unsafe state most likely
+
+    Vector2D posOffset;
+
+    if (!force.empty()) {
+        if (force == "bottom")
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y + PMONITOR->m_size.y);
+        else if (force == "left")
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0.0);
+        else if (force == "right")
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0.0);
+        else
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y - GOALSIZE.y);
+
+        if (!close)
+            pWindow->m_realPosition->setValue(posOffset);
+        else
+            *pWindow->m_realPosition = posOffset;
+
+        return;
+    }
+
+    const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
+
+    // check sides it touches
+    const bool DISPLAYLEFT   = STICKS(pWindow->m_position.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
+    const bool DISPLAYRIGHT  = STICKS(pWindow->m_position.x + pWindow->m_size.x, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
+    const bool DISPLAYTOP    = STICKS(pWindow->m_position.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
+    const bool DISPLAYBOTTOM = STICKS(pWindow->m_position.y + pWindow->m_size.y, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+
+    if (DISPLAYBOTTOM && DISPLAYTOP) {
+        if (DISPLAYLEFT && DISPLAYRIGHT) {
+            posOffset = GOALPOS + Vector2D(0.0, GOALSIZE.y);
+        } else if (DISPLAYLEFT) {
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0.0);
+        } else {
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0.0);
+        }
+    } else if (DISPLAYTOP) {
+        posOffset = GOALPOS - Vector2D(0.0, GOALSIZE.y);
+    } else if (DISPLAYBOTTOM) {
+        posOffset = GOALPOS + Vector2D(0.0, GOALSIZE.y);
+    } else {
+        if (MIDPOINT.y > PMONITOR->m_position.y + PMONITOR->m_size.y / 2.f)
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y + PMONITOR->m_size.y);
+        else
+            posOffset = Vector2D(GOALPOS.x, PMONITOR->m_position.y - GOALSIZE.y);
+    }
+
+    if (!close)
+        pWindow->m_realPosition->setValue(posOffset);
+    else
+        *pWindow->m_realPosition = posOffset;
+}
+
+void CHyprAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
+    const auto GOALPOS  = pWindow->m_realPosition->goal();
+    const auto GOALSIZE = pWindow->m_realSize->goal();
+
+    if (close) {
+        *pWindow->m_realPosition = GOALPOS + Vector2D{0.F, GOALSIZE.y / 2.F};
+        *pWindow->m_realSize     = Vector2D{GOALSIZE.x, 0.F};
+    } else {
+        pWindow->m_realPosition->setValueAndWarp(GOALPOS + Vector2D{0.F, GOALSIZE.y / 2.F});
+        pWindow->m_realSize->setValueAndWarp(Vector2D{GOALSIZE.x, 0.F});
+        *pWindow->m_realPosition = GOALPOS;
+        *pWindow->m_realSize     = GOALSIZE;
+    }
+}
+
+void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
+    if (!close) {
+        pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+    } else {
+        pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+    }
+
+    std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();
+    std::ranges::transform(ANIMSTYLE, ANIMSTYLE.begin(), ::tolower);
+
+    CVarList animList(ANIMSTYLE, 0, 's');
+
+    // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
+    if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated())
+        return;
+
+    // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
+    if (!pWindow->m_realPosition->enabled())
+        return;
+
+    if (pWindow->m_windowData.animationStyle.hasValue()) {
+        const auto STYLE = pWindow->m_windowData.animationStyle.value();
+        // the window has config'd special anim
+        if (STYLE.starts_with("slide")) {
+            CVarList animList2(STYLE, 0, 's');
+            animationSlide(pWindow, animList2[1], close);
+        } else if (STYLE == "gnomed" || STYLE == "gnome")
+            animationGnomed(pWindow, close);
+        else {
+            // anim popin, fallback
+
+            float minPerc = 0.f;
+            if (STYLE.find("%") != std::string::npos) {
+                try {
+                    auto percstr = STYLE.substr(STYLE.find_last_of(' '));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) {
+                    ; // oops
+                }
+            }
+
+            animationPopin(pWindow, close, minPerc / 100.f);
+        }
+    } else {
+        if (animList[0] == "slide")
+            animationSlide(pWindow, animList[1], close);
+        else if (animList[0] == "gnomed" || animList[0] == "gnome")
+            animationGnomed(pWindow, close);
+        else {
+            // anim popin, fallback
+
+            float minPerc = 0.f;
+            if (!ANIMSTYLE.starts_with("%")) {
+                try {
+                    auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) {
+                    ; // oops
+                }
+            }
+
+            animationPopin(pWindow, close, minPerc / 100.f);
+        }
+    }
+}
+
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
         if (style.starts_with("slide") || style == "gnome" || style == "gnomed")
@@ -300,7 +467,7 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
     } else if (config.starts_with("workspaces") || config.starts_with("specialWorkspace")) {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
-        else if (style.starts_with("slide")) {
+        else if (style.starts_with("slidefade")) {
             // try parsing
             float movePerc = 0.f;
             if (style.find('%') != std::string::npos) {

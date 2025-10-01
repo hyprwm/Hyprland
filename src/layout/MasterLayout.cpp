@@ -1103,8 +1103,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
 
         if (PMASTER->pWindow.lock() != PWINDOW) {
-            const auto& NEWMASTER       = PWINDOW;
-            const bool  newFocusToChild = vars.size() >= 2 && vars[1] == "child";
+            const auto NEWMASTER       = PWINDOW;
+            const bool newFocusToChild = vars.size() >= 2 && vars[1] == "child";
             switchWindows(NEWMASTER, NEWCHILD);
             const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
             switchToWindow(NEWFOCUS);

@@ -11,7 +11,6 @@ project(
     'debug=false',
     'cpp_std=c++26',
   ],
-  meson_version: '>= 1.1.0',
 )
 
 datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'
@@ -34,7 +33,7 @@ endif
 
 aquamarine = dependency('aquamarine', version: '>=0.9.3')
 hyprcursor = dependency('hyprcursor', version: '>=0.1.7')
-hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.6')
+hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.3')
 hyprlang = dependency('hyprlang', version: '>= 0.3.2')
 hyprutils = dependency('hyprutils', version: '>= 0.8.2')
 aquamarine_version_list = aquamarine.version().split('.')

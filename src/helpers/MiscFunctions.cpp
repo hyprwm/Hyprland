@@ -599,7 +599,7 @@ int64_t getPPIDof(int64_t pid) {
 
     fclose(infile);
     if (line)
-        free(line); // NOLINT(cppcoreguidelines-no-malloc)
+        free(line);
 
     try {
         return std::stoll(pidstr);

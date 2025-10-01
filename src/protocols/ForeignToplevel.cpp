@@ -35,7 +35,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!PROTO::foreignToplevel->windowValidForForeign(w))
-            continue;
+            return;
 
         onMap(w);
     }

@@ -23,12 +23,7 @@ in {
         "HYPRLAND_TRACE" = "1";
         "XDG_RUNTIME_DIR" = "/tmp";
         "XDG_CACHE_HOME" = "/tmp";
-        "KITTY_CONFIG_DIRECTORY" = "/etc/kitty";
       };
-
-      environment.etc."kitty/kitty.conf".text = ''
-        confirm_os_window_close 0
-      '';
 
       programs.hyprland = {
         enable = true;

@@ -32,7 +32,7 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     void createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource);
 
     //
-    std::vector<UP<CWpCursorShapeDeviceV1>>  m_devices;
+    std::vector<SP<CWpCursorShapeDeviceV1>>  m_devices;
     std::vector<UP<CWpCursorShapeManagerV1>> m_managers;
 };
 

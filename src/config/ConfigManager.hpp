@@ -285,7 +285,6 @@ class CConfigManager {
     std::optional<std::string> handleEnv(const std::string&, const std::string&);
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
-    std::optional<std::string> handleGesture(const std::string&, const std::string&);
 
     std::optional<std::string> handleMonitorv2(const std::string& output);
     Hyprlang::CParseResult     handleMonitorv2();

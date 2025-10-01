@@ -519,7 +519,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
-    registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{1});
+    registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});
     registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
     registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
 

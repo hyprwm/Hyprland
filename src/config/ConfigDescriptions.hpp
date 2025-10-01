@@ -1319,7 +1319,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "misc:anr_missed_pings",
         .description = "number of missed pings before showing the ANR dialog",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+        .data        = SConfigOptionDescription::SRangeData{5, 1, 20},
     },
     SConfigOptionDescription{
         .value       = "misc:screencopy_force_8b",

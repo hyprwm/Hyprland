@@ -93,6 +93,10 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     if (ref.updated.bits.damage) {
         damage       = ref.damage;
         bufferDamage = ref.bufferDamage;
+    } else {
+        // damage is always relative to the current commit
+        damage.clear();
+        bufferDamage.clear();
     }
 
     if (ref.updated.bits.input)

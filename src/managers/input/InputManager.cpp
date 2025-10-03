@@ -1445,20 +1445,25 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
     if (passEvent) {
+        auto state   = event.state;
+        auto pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+
+        // use merged keys states when sending to ime or when sending to seat with no ime
+        // if passing from ime, send keys directly without merging
+        if (USEIME || !HASIME) {
+            pressed = shareKeyFromAllKBs(event.keycode, pressed);
+            state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED;
+        }
+
         if (USEIME) {
             IME->setKeyboard(pKeyboard);
-            IME->sendKey(event.timeMs, event.keycode, event.state);
+            IME->sendKey(event.timeMs, event.keycode, state);
         } else {
-            const auto ISPRESSED = event.state == WL_KEYBOARD_KEY_STATE_PRESSED;
-
-            // use merged keys states when sending to seat
-            // if passing from ime send keys directly without merging
-            const auto PRESSED  = HASIME ? ISPRESSED : shareKeyFromAllKBs(event.keycode, ISPRESSED);
             const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
 
-            if (CONTAINS && PRESSED)
+            if (CONTAINS && pressed)
                 return;
-            if (!CONTAINS && !PRESSED)
+            if (!CONTAINS && !pressed)
                 return;
 
             if (CONTAINS)
@@ -1467,7 +1472,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
                 m_pressed.emplace_back(event.keycode);
 
             g_pSeatManager->setKeyboard(pKeyboard);
-            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, event.state);
+            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, state);
         }
 
         updateKeyboardsLeds(pKeyboard);
@@ -1488,8 +1493,8 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
     m_lastMods         = MODS.depressed; // for hyprland keybinds use (so it needs to be always updated); not for sending to seat
 
-    // use merged mods states when sending to ime or when sending to seat
-    // if passing from ime send mods directly without merging
+    // use merged mods states when sending to ime or when sending to seat with no ime
+    // if passing from ime, send mods directly without merging
     if (USEIME || !HASIME)
         MODS.depressed = ALLMODS;
 

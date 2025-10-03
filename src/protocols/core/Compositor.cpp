@@ -27,6 +27,22 @@ class CDefaultSurfaceRole : public ISurfaceRole {
     }
 };
 
+CWLCallbackResource::CWLCallbackResource(SP<CWlCallback>&& resource_) : m_resource(std::move(resource_)) {
+    ;
+}
+
+bool CWLCallbackResource::good() {
+    return m_resource && m_resource->resource();
+}
+
+void CWLCallbackResource::send(const Time::steady_tp& now) {
+    if (!good())
+        return;
+
+    m_resource->sendDone(Time::millis(now));
+    m_resource.reset();
+}
+
 CWLRegionResource::CWLRegionResource(SP<CWlRegion> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -229,7 +245,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
     m_resource->setFrame([this](CWlSurface* r, uint32_t id) {
         m_pending.updated.bits.frame = true;
-        m_pending.callbacks.emplace_back(makeShared<SSurfaceStateFrameCB>(makeShared<CWlCallback>(m_client, 1, id)));
+        m_pending.callbacks.emplace_back(makeShared<CWLCallbackResource>(makeShared<CWlCallback>(m_client, 1, id)));
     });
 
     m_resource->setOffset([this](CWlSurface* r, int32_t x, int32_t y) {

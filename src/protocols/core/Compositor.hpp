@@ -102,6 +102,7 @@ class CWLSurfaceResource {
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
+    bool                                   m_pendingWaiting = false;
 
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
@@ -117,6 +118,7 @@ class CWLSurfaceResource {
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
+    void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::SImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();

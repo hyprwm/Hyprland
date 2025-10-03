@@ -3,29 +3,10 @@
 #include "../../helpers/math/Math.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
-#include "helpers/time/Time.hpp"
 
 class CTexture;
 class CDRMSyncPointState;
-
-struct SSurfaceStateFrameCB {
-  public:
-    SSurfaceStateFrameCB(SP<CWlCallback>&& resource_);
-    ~SSurfaceStateFrameCB() noexcept = default;
-    // disable copy
-    SSurfaceStateFrameCB(const SSurfaceStateFrameCB&)            = delete;
-    SSurfaceStateFrameCB& operator=(const SSurfaceStateFrameCB&) = delete;
-
-    // allow move
-    SSurfaceStateFrameCB(SSurfaceStateFrameCB&&) noexcept            = default;
-    SSurfaceStateFrameCB& operator=(SSurfaceStateFrameCB&&) noexcept = default;
-
-    bool                  good();
-    void                  send(const Time::steady_tp& now);
-
-  private:
-    SP<CWlCallback> m_resource;
-};
+class CWLCallbackResource;
 
 struct SSurfaceState {
     union {
@@ -60,9 +41,10 @@ struct SSurfaceState {
     Vector2D offset;
 
     // for xdg_shell resizing
-    Vector2D                              ackedSize;
+    Vector2D ackedSize;
 
-    std::vector<SP<SSurfaceStateFrameCB>> callbacks;
+    // for wl_surface::frame callbacks.
+    std::vector<SP<CWLCallbackResource>> callbacks;
 
     // viewporter protocol surface state
     struct {

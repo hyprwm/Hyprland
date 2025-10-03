@@ -33,6 +33,25 @@ class CColorManagementSurface;
 class CFrogColorManagementSurface;
 class CContentType;
 
+class CWLCallbackResource {
+  public:
+    CWLCallbackResource(SP<CWlCallback>&& resource_);
+    ~CWLCallbackResource() noexcept = default;
+    // disable copy
+    CWLCallbackResource(const CWLCallbackResource&)            = delete;
+    CWLCallbackResource& operator=(const CWLCallbackResource&) = delete;
+
+    // allow move
+    CWLCallbackResource(CWLCallbackResource&&) noexcept            = default;
+    CWLCallbackResource& operator=(CWLCallbackResource&&) noexcept = default;
+
+    bool                 good();
+    void                 send(const Time::steady_tp& now);
+
+  private:
+    SP<CWlCallback> m_resource;
+};
+
 class CWLRegionResource {
   public:
     CWLRegionResource(SP<CWlRegion> resource_);

@@ -1449,7 +1449,11 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
             IME->setKeyboard(pKeyboard);
             IME->sendKey(event.timeMs, event.keycode, event.state);
         } else {
-            const auto PRESSED  = shareKeyFromAllKBs(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
+            const auto ISPRESSED = event.state == WL_KEYBOARD_KEY_STATE_PRESSED;
+
+            // use merged keys states when sending to seat
+            // if passing from ime send keys directly without merging
+            const auto PRESSED  = HASIME ? ISPRESSED : shareKeyFromAllKBs(event.keycode, ISPRESSED);
             const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
 
             if (CONTAINS && PRESSED)
@@ -1476,14 +1480,20 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
+    const auto IME    = m_relay.m_inputMethod.lock();
+    const bool HASIME = IME && IME->hasGrab();
+    const bool USEIME = HASIME && !DISALLOWACTION;
+
     auto       MODS    = pKeyboard->m_modifiersState;
     const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
-    MODS.depressed     = ALLMODS;
-    m_lastMods         = MODS.depressed;
+    m_lastMods         = MODS.depressed; // for hyprland keybinds use (so it needs to be always updated); not for sending to seat
 
-    const auto IME = m_relay.m_inputMethod.lock();
+    // use merged mods states when sending to ime or when sending to seat
+    // if passing from ime send mods directly without merging
+    if (USEIME || !HASIME)
+        MODS.depressed = ALLMODS;
 
-    if (IME && IME->hasGrab() && !DISALLOWACTION) {
+    if (USEIME) {
         IME->setKeyboard(pKeyboard);
         IME->sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
     } else {

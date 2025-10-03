@@ -140,6 +140,7 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput>=1.28
+  libeis-1.0
   gbm
   gio-2.0
   re2)
@@ -385,6 +386,8 @@ protocolnew("staging/ext-workspace" "ext-workspace-v1" false)
 protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-input-capture-v1"
+            true)
 protocolwayland()
 
 # tools

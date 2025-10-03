@@ -751,8 +751,6 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MAXSIZE: {
             try {
-                if (!m_isFloating)
-                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for maxsize");
@@ -767,8 +765,6 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MINSIZE: {
             try {
-                if (!m_isFloating)
-                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for minsize");
@@ -1359,7 +1355,8 @@ int CWindow::surfacesCount() {
 
 void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
-    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
+    const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
+    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
     const Vector2D DELTA    = REALSIZE - NEWSIZE;
 
     *m_realPosition = m_realPosition->goal() + DELTA / 2.0;

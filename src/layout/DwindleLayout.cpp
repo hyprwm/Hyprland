@@ -521,11 +521,7 @@ void CHyprDwindleLayout::onWindowRemovedTilingInternal(PHLWINDOW pWindow) {
 void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     onWindowRemovedTilingInternal(pWindow);
 
-    g_pEventLoopManager->doLater([this, ws = PHLWORKSPACEREF{pWindow->m_workspace}]() {
-        if (!ws || g_pLayoutManager->getCurrentLayout() != this)
-            return;
-        recheckPresetRule(ws.lock());
-    });
+    recheckPresetRule(pWindow->m_workspace);
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
@@ -1048,14 +1044,14 @@ std::string CHyprDwindleLayout::usePreset(const std::string& name) {
 
     std::deque<PHLWINDOW> windows, windowsPreOrder;
 
-    for (const auto& w : g_pCompositor->m_windows) {
-        if (!validMapped(w) || w->m_isFloating || !getNodeFromWindow(w) ||
-            w->workspaceID() !=
+    for (const auto& w : m_dwindleNodesData) {
+        if (!validMapped(w.pWindow) ||
+            w.pWindow->workspaceID() !=
                 (g_pCompositor->m_lastMonitor->m_activeSpecialWorkspace ? g_pCompositor->m_lastMonitor->activeSpecialWorkspaceID() :
                                                                           g_pCompositor->m_lastMonitor->activeWorkspaceID()))
             continue;
 
-        windowsPreOrder.emplace_back(w);
+        windowsPreOrder.emplace_back(w.pWindow.lock());
     }
 
     if (windowsPreOrder.empty())

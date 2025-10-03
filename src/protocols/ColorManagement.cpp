@@ -66,20 +66,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
 
-        if UNLIKELY (!OUTPUTRESOURCE) {
-            r->error(-1, "Invalid output (2)");
-            return;
-        }
-
-        const auto PMONITOR = OUTPUTRESOURCE->m_monitor.lock();
-
-        if UNLIKELY (!PMONITOR) {
-            r->error(-1, "Invalid output (2)");
-            return;
-        }
-
-        const auto RESOURCE =
-            PROTO::colorManagement->m_outputs.emplace_back(makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id), PMONITOR));
+        const auto RESOURCE = PROTO::colorManagement->m_outputs.emplace_back(
+            makeShared<CColorManagementOutput>(makeShared<CWpColorManagementOutputV1>(r->client(), r->version(), id), OUTPUTRESOURCE));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -204,7 +192,7 @@ wl_client* CColorManager::client() {
     return m_resource->client();
 }
 
-CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor) : m_resource(resource), m_monitor(monitor) {
+CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CWLOutputResource> output) : m_resource(resource), m_output(output) {
     if UNLIKELY (!good())
         return;
 
@@ -229,10 +217,10 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
         }
 
         RESOURCE->m_self = RESOURCE;
-        if (!m_monitor.valid())
+        if (!m_output || !m_output->m_monitor.valid())
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
-            RESOURCE->m_settings = m_monitor->m_imageDescription;
+            RESOURCE->m_settings = m_output->m_monitor->m_imageDescription;
             RESOURCE->m_resource->sendReady(RESOURCE->m_settings.updateId());
         }
     });
@@ -803,7 +791,7 @@ void CColorManagementProtocol::onImagePreferredChanged(uint32_t preferredId) {
 
 void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> monitor) {
     for (auto const& output : m_outputs) {
-        if (output->m_monitor == monitor)
+        if (output->m_output && output->m_output->m_monitor == monitor)
             output->m_resource->sendImageDescriptionChanged();
     }
     // recheck feedbacks

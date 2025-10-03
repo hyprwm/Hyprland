@@ -27,7 +27,7 @@ class CColorManager {
 
 class CColorManagementOutput {
   public:
-    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor);
+    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CWLOutputResource> output);
 
     bool                                 good();
     wl_client*                           client();
@@ -38,7 +38,7 @@ class CColorManagementOutput {
   private:
     SP<CWpColorManagementOutputV1> m_resource;
     wl_client*                     m_client = nullptr;
-    WP<CMonitor>                   m_monitor;
+    WP<CWLOutputResource>          m_output;
 
     friend class CColorManagementProtocol;
     friend class CColorManagementImageDescription;

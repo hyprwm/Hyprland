@@ -34,7 +34,7 @@ static std::string readKittyOutput() {
     std::size_t pos = output.rfind("$ ");
     if (pos != std::string::npos) {
         pos += 2;
-        if (pos < output.size()) 
+        if (pos < output.size())
             output.erase(0, pos);
     }
     // NLog::log("Kitty output: '{}'", output);

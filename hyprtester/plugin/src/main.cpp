@@ -231,13 +231,13 @@ static SDispatchResult keybind(std::string in) {
     // keycode
     uint32_t key;
     try {
-        press = std::stoul(data[0]) == 1;
+        press    = std::stoul(data[0]) == 1;
         modifier = std::stoul(data[1]);
-        key = std::stoul(data[2]) - 8; // xkb offset
+        key      = std::stoul(data[2]) - 8; // xkb offset
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
     uint32_t modifierMask = 0;
-    if (modifier > 0) 
+    if (modifier > 0)
         modifierMask = 1 << (modifier - 1);
     g_pInputManager->m_lastMods = modifierMask;
     g_keyboard->sendKey(key, press);

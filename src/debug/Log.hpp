@@ -42,8 +42,6 @@ namespace Debug {
     template <typename... Args>
     //NOLINTNEXTLINE
     void log(eLogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-        std::lock_guard<std::mutex> guard(m_logMutex);
-
         if (level == TRACE && !m_trace)
             return;
 

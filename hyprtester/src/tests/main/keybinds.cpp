@@ -21,24 +21,40 @@ static bool checkFlag() {
     return exists;
 }
 
-static CUniquePointer<CProcess> spawnRemoteControlKitty() {
-    auto kittyProc = Tests::spawnKitty("keybinds_test", {"-o", "allow_remote_control=yes", "--listen-on", "unix:/tmp/hyprtester-kitty.sock", "--config", "NONE", "/bin/sh"});
-    // wait a bit to ensure shell prompt is sent, we are going to read the text after it
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    return kittyProc;
-}
 
 static std::string readKittyOutput() {
     std::string output = Tests::execAndGet("kitten @ --to unix:/tmp/hyprtester-kitty.sock get-text --extent all");
     // chop off shell prompt
-    std::size_t pos = output.rfind("$ ");
+    std::size_t pos = output.rfind("$");
     if (pos != std::string::npos) {
-        pos += 2;
+        pos += 1;
         if (pos < output.size())
             output.erase(0, pos);
     }
     // NLog::log("Kitty output: '{}'", output);
     return output;
+}
+
+static void awaitKittyPrompt() {
+    // wait until we see the shell prompt, meaning it's ready for test inputs
+    for (int i = 0; i < 10; i++) {
+        std::string output = Tests::execAndGet("kitten @ --to unix:/tmp/hyprtester-kitty.sock get-text --extent all");
+        if (output.rfind("$") == std::string::npos) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            continue;
+        }
+        return;
+    }
+    NLog::log("{}Error: timed out waiting for kitty prompt", Colors::RED);
+}
+
+static CUniquePointer<CProcess> spawnRemoteControlKitty() {
+    auto kittyProc = Tests::spawnKitty("keybinds_test", {"-o", "allow_remote_control=yes", "--listen-on", "unix:/tmp/hyprtester-kitty.sock", "--config", "NONE", "/bin/sh"});
+    // wait a bit to ensure shell prompt is sent, we are going to read the text after it
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (kittyProc) 
+        awaitKittyPrompt();
+    return kittyProc;
 }
 
 static void testBind() {

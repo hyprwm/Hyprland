@@ -17,12 +17,9 @@ void Debug::close() {
     m_logOfs.close();
 }
 
-void Debug::log(eLogLevel level, std::string str) {
-    if (level == TRACE && !m_trace)
-        return;
-
-    if (m_shuttingDown)
-        return;
+void Debug::logImpl(eLogLevel level, std::string str) {
+    // No lock - caller must hold m_logMutex
+    // No trace/shutdown checks - caller already checked
 
     std::string coloredStr = str;
     //NOLINTBEGIN
@@ -71,4 +68,15 @@ void Debug::log(eLogLevel level, std::string str) {
     // log it to the stdout too.
     if (!m_disableStdout)
         std::println("{}", ((m_coloredLogs && !**m_coloredLogs) ? str : coloredStr));
+}
+
+void Debug::log(eLogLevel level, std::string str) {
+    if (level == TRACE && !m_trace)
+        return;
+
+    if (m_shuttingDown)
+        return;
+
+    std::lock_guard<std::mutex> guard(m_logMutex);
+    logImpl(level, str);
 }

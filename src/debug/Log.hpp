@@ -36,19 +36,22 @@ namespace Debug {
     void                   init(const std::string& IS);
     void                   close();
 
+    // Private implementation - assumes mutex is already held by caller
+    void logImpl(eLogLevel level, std::string str);
+
     //
     void log(eLogLevel level, std::string str);
 
     template <typename... Args>
     //NOLINTNEXTLINE
     void log(eLogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-        std::lock_guard<std::mutex> guard(m_logMutex);
-
         if (level == TRACE && !m_trace)
             return;
 
         if (m_shuttingDown)
             return;
+
+        std::lock_guard<std::mutex> guard(m_logMutex);
 
         std::string logMsg = "";
 
@@ -72,6 +75,6 @@ namespace Debug {
         // 3. this is actually what std::format in stdlib does
         logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
-        log(level, logMsg);
+        logImpl(level, logMsg);
     }
 };

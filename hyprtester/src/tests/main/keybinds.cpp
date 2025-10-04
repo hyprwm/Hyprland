@@ -21,7 +21,6 @@ static bool checkFlag() {
     return exists;
 }
 
-
 static std::string readKittyOutput() {
     std::string output = Tests::execAndGet("kitten @ --to unix:/tmp/hyprtester-kitty.sock get-text --extent all");
     // chop off shell prompt
@@ -52,7 +51,7 @@ static CUniquePointer<CProcess> spawnRemoteControlKitty() {
     auto kittyProc = Tests::spawnKitty("keybinds_test", {"-o", "allow_remote_control=yes", "--listen-on", "unix:/tmp/hyprtester-kitty.sock", "--config", "NONE", "/bin/sh"});
     // wait a bit to ensure shell prompt is sent, we are going to read the text after it
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    if (kittyProc) 
+    if (kittyProc)
         awaitKittyPrompt();
     return kittyProc;
 }

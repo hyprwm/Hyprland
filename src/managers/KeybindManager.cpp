@@ -757,7 +757,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 continue;
         }
 
-        if (k->longPress) {
+        if (pressed && k->longPress) {
             const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
 
             m_longPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
@@ -796,7 +796,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             }
         }
 
-        if (k->repeat) {
+        if (pressed && k->repeat) {
             const auto KEEB = keyboard ? keyboard : g_pSeatManager->m_keyboard.lock();
             m_repeatKeyRate = KEEB->m_repeatRate;
 

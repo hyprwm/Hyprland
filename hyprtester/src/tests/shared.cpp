@@ -9,10 +9,15 @@
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
-CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_) {
+CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();
 
-    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", class_.empty() ? std::vector<std::string>{} : std::vector<std::string>{"--class", class_});
+    std::vector<std::string> programArgs = args;
+    if (!class_.empty()) {
+        programArgs.insert(programArgs.begin(), "--class");
+        programArgs.insert(programArgs.begin() + 1, class_);
+    }
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", programArgs);
     kitty->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
     kitty->runAsync();
 
@@ -49,7 +54,7 @@ int Tests::countOccurrences(const std::string& in, const std::string& what) {
     auto pos = in.find(what);
     while (pos != std::string::npos) {
         cnt++;
-        pos = in.find(what, pos + what.length() - 1);
+        pos = in.find(what, pos + what.length());
     }
 
     return cnt;
@@ -89,4 +94,14 @@ void Tests::waitUntilWindowsN(int n) {
             return;
         }
     }
+}
+
+std::string Tests::execAndGet(const std::string& cmd) {
+    CProcess proc("/bin/sh", {"-c", cmd});
+
+    if (!proc.runSync()) {
+        return "error";
+    }
+
+    return proc.stdOut();
 }

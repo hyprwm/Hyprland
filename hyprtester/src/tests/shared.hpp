@@ -8,10 +8,11 @@
 
 //NOLINTNEXTLINE
 namespace Tests {
-    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "");
+    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "", const std::vector<std::string> args = {});
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);
     bool                                                       killAllWindows();
     void                                                       waitUntilWindowsN(int n);
+    std::string                                                execAndGet(const std::string& cmd);
 };

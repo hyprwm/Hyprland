@@ -28,6 +28,7 @@
 #include <cstring>
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/ConstVarList.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
@@ -1310,7 +1311,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
 SDispatchResult CKeybindManager::fullscreenActive(std::string args) {
     const auto PWINDOW = g_pCompositor->m_lastWindow.lock();
-    const auto ARGS    = CVarList(args, 2, ' ');
+    const auto ARGS    = CConstVarList(args, 2, ' ');
 
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
@@ -1323,11 +1324,10 @@ SDispatchResult CKeybindManager::fullscreenActive(std::string args) {
         else
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, MODE);
     } else {
-        if (ARGS[1] == "set") {
+        if (ARGS[1] == "set") 
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, MODE);
-        } else if (ARGS[1] == "unset") {
+        else if (ARGS[1] == "unset")
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-        }
     }
     
     return {};

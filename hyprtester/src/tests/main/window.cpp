@@ -228,6 +228,48 @@ static bool test() {
 
     testSwapWindow();
 
+    NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
+    {
+        // Enable the config for testing, test max/minsize for tiled windows and centering
+        OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
+        OK(getFromSocket("/keyword windowrule maxsize 1500 500, class:kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule minsize 1200 500, class:kitty_maxsize"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        auto dwindle = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(dwindle, "size: 1500,500");
+        EXPECT_CONTAINS(dwindle, "at: 210,290");
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        OK(getFromSocket("/keyword general:layout master"));
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        auto master = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(master, "size: 1500,500");
+        EXPECT_CONTAINS(master, "at: 210,290");
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_maxsize"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500")
+
+        NLog::log("{}Reloading config", Colors::YELLOW);
+        OK(getFromSocket("/reload"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
     NLog::log("{}Testing window rules", Colors::YELLOW);
     if (!spawnKitty("wr_kitty"))
         return false;
@@ -247,6 +289,7 @@ static bool test() {
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
         EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
+
     NLog::log("{}Testing faulty rules", Colors::YELLOW);
     {
         const auto PARAM  = "Invalid parameter";

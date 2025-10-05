@@ -228,6 +228,31 @@ static bool test() {
 
     testSwapWindow();
 
+    NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
+    {
+        // Enable the config for testing, test max/minsize for tiled windows and centering
+        OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
+        OK(getFromSocket("/keyword windowrule maxsize 1500 500, class:kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule minsize 1000 500, class:kitty_maxsize"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1500,500");
+        EXPECT_CONTAINS(str, "at: 210,290");
+
+        if (!spawnKitty("kitty_maxsize_b"))
+            return false;
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_maxsize"));
+        str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1000,500");
+
+        OK(getFromSocket("/keyword misc:size_limits_tiled 0"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
     NLog::log("{}Testing window rules", Colors::YELLOW);
     if (!spawnKitty("wr_kitty"))
         return false;
@@ -247,6 +272,7 @@ static bool test() {
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
         EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
+
     NLog::log("{}Testing faulty rules", Colors::YELLOW);
     {
         const auto PARAM  = "Invalid parameter";

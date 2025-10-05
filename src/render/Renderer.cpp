@@ -40,26 +40,16 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
 
-namespace {
-
-    std::array<float, 4> globalNoScreenShareMaskColor() {
-        static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
-
-        const bool        blackout = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
-
-        if (!blackout)
-            return {0.f, 0.f, 0.f, 0.f};
-
-        return {0.f, 0.f, 0.f, 1.f};
-    }
-
-}
-
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+
+bool CHyprRenderer::shouldBlackoutNoScreenShare() {
+    static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+    return std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+}
 
 extern "C" {
 #include <xf86drm.h>
@@ -1958,8 +1948,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_floatingOffset);
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        const bool rendersHere = forceFull || shouldRenderWindow(pWindow, m);
-        if (rendersHere) { // only damage if window is rendered on monitor
+        if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->m_position.x, windowBox.y - m->m_position.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->m_scale);
             m->addDamage(fixedDamageBox);
@@ -1973,19 +1962,6 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
-}
-
-void CHyprRenderer::handleLayerNoScreenShareChanged(PHLLS pLayer) {
-    if (!pLayer)
-        return;
-
-    if (!pLayer->m_mapped)
-        return;
-
-    if (!pLayer->m_surface || !pLayer->m_surface->resource())
-        return;
-
-    damageSurface(pLayer->m_surface->resource(), pLayer->m_position.x, pLayer->m_position.y);
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2697,20 +2673,16 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     const bool                   windowNoShare = pWindow->m_windowData.noScreenShare.valueOrDefault();
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame  = true;
-    data.tex           = FBDATA->getTexture();
-    data.box           = windowBox;
-    data.a             = pWindow->m_alpha->value();
-    data.damage        = fakeDamage;
-    data.captureWrites = !windowNoShare;
-
-    if (windowNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-        auto        maskColor  = globalNoScreenShareMaskColor();
-        const float finalAlpha = std::clamp(maskColor[3] * data.a, 0.f, 1.f);
-        if (finalAlpha > 0.0f) {
-            maskColor[3]          = finalAlpha;
-            data.captureMaskColor = maskColor;
-        }
+    data.flipEndFrame    = true;
+    data.tex             = FBDATA->getTexture();
+    data.box             = windowBox;
+    data.a               = pWindow->m_alpha->value();
+    data.damage          = fakeDamage;
+    data.captureWrites   = !windowNoShare;
+    const bool blackoutM = windowNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutM) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
     }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
@@ -2757,13 +2729,10 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
-    if (layerNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-        auto        maskColor  = globalNoScreenShareMaskColor();
-        const float finalAlpha = std::clamp(maskColor[3] * data.a, 0.f, 1.f);
-        if (finalAlpha > 0.0f) {
-            maskColor[3]          = finalAlpha;
-            data.captureMaskColor = maskColor;
-        }
+    const bool blackoutL = layerNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutL) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
     }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));

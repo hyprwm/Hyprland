@@ -63,7 +63,6 @@ class CHyprRenderer {
     void damageMirrorsWith(PHLMONITOR, const CRegion&);
     bool shouldRenderWindow(PHLWINDOW, PHLMONITOR);
     bool shouldRenderWindow(PHLWINDOW);
-    void handleLayerNoScreenShareChanged(PHLLS pLayer);
     void ensureCursorRenderingMode();
     bool shouldRenderCursor();
     void setCursorHidden(bool hide);
@@ -94,15 +93,17 @@ class CHyprRenderer {
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
-    bool shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+    static bool                     shouldBlackoutNoScreenShare();
 
-    bool isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
+    bool                            shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
 
-    void setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
-    bool isScreencopyPendingForMonitor(PHLMONITOR pMonitor);
+    bool                            isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
 
-    bool m_bBlockSurfaceFeedback = false;
-    bool m_bRenderingSnapshot    = false;
+    void                            setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
+    bool                            isScreencopyPendingForMonitor(PHLMONITOR pMonitor);
+
+    bool                            m_bBlockSurfaceFeedback = false;
+    bool                            m_bRenderingSnapshot    = false;
     PHLMONITORREF                   m_mostHzMonitor;
     bool                            m_directScanoutBlocked = false;
 

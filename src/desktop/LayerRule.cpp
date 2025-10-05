@@ -8,23 +8,20 @@ static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur
 static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order", "abovelock"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_targetNamespace(ns_), m_rule(rule_) {
-    const auto firstSpace = m_rule.find(' ');
-    const auto baseRule   = m_rule.substr(0, firstSpace == std::string::npos ? m_rule.size() : firstSpace);
-
-    const bool VALID = RULES.contains(baseRule) || std::ranges::any_of(RULES_PREFIX, [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
+    const bool VALID = RULES.contains(m_rule) || std::ranges::any_of(RULES_PREFIX, [&rule_](const auto& prefix) { return rule_.starts_with(prefix); });
 
     if (!VALID)
         return;
 
-    if (baseRule == "noanim")
+    if (m_rule == "noanim")
         m_ruleType = RULE_NOANIM;
-    else if (baseRule == "blur")
+    else if (m_rule == "blur")
         m_ruleType = RULE_BLUR;
-    else if (baseRule == "blurpopups")
+    else if (m_rule == "blurpopups")
         m_ruleType = RULE_BLURPOPUPS;
-    else if (baseRule == "dimaround")
+    else if (m_rule == "dimaround")
         m_ruleType = RULE_DIMAROUND;
-    else if (baseRule == "noscreenshare")
+    else if (m_rule == "noscreenshare")
         m_ruleType = RULE_NOSCREENSHARE;
     else if (m_rule.starts_with("ignorealpha"))
         m_ruleType = RULE_IGNOREALPHA;

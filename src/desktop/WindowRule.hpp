@@ -39,7 +39,6 @@ class CWindowRule {
         RULE_CONTENT,
         RULE_PERSISTENTSIZE,
         RULE_NOCLOSEFOR,
-        RULE_NOSCREENSHARE,
         RULE_NOVRR,
     };
 

@@ -5,7 +5,7 @@
 #include "../config/ConfigManager.hpp"
 
 static const auto RULES = std::unordered_set<std::string>{
-    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize", "noscreenshare",
+    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize",
 };
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "animation",     "bordercolor", "bordersize", "center",  "content", "fullscreenstate", "group",    "idleinhibit",   "maxsize",     "minsize",        "monitor",
@@ -70,8 +70,6 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         m_ruleType = RULE_SIZE;
     else if (rule.starts_with("suppressevent"))
         m_ruleType = RULE_SUPPRESSEVENT;
-    else if (rule.starts_with("noscreenshare"))
-        m_ruleType = RULE_NOSCREENSHARE;
     else if (rule.starts_with("novrr"))
         m_ruleType = RULE_NOVRR;
     else if (rule.starts_with("tag"))

@@ -76,7 +76,6 @@ enum eShaderUniform : uint8_t {
     SHADER_POINTER_LAST_ACTIVE,
     SHADER_POINTER_SIZE,
     SHADER_CAPTURE,
-    SHADER_CAPTURE_COLOR,
 
     SHADER_LAST,
 };

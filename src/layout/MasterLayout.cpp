@@ -691,14 +691,18 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
-    Vector2D availableSpace = calcSize;
+    Vector2D    availableSpace = calcSize;
 
-    Vector2D minSize = PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
-    Vector2D maxSize = PWINDOW->isFullscreen() ? Vector2D{INFINITY, INFINITY} : PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY});
-    calcSize         = calcSize.clamp(minSize, maxSize);
+    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
 
-    if (!PWINDOW->onSpecialWorkspace() && (calcSize.x < availableSpace.x || calcSize.y < availableSpace.y))
-        calcPos += (availableSpace - calcSize) / 2.0;
+    if (*PCLAMP_TILED) {
+        Vector2D minSize = PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
+        Vector2D maxSize = PWINDOW->isFullscreen() ? Vector2D{INFINITY, INFINITY} : PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY});
+        calcSize         = calcSize.clamp(minSize, maxSize);
+
+        if (!PWINDOW->onSpecialWorkspace() && (calcSize.x < availableSpace.x || calcSize.y < availableSpace.y))
+            calcPos += (availableSpace - calcSize) / 2.0;
+    }
 
     if (PWINDOW->onSpecialWorkspace() && !PWINDOW->isFullscreen()) {
         static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("master:special_scale_factor");

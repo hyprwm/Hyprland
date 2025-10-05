@@ -634,7 +634,8 @@ bool CWindow::isHidden() {
 }
 
 void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
-    const eOverridePriority priority = r->m_execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    const eOverridePriority priority     = r->m_execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    static auto             PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
 
     switch (r->m_ruleType) {
         case CWindowRule::RULE_TAG: {
@@ -751,6 +752,8 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MAXSIZE: {
             try {
+                if (!m_isFloating && !sc<bool>(*PCLAMP_TILED))
+                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for maxsize");
@@ -765,6 +768,8 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MINSIZE: {
             try {
+                if (!m_isFloating && !sc<bool>(*PCLAMP_TILED))
+                    return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
                     Debug::log(ERR, "Invalid size for minsize");

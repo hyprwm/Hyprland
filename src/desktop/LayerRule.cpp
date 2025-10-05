@@ -8,7 +8,6 @@ static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur
 static const auto RULES_PREFIX = std::unordered_set<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order", "abovelock"};
 
 CLayerRule::CLayerRule(const std::string& rule_, const std::string& ns_) : m_targetNamespace(ns_), m_rule(rule_) {
-    // TODO: THIS IS JUST HERE FOR DEBUGGING
     const auto firstSpace = m_rule.find(' ');
     const auto baseRule   = m_rule.substr(0, firstSpace == std::string::npos ? m_rule.size() : firstSpace);
 

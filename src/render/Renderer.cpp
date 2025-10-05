@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
+#include <array>
 #include <aquamarine/output/Output.hpp>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
@@ -38,6 +39,21 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
+
+namespace {
+
+    std::array<float, 4> globalNoScreenShareMaskColor() {
+        static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+
+        const bool        blackout = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+
+        if (!blackout)
+            return {0.f, 0.f, 0.f, 0.f};
+
+        return {0.f, 0.f, 0.f, 1.f};
+    }
+
+}
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -2398,15 +2414,9 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
         return false;
 
-    static auto PMRTFORCEMODE = CConfigValue<Hyprlang::INT>("render:capture_mrt_mode");
+    auto& data = it->second;
 
-    auto&       data = it->second;
-
-    const int   mode = std::clamp<int>(*PMRTFORCEMODE, 0, 2);
-    if (mode == 2)
-        return false;
-
-    if (!data.screencopyPending && mode != 1)
+    if (!data.screencopyPending)
         return false;
 
     for (const auto& w : g_pCompositor->m_windows) {
@@ -2432,10 +2442,7 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
         return true;
     }
 
-    if (mode == 1)
-        return true;
-
-    return false;
+    return true;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
@@ -2698,11 +2705,12 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.captureWrites = !windowNoShare;
 
     if (windowNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-        const auto  maskOpts   = pWindow->m_windowData.noScreenShareMask.valueOrDefault();
-        const float baseAlpha  = maskOpts.resolvedOpacity();
-        const float finalAlpha = std::clamp(baseAlpha * data.a, 0.f, 1.f);
-        if (finalAlpha > 0.0f)
-            data.captureMaskColor = std::array<float, 4>{0.f, 0.f, 0.f, finalAlpha};
+        auto        maskColor  = globalNoScreenShareMaskColor();
+        const float finalAlpha = std::clamp(maskColor[3] * data.a, 0.f, 1.f);
+        if (finalAlpha > 0.0f) {
+            maskColor[3]          = finalAlpha;
+            data.captureMaskColor = maskColor;
+        }
     }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
@@ -2750,10 +2758,12 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
         data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
 
     if (layerNoShare && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-        const float baseAlpha  = pLayer->m_noScreenShareMask.resolvedOpacity();
-        const float finalAlpha = std::clamp(baseAlpha * data.a, 0.f, 1.f);
-        if (finalAlpha > 0.0f)
-            data.captureMaskColor = std::array<float, 4>{0.f, 0.f, 0.f, finalAlpha};
+        auto        maskColor  = globalNoScreenShareMaskColor();
+        const float finalAlpha = std::clamp(maskColor[3] * data.a, 0.f, 1.f);
+        if (finalAlpha > 0.0f) {
+            maskColor[3]          = finalAlpha;
+            data.captureMaskColor = maskColor;
+        }
     }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));

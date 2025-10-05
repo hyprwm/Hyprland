@@ -1340,6 +1340,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "misc:screencopy_noscreenshare_visibility",
+        .description = "TODO rewrite this: set to 1 to black out noscreenshare surfaces, 0 to make them disappear",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 0, 2},
+    },
+    SConfigOptionDescription{
         .value       = "misc:disable_scale_notification",
         .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
         .type        = CONFIG_OPTION_BOOL,
@@ -1549,7 +1555,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
     },
     SConfigOptionDescription{
-    SConfigOptionDescription{
         .value       = "render:cm_sdr_eotf",
         .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat unspecified and sRGB as Gamma 2.2",
         .type        = CONFIG_OPTION_CHOICE,
@@ -1560,7 +1565,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "(Debug) 0 - auto, 1 - force MRT capture path, 2 - force fallback compositing path.",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
-    },
     },
 
     /*

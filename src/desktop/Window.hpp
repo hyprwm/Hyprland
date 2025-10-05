@@ -18,7 +18,6 @@
 #include "Workspace.hpp"
 #include "WindowRule.hpp"
 #include "WindowOverridableVar.hpp"
-#include "NoScreenShareMask.hpp"
 #include "../protocols/types/ContentType.hpp"
 
 class CXDGSurfaceResource;
@@ -79,51 +78,50 @@ struct SAlphaValue {
 };
 
 struct SWindowData {
-    CWindowOverridableVar<SAlphaValue>               alpha           = SAlphaValue{.alpha = 1.f, .overridden = false};
-    CWindowOverridableVar<SAlphaValue>               alphaInactive   = SAlphaValue{.alpha = 1.f, .overridden = false};
-    CWindowOverridableVar<SAlphaValue>               alphaFullscreen = SAlphaValue{.alpha = 1.f, .overridden = false};
+    CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{.alpha = 1.f, .overridden = false};
+    CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{.alpha = 1.f, .overridden = false};
+    CWindowOverridableVar<SAlphaValue>        alphaFullscreen = SAlphaValue{.alpha = 1.f, .overridden = false};
 
-    CWindowOverridableVar<bool>                      allowsInput        = false;
-    CWindowOverridableVar<bool>                      dimAround          = false;
-    CWindowOverridableVar<bool>                      decorate           = true;
-    CWindowOverridableVar<bool>                      focusOnActivate    = false;
-    CWindowOverridableVar<bool>                      keepAspectRatio    = false;
-    CWindowOverridableVar<bool>                      nearestNeighbor    = false;
-    CWindowOverridableVar<bool>                      noAnim             = false;
-    CWindowOverridableVar<bool>                      noBorder           = false;
-    CWindowOverridableVar<bool>                      noBlur             = false;
-    CWindowOverridableVar<bool>                      noDim              = false;
-    CWindowOverridableVar<bool>                      noFocus            = false;
-    CWindowOverridableVar<bool>                      noMaxSize          = false;
-    CWindowOverridableVar<bool>                      noRounding         = false;
-    CWindowOverridableVar<bool>                      noShadow           = false;
-    CWindowOverridableVar<bool>                      noShortcutsInhibit = false;
-    CWindowOverridableVar<bool>                      opaque             = false;
-    CWindowOverridableVar<bool>                      RGBX               = false;
-    CWindowOverridableVar<bool>                      syncFullscreen     = true;
-    CWindowOverridableVar<bool>                      tearing            = false;
-    CWindowOverridableVar<bool>                      xray               = false;
-    CWindowOverridableVar<bool>                      renderUnfocused    = false;
-    CWindowOverridableVar<bool>                      noFollowMouse      = false;
-    CWindowOverridableVar<bool>                      noScreenShare      = false;
-    CWindowOverridableVar<SNoScreenShareMaskOptions> noScreenShareMask  = SNoScreenShareMaskOptions{};
-    CWindowOverridableVar<bool>                      noVRR              = false;
+    CWindowOverridableVar<bool>               allowsInput        = false;
+    CWindowOverridableVar<bool>               dimAround          = false;
+    CWindowOverridableVar<bool>               decorate           = true;
+    CWindowOverridableVar<bool>               focusOnActivate    = false;
+    CWindowOverridableVar<bool>               keepAspectRatio    = false;
+    CWindowOverridableVar<bool>               nearestNeighbor    = false;
+    CWindowOverridableVar<bool>               noAnim             = false;
+    CWindowOverridableVar<bool>               noBorder           = false;
+    CWindowOverridableVar<bool>               noBlur             = false;
+    CWindowOverridableVar<bool>               noDim              = false;
+    CWindowOverridableVar<bool>               noFocus            = false;
+    CWindowOverridableVar<bool>               noMaxSize          = false;
+    CWindowOverridableVar<bool>               noRounding         = false;
+    CWindowOverridableVar<bool>               noShadow           = false;
+    CWindowOverridableVar<bool>               noShortcutsInhibit = false;
+    CWindowOverridableVar<bool>               opaque             = false;
+    CWindowOverridableVar<bool>               RGBX               = false;
+    CWindowOverridableVar<bool>               syncFullscreen     = true;
+    CWindowOverridableVar<bool>               tearing            = false;
+    CWindowOverridableVar<bool>               xray               = false;
+    CWindowOverridableVar<bool>               renderUnfocused    = false;
+    CWindowOverridableVar<bool>               noFollowMouse      = false;
+    CWindowOverridableVar<bool>               noScreenShare      = false;
+    CWindowOverridableVar<bool>               noVRR              = false;
 
-    CWindowOverridableVar<Hyprlang::INT>             borderSize = {std::string("general:border_size"), sc<Hyprlang::INT>(0), std::nullopt};
-    CWindowOverridableVar<Hyprlang::INT>             rounding   = {std::string("decoration:rounding"), sc<Hyprlang::INT>(0), std::nullopt};
+    CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), sc<Hyprlang::INT>(0), std::nullopt};
+    CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), sc<Hyprlang::INT>(0), std::nullopt};
 
-    CWindowOverridableVar<Hyprlang::FLOAT>           roundingPower  = {std::string("decoration:rounding_power")};
-    CWindowOverridableVar<Hyprlang::FLOAT>           scrollMouse    = {std::string("input:scroll_factor")};
-    CWindowOverridableVar<Hyprlang::FLOAT>           scrollTouchpad = {std::string("input:touchpad:scroll_factor")};
+    CWindowOverridableVar<Hyprlang::FLOAT>    roundingPower  = {std::string("decoration:rounding_power")};
+    CWindowOverridableVar<Hyprlang::FLOAT>    scrollMouse    = {std::string("input:scroll_factor")};
+    CWindowOverridableVar<Hyprlang::FLOAT>    scrollTouchpad = {std::string("input:touchpad:scroll_factor")};
 
-    CWindowOverridableVar<std::string>               animationStyle;
-    CWindowOverridableVar<Vector2D>                  maxSize;
-    CWindowOverridableVar<Vector2D>                  minSize;
+    CWindowOverridableVar<std::string>        animationStyle;
+    CWindowOverridableVar<Vector2D>           maxSize;
+    CWindowOverridableVar<Vector2D>           minSize;
 
-    CWindowOverridableVar<CGradientValueData>        activeBorderColor;
-    CWindowOverridableVar<CGradientValueData>        inactiveBorderColor;
+    CWindowOverridableVar<CGradientValueData> activeBorderColor;
+    CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
 
-    CWindowOverridableVar<bool>                      persistentSize;
+    CWindowOverridableVar<bool>               persistentSize;
 };
 
 struct SInitialWorkspaceToken {

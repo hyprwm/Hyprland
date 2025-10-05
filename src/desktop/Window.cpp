@@ -36,7 +36,6 @@
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
-using namespace Hyprland::NoScreenShare;
 using enum NContentType::eContentType;
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
@@ -796,32 +795,19 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         case CWindowRule::RULE_NOSCREENSHARE: {
             const CVarList tokens{r->m_rule, 0, ' '};
 
-            auto           mask            = m_windowData.noScreenShareMask.valueOrDefault();
-            bool           maskTouched     = false;
-            bool           requestedUnset  = false;
-            bool           enable          = true;
-            bool           enableSpecified = false;
-
-            parseNoScreenShareTokens(tokens, requestedUnset, enableSpecified, enable, mask, maskTouched);
-
-            if (requestedUnset) {
+            if (tokens.size() > 1 && tokens[1] == "unset") {
                 m_windowData.noScreenShare.unset(priority);
-                m_windowData.noScreenShareMask.unset(priority);
                 g_pHyprRenderer->damageWindow(m_self.lock());
                 break;
             }
 
-            if (!enable) {
-                m_windowData.noScreenShare = CWindowOverridableVar(false, priority);
-                m_windowData.noScreenShareMask.unset(priority);
-                g_pHyprRenderer->damageWindow(m_self.lock());
-                break;
+            bool enable = true;
+            if (tokens.size() > 1) {
+                if (const auto parsed = configStringToInt(tokens[1]); parsed.has_value())
+                    enable = parsed.value() != 0;
             }
 
-            m_windowData.noScreenShare = CWindowOverridableVar(true, priority);
-            if (maskTouched)
-                m_windowData.noScreenShareMask = CWindowOverridableVar(mask, priority);
-
+            m_windowData.noScreenShare = CWindowOverridableVar(enable, priority);
             g_pHyprRenderer->damageWindow(m_self.lock());
             break;
         }

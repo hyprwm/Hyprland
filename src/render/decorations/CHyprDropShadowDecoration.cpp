@@ -6,6 +6,7 @@
 #include "../Renderer.hpp"
 #include "../../desktop/Window.hpp"
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <algorithm>
 
 using namespace Hyprutils::Utils;
 
@@ -163,7 +164,16 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprOpenGL->m_renderData.currentWindow = m_window;
     const auto window                         = m_window.lock();
 
-    const bool allowCapture = !window || !window->m_windowData.noScreenShare.valueOrDefault() || window->m_windowData.noScreenShareMask.valueOrDefault().decorationsEnabled();
+    bool       allowCapture = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+
+    if (window && window->m_windowData.noScreenShare.valueOrDefault()) {
+        static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+        const bool        blackout    = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+        if (blackout && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
+            allowCapture = true;
+        else
+            allowCapture = false;
+    }
 
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 

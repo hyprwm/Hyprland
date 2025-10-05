@@ -2429,15 +2429,9 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
         return false;
 
-    static auto PMRTFORCEMODE = CConfigValue<Hyprlang::INT>("render:capture_mrt_mode");
+    auto& data = it->second;
 
-    auto&       data = it->second;
-
-    const int   mode = std::clamp<int>(*PMRTFORCEMODE, 0, 2);
-    if (mode == 2)
-        return false;
-
-    if (!data.screencopyPending && mode != 1)
+    if (!data.screencopyPending)
         return false;
 
     for (const auto& w : g_pCompositor->m_windows) {
@@ -2463,10 +2457,7 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
         return true;
     }
 
-    if (mode == 1)
-        return true;
-
-    return false;
+    return true;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {

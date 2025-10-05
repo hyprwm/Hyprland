@@ -518,6 +518,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});
     registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
+    registerConfigVar("misc:screencopy_noscreenshare_visibility", Hyprlang::INT{1});
     registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
     registerConfigVar("misc:size_limits_tiled", Hyprlang::INT{0});
 
@@ -3006,8 +3007,10 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     }
 
     m_keywordRules.emplace_back(std::move(rule));
-    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.isDynamicKeyword)
+    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.isDynamicKeyword) {
         Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{m_keywordRules.back()});
+        Desktop::Rule::ruleEngine()->updateAllRules();
+    }
 
     return std::nullopt;
 }
@@ -3045,6 +3048,11 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
     }
 
     m_keywordRules.emplace_back(std::move(rule));
+
+    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.isDynamicKeyword) {
+        Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{m_keywordRules.back()});
+        Desktop::Rule::ruleEngine()->updateAllRules();
+    }
 
     return std::nullopt;
 }

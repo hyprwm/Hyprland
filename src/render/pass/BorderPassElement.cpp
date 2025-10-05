@@ -1,6 +1,7 @@
 #include "BorderPassElement.hpp"
 #include "../OpenGL.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/Window.hpp"
+#include "../Renderer.hpp"
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
@@ -15,7 +16,16 @@ void CBorderPassElement::draw(const CRegion& damage) {
 
     g_pHyprOpenGL->m_renderData.currentWindow = m_data.pWindow;
     const auto window                         = m_data.pWindow.lock();
-    const bool allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+    bool       allowCapture                   = !window || !window->m_ruleApplicator->noScreenShare().valueOrDefault();
+
+    if (window && window->m_ruleApplicator->noScreenShare().valueOrDefault()) {
+        const bool blackout = CHyprRenderer::shouldBlackoutNoScreenShare();
+        if (blackout && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
+            allowCapture = true;
+        else
+            allowCapture = false;
+    }
+
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 
     CScopeGuard guard{[prevWindow, prevCaptures]() {

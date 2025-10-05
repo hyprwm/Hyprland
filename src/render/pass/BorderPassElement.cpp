@@ -1,7 +1,9 @@
 #include "BorderPassElement.hpp"
 #include "../OpenGL.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../config/ConfigValue.hpp"
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <algorithm>
 
 using namespace Hyprutils::Utils;
 
@@ -15,8 +17,16 @@ void CBorderPassElement::draw(const CRegion& damage) {
 
     g_pHyprOpenGL->m_renderData.currentWindow = m_data.pWindow;
     const auto window                         = m_data.pWindow.lock();
+    bool       allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
 
-    const bool allowCapture = !window || !window->m_windowData.noScreenShare.valueOrDefault() || window->m_windowData.noScreenShareMask.valueOrDefault().decorationsEnabled();
+    if (window && window->m_windowData.noScreenShare.valueOrDefault()) {
+        static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+        const bool        blackout    = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+        if (blackout && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
+            allowCapture = true;
+        else
+            allowCapture = false;
+    }
 
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 

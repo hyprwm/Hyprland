@@ -1334,6 +1334,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "misc:screencopy_noscreenshare_visibility",
+        .description = "TODO rewrite this: set to 1 to black out noscreenshare surfaces, 0 to make them disappear",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1, 0, 2},
+    },
+    SConfigOptionDescription{
         .value       = "misc:disable_scale_notification",
         .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
         .type        = CONFIG_OPTION_BOOL,
@@ -1541,13 +1547,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - don't block DS when non-shader CM isn't available",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
-    },
-    SConfigOptionDescription{
-        .value       = "render:capture_mrt_mode",
-        .description = "(TODO: HERE FOR DEBUGGING PURPOSES ONLY FOR NOW) 0 - auto, 1 - force mrt, 2 - force fallback"
-                       "fallback compositing.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
     },
 
     /*

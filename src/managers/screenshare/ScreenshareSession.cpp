@@ -2,6 +2,8 @@
 #include "../../render/OpenGL.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
+#include "../EventManager.hpp"
+#include "../HookSystemManager.hpp"
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client, bool overlayCursor) :
     m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client), m_overlayCursor(overlayCursor) {
@@ -23,7 +25,7 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion,
 
 CScreenshareSession::~CScreenshareSession() {
     stop();
-    LOGM(LOG, "Destroyed screenshare session for {}", typeAndName());
+    LOGM(LOG, "Destroyed screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::stop() {
@@ -32,15 +34,10 @@ void CScreenshareSession::stop() {
     m_stopped = true;
     m_events.stopped.emit();
 
-    LOGM(LOG, "Stopped screenshare session for {}", typeAndName());
-}
+    EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{0, m_type, m_name}));
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
 
-Vector2D CScreenshareSession::getBufferSize() {
-    return m_box.size();
-}
-
-const std::vector<SDRMFormat>& CScreenshareSession::allowedFormats() {
-    return m_formats;
+    LOGM(LOG, "Stopped screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::init() {
@@ -52,7 +49,10 @@ void CScreenshareSession::init() {
 
     calculateConstraints();
 
-    LOGM(LOG, "New screenshare session for {}", typeAndName());
+    EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{1, m_type, m_name}));
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
+
+    LOGM(LOG, "New screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::calculateConstraints() {
@@ -68,26 +68,16 @@ void CScreenshareSession::calculateConstraints() {
             m_box = m_box.scale(m_monitor->m_scale).round();
             break;
     }
+
+    m_name = m_type == SHARE_WINDOW ? m_window->m_title : m_monitor->m_name;
 }
 
-std::string CScreenshareSession::typeAndName() {
-    std::string type, name;
-    switch (m_type) {
-        case SHARE_MONITOR:
-            type = "monitor";
-            name = m_monitor->m_name;
-            break;
-        case SHARE_WINDOW:
-            type = "window";
-            name = m_window->m_title;
-            break;
-        case SHARE_REGION:
-            type = "region";
-            name = m_monitor->m_name;
-            break;
-    }
+Vector2D CScreenshareSession::getBufferSize() {
+    return m_box.size();
+}
 
-    return std::format("({}): \"{}\"", type, name);
+const std::vector<SDRMFormat>& CScreenshareSession::allowedFormats() {
+    return m_formats;
 }
 
 eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, FScreenshareCallback callback) {

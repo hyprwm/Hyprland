@@ -5,7 +5,6 @@
 #include "../../protocols/types/Buffer.hpp"
 #include "../../render/Framebuffer.hpp"
 
-// TODO: better/move screencast event here, see CScreencopyClient::onTick()
 // TODO: integrate into screencopy, toplevel export, and image copy capture
 // TODO: do screenshare damage
 // TODO: verify that transforms are correct
@@ -31,6 +30,17 @@ enum eScreenshareResult : uint8_t {
     RESULT_SHARED,
     RESULT_NOT_SHARED,
     RESULT_TIMESTAMP,
+};
+
+template <>
+struct std::formatter<eScreenshareType> : std::formatter<std::string> {
+    auto format(const eScreenshareType& res, std::format_context& ctx) const {
+        switch (res) {
+            case SHARE_MONITOR: return formatter<string>::format("monitor", ctx);
+            case SHARE_WINDOW: return formatter<string>::format("window", ctx);
+            case SHARE_REGION: return formatter<string>::format("region", ctx);
+        }
+    }
 };
 
 using FScreenshareCallback = std::function<void(eScreenshareResult result)>;
@@ -67,6 +77,7 @@ class CScreenshareSession {
     CBox                    m_captureRegion; // given capture area in logical coordinates (see xdg_output)
 
     wl_client*              m_client;
+    std::string             m_name;
 
     bool                    m_overlayCursor;
 
@@ -82,9 +93,8 @@ class CScreenshareSession {
         CHyprSignalListener windowSizeChanged;
     } m_listeners;
 
-    std::string typeAndName();
-    void        calculateConstraints();
-    void        init();
+    void calculateConstraints();
+    void init();
 
     friend class CScreenshareFrame;
     friend class CScreenshareManager;

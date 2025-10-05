@@ -26,7 +26,7 @@ void Debug::log(eLogLevel level, std::string str) {
 
     std::lock_guard<std::mutex> guard(m_logMutex);
 
-    std::string coloredStr = str;
+    std::string                 coloredStr = str;
     //NOLINTBEGIN
     switch (level) {
         case LOG:

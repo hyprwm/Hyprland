@@ -999,10 +999,10 @@ bool CHyprOpenGLImpl::captureWritesEnabled() const {
     return m_captureWritesEnabled;
 }
 
-void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, const std::array<float, 4>& color, bool force) {
+void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, bool force) {
     if (!m_mrtSupported)
         return;
-    if (!force && m_captureNoScreenShareMask == enabled && m_captureNoScreenShareColor == color)
+    if (!force && m_captureNoScreenShareMask == enabled)
         return;
 
     const GLuint previousProgram = m_currentProgram;
@@ -1015,8 +1015,6 @@ void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, const std::array
 
         if (shader.uniformLocations[SHADER_CAPTURE] != -1)
             shader.setUniformInt(SHADER_CAPTURE, enabled ? 1 : 0);
-        if (shader.uniformLocations[SHADER_CAPTURE_COLOR] != -1)
-            shader.setUniformFloat4(SHADER_CAPTURE_COLOR, color[0], color[1], color[2], color[3]);
     };
 
     if (m_shaders) {
@@ -1030,16 +1028,11 @@ void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, const std::array
 
     useProgram(previousProgram);
 
-    m_captureNoScreenShareMask  = enabled;
-    m_captureNoScreenShareColor = color;
+    m_captureNoScreenShareMask = enabled;
 }
 
 bool CHyprOpenGLImpl::captureNoScreenShareMaskEnabled() const {
     return m_captureNoScreenShareMask;
-}
-
-const std::array<float, 4>& CHyprOpenGLImpl::captureNoScreenShareMaskColor() const {
-    return m_captureNoScreenShareColor;
 }
 
 bool CHyprOpenGLImpl::captureMRTActiveForCurrentMonitor() const {
@@ -1128,8 +1121,7 @@ static void getRoundingShaderUniforms(SShader& shader) {
 }
 
 static void getCaptureUniforms(SShader& shader) {
-    shader.uniformLocations[SHADER_CAPTURE]       = glGetUniformLocation(shader.program, "capture");
-    shader.uniformLocations[SHADER_CAPTURE_COLOR] = glGetUniformLocation(shader.program, "captureColor");
+    shader.uniformLocations[SHADER_CAPTURE] = glGetUniformLocation(shader.program, "capture");
 }
 
 bool CHyprOpenGLImpl::initShaders() {
@@ -1418,7 +1410,7 @@ bool CHyprOpenGLImpl::initShaders() {
     m_shaders            = shaders;
     m_shadersInitialized = true;
 
-    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, m_captureNoScreenShareColor, true);
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, true);
 
     Debug::log(LOG, "Shaders initialized successfully.");
     return true;
@@ -1510,7 +1502,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_finalScreenShader.createVao();
     getCaptureUniforms(m_finalScreenShader);
 
-    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, m_captureNoScreenShareColor, true);
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, true);
 }
 
 void CHyprOpenGLImpl::clear(const CHyprColor& color) {

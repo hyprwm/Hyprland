@@ -7,30 +7,13 @@
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../Renderer.hpp"
-#include "../../config/ConfigValue.hpp"
 
 #include <algorithm>
-#include <array>
 
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
-
-namespace {
-
-    std::array<float, 4> globalNoScreenShareMaskColor() {
-        static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
-
-        const bool        blackout = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
-
-        if (!blackout)
-            return {0.f, 0.f, 0.f, 0.f};
-
-        return {0.f, 0.f, 0.f, 1.f};
-    }
-
-}
 
 CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData& data_) : m_data(data_) {
     ;
@@ -48,38 +31,32 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     const bool prevCaptureWrites = g_pHyprOpenGL->captureWritesEnabled();
     const bool prevMaskEnabled   = g_pHyprOpenGL->captureNoScreenShareMaskEnabled();
-    const auto prevMaskColor     = g_pHyprOpenGL->captureNoScreenShareMaskColor();
 
     bool       maskApplied  = false;
     bool       allowCapture = m_data.captureWrites;
     const auto monitor      = m_data.pMonitor.lock();
+    const bool blackout     = CHyprRenderer::shouldBlackoutNoScreenShare();
+    const bool hasMRT       = g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
 
-    auto       tryApplyMask = [&]() -> bool {
-        if (!g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
-            return false;
-
-        auto maskColor = globalNoScreenShareMaskColor();
-        if (maskColor[3] <= 0.f)
-            return false;
-
-        allowCapture = true;
-        g_pHyprOpenGL->setCaptureNoScreenShareMask(true, maskColor);
-        return true;
-    };
-
-    if (m_data.pWindow) {
-        const auto window = m_data.pWindow;
-        if (window->m_windowData.noScreenShare.valueOrDefault() && monitor && g_pHyprRenderer->isWindowVisibleOnMonitor(window, monitor))
-            maskApplied = tryApplyMask();
-    } else if (m_data.pLS) {
-        const auto layerMonitor = m_data.pLS->m_monitor.lock();
-        if (m_data.pLS->m_noScreenShare && monitor && layerMonitor == monitor)
-            maskApplied = tryApplyMask();
+    if (blackout && hasMRT) {
+        if (const auto window = m_data.pWindow) {
+            if (window->m_windowData.noScreenShare.valueOrDefault() && monitor && g_pHyprRenderer->isWindowVisibleOnMonitor(window, monitor)) {
+                maskApplied  = true;
+                allowCapture = true;
+            }
+        } else if (m_data.pLS) {
+            const auto layerMonitor = m_data.pLS->m_monitor.lock();
+            if (m_data.pLS->m_noScreenShare && monitor && layerMonitor == monitor) {
+                maskApplied  = true;
+                allowCapture = true;
+            }
+        }
     }
 
+    g_pHyprOpenGL->setCaptureNoScreenShareMask(maskApplied);
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 
-    CScopeGuard x = {[prevCaptureWrites, prevMaskEnabled, prevMaskColor, maskApplied]() {
+    CScopeGuard x = {[prevCaptureWrites, prevMaskEnabled]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
@@ -93,8 +70,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
         g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
-        if (maskApplied)
-            g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled, prevMaskColor);
+        g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled);
     }};
 
     if (!m_data.texture)

@@ -792,25 +792,6 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
             g_pHyprRenderer->addWindowToRenderUnfocused(m_self.lock());
             break;
         }
-        case CWindowRule::RULE_NOSCREENSHARE: {
-            const CVarList tokens{r->m_rule, 0, ' '};
-
-            if (tokens.size() > 1 && tokens[1] == "unset") {
-                m_windowData.noScreenShare.unset(priority);
-                g_pHyprRenderer->damageWindow(m_self.lock());
-                break;
-            }
-
-            bool enable = true;
-            if (tokens.size() > 1) {
-                if (const auto parsed = configStringToInt(tokens[1]); parsed.has_value())
-                    enable = parsed.value() != 0;
-            }
-
-            m_windowData.noScreenShare = CWindowOverridableVar(enable, priority);
-            g_pHyprRenderer->damageWindow(m_self.lock());
-            break;
-        }
         case CWindowRule::RULE_PROP: {
             const CVarList VARS(r->m_rule, 0, ' ');
             if (auto search = NWindowProperties::intWindowProperties.find(VARS[1]); search != NWindowProperties::intWindowProperties.end()) {
@@ -823,7 +804,19 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
-                    *(search->second(m_self.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : sc<bool>(std::stoi(VARS[2])), priority);
+                    auto*      target          = search->second(m_self.lock());
+                    const bool isNoScreenShare = VARS[1] == "noscreenshare";
+                    const bool hasArg          = VARS.size() > 2 && !VARS[2].empty();
+
+                    if (isNoScreenShare && hasArg && VARS[2] == "unset") {
+                        target->unset(priority);
+                    } else {
+                        const bool value = hasArg ? sc<bool>(std::stoi(VARS[2])) : true;
+                        *target          = CWindowOverridableVar(value, priority);
+                    }
+
+                    if (isNoScreenShare)
+                        g_pHyprRenderer->damageWindow(m_self.lock());
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             }
             break;

@@ -1,5 +1,6 @@
 #include "TexPassElement.hpp"
 #include "../OpenGL.hpp"
+#include "../Renderer.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -17,26 +18,22 @@ void CTexPassElement::draw(const CRegion& damage) {
 
     const bool prevCaptureWrites = g_pHyprOpenGL->captureWritesEnabled();
     const bool prevMaskEnabled   = g_pHyprOpenGL->captureNoScreenShareMaskEnabled();
-    const auto prevMaskColor     = g_pHyprOpenGL->captureNoScreenShareMaskColor();
 
     bool       maskApplied  = false;
     bool       allowCapture = m_data.captureWrites;
 
-    if (m_data.captureMaskColor.has_value()) {
-        const auto& maskColor = *m_data.captureMaskColor;
-        if (maskColor[3] > 0.0f && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-            g_pHyprOpenGL->setCaptureNoScreenShareMask(true, maskColor);
-            maskApplied  = true;
-            allowCapture = true;
-        }
+    const bool blackoutRequested = m_data.captureBlackout && CHyprRenderer::shouldBlackoutNoScreenShare();
+    if (blackoutRequested && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
+        maskApplied  = true;
+        allowCapture = true;
     }
 
+    g_pHyprOpenGL->setCaptureNoScreenShareMask(maskApplied);
     g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
 
-    CScopeGuard x = {[this, prevCaptureWrites, prevMaskEnabled, prevMaskColor, maskApplied]() {
+    CScopeGuard x = {[this, prevCaptureWrites, prevMaskEnabled]() {
         g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
-        if (maskApplied)
-            g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled, prevMaskColor);
+        g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled);
 
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};

@@ -399,8 +399,6 @@ void CLayerSurface::onCommit() {
 }
 
 void CLayerSurface::applyRules() {
-    const bool wasNoScreenShare = m_noScreenShare;
-
     m_noAnimations     = false;
     m_forceBlur        = false;
     m_ignoreAlpha      = false;
@@ -408,7 +406,8 @@ void CLayerSurface::applyRules() {
     m_ignoreAlphaValue = 0.f;
     m_xray             = -1;
     m_animationStyle.reset();
-    m_noScreenShare = false;
+    const bool wasNoScreenShare = m_noScreenShare;
+    m_noScreenShare             = false;
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(m_self.lock())) {
         switch (rule->m_ruleType) {
@@ -444,17 +443,18 @@ void CLayerSurface::applyRules() {
             }
             case CLayerRule::RULE_NOSCREENSHARE: {
                 const CVarList tokens{rule->m_rule, 0, ' '};
-                bool           enable = true;
 
                 if (tokens.size() > 1) {
                     if (tokens[1] == "unset")
-                        enable = false;
-                    else if (const auto parsed = configStringToInt(tokens[1]); parsed.has_value())
-                        enable = parsed.value() != 0;
+                        break;
+
+                    if (const auto parsed = configStringToInt(tokens[1]); parsed.has_value()) {
+                        m_noScreenShare = parsed.value() != 0;
+                        break;
+                    }
                 }
 
-                m_noScreenShare = enable;
-
+                m_noScreenShare = true;
                 break;
             }
             case CLayerRule::RULE_XRAY: {
@@ -487,8 +487,8 @@ void CLayerSurface::applyRules() {
         }
     }
 
-    if (g_pHyprRenderer && wasNoScreenShare != m_noScreenShare)
-        g_pHyprRenderer->handleLayerNoScreenShareChanged(m_self.lock());
+    if (wasNoScreenShare != m_noScreenShare && g_pHyprRenderer && m_surface && m_surface->resource())
+        g_pHyprRenderer->damageSurface(m_surface->resource(), m_position.x, m_position.y);
 }
 
 bool CLayerSurface::isFadedOut() {

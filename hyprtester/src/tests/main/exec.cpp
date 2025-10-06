@@ -15,16 +15,6 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static std::string execAndGet(const std::string& cmd) {
-    CProcess proc("/bin/sh", {"-c", cmd});
-
-    if (!proc.runSync()) {
-        return "error";
-    }
-
-    return proc.stdOut();
-}
-
 static bool test() {
     NLog::log("{}Testing process spawning", Colors::GREEN);
 
@@ -33,7 +23,7 @@ static bool test() {
     OK(getFromSocket("/dispatch exec sleep 1"));
 
     // Ensure that sleep is our child
-    const std::string sleepPidS = execAndGet("pgrep sleep");
+    const std::string sleepPidS = Tests::execAndGet("pgrep sleep");
     pid_t             sleepPid;
     try {
         sleepPid = std::stoull(sleepPidS);
@@ -42,7 +32,7 @@ static bool test() {
         return false;
     }
 
-    const std::string sleepParentComm = execAndGet("cat \"/proc/$(ps -o ppid:1= -p " + sleepPidS + ")/comm\"");
+    const std::string sleepParentComm = Tests::execAndGet("cat \"/proc/$(ps -o ppid:1= -p " + sleepPidS + ")/comm\"");
     NLog::log("{}Expecting that sleep's parent is Hyprland", Colors::YELLOW);
     EXPECT_CONTAINS(sleepParentComm, "Hyprland");
 

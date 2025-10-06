@@ -50,7 +50,7 @@ void main() {
 
     if (radius > 0.0)
         pixColor = rounding(pixColor);
-    vec4 outColor = pixColor * alpha;
-    fragColor     = outColor;
-    CAPTURE_WRITE(outColor);
+    
+    fragColor = pixColor * alpha;
+    CAPTURE_WRITE(fragColor);
 }

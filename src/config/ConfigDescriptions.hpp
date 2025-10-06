@@ -479,6 +479,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "input:rotation",
+        .description = "Sets the rotation of a device in degrees clockwise off the logical neutral position. Value is clamped to the range 0 to 359.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 359},
+    },
+    SConfigOptionDescription{
         .value       = "input:left_handed",
         .description = "Switches RMB and LMB",
         .type        = CONFIG_OPTION_BOOL,

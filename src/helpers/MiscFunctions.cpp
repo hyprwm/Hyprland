@@ -930,8 +930,7 @@ std::string deviceNameToInternalString(std::string in) {
     return in;
 }
 
-static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig",
-                                                       "/usr/local/lib/pkgconfig"};
+static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};
 
 //
 std::string getSystemLibraryVersion(const std::string& name) {

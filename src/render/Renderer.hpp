@@ -96,11 +96,9 @@ class CHyprRenderer {
     static bool                     shouldBlackoutNoScreenShare();
 
     bool                            shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+    void                            setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
 
     bool                            isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
-
-    void                            setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
-    bool                            isScreencopyPendingForMonitor(PHLMONITOR pMonitor);
 
     bool                            m_bBlockSurfaceFeedback = false;
     bool                            m_bRenderingSnapshot    = false;

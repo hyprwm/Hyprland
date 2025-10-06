@@ -28,6 +28,7 @@
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprgraphics/resource/resources/ImageResource.hpp>
 
 #include "../debug/TracyDefines.hpp"
@@ -315,8 +316,13 @@ class CHyprOpenGLImpl {
     SP<CTexture> getMonitorCaptureTexture(PHLMONITOR);
     void         setCaptureWritesEnabled(bool enable);
     bool         captureWritesEnabled() const;
+    void         setCaptureNoScreenShareMask(bool enabled, bool force = false);
+    bool         captureNoScreenShareMaskEnabled() const;
+    bool         captureMRTActiveForCurrentMonitor() const;
+    bool         isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const;
+    Hyprutils::Utils::CScopeGuard                     captureStateGuard(bool allowCaptureWrites, bool enableMask);
 
-    DRMFormat    getPreferredReadFormat(PHLMONITOR pMonitor);
+    DRMFormat                                         getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                           getDRMFormats();
     std::vector<uint64_t>                             getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
@@ -419,8 +425,9 @@ class CHyprOpenGLImpl {
     bool                              m_offloadedFramebuffer = false;
     bool                              m_cmSupported          = true;
 
-    bool                              m_captureWritesEnabled = true;
-    bool                              m_mrtSupported         = false;
+    bool                              m_captureWritesEnabled     = true;
+    bool                              m_captureNoScreenShareMask = false;
+    bool                              m_mrtSupported             = false;
 
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;

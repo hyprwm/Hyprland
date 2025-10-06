@@ -49,6 +49,11 @@ using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
+bool CHyprRenderer::shouldBlackoutNoScreenShare() {
+    static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+    return std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+}
+
 extern "C" {
 #include <xf86drm.h>
 }
@@ -2463,6 +2468,7 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
+
     auto& data = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
     if (pending && !data.screencopyPending)
         data.forceFullCaptureFrame = true;
@@ -2471,13 +2477,6 @@ void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pen
 
     if (!pending)
         data.forceFullCaptureFrame = false;
-}
-
-bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) {
-    if (!pMonitor)
-        return false;
-    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    return it != g_pHyprOpenGL->m_monitorRenderResources.end() && it->second.screencopyPending;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
@@ -2718,12 +2717,17 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     const bool                   windowNoShare = pWindow->m_ruleApplicator->noScreenShare().valueOrDefault();
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame  = true;
-    data.tex           = FBDATA->getTexture();
-    data.box           = windowBox;
-    data.a             = pWindow->m_alpha->value();
-    data.damage        = fakeDamage;
-    data.captureWrites = !windowNoShare;
+    data.flipEndFrame    = true;
+    data.tex             = FBDATA->getTexture();
+    data.box             = windowBox;
+    data.a               = pWindow->m_alpha->value();
+    data.damage          = fakeDamage;
+    data.captureWrites   = !windowNoShare;
+    const bool blackoutM = windowNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutM) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2768,6 +2772,12 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     data.captureWrites = !layerNoShare;
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
+
+    const bool blackoutL = layerNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutL) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

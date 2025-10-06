@@ -11,6 +11,7 @@ uniform float alpha;
 #include "tint.glsl"
 #include "rounding.glsl"
 #include "surface_CM.glsl"
+#include "capture.glsl"
 
 layout(location = 0) out vec4 fragColor;
 void main() {
@@ -22,4 +23,5 @@ void main() {
     #include "do_rounding.glsl"
 
     fragColor = pixColor * alpha;
+    CAPTURE_WRITE(fragColor);
 }

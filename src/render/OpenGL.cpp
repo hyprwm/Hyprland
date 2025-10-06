@@ -777,7 +777,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     const bool ENABLE_CAPTURE_MRT                 = m_mrtSupported && g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
 
-    if (ENABLE_CAPTURE_MRT && !hadCaptureAttachment)
+    if (ENABLE_CAPTURE_MRT && (!hadCaptureAttachment || !PREV_CAPTURE_MRT))
         m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
 
     m_renderData.forcedFullDamageForCapture = false;
@@ -812,6 +812,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     pushMonitorTransformEnabled(false);
     setCaptureWritesEnabled(true);
+    setCaptureNoScreenShareMask(false, true);
 
     if (PREV_CAPTURE_MRT != m_renderData.pCurrentMonData->captureMRTValid)
         Log::logger->log(Log::TRACE, "renderer: capture MRT {} for monitor {}", m_renderData.pCurrentMonData->captureMRTValid ? "ENABLED" : "DISABLED", pMonitor->m_name);
@@ -924,6 +925,48 @@ void CHyprOpenGLImpl::setCaptureWritesEnabled(bool enable) {
 
 bool CHyprOpenGLImpl::captureWritesEnabled() const {
     return m_captureWritesEnabled;
+}
+
+void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, bool force) {
+    if (!m_mrtSupported)
+        enabled = false;
+
+    if (!force && m_captureNoScreenShareMask == enabled)
+        return;
+
+    m_captureNoScreenShareMask = enabled;
+}
+
+bool CHyprOpenGLImpl::captureNoScreenShareMaskEnabled() const {
+    return m_captureNoScreenShareMask;
+}
+
+bool CHyprOpenGLImpl::captureMRTActiveForCurrentMonitor() const {
+    return m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
+}
+
+bool CHyprOpenGLImpl::isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const {
+    if (!pMonitor)
+        return false;
+
+    auto it = m_monitorRenderResources.find(pMonitor);
+    if (it == m_monitorRenderResources.end())
+        return false;
+
+    return it->second.captureMRTValid;
+}
+
+Hyprutils::Utils::CScopeGuard CHyprOpenGLImpl::captureStateGuard(bool allowCaptureWrites, bool enableMask) {
+    const bool prevCaptureWrites = captureWritesEnabled();
+    const bool prevMaskEnabled   = captureNoScreenShareMaskEnabled();
+
+    setCaptureWritesEnabled(allowCaptureWrites);
+    setCaptureNoScreenShareMask(enableMask);
+
+    return Hyprutils::Utils::CScopeGuard{[this, prevCaptureWrites, prevMaskEnabled]() {
+        setCaptureWritesEnabled(prevCaptureWrites);
+        setCaptureNoScreenShareMask(prevMaskEnabled);
+    }};
 }
 
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
@@ -2841,11 +2884,12 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
 }
 
 WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
-    if (m_currentProgram == prog->program())
-        return prog;
+    if (m_currentProgram != prog->program()) {
+        glUseProgram(prog->program());
+        m_currentProgram = prog->program();
+    }
 
-    glUseProgram(prog->program());
-    m_currentProgram = prog->program();
+    prog->setUniformInt(SHADER_CAPTURE, m_captureNoScreenShareMask ? 1 : 0);
 
     return prog;
 }

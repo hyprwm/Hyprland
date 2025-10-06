@@ -35,21 +35,13 @@ class CContentType;
 
 class CWLCallbackResource {
   public:
-    CWLCallbackResource(SP<CWlCallback>&& resource_);
-    ~CWLCallbackResource() noexcept = default;
-    // disable copy
-    CWLCallbackResource(const CWLCallbackResource&)            = delete;
-    CWLCallbackResource& operator=(const CWLCallbackResource&) = delete;
+    CWLCallbackResource(UP<CWlCallback>&& resource_);
 
-    // allow move
-    CWLCallbackResource(CWLCallbackResource&&) noexcept            = default;
-    CWLCallbackResource& operator=(CWLCallbackResource&&) noexcept = default;
-
-    bool                 good();
-    void                 send(const Time::steady_tp& now);
+    bool good();
+    void send(const Time::steady_tp& now);
 
   private:
-    SP<CWlCallback> m_resource;
+    UP<CWlCallback> m_resource;
 };
 
 class CWLRegionResource {
@@ -102,8 +94,8 @@ class CWLSurfaceResource {
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
-    bool                                   m_pendingWaiting = false;
 
+    std::vector<UP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;
@@ -118,7 +110,6 @@ class CWLSurfaceResource {
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
-    void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::SImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();

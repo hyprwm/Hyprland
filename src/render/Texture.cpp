@@ -111,9 +111,6 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
 }
 
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
-    if (damage.empty())
-        return;
-
     g_pHyprRenderer->makeEGLCurrent();
 
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);

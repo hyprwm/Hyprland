@@ -165,6 +165,10 @@ void NCrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += "\n\nos-release:\n";
     finalCrashReport.writeCmdOutput("cat /etc/os-release | sed 's/^/\t/'");
 
+    finalCrashReport += '\n';
+    finalCrashReport += getBuiltSystemLibraryNames();
+    finalCrashReport += '\n';
+
     // dladdr1()/backtrace_symbols()/this entire section allocates, and hence is NOT async-signal-safe.
     // Make sure that we save the current known crash report information,
     // so that if we are caught in a deadlock during a call to malloc(),

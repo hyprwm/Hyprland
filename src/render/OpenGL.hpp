@@ -27,6 +27,7 @@
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprgraphics/resource/resources/ImageResource.hpp>
 
 #include "../debug/TracyDefines.hpp"
@@ -281,8 +282,9 @@ class CHyprOpenGLImpl {
     bool         captureNoScreenShareMaskEnabled() const;
     bool         captureMRTActiveForCurrentMonitor() const;
     bool         isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const;
+    Hyprutils::Utils::CScopeGuard               captureStateGuard(bool allowCaptureWrites, bool enableMask);
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    uint32_t                                    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 

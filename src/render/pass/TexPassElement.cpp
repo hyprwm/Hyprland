@@ -16,25 +16,13 @@ CTexPassElement::CTexPassElement(CTexPassElement::SRenderData&& data) : m_data(s
 void CTexPassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
-    const bool prevCaptureWrites = g_pHyprOpenGL->captureWritesEnabled();
-    const bool prevMaskEnabled   = g_pHyprOpenGL->captureNoScreenShareMaskEnabled();
+    const bool  blackoutRequested = m_data.captureBlackout && CHyprRenderer::shouldBlackoutNoScreenShare();
+    const bool  maskApplied       = blackoutRequested && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    const bool  allowCapture      = m_data.captureWrites || maskApplied;
 
-    bool       maskApplied  = false;
-    bool       allowCapture = m_data.captureWrites;
+    auto        captureState = g_pHyprOpenGL->captureStateGuard(allowCapture, maskApplied);
 
-    const bool blackoutRequested = m_data.captureBlackout && CHyprRenderer::shouldBlackoutNoScreenShare();
-    if (blackoutRequested && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor()) {
-        maskApplied  = true;
-        allowCapture = true;
-    }
-
-    g_pHyprOpenGL->setCaptureNoScreenShareMask(maskApplied);
-    g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
-
-    CScopeGuard x = {[this, prevCaptureWrites, prevMaskEnabled]() {
-        g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptureWrites);
-        g_pHyprOpenGL->setCaptureNoScreenShareMask(prevMaskEnabled);
-
+    CScopeGuard x = {[this]() {
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)

@@ -1044,10 +1044,12 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
-                                         "Tag: {}, commits: {}\n"
-                                         "built against:\n aquamarine {}\n hyprlang {}\n hyprutils {}\n hyprcursor {}\n hyprgraphics {}\n\n\n",
-                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION,
-                                         HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
+                                         "Tag: {}, commits: {}\n",
+                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS);
+
+        result += "\n";
+        result += getBuiltSystemLibraryNames();
+        result += "\n";
 
 #if (!ISDEBUG && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
@@ -1077,9 +1079,15 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "buildHyprutils": "{}",
     "buildHyprcursor": "{}",
     "buildHyprgraphics": "{}",
+    "systemAquamarine": "{}",
+    "systemHyprlang": "{}",
+    "systemHyprutils": "{}",
+    "systemHyprcursor": "{}",
+    "systemHyprgraphics": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, HYPRLAND_VERSION, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG,
-            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
+            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION, getSystemLibraryVersion("aquamarine"),
+            getSystemLibraryVersion("hyprlang"), getSystemLibraryVersion("hyprutils"), getSystemLibraryVersion("hyprcursor"), getSystemLibraryVersion("hyprgraphics"));
 
 #if ISDEBUG
         result += "\"debug\",";
@@ -1122,6 +1130,9 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "Node name: " + std::string{unameInfo.nodename} + "\n";
     result += "Release: " + std::string{unameInfo.release} + "\n";
     result += "Version: " + std::string{unameInfo.version} + "\n";
+    result += "\n";
+    result += getBuiltSystemLibraryNames();
+    result += "\n";
 
     result += "\n\n";
 

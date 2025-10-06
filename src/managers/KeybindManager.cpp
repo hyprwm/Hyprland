@@ -1324,12 +1324,12 @@ SDispatchResult CKeybindManager::fullscreenActive(std::string args) {
         else
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, MODE);
     } else {
-        if (ARGS[1] == "set") 
+        if (ARGS[1] == "set")
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, MODE);
         else if (ARGS[1] == "unset")
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
     }
-    
+
     return {};
 }
 

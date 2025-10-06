@@ -203,18 +203,15 @@ void CScreencopyFrame::renderMon() {
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
 
     CBox       monbox = CBox{0, 0, monitor->m_pixelSize.x, monitor->m_pixelSize.y}
-                      .translate({-m_box.x, -m_box.y})
+                      .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(monitor->m_transform)), monitor->m_pixelSize.x, monitor->m_pixelSize.y);
+
+    auto captureTexture = g_pHyprOpenGL->getMonitorCaptureTexture(monitor);
+    if (!captureTexture || !captureTexture->m_texID)
+        return;
 
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-
-    auto captureTexture = g_pHyprOpenGL->getMonitorCaptureTexture(monitor);
-    if (!captureTexture || !captureTexture->m_texID) {
-        g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->popMonitorTransformEnabled();
-        return;
-    }
 
     g_pHyprOpenGL->renderTexture(captureTexture, monbox,
                                  {

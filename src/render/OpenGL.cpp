@@ -376,12 +376,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     initDRMFormats();
 
-    GLint maxColorAttachments = 0, maxDrawBuffers = 0;
-    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
-    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
-    m_mrtSupported = maxColorAttachments >= 2 && maxDrawBuffers >= 2;
-    Debug::log(LOG, "MRT support: {} (colorAttachments={}, drawBuffers={})", m_mrtSupported ? "yes" : "no", maxColorAttachments, maxDrawBuffers);
-
     initAssets();
 
     static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<PHLMONITOR>(data)); });
@@ -849,7 +843,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     const bool hadCaptureAttachment               = m_renderData.pCurrentMonData->offloadFB.getCaptureTexture() != nullptr;
     const bool PREV_CAPTURE_MRT                   = m_renderData.pCurrentMonData->captureMRTValid;
-    const bool ENABLE_CAPTURE_MRT                 = m_mrtSupported && g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
+    const bool ENABLE_CAPTURE_MRT                 = g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
 
     if (ENABLE_CAPTURE_MRT && !hadCaptureAttachment)
@@ -981,14 +975,12 @@ SP<CTexture> CHyprOpenGLImpl::getMonitorCaptureTexture(PHLMONITOR pMonitor) {
     if (!m_monitorRenderResources.contains(pMonitor))
         return nullptr;
     auto& res = m_monitorRenderResources[pMonitor];
-    if (!m_mrtSupported || !res.captureMRTValid)
+    if (!res.captureMRTValid)
         return nullptr;
     return res.offloadFB.getCaptureTexture();
 }
 
 void CHyprOpenGLImpl::setCaptureWritesEnabled(bool enable) {
-    if (!m_mrtSupported)
-        return;
     if (m_captureWritesEnabled == enable)
         return;
     m_captureWritesEnabled = enable;
@@ -1000,8 +992,6 @@ bool CHyprOpenGLImpl::captureWritesEnabled() const {
 }
 
 void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, bool force) {
-    if (!m_mrtSupported)
-        return;
     if (!force && m_captureNoScreenShareMask == enabled)
         return;
 
@@ -1089,13 +1079,6 @@ static std::string processShader(const std::string& filename, const std::map<std
     return source;
 }
 
-static void prepareCaptureInclude(std::map<std::string, std::string>& includes, bool enableCaptureAttachment) {
-    auto captureSource = loadShader("capture.glsl");
-    if (enableCaptureAttachment)
-        captureSource.insert(0, "#define HYPR_USE_CAPTURE_ATTACHMENT\n");
-    includes["capture.glsl"] = std::move(captureSource);
-}
-
 // shader has #include "CM.glsl"
 static void getCMShaderUniforms(SShader& shader) {
     shader.uniformLocations[SHADER_SKIP_CM]           = glGetUniformLocation(shader.program, "skipCM");
@@ -1134,7 +1117,9 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
 
-        prepareCaptureInclude(includes, m_mrtSupported);
+        auto captureSource = loadShader("capture.glsl");
+        captureSource.insert(0, "#define HYPR_USE_CAPTURE_ATTACHMENT\n");
+        includes["capture.glsl"] = std::move(captureSource);
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);

@@ -385,7 +385,6 @@ class CHyprOpenGLImpl {
 
     bool                              m_captureWritesEnabled     = true;
     bool                              m_captureNoScreenShareMask = false;
-    bool                              m_mrtSupported             = false;
 
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;

@@ -846,7 +846,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     const bool ENABLE_CAPTURE_MRT                 = g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
     m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
 
-    if (ENABLE_CAPTURE_MRT && !hadCaptureAttachment)
+    if (ENABLE_CAPTURE_MRT && (!hadCaptureAttachment || !PREV_CAPTURE_MRT))
         m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
 
     m_renderData.forcedFullDamageForCapture = false;

@@ -2389,41 +2389,13 @@ bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
     auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
     if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
         return false;
-
-    auto& data = it->second;
-
-    if (!data.screencopyPending)
-        return false;
-
-    for (const auto& w : g_pCompositor->m_windows) {
-        if (!w || !w->m_isMapped || w->isHidden())
-            continue;
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
-            continue;
-        if (isWindowVisibleOnMonitor(w, pMonitor)) {
-            return true;
-        }
-    }
-
-    for (const auto& layer : g_pCompositor->m_layers) {
-        if (!layer || !layer->m_noScreenShare)
-            continue;
-        if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
-            continue;
-
-        const auto layerMonitor = layer->m_monitor.lock();
-        if (layerMonitor != pMonitor)
-            continue;
-
-        return true;
-    }
-
-    return true;
+    return it->second.screencopyPending;
 }
 
 void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
     if (!pMonitor)
         return;
+
     auto& data = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
     if (pending && !data.screencopyPending)
         data.forceFullCaptureFrame = true;
@@ -2432,13 +2404,6 @@ void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pen
 
     if (!pending)
         data.forceFullCaptureFrame = false;
-}
-
-bool CHyprRenderer::isScreencopyPendingForMonitor(PHLMONITOR pMonitor) {
-    if (!pMonitor)
-        return false;
-    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    return it != g_pHyprOpenGL->m_monitorRenderResources.end() && it->second.screencopyPending;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {

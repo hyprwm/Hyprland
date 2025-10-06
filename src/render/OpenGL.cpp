@@ -38,6 +38,7 @@
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Utils;
 using namespace NColorManagement;
 
 const std::vector<const char*> ASSET_PATHS = {
@@ -989,6 +990,19 @@ bool CHyprOpenGLImpl::isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const {
         return false;
 
     return it->second.captureMRTValid;
+}
+
+CScopeGuard CHyprOpenGLImpl::captureStateGuard(bool allowCaptureWrites, bool enableMask) {
+    const bool prevCaptureWrites = captureWritesEnabled();
+    const bool prevMaskEnabled   = captureNoScreenShareMaskEnabled();
+
+    setCaptureWritesEnabled(allowCaptureWrites);
+    setCaptureNoScreenShareMask(enableMask);
+
+    return CScopeGuard{[this, prevCaptureWrites, prevMaskEnabled]() {
+        setCaptureWritesEnabled(prevCaptureWrites);
+        setCaptureNoScreenShareMask(prevMaskEnabled);
+    }};
 }
 
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {

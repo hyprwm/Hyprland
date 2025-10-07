@@ -10,9 +10,13 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/Window.hpp"
 
-CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, SP<IHLBuffer> buffer, FScreenshareCallback callback) :
-    m_session(session), m_callback(callback), m_buffer(buffer) {
-    ;
+CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, SP<IHLBuffer> buffer, bool overlayCursor, FScreenshareCallback callback) :
+    m_session(session), m_buffer(buffer), m_overlayCursor(overlayCursor) {
+    m_callback = callback;
+    // m_callback = [callback, session](eScreenshareResult result) {
+    //     if (!session.expired() && callback)
+    //         callback(result);
+    // };
 }
 
 CScreenshareFrame::~CScreenshareFrame() {
@@ -24,7 +28,10 @@ bool CScreenshareFrame::done() const {
     if (m_session.expired() || m_session->m_stopped)
         return true;
 
-    if (m_shared || !m_buffer)
+    if (m_shared)
+        return true;
+
+    if (!m_buffer || !m_buffer->m_resource || !m_buffer->m_resource->good())
         return true;
 
     if (m_session->m_type == SHARE_MONITOR && m_session->m_monitor.expired())
@@ -33,7 +40,7 @@ bool CScreenshareFrame::done() const {
     if (m_session->m_type == SHARE_REGION && m_session->m_monitor.expired())
         return true;
 
-    if (m_session->m_type == SHARE_WINDOW && (m_session->m_monitor.expired() || m_session->m_window.expired() || m_session->m_window->m_monitor.expired()))
+    if (m_session->m_type == SHARE_WINDOW && (m_session->m_monitor.expired() || !validMapped(m_session->m_window)))
         return true;
 
     return false;
@@ -59,7 +66,7 @@ void CScreenshareFrame::share() {
 }
 
 void CScreenshareFrame::renderMonitor() {
-    if (m_session->m_type != SHARE_MONITOR || done())
+    if ((m_session->m_type != SHARE_MONITOR && m_session->m_type != SHARE_REGION) || done())
         return;
 
     const auto PMONITOR = m_session->m_monitor.lock();
@@ -137,7 +144,7 @@ void CScreenshareFrame::renderMonitor() {
             nullptr);
     }
 
-    if (m_session->m_overlayCursor) {
+    if (m_overlayCursor) {
         CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
         g_pPointerManager->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage,
                                                     g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_box.pos() / PMONITOR->m_scale, true);
@@ -157,10 +164,21 @@ void CScreenshareFrame::renderWindow() {
     g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if (m_session->m_overlayCursor) {
-        CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value());
-    }
+    if (!m_overlayCursor)
+        return;
+
+    auto pointerSurfaceResource = g_pSeatManager->m_state.pointerFocus.lock();
+
+    if (!pointerSurfaceResource)
+        return;
+
+    auto pointerSurface = CWLSurface::fromResource(pointerSurfaceResource);
+
+    if (!pointerSurface || pointerSurface->getWindow() != m_session->m_window)
+        return;
+
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value());
 }
 
 void CScreenshareFrame::render() {
@@ -186,13 +204,16 @@ void CScreenshareFrame::render() {
     }
 
     switch (m_session->m_type) {
+        case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
-        case SHARE_REGION: break; // TODO
     }
 }
 
 bool CScreenshareFrame::copyDmabuf() {
+    if (done())
+        return false;
+
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     if (!g_pHyprRenderer->beginRender(m_session->m_monitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
@@ -213,6 +234,9 @@ bool CScreenshareFrame::copyDmabuf() {
 }
 
 bool CScreenshareFrame::copyShm() {
+    if (done())
+        return false;
+
     g_pHyprRenderer->makeEGLCurrent();
 
     auto shm                      = m_buffer->shm();
@@ -286,9 +310,9 @@ void CScreenshareFrame::storeTempFB() {
     }
 
     switch (m_session->m_type) {
+        case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
-        case SHARE_REGION: break; // TODO
     }
 
     g_pHyprRenderer->endRender();

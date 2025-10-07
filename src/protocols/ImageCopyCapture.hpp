@@ -42,6 +42,8 @@ class CImageCopyCaptureSession {
     UP<CScreenshareSession>           m_session;
     WP<CImageCopyCaptureFrame>        m_frame;
 
+    bool                              m_paintCursor;
+
     struct {
         CHyprSignalListener constraintsChanged;
         CHyprSignalListener sourceDestroyed;

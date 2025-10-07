@@ -8,8 +8,7 @@
 #include <cstring>
 
 CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
-    m_resource(resource), m_source(source) {
-
+    m_resource(resource), m_source(source), m_paintCursor(options & EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS) {
     m_resource->setDestroy([this](CExtImageCopyCaptureSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
 
     m_resource->setCreateFrame([this](CExtImageCopyCaptureSessionV1* pMgr, uint32_t id) {
@@ -26,12 +25,10 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
         m_frame = PFRAME;
     });
 
-    bool paintCursor = options & EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS;
-
     if (m_source->m_monitor)
-        m_session = g_pScreenshareManager->newSession(m_source->m_monitor.lock(), m_resource->client(), paintCursor);
+        m_session = g_pScreenshareManager->newSession(m_source->m_monitor.lock(), m_resource->client());
     else
-        m_session = g_pScreenshareManager->newSession(m_source->m_window.lock(), m_resource->client(), paintCursor);
+        m_session = g_pScreenshareManager->newSession(m_source->m_window.lock(), m_resource->client());
 
     if UNLIKELY (!m_session) {
         m_resource->sendStopped();
@@ -41,15 +38,16 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
 
     sendConstraints();
 
-    m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.registerListener([this](std::any data) { sendConstraints(); });
-    m_listeners.stopped            = m_session->m_events.stopped.registerListener([this](std::any data) { PROTO::imageCopyCapture->destroyResource(this); });
+    m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.listen([this]() { sendConstraints(); });
+    m_listeners.stopped            = m_session->m_events.stopped.listen([this]() { PROTO::imageCopyCapture->destroyResource(this); });
 }
 
 CImageCopyCaptureSession::~CImageCopyCaptureSession() {
     // TODO: properly fail/close screenshare
     if (m_session)
         m_session->stop();
-    m_resource->sendStopped();
+    if (m_resource->resource())
+        m_resource->sendStopped();
 }
 
 void CImageCopyCaptureSession::sendConstraints() {
@@ -84,7 +82,7 @@ void CImageCopyCaptureSession::sendConstraints() {
     };
     m_resource->sendDmabufDevice(&deviceArr);
 
-    auto size = m_session->getBufferSize();
+    auto size = m_session->bufferSize();
     m_resource->sendBufferSize(size.x, size.y);
 
     m_resource->sendDone();
@@ -134,7 +132,9 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
             return;
         }
 
-        auto error = m_session->m_session->shareNextFrame(m_buffer, [this](eScreenshareResult result) {
+        auto error = m_session->m_session->shareNextFrame(m_buffer, m_session->m_paintCursor, [this](eScreenshareResult result) {
+            if (!m_resource->resource())
+                return;
             switch (result) {
                 case RESULT_SHARED: m_resource->sendReady(); break;
                 case RESULT_NOT_SHARED: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;

@@ -22,6 +22,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 
 #include <hyprutils/string/String.hpp>

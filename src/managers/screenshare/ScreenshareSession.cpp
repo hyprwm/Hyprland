@@ -5,27 +5,24 @@
 #include "../EventManager.hpp"
 #include "../HookSystemManager.hpp"
 
-CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client, bool overlayCursor) :
-    m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client), m_overlayCursor(overlayCursor) {
+CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
     init();
 }
 
-CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client, bool overlayCursor) :
-    m_type(SHARE_WINDOW), m_monitor(window->m_monitor), m_window(window), m_client(client), m_overlayCursor(overlayCursor) {
-    // TODO: should this be m_events.unmap? or both?
-    m_listeners.windowDestroyed = m_window->m_events.destroy.listen([this]() { stop(); });
+CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client) : m_type(SHARE_WINDOW), m_monitor(window->m_monitor), m_window(window), m_client(client) {
+    m_listeners.windowDestroyed = m_window->m_events.unmap.listen([this]() { stop(); });
     // m_listeners.windowSizeChanged  = m_window->m_events.sizeChanged.listen([this]() { ; }); // TODO: why is this not a thing...
     init();
 }
 
-CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client, bool overlayCursor) :
-    m_type(SHARE_REGION), m_monitor(monitor), m_captureRegion(captureRegion), m_client(client), m_overlayCursor(overlayCursor) {
+CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client) :
+    m_type(SHARE_REGION), m_monitor(monitor), m_captureBox(captureRegion), m_client(client) {
     init();
 }
 
 CScreenshareSession::~CScreenshareSession() {
     stop();
-    LOGM(LOG, "Destroyed screenshare session for ({}): {}", m_type, m_name);
+    LOGM(TRACE, "Destroyed screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::stop() {
@@ -36,11 +33,12 @@ void CScreenshareSession::stop() {
 
     EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{0, m_type, m_name}));
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
-
     LOGM(LOG, "Stopped screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::init() {
+    m_lastFrame.reset();
+
     m_listeners.monitorDestroyed   = m_monitor->m_events.disconnect.listen([this]() { stop(); });
     m_listeners.monitorModeChanged = m_monitor->m_events.modeChanged.listen([this]() {
         calculateConstraints();
@@ -48,11 +46,6 @@ void CScreenshareSession::init() {
     });
 
     calculateConstraints();
-
-    EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{1, m_type, m_name}));
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
-
-    LOGM(LOG, "New screenshare session for ({}): {}", m_type, m_name);
 }
 
 void CScreenshareSession::calculateConstraints() {
@@ -64,7 +57,7 @@ void CScreenshareSession::calculateConstraints() {
         case SHARE_MONITOR: m_box = {{}, {m_monitor->m_pixelSize}}; break;
         case SHARE_WINDOW: m_box = {{m_window->m_realPosition->value()}, {m_window->m_realSize->value()}}; break;
         case SHARE_REGION:
-            m_box = m_captureRegion.transform(wlTransformToHyprutils(m_monitor->m_transform), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
+            m_box = m_captureBox.transform(wlTransformToHyprutils(m_monitor->m_transform), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
             m_box = m_box.scale(m_monitor->m_scale).round();
             break;
     }
@@ -72,15 +65,23 @@ void CScreenshareSession::calculateConstraints() {
     m_name = m_type == SHARE_WINDOW ? m_window->m_title : m_monitor->m_name;
 }
 
-Vector2D CScreenshareSession::getBufferSize() {
+Vector2D CScreenshareSession::bufferSize() const {
     return m_box.size();
 }
 
-const std::vector<SDRMFormat>& CScreenshareSession::allowedFormats() {
+const std::vector<SDRMFormat>& CScreenshareSession::allowedFormats() const {
     return m_formats;
 }
 
-eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, FScreenshareCallback callback) {
+PHLMONITOR CScreenshareSession::monitor() const {
+    return m_monitor.lock();
+}
+
+CBox CScreenshareSession::captureBox() const {
+    return m_captureBox;
+}
+
+eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, bool overlayCursor, FScreenshareCallback callback) {
     if UNLIKELY (m_stopped)
         return ERROR_STOPPED;
 
@@ -90,7 +91,7 @@ eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, FScr
         return ERROR_MONITOR;
     }
 
-    if UNLIKELY (m_type == SHARE_WINDOW && (!m_window || !m_window->m_isMapped)) {
+    if UNLIKELY (m_type == SHARE_WINDOW && !validMapped(m_window)) {
         LOGM(ERR, "Client requested sharing of window that is gone or not shareable!");
         stop();
         return ERROR_WINDOW;
@@ -101,7 +102,7 @@ eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, FScr
         return ERROR_BUFFER;
     }
 
-    if UNLIKELY (buffer->size != getBufferSize()) {
+    if UNLIKELY (buffer->size != bufferSize()) {
         LOGM(ERR, "Client requested sharing to an invalid buffer size");
         return ERROR_BUFFER_SIZE;
     }
@@ -121,7 +122,7 @@ eScreenshareError CScreenshareSession::shareNextFrame(SP<IHLBuffer> buffer, FScr
         return ERROR_BUFFER_FORMAT;
     }
 
-    g_pScreenshareManager->m_frames.emplace_back(makeUnique<CScreenshareFrame>(m_self, buffer, callback));
+    g_pScreenshareManager->m_frames.emplace_back(makeUnique<CScreenshareFrame>(m_self, buffer, overlayCursor, callback));
 
     g_pHyprRenderer->m_directScanoutBlocked = true;
 

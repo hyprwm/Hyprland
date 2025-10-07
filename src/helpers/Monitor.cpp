@@ -27,6 +27,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"

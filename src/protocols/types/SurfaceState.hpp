@@ -6,6 +6,7 @@
 
 class CTexture;
 class CDRMSyncPointState;
+class CWLCallbackResource;
 
 struct SSurfaceState {
     union {
@@ -21,6 +22,7 @@ struct SSurfaceState {
             bool viewport : 1;
             bool acquire : 1;
             bool acked : 1;
+            bool frame : 1;
         } bits;
     } updated;
 
@@ -40,6 +42,9 @@ struct SSurfaceState {
 
     // for xdg_shell resizing
     Vector2D ackedSize;
+
+    // for wl_surface::frame callbacks.
+    std::vector<SP<CWLCallbackResource>> callbacks;
 
     // viewporter protocol surface state
     struct {

@@ -245,6 +245,7 @@ bool CFunctionHook::unhook() {
     m_hookLen        = 0;
     m_trampoLen      = 0;
     m_trampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
+    m_original       = nullptr;
     m_originalBytes.clear();
 
     return true;
@@ -305,17 +306,16 @@ static uintptr_t seekNewPageAddr() {
                 lastStart = start;
                 lastEnd   = end;
                 continue;
-            } else if (!anchoredToHyprland) {
-                Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
-                anchoredToHyprland = true;
-                lastStart          = start;
-                lastEnd            = end;
-                continue;
             }
 
             Debug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
             MAPS.close();
             return lastEnd;
+        }
+
+        if (!anchoredToHyprland && line.contains("Hyprland")) {
+            Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
+            anchoredToHyprland = true;
         }
 
         lastStart = start;

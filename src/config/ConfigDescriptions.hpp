@@ -800,10 +800,11 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SFloatData{0.5, 0, 1},
     },
     SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_create_new",
-        .description = "whether a swipe right on the last workspace should create a new one.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
+        .value = "gestures:workspace_swipe_bound",
+        .description =
+            "what to do when swiping to before the first or after the last workspace. Options: 0 (do nothing), 1 (create new after last), 2 (wrap between first and last)",
+        .type = CONFIG_OPTION_INT,
+        .data = SConfigOptionDescription::SRangeData{1, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_direction_lock",

@@ -34,7 +34,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         return;
 
     static auto  PSWIPEDIST             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
-    static auto  PSWIPENEW              = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
+    static auto  PSWIPEBOUND            = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_bound");
     static auto  PSWIPEDIRLOCK          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock");
     static auto  PSWIPEDIRLOCKTHRESHOLD = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock_threshold");
     static auto  PSWIPEFOREVER          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_forever");
@@ -55,7 +55,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     auto workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
     auto workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
 
-    if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_workspaceBegin->m_id) && !*PSWIPENEW) {
+    if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_workspaceBegin->m_id) && *PSWIPEBOUND != 1) {
         m_workspaceBegin = nullptr; // invalidate the swipe
         return;
     }
@@ -64,9 +64,9 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
-    if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
+    if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPEBOUND == 1 && (m_delta < 0)) ||
         (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) ||
-        (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft && *PSWIPENEW)) {
+        (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft && *PSWIPEBOUND != 2)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -84,8 +84,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     if (m_delta < 0) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
-        if ((workspaceIDLeft > m_workspaceBegin->m_id && *PSWIPENEW) || !PWORKSPACE) {
-            if (*PSWIPENEW) {
+        if ((workspaceIDLeft > m_workspaceBegin->m_id && *PSWIPEBOUND != 2) || !PWORKSPACE) {
+            if (*PSWIPEBOUND == 1) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
                 if (VERTANIMS)
@@ -124,8 +124,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
-        if ((workspaceIDRight < m_workspaceBegin->m_id && *PSWIPENEW) || !PWORKSPACE) {
-            if (*PSWIPENEW) {
+        if ((workspaceIDRight < m_workspaceBegin->m_id && *PSWIPEBOUND != 2) || !PWORKSPACE) {
+            if (*PSWIPEBOUND) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
                 if (VERTANIMS)
@@ -182,7 +182,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     static auto PSWIPEPERC    = CConfigValue<Hyprlang::FLOAT>("gestures:workspace_swipe_cancel_ratio");
     static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
     static auto PSWIPEFORC    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_min_speed_to_force");
-    static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
+    static auto PSWIPEBOUND   = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_bound");
     static auto PSWIPEUSER    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
     const auto  ANIMSTYLE     = m_workspaceBegin->m_renderOffset->getStyle();
@@ -195,7 +195,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
-    if (workspaceIDRight <= m_workspaceBegin->m_id && *PSWIPENEW)
+    if (workspaceIDRight <= m_workspaceBegin->m_id && *PSWIPEBOUND == 1)
         workspaceIDRight = getWorkspaceIDNameFromString("r+1").id;
 
     auto         PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER

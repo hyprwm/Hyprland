@@ -719,7 +719,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("gestures:workspace_swipe_invert", Hyprlang::INT{1});
     registerConfigVar("gestures:workspace_swipe_min_speed_to_force", Hyprlang::INT{30});
     registerConfigVar("gestures:workspace_swipe_cancel_ratio", {0.5f});
-    registerConfigVar("gestures:workspace_swipe_create_new", Hyprlang::INT{1});
+    registerConfigVar("gestures:workspace_swipe_bound", Hyprlang::INT{1});
     registerConfigVar("gestures:workspace_swipe_direction_lock", Hyprlang::INT{1});
     registerConfigVar("gestures:workspace_swipe_direction_lock_threshold", Hyprlang::INT{10});
     registerConfigVar("gestures:workspace_swipe_forever", Hyprlang::INT{0});

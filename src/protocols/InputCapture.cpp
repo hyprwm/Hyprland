@@ -361,8 +361,11 @@ void CInputCaptureProtocol::release() {
 
 void CInputCaptureProtocol::forceRelease() {
     Debug::log(LOG, "[input-capture] Force release input capture");
-    if (active)
-        active->disable();
+    if (active) {
+        auto cpy = active; //Because deactivate will put active to nullptr
+        cpy->deactivate();
+        cpy->disable();
+    }
     release();
 }
 
@@ -373,7 +376,7 @@ void CInputCaptureProtocol::key(uint32_t keyCode, wl_keyboard_key_state state) {
 
 void CInputCaptureProtocol::modifiers(uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
     if (active)
-        active->modifiers(mods_depressed, mods_locked, mods_locked, group);
+        active->modifiers(mods_depressed, mods_latched, mods_locked, group);
 }
 
 void CInputCaptureProtocol::button(uint32_t button, wl_pointer_button_state state) {

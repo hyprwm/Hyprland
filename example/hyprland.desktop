@@ -2,6 +2,8 @@
 Name=Hyprland
 Comment=An intelligent dynamic tiling Wayland compositor
 Exec=Hyprland
+Icon=hyprland
 Type=Application
-DesktopNames=Hyprland
+X-DesktopNames=Hyprland
+Categories=System;
 Keywords=tiling;wayland;compositor;

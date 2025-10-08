@@ -1,0 +1,44 @@
+name: Build Hyprland AppImage
+
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  meson:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    name: "Build Hyprland with Meson (Arch) for AppImage"
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+      options: --privileged
+    steps:
+      - name: Checkout repository actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Setup base
+        uses: ./.github/actions/setup_base
+
+      - name: Configure
+        run: meson setup build -Ddefault_library=static
+
+      - name: Compile
+        run: |
+          ninja -C build
+          ninja -C build install
+
+      - name: Create AppImage
+        run: |
+          pacman --noconfirm --noprogressbar -Syu fuse
+          ls -altr build
+          ls -altr
+          find build
+          git config --global --add safe.directory /__w/hyprland-source/hyprland-source
+          ./scripts/appimageCreation.sh
+          ls -altr
+      - name: Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyprland-appimage-x86_64.zip
+          path: output/
+
+

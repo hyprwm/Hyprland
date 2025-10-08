@@ -42,6 +42,7 @@ class CInputCaptureResource {
 
     bool activate(double x, double y, uint32_t borderId);
     void disable();
+    void deactivate();
 
     bool enabled();
     bool good();
@@ -50,8 +51,6 @@ class CInputCaptureResource {
     std::string m_sessionId;
 
   private:
-    void deactivate();
-
     void onEnable();
     void onAddBarrier(uint32_t zoneSet, uint32_t id, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
     void onDisable();

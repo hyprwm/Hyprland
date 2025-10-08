@@ -21,6 +21,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
+#include "../helpers/MainLoopExecutor.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "pass/TexPassElement.hpp"
@@ -28,6 +29,7 @@
 #include "pass/PreBlurElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "render/Shader.hpp"
+#include "AsyncResourceGatherer.hpp"
 #include <string>
 #include <xf86drm.h>
 #include <fcntl.h>
@@ -107,7 +109,7 @@ static int openRenderNode(int drmFd) {
         if (render_version && render_version->name) {
             Debug::log(LOG, "DRM dev versionName", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
-                free(renderName);
+                free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
                 renderName = strdup("/dev/dri/card0");
             }
             drmFreeVersion(render_version);
@@ -120,7 +122,7 @@ static int openRenderNode(int drmFd) {
     if (renderFD < 0)
         Debug::log(ERR, "openRenderNode failed to open drm device {}", renderName);
 
-    free(renderName);
+    free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
     return renderFD;
 }
 
@@ -503,9 +505,9 @@ void CHyprOpenGLImpl::initDRMFormats() {
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
             modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
-            free(modName);
+            free(modName); // NOLINT(cppcoreguidelines-no-malloc)
         }
-        free(fmtName);
+        free(fmtName); // NOLINT(cppcoreguidelines-no-malloc)
 
         mods.clear();
         std::ranges::sort(modifierData, [](const auto& a, const auto& b) {
@@ -1758,6 +1760,16 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
 
+    // ensure the final blit uses the desired sampling filter
+    // when cursor zoom is active we want nearest-neighbor (no anti-aliasing)
+    if (m_renderData.useNearestNeighbor) {
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    } else {
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+
     useProgram(shader->program);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
@@ -1848,11 +1860,13 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     static auto PBLURVIBRANCY         = CConfigValue<Hyprlang::FLOAT>("decoration:blur:vibrancy");
     static auto PBLURVIBRANCYDARKNESS = CConfigValue<Hyprlang::FLOAT>("decoration:blur:vibrancy_darkness");
 
+    const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
+
     // prep damage
     CRegion damage{*originalDamage};
     damage.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                      m_renderData.pMonitor->m_transformedSize.y);
-    damage.expand(*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, *PBLURPASSES));
+    damage.expand(std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, BLUR_PASSES));
 
     // helper
     const auto    PMIRRORFB     = &m_renderData.pCurrentMonData->mirrorFB;
@@ -1934,7 +1948,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         pShader->setUniformFloat(SHADER_RADIUS, *PBLURSIZE * a); // this makes the blursize change with a
         if (pShader == &m_shaders->m_shBLUR1) {
             m_shaders->m_shBLUR1.setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x / 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y / 2.f));
-            m_shaders->m_shBLUR1.setUniformInt(SHADER_PASSES, *PBLURPASSES);
+            m_shaders->m_shBLUR1.setUniformInt(SHADER_PASSES, BLUR_PASSES);
             m_shaders->m_shBLUR1.setUniformFloat(SHADER_VIBRANCY, *PBLURVIBRANCY);
             m_shaders->m_shBLUR1.setUniformFloat(SHADER_VIBRANCY_DARKNESS, *PBLURVIBRANCYDARKNESS);
         } else
@@ -1967,12 +1981,12 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     CRegion tempDamage{damage};
 
     // and draw
-    for (auto i = 1; i <= *PBLURPASSES; ++i) {
+    for (auto i = 1; i <= BLUR_PASSES; ++i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));
         drawPass(&m_shaders->m_shBLUR1, &tempDamage); // down
     }
 
-    for (auto i = *PBLURPASSES - 1; i >= 0; --i) {
+    for (auto i = BLUR_PASSES - 1; i >= 0; --i) {
         tempDamage = damage.copy().scale(1.f / (1 << i)); // when upsampling we make the region twice as big
         drawPass(&m_shaders->m_shBLUR2, &tempDamage);     // up
     }
@@ -2388,18 +2402,16 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
+    // calculate the border's region, which we need to render over. No need to run the shader on
+    // things outside there
+    CRegion borderRegion = m_renderData.damage.copy().intersect(newBox);
+    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0)
+        borderRegion.intersect(m_renderData.clipBox);
+
+    if (!borderRegion.empty()) {
+        borderRegion.forEachRect([this](const auto& RECT) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
@@ -2478,18 +2490,16 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
+    // calculate the border's region, which we need to render over. No need to run the shader on
+    // things outside there
+    CRegion borderRegion = m_renderData.damage.copy().intersect(newBox);
+    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0)
+        borderRegion.intersect(m_renderData.clipBox);
+
+    if (!borderRegion.empty()) {
+        borderRegion.forEachRect([this](const auto& RECT) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
@@ -2658,8 +2668,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
-
+std::string CHyprOpenGLImpl::resolveAssetPath(const std::string& filename) {
     std::string fullPath;
     for (auto& e : ASSET_PATHS) {
         std::string     p = std::string{e} + "/hypr/" + filename;
@@ -2668,14 +2677,24 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
             fullPath = p;
             break;
         } else
-            Debug::log(LOG, "loadAsset: looking at {} unsuccessful: ec {}", filename, ec.message());
+            Debug::log(LOG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
     }
 
     if (fullPath.empty()) {
         m_failedAssetsNo++;
-        Debug::log(ERR, "loadAsset: looking for {} failed (no provider found)", filename);
-        return m_missingAssetTexture;
+        Debug::log(ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
+        return "";
     }
+
+    return fullPath;
+}
+
+SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
+
+    const std::string fullPath = resolveAssetPath(filename);
+
+    if (fullPath.empty())
+        return m_missingAssetTexture;
 
     const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
 
@@ -2685,17 +2704,25 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
         return m_missingAssetTexture;
     }
 
-    const auto CAIROFORMAT = cairo_image_surface_get_format(CAIROSURFACE);
+    auto tex = texFromCairo(CAIROSURFACE);
+
+    cairo_surface_destroy(CAIROSURFACE);
+
+    return tex;
+}
+
+SP<CTexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
+    const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
     auto       tex         = makeShared<CTexture>();
 
     tex->allocate();
-    tex->m_size = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
+    tex->m_size = {cairo_image_surface_get_width(cairo), cairo_image_surface_get_height(cairo)};
 
     const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
     const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
     const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
-    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    const auto  DATA = cairo_image_surface_get_data(cairo);
     tex->bind();
     tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -2706,8 +2733,6 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
-
-    cairo_surface_destroy(CAIROSURFACE);
 
     return tex;
 }
@@ -2845,8 +2870,6 @@ void CHyprOpenGLImpl::initAssets() {
     initMissingAssetTexture();
 
     m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
-
-    ensureBackgroundTexturePresence();
 }
 
 void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
@@ -2872,18 +2895,22 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
     }
 }
 
-void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
+void CHyprOpenGLImpl::requestBackgroundResource() {
+    if (m_backgroundResource)
+        return;
+
     static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
 
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, -1L, 2L);
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
 
     if (*PNOWALLPAPER)
-        m_backgroundTexture.reset();
-    else if (!m_backgroundTexture) {
-        // create the default background texture
-        std::string texPath = "wall";
+        return;
 
+    static bool        once    = true;
+    static std::string texPath = "wall";
+
+    if (once) {
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {
             std::mt19937_64                 engine(time(nullptr));
@@ -2895,8 +2922,31 @@ void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
 
         texPath += ".png";
 
-        m_backgroundTexture = loadAsset(texPath);
+        texPath = resolveAssetPath(texPath);
+
+        once = false;
     }
+
+    if (texPath.empty()) {
+        m_backgroundResourceFailed = true;
+        return;
+    }
+
+    m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
+
+    // doesn't have to be ASP as it's passed
+    SP<CMainLoopExecutor> executor = makeShared<CMainLoopExecutor>([] {
+        for (const auto& m : g_pCompositor->m_monitors) {
+            g_pHyprRenderer->damageMonitor(m);
+        }
+    });
+
+    m_backgroundResource->m_events.finished.listenStatic([executor] {
+        // this is in the worker thread.
+        executor->signal();
+    });
+
+    g_pAsyncResourceGatherer->enqueue(m_backgroundResource);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
@@ -2907,7 +2957,16 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     static auto PRENDERTEX = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PNOSPLASH  = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
 
-    if (*PRENDERTEX)
+    if (*PRENDERTEX || m_backgroundResourceFailed)
+        return;
+
+    if (!m_backgroundResource) {
+        // queue the asset to be created
+        requestBackgroundResource();
+        return;
+    }
+
+    if (!m_backgroundResource->m_ready)
         return;
 
     // release the last tex if exists
@@ -2915,9 +2974,6 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     PFB->release();
 
     PFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
-
-    if (!m_backgroundTexture) // ?!?!?!
-        return;
 
     // create a new one with cairo
     SP<CTexture> tex = makeShared<CTexture>();
@@ -2964,23 +3020,25 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     blend(true);
     clear(CHyprColor{0, 0, 0, 1});
 
+    SP<CTexture> backgroundTexture = texFromCairo(m_backgroundResource->m_asset.cairoSurface->cairo());
+
     // first render the background
-    if (m_backgroundTexture) {
+    if (backgroundTexture) {
         const double MONRATIO = m_renderData.pMonitor->m_transformedSize.x / m_renderData.pMonitor->m_transformedSize.y;
-        const double WPRATIO  = m_backgroundTexture->m_size.x / m_backgroundTexture->m_size.y;
+        const double WPRATIO  = backgroundTexture->m_size.x / backgroundTexture->m_size.y;
         Vector2D     origin;
         double       scale = 1.0;
 
         if (MONRATIO > WPRATIO) {
-            scale    = m_renderData.pMonitor->m_transformedSize.x / m_backgroundTexture->m_size.x;
-            origin.y = (m_renderData.pMonitor->m_transformedSize.y - m_backgroundTexture->m_size.y * scale) / 2.0;
+            scale    = m_renderData.pMonitor->m_transformedSize.x / backgroundTexture->m_size.x;
+            origin.y = (m_renderData.pMonitor->m_transformedSize.y - backgroundTexture->m_size.y * scale) / 2.0;
         } else {
-            scale    = m_renderData.pMonitor->m_transformedSize.y / m_backgroundTexture->m_size.y;
-            origin.x = (m_renderData.pMonitor->m_transformedSize.x - m_backgroundTexture->m_size.x * scale) / 2.0;
+            scale    = m_renderData.pMonitor->m_transformedSize.y / backgroundTexture->m_size.y;
+            origin.x = (m_renderData.pMonitor->m_transformedSize.x - backgroundTexture->m_size.x * scale) / 2.0;
         }
 
-        CBox texbox = CBox{origin, m_backgroundTexture->m_size * scale};
-        renderTextureInternal(m_backgroundTexture, texbox, {.damage = &fakeDamage, .a = 1.0});
+        CBox texbox = CBox{origin, backgroundTexture->m_size * scale};
+        renderTextureInternal(backgroundTexture, texbox, {.damage = &fakeDamage, .a = 1.0});
     }
 
     CBox monbox = {{}, pMonitor->m_pixelSize};
@@ -2991,21 +3049,31 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
         m_renderData.currentFB->bind();
 
     Debug::log(LOG, "Background created for monitor {}", pMonitor->m_name);
+
+    // clear the resource after we're done using it
+    g_pEventLoopManager->doLater([this] { m_backgroundResource.reset(); });
+
+    // set the animation to start for fading this background in nicely
+    pMonitor->m_backgroundOpacity->setValueAndWarp(0.F);
+    *pMonitor->m_backgroundOpacity = 1.F;
 }
 
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_renderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    auto TEXIT = m_monitorBGFBs.find(m_renderData.pMonitor);
+    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+
+    auto        TEXIT = m_monitorBGFBs.find(m_renderData.pMonitor);
 
     if (TEXIT == m_monitorBGFBs.end()) {
         createBGTextureForMonitor(m_renderData.pMonitor.lock());
-        TEXIT = m_monitorBGFBs.find(m_renderData.pMonitor);
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
     }
 
     if (TEXIT != m_monitorBGFBs.end()) {
         CTexPassElement::SRenderData data;
         data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+        data.a            = m_renderData.pMonitor->m_backgroundOpacity->value();
         data.flipEndFrame = true;
         data.tex          = TEXIT->second.getTexture();
         g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
@@ -3098,22 +3166,50 @@ void CHyprOpenGLImpl::setViewport(GLint x, GLint y, GLsizei width, GLsizei heigh
 }
 
 void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
-    // check if the capability status is already set to the desired status
-    auto it            = m_capStatus.find(cap);
-    bool currentStatus = (it != m_capStatus.end()) ? it->second : false; // default to 'false' if not found
+    const auto getCapIndex = [cap]() {
+        switch (cap) {
+            case GL_BLEND: return CAP_STATUS_BLEND;
+            case GL_SCISSOR_TEST: return CAP_STATUS_SCISSOR_TEST;
+            case GL_STENCIL_TEST: return CAP_STATUS_STENCIL_TEST;
+            default: return CAP_STATUS_END;
+        }
+    };
 
-    if (currentStatus == status)
+    auto idx = getCapIndex();
+
+    if (idx == CAP_STATUS_END) {
+        if (status)
+            glEnable(cap);
+        else
+            glDisable(cap);
+
+        return;
+    }
+
+    if (m_capStatus[idx] == status)
         return;
 
-    m_capStatus[cap] = status;
-
-    // Enable or disable the capability based on status
-    auto func = status ? [](int c) { glEnable(c); } : [](int c) { glDisable(c); };
-    func(cap);
+    if (status) {
+        m_capStatus[idx] = status;
+        glEnable(cap);
+    } else {
+        m_capStatus[idx] = status;
+        glDisable(cap);
+    }
 }
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
-    return pMonitor->m_output->state->state().drmFormat;
+    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+
+    if (!*PFORCE8BIT)
+        return pMonitor->m_output->state->state().drmFormat;
+
+    auto fmt = pMonitor->m_output->state->state().drmFormat;
+
+    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102)
+        return DRM_FORMAT_XRGB8888;
+
+    return fmt;
 }
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {

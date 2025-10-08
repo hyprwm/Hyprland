@@ -60,7 +60,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = m_monitor->m_output->state->state().drmFormat;
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
@@ -210,6 +210,22 @@ void CScreencopyFrame::renderMon() {
                                  });
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
+
+    for (auto const& l : g_pCompositor->m_layers) {
+        if (!l->m_noScreenShare)
+            continue;
+
+        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+            continue;
+
+        const auto REALPOS  = l->m_realPosition->value();
+        const auto REALSIZE = l->m_realSize->value();
+
+        const auto noScreenShareBox =
+            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+    }
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_windowData.noScreenShare.valueOrDefault())

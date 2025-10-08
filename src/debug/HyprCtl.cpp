@@ -111,13 +111,14 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
 }
 
 const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
-    "\"UNKNOWN\"", "\"NOTIFICATION\"", "\"LOCK\"",   "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",   "\"SPECIAL\"",    "\"ALPHA\"",
-    "\"OFFSET\"",  "\"CANDIDATE\"",    "\"OPAQUE\"", "\"TRANSFORM\"", "\"OVERLAYS\"", "\"FLOAT\"", "\"WORKSPACES\"", "\"SURFACES\"",
+    "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
+    "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
 };
 
 const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
-    "unknown reason",   "notification",      "session lock", "invalid workspace",       "windowed mode",  "dnd active",       "special workspace", "alpha channel",
-    "workspace offset", "missing candidate", "not opaque",   "surface transformations", "other overlays", "floating windows", "other workspaces",  "subsurfaces",
+    "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
+    "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
+    "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
 };
 
 std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
@@ -128,7 +129,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -722,10 +723,11 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}",
-        "defaultSpeed": {:.5f}
+        "defaultSpeed": {:.5f},
+        "scrollFactor": {:.2f}
     }},)#",
                 rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName),
-                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
+                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f, m->m_scrollFactor.value_or(-1));
         }
 
         trimTrailingComma(result);
@@ -733,7 +735,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "\"keyboards\": [\n";
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KM = k->getActiveLayout();
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -743,13 +747,14 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "layout": "{}",
         "variant": "{}",
         "options": "{}",
+        "active_layout_index": {},
         "active_keymap": "{}",
         "capsLock": {},
         "numLock": {},
         "main": {}
     }},)#",
                 rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_currentRules.rules), escapeJSONStrings(k->m_currentRules.model),
-                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), escapeJSONStrings(KM),
+                escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant), escapeJSONStrings(k->m_currentRules.options), KI, escapeJSONStrings(KM),
                 (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
         }
 
@@ -826,18 +831,22 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_pointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
-                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n\t\t\tscroll factor: {:.2f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
+                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f),
+                                  m->m_scrollFactor.value_or(-1));
         }
 
         result += "\n\nKeyboards:\n";
 
         for (auto const& k : g_pInputManager->m_keyboards) {
-            const auto KM = k->getActiveLayout();
-            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
+            const auto INDEX_OPT = k->getActiveLayoutIndex();
+            const auto KI        = INDEX_OPT.has_value() ? std::to_string(INDEX_OPT.value()) : "none";
+            const auto KM        = k->getActiveLayout();
+            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive layout index: {}\n\t\t\tactive keymap: "
+                                  "{}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
                                   rc<uintptr_t>(k.get()), k->m_hlName, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout, k->m_currentRules.variant,
-                                  k->m_currentRules.options, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
+                                  k->m_currentRules.options, KI, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"),
                                   (k->m_active ? "yes" : "no"));
         }
 
@@ -1035,10 +1044,12 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
-                                         "Tag: {}, commits: {}\n"
-                                         "built against:\n aquamarine {}\n hyprlang {}\n hyprutils {}\n hyprcursor {}\n hyprgraphics {}\n\n\n",
-                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION,
-                                         HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
+                                         "Tag: {}, commits: {}\n",
+                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS);
+
+        result += "\n";
+        result += getBuiltSystemLibraryNames();
+        result += "\n";
 
 #if (!ISDEBUG && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
@@ -1068,9 +1079,15 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "buildHyprutils": "{}",
     "buildHyprcursor": "{}",
     "buildHyprgraphics": "{}",
+    "systemAquamarine": "{}",
+    "systemHyprlang": "{}",
+    "systemHyprutils": "{}",
+    "systemHyprcursor": "{}",
+    "systemHyprgraphics": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, HYPRLAND_VERSION, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG,
-            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
+            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION, getSystemLibraryVersion("aquamarine"),
+            getSystemLibraryVersion("hyprlang"), getSystemLibraryVersion("hyprutils"), getSystemLibraryVersion("hyprcursor"), getSystemLibraryVersion("hyprgraphics"));
 
 #if ISDEBUG
         result += "\"debug\",";
@@ -1113,6 +1130,9 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "Node name: " + std::string{unameInfo.nodename} + "\n";
     result += "Release: " + std::string{unameInfo.release} + "\n";
     result += "Version: " + std::string{unameInfo.version} + "\n";
+    result += "\n";
+    result += getBuiltSystemLibraryNames();
+    result += "\n";
 
     result += "\n\n";
 
@@ -1171,19 +1191,24 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     } else
         result += "\tunknown: not runtime\n";
 
-    result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
-    result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
-    result += std::format("\nBackend: {}", g_pCompositor->m_aqBackend->hasSession() ? "drm" : "sessionless");
+    if (g_pHyprOpenGL) {
+        result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
+        result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+    }
 
-    result += "\n\nMonitor info:";
+    if (g_pCompositor) {
+        result += std::format("\nBackend: {}", g_pCompositor->m_aqBackend->hasSession() ? "drm" : "sessionless");
 
-    for (const auto& m : g_pCompositor->m_monitors) {
-        result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
-                              "{}\n\t\tnon-desktop {}\n\t\t",
-                              m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
-                              backend(m->m_output->getBackend()->type()), check(m->m_output->supportsExplicit), check(m->m_output->parsedEDID.hdrMetadata.has_value()),
-                              check(m->m_output->parsedEDID.chromaticityCoords.has_value()), check(m->m_output->parsedEDID.supportsBT2020), check(m->m_output->vrrCapable),
-                              check(m->m_output->nonDesktop));
+        result += "\n\nMonitor info:";
+
+        for (const auto& m : g_pCompositor->m_monitors) {
+            result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
+                                  "{}\n\t\tnon-desktop {}\n\t\t",
+                                  m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,
+                                  backend(m->m_output->getBackend()->type()), check(m->m_output->supportsExplicit), check(m->m_output->parsedEDID.hdrMetadata.has_value()),
+                                  check(m->m_output->parsedEDID.chromaticityCoords.has_value()), check(m->m_output->parsedEDID.supportsBT2020), check(m->m_output->vrrCapable),
+                                  check(m->m_output->nonDesktop));
+        }
     }
 
     if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {

@@ -20,6 +20,117 @@ static bool spawnKitty(const std::string& class_) {
     return true;
 }
 
+static std::string getWindowAttribute(const std::string& winInfo, const std::string& attr) {
+    auto pos = winInfo.find(attr);
+    if (pos == std::string::npos) {
+        NLog::log("{}Wrong window attribute", Colors::RED);
+        ret = 1;
+        return "Wrong window attribute";
+    }
+    auto pos2 = winInfo.find('\n', pos);
+    return winInfo.substr(pos, pos2 - pos);
+}
+
+static std::string getWindowAddress(const std::string& winInfo) {
+    auto pos  = winInfo.find("Window ");
+    auto pos2 = winInfo.find(" -> ");
+    if (pos == std::string::npos || pos2 == std::string::npos) {
+        NLog::log("{}Wrong window info", Colors::RED);
+        ret = 1;
+        return "Wrong window info";
+    }
+    return winInfo.substr(pos + 7, pos2 - pos - 7);
+}
+
+static void testSwapWindow() {
+    NLog::log("{}Testing swapwindow", Colors::GREEN);
+
+    // test on workspace "swapwindow"
+    NLog::log("{}Switching to workspace \"swapwindow\"", Colors::YELLOW);
+    getFromSocket("/dispatch workspace name:swapwindow");
+
+    if (!Tests::spawnKitty("kitty_A")) {
+        ret = 1;
+        return;
+    }
+
+    if (!Tests::spawnKitty("kitty_B")) {
+        ret = 1;
+        return;
+    }
+
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 2);
+
+    // Test swapwindow by direction
+    {
+        getFromSocket("/dispatch focuswindow class:kitty_A");
+        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        NLog::log("{}Testing kitty_A {}, swapwindow with direction 'l'", Colors::YELLOW, pos);
+
+        OK(getFromSocket("/dispatch swapwindow l"));
+        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", pos));
+    }
+
+    // Test swapwindow by class
+    {
+        getFromSocket("/dispatch focuswindow class:kitty_A");
+        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        NLog::log("{}Testing kitty_A {}, swapwindow with class:kitty_B", Colors::YELLOW, pos);
+
+        OK(getFromSocket("/dispatch swapwindow class:kitty_B"));
+        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", pos));
+    }
+
+    // Test swapwindow by address
+    {
+        getFromSocket("/dispatch focuswindow class:kitty_B");
+        auto addr = getWindowAddress(getFromSocket("/activewindow"));
+        getFromSocket("/dispatch focuswindow class:kitty_A");
+        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        NLog::log("{}Testing kitty_A {}, swapwindow with address:0x{}(kitty_B)", Colors::YELLOW, pos, addr);
+
+        OK(getFromSocket(std::format("/dispatch swapwindow address:0x{}", addr)));
+        OK(getFromSocket(std::format("/dispatch focuswindow address:0x{}", addr)));
+
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", pos));
+    }
+
+    NLog::log("{}Testing swapwindow with fullscreen. Expecting to fail", Colors::YELLOW);
+    {
+        OK(getFromSocket("/dispatch fullscreen"));
+
+        auto str = getFromSocket("/dispatch swapwindow l");
+        EXPECT_CONTAINS(str, "Can't swap fullscreen window");
+
+        OK(getFromSocket("/dispatch fullscreen"));
+    }
+
+    NLog::log("{}Testing swapwindow with different workspace", Colors::YELLOW);
+    {
+        getFromSocket("/dispatch focuswindow class:kitty_B");
+        auto addr = getWindowAddress(getFromSocket("/activewindow"));
+        auto ws   = getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
+        NLog::log("{}Sending address:0x{}(kitty_B) to workspace \"swapwindow2\"", Colors::YELLOW, addr);
+
+        OK(getFromSocket("/dispatch movetoworkspacesilent name:swapwindow2"));
+        OK(getFromSocket(std::format("/dispatch swapwindow address:0x{}", addr)));
+        getFromSocket("/dispatch focuswindow class:kitty_B");
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", ws));
+    }
+
+    // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -109,6 +220,48 @@ static bool test() {
     }
 
     // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    testSwapWindow();
+
+    NLog::log("{}Testing window rules", Colors::YELLOW);
+    if (!spawnKitty("wr_kitty"))
+        return false;
+    {
+        auto      str  = getFromSocket("/activewindow");
+        const int SIZE = 200;
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
+        EXPECT_NOT_CONTAINS(str, "pinned: 1");
+        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
+        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
+        OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));
+        OK(getFromSocket("/keyword windowrule workspace special:magic, class:magic_kitty"));
+
+        if (!spawnKitty("magic_kitty"))
+            return false;
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
+        EXPECT_NOT_CONTAINS(str, "workspace: 9");
+    }
+    NLog::log("{}Testing faulty rules", Colors::YELLOW);
+    {
+        const auto PARAM  = "Invalid parameter";
+        const auto RULE   = "Invalid value";
+        const auto NORULE = "no rules provided";
+        EXPECT_CONTAINS(getFromSocket("/keyword windowrule notarule, class:wr_kitty"), RULE)
+        EXPECT_CONTAINS(getFromSocket("/keyword windowrule class:wr_kitty"), NORULE)
+        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, class:wr_kitty, size"), PARAM)
+        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, classI:wr_kitty"), PARAM)
+        EXPECT_CONTAINS(getFromSocket("/keyword windowrule workspace:, class:wr_kitty"), NORULE)
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 

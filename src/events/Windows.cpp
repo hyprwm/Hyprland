@@ -15,6 +15,7 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/PointerManager.hpp"
@@ -147,23 +148,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 try {
                     const auto MONITORSTR = trim(r->m_rule.substr(r->m_rule.find(' ')));
 
-                    if (MONITORSTR == "unset") {
+                    if (MONITORSTR == "unset")
                         PWINDOW->m_monitor = PMONITOR;
-                    } else {
-                        if (isNumber(MONITORSTR)) {
-                            const MONITORID MONITOR = std::stoi(MONITORSTR);
-                            if (const auto PM = g_pCompositor->getMonitorFromID(MONITOR); PM)
-                                PWINDOW->m_monitor = PM;
-                            else
-                                PWINDOW->m_monitor = g_pCompositor->m_monitors.at(0);
-                        } else {
-                            const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
-                            if (PMONITOR)
-                                PWINDOW->m_monitor = PMONITOR;
-                            else {
-                                Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
-                                continue;
-                            }
+                    else {
+                        const auto MONITOR = g_pCompositor->getMonitorFromString(MONITORSTR);
+
+                        if (MONITOR)
+                            PWINDOW->m_monitor = MONITOR;
+                        else {
+                            Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
+                            continue;
                         }
                     }
 
@@ -868,7 +862,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_isMapped || PWINDOW->isHidden())
         return;
 
-    PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize; // apply pending size. We pinged, the window ponged.
+    if (PWINDOW->m_isX11)
+        PWINDOW->m_reportedSize = PWINDOW->m_pendingReportedSize;
 
     if (!PWINDOW->m_isX11 && !PWINDOW->isFullscreen() && PWINDOW->m_isFloating) {
         const auto MINSIZE = PWINDOW->m_xdgSurface->m_toplevel->layoutMinSize();

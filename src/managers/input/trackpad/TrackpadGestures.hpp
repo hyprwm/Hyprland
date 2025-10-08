@@ -12,6 +12,7 @@ class CTrackpadGestures {
   public:
     void                             clearGestures();
     std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
+    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
 
     void                             gestureBegin(const IPointer::SSwipeBeginEvent& e);
     void                             gestureUpdate(const IPointer::SSwipeUpdateEvent& e);
@@ -36,6 +37,7 @@ class CTrackpadGestures {
 
     std::vector<SP<SGestureData>> m_gestures;
 
+    Vector2D                      m_currentTotalDelta = {};
     SP<SGestureData>              m_activeGesture     = nullptr;
     bool                          m_gestureFindFailed = false;
 };

@@ -58,7 +58,7 @@ uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
     return serial;
 }
 
-bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial) {
+bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial, bool erase) {
     if (!seatResource)
         return false;
 
@@ -68,7 +68,8 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
 
     for (auto it = container->serials.begin(); it != container->serials.end(); ++it) {
         if (*it == serial) {
-            container->serials.erase(it);
+            if (erase)
+                container->serials.erase(it);
             return true;
         }
     }
@@ -128,6 +129,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
                 if (!k)
                     continue;
 
+                k->sendMods(0, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
                 k->sendLeave();
             }
         }

@@ -21,7 +21,7 @@ CFloatTrackpadGesture::CFloatTrackpadGesture(const std::string_view& data) {
     if (lc.starts_with("float"))
         m_mode = FLOAT_MODE_FLOAT;
     else if (lc.starts_with("tile"))
-        m_mode == FLOAT_MODE_TILE;
+        m_mode = FLOAT_MODE_TILE;
     else
         m_mode = FLOAT_MODE_TOGGLE;
 }

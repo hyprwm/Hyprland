@@ -8,7 +8,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "config/ConfigValue.hpp"
-#include "helpers/varlist/VarList.hpp"
+#include "../desktop/WindowRule.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
@@ -52,7 +52,6 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
@@ -520,7 +519,9 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
-    registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{1});
+    registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});
+    registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
+    registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});
     registerConfigVar("group:focus_removed_window", Hyprlang::INT{1});
@@ -688,7 +689,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
-    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{0});
+    registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{2});
     registerConfigVar("input:virtualkeyboard:release_pressed_on_close", Hyprlang::INT{0});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
     registerConfigVar("input:tablet:output", {STRVAL_EMPTY});
@@ -776,6 +777,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:send_content_type", Hyprlang::INT{1});
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
+    registerConfigVar("render:non_shader_cm", Hyprlang::INT{2});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -810,6 +812,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "scroll_button", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_button_lock", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "scroll_points", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("device", "scroll_factor", Hyprlang::FLOAT{-1});
     m_config->addSpecialConfigValue("device", "transform", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
@@ -1184,8 +1187,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTabletConfigs();
 
         g_pHyprOpenGL->m_reloadScreenShader = true;
-
-        g_pHyprOpenGL->ensureBackgroundTexturePresence();
     }
 
     // parseError will be displayed next frame
@@ -1335,11 +1336,16 @@ Hyprlang::CConfigValue* CConfigManager::getConfigValueSafeDevice(const std::stri
 
     const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
 
-    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty()) {
+    if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty())
         return m_config->getConfigValuePtr(fallback.c_str());
-    }
 
     return VAL;
+}
+
+bool CConfigManager::deviceConfigExplicitlySet(const std::string& dev, const std::string& val) {
+    const auto VAL = m_config->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
+
+    return VAL && VAL->m_bSetByUser;
 }
 
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback) {
@@ -2196,8 +2202,14 @@ bool CMonitorRuleParser::parsePosition(const std::string& value, bool isFirst) {
             m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
             return false;
         } else {
-            m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
-            m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            try {
+                m_rule.offset.x = stoi(value.substr(0, value.find_first_of('x')));
+                m_rule.offset.y = stoi(value.substr(value.find_first_of('x') + 1));
+            } catch (...) {
+                m_error += "invalid offset ";
+                m_rule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+                return false;
+            }
         }
     }
     return true;
@@ -2252,6 +2264,12 @@ bool CMonitorRuleParser::parseCM(const std::string& value) {
         m_rule.cmType = CM_HDR;
     else if (value == "hdredid")
         m_rule.cmType = CM_HDR_EDID;
+    else if (value == "dcip3")
+        m_rule.cmType = CM_DCIP3;
+    else if (value == "dp3")
+        m_rule.cmType = CM_DP3;
+    else if (value == "adobe")
+        m_rule.cmType = CM_ADOBE;
     else {
         m_error += "invalid cm ";
         return false;
@@ -2644,215 +2662,164 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = value.substr(value.find_first_of(',') + 1);
+    const auto                                             VARLIST = CVarList(value, 0, ',', true);
 
-    auto       rule = makeShared<CWindowRule>(RULE, VALUE, true);
+    std::vector<std::string_view>                          tokens;
+    std::unordered_map<std::string_view, std::string_view> params;
 
-    if (rule->m_ruleType == CWindowRule::RULE_INVALID && RULE != "unset") {
-        Debug::log(ERR, "Invalid rulev2 found: {}", RULE);
-        return "Invalid rulev2 found: " + RULE;
-    }
+    bool                                                   parsingParams = false;
 
-    // now we estract shit from the value
-    const auto TAGPOS             = VALUE.find("tag:");
-    const auto TITLEPOS           = VALUE.find("title:");
-    const auto CLASSPOS           = VALUE.find("class:");
-    const auto INITIALTITLEPOS    = VALUE.find("initialTitle:");
-    const auto INITIALCLASSPOS    = VALUE.find("initialClass:");
-    const auto X11POS             = VALUE.find("xwayland:");
-    const auto FLOATPOS           = VALUE.find("floating:");
-    const auto FULLSCREENPOS      = VALUE.find("fullscreen:");
-    const auto PINNEDPOS          = VALUE.find("pinned:");
-    const auto FOCUSPOS           = VALUE.find("focus:");
-    const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
-    const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
-    const auto CONTENTTYPEPOS     = VALUE.find("content:");
-    const auto XDGTAGPOS          = VALUE.find("xdgTag:");
-    const auto GROUPPOS           = VALUE.find("group:");
+    for (const auto& varStr : VARLIST) {
+        std::string_view var     = varStr;
+        auto             sep     = var.find(':');
+        std::string_view key     = (sep != std::string_view::npos) ? var.substr(0, sep) : var;
+        bool             isParam = (sep != std::string_view::npos && !(key.starts_with("workspace ") || (key.starts_with("monitor ")) || key.ends_with("plugin")));
 
-    // find workspacepos that isn't onworkspacepos
-    size_t WORKSPACEPOS = std::string::npos;
-    size_t currentPos   = VALUE.find("workspace:");
-    while (currentPos != std::string::npos) {
-        if (currentPos == 0 || VALUE[currentPos - 1] != 'n') {
-            WORKSPACEPOS = currentPos;
-            break;
+        if (!parsingParams) {
+            if (!isParam) {
+                tokens.emplace_back(var);
+                continue;
+            }
+
+            parsingParams = true;
         }
-        currentPos = VALUE.find("workspace:", currentPos + 1);
+
+        if (sep == std::string_view::npos)
+            return std::format("Invalid rule: {}, Invalid parameter: {}", value, std::string(var));
+
+        auto             pos = var.find_first_not_of(' ', sep + 1);
+        std::string_view val = (pos != std::string_view::npos) ? var.substr(pos) : std::string_view{};
+        params[key]          = val;
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,           CLASSPOS,     INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  FULLSCREENPOS,
-                                             PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS, FOCUSPOS,        ONWORKSPACEPOS,  CONTENTTYPEPOS, XDGTAGPOS, GROUPPOS};
-    if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
-        Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
-        return "Invalid rulev2 syntax: " + VALUE;
-    }
-
-    auto extract = [&](size_t pos) -> std::string {
-        std::string result;
-        result = VALUE.substr(pos);
-
-        size_t min = 999999;
-        if (TAGPOS > pos && TAGPOS < min)
-            min = TAGPOS;
-        if (TITLEPOS > pos && TITLEPOS < min)
-            min = TITLEPOS;
-        if (CLASSPOS > pos && CLASSPOS < min)
-            min = CLASSPOS;
-        if (INITIALTITLEPOS > pos && INITIALTITLEPOS < min)
-            min = INITIALTITLEPOS;
-        if (INITIALCLASSPOS > pos && INITIALCLASSPOS < min)
-            min = INITIALCLASSPOS;
-        if (X11POS > pos && X11POS < min)
-            min = X11POS;
-        if (FLOATPOS > pos && FLOATPOS < min)
-            min = FLOATPOS;
-        if (FULLSCREENPOS > pos && FULLSCREENPOS < min)
-            min = FULLSCREENPOS;
-        if (PINNEDPOS > pos && PINNEDPOS < min)
-            min = PINNEDPOS;
-        if (FULLSCREENSTATEPOS > pos && FULLSCREENSTATEPOS < min)
-            min = FULLSCREENSTATEPOS;
-        if (ONWORKSPACEPOS > pos && ONWORKSPACEPOS < min)
-            min = ONWORKSPACEPOS;
-        if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
-            min = WORKSPACEPOS;
-        if (FOCUSPOS > pos && FOCUSPOS < min)
-            min = FOCUSPOS;
-        if (CONTENTTYPEPOS > pos && CONTENTTYPEPOS < min)
-            min = CONTENTTYPEPOS;
-        if (XDGTAGPOS > pos && XDGTAGPOS < min)
-            min = XDGTAGPOS;
-        if (GROUPPOS > pos && GROUPPOS < min)
-            min = GROUPPOS;
-
-        result = result.substr(0, min - pos);
-
-        result = trim(result);
-
-        if (!result.empty() && result.back() == ',')
-            result.pop_back();
-
-        return result;
+    auto get = [&](std::string_view key) -> std::string_view {
+        if (auto it = params.find(key); it != params.end())
+            return it->second;
+        return {};
     };
 
-    if (TAGPOS != std::string::npos)
-        rule->m_tag = extract(TAGPOS + 4);
+    auto applyParams = [&](SP<CWindowRule> rule) -> bool {
+        bool set = false;
 
-    if (CLASSPOS != std::string::npos) {
-        rule->m_class      = extract(CLASSPOS + 6);
-        rule->m_classRegex = {rule->m_class};
-    }
+        if (auto v = get("class"); !v.empty()) {
+            set |= (rule->m_class = v, true);
+            rule->m_classRegex = {std::string(v)};
+        }
+        if (auto v = get("title"); !v.empty()) {
+            set |= (rule->m_title = v, true);
+            rule->m_titleRegex = {std::string(v)};
+        }
+        if (auto v = get("tag"); !v.empty())
+            set |= (rule->m_tag = v, true);
+        if (auto v = get("initialClass"); !v.empty()) {
+            set |= (rule->m_initialClass = v, true);
+            rule->m_initialClassRegex = {std::string(v)};
+        }
+        if (auto v = get("initialTitle"); !v.empty()) {
+            set |= (rule->m_initialTitle = v, true);
+            rule->m_initialTitleRegex = {std::string(v)};
+        }
 
-    if (TITLEPOS != std::string::npos) {
-        rule->m_title      = extract(TITLEPOS + 6);
-        rule->m_titleRegex = {rule->m_title};
-    }
+        if (auto v = get("xwayland"); !v.empty())
+            set |= (rule->m_X11 = (v == "1"), true);
+        if (auto v = get("floating"); !v.empty())
+            set |= (rule->m_floating = (v == "1"), true);
+        if (auto v = get("fullscreen"); !v.empty())
+            set |= (rule->m_fullscreen = (v == "1"), true);
+        if (auto v = get("pinned"); !v.empty())
+            set |= (rule->m_pinned = (v == "1"), true);
+        if (auto v = get("focus"); !v.empty())
+            set |= (rule->m_focus = (v == "1"), true);
+        if (auto v = get("group"); !v.empty())
+            set |= (rule->m_group = (v == "1"), true);
 
-    if (INITIALCLASSPOS != std::string::npos) {
-        rule->m_initialClass      = extract(INITIALCLASSPOS + 13);
-        rule->m_initialClassRegex = {rule->m_initialClass};
-    }
+        if (auto v = get("fullscreenstate"); !v.empty())
+            set |= (rule->m_fullscreenState = v, true);
+        if (auto v = get("workspace"); !v.empty())
+            set |= (rule->m_workspace = v, true);
+        if (auto v = get("onworkspace"); !v.empty())
+            set |= (rule->m_onWorkspace = v, true);
+        if (auto v = get("content"); !v.empty())
+            set |= (rule->m_contentType = v, true);
+        if (auto v = get("xdgTag"); !v.empty())
+            set |= (rule->m_xdgTag = v, true);
 
-    if (INITIALTITLEPOS != std::string::npos) {
-        rule->m_initialTitle      = extract(INITIALTITLEPOS + 13);
-        rule->m_initialTitleRegex = {rule->m_initialTitle};
-    }
+        return set;
+    };
 
-    if (X11POS != std::string::npos)
-        rule->m_X11 = extract(X11POS + 9) == "1" ? 1 : 0;
+    std::vector<SP<CWindowRule>> rules;
 
-    if (FLOATPOS != std::string::npos)
-        rule->m_floating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
+    for (auto token : tokens) {
+        if (token.starts_with("unset")) {
+            std::string ruleName = "";
+            if (token.size() <= 6 || token.contains("all"))
+                ruleName = "all";
+            else
+                ruleName = std::string(token.substr(6));
+            auto rule = makeShared<CWindowRule>(ruleName, value, true);
+            applyParams(rule);
+            std::erase_if(m_windowRules, [&](const auto& other) {
+                if (!other->m_v2)
+                    return other->m_class == rule->m_class && !rule->m_class.empty();
 
-    if (FULLSCREENPOS != std::string::npos)
-        rule->m_fullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
-
-    if (PINNEDPOS != std::string::npos)
-        rule->m_pinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
-
-    if (FULLSCREENSTATEPOS != std::string::npos)
-        rule->m_fullscreenState = extract(FULLSCREENSTATEPOS + 16);
-
-    if (WORKSPACEPOS != std::string::npos)
-        rule->m_workspace = extract(WORKSPACEPOS + 10);
-
-    if (FOCUSPOS != std::string::npos)
-        rule->m_focus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
-
-    if (ONWORKSPACEPOS != std::string::npos)
-        rule->m_onWorkspace = extract(ONWORKSPACEPOS + 12);
-
-    if (CONTENTTYPEPOS != std::string::npos)
-        rule->m_contentType = extract(CONTENTTYPEPOS + 8);
-
-    if (XDGTAGPOS != std::string::npos)
-        rule->m_xdgTag = extract(XDGTAGPOS + 8);
-
-    if (GROUPPOS != std::string::npos)
-        rule->m_group = extract(GROUPPOS + 6) == "1" ? 1 : 0;
-
-    if (RULE == "unset") {
-        std::erase_if(m_windowRules, [&](const auto& other) {
-            if (!other->m_v2)
-                return other->m_class == rule->m_class && !rule->m_class.empty();
-            else {
+                if (rule->m_ruleType != other->m_ruleType && ruleName != "all")
+                    return false;
                 if (!rule->m_tag.empty() && rule->m_tag != other->m_tag)
                     return false;
-
                 if (!rule->m_class.empty() && rule->m_class != other->m_class)
                     return false;
-
                 if (!rule->m_title.empty() && rule->m_title != other->m_title)
                     return false;
-
                 if (!rule->m_initialClass.empty() && rule->m_initialClass != other->m_initialClass)
                     return false;
-
                 if (!rule->m_initialTitle.empty() && rule->m_initialTitle != other->m_initialTitle)
                     return false;
-
                 if (rule->m_X11 != -1 && rule->m_X11 != other->m_X11)
                     return false;
-
                 if (rule->m_floating != -1 && rule->m_floating != other->m_floating)
                     return false;
-
                 if (rule->m_fullscreen != -1 && rule->m_fullscreen != other->m_fullscreen)
                     return false;
-
                 if (rule->m_pinned != -1 && rule->m_pinned != other->m_pinned)
                     return false;
-
                 if (!rule->m_fullscreenState.empty() && rule->m_fullscreenState != other->m_fullscreenState)
                     return false;
-
                 if (!rule->m_workspace.empty() && rule->m_workspace != other->m_workspace)
                     return false;
-
                 if (rule->m_focus != -1 && rule->m_focus != other->m_focus)
                     return false;
-
                 if (!rule->m_onWorkspace.empty() && rule->m_onWorkspace != other->m_onWorkspace)
                     return false;
-
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
-
                 if (rule->m_group != -1 && rule->m_group != other->m_group)
                     return false;
-
                 return true;
+            });
+        } else {
+            auto rule = makeShared<CWindowRule>(std::string(token), value, true);
+            if (rule->m_ruleType == CWindowRule::RULE_INVALID) {
+                Debug::log(ERR, "Invalid rule found: {}, Invalid value: {}", value, token);
+                return std::format("Invalid rule found: {}, Invalid value: {}", value, token);
             }
-        });
-        return {};
+            if (applyParams(rule))
+                rules.emplace_back(rule);
+            else {
+                Debug::log(INFO, "===== Skipping rule: {}, Invalid parameters", rule->m_value);
+                return std::format("Invalid parameters found in: {}", value);
+            }
+        }
     }
 
-    if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
-        m_windowRules.insert(m_windowRules.begin(), rule);
-    else
-        m_windowRules.push_back(rule);
+    if (rules.empty() && tokens.empty())
+        return "Invalid rule syntax: no rules provided";
+
+    for (auto& rule : rules) {
+        if (rule->m_ruleType == CWindowRule::RULE_SIZE || rule->m_ruleType == CWindowRule::RULE_MAXSIZE || rule->m_ruleType == CWindowRule::RULE_MINSIZE)
+            m_windowRules.insert(m_windowRules.begin(), rule);
+        else
+            m_windowRules.emplace_back(rule);
+    }
 
     return {};
 }
@@ -2999,7 +2966,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             CHECK_OR_THROW(configStringToInt(rule.substr(delim + 11)))
             wsRule.isPersistent = *X;
         } else if ((delim = rule.find("defaultName:")) != std::string::npos)
-            wsRule.defaultName = rule.substr(delim + 12);
+            wsRule.defaultName = trim(rule.substr(delim + 12));
         else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos) {
             CHECK_OR_THROW(cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmptyLen)))
             wsRule.onCreatedEmptyRunCmd = *X;
@@ -3057,11 +3024,11 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         return "source= path " + rawpath + " bogus!";
     }
 
-    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize
+    std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{sc<glob_t*>(calloc(1, sizeof(glob_t))), // allocate and zero-initialize NOLINT(cppcoreguidelines-no-malloc)
                                                         [](glob_t* g) {
                                                             if (g) {
                                                                 globfree(g); // free internal resources allocated by glob()
-                                                                free(g);     // free the memory for the glob_t structure
+                                                                free(g);     // free the memory for the glob_t structure NOLINT(cppcoreguidelines-no-malloc)
                                                             }
                                                         }};
 
@@ -3218,7 +3185,7 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     std::expected<void, std::string> result;
 
     if (data[startDataIdx] == "dispatcher")
-        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
+        result = g_pTrackpadGestures->addGesture(makeUnique<CDispatcherTrackpadGesture>(std::string{data[startDataIdx + 1]}, data.join(",", startDataIdx + 2)), fingerCount,
                                                  direction, modMask, deltaScale);
     else if (data[startDataIdx] == "workspace")
         result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale);
@@ -3234,6 +3201,8 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
         result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
     else if (data[startDataIdx] == "fullscreen")
         result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale);
+    else if (data[startDataIdx] == "unset")
+        result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
 

@@ -1,6 +1,7 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
+#include "SharedDefs.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
@@ -25,6 +26,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../hyprerror/HyprError.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
@@ -54,6 +56,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_zoomAnimProgress, g_pConfigManager->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
     m_zoomAnimProgress->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.F, m_backgroundOpacity, g_pConfigManager->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
+    m_backgroundOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 }
@@ -470,6 +474,21 @@ void CMonitor::applyCMType(eCMType cmType) {
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
             break;
+        case CM_DCIP3:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)};
+            break;
+        case CM_DP3:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)};
+            break;
+        case CM_ADOBE:
+            m_imageDescription = {.primariesNameSet = true,
+                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
+                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)};
+            break;
         case CM_EDID:
             m_imageDescription = {.primariesNameSet = false,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
@@ -515,7 +534,8 @@ void CMonitor::applyCMType(eCMType cmType) {
 
     if (oldImageDescription != m_imageDescription) {
         m_imageDescription.updateId();
-        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
+        if (PROTO::colorManagement)
+            PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
     }
 }
 
@@ -904,11 +924,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             } else {
                 if (!autoScale) {
                     Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
-                    g_pConfigManager->addParseError(
-                        std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", m_name, searchScale));
-                    m_scale = getDefaultScale();
-                } else
-                    m_scale = searchScale;
+                    static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
+                    if (!*PDISABLENOTIFICATION)
+                        g_pHyprNotificationOverlay->addNotification(std::format("Invalid scale passed to monitor: {}, using suggested scale: {}", m_scale, searchScale),
+                                                                    CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
+                }
+                m_scale = searchScale;
             }
         }
     }
@@ -1499,11 +1520,17 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
-uint16_t CMonitor::isSolitaryBlocked(bool full) {
-    uint16_t reasons = 0;
+uint32_t CMonitor::isSolitaryBlocked(bool full) {
+    uint32_t reasons = 0;
 
     if (g_pHyprNotificationOverlay->hasAny()) {
         reasons |= SC_NOTIFICATION;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == m_self) {
+        reasons |= SC_ERRORBAR;
         if (!full)
             return reasons;
     }
@@ -1675,6 +1702,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
 
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
@@ -1744,7 +1772,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (!canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) && *PPASS != 1)
+    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) &&
+        *PPASS != 1)
         reasons |= DS_BLOCK_CM;
 
     return reasons;
@@ -1963,11 +1992,16 @@ std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescripti
 }
 
 bool CMonitor::needsCM() {
-    return getFSImageDescription() != m_imageDescription;
+    const auto SRC_DESC = getFSImageDescription();
+    return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;
 }
 
 // TODO support more drm properties
 bool CMonitor::canNoShaderCM() {
+    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    if (*PNONSHADER == CM_NS_DISABLE)
+        return false;
+
     const auto SRC_DESC = getFSImageDescription();
     if (!SRC_DESC.has_value())
         return false;
@@ -1980,7 +2014,7 @@ bool CMonitor::canNoShaderCM() {
 
     // only primaries differ
     if (SRC_DESC->transferFunction == m_imageDescription.transferFunction && SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower &&
-        SRC_DESC->luminances == m_imageDescription.luminances && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
+        (!inHDR() || SRC_DESC->luminances == m_imageDescription.luminances) && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
         SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
         return true;
 

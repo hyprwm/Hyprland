@@ -835,7 +835,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
     m_clickBehavior = CLICKMODE_DEFAULT;
 }
 
-void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
+void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     static auto POFFWINDOWAXIS        = CConfigValue<Hyprlang::INT>("input:off_window_axis_events");
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
@@ -845,7 +845,10 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     const bool  ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto        factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
 
-    const auto  EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
+    if (pointer && pointer->m_scrollFactor.has_value())
+        factor = *pointer->m_scrollFactor;
+
+    const auto EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
     EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
 
     if (e.mouse)
@@ -888,7 +891,11 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
                 if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                     simulateMouseMovement();
             }
-            factor = ISTOUCHPADSCROLL ? PWINDOW->getScrollTouchpad() : PWINDOW->getScrollMouse();
+
+            if (!ISTOUCHPADSCROLL && PWINDOW->isScrollMouseOverridden())
+                factor = PWINDOW->getScrollMouse();
+            else if (ISTOUCHPADSCROLL && PWINDOW->isScrollTouchpadOverridden())
+                factor = PWINDOW->getScrollTouchpad();
         }
     }
 
@@ -1024,6 +1031,10 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     g_pSeatManager->setKeyboard(keeb);
 
     keeb->updateLEDs();
+
+    // in case m_lastFocus was set without a keyboard
+    if (m_keyboards.size() == 1 && g_pCompositor->m_lastFocus)
+        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
 }
 
 void CInputManager::setKeyboardLayout() {
@@ -1097,7 +1108,6 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     pKeyboard->m_repeatDelay = std::max(0, REPEATDELAY);
     pKeyboard->m_numlockOn   = NUMLOCKON;
     pKeyboard->m_xkbFilePath = FILEPATH;
-
     pKeyboard->setKeymap(IKeyboard::SStringRuleNames{LAYOUT, MODEL, VARIANT, OPTIONS, RULES});
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
@@ -1115,6 +1125,14 @@ void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
     setupMouse(PMOUSE);
 
     Debug::log(LOG, "New virtual mouse created");
+}
+
+void CInputManager::newMouse(SP<IPointer> mouse) {
+    m_pointers.emplace_back(mouse);
+
+    setupMouse(mouse);
+
+    Debug::log(LOG, "New mouse created, pointer Hypr: {:x}", rc<uintptr_t>(mouse.get()));
 }
 
 void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
@@ -1171,6 +1189,11 @@ void CInputManager::setPointerConfigs() {
                 m->m_connected = false;
             }
         }
+
+        if (g_pConfigManager->deviceConfigExplicitlySet(devname, "scroll_factor"))
+            m->m_scrollFactor = std::clamp(g_pConfigManager->getDeviceFloat(devname, "scroll_factor", "input:scroll_factor"), 0.F, 100.F);
+        else
+            m->m_scrollFactor = std::nullopt;
 
         if (m->aq() && m->aq()->getLibinputHandle()) {
             const auto LIBINPUTDEV = m->aq()->getLibinputHandle();
@@ -1456,6 +1479,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     auto       MODS    = pKeyboard->m_modifiersState;
     const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
     MODS.depressed     = ALLMODS;
+    m_lastMods         = MODS.depressed;
 
     const auto IME = m_relay.m_inputMethod.lock();
 
@@ -1465,7 +1489,6 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     } else {
         g_pSeatManager->setKeyboard(pKeyboard);
         g_pSeatManager->sendKeyboardMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
-        m_lastMods = MODS.depressed;
     }
 
     updateKeyboardsLeds(pKeyboard);
@@ -1483,12 +1506,20 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 }
 
 bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
+    if (!pKeyboard)
+        return true;
+
     if (!pKeyboard->isVirtual())
         return false;
 
-    auto client = pKeyboard->getClient();
+    const auto CLIENT = pKeyboard->getClient();
 
-    return !pKeyboard || (client && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == client);
+    const auto DISALLOWACTION = CLIENT && !m_relay.m_inputMethod.expired() && m_relay.m_inputMethod->grabClient() == CLIENT;
+
+    if (DISALLOWACTION)
+        pKeyboard->setShareStatesAuto(false);
+
+    return DISALLOWACTION;
 }
 
 void CInputManager::refocus(std::optional<Vector2D> overridePos) {
@@ -1764,8 +1795,13 @@ void CInputManager::setTabletConfigs() {
             const auto ACTIVE_AREA_SIZE = g_pConfigManager->getDeviceVec(NAME, "active_area_size", "input:tablet:active_area_size");
             const auto ACTIVE_AREA_POS  = g_pConfigManager->getDeviceVec(NAME, "active_area_position", "input:tablet:active_area_position");
             if (ACTIVE_AREA_SIZE.x != 0 || ACTIVE_AREA_SIZE.y != 0) {
-                t->m_activeArea = CBox{ACTIVE_AREA_POS.x / t->aq()->physicalSize.x, ACTIVE_AREA_POS.y / t->aq()->physicalSize.y,
-                                       (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / t->aq()->physicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / t->aq()->physicalSize.y};
+                // Rotations with an odd index (90 and 270 degrees, and their flipped variants) swap the X and Y axes.
+                // Use swapped dimensions when the axes are rotated, otherwise keep the original ones.
+                const Vector2D effectivePhysicalSize = (ROTATION % 2) ? Vector2D{t->aq()->physicalSize.y, t->aq()->physicalSize.x} : t->aq()->physicalSize;
+
+                // Scale the active area coordinates into normalized space (0–1) using the effective dimensions.
+                t->m_activeArea = CBox{ACTIVE_AREA_POS.x / effectivePhysicalSize.x, ACTIVE_AREA_POS.y / effectivePhysicalSize.y,
+                                       (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / effectivePhysicalSize.x, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / effectivePhysicalSize.y};
             }
         }
     }

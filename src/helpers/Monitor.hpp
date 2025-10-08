@@ -42,6 +42,9 @@ enum eCMType : uint8_t {
     CM_EDID,     // primaries from edid (known to be inaccurate)
     CM_HDR,      // wide color gamut and HDR PQ transfer function
     CM_HDR_EDID, // same as CM_HDR with edid primaries
+    CM_DCIP3,    // movie theatre with greenish white point
+    CM_DP3,      // applle P3 variant with blueish white point
+    CM_ADOBE,    // adobe colorspace
 };
 
 struct SMonitorRule {
@@ -188,6 +191,9 @@ class CMonitor {
 
     PHLANIMVAR<float> m_cursorZoom;
 
+    // for fading in the wallpaper because it doesn't happen instantly (it's loaded async)
+    PHLANIMVAR<float> m_backgroundOpacity;
+
     // for initial zoom anim
     PHLANIMVAR<float> m_zoomAnimProgress;
     CTimer            m_newMonitorAnimTimer;
@@ -235,7 +241,7 @@ class CMonitor {
     };
 
     // keep in sync with HyprCtl
-    enum eSolitaryCheck : uint16_t {
+    enum eSolitaryCheck : uint32_t {
         SC_OK = 0,
 
         SC_UNKNOWN      = (1 << 0),
@@ -254,8 +260,9 @@ class CMonitor {
         SC_FLOAT        = (1 << 13),
         SC_WORKSPACES   = (1 << 14),
         SC_SURFACES     = (1 << 15),
+        SC_ERRORBAR     = (1 << 16),
 
-        SC_CHECKS_COUNT = 16,
+        SC_CHECKS_COUNT = 17,
     };
 
     // keep in sync with HyprCtl
@@ -297,7 +304,7 @@ class CMonitor {
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
     void        scheduleDone();
-    uint16_t    isSolitaryBlocked(bool full = false);
+    uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();
     uint8_t     isTearingBlocked(bool full = false);
     bool        updateTearing();

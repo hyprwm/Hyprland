@@ -1,7 +1,9 @@
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
+#include <cstdint>
 #include <print>
+#include <string>
 #include <thread>
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
@@ -27,6 +29,24 @@ static std::string getCommandStdOut(std::string command) {
 
     // Remove trailing new line
     return stdOut.substr(0, stdOut.length() - 1);
+}
+
+static bool testDevicesActiveLayoutIndex() {
+    NLog::log("{}Testing hyprctl devices active_layout_index", Colors::GREEN);
+
+    // configure layouts
+    getFromSocket("/keyword input:kb_layout us,pl,ua");
+
+    for (uint8_t i = 0; i < 3; i++) {
+        // set layout
+        getFromSocket("/switchxkblayout all " + std::to_string(i));
+        std::string devicesJson = getFromSocket("j/devices");
+        std::string expected    = R"("active_layout_index": )" + std::to_string(i);
+        // check layout index
+        EXPECT_CONTAINS(devicesJson, expected);
+    }
+
+    return true;
 }
 
 static bool testGetprop() {
@@ -154,8 +174,9 @@ static bool test() {
         EXPECT(jqProc.exitCode(), 0);
     }
 
-    if (!testGetprop())
-        return false;
+    testGetprop();
+    testDevicesActiveLayoutIndex();
+    getFromSocket("/reload");
 
     return !ret;
 }

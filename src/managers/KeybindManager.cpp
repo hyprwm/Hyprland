@@ -291,8 +291,8 @@ void CKeybindManager::updateXKBTranslationState() {
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     FILE* const       KEYMAPFILE = FILEPATH.empty() ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
 
-    auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
-                                             xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS) :
+                                             xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (KEYMAPFILE)
         fclose(KEYMAPFILE);
 
@@ -305,7 +305,7 @@ void CKeybindManager::updateXKBTranslationState() {
                    rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
-        PKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        PKEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
     xkb_context_unref(PCONTEXT);
@@ -757,7 +757,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 continue;
         }
 
-        if (k->longPress) {
+        if (pressed && k->longPress) {
             const auto PACTIVEKEEB = g_pSeatManager->m_keyboard.lock();
 
             m_longPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->m_repeatDelay));
@@ -796,7 +796,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             }
         }
 
-        if (k->repeat) {
+        if (pressed && k->repeat) {
             const auto KEEB = keyboard ? keyboard : g_pSeatManager->m_keyboard.lock();
             m_repeatKeyRate = KEEB->m_repeatRate;
 
@@ -949,17 +949,9 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
-    int        socket[2];
-    if (pipe(socket) != 0) {
-        Debug::log(LOG, "Unable to create pipe for fork");
-    }
-
-    CFileDescriptor pipeSock[2] = {CFileDescriptor{socket[0]}, CFileDescriptor{socket[1]}};
-
-    pid_t           child, grandchild;
-    child = fork();
+    pid_t      child = fork();
     if (child < 0) {
-        Debug::log(LOG, "Fail to create the first fork");
+        Debug::log(LOG, "Fail to fork");
         return 0;
     }
     if (child == 0) {
@@ -970,41 +962,28 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
         sigemptyset(&set);
         sigprocmask(SIG_SETMASK, &set, nullptr);
 
-        grandchild = fork();
-        if (grandchild == 0) {
-            // run in grandchild
-            for (auto const& e : HLENV) {
-                setenv(e.first.c_str(), e.second.c_str(), 1);
-            }
-            setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
-
-            int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
-            if (devnull != -1) {
-                dup2(devnull, STDOUT_FILENO);
-                dup2(devnull, STDERR_FILENO);
-                close(devnull);
-            }
-
-            execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
-            // exit grandchild
-            _exit(0);
+        for (auto const& e : HLENV) {
+            setenv(e.first.c_str(), e.second.c_str(), 1);
         }
-        write(pipeSock[1].get(), &grandchild, sizeof(grandchild));
+        setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
+
+        int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
+        if (devnull != -1) {
+            dup2(devnull, STDOUT_FILENO);
+            dup2(devnull, STDERR_FILENO);
+            close(devnull);
+        }
+
+        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
+
         // exit child
         _exit(0);
     }
     // run in parent
-    read(pipeSock[0].get(), &grandchild, sizeof(grandchild));
-    // clear child and leave grandchild to init
-    waitpid(child, nullptr, 0);
-    if (grandchild < 0) {
-        Debug::log(LOG, "Fail to create the second fork");
-        return 0;
-    }
 
-    Debug::log(LOG, "Process Created with pid {}", grandchild);
+    Debug::log(LOG, "Process Created with pid {}", child);
 
-    return grandchild;
+    return child;
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
@@ -1608,15 +1587,9 @@ SDispatchResult CKeybindManager::focusCurrentOrLast(std::string args) {
 }
 
 SDispatchResult CKeybindManager::swapActive(std::string args) {
-    char arg = args[0];
-
-    if (!isDirection(args)) {
-        Debug::log(ERR, "Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
-        return {.success = false, .error = std::format("Cannot move window in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg)};
-    }
-
-    Debug::log(LOG, "Swapping active window in direction {}", arg);
-    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
+    char       arg               = args[0];
+    const auto PLASTWINDOW       = g_pCompositor->m_lastWindow.lock();
+    PHLWINDOW  PWINDOWTOCHANGETO = nullptr;
 
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
@@ -1624,14 +1597,21 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     if (PLASTWINDOW->isFullscreen())
         return {.success = false, .error = "Can't swap fullscreen window"};
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
-    if (!PWINDOWTOCHANGETO)
-        return {.success = false, .error = "Window to swap with not found"};
+    if (isDirection(args))
+        PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+    else
+        PWINDOWTOCHANGETO = g_pCompositor->getWindowByRegex(args);
+
+    if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == PLASTWINDOW) {
+        Debug::log(ERR, "Can't swap with {}, invalid window", args);
+        return {.success = false, .error = std::format("Can't swap with {}, invalid window", args)};
+    }
+
+    Debug::log(LOG, "Swapping active window with {}", args);
 
     updateRelativeCursorCoords();
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
     PLASTWINDOW->warpCursor();
-
     return {};
 }
 
@@ -1907,6 +1887,7 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
     y = std::stoi(y_str);
 
     g_pCompositor->warpCursorTo({x, y}, true);
+    g_pInputManager->simulateMouseMovement();
 
     return {};
 }

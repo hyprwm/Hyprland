@@ -16,6 +16,7 @@
 #include "../managers/TokenManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/ANRManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Subcompositor.hpp"
@@ -146,7 +147,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     SBoxExtents maxExtents = {.topLeft = {BORDERSIZE + 2, BORDERSIZE + 2}, .bottomRight = {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock());
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_self);
 
     maxExtents.topLeft.x = std::max(EXTENTS.topLeft.x, maxExtents.topLeft.x);
 
@@ -240,11 +241,11 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
     SBoxExtents extents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
     if (properties & RESERVED_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock()));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self));
     if (properties & INPUT_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), true));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, true));
     if (properties & FULL_EXTENTS)
-        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self.lock(), false));
+        extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, false));
 
     return extents;
 }
@@ -263,7 +264,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
 }
 
 SBoxExtents CWindow::getFullWindowReservedArea() {
-    return g_pDecorationPositioner->getWindowDecorationReserved(m_self.lock());
+    return g_pDecorationPositioner->getWindowDecorationReserved(m_self);
 }
 
 void CWindow::updateWindowDecos() {
@@ -576,7 +577,12 @@ void CWindow::onMap() {
             if (!m_isMapped || isX11OverrideRedirect())
                 return;
 
-            sendWindowSize();
+            g_pEventLoopManager->doLater([this, self = m_self] {
+                if (!self)
+                    return;
+
+                sendWindowSize();
+            });
         },
         false);
 
@@ -1231,7 +1237,7 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_windowData.noBorder.valueOrDefault() || (m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)))
+    if (m_windowData.noBorder.valueOrDefault() || (m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_windowData.decorate.valueOrDefault())
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -1247,6 +1253,14 @@ float CWindow::getScrollMouse() {
 float CWindow::getScrollTouchpad() {
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
     return m_windowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
+}
+
+bool CWindow::isScrollMouseOverridden() {
+    return m_windowData.scrollMouse.hasValue();
+}
+
+bool CWindow::isScrollTouchpadOverridden() {
+    return m_windowData.scrollTouchpad.hasValue();
 }
 
 bool CWindow::canBeTorn() {
@@ -1466,8 +1480,12 @@ void CWindow::onUpdateState() {
     }
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
-        if (m_isMapped)
-            g_pCompositor->changeWindowFullscreenModeClient(m_self.lock(), FSMODE_MAXIMIZED, requestsMX.value());
+        if (m_isMapped) {
+            auto window    = m_self.lock();
+            auto state     = sc<int8_t>(window->m_fullscreenState.client);
+            bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
+            g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);
+        }
     }
 }
 
@@ -1537,13 +1555,20 @@ std::string CWindow::fetchClass() {
 }
 
 void CWindow::onAck(uint32_t serial) {
-    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks | std::views::reverse, [serial](const auto& e) { return e.first == serial; });
+    const auto SERIAL = std::ranges::find_if(m_pendingSizeAcks | std::views::reverse, [serial](const auto& e) { return e.first <= serial; });
 
     if (SERIAL == m_pendingSizeAcks.rend())
         return;
 
     m_pendingSizeAck = *SERIAL;
     std::erase_if(m_pendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
+
+    if (m_isX11)
+        return;
+
+    m_wlSurface->resource()->m_pending.ackedSize          = m_pendingSizeAck->second; // apply pending size. We pinged, the window ponged.
+    m_wlSurface->resource()->m_pending.updated.bits.acked = true;
+    m_pendingSizeAck.reset();
 }
 
 void CWindow::onResourceChangeX11() {
@@ -1793,7 +1818,7 @@ void CWindow::sendWindowSize(bool force) {
     if (m_isX11 && m_xwaylandSurface)
         m_xwaylandSurface->configure({REPORTPOS, REPORTSIZE});
     else if (m_xdgSurface && m_xdgSurface->m_toplevel)
-        m_pendingSizeAcks.emplace_back(m_xdgSurface->m_toplevel->setSize(REPORTSIZE), REPORTPOS.floor());
+        m_pendingSizeAcks.emplace_back(m_xdgSurface->m_toplevel->setSize(REPORTSIZE), REPORTSIZE.floor());
 }
 
 NContentType::eContentType CWindow::getContentType() {
@@ -1897,4 +1922,12 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     }
 
     return nullptr;
+}
+
+Vector2D CWindow::getReportedSize() {
+    if (m_isX11)
+        return m_reportedSize;
+    if (m_wlSurface && m_wlSurface->resource())
+        return m_wlSurface->resource()->m_current.ackedSize;
+    return m_reportedSize;
 }

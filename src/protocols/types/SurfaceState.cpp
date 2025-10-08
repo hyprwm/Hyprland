@@ -60,6 +60,8 @@ void SSurfaceState::reset() {
     // wl_surface.commit assigns pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
+
+    callbacks.clear();
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
@@ -75,6 +77,10 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     if (ref.updated.bits.damage) {
         damage       = ref.damage;
         bufferDamage = ref.bufferDamage;
+    } else {
+        // damage is always relative to the current commit
+        damage.clear();
+        bufferDamage.clear();
     }
 
     if (ref.updated.bits.input)
@@ -97,4 +103,12 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.bits.acquire)
         acquire = ref.acquire;
+
+    if (ref.updated.bits.acked)
+        ackedSize = ref.ackedSize;
+
+    if (ref.updated.bits.frame) {
+        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
+        ref.callbacks.clear();
+    }
 }

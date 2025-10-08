@@ -148,7 +148,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (PMONITOR && (PMONITOR->m_id != g_pCompositor->m_lastMonitor->m_id))
                     invalidWSes.insert(rule.workspaceId);
             }
@@ -227,7 +227,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 }
             }
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (!PMONITOR || PMONITOR->m_id == g_pCompositor->m_lastMonitor->m_id) {
                     // Can't be invalid
                     continue;
@@ -599,7 +599,7 @@ int64_t getPPIDof(int64_t pid) {
 
     fclose(infile);
     if (line)
-        free(line);
+        free(line); // NOLINT(cppcoreguidelines-no-malloc)
 
     try {
         return std::stoll(pidstr);
@@ -928,4 +928,42 @@ std::string deviceNameToInternalString(std::string in) {
     std::ranges::replace(in, ',', '-');
     std::ranges::transform(in, in.begin(), ::tolower);
     return in;
+}
+
+static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};
+
+//
+std::string getSystemLibraryVersion(const std::string& name) {
+    for (const auto& pkgconf : PKGCONF_PATHS) {
+        std::error_code   ec;
+        const std::string PATH = std::string{pkgconf} + "/" + name + ".pc";
+        if (!std::filesystem::exists(PATH, ec))
+            continue;
+
+        const auto DATA = NFsUtils::readFileAsString(PATH);
+
+        if (!DATA)
+            continue;
+
+        size_t versionAt    = DATA->find("\nVersion: ");
+        size_t versionAtEnd = DATA->find("\n", versionAt + 11);
+
+        if (versionAt == std::string::npos)
+            continue;
+
+        versionAt += 10;
+
+        return DATA->substr(versionAt, versionAtEnd == std::string::npos ? std::string::npos : versionAtEnd - versionAt);
+    }
+    return "unknown";
+}
+
+std::string getBuiltSystemLibraryNames() {
+    std::string result = "Libraries:\n";
+    result += std::format("Hyprgraphics: built against {}, system has {}\n", HYPRGRAPHICS_VERSION, getSystemLibraryVersion("hyprgraphics"));
+    result += std::format("Hyprutils: built against {}, system has {}\n", HYPRUTILS_VERSION, getSystemLibraryVersion("hyprutils"));
+    result += std::format("Hyprcursor: built against {}, system has {}\n", HYPRCURSOR_VERSION, getSystemLibraryVersion("hyprcursor"));
+    result += std::format("Hyprlang: built against {}, system has {}\n", HYPRLANG_VERSION, getSystemLibraryVersion("hyprlang"));
+    result += std::format("Aquamarine: built against {}, system has {}\n", AQUAMARINE_VERSION, getSystemLibraryVersion("aquamarine"));
+    return result;
 }

@@ -109,7 +109,7 @@ pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.9.3)
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.8.2)
-pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=0.1.3)
+pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=0.1.6)
 
 string(REPLACE "." ";" AQ_VERSION_LIST ${aquamarine_dep_VERSION})
 list(GET AQ_VERSION_LIST 0 AQ_VERSION_MAJOR)
@@ -132,7 +132,7 @@ pkg_check_modules(
   xkbcommon
   uuid
   wayland-server>=1.22.90
-  wayland-protocols>=1.43
+  wayland-protocols>=1.45
   cairo
   pango
   pangocairo
@@ -383,6 +383,7 @@ protocolnew("staging/xdg-toplevel-tag" "xdg-toplevel-tag-v1" false)
 protocolnew("staging/xdg-system-bell" "xdg-system-bell-v1" false)
 protocolnew("staging/ext-workspace" "ext-workspace-v1" false)
 protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
+protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 
 protocolwayland()
 
@@ -394,13 +395,6 @@ if(NO_HYPRPM)
 else()
   add_subdirectory(hyprpm)
   message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
-endif()
-
-if(NO_TESTS)
-  message(STATUS "building tests is disabled")
-else()
-  message(STATUS "building tests is enabled (NO_TESTS not defined)")
-  add_subdirectory(hyprtester)
 endif()
 
 # binary and symlink
@@ -460,6 +454,8 @@ install(
   PATTERN "*.inc")
 
 if(TESTS)
+  message(STATUS "building tests is enabled TESTS")
+
   enable_testing()
   add_custom_target(tests)
 
@@ -470,4 +466,6 @@ if(TESTS)
     COMMAND hyprtester)
 
   add_dependencies(tests hyprtester)
+else()
+  message(STATUS "building tests is disabled")
 endif()

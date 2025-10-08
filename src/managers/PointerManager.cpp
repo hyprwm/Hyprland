@@ -919,8 +919,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->m_pointerEvents.axis.listen([](const IPointer::SAxisEvent& event) {
-        g_pInputManager->onMouseWheel(event);
+    listener->axis = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
+        g_pInputManager->onMouseWheel(event, weak.lock());
         PROTO::idle->onActivity();
     });
 

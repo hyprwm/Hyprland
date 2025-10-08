@@ -166,7 +166,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
             // otherwise middle of parent if available
             if (!pWindow->m_isX11) {
                 if (const auto PARENT = pWindow->parent(); PARENT) {
-                    *pWindow->m_realPosition = PARENT->m_position + PARENT->m_size / 2.F - desiredGeometry.size() / 2.F;
+                    *pWindow->m_realPosition = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - desiredGeometry.size() / 2.F;
                     pWindow->m_workspace     = PARENT->m_workspace;
                     pWindow->m_monitor       = PARENT->m_monitor;
                     centeredOnParent         = true;
@@ -206,7 +206,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     const PHLWINDOW OPENINGON        = g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace ?
                g_pCompositor->m_lastWindow.lock() :
                (pWindow->m_workspace ? pWindow->m_workspace->getFirstWindow() : nullptr);
-    const bool      FLOATEDINTOTILED = pWindow->m_isFloating && !OPENINGON->m_isFloating;
+    const bool      FLOATEDINTOTILED = pWindow->m_isFloating && OPENINGON && !OPENINGON->m_isFloating;
     const bool      SWALLOWING       = pWindow->m_swallowed || pWindow->m_groupSwallowed;
 
     if ((*PAUTOGROUP || SWALLOWING)                      // continue if auto_group is enabled or if dealing with window swallowing.

@@ -363,6 +363,8 @@ class CWindow {
     int                        getRealBorderSize();
     float                      getScrollMouse();
     float                      getScrollTouchpad();
+    bool                       isScrollMouseOverridden();
+    bool                       isScrollTouchpadOverridden();
     void                       updateWindowData();
     void                       updateWindowData(const struct SWorkspaceRule&);
     void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
@@ -414,6 +416,7 @@ class CWindow {
     PHLWINDOW                  parent();
     bool                       priorityFocus();
     SP<CWLSurfaceResource>     getSolitaryResource();
+    Vector2D                   getReportedSize();
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

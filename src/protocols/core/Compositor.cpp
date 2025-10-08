@@ -526,8 +526,8 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (m_current.buffer) {
         if (m_current.buffer->isSynchronous())
             m_current.updateSynchronousTexture(lastTexture);
-        else
-            m_current.updateAsyncSynchronousTexture();
+        else if (!m_current.buffer->isSynchronous() && state.updated.bits.buffer) // only get a new texture when a new buffer arrived
+            m_current.texture = m_current.buffer->createTexture();
 
         // if the surface is a cursor, update the shm buffer
         // TODO: don't update the entire texture

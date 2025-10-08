@@ -19,6 +19,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     });
 
     size       = m_attrs.size;
+    m_opaque   = NFormatUtils::isFormatOpaque(m_attrs.format);
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 }
 
@@ -58,7 +59,7 @@ void CDMABuffer::endDataPtr() {
     // FIXME:
 }
 
-void CDMABuffer::createTexture() {
+SP<CTexture> CDMABuffer::createTexture() {
     g_pHyprRenderer->makeEGLCurrent();
     auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
@@ -68,16 +69,18 @@ void CDMABuffer::createTexture() {
         eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
         if UNLIKELY (!eglImage) {
             Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
-            return;
+            return nullptr;
         }
     }
 
-    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
-    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
-    m_success = m_texture->m_texID;
+    auto tex = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
 
-    if UNLIKELY (!m_success)
+    if UNLIKELY (!tex->m_texID) {
         Debug::log(ERR, "Failed to create a dmabuf: texture is null");
+        return nullptr;
+    }
+
+    return tex;
 }
 
 bool CDMABuffer::good() {

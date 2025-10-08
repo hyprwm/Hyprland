@@ -61,7 +61,6 @@ struct SSurfaceState {
     // texture of surface content, used for rendering
     SP<CTexture> texture;
     void         updateSynchronousTexture(SP<CTexture> lastTexture);
-    void         updateAsyncSynchronousTexture();
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

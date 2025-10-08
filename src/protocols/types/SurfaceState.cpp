@@ -48,11 +48,6 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
     buffer->endDataPtr();
 }
 
-void SSurfaceState::updateAsyncSynchronousTexture() {
-    buffer->createTexture();
-    texture = buffer->m_texture;
-}
-
 void SSurfaceState::reset() {
     updated.all = false;
 

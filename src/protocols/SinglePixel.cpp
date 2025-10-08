@@ -50,11 +50,15 @@ void CSinglePixelBuffer::endDataPtr() {
     ;
 }
 
-void CSinglePixelBuffer::createTexture() {
-    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
-    m_success = m_texture->m_texID;
-    if (!m_success)
+SP<CTexture> CSinglePixelBuffer::createTexture() {
+    auto tex = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
+
+    if (!tex->m_texID) {
         Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
+        return nullptr;
+    }
+
+    return tex;
 }
 
 bool CSinglePixelBuffer::good() {

@@ -18,9 +18,6 @@ CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, A
         m_listeners.bufferResourceDestroy.reset();
         PROTO::mesaDRM->destroyResource(this);
     });
-
-    if (!m_buffer->m_success)
-        LOGM(ERR, "Possibly compositor bug: buffer failed to create");
 }
 
 CMesaDRMBufferResource::~CMesaDRMBufferResource() {

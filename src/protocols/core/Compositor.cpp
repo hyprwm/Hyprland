@@ -91,12 +91,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         if (buf && buf->m_buffer) {
             m_pending.buffer     = CHLBufferReference(buf->m_buffer.lock());
-            m_pending.texture    = buf->m_buffer->m_texture;
             m_pending.size       = buf->m_buffer->size;
             m_pending.bufferSize = buf->m_buffer->size;
         } else {
-            m_pending.buffer = {};
-            m_pending.texture.reset();
+            m_pending.buffer     = {};
             m_pending.size       = Vector2D{};
             m_pending.bufferSize = Vector2D{};
         }
@@ -132,7 +130,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         }
 
         // null buffer attached
-        if (!m_pending.buffer && !m_pending.texture && m_pending.updated.bits.buffer) {
+        if (!m_pending.buffer && m_pending.updated.bits.buffer) {
             commitState(m_pending);
 
             // remove any pending states.
@@ -528,6 +526,8 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (m_current.buffer) {
         if (m_current.buffer->isSynchronous())
             m_current.updateSynchronousTexture(lastTexture);
+        else if (!m_current.buffer->isSynchronous() && state.updated.bits.buffer) // only get a new texture when a new buffer arrived
+            m_current.texture = m_current.buffer->createTexture();
 
         // if the surface is a cursor, update the shm buffer
         // TODO: don't update the entire texture

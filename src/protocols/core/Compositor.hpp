@@ -131,6 +131,8 @@ class CWLSurfaceResource {
     SP<CWlSurface>         m_resource;
     wl_client*             m_client = nullptr;
 
+    std::vector<PHLMONITORREF> m_pendingLeaveOutputs;
+
     void                   destroy();
     void                   releaseBuffers(bool onlyCurrent = true);
     void                   dropPendingBuffer();

@@ -300,6 +300,12 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
         return;
     }
 
+    if (!m_current.callbacks.empty()) {
+        if (std::ranges::find(m_pendingLeaveOutputs, monitor) == m_pendingLeaveOutputs.end())
+            m_pendingLeaveOutputs.emplace_back(monitor);
+        return;
+    }
+
     std::erase(m_enteredOutputs, monitor);
 
     m_resource->sendLeave(output->getResource().get());
@@ -327,6 +333,26 @@ void CWLSurfaceResource::frame(const Time::steady_tp& now) {
     }
 
     m_current.callbacks.clear();
+
+    if (!m_pendingLeaveOutputs.empty()) {
+        for (auto const& monitor : m_pendingLeaveOutputs) {
+            if UNLIKELY (std::ranges::find(m_enteredOutputs, monitor) == m_enteredOutputs.end())
+                continue;
+
+            if UNLIKELY (!PROTO::outputs.contains(monitor->m_name))
+                continue;
+
+            auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);
+            if UNLIKELY (!output)
+                continue;
+
+            std::erase(m_enteredOutputs, monitor);
+
+            m_resource->sendLeave(output->getResource().get());
+            m_events.leave.emit(monitor);
+        }
+        m_pendingLeaveOutputs.clear();
+    }
 }
 
 void CWLSurfaceResource::resetRole() {
@@ -446,6 +472,8 @@ void CWLSurfaceResource::unmap() {
         return;
 
     m_mapped = false;
+
+    m_pendingLeaveOutputs.clear();
 
     // release the buffers.
     // this is necessary for XWayland to function correctly,

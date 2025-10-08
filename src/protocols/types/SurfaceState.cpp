@@ -48,6 +48,11 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
     buffer->endDataPtr();
 }
 
+void SSurfaceState::updateAsyncSynchronousTexture() {
+    buffer->createTexture();
+    texture = buffer->m_texture;
+}
+
 void SSurfaceState::reset() {
     updated.all = false;
 
@@ -68,8 +73,10 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     updated = ref.updated;
 
     if (ref.updated.bits.buffer) {
+        if (!ref.buffer.m_buffer)
+            texture.reset(); // null buffer reset texture.
+
         buffer     = ref.buffer;
-        texture    = ref.texture;
         size       = ref.size;
         bufferSize = ref.bufferSize;
     }

@@ -22,6 +22,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                          lock();
     virtual void                          unlock();
     virtual bool                          locked();
+    virtual void                          createTexture() = 0;
 
     void                                  onBackendRelease(const std::function<void()>& fn);
     void                                  addReleasePoint(CDRMSyncPointState& point);

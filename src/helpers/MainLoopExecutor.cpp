@@ -1,6 +1,7 @@
 #include "MainLoopExecutor.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../macros.hpp"
+#include <unistd.h>
 
 static int onDataRead(int fd, uint32_t mask, void* data) {
     ((CMainLoopExecutor*)data)->onFired();

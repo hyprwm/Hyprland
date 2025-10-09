@@ -1319,7 +1319,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "misc:anr_missed_pings",
         .description = "number of missed pings before showing the ANR dialog",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+        .data        = SConfigOptionDescription::SRangeData{5, 1, 20},
     },
     SConfigOptionDescription{
         .value       = "misc:screencopy_force_8b",
@@ -1523,6 +1523,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "enable new render scheduling, which should improve FPS on underpowered devices. This does not add latency when your PC can keep up.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "render:non_shader_cm",
+        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - don't block DS when non-shader CM isn't available",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
     },
 
     /*

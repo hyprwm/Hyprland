@@ -24,7 +24,9 @@ void Debug::log(eLogLevel level, std::string str) {
     if (m_shuttingDown)
         return;
 
-    std::string coloredStr = str;
+    std::lock_guard<std::mutex> guard(m_logMutex);
+
+    std::string                 coloredStr = str;
     //NOLINTBEGIN
     switch (level) {
         case LOG:
@@ -69,6 +71,8 @@ void Debug::log(eLogLevel level, std::string str) {
     }
 
     // log it to the stdout too.
-    if (!m_disableStdout)
+    if (!m_disableStdout) {
         std::println("{}", ((m_coloredLogs && !**m_coloredLogs) ? str : coloredStr));
+        std::fflush(stdout);
+    }
 }

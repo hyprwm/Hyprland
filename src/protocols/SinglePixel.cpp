@@ -12,16 +12,9 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_opaque = col_.a >= 1.F;
 
-    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
-
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    m_success = m_texture->m_texID;
-
     size = {1, 1};
-
-    if (!m_success)
-        Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
 }
 
 CSinglePixelBuffer::~CSinglePixelBuffer() {
@@ -55,6 +48,17 @@ std::tuple<uint8_t*, uint32_t, size_t> CSinglePixelBuffer::beginDataPtr(uint32_t
 
 void CSinglePixelBuffer::endDataPtr() {
     ;
+}
+
+SP<CTexture> CSinglePixelBuffer::createTexture() {
+    auto tex = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
+
+    if (!tex->m_texID) {
+        Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
+        return nullptr;
+    }
+
+    return tex;
 }
 
 bool CSinglePixelBuffer::good() {

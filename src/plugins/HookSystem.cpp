@@ -106,7 +106,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             if (ADDREND == std::string::npos || ADDRSTART == std::string::npos)
                 return {};
 
-            const uint64_t PREDICTEDRIP = rc<uint64_t>(m_trampolineAddr) + currentDestinationOffset + len;
+            const uint64_t PREDICTEDRIP = rc<uint64_t>(m_landTrampolineAddr) + currentDestinationOffset + len;
             const int32_t  NEWRIPOFFSET = DESTINATION - PREDICTEDRIP;
 
             size_t         ripOffset = 0;
@@ -144,25 +144,25 @@ bool CFunctionHook::hook() {
     return false;
 #endif
 
-    // movabs $0,%rax | jmpq *%rax
-    // offset for addr: 2
+    // jmp rel32
+    // offset for relative addr: 1
+    static constexpr uint8_t RELATIVE_JMP_ADDRESS[]      = {0xE9, 0x00, 0x00, 0x00, 0x00};
+    static constexpr size_t  RELATIVE_JMP_ADDRESS_OFFSET = 1;
+    // movabs $0,%rax | jmpq *rax
     static constexpr uint8_t ABSOLUTE_JMP_ADDRESS[]      = {0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE0};
     static constexpr size_t  ABSOLUTE_JMP_ADDRESS_OFFSET = 2;
-    // pushq %rax
-    static constexpr uint8_t PUSH_RAX[] = {0x50};
-    // popq %rax
-    static constexpr uint8_t POP_RAX[] = {0x58};
     // nop
     static constexpr uint8_t NOP = 0x90;
 
-    // alloc trampoline
+    // alloc trampolines
     const auto MAX_TRAMPOLINE_SIZE = HOOK_TRAMPOLINE_MAX_SIZE; // we will never need more.
-    m_trampolineAddr               = rc<void*>(g_pFunctionHookSystem->getAddressForTrampo());
+    m_launchTrampolineAddr         = rc<void*>(g_pFunctionHookSystem->getAddressForTrampo());
+    m_landTrampolineAddr           = rc<void*>(g_pFunctionHookSystem->getAddressForTrampo());
 
     // probe instructions to be trampolin'd
     SInstructionProbe probe;
     try {
-        probe = probeMinimumJumpSize(m_source, sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(PUSH_RAX) + sizeof(POP_RAX));
+        probe = probeMinimumJumpSize(m_source, sizeof(RELATIVE_JMP_ADDRESS));
     } catch (std::exception& e) { return false; }
 
     const auto PROBEFIXEDASM = fixInstructionProbeRIPCalls(probe);
@@ -172,10 +172,15 @@ bool CFunctionHook::hook() {
         return false;
     }
 
+    if (rc<int64_t>(m_source) - rc<int64_t>(m_destination) > 2000000000 /* 2 GB */) {
+        Debug::log(ERR, "[functionhook] failed, source and dest are over 2GB apart");
+        return false;
+    }
+
     const size_t HOOKSIZE = PROBEFIXEDASM.bytes.size();
     const size_t ORIGSIZE = probe.len;
 
-    const auto   TRAMPOLINE_SIZE = sizeof(ABSOLUTE_JMP_ADDRESS) + HOOKSIZE + sizeof(PUSH_RAX);
+    const auto   TRAMPOLINE_SIZE = sizeof(RELATIVE_JMP_ADDRESS) + HOOKSIZE;
 
     if (TRAMPOLINE_SIZE > MAX_TRAMPOLINE_SIZE) {
         Debug::log(ERR, "[functionhook] failed, not enough space in trampo to alloc:\n{}", probe.assembly);
@@ -185,39 +190,46 @@ bool CFunctionHook::hook() {
     m_originalBytes.resize(ORIGSIZE);
     memcpy(m_originalBytes.data(), m_source, ORIGSIZE);
 
-    // populate trampoline
-    memcpy(m_trampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                                           // first, original but fixed func bytes
-    memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE, PUSH_RAX, sizeof(PUSH_RAX));                                            // then, pushq %rax
-    memcpy(sc<uint8_t*>(m_trampolineAddr) + HOOKSIZE + sizeof(PUSH_RAX), ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // then, jump to source
+    // populate land trampoline
+    memcpy(m_landTrampolineAddr, PROBEFIXEDASM.bytes.data(), HOOKSIZE);                                        // first, original but fixed func bytes
+    memcpy(sc<uint8_t*>(m_landTrampolineAddr) + HOOKSIZE, RELATIVE_JMP_ADDRESS, sizeof(RELATIVE_JMP_ADDRESS)); // then, jump to source
 
-    // fixup trampoline addr
-    *rc<uint64_t*>(sc<uint8_t*>(m_trampolineAddr) + TRAMPOLINE_SIZE - sizeof(ABSOLUTE_JMP_ADDRESS) + ABSOLUTE_JMP_ADDRESS_OFFSET) =
-        rc<uint64_t>(sc<uint8_t*>(m_source) + sizeof(ABSOLUTE_JMP_ADDRESS));
+    // populate short jump addr
+    *rc<int32_t*>(sc<uint8_t*>(m_landTrampolineAddr) + TRAMPOLINE_SIZE - sizeof(RELATIVE_JMP_ADDRESS) + RELATIVE_JMP_ADDRESS_OFFSET) =
+        sc<int64_t>((sc<uint8_t*>(m_source) + probe.len)                     // jump to source + probe len (skip header)
+                    - (sc<uint8_t*>(m_landTrampolineAddr) + TRAMPOLINE_SIZE) // from trampo + size - jmp (not - size because jmp is rel to rip after instr)
+        );
 
-    // make jump to hk
+    // populate launch trampoline
+    memcpy(m_launchTrampolineAddr, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS)); // long jump to our hk
+
+    // populate long jump addr
+    *rc<uint64_t*>(sc<uint8_t*>(m_launchTrampolineAddr) + ABSOLUTE_JMP_ADDRESS_OFFSET) = rc<uint64_t>(m_destination); // long jump to hk fn
+
+    // make short jump to launch trampoile
     const auto     PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
     const uint8_t* PROTSTART    = sc<uint8_t*>(m_source) - (rc<uint64_t>(m_source) % PAGESIZE_VAR);
     const size_t   PROTLEN      = std::ceil(sc<float>(ORIGSIZE + (rc<uint64_t>(m_source) - rc<uint64_t>(PROTSTART))) / sc<float>(PAGESIZE_VAR)) * PAGESIZE_VAR;
     mprotect(const_cast<uint8_t*>(PROTSTART), PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
-    memcpy(m_source, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
+    memcpy(m_source, RELATIVE_JMP_ADDRESS, sizeof(RELATIVE_JMP_ADDRESS));
 
-    // make popq %rax and NOP all remaining
-    memcpy(sc<uint8_t*>(m_source) + sizeof(ABSOLUTE_JMP_ADDRESS), POP_RAX, sizeof(POP_RAX));
-    size_t currentOp = sizeof(ABSOLUTE_JMP_ADDRESS) + sizeof(POP_RAX);
+    size_t currentOp = sizeof(RELATIVE_JMP_ADDRESS);
     memset(sc<uint8_t*>(m_source) + currentOp, NOP, ORIGSIZE - currentOp);
 
-    // fixup jump addr
-    *rc<uint64_t*>(sc<uint8_t*>(m_source) + ABSOLUTE_JMP_ADDRESS_OFFSET) = rc<uint64_t>(m_destination);
+    // populate short jump addr
+    *rc<int32_t*>(sc<uint8_t*>(m_source) + RELATIVE_JMP_ADDRESS_OFFSET) = sc<int32_t>( //
+        rc<uint64_t>(m_launchTrampolineAddr)                                           // jump to the launch trampoline which jumps to hk
+        - (rc<uint64_t>(m_source) + 5)                                                 // from source
+    );
 
     // revert mprot
     mprotect(const_cast<uint8_t*>(PROTSTART), PROTLEN, PROT_READ | PROT_EXEC);
 
-    // set original addr to trampo addr
-    m_original = m_trampolineAddr;
+    // set original addr to land trampo addr
+    m_original = m_landTrampolineAddr;
 
-    m_active    = true;
-    m_hookLen   = ORIGSIZE;
-    m_trampoLen = TRAMPOLINE_SIZE;
+    m_active  = true;
+    m_hookLen = ORIGSIZE;
 
     return true;
 }
@@ -241,10 +253,11 @@ bool CFunctionHook::unhook() {
     mprotect(sc<uint8_t*>(m_source) - rc<uint64_t>(m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_EXEC);
 
     // reset vars
-    m_active         = false;
-    m_hookLen        = 0;
-    m_trampoLen      = 0;
-    m_trampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
+    m_active               = false;
+    m_hookLen              = 0;
+    m_landTrampolineAddr   = nullptr; // no unmapping, it's managed by the HookSystem
+    m_launchTrampolineAddr = nullptr; // no unmapping, it's managed by the HookSystem
+    m_original             = nullptr;
     m_originalBytes.clear();
 
     return true;
@@ -305,17 +318,16 @@ static uintptr_t seekNewPageAddr() {
                 lastStart = start;
                 lastEnd   = end;
                 continue;
-            } else if (!anchoredToHyprland) {
-                Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
-                anchoredToHyprland = true;
-                lastStart          = start;
-                lastEnd            = end;
-                continue;
             }
 
             Debug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
             MAPS.close();
             return lastEnd;
+        }
+
+        if (!anchoredToHyprland && line.contains("Hyprland")) {
+            Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
+            anchoredToHyprland = true;
         }
 
         lastStart = start;

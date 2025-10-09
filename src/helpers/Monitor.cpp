@@ -534,7 +534,8 @@ void CMonitor::applyCMType(eCMType cmType) {
 
     if (oldImageDescription != m_imageDescription) {
         m_imageDescription.updateId();
-        PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
+        if (PROTO::colorManagement)
+            PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
     }
 }
 
@@ -1701,6 +1702,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
 
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
@@ -1770,7 +1772,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (!canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) && *PPASS != 1)
+    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) &&
+        *PPASS != 1)
         reasons |= DS_BLOCK_CM;
 
     return reasons;
@@ -1989,11 +1992,16 @@ std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescripti
 }
 
 bool CMonitor::needsCM() {
-    return getFSImageDescription() != m_imageDescription;
+    const auto SRC_DESC = getFSImageDescription();
+    return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;
 }
 
 // TODO support more drm properties
 bool CMonitor::canNoShaderCM() {
+    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    if (*PNONSHADER == CM_NS_DISABLE)
+        return false;
+
     const auto SRC_DESC = getFSImageDescription();
     if (!SRC_DESC.has_value())
         return false;
@@ -2006,7 +2014,7 @@ bool CMonitor::canNoShaderCM() {
 
     // only primaries differ
     if (SRC_DESC->transferFunction == m_imageDescription.transferFunction && SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower &&
-        SRC_DESC->luminances == m_imageDescription.luminances && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
+        (!inHDR() || SRC_DESC->luminances == m_imageDescription.luminances) && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
         SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
         return true;
 

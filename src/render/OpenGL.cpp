@@ -2402,18 +2402,16 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
+    // calculate the border's region, which we need to render over. No need to run the shader on
+    // things outside there
+    CRegion borderRegion = m_renderData.damage.copy().intersect(newBox);
+    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0)
+        borderRegion.intersect(m_renderData.clipBox);
+
+    if (!borderRegion.empty()) {
+        borderRegion.forEachRect([this](const auto& RECT) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
@@ -2492,18 +2490,16 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
 
-    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
-        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
-        damageClip.intersect(m_renderData.damage);
+    // calculate the border's region, which we need to render over. No need to run the shader on
+    // things outside there
+    CRegion borderRegion = m_renderData.damage.copy().intersect(newBox);
+    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0)
+        borderRegion.intersect(m_renderData.clipBox);
+
+    if (!borderRegion.empty()) {
+        borderRegion.forEachRect([this](const auto& RECT) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });

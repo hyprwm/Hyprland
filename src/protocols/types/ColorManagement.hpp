@@ -11,6 +11,13 @@
 #define HLG_MAX_LUMINANCE 1000.0
 
 namespace NColorManagement {
+    enum eNoShader : uint8_t {
+        CM_NS_DISABLE  = 0,
+        CM_NS_ALWAYS   = 1,
+        CM_NS_ONDEMAND = 2,
+        CM_NS_IGNORE   = 3,
+    };
+
     enum ePrimaries : uint8_t {
         CM_PRIMARIES_SRGB         = 1,
         CM_PRIMARIES_PAL_M        = 2,

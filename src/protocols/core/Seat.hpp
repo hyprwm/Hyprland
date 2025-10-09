@@ -98,6 +98,8 @@ class CWLPointerResource {
 
     std::vector<uint32_t>  m_pressedButtons;
 
+    Vector2D               fixPosWithWlFixed(const Vector2D& pos);
+
     struct {
         CHyprSignalListener destroySurface;
     } m_listeners;

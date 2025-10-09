@@ -43,6 +43,8 @@ bool                                    isNvidiaDriverVersionAtLeast(int thresho
 std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client);
 std::expected<std::string, std::string> binaryNameForPid(pid_t pid);
 std::string                             deviceNameToInternalString(std::string in);
+std::string                             getSystemLibraryVersion(const std::string& name);
+std::string                             getBuiltSystemLibraryNames();
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

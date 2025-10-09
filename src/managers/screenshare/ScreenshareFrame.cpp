@@ -9,6 +9,7 @@
 #include "../../render/OpenGL.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/state/FocusState.hpp"
 
 CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst) :
     m_session(session), m_bufferSize(m_session->bufferSize()), m_overlayCursor(overlayCursor), m_isFirst(isFirst) {
@@ -173,12 +174,12 @@ void CScreenshareFrame::renderMonitor() {
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
-            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+        return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
+            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
                 return;
 
             const auto popRel = popup->coordsRelativeToParent();
-            popup->m_wlSurface->resource()->breadthfirst(
+            popup->wlSurface()->resource()->breadthfirst(
                 [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
                     const auto size = surf->m_current.size;
                     const auto surfBox =
@@ -195,7 +196,7 @@ void CScreenshareFrame::renderMonitor() {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
-        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+        if UNLIKELY (!l->visible())
             continue;
 
         const auto REALPOS  = l->m_realPosition->value();
@@ -286,9 +287,12 @@ void CScreenshareFrame::renderWindow() {
     if (!pointerSurfaceResource)
         return;
 
-    auto pointerSurface = CWLSurface::fromResource(pointerSurfaceResource);
+    auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
 
-    if (!pointerSurface || pointerSurface->getWindow() != m_session->m_window)
+    if (!pointerSurface || pointerSurface->getSurfaceBoxGlobal()->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
+        return;
+
+    if (Desktop::focusState()->window() != m_session->m_window)
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
@@ -299,13 +303,13 @@ void CScreenshareFrame::render() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        g_pHyprOpenGL->clear(Colors::BLACK);
+        g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
         return;
     }
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
-        g_pHyprOpenGL->clear(Colors::BLACK);
+        g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
         return;
@@ -381,8 +385,6 @@ bool CScreenshareFrame::copyShm() {
 
     g_pHyprRenderer->endRender();
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
     outFB.bind();
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
@@ -390,6 +392,25 @@ bool CScreenshareFrame::copyShm() {
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_bufferSize.x);
+    int      glFormat   = PFORMAT->glFormat;
+
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
+        }
+    }
 
     // TODO: use pixel buffer object to not block cpu
     if (packStride == sc<uint32_t>(shm.stride)) {
@@ -409,6 +430,7 @@ bool CScreenshareFrame::copyShm() {
     }
 
     outFB.unbind();
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     g_pHyprOpenGL->m_renderData.pMonitor.reset();

@@ -1489,14 +1489,15 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const bool HASIME = IME && IME->hasGrab();
     const bool USEIME = HASIME && !DISALLOWACTION;
 
-    auto       MODS    = pKeyboard->m_modifiersState;
-    const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
-    m_lastMods         = MODS.depressed; // for hyprland keybinds use (so it needs to be always updated); not for sending to seat
+    auto       MODS = pKeyboard->m_modifiersState;
 
     // use merged mods states when sending to ime or when sending to seat with no ime
     // if passing from ime, send mods directly without merging
-    if (USEIME || !HASIME)
-        MODS.depressed = ALLMODS;
+    if (USEIME || !HASIME) {
+        const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
+        MODS.depressed     = ALLMODS;
+        m_lastMods         = MODS.depressed; // for hyprland keybinds use; not for sending to seat
+    }
 
     if (USEIME) {
         IME->setKeyboard(pKeyboard);

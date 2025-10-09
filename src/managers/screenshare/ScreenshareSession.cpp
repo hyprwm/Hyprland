@@ -71,12 +71,12 @@ void CScreenshareSession::calculateConstraints() {
             break;
         case SHARE_WINDOW:
             m_box = CBox{m_window->m_realPosition->value(), m_window->m_realSize->value()};
-            m_box.transform(wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_transformedSize.y, PMONITOR->m_transformedSize.x);
+            m_box.transform(Math::wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_transformedSize.y, PMONITOR->m_transformedSize.x);
             m_box.scale(PMONITOR->m_scale).round();
             m_name = m_window->m_title;
             break;
         case SHARE_REGION:
-            m_box = m_captureBox.transform(wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
+            m_box = m_captureBox.transform(Math::wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
             m_box.scale(PMONITOR->m_scale).round();
             m_name = PMONITOR->m_name;
             break;

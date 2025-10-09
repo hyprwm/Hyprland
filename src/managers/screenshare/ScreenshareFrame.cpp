@@ -9,6 +9,7 @@
 #include "../../render/OpenGL.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/state/FocusState.hpp"
 
 CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst) :
     m_session(session), m_bufferSize(m_session->bufferSize()), m_overlayCursor(overlayCursor), m_isFirst(isFirst) {
@@ -151,7 +152,7 @@ void CScreenshareFrame::renderMonitor() {
     // render monitor texture
     CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
                       .translate({-m_session->m_box.x, -m_session->m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(wlTransformToHyprutils(invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
+                      .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
@@ -164,12 +165,12 @@ void CScreenshareFrame::renderMonitor() {
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
-            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+        return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
+            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
                 return;
 
             const auto popRel = popup->coordsRelativeToParent();
-            popup->m_wlSurface->resource()->breadthfirst(
+            popup->wlSurface()->resource()->breadthfirst(
                 [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
                     const auto size = surf->m_current.size;
                     const auto surfBox =
@@ -186,7 +187,7 @@ void CScreenshareFrame::renderMonitor() {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
-        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+        if UNLIKELY (!l->visible())
             continue;
 
         const auto REALPOS  = l->m_realPosition->value();
@@ -270,9 +271,12 @@ void CScreenshareFrame::renderWindow() {
     if (!pointerSurfaceResource)
         return;
 
-    auto pointerSurface = CWLSurface::fromResource(pointerSurfaceResource);
+    auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
 
-    if (!pointerSurface || pointerSurface->getWindow() != m_session->m_window)
+    if (!pointerSurface || pointerSurface->getSurfaceBoxGlobal()->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
+        return;
+
+    if (Desktop::focusState()->window() != m_session->m_window)
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};

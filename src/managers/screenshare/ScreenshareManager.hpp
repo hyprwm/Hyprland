@@ -7,7 +7,6 @@
 #include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
 
-// TODO: integrate into screencopy, toplevel export, and image copy capture
 // TODO: do screenshare damage
 
 enum eScreenshareType : uint8_t {

@@ -1365,10 +1365,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             }
         } else
             renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
-    } else if (!pMonitor->isMirror()) {
-        sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
-        if (pMonitor->m_activeSpecialWorkspace)
-            sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeSpecialWorkspace, NOW);
     }
 
     renderCursor = renderCursor && shouldRenderCursor();
@@ -1635,12 +1631,10 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
-void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
+void CHyprRenderer::sendFrameEventsToActiveWorkspace(PHLMONITOR pMonitor, const Time::steady_tp& now) {
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->m_wlSurface->resource())
-            continue;
-
-        if (!shouldRenderWindow(w, pMonitor))
+        if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->m_wlSurface->resource() ||
+            (w->workspaceID() != pMonitor->activeWorkspaceID() && w->workspaceID() != pMonitor->activeSpecialWorkspaceID()))
             continue;
 
         w->m_wlSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);

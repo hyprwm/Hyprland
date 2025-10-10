@@ -80,6 +80,9 @@ void CMonitorFrameScheduler::onFrame() {
     if (!canRender())
         return;
 
+    if (!m_monitor->isMirror())
+        g_pHyprRenderer->sendFrameEventsToActiveWorkspace(m_monitor.lock(), Time::steadyNow());
+
     m_monitor->recheckSolitary();
 
     m_monitor->m_tearingState.busy = false;

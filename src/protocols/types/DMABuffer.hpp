@@ -22,6 +22,7 @@ class CDMABuffer : public IHLBuffer {
 
   private:
     Aquamarine::SDMABUFAttrs m_attrs;
+    SP<CTexture>             m_texture;
 
     struct {
         CHyprSignalListener resourceDestroy;

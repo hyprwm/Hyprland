@@ -194,6 +194,10 @@ static bool test() {
         EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
+    // Ensure that the process autostarted in the config does not
+    // become a zombie even if it terminates very quickly.
+    EXPECT(Tests::execAndGet("pgrep -f 'sleep 0'").empty(), true);
+
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

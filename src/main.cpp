@@ -187,6 +187,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    reapZombieChildrenAutomatically();
+
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)
@@ -194,8 +196,6 @@ int main(int argc, char** argv) {
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();
-
-    reapZombieChildrenAutomatically();
 
     Debug::log(LOG, "Hyprland init finished.");
 

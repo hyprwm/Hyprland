@@ -50,6 +50,9 @@ void CMonitorFrameScheduler::onSyncFired() {
 }
 
 void CMonitorFrameScheduler::onPresented() {
+    if (!m_monitor->isMirror())
+        g_pHyprRenderer->sendFrameEventsToActiveWorkspace(m_monitor.lock(), Time::steadyNow());
+
     if (!newSchedulingEnabled())
         return;
 

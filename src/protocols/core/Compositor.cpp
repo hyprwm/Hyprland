@@ -642,13 +642,17 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
-    frame(when);
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();
-    else
+    else {
+        if (m_hlSurface && m_hlSurface->getPopup())
+            frame(when);
+
         FEEDBACK->presented();
+    }
+
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }
 

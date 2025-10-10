@@ -60,6 +60,9 @@ void CDMABuffer::endDataPtr() {
 }
 
 SP<CTexture> CDMABuffer::createTexture() {
+    if (m_texture) // dmabuffers only get one texture per buffer.
+        return m_texture;
+
     g_pHyprRenderer->makeEGLCurrent();
     auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
@@ -73,14 +76,14 @@ SP<CTexture> CDMABuffer::createTexture() {
         }
     }
 
-    auto tex = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
+    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
 
-    if UNLIKELY (!tex->m_texID) {
+    if UNLIKELY (!m_texture->m_texID) {
         Debug::log(ERR, "Failed to create a dmabuf: texture is null");
         return nullptr;
     }
 
-    return tex;
+    return m_texture;
 }
 
 bool CDMABuffer::good() {

@@ -654,6 +654,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:off_window_axis_events", Hyprlang::INT{1});
     registerConfigVar("input:sensitivity", {0.f});
     registerConfigVar("input:accel_profile", {STRVAL_EMPTY});
+    registerConfigVar("input:rotation", Hyprlang::INT{0});
     registerConfigVar("input:kb_file", {STRVAL_EMPTY});
     registerConfigVar("input:kb_layout", {"us"});
     registerConfigVar("input:kb_variant", {STRVAL_EMPTY});
@@ -789,6 +790,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialCategory("device", {"name"});
     m_config->addSpecialConfigValue("device", "sensitivity", {0.F});
     m_config->addSpecialConfigValue("device", "accel_profile", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("device", "rotation", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "kb_file", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "kb_layout", {"us"});
     m_config->addSpecialConfigValue("device", "kb_variant", {STRVAL_EMPTY});

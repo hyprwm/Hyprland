@@ -1279,6 +1279,11 @@ void CInputManager::setPointerConfigs() {
             const auto LIBINPUTSENS = std::clamp(g_pConfigManager->getDeviceFloat(devname, "sensitivity", "input:sensitivity"), -1.f, 1.f);
             libinput_device_config_accel_set_speed(LIBINPUTDEV, LIBINPUTSENS);
 
+            if (libinput_device_config_rotation_is_available(LIBINPUTDEV)) {
+                const auto ROTATION = std::clamp(g_pConfigManager->getDeviceInt(devname, "rotation", "input:rotation"), 0, 359);
+                libinput_device_config_rotation_set_angle(LIBINPUTDEV, ROTATION);
+            }
+
             m->m_flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
             m->m_flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
 

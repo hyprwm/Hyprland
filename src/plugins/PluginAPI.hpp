@@ -29,6 +29,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <any>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <hyprlang.hpp>
 
 using PLUGIN_DESCRIPTION_INFO = struct {
@@ -309,7 +310,7 @@ namespace HyprlandAPI {
 
 // NOLINTBEGIN
 /*
-    Get the hash this plugin/server was compiled with.
+    Get the descriptive string this plugin/server was compiled with.
 
     This function will end up in both hyprland and any/all plugins,
     and can be found by a simple dlsym()
@@ -319,7 +320,18 @@ namespace HyprlandAPI {
 */
 APICALL EXPORT const char*        __hyprland_api_get_hash();
 APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
-    return GIT_COMMIT_HASH;
+    static auto stripPatch = [](const char* ver) -> std::string {
+        std::string_view v = ver;
+        if (!v.contains('.'))
+            return std::string{v};
+
+        return std::string{v.substr(0, v.find_last_of('.'))};
+    };
+
+    static const std::string ver = (std::string{GIT_COMMIT_HASH} + "_aq_" + stripPatch(AQUAMARINE_VERSION) + "_hu_" + stripPatch(HYPRUTILS_VERSION) + "_hg_" +
+                                    stripPatch(HYPRGRAPHICS_VERSION) + "_hc_" + stripPatch(HYPRCURSOR_VERSION) + "_hlg_" + stripPatch(HYPRLANG_VERSION));
+
+    return ver.c_str();
 }
 // NOLINTEND
 

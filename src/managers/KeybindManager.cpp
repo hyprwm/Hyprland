@@ -643,7 +643,7 @@ eMultiKeyCase CKeybindManager::mkBindMatches(const SP<SKeybind> keybind) {
     return mkKeysymSetMatches(keybind->sMkKeys, m_mkKeys);
 }
 
-std::string CKeybindManager::getCurrentSubmap() {
+SSubmap CKeybindManager::getCurrentSubmap() {
     return m_currentSelectedSubmap;
 }
 
@@ -795,6 +795,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // don't process keybinds on submap change.
                 break;
             }
+            if (k->handler != "submap" && !k->submap.reset.empty())
+                setSubmap(k->submap.reset);
         }
 
         if (pressed && k->repeat) {
@@ -2390,19 +2392,19 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
 
 SDispatchResult CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap.empty()) {
-        m_currentSelectedSubmap = "";
+        m_currentSelectedSubmap.name = "";
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
-        EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
+        EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap.name);
         return {};
     }
 
     for (const auto& k : g_pKeybindManager->m_keybinds) {
-        if (k->submap == submap) {
-            m_currentSelectedSubmap = submap;
+        if (k->submap.name == submap) {
+            m_currentSelectedSubmap.name = submap;
             Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
-            EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
+            EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap.name);
             return {};
         }
     }

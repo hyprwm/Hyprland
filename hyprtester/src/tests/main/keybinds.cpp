@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <linux/input-event-codes.h>
 #include <thread>
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -11,7 +12,19 @@ using namespace Hyprutils::Memory;
 static int         ret      = 0;
 static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
 
-static void        clearFlag() {
+// Because i don't feel like changing someone elses code.
+enum eKeyboardModifierIndex : uint8_t {
+    MOD_SHIFT = 1,
+    MOD_CAPS,
+    MOD_CTRL,
+    MOD_ALT,
+    MOD_MOD2,
+    MOD_MOD3,
+    MOD_META,
+    MOD_MOD5
+};
+
+static void clearFlag() {
     std::filesystem::remove(flagFile);
 }
 
@@ -394,6 +407,41 @@ static void testShortcutRepeatKeyRelease() {
     Tests::killAllWindows();
 }
 
+static void testSubmap() {
+    const auto press = [](const uint32_t key, const uint32_t mod = 0) {
+        // +8 because udev -> XKB keycode.
+        getFromSocket("/dispatch plugin:test:keybind 1," + std::to_string(mod) + "," + std::to_string(key + 8));
+        getFromSocket("/dispatch plugin:test:keybind 0," + std::to_string(mod) + "," + std::to_string(key + 8));
+    };
+
+    NLog::log("{}Testing submaps", Colors::GREEN);
+    // submap 1 no resets
+    press(KEY_U, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    press(KEY_O);
+    Tests::waitUntilWindowsN(1);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    // submap 2 resets to submap 1
+    press(KEY_U);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
+    press(KEY_O);
+    Tests::waitUntilWindowsN(2);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    // submap 3 resets to default
+    press(KEY_I);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
+    press(KEY_O);
+    Tests::waitUntilWindowsN(3);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    // submap 1 reset via keybind
+    press(KEY_U, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    press(KEY_P);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing keybinds", Colors::GREEN);
 
@@ -413,6 +461,8 @@ static bool test() {
     testShortcutLongPressKeyRelease();
     testShortcutRepeat();
     testShortcutRepeatKeyRelease();
+
+    testSubmap();
 
     clearFlag();
     return !ret;

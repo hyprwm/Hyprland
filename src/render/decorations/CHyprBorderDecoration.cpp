@@ -85,6 +85,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     data.roundingPower = ROUNDINGPOWER;
     data.a             = a;
     data.borderSize    = borderSize;
+    data.pWindow       = m_window;
 
     if (ANIMATED) {
         data.hasGrad2 = true;

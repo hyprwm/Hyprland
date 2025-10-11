@@ -21,6 +21,8 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ update                 → Check and update all plugins if needed.
 ┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                   → List all installed plugins.
+┣ dev [path]             → Development mode: watch, build, and hot-reload a plugin.
+┃                          Path defaults to current directory.
 ┣ purge-cache            → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
 ┣ Flags:
@@ -215,6 +217,12 @@ int                        main(int argc, char** argv, char** envp) {
         DataState::purgeAllCache();
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
+    } else if (command[0] == "dev") {
+        std::string path = ".";
+        if (command.size() >= 2)
+            path = command[1];
+
+        return g_pPluginManager->devMode(path) ? 0 : 1;
     } else {
         std::println(stderr, "{}", HELP);
         return 1;

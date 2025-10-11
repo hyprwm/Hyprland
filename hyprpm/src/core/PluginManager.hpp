@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <functional>
 
 enum eHeadersErrors {
     HEADERS_OK = 0,
@@ -63,6 +64,8 @@ class CPluginManager {
 
     bool                   hasDeps();
 
+    bool                   devMode(const std::string& path = ".");
+
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
     std::string            m_szCustomHlUrl, m_szUsername;
@@ -73,6 +76,9 @@ class CPluginManager {
   private:
     std::string headerError(const eHeadersErrors err);
     std::string headerErrorShort(const eHeadersErrors err);
+
+    bool        buildPlugin(const std::string& path, class CManifest* manifest,
+                           std::function<bool()> shouldInterrupt = nullptr);
 
     std::string m_szWorkingPluginDirectory;
 };

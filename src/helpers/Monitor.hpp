@@ -214,6 +214,7 @@ class CMonitor {
         CSignalT<> disconnect;
         CSignalT<> dpmsChanged;
         CSignalT<> modeChanged;
+        CSignalT<> presented;
     } m_events;
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;

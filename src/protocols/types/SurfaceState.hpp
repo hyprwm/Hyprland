@@ -8,6 +8,32 @@ class CTexture;
 class CDRMSyncPointState;
 class CWLCallbackResource;
 
+class CSurfaceStateLock {
+  public:
+    CSurfaceStateLock(SP<CWLSurfaceResource> surf);
+    ~CSurfaceStateLock() = default;
+
+    void lock();
+    void unlock();
+
+    bool locked();
+
+  private:
+    size_t                 m_locks = 0;
+    WP<CWLSurfaceResource> m_surface;
+};
+
+class CSurfaceScopeLock {
+  public:
+    static SP<CSurfaceScopeLock> create(SP<CSurfaceStateLock> lock);
+
+    CSurfaceScopeLock(SP<CSurfaceStateLock> lock);
+    ~CSurfaceScopeLock();
+
+  private:
+    SP<CSurfaceStateLock> m_lock;
+};
+
 struct SSurfaceState {
     union {
         uint16_t all = 0;
@@ -66,4 +92,8 @@ struct SSurfaceState {
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage
     void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
     void    reset();                        // resets pending state after commit
+
+    // lock mechanism
+    SP<CSurfaceStateLock>  lock;
+    WP<CWLSurfaceResource> surface;
 };

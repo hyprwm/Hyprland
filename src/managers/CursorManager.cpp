@@ -342,3 +342,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 void CCursorManager::syncGsettings() {
     m_xcursor->syncGsettings();
 }
+
+float CCursorManager::getScaledSize() const {
+    return m_size * m_cursorScale;
+}

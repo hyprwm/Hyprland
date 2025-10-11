@@ -7,6 +7,8 @@
 #include "HyprlandSocket.hpp"
 #include "../helpers/Sys.hpp"
 #include "../helpers/Die.hpp"
+#include "../helpers/FileWatcher.hpp"
+#include "../helpers/ProcessHelper.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -15,9 +17,11 @@
 #include <fstream>
 #include <algorithm>
 #include <format>
+#include <chrono>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <pwd.h>
 #include <unistd.h>
 
@@ -32,14 +36,37 @@ using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 static std::string execAndGet(std::string cmd) {
-    cmd += " 2>&1";
+    // Use ProcessHelper with timeout to avoid hanging
+    auto result = CProcessHelper::exec(cmd, 30); // 30 second timeout
 
-    CProcess proc("/bin/sh", {"-c", cmd});
+    if (result.timedOut) {
+        return "error: command timed out after 30 seconds\n";
+    }
 
-    if (!proc.runSync())
-        return "error";
+    if (result.exitCode != 0 && result.output.empty()) {
+        return "error: command failed with exit code " + std::to_string(result.exitCode) + "\n";
+    }
 
-    return proc.stdOut();
+    return result.output;
+}
+
+static std::string execAndGetInterruptible(std::string cmd, std::function<bool()> shouldInterrupt) {
+    // Use ProcessHelper with interruption support
+    auto result = CProcessHelper::execInterruptible(cmd, shouldInterrupt, 30); // 30 second timeout
+
+    if (result.interrupted) {
+        return ""; // Interrupted builds should return empty to not pollute output
+    }
+
+    if (result.timedOut) {
+        return "error: command timed out after 30 seconds\n";
+    }
+
+    if (result.exitCode != 0 && result.output.empty()) {
+        return "error: command failed with exit code " + std::to_string(result.exitCode) + "\n";
+    }
+
+    return result.output;
 }
 
 static std::string getTempRoot() {
@@ -391,8 +418,10 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 eHeadersErrors CPluginManager::headersValid() {
     const auto HLVER = getHyprlandVersion(false);
 
-    if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
+
+    if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc")) {
         return HEADERS_MISSING;
+    }
 
     // find headers commit
     const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
@@ -991,4 +1020,297 @@ bool CPluginManager::hasDeps() {
     }
 
     return hasAllDeps;
+}
+
+bool CPluginManager::buildPlugin(const std::string& path, CManifest* pManifest,
+                                std::function<bool()> shouldInterrupt) {
+    if (!pManifest || !pManifest->m_good)
+        return false;
+
+    // In dev mode, use installed version instead of trying to connect to socket
+    const auto HLVER = getHyprlandVersion(false);
+    bool       allSuccess = true;
+
+    for (auto& p : pManifest->m_plugins) {
+        std::string out;
+
+        if (p.since > HLVER.commits && HLVER.commits >= 1) {
+            std::println(stderr, "{}", failureString("Not building {}: your Hyprland version is too old.", p.name));
+            p.failed = true;
+            allSuccess = false;
+            continue;
+        }
+
+        std::println("{}", infoString("Building {}", p.name));
+
+        for (auto const& bs : p.buildSteps) {
+            // Check if headers path exists to decide whether to use PKG_CONFIG_PATH
+            const std::string headersPath = DataState::getHeadersPath();
+            std::string cmd;
+            if (std::filesystem::exists(headersPath + "/share/pkgconfig")) {
+                cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", path, headersPath, bs);
+            } else {
+                cmd = std::format("cd {} && {}", path, bs);
+            }
+
+            if (m_bVerbose) {
+                std::println("{}", verboseString("Executing build command: {}", cmd));
+            }
+
+            std::string execResult;
+            if (shouldInterrupt) {
+                // Use interruptible execution if callback provided
+                execResult = execAndGetInterruptible(cmd, shouldInterrupt);
+
+                // Check if build was interrupted
+                if (execResult.find("Build interrupted") != std::string::npos) {
+                    std::println("{}", infoString("Build interrupted - new changes detected"));
+                    return false;
+                }
+            } else {
+                // Use regular execution
+                execResult = execAndGet(cmd);
+            }
+            out += " -> " + cmd + "\n" + execResult + "\n";
+        }
+
+        if (m_bVerbose) {
+            std::println("{}", verboseString("shell returned: {}", out));
+        }
+
+        if (!std::filesystem::exists(path + "/" + p.output)) {
+            std::println(stderr, "{}", failureString("Plugin {} failed to build.", p.name));
+            if (m_bVerbose)
+                std::println(stderr, "Build output:\n{}", out);
+
+            p.failed = true;
+            allSuccess = false;
+            continue;
+        }
+
+        std::println("{}", successString("Built {} into {}", p.name, p.output));
+    }
+
+    return allSuccess;
+}
+
+bool CPluginManager::devMode(const std::string& path) {
+    std::println("{}", statusString("→", Colors::BLUE, "Starting development mode in {}", std::filesystem::absolute(path).string()));
+
+    // Check for manifest
+    std::unique_ptr<CManifest> pManifest;
+
+    if (std::filesystem::exists(path + "/hyprpm.toml")) {
+        std::println("{}", successString("Found hyprpm manifest"));
+        pManifest = std::make_unique<CManifest>(MANIFEST_HYPRPM, path + "/hyprpm.toml");
+    } else if (std::filesystem::exists(path + "/hyprload.toml")) {
+        std::println("{}", successString("Found hyprload manifest"));
+        pManifest = std::make_unique<CManifest>(MANIFEST_HYPRLOAD, path + "/hyprload.toml");
+    }
+
+    if (!pManifest) {
+        std::println(stderr, "{}", failureString("No hyprpm.toml or hyprload.toml found in current directory."));
+        return false;
+    }
+
+    if (!pManifest->m_good) {
+        std::println(stderr, "{}", failureString("Manifest is corrupted."));
+        return false;
+    }
+
+    // Validate headers
+    const auto HEADERSSTATUS = headersValid();
+    if (HEADERSSTATUS != HEADERS_OK) {
+        std::println(stderr, "\n{}", headerError(HEADERSSTATUS));
+        std::println(stderr, "{}", infoString("Headers not found. Running without PKG_CONFIG_PATH."));
+        // Continue without headers for dev mode
+    } else {
+        std::println("{}", successString("Headers valid"));
+    }
+
+    // Initial build
+    std::println("\n{}", statusString("→", Colors::BLUE, "Performing initial build..."));
+
+    if (m_bVerbose) {
+        std::println("{}", verboseString("Calling buildPlugin with path: {}", path));
+    }
+
+    if (!buildPlugin(path, pManifest.get())) {
+        std::println(stderr, "{}", failureString("Initial build failed. Fix errors and try again."));
+        return false;
+    }
+
+
+    // Install plugins to state
+    const auto HLVER = getHyprlandVersion(false);
+
+
+    auto GLOBALSTATE = DataState::getGlobalState();
+    const std::string absPath = std::filesystem::absolute(path).string();
+
+
+    // Check if repo already exists
+    bool isUpdate = DataState::pluginRepoExists(absPath);
+
+    SPluginRepository repo;
+    repo.name = pManifest->m_repository.name.empty() ? "dev-" + std::filesystem::path(absPath).filename().string() : pManifest->m_repository.name;
+    repo.url = absPath;
+    repo.hash = "dev-mode";
+
+    for (auto const& p : pManifest->m_plugins) {
+        if (!p.failed) {
+            repo.plugins.push_back(SPlugin{p.name, absPath + "/" + p.output, true, false});
+        }
+    }
+
+    if (isUpdate) {
+        DataState::removePluginRepo(absPath);
+    }
+
+    DataState::addNewPluginRepo(repo);
+
+    // Load plugins
+    std::println("\n{}", statusString("→", Colors::BLUE, "Loading plugins..."));
+
+    // Skip cacheSudo in dev mode - not needed for local plugin loading
+    // NSys::root::cacheSudo();
+
+    for (auto const& p : pManifest->m_plugins) {
+        if (p.failed) {
+            continue;
+        }
+
+        const auto HYPRPMPATH = DataState::getDataStatePath();
+        const std::string pluginPath = (HYPRPMPATH / repo.name / (p.name + ".so")).string();
+
+        bool loaded = loadUnloadPlugin(pluginPath, true);
+
+        if (loaded) {
+            std::println("{}", successString("Loaded {}", p.name));
+        } else {
+            std::println("{}", infoString("{} will be loaded after restarting Hyprland", p.name));
+        }
+    }
+
+
+    // Setup file watcher
+    std::println("\n{}", statusString("👀", Colors::BLUE, "Watching for file changes (Press Ctrl+C to stop)..."));
+
+    CFileWatcher watcher;
+    if (!watcher.addWatch(path)) {
+        std::println(stderr, "{}", failureString("Failed to setup file watcher"));
+        return false;
+    }
+
+    auto lastBuildTime = std::chrono::steady_clock::now();
+    const int DEBOUNCE_MS = 500;
+    bool pendingBuild = false;
+    bool isBuilding = false;  // Track if we're currently building
+    bool buildInterrupted = false;  // Track if build was interrupted
+
+    // Store repo name for use in rebuild loop
+    const std::string repoName = repo.name;
+
+    while (true) {
+        // Check for changes with a small timeout
+        watcher.waitForEvents(100);
+
+        if (watcher.hasChanges()) {
+            pendingBuild = true;
+            lastBuildTime = std::chrono::steady_clock::now();
+            watcher.clearChanges();
+
+            // If we're currently building, mark that we want to interrupt
+            if (isBuilding) {
+                buildInterrupted = true;
+            }
+        }
+
+        // If we have pending changes and enough time has passed (debounce)
+        if (pendingBuild && !isBuilding) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastBuildTime).count();
+
+            if (elapsed >= DEBOUNCE_MS) {
+                pendingBuild = false;
+                isBuilding = true;
+                buildInterrupted = false;  // Reset interrupt flag
+
+                std::println("\n{}", statusString("🔨", Colors::YELLOW, "Change detected, rebuilding..."));
+
+                auto buildStart = std::chrono::steady_clock::now();
+
+                // Reload manifest (it might have changed)
+                if (std::filesystem::exists(path + "/hyprpm.toml")) {
+                    pManifest = std::make_unique<CManifest>(MANIFEST_HYPRPM, path + "/hyprpm.toml");
+                } else if (std::filesystem::exists(path + "/hyprload.toml")) {
+                    pManifest = std::make_unique<CManifest>(MANIFEST_HYPRLOAD, path + "/hyprload.toml");
+                }
+
+                if (!pManifest || !pManifest->m_good) {
+                    std::println(stderr, "{}", failureString("Manifest became invalid, skipping build."));
+                    isBuilding = false;
+                    continue;
+                }
+
+                // Build with interruption support
+                // The lambda checks if buildInterrupted was set or if new changes are available
+                auto shouldInterrupt = [&]() -> bool {
+                    // Check if we've detected changes that should interrupt the build
+                    if (buildInterrupted) {
+                        return true;
+                    }
+                    // Also check for immediate new changes (non-blocking check)
+                    if (watcher.waitForEvents(0)) {  // 0 timeout = non-blocking
+                        if (watcher.hasChanges()) {
+                            pendingBuild = true;
+                            lastBuildTime = std::chrono::steady_clock::now();
+                            watcher.clearChanges();
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                bool buildSuccess = buildPlugin(path, pManifest.get(), shouldInterrupt);
+
+                isBuilding = false;  // Build complete
+
+                // If build was interrupted, immediately continue to handle new changes
+                if (!buildSuccess && (buildInterrupted || pendingBuild)) {
+                    std::println("{}", infoString("Restarting build with latest changes..."));
+                    continue;
+                }
+
+                if (buildSuccess) {
+                    // Reload plugins
+                    for (auto const& p : pManifest->m_plugins) {
+                        if (p.failed)
+                            continue;
+
+                        const auto HYPRPMPATH = DataState::getDataStatePath();
+                        const std::string pluginPath = (HYPRPMPATH / repoName / (p.name + ".so")).string();
+
+                        // Try to reload (unload first if already loaded)
+                        loadUnloadPlugin(pluginPath, false); // unload
+                        if (loadUnloadPlugin(pluginPath, true)) { // reload
+                            auto buildEnd = std::chrono::steady_clock::now();
+                            auto buildTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(buildEnd - buildStart).count();
+                            std::println("{}", successString("Reloaded {} ({:.1f}s)", p.name, buildTimeMs / 1000.0));
+                        } else {
+                            std::println("{}", infoString("{} needs Hyprland restart", p.name));
+                        }
+                    }
+                } else {
+                    std::println(stderr, "{}", failureString("Build failed, fix errors and save again."));
+                }
+
+                std::println("{}", statusString("👀", Colors::BLUE, "Watching for changes..."));
+            }
+        }
+    }
+
+    NSys::root::dropSudo();
+
+    return true;
 }

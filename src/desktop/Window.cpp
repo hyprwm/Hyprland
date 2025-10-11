@@ -623,6 +623,9 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
+    if (hidden)
+        m_events.hide.emit();
+
     if (hidden && g_pCompositor->m_lastWindow == m_self)
         g_pCompositor->m_lastWindow.reset();
 

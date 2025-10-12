@@ -2318,34 +2318,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    if (PWORKSPACE->m_hasFullscreenWindow) {
-        const auto FSWINDOW = PWORKSPACE->getFullscreenWindow();
-        const auto FSMODE   = PWORKSPACE->m_fullscreenMode;
-
-        if (PWINDOW->m_isFloating) {
-            // don't make floating implicitly fs
-            if (!PWINDOW->m_createdOverFullscreen) {
-                g_pCompositor->changeWindowZOrder(PWINDOW, true);
-                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-            }
-
-            g_pCompositor->focusWindow(PWINDOW);
-        } else {
-            if (FSWINDOW != PWINDOW && !PWINDOW->m_pinned)
-                g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
-
-            g_pCompositor->focusWindow(PWINDOW);
-
-            if (FSWINDOW != PWINDOW && !PWINDOW->m_pinned)
-                g_pCompositor->setWindowFullscreenClient(PWINDOW, FSMODE);
-
-            // warp the position + size animation, otherwise it looks weird.
-            PWINDOW->m_realPosition->warp();
-            PWINDOW->m_realSize->warp();
-        }
-    } else
-        g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->focusWindow(PWINDOW);
 
     PWINDOW->warpCursor();
 

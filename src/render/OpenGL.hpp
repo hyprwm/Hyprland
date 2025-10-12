@@ -394,6 +394,7 @@ class CHyprOpenGLImpl {
     std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};
     std::array<Vector2D, POINTER_PRESSED_HISTORY_LENGTH> m_pressedHistoryPositions = {};
     GLint                                                m_pressedHistoryKilled    = 0;
+    GLint                                                m_pressedHistoryTouched   = 0;
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

@@ -9,6 +9,7 @@ project(
     'optimization=3',
     'buildtype=release',
     'debug=false',
+    'b_lto=false',
     'cpp_std=c++26',
   ],
   meson_version: '>= 1.1.0',

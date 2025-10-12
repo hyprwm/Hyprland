@@ -36,7 +36,6 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         IPointer::SButtonEvent e;
         e.state = WL_POINTER_BUTTON_STATE_PRESSED;
         g_pInputManager->processMouseDownKill(e);
-        g_pInputManager->addLastPressed(TOUCH_COORDS, false);
         return;
     }
 
@@ -103,8 +102,6 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         m_touchData.touchSurfaceOrigin = TOUCH_COORDS - local;
     } else
         return; // oops, nothing found.
-
-    addLastPressed(TOUCH_COORDS, true);
 
     g_pSeatManager->sendTouchDown(m_touchData.touchFocusSurface.lock(), e.timeMs, e.touchID, local);
 }

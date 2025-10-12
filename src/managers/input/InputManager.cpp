@@ -629,10 +629,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
 
     switch (m_clickBehavior) {
         case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
-        case CLICKMODE_KILL:
-            processMouseDownKill(e);
-            addLastPressed(getMouseCoordsInternal(), false);
-            break;
+        case CLICKMODE_KILL: processMouseDownKill(e); break;
         default: break;
     }
 
@@ -738,22 +735,6 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
     }
 }
 
-void CInputManager::addLastPressed(const Vector2D& pos, bool normal) {
-    // shift the new pos and time in
-    std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
-    m_pressedHistoryPositions[0] = pos;
-
-    std::ranges::rotate(m_pressedHistoryTimers, m_pressedHistoryTimers.end() - 1);
-    m_pressedHistoryTimers[0].reset();
-
-    // shift killed flag in
-    m_pressedHistoryKilled <<= 1;
-    m_pressedHistoryKilled |= normal ? 0 : 1;
-#if POINTER_PRESSED_HISTORY_LENGTH < 32
-    m_pressedHistoryKilled &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
-#endif
-}
-
 void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     // notify the keybind manager
@@ -822,9 +803,6 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     // notify app if we didn't handle it
     g_pSeatManager->sendPointerButton(e.timeMs, e.button, e.state);
-
-    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
-        addLastPressed(mouseCoords, true);
 
     if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_lastMonitor && PMON)
         g_pCompositor->setActiveMonitor(PMON);

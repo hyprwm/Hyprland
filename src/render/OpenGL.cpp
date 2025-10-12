@@ -385,6 +385,43 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     m_globalTimer.reset();
 
     pushMonitorTransformEnabled(false);
+
+    auto addLastPressToHistory = [this](const Vector2D& pos, bool killing) {
+        // shift the new pos and time in
+        std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
+        m_pressedHistoryPositions[0] = pos;
+
+        std::ranges::rotate(m_pressedHistoryTimers, m_pressedHistoryTimers.end() - 1);
+        m_pressedHistoryTimers[0].reset();
+
+        // shift killed flag in
+        m_pressedHistoryKilled <<= 1;
+        m_pressedHistoryKilled |= killing ? 1 : 0;
+#if POINTER_PRESSED_HISTORY_LENGTH < 32
+        m_pressedHistoryKilled &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+#endif
+    };
+
+    static auto P2 = g_pHookSystem->hookDynamic("mouseButton", [addLastPressToHistory](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<IPointer::SButtonEvent>(e);
+
+        if (E.state != WL_POINTER_BUTTON_STATE_PRESSED)
+            return;
+
+        addLastPressToHistory(g_pInputManager->getMouseCoordsInternal(), g_pInputManager->getClickMode() == CLICKMODE_KILL);
+    });
+
+    static auto P3 = g_pHookSystem->hookDynamic("touchDown", [addLastPressToHistory](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<ITouch::SDownEvent>(e);
+
+        auto PMONITOR = g_pCompositor->getMonitorFromName(!E.device->m_boundOutput.empty() ? E.device->m_boundOutput : "");
+
+        PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+
+        const auto TOUCH_COORDS = PMONITOR->m_position + (E.pos * PMONITOR->m_size);
+
+        addLastPressToHistory(TOUCH_COORDS, g_pInputManager->getClickMode() == CLICKMODE_KILL);
+    });
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {
@@ -1681,7 +1718,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         p                      = p.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
         shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
 
-        std::vector<float> pressedPos = g_pInputManager->m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {
+        std::vector<float> pressedPos = m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {
                                             Vector2D pPressed = ((vec - pMonitor->m_position) * pMonitor->m_scale);
                                             pPressed          = pPressed.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
                                             return std::array<float, 2>{pPressed.x / pMonitor->m_pixelSize.x, pPressed.y / pMonitor->m_pixelSize.y};
@@ -1691,11 +1728,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, pressedPos.size(), pressedPos);
 
         std::vector<float> pressedTime =
-            g_pInputManager->m_pressedHistoryTimers | std::views::transform([](const CTimer& timer) { return timer.getSeconds(); }) | std::ranges::to<std::vector<float>>();
+            m_pressedHistoryTimers | std::views::transform([](const CTimer& timer) { return timer.getSeconds(); }) | std::ranges::to<std::vector<float>>();
 
         shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, pressedTime.size(), pressedTime);
 
-        shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, g_pInputManager->m_pressedHistoryKilled);
+        shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, m_pressedHistoryKilled);
 
         shader->setUniformFloat(SHADER_POINTER_LAST_ACTIVE, g_pInputManager->m_lastCursorMovement.getSeconds());
         shader->setUniformFloat(SHADER_POINTER_SWITCH_TIME, g_pHyprRenderer->m_lastCursorData.switchedTimer.getSeconds());

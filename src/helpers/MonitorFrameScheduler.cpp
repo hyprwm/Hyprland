@@ -31,6 +31,10 @@ void CMonitorFrameScheduler::onSyncFired() {
 
     Debug::log(TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed.", m_monitor->m_name);
 
+    // let clients know its a good time to render yet another frame
+    if (!m_monitor->isMirror())
+        g_pHyprRenderer->sendFrameEventsToMonitor(m_monitor.lock(), Time::steadyNow());
+
     // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
     m_pendingThird  = true;
     m_renderAtFrame = false; // block frame rendering, we already scheduled
@@ -51,7 +55,7 @@ void CMonitorFrameScheduler::onSyncFired() {
 
 void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when) {
     if (!m_monitor->isMirror())
-        g_pHyprRenderer->sendFrameEventsMonitor(m_monitor.lock(), when);
+        g_pHyprRenderer->sendFrameEventsToMonitor(m_monitor.lock(), when);
 
     if (!newSchedulingEnabled())
         return;

@@ -1631,7 +1631,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
-void CHyprRenderer::sendFrameEventsMonitor(PHLMONITOR pMonitor, const Time::steady_tp& when) {
+void CHyprRenderer::sendFrameEventsToMonitor(PHLMONITOR pMonitor, const Time::steady_tp& when) {
     auto sendFrame = [](const auto& w, const auto& when) {
         w->m_wlSurface->resource()->breadthfirst([when](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(when); }, nullptr);
 

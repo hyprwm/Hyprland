@@ -1128,6 +1128,27 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
         return;
 
+    const bool CONFLICTSWITHFULLSCREEN = pWindow && pWindow->m_workspace && pWindow->m_workspace->m_hasFullscreenWindow && pWindow->m_workspace->getFullscreenWindow() != pWindow;
+    enum eFullscreenMode restoreFsMode = FSMODE_NONE;
+    if (CONFLICTSWITHFULLSCREEN) {
+        const auto PWORKSPACE = pWindow->m_workspace;
+        const auto FSWINDOW   = PWORKSPACE->getFullscreenWindow();
+
+        if (pWindow->m_isFloating) {
+            // don't make floating implicitly fs
+            Debug::log(LOG, "Requested to focus a floating window behind a fullscreen one: bringing to the top");
+            if (!pWindow->m_createdOverFullscreen) {
+                g_pCompositor->changeWindowZOrder(pWindow, true);
+                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            }
+        } else {
+            Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: taking over fullscreen");
+            restoreFsMode = PWORKSPACE->m_fullscreenMode;
+            g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
+        }
+    }
+
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !validMapped(pWindow)) {
@@ -1244,6 +1265,14 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     if (pWindow->m_groupData.pNextWindow)
         pWindow->deactivateGroupMembers();
+
+    if (CONFLICTSWITHFULLSCREEN && !pWindow->m_isFloating) {
+        g_pCompositor->setWindowFullscreenClient(pWindow, restoreFsMode);
+
+        // warp the position + size animation, otherwise it looks weird.
+        pWindow->m_realPosition->warp();
+        pWindow->m_realSize->warp();
+    }
 }
 
 void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {

@@ -64,7 +64,11 @@ class CPluginManager {
 
     bool                   hasDeps();
 
-    bool                   devMode(const std::string& path = ".");
+    bool                   devMode(const std::string& path = ".", bool hotReload = false);
+
+    std::string            headerError(const eHeadersErrors err);
+    bool                   buildPlugin(const std::string& path, class CManifest* manifest,
+                                      std::function<bool()> shouldInterrupt = nullptr);
 
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
@@ -74,11 +78,7 @@ class CPluginManager {
     bool createSafeDirectory(const std::string& path);
 
   private:
-    std::string headerError(const eHeadersErrors err);
     std::string headerErrorShort(const eHeadersErrors err);
-
-    bool        buildPlugin(const std::string& path, class CManifest* manifest,
-                           std::function<bool()> shouldInterrupt = nullptr);
 
     std::string m_szWorkingPluginDirectory;
 };

@@ -21,7 +21,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ update                 → Check and update all plugins if needed.
 ┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                   → List all installed plugins.
-┣ dev [path]             → Development mode: watch, build, and hot-reload a plugin.
+┣ dev [path]             → Development mode: launch nested Hyprland session with plugin.
 ┃                          Path defaults to current directory.
 ┣ purge-cache            → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
@@ -33,6 +33,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --verbose      | -v    → Enable too much logging.
 ┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f).
 ┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources.
+┣ --hot-reload   | -r    → (dev only) Use hot-reload mode instead of nested session.
 ┣ --hl-url       |       → Pass a custom hyprland source url.
 ┗
 )#";
@@ -49,7 +50,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false, hotReload = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -75,6 +76,8 @@ int                        main(int argc, char** argv, char** envp) {
             } else if (ARGS[i] == "--force" || ARGS[i] == "-f") {
                 force = true;
                 std::println("{}", statusString("!", Colors::RED, "Using --force, I hope you know what you are doing."));
+            } else if (ARGS[i] == "--hot-reload" || ARGS[i] == "-r") {
+                hotReload = true;
             } else {
                 std::println(stderr, "Unrecognized option {}", ARGS[i]);
                 return 1;
@@ -222,7 +225,7 @@ int                        main(int argc, char** argv, char** envp) {
         if (command.size() >= 2)
             path = command[1];
 
-        return g_pPluginManager->devMode(path) ? 0 : 1;
+        return g_pPluginManager->devMode(path, hotReload) ? 0 : 1;
     } else {
         std::println(stderr, "{}", HELP);
         return 1;

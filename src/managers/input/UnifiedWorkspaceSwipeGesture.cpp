@@ -1,6 +1,7 @@
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
 #include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
 #include "InputManager.hpp"
 
@@ -12,18 +13,18 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     if (isGestureInProgress())
         return;
 
-    const auto PWORKSPACE = g_pCompositor->m_lastMonitor->m_activeWorkspace;
+    const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
     Debug::log(LOG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
 
     m_workspaceBegin = PWORKSPACE;
     m_delta          = 0;
-    m_monitor        = g_pCompositor->m_lastMonitor;
+    m_monitor        = Desktop::focusState()->monitor();
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
     if (PWORKSPACE->m_hasFullscreenWindow) {
-        for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
+        for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
             *ls->m_alpha = 1.f;
         }
     }
@@ -307,7 +308,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
+    for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
         *ls->m_alpha = pSwitchedTo->m_hasFullscreenWindow && pSwitchedTo->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }

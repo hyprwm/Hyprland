@@ -14,6 +14,7 @@
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/Compositor.hpp>
+#include <src/desktop/state/FocusState.hpp>
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -45,7 +46,7 @@ static SDispatchResult test(std::string in) {
 
 // Trigger a snap move event for the active window
 static SDispatchResult snapMove(std::string in) {
-    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
+    const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
@@ -259,13 +260,15 @@ static SDispatchResult addRule(std::string in) {
 }
 
 static SDispatchResult checkRule(std::string in) {
-    if (!g_pCompositor->m_lastWindow)
+    const auto PLASTWINDOW = Desktop::focusState()->window();
+
+    if (!PLASTWINDOW)
         return {.success = false, .error = "No window"};
 
-    if (!g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props.contains(ruleIDX))
+    if (!PLASTWINDOW->m_ruleApplicator->m_otherProps.props.contains(ruleIDX))
         return {.success = false, .error = "No rule"};
 
-    if (g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props[ruleIDX]->effect != "effect")
+    if (PLASTWINDOW->m_ruleApplicator->m_otherProps.props[ruleIDX]->effect != "effect")
         return {.success = false, .error = "Effect isn't \"effect\""};
 
     return {};

@@ -53,7 +53,7 @@ static bool test() {
 
     NLog::log("{}Testing new_window_takes_over_fullscreen", Colors::YELLOW);
 
-    OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 0"));
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 0"));
 
     Tests::spawnKitty("kitty_A");
 
@@ -73,7 +73,16 @@ static bool test() {
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
-    OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 1"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+
+    {
+        // should be ignored as per focus_under_fullscreen 0
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
+    }
+
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 1"));
 
     Tests::spawnKitty("kitty_C");
 
@@ -83,7 +92,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "kitty_C");
     }
 
-    OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 2"));
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 2"));
 
     Tests::spawnKitty("kitty_D");
 
@@ -93,7 +102,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "kitty_D");
     }
 
-    OK(getFromSocket("/keyword misc:new_window_takes_over_fullscreen 0"));
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 0"));
 
     Tests::killAllWindows();
 
@@ -138,6 +147,7 @@ static bool test() {
     Tests::spawnKitty("kitty_A");
     Tests::spawnKitty("kitty_B");
 
+    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
     OK(getFromSocket("/dispatch fullscreen 0 set"));
 
     {

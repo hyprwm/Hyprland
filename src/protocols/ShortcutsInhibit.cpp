@@ -1,6 +1,7 @@
 #include "ShortcutsInhibit.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "core/Compositor.hpp"
 
 CKeyboardShortcutsInhibitor::CKeyboardShortcutsInhibitor(SP<CZwpKeyboardShortcutsInhibitorV1> resource_, SP<CWLSurfaceResource> surf) : m_resource(resource_), m_surface(surf) {
@@ -67,14 +68,14 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
 }
 
 bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
-    if (!g_pCompositor->m_lastFocus)
+    if (!Desktop::focusState()->surface())
         return false;
 
-    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock()); PWINDOW && PWINDOW->m_ruleApplicator->noShortcutsInhibit().valueOrDefault())
+    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(Desktop::focusState()->surface()); PWINDOW && PWINDOW->m_ruleApplicator->noShortcutsInhibit().valueOrDefault())
         return false;
 
     for (auto const& in : m_inhibitors) {
-        if (in->surface() != g_pCompositor->m_lastFocus)
+        if (in->surface() != Desktop::focusState()->surface())
             continue;
 
         return true;

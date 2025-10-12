@@ -14,6 +14,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
 #include <cstring>
@@ -799,7 +800,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     auto outputMappedArea = [&mappedArea](const std::string& output) {
         if (output == "current") {
-            if (const auto PLASTMONITOR = g_pCompositor->m_lastMonitor.lock(); PLASTMONITOR)
+            if (const auto PLASTMONITOR = Desktop::focusState()->monitor(); PLASTMONITOR)
                 return PLASTMONITOR->logicalBox();
         } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(output); PMONITOR)
             return PMONITOR->logicalBox();
@@ -927,7 +928,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     listener->frame = pointer->m_pointerEvents.frame.listen([] {
         bool shouldSkip = false;
         if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = g_pCompositor->m_lastMonitor.get();
+            auto PMONITOR = Desktop::focusState()->monitor().get();
             shouldSkip    = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
         }
         g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;

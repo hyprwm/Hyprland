@@ -49,9 +49,9 @@ void CMonitorFrameScheduler::onSyncFired() {
     onFinishRender();
 }
 
-void CMonitorFrameScheduler::onPresented() {
+void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when) {
     if (!m_monitor->isMirror())
-        g_pHyprRenderer->sendFrameEventsToActiveWorkspace(m_monitor.lock(), Time::steadyNow());
+        g_pHyprRenderer->sendFrameEventsMonitor(m_monitor.lock(), when);
 
     if (!newSchedulingEnabled())
         return;

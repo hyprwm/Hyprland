@@ -646,12 +646,8 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();
-    else {
-        if (m_hlSurface && m_hlSurface->getPopup())
-            frame(when);
-
+    else
         FEEDBACK->presented();
-    }
 
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }

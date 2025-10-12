@@ -1631,13 +1631,38 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
-void CHyprRenderer::sendFrameEventsToActiveWorkspace(PHLMONITOR pMonitor, const Time::steady_tp& now) {
+void CHyprRenderer::sendFrameEventsMonitor(PHLMONITOR pMonitor, const Time::steady_tp& when) {
+    auto sendFrame = [](const auto& w, const auto& when) {
+        w->m_wlSurface->resource()->breadthfirst([when](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(when); }, nullptr);
+
+        if (w->m_popupHead) {
+            w->m_popupHead->breadthfirst(
+                [when](WP<CPopup> popup, void* data) {
+                    if (popup && popup->m_mapped && popup->m_wlSurface && popup->m_wlSurface->resource())
+                        popup->m_wlSurface->resource()->frame(when);
+                },
+                nullptr);
+        }
+    };
+
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->m_wlSurface->resource() ||
-            (w->workspaceID() != pMonitor->activeWorkspaceID() && w->workspaceID() != pMonitor->activeSpecialWorkspaceID()))
+        if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->m_wlSurface->resource())
             continue;
 
-        w->m_wlSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
+        if (w->isFullscreen()) {
+            sendFrame(w, when);
+            continue;
+        }
+
+        if (w->workspaceID() != pMonitor->activeWorkspaceID() && w->workspaceID() != pMonitor->activeSpecialWorkspaceID())
+            continue;
+
+        sendFrame(w, when);
+    }
+
+    auto surf = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
+    if (surf && surf->pWlrSurface) {
+        surf->pWlrSurface->breadthfirst([when](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(when); }, nullptr);
     }
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
@@ -1645,7 +1670,7 @@ void CHyprRenderer::sendFrameEventsToActiveWorkspace(PHLMONITOR pMonitor, const 
             if (ls->m_fadingOut || !ls->m_surface->resource())
                 continue;
 
-            ls->m_surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
+            ls->m_surface->resource()->breadthfirst([when](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(when); }, nullptr);
         }
     }
 }

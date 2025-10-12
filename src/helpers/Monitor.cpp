@@ -465,31 +465,31 @@ void CMonitor::onDisconnect(bool destroy) {
     std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
-void CMonitor::applyCMType(eCMType cmType) {
+void CMonitor::applyCMType(NCMType::eCMType cmType) {
     auto oldImageDescription = m_imageDescription;
     switch (cmType) {
-        case CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
-        case CM_WIDE:
+        case NCMType::CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
+        case NCMType::CM_WIDE:
             m_imageDescription = {.primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
             break;
-        case CM_DCIP3:
+        case NCMType::CM_DCIP3:
             m_imageDescription = {.primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)};
             break;
-        case CM_DP3:
+        case NCMType::CM_DP3:
             m_imageDescription = {.primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)};
             break;
-        case CM_ADOBE:
+        case NCMType::CM_ADOBE:
             m_imageDescription = {.primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)};
             break;
-        case CM_EDID:
+        case NCMType::CM_EDID:
             m_imageDescription = {.primariesNameSet = false,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = {
@@ -499,14 +499,14 @@ void CMonitor::applyCMType(eCMType cmType) {
                                              .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
                                   }};
             break;
-        case CM_HDR:
+        case NCMType::CM_HDR:
             m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
                                   .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
                                   .luminances       = {.min = 0, .max = 10000, .reference = 203}};
             break;
-        case CM_HDR_EDID:
+        case NCMType::CM_HDR_EDID:
             m_imageDescription = {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
                                   .primariesNameSet = false,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
@@ -861,10 +861,10 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_cmType = RULE->cmType;
     switch (m_cmType) {
-        case CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? CM_WIDE : CM_SRGB; break;
-        case CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? CM_EDID : CM_SRGB; break;
-        case CM_HDR:
-        case CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : CM_SRGB; break;
+        case NCMType::CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? NCMType::CM_WIDE : NCMType::CM_SRGB; break;
+        case NCMType::CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? NCMType::CM_EDID : NCMType::CM_SRGB; break;
+        case NCMType::CM_HDR:
+        case NCMType::CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : NCMType::CM_SRGB; break;
         default: break;
     }
 

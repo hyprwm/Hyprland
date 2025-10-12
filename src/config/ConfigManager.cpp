@@ -2273,28 +2273,12 @@ bool CMonitorRuleParser::parseBitdepth(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseCM(const std::string& value) {
-    if (value == "auto")
-        m_rule.cmType = CM_AUTO;
-    else if (value == "srgb")
-        m_rule.cmType = CM_SRGB;
-    else if (value == "wide")
-        m_rule.cmType = CM_WIDE;
-    else if (value == "edid")
-        m_rule.cmType = CM_EDID;
-    else if (value == "hdr")
-        m_rule.cmType = CM_HDR;
-    else if (value == "hdredid")
-        m_rule.cmType = CM_HDR_EDID;
-    else if (value == "dcip3")
-        m_rule.cmType = CM_DCIP3;
-    else if (value == "dp3")
-        m_rule.cmType = CM_DP3;
-    else if (value == "adobe")
-        m_rule.cmType = CM_ADOBE;
-    else {
+    auto parsedCM = NCMType::fromString(value);
+    if (!parsedCM.has_value()) {
         m_error += "invalid cm ";
         return false;
     }
+    m_rule.cmType = parsedCM.value();
     return true;
 }
 

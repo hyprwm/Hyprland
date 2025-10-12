@@ -95,6 +95,9 @@ add_compile_options(
   -Wno-clobbered
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
+# disable lto as it may break plugins
+add_compile_options(-fno-lto)
+
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 

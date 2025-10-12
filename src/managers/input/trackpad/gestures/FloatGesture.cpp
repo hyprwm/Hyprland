@@ -1,8 +1,9 @@
 #include "FloatGesture.hpp"
 
-#include "../../../../Compositor.hpp"
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/Window.hpp"
 
 constexpr const float MAX_DISTANCE = 250.F;
 
@@ -29,7 +30,7 @@ CFloatTrackpadGesture::CFloatTrackpadGesture(const std::string_view& data) {
 void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_window = g_pCompositor->m_lastWindow;
+    m_window = Desktop::focusState()->window();
 
     if (!m_window)
         return;

@@ -1,6 +1,5 @@
 #include "InputMethodRelay.hpp"
-#include "InputManager.hpp"
-#include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/TextInputV1.hpp"
 #include "../../protocols/InputMethodV2.hpp"
@@ -54,17 +53,17 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         Debug::log(LOG, "New input popup");
     });
 
-    if (!g_pCompositor->m_lastFocus)
+    if (!Desktop::focusState()->surface())
         return;
 
     for (auto const& ti : m_textInputs) {
-        if (ti->client() != g_pCompositor->m_lastFocus->client())
+        if (ti->client() != Desktop::focusState()->surface()->client())
             continue;
 
         if (ti->isV3())
-            ti->enter(g_pCompositor->m_lastFocus.lock());
+            ti->enter(Desktop::focusState()->surface());
         else
-            ti->onEnabled(g_pCompositor->m_lastFocus.lock());
+            ti->onEnabled(Desktop::focusState()->surface());
     }
 }
 
@@ -73,11 +72,11 @@ void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
 }
 
 CTextInput* CInputMethodRelay::getFocusedTextInput() {
-    if (!g_pCompositor->m_lastFocus)
+    if (!Desktop::focusState()->surface())
         return nullptr;
 
     for (auto const& ti : m_textInputs) {
-        if (ti->focusedSurface() == g_pCompositor->m_lastFocus)
+        if (ti->focusedSurface() == Desktop::focusState()->surface())
             return ti.get();
     }
 

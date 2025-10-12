@@ -493,7 +493,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         g_pSeatManager->setPointerFocus(nullptr, {});
 
         if (refocus || g_pCompositor->m_lastWindow.expired()) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
-            g_pCompositor->focusWindow(nullptr);
+            g_pCompositor->focusWindowCareful(nullptr);
 
         return;
     }
@@ -553,7 +553,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 ((pFoundWindow->m_isFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_lastWindow->m_isFloating != pFoundWindow->m_isFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
-                    g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                    g_pCompositor->focusWindowCareful(pFoundWindow, foundSurface);
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
             } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3)
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
@@ -581,7 +581,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                             const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_windowData.noFollowMouse.valueOrDefault();
 
                             if (refocus || !hasNoFollowMouse)
-                                g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+                                g_pCompositor->focusWindowCareful(pFoundWindow, foundSurface);
                         }
                     } else
                         g_pCompositor->focusSurface(foundSurface, pFoundWindow);
@@ -590,7 +590,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
 
         if (g_pSeatManager->m_state.keyboardFocus == nullptr)
-            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+            g_pCompositor->focusWindowCareful(pFoundWindow, foundSurface);
 
         m_lastFocusOnLS = false;
     } else {
@@ -1573,13 +1573,13 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     if (!foundSurface && g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_workspace && g_pCompositor->m_lastWindow->m_workspace->isVisibleNotCovered()) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
-        g_pCompositor->focusWindow(PLASTWINDOW);
+        g_pCompositor->focusWindowCareful(PLASTWINDOW);
     } else {
         // otherwise fall back to a normal refocus.
 
         if (foundSurface && !foundSurface->m_hlSurface->keyboardFocusable()) {
             const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
-            g_pCompositor->focusWindow(PLASTWINDOW);
+            g_pCompositor->focusWindowCareful(PLASTWINDOW);
         }
 
         refocus();

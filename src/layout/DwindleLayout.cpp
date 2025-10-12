@@ -971,7 +971,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
     if (silent) {
         const auto PNODETOFOCUS = getClosestNodeOnWorkspace(originalWorkspaceID, originalPos);
         if (PNODETOFOCUS && PNODETOFOCUS->pWindow.lock())
-            g_pCompositor->focusWindow(PNODETOFOCUS->pWindow.lock());
+            g_pCompositor->focusWindowCareful(PNODETOFOCUS->pWindow.lock());
     }
 }
 

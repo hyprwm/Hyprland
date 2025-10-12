@@ -1293,7 +1293,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                     pWindow = pWorkspace->getFirstWindow();
             }
 
-            g_pCompositor->focusWindow(pWindow);
+            g_pCompositor->focusWindowCareful(pWindow);
         }
 
         if (!noMouseMove)
@@ -1354,7 +1354,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
-                g_pCompositor->focusWindow(PLAST);
+                g_pCompositor->focusWindowCareful(PLAST);
             else
                 g_pInputManager->refocus();
         }
@@ -1436,7 +1436,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
-            g_pCompositor->focusWindow(PLAST);
+            g_pCompositor->focusWindowCareful(PLAST);
         else
             g_pInputManager->refocus();
     }

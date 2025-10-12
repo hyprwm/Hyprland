@@ -1114,7 +1114,40 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
+void CCompositor::focusWindowCareful(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
+    const bool CONFLICTSWITHFULLSCREEN = pWindow && pWindow->m_workspace && pWindow->m_workspace->m_hasFullscreenWindow && pWindow->m_workspace->getFullscreenWindow() != pWindow;
+    enum eFullscreenMode restoreFsMode = FSMODE_NONE;
+    if (CONFLICTSWITHFULLSCREEN) {
+        const auto PWORKSPACE = pWindow->m_workspace;
+        const auto FSWINDOW   = PWORKSPACE->getFullscreenWindow();
+
+        if (pWindow->m_isFloating) {
+            // don't make floating implicitly fs
+            Debug::log(LOG, "Requested to focus a floating window behind a fullscreen one: bringing to the top");
+            if (!pWindow->m_createdOverFullscreen) {
+                g_pCompositor->changeWindowZOrder(pWindow, true);
+                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            }
+        } else {
+            Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: taking over fullscreen");
+            restoreFsMode = PWORKSPACE->m_fullscreenMode;
+            g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
+        }
+    }
+
+    focusWindowIgnoreConflict(pWindow, pSurface, preserveFocusHistory);
+
+    if (CONFLICTSWITHFULLSCREEN && !pWindow->m_isFloating) {
+        g_pCompositor->setWindowFullscreenClient(pWindow, restoreFsMode);
+
+        // warp the position + size animation, otherwise it looks weird.
+        pWindow->m_realPosition->warp();
+        pWindow->m_realSize->warp();
+    }
+}
+
+void CCompositor::focusWindowIgnoreConflict(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
 
     static auto PFOLLOWMOUSE         = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
@@ -2091,8 +2124,8 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
     if (pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id || pMonitorB->m_id == g_pCompositor->m_lastMonitor->m_id) {
         const auto LASTWIN = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
-        g_pCompositor->focusWindow(LASTWIN ? LASTWIN :
-                                             (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
+        g_pCompositor->focusWindowCareful(
+            LASTWIN ? LASTWIN : (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
 
         const auto PNEWWORKSPACE = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB : PWORKSPACEA;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});

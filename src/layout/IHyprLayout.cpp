@@ -300,7 +300,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     g_pKeybindManager->shadowKeybinds();
 
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+    g_pCompositor->focusWindowCareful(DRAGGINGWINDOW);
     g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
 }
 
@@ -390,7 +390,7 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+    g_pCompositor->focusWindowCareful(DRAGGINGWINDOW);
 
     g_pInputManager->m_wasDraggingWindow = false;
 }
@@ -943,7 +943,7 @@ void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
 
 void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
     bringWindowToTop(pWindow);
-    g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->focusWindowCareful(pWindow);
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 

@@ -257,10 +257,13 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-message(STATUS "Setting precompiled headers")
-
-target_precompile_headers(Hyprland PRIVATE
-                          $<$<COMPILE_LANGUAGE:CXX>:src/pch/pch.hpp>)
+if(CMAKE_DISABLE_PRECOMPILE_HEADERS)
+  message(STATUS "Not using precompiled headers")
+else()
+  message(STATUS "Setting precompiled headers")
+  target_precompile_headers(Hyprland PRIVATE
+                            $<$<COMPILE_LANGUAGE:CXX>:src/pch/pch.hpp>)
+endif()
 
 message(STATUS "Setting link libraries")
 

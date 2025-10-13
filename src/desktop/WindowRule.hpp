@@ -60,6 +60,7 @@ class CWindowRule {
     int               m_pinned          = -1;
     int               m_focus           = -1;
     int               m_group           = -1;
+    int               m_modal           = -1;
     std::string       m_fullscreenState = ""; // empty means any
     std::string       m_onWorkspace     = ""; // empty means any
     std::string       m_workspace       = ""; // empty means any

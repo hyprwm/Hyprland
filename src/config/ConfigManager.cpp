@@ -1562,6 +1562,11 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                         continue;
                 }
 
+                if (rule->m_modal != -1) {
+                    if (rule->m_modal != pWindow->isModal())
+                        continue;
+                }
+
                 if (!rule->m_fullscreenState.empty()) {
                     const auto ARGS = CVarList(rule->m_fullscreenState, 2, ' ');
                     //
@@ -2735,6 +2740,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             set |= (rule->m_focus = (v == "1"), true);
         if (auto v = get("group"); !v.empty())
             set |= (rule->m_group = (v == "1"), true);
+        if (auto v = get("modal"); !v.empty())
+            set |= (rule->m_modal = (v == "1"), true);
 
         if (auto v = get("fullscreenstate"); !v.empty())
             set |= (rule->m_fullscreenState = v, true);
@@ -2796,6 +2803,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
                 if (rule->m_group != -1 && rule->m_group != other->m_group)
+                    return false;
+                if (rule->m_modal != -1 && rule->m_modal != other->m_modal)
                     return false;
                 return true;
             });

@@ -45,6 +45,7 @@
   commit,
   revCount,
   date,
+  withHyprtester ? false,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
@@ -79,7 +80,7 @@ in
           fs.intersection
           # allows non-flake builds to only include files tracked by git
           (fs.gitTracked ../.)
-          (fs.unions [
+          (fs.unions (flatten [
             ../assets/hyprland-portals.conf
             ../assets/install
             ../hyprctl
@@ -93,7 +94,8 @@ in
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
-          ]);
+            (optional withHyprtester ../hyprtester)
+          ]));
       };
 
       postPatch = ''
@@ -185,7 +187,14 @@ in
         "NO_UWSM" = true;
         "NO_HYPRPM" = true;
         "TRACY_ENABLE" = false;
+        "BUILD_HYPRTESTER" = withHyprtester;
       };
+
+      preConfigure = ''
+        substituteInPlace hyprtester/CMakeLists.txt --replace-fail \
+          "\''${CMAKE_CURRENT_BINARY_DIR}" \
+          "${placeholder "out"}/bin"
+      '';
 
       postInstall = ''
         ${optionalString wrapRuntimeDeps ''
@@ -197,6 +206,9 @@ in
             pkgconf
           ]}
         ''}
+      '' + optionalString withHyprtester ''
+        install hyprtester/pointer-warp -t $out/bin
+        install hyprtester/pointer-scroll -t $out/bin
       '';
 
       passthru.providedSessions = ["hyprland"];

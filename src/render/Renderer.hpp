@@ -9,7 +9,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
-#include "protocols/cursor-shape-v1.hpp"
+#include "../../protocols/cursor-shape-v1.hpp"
 
 struct SMonitorRule;
 class CWorkspace;

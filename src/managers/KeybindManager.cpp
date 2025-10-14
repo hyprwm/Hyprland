@@ -2318,7 +2318,8 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    g_pCompositor->focusWindow(PWINDOW);
+    // Last argument means: focus window but don't respect `misc:new_window_takes_over_fullscreen = 0`
+    g_pCompositor->focusWindow(PWINDOW, nullptr, false, true);
 
     PWINDOW->warpCursor();
 

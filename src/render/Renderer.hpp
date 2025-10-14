@@ -9,6 +9,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
+#include "protocols/cursor-shape-v1.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -110,8 +111,8 @@ class CHyprRenderer {
     struct {
         int                           hotspotX      = 0;
         int                           hotspotY      = 0;
-        int                           shape         = -1;
-        int                           shapePrevious = -1;
+        wpCursorShapeDeviceV1Shape    shape         = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        wpCursorShapeDeviceV1Shape    shapePrevious = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
         CTimer                        switchedTimer;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;

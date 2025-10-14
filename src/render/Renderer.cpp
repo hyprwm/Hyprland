@@ -2029,17 +2029,33 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 
     m_lastCursorData.name = name;
 
-    auto getShapeOrInvalid = [](std::string_view name) -> size_t {
-        const auto it = std::ranges::find(CURSOR_SHAPE_NAMES_FINAL_SHADER, name);
+    auto getShapeOrDefault = [](std::string_view name) -> wpCursorShapeDeviceV1Shape {
+        const auto it = std::ranges::find(CURSOR_SHAPE_NAMES, name);
 
-        if (it == CURSOR_SHAPE_NAMES_FINAL_SHADER.end())
-            return 0; // invalid
+        if (it == CURSOR_SHAPE_NAMES.end()) {
+            // clang-format off
+            static const auto overrites = std::unordered_map<std::string_view, wpCursorShapeDeviceV1Shape> {
+              {"top_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE},
+              {"bottom_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE},
+              {"left_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE},
+              {"right_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE},
+              {"top_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE},
+              {"bottom_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE},
+              {"top_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE},
+              {"bottom_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE},
+            };
+            // clang-format on
 
-        return std::distance(CURSOR_SHAPE_NAMES_FINAL_SHADER.begin(), it);
+            if (overrites.contains(name))
+                return overrites.at(name);
+
+            return WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        }
+
+        return sc<wpCursorShapeDeviceV1Shape>(std::distance(CURSOR_SHAPE_NAMES.begin(), it));
     };
 
-    // click mode works because when killing the cursor is set to crosshair/left_ptr
-    const int newShape = g_pInputManager->getClickMode() == CLICKMODE_KILL ? getShapeOrInvalid("killing") : getShapeOrInvalid(name);
+    const auto newShape = getShapeOrDefault(name);
 
     if (newShape != m_lastCursorData.shape) {
         m_lastCursorData.shapePrevious = m_lastCursorData.shape;

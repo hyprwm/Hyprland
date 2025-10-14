@@ -172,8 +172,8 @@ bool CFunctionHook::hook() {
         return false;
     }
 
-    if (std::abs(rc<int64_t>(m_source) - rc<int64_t>(m_destination)) > 2000000000 /* 2 GB */) {
-        Debug::log(ERR, "[functionhook] failed, source and dest are over 2GB apart");
+    if (std::abs(rc<int64_t>(m_source) - rc<int64_t>(m_landTrampolineAddr)) > 2000000000 /* 2 GB */) {
+        Debug::log(ERR, "[functionhook] failed, source and trampo are over 2GB apart");
         return false;
     }
 

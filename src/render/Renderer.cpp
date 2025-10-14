@@ -1958,7 +1958,7 @@ void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
             continue; // don't damage mirrors traditionally
 
         if (!skipFrameSchedule) {
-            CBox damageBox = box.copy().translate(-m->m_position).scale(m->m_scale);
+            CBox damageBox = box.copy().translate(-m->m_position).scale(m->m_scale).round();
             m->addDamage(damageBox);
         }
     }

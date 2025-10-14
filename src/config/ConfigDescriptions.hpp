@@ -1273,9 +1273,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "misc:new_window_takes_over_fullscreen",
-        .description = "if there is a fullscreen or maximized window, decide whether a new tiled window opened should replace it, stay behind or disable the fullscreen/maximized "
-                       "state. 0 - behind, 1 - takes over, 2 - unfullscreen/unmaxize [0/1/2]",
+        .value       = "misc:on_focus_under_fullscreen",
+        .description = "if there is a fullscreen or maximized window, decide whether a tiled window requested to focus should replace it, stay behind or disable the "
+                       "fullscreen/maximized state. Note: if configured to stay behind, the setting does not apply to the focuswindow dispather: when requested via focuswindow, "
+                       "the window will always be focused. 0 - stay behind (unless via focuswindow), 1 - takes over, 2 - unfullscreen/unmaximize [0/1/2]",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
     },

@@ -1114,8 +1114,11 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     return nullptr;
 }
 
-void CCompositor::focusWindowCareful(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
-    const bool CONFLICTSWITHFULLSCREEN = pWindow && pWindow->m_workspace && pWindow->m_workspace->m_hasFullscreenWindow && pWindow->m_workspace->getFullscreenWindow() != pWindow;
+void CCompositor::focusWindowCareful(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory, bool neverIgnoreFullscreenConflict) {
+    const bool  CONFLICTSWITHFULLSCREEN = pWindow && pWindow->m_workspace && pWindow->m_workspace->m_hasFullscreenWindow && pWindow->m_workspace->getFullscreenWindow() != pWindow;
+    static auto PONFOCUSUNDERFS         = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
+    const auto  TAKESOVERFS             = *PONFOCUSUNDERFS == 0 && neverIgnoreFullscreenConflict ? 1 : *PONFOCUSUNDERFS;
+
     enum eFullscreenMode restoreFsMode = FSMODE_NONE;
     if (CONFLICTSWITHFULLSCREEN) {
         const auto PWORKSPACE = pWindow->m_workspace;
@@ -1130,15 +1133,23 @@ void CCompositor::focusWindowCareful(PHLWINDOW pWindow, SP<CWLSurfaceResource> p
                     PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             }
         } else {
-            Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: taking over fullscreen");
-            restoreFsMode = PWORKSPACE->m_fullscreenMode;
-            g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
+            if (TAKESOVERFS == 0 && !neverIgnoreFullscreenConflict) {
+                Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: ignoring according to `misc:on_focus_under_fullscreen = 0`");
+                return;
+            } else if (TAKESOVERFS == 1) {
+                Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: taking over fullscreen according to `misc:on_focus_under_fullscreen = 1`");
+                restoreFsMode = PWORKSPACE->m_fullscreenMode;
+                g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
+            } else if (TAKESOVERFS == 2) {
+                Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: unfullscreening/unmaximizing according to `misc:on_focus_under_fullscreen = 2`");
+                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
+            }
         }
     }
 
     focusWindowIgnoreConflict(pWindow, pSurface, preserveFocusHistory);
 
-    if (CONFLICTSWITHFULLSCREEN && !pWindow->m_isFloating) {
+    if (CONFLICTSWITHFULLSCREEN && !pWindow->m_isFloating && TAKESOVERFS == 1) {
         g_pCompositor->setWindowFullscreenClient(pWindow, restoreFsMode);
 
         // warp the position + size animation, otherwise it looks weird.

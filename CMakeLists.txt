@@ -459,13 +459,18 @@ install(
   PATTERN "*.hpp"
   PATTERN "*.inc")
 
-if(TESTS)
-  message(STATUS "building tests is enabled TESTS")
+if(BUILD_TESTING OR BUILD_HYPRTESTER)
+  message(STATUS "Building hyprtester")
+
+  add_subdirectory(hyprtester)
+endif()
+
+if(BUILD_TESTING)
+  message(STATUS "Testing is enabled")
 
   enable_testing()
   add_custom_target(tests)
 
-  add_subdirectory(hyprtester)
   add_test(
     NAME "Main Test"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
@@ -473,5 +478,5 @@ if(TESTS)
 
   add_dependencies(tests hyprtester)
 else()
-  message(STATUS "building tests is disabled")
+  message(STATUS "Testing is disabled")
 endif()

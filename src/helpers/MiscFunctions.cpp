@@ -698,21 +698,46 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     std::istringstream iss(VALUE);
     std::string        token;
 
+    auto               percToLL = [&](std::string str, bool x) -> long long {
+        bool isPercent = false;
+
+        if (!str.empty() && str.back() == '%') {
+            isPercent = true;
+            str.pop_back();
+        }
+
+        if (!isNumber(str))
+            throw std::invalid_argument("Invalid numeric value in percentage");
+
+        long long val = std::stoll(str);
+
+        if (isPercent) {
+            if (val <= 0)
+                throw std::invalid_argument("Percentage value must be greater than 0");
+
+            const auto MONITOR = g_pCompositor->m_lastMonitor;
+            if (!MONITOR)
+                throw std::invalid_argument("No monitor to grab percentage from");
+
+            double size = x ? MONITOR->m_size.x : MONITOR->m_size.y;
+            if (size <= 0.0)
+                throw std::invalid_argument("Monitor size is invalid (0 or less)");
+
+            return sc<long long>(size * val / 100.0);
+        }
+
+        return val;
+    };
+
     if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
         throw std::invalid_argument("Invalid string format");
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid x value");
-
-    long long x = std::stoll(token);
+    long long x = percToLL(token, true);
 
     if (!std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid y value");
-
-    long long y = std::stoll(token);
+    long long y = percToLL(token, false);
 
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");

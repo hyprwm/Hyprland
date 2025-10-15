@@ -400,14 +400,24 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     static auto PWIDTHMULTIPLIER = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
 
+    const bool DISPLAYLEFT   = STICKS(NEWPARENT->box.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
+    const bool DISPLAYRIGHT  = STICKS(NEWPARENT->box.x + NEWPARENT->box.w, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
+    const bool DISPLAYTOP    = STICKS(NEWPARENT->box.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
+    const bool DISPLAYBOTTOM = STICKS(NEWPARENT->box.y + NEWPARENT->box.h, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+
     const auto   WORKSPACE     = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
     const auto   WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(WORKSPACE);
+    static auto  PGAPSINDATA   = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto  PGAPSOUTDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    auto* const  PGAPSIN       = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
     auto* const  PGAPSOUT      = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+    auto         gapsIn        = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto         gapsOut       = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     // if cursor over first child, make it first, etc
-    const Vector2D availableSize = NEWPARENT->box.size() - Vector2D{static_cast<double>(gapsOut.m_left + gapsOut.m_right), static_cast<double>(gapsOut.m_top + gapsOut.m_bottom)};
+    const Vector2D availableSize =
+        NEWPARENT->box.size() - Vector2D{(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left / 2.f) + (DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right / 2.f),
+                                         (DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top / 2.f) + (DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom / 2.f)};
 
     const auto SIDEBYSIDE = availableSize.x > availableSize.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;

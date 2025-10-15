@@ -707,7 +707,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
         }
 
         if (!isNumber(str))
-            throw std::invalid_argument("Invalid numeric value in percentage");
+            throw std::invalid_argument("Invalid numeric value");
 
         long long val = std::stoll(str);
 
@@ -721,7 +721,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
 
             double size = x ? MONITOR->m_size.x : MONITOR->m_size.y;
             if (size <= 0.0)
-                throw std::invalid_argument("Monitor size is invalid (0 or less)");
+                throw std::invalid_argument("Monitor size is invalid");
 
             return sc<long long>(size * val / 100.0);
         }

@@ -29,6 +29,7 @@ class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
 class CDRMSyncobjSurfaceResource;
+class CFifoResource;
 class CColorManagementSurface;
 class CFrogColorManagementSurface;
 class CContentType;
@@ -103,6 +104,7 @@ class CWLSurfaceResource {
     SSurfaceState                          m_pending;
     std::queue<UP<SSurfaceState>>          m_pendingStates;
     bool                                   m_pendingWaiting = false;
+    bool                                   m_fifoLocked     = false;
 
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
@@ -111,6 +113,7 @@ class CWLSurfaceResource {
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
     SP<ISurfaceRole>                       m_role;
     WP<CDRMSyncobjSurfaceResource>         m_syncobj; // may not be present
+    WP<CFifoResource>                      m_fifo;    // may not be present
     WP<CColorManagementSurface>            m_colorManagement;
     WP<CContentType>                       m_contentType;
 

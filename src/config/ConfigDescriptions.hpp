@@ -1625,7 +1625,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "cursor:zoom_disable_aa",
         .description = "If enabled, when zooming, no antialiasing will be used (zoom will be pixelated)",
         .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
         .value       = "cursor:enable_hyprcursor",

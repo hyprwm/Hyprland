@@ -750,7 +750,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});
-    registerConfigVar("cursor:zoom_disable_aa", Hyprlang::INT{1});
+    registerConfigVar("cursor:zoom_disable_aa", Hyprlang::INT{0});
     registerConfigVar("cursor:enable_hyprcursor", Hyprlang::INT{1});
     registerConfigVar("cursor:sync_gsettings_theme", Hyprlang::INT{1});
     registerConfigVar("cursor:hide_on_key_press", Hyprlang::INT{0});

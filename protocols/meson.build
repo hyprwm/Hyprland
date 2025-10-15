@@ -78,6 +78,7 @@ protocols = [
 	wayland_protocol_dir / 'staging/ext-workspace/ext-workspace-v1.xml',
 	wayland_protocol_dir / 'staging/ext-data-control/ext-data-control-v1.xml',
 	wayland_protocol_dir / 'staging/pointer-warp/pointer-warp-v1.xml',
+	wayland_protocol_dir / 'staging/fifo/fifo-v1.xml',
 ]
 
 wl_protocols = []

@@ -147,7 +147,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
         m_pending.reset();
 
-        if (!m_pendingWaiting) {
+        if (!m_pendingWaiting && !m_fifoLocked) {
             m_pendingWaiting = true;
             scheduleState(state);
         }

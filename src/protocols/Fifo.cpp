@@ -145,6 +145,7 @@ void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
         if (!fifo->m_surface)
             continue;
 
-        fifo->presented();
+        if (fifo->m_surface->m_fifoLocked)
+            fifo->presented();
     }
 }

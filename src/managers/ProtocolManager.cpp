@@ -66,6 +66,7 @@
 #include "../protocols/ExtDataDevice.hpp"
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
+#include "../protocols/CommitTiming.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -196,6 +197,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::commitTiming        = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
@@ -301,6 +303,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::extDataDevice.reset();
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
+    PROTO::commitTiming.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();
@@ -357,6 +360,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
 		PROTO::xdgTag->getGlobal(),
 		PROTO::xdgBell->getGlobal(),
         PROTO::fifo->getGlobal(),
+        PROTO::commitTiming->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

@@ -11,9 +11,9 @@
 
 static int  ret = 0;
 
-static bool spawnKitty(const std::string& class_) {
+static bool spawnKitty(const std::string& class_, const std::vector<std::string>& args = {}) {
     NLog::log("{}Spawning {}", Colors::YELLOW, class_);
-    if (!Tests::spawnKitty(class_)) {
+    if (!Tests::spawnKitty(class_, args)) {
         NLog::log("{}Error: {} did not spawn", Colors::RED, class_);
         return false;
     }
@@ -143,13 +143,17 @@ static bool expectActiveWindow(const std::string& class_, char fullscreen) {
     }
 }
 
-/// Tests the behavior of `focuswindow` dispatcher when the window to be focused
-/// is on a workspace with another fullscreen window.
-static bool testFocuswindowConflictingFullscreen() {
+/// Tests behavior of a window being focused when on that window's workspace
+/// another fullscreen window exists.
+static bool testWindowFocusOnFullscreenConflict() {
     if (!spawnKitty("kitty_A"))
         return false;
     if (!spawnKitty("kitty_B"))
         return false;
+
+    auto spawnKittyActivating = [] {
+        return spawnKitty("kitty_activating", {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "sleep 0.5 && kitten @ focus-window && sleep 0.5"});
+    };
 
     // Unfullscreen on conflict
     {
@@ -166,6 +170,15 @@ static bool testFocuswindowConflictingFullscreen() {
         // Dispatch-focus a different window
         OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
         expectActiveWindow("kitty_B", '0');
+
+        // Make a window that will request focus
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        expectActiveWindow("kitty_A", '2');
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        expectActiveWindow("kitty_activating", '0');
     }
 
     // Take over on conflict
@@ -184,6 +197,15 @@ static bool testFocuswindowConflictingFullscreen() {
         OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
         expectActiveWindow("kitty_B", '2');
         OK(getFromSocket("/dispatch fullscreenstate 0 0"));
+
+        // Make a window that will request focus
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        expectActiveWindow("kitty_A", '2');
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        expectActiveWindow("kitty_activating", '2');
     }
 
     // Do nothing on conflict (but the dispatcher ignores this setting).
@@ -203,6 +225,15 @@ static bool testFocuswindowConflictingFullscreen() {
         OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
         expectActiveWindow("kitty_B", '2');
         OK(getFromSocket("/dispatch fullscreenstate 0 0"));
+
+        // Make a window that will request focus - the setting is treated normally
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        expectActiveWindow("kitty_A", '2');
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        expectActiveWindow("kitty_A", '2');
     }
 
     NLog::log("{}Reloading config", Colors::YELLOW);
@@ -313,7 +344,7 @@ static bool test() {
     EXPECT(Tests::windowCount(), 0);
 
     testSwapWindow();
-    if (!testFocuswindowConflictingFullscreen()) {
+    if (!testWindowFocusOnFullscreenConflict()) {
         ret = 1;
         return false;
     }

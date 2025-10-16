@@ -134,23 +134,25 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             commitState(m_pending);
 
             // remove any pending states.
-            while (!m_pendingStates.empty()) {
-                m_pendingStates.pop();
-            }
-
-            m_pendingWaiting = false;
+            m_stateQueue.clear();
             m_pending.reset();
             return;
         }
 
-        // save state while we wait for buffer to become ready to read
-        const auto& state = m_pendingStates.emplace(makeUnique<SSurfaceState>(m_pending));
+        // save state while we wait for buffer to become ready
+        auto state = makeUnique<SSurfaceState>(m_pending);
         m_pending.reset();
 
-        if (!m_pendingWaiting && !m_fifoLocked) {
-            m_pendingWaiting = true;
-            scheduleState(state);
+        // fifo and fences first
+        m_events.stateCommit.emit(state);
+        // now for timer.
+        m_events.stateCommit2.emit(state);
+
+        if (state->rejected) {
+            return;
         }
+
+        scheduleState(m_stateQueue.enqueue(std::move(state)));
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -479,43 +481,31 @@ CBox CWLSurfaceResource::extends() {
 }
 
 void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
-    auto whenReadable = [this, surf = m_self, state] {
-        if (!surf || state.expired() || m_pendingStates.empty())
+    auto whenReadable = [this, surf = m_self](auto state, auto reason) {
+        if (!surf || !state)
             return;
 
-        while (!m_pendingStates.empty() && m_pendingStates.front() != state) {
-            commitState(*m_pendingStates.front());
-            m_pendingStates.pop();
-        }
-
-        commitState(*m_pendingStates.front());
-        m_pendingStates.pop();
-
-        // If more states are queued, schedule next state
-        if (!m_pendingStates.empty()) {
-            scheduleState(m_pendingStates.front());
-        } else {
-            m_pendingWaiting = false;
-        }
+        m_stateQueue.unlock(state, reason);
     };
 
     if (state->updated.bits.acquire) {
         // wait on acquire point for this surface, from explicit sync protocol
-        state->acquire.addWaiter(std::move(whenReadable));
+        state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LockReason::Fence); });
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        whenReadable();
+        m_stateQueue.unlock(state);
     } else if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         auto syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
 
-        if (syncFd.isValid())
-            g_pEventLoopManager->doOnReadable(std::move(syncFd), std::move(whenReadable));
-        else
-            whenReadable();
+        if (syncFd.isValid()) {
+            m_stateQueue.lock(state, LockReason::Fence);
+            g_pEventLoopManager->doOnReadable(std::move(syncFd), [state, whenReadable]() { whenReadable(state, LockReason::Fence); });
+        } else
+            m_stateQueue.unlock(state);
     } else {
         // state commit without a buffer.
-        whenReadable();
+        m_stateQueue.unlock(state);
     }
 }
 
@@ -667,7 +657,8 @@ CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_re
             return;
         }
 
-        RESOURCE->m_self = RESOURCE;
+        RESOURCE->m_self       = RESOURCE;
+        RESOURCE->m_stateQueue = CSurfaceStateQueue(RESOURCE);
 
         LOGM(LOG, "New wl_surface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
 

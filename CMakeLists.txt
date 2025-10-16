@@ -391,6 +391,7 @@ protocolnew("staging/ext-workspace" "ext-workspace-v1" false)
 protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fifo" "fifo-v1" false)
+protocolnew("staging/commit-timing" "commit-timing-v1" false)
 
 protocolwayland()
 

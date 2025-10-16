@@ -32,12 +32,12 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         m_pending.surfaceLocked = true;
     });
 
-    m_listeners.surfacePrecommit = m_surface->m_events.precommit.listen([this]() {
-        if (!m_pending.surfaceLocked || m_surface->m_fifoLocked)
+    m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {
+        if (!m_pending.surfaceLocked)
             return;
 
-        m_surface->m_fifoLocked = true;
-        m_pending               = {};
+        state->lockMask |= LockReason::Fifo;
+        m_pending = {};
     });
 }
 
@@ -50,17 +50,7 @@ bool CFifoResource::good() {
 }
 
 void CFifoResource::presented() {
-    while (!m_surface->m_pendingStates.empty() && m_surface->m_pendingStates.front()->updated.bits.buffer) {
-        m_surface->commitState(*m_surface->m_pendingStates.front());
-        m_surface->m_pendingStates.pop();
-    }
-
-    if (!m_surface->m_pendingStates.empty()) {
-        m_surface->scheduleState(m_surface->m_pendingStates.front());
-        m_surface->m_pendingStates.pop();
-    }
-
-    m_surface->m_fifoLocked = false;
+    m_surface->m_stateQueue.unlockAll(LockReason::Fifo);
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {
@@ -145,7 +135,6 @@ void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
         if (!fifo->m_surface)
             continue;
 
-        if (fifo->m_surface->m_fifoLocked)
-            fifo->presented();
+        fifo->presented();
     }
 }

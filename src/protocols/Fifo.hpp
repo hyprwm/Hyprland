@@ -22,11 +22,11 @@ class CFifoResource {
     WP<CWLSurfaceResource> m_surface;
 
     struct SState {
-        bool                  barrierSet    = false;
-        bool                  surfaceLocked = false;
+        bool barrierSet    = false;
+        bool surfaceLocked = false;
     };
 
-    SState  m_pending;
+    SState m_pending;
 
     struct {
         CHyprSignalListener surfacePrecommit;

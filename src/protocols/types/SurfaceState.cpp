@@ -62,6 +62,7 @@ void SSurfaceState::reset() {
     bufferDamage.clear();
 
     callbacks.clear();
+    lockMask = LockReason::None;
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {

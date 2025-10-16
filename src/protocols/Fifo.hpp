@@ -29,7 +29,7 @@ class CFifoResource {
     SState m_pending;
 
     struct {
-        CHyprSignalListener surfacePrecommit;
+        CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 
     void presented();

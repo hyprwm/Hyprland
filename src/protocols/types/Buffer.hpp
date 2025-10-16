@@ -30,6 +30,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
+    Hyprutils::OS::CFileDescriptor        m_syncFd;
 
     struct {
         CHyprSignalListener backendRelease;

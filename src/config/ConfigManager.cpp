@@ -1102,7 +1102,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
-        parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        try {
+            parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        } catch (...) { return "parse error: invalid reserved area"; }
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
     if (VAL && VAL->m_bSetByUser)
@@ -2084,17 +2086,22 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     int argno = 1;
 
-    mode.type        = DRM_MODE_TYPE_USERDEF;
-    mode.clock       = std::stof(args[argno++]) * 1000;
-    mode.hdisplay    = std::stoi(args[argno++]);
-    mode.hsync_start = std::stoi(args[argno++]);
-    mode.hsync_end   = std::stoi(args[argno++]);
-    mode.htotal      = std::stoi(args[argno++]);
-    mode.vdisplay    = std::stoi(args[argno++]);
-    mode.vsync_start = std::stoi(args[argno++]);
-    mode.vsync_end   = std::stoi(args[argno++]);
-    mode.vtotal      = std::stoi(args[argno++]);
-    mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    try {
+        mode.type        = DRM_MODE_TYPE_USERDEF;
+        mode.clock       = std::stof(args[argno++]) * 1000;
+        mode.hdisplay    = std::stoi(args[argno++]);
+        mode.hsync_start = std::stoi(args[argno++]);
+        mode.hsync_end   = std::stoi(args[argno++]);
+        mode.htotal      = std::stoi(args[argno++]);
+        mode.vdisplay    = std::stoi(args[argno++]);
+        mode.vsync_start = std::stoi(args[argno++]);
+        mode.vsync_end   = std::stoi(args[argno++]);
+        mode.vtotal      = std::stoi(args[argno++]);
+        mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "modeline parse error: invalid numeric value: {}", e.what());
+        return false;
+    }
 
     // clang-format off
     static std::unordered_map<std::string, uint32_t> flagsmap = {
@@ -2245,6 +2252,11 @@ bool CMonitorRuleParser::parseScale(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseTransform(const std::string& value) {
+    if (!isNumber(value)) {
+        m_error += "invalid transform ";
+        return false;
+    }
+
     const auto TSF = std::stoi(value);
     if (std::clamp(TSF, 0, 7) != TSF) {
         Debug::log(ERR, "Invalid transform {} in monitor", TSF);
@@ -2355,7 +2367,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            try {
+                parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            } catch (...) { return "parse error: invalid reserved area"; }
             return {};
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
@@ -2432,18 +2446,26 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     if (ARGS[1].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[1], true))
+        return "invalid point";
     float p1x = std::stof(ARGS[1]);
 
     if (ARGS[2].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[2], true))
+        return "invalid point";
     float p1y = std::stof(ARGS[2]);
 
     if (ARGS[3].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[3], true))
+        return "invalid point";
     float p2x = std::stof(ARGS[3]);
 
     if (ARGS[4].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[4], true))
+        return "invalid point";
     float p2y = std::stof(ARGS[4]);
 
     if (!ARGS[5].empty())

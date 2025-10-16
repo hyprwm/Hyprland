@@ -71,11 +71,6 @@ void CRenderPass::simplify() {
             if (WILLBLUR) {
                 CRegion liveBlurRegion;
                 for (auto& el2 : m_passElements) {
-                    // if we reach self, no problem, we can break.
-                    // if the blur is above us, we don't care, it will work fine.
-                    if (el2 == el)
-                        break;
-
                     if (!el2->element->needsLiveBlur())
                         continue;
 

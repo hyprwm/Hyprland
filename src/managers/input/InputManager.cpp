@@ -156,10 +156,6 @@ void CInputManager::sendMotionEventsToFocused() {
     if (!g_pCompositor->m_lastFocus || isConstrained())
         return;
 
-    // Don't steal pointer focus when buttons are held (e.g., during drags)
-    if (!m_currentlyHeldButtons.empty())
-        return;
-
     // todo: this sucks ass
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock());
     const auto PLS     = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
@@ -1617,6 +1613,10 @@ bool CInputManager::isLocked() {
     const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
     return CONSTRAINT && CONSTRAINT->isLocked();
+}
+
+bool CInputManager::hasHeldButtons() {
+    return !m_currentlyHeldButtons.empty();
 }
 
 void CInputManager::updateCapabilities() {

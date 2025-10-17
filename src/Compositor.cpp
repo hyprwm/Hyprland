@@ -881,15 +881,18 @@ bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
 }
 
 PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
-    const auto  PMONITOR          = getMonitorFromVector(pos);
-    static auto PRESIZEONBORDER   = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PBORDERSIZE       = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PBORDERGRABEXTEND = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
-    static auto PSPECIALFALLTHRU  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
-    const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
-    const bool  ONLY_PRIORITY     = properties & FOCUS_PRIORITY;
+    const auto  PMONITOR             = getMonitorFromVector(pos);
+    static auto PRESIZEONBORDER      = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+    static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+    static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
+    const bool  ONLY_PRIORITY        = properties & FOCUS_PRIORITY;
 
-    const auto  isShadowedByModal = [](PHLWINDOW w) -> bool { return w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal(); };
+    const auto  isShadowedByModal = [](PHLWINDOW w) -> bool {
+        return *PMODALPARENTBLOCKING && w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal();
+    };
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
@@ -1113,10 +1116,11 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 
 void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
 
-    static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PFOLLOWMOUSE         = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PSPECIALFALLTHROUGH  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
 
-    if (pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
+    if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
         Debug::log(LOG, "Refusing focus to window shadowed by modal dialog");
         return;
     }

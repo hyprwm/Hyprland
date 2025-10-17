@@ -386,7 +386,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     pushMonitorTransformEnabled(false);
 
-    auto addLastPressToHistory = [this](const Vector2D& pos, bool killing, bool touch) {
+    static auto addLastPressToHistory = [this](const Vector2D& pos, bool killing, bool touch) {
         // shift the new pos and time in
         std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
         m_pressedHistoryPositions[0] = pos;
@@ -1313,7 +1313,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_finalScreenShader.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
     m_finalScreenShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "pos");
 
-    auto uniformRequireNoDamage = [this](eShaderUniform uniform, const std::string& name) {
+    static auto uniformRequireNoDamage = [this](eShaderUniform uniform, const std::string& name) {
         if (*PDT == 0)
             return;
         if (m_finalScreenShader.uniformLocations[uniform] == -1)

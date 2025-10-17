@@ -2029,7 +2029,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 
     m_lastCursorData.name = name;
 
-    auto getShapeOrDefault = [](std::string_view name) -> wpCursorShapeDeviceV1Shape {
+    static auto getShapeOrDefault = [](std::string_view name) -> wpCursorShapeDeviceV1Shape {
         const auto it = std::ranges::find(CURSOR_SHAPE_NAMES, name);
 
         if (it == CURSOR_SHAPE_NAMES.end()) {

@@ -1725,6 +1725,21 @@ bool CWindow::isModal() {
     return (m_xwaylandSurface && m_xwaylandSurface->m_modal);
 }
 
+bool CWindow::isX11Popup() {
+    if (!m_isX11 || !m_xwaylandSurface)
+        return false;
+
+    for (auto const& a : m_xwaylandSurface->m_atoms) {
+        if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"])
+            return true;
+    }
+
+    return false;
+}
+
 Vector2D CWindow::requestedMinSize() {
     bool hasSizeHints = m_xwaylandSurface ? m_xwaylandSurface->m_sizeHints : false;
     bool hasTopLevel  = m_xdgSurface ? m_xdgSurface->m_toplevel : false;

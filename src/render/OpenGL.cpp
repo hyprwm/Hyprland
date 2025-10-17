@@ -409,7 +409,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 #endif
     };
 
-    static auto P2 = g_pHookSystem->hookDynamic("mouseButton", [addLastPressToHistory](void* self, SCallbackInfo& info, std::any e) {
+    static auto P2 = g_pHookSystem->hookDynamic("mouseButton", [](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<IPointer::SButtonEvent>(e);
 
         if (E.state != WL_POINTER_BUTTON_STATE_PRESSED)
@@ -418,7 +418,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         addLastPressToHistory(g_pInputManager->getMouseCoordsInternal(), g_pInputManager->getClickMode() == CLICKMODE_KILL, false);
     });
 
-    static auto P3 = g_pHookSystem->hookDynamic("touchDown", [addLastPressToHistory](void* self, SCallbackInfo& info, std::any e) {
+    static auto P3 = g_pHookSystem->hookDynamic("touchDown", [](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<ITouch::SDownEvent>(e);
 
         auto PMONITOR = g_pCompositor->getMonitorFromName(!E.device->m_boundOutput.empty() ? E.device->m_boundOutput : "");

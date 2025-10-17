@@ -694,11 +694,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         SP<SDwindleNodeData> PHOUTER = nullptr;
         SP<SDwindleNodeData> PHINNER = nullptr;
 
-        bool              LEFT;
-        bool              TOP;
-        bool              RIGHT;
-        bool              BOTTOM;
-        bool              NONE;
+        bool              LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
+        bool              TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
+        bool              RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
+        bool              BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        bool              NONE   = corner == CORNER_NONE;
 
         if (KEYBOARD_RESIZE && *PSMARTRESIZING == 2) {
             LEFT   = ((*PSMARTRESIZING >= 1) && (corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT));
@@ -708,12 +708,6 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
             BOTTOM = (((*PSMARTRESIZING == 1) && (corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP)) ||
                       (!(corner == CORNER_BOTTOMRIGHT) && !(corner == CORNER_BOTTOMLEFT)));
             NONE   = (!KEYBOARD_RESIZE);
-        } else {
-            LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
-            TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
-            RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
-            BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
-            NONE   = corner == CORNER_NONE;
         }
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent.lock()) {

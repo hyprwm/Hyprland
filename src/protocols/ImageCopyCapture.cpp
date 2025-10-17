@@ -134,10 +134,10 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
             return;
         }
 
-        auto [sec, nsec] = Time::secNsec(Time::steadyNow());
-        uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
-        uint32_t tvSecLo = sec & 0xFFFFFFFF;
-        m_resource->sendPresentationTime(tvSecHi, tvSecLo, nsec);
+        // auto [sec, nsec] = Time::secNsec(Time::steadyNow());
+        // uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
+        // uint32_t tvSecLo = sec & 0xFFFFFFFF;
+        // m_resource->sendPresentationTime(tvSecHi, tvSecLo, nsec);
 
         auto error = m_frame->share(m_buffer, [this](eScreenshareResult result) {
             switch (result) {
@@ -147,7 +147,7 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
                     auto [sec, nsec] = Time::secNsec(Time::steadyNow());
                     uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
                     uint32_t tvSecLo = sec & 0xFFFFFFFF;
-                    // m_resource->sendPresentationTime(tvSecHi, tvSecLo, nsec);
+                    m_resource->sendPresentationTime(tvSecHi, tvSecLo, nsec);
                     break;
             }
         });

@@ -284,7 +284,7 @@ bool CScreenshareFrame::copyDmabuf() {
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([self = m_self]() {
-        if (self.expired() && !self->m_copied)
+        if (!self || self.expired() || self->m_copied)
             return;
 
         LOGM(TRACE, "Copied frame via dma");

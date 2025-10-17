@@ -7,7 +7,6 @@
 #include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
 
-// TODO: integrate into screencopy, toplevel export, and image copy capture
 // TODO: do screenshare damage
 // TODO: verify that transforms are correct
 // TODO: format bit flip for BGRA?

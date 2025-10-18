@@ -616,8 +616,55 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {
     if (m_seatGrab) {
         auto oldGrab = m_seatGrab;
+
+        // Try to find the parent window from the grab
+        PHLWINDOW parentWindow;
+        if (oldGrab && oldGrab->m_surfs.size()) {
+            // Try to find the surface that had focus when the grab ended
+            SP<CWLSurfaceResource> focusedSurf;
+            auto                   keyboardFocus = m_state.keyboardFocus.lock();
+            auto                   pointerFocus  = m_state.pointerFocus.lock();
+
+            // Check if keyboard or pointer focus is in the grab
+            for (auto const& s : oldGrab->m_surfs) {
+                auto surf = s.lock();
+                if (surf && (surf == keyboardFocus || surf == pointerFocus)) {
+                    focusedSurf = surf;
+                    break;
+                }
+            }
+
+            // Fall back to first surface if no focused surface found
+            if (!focusedSurf)
+                focusedSurf = oldGrab->m_surfs.front().lock();
+
+            if (focusedSurf) {
+                auto hlSurface = CWLSurface::fromResource(focusedSurf);
+                if (hlSurface) {
+                    auto popup = hlSurface->getPopup();
+                    if (popup) {
+                        auto t1Owner = popup->getT1Owner();
+                        if (t1Owner)
+                            parentWindow = t1Owner->getWindow();
+                    }
+                }
+            }
+        }
+
         m_seatGrab.reset();
-        g_pInputManager->refocus();
+
+        static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+        if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+
+            // If this was a popup grab, focus its parent window to maintain context
+            if (validMapped(parentWindow)) {
+                g_pCompositor->focusWindow(parentWindow);
+                Debug::log(LOG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
+            } else
+                g_pInputManager->refocusLastWindow(PMONITOR);
+        } else
+            g_pInputManager->refocus();
 
         auto           currentFocus = m_state.keyboardFocus.lock();
         auto           refocus      = !currentFocus;

@@ -121,7 +121,7 @@ static bool test() {
     }
 
     OK(getFromSocket("/keyword gestures:workspace_swipe_invert 1"));
-    OK(getFromSocket("/keyword gestures:workspace_swipe_create_new 0"));
+    OK(getFromSocket("/keyword gestures:workspace_swipe_bound 0"));
 
     OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
 

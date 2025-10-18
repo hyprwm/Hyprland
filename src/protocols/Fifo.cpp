@@ -40,14 +40,29 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         //#TODO:
         // this feels wrong, but if we have no pending frames, presented might never come because
         // we are waiting on the barrier to unlock and no damage is around.
-        for (auto& m : m_surface->m_enteredOutputs) {
-            if (!m)
-                continue;
+        if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
+            for (auto& m : g_pCompositor->m_monitors) {
+                if (!m || !m->m_enabled)
+                    continue;
 
-            g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
+                if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                }
+            }
+        } else {
+            for (auto& m : m_surface->m_enteredOutputs) {
+                if (!m)
+                    continue;
+
+                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            }
         }
 
-        state->lockMask |= LockReason::Fifo;
+        // only lock once its mapped.
+        if (m_surface->m_mapped)
+            state->lockMask |= LockReason::Fifo;
+
         m_pending = {};
     });
 }
@@ -142,11 +157,27 @@ void CFifoProtocol::destroyResource(CFifoResource* res) {
 }
 
 void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
-    //#TODO: this should probably not send presented from the wrong monitor.
     for (const auto& fifo : m_fifos) {
         if (!fifo->m_surface)
             continue;
 
-        fifo->presented();
+        if (!fifo->m_surface->m_mapped) {
+            fifo->presented();
+            continue;
+        }
+
+        auto it = std::ranges::find_if(fifo->m_surface->m_enteredOutputs, [m](auto& mon) { return mon == m; });
+        if (it != fifo->m_surface->m_enteredOutputs.end()) {
+            fifo->presented();
+            continue;
+        }
+
+        if (fifo->m_surface->m_hlSurface) {
+            auto box = fifo->m_surface->m_hlSurface->getSurfaceBoxGlobal();
+            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                fifo->presented();
+                continue;
+            }
+        }
     }
 }

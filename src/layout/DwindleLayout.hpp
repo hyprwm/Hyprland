@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include "../config/ConfigDataValues.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
 #include <list>
@@ -11,6 +12,15 @@
 
 class CHyprDwindleLayout;
 enum eFullscreenMode : int8_t;
+
+struct SNodeDisplayEdgeFlags {
+    bool top = false, bottom = false, left = false, right = false;
+};
+
+struct SWorkspaceGaps {
+    CCssGapData in;
+    CCssGapData out;
+};
 
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;
@@ -65,6 +75,9 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onDisable();
 
   private:
+    SWorkspaceGaps              getWorkspaceGaps(const PHLWORKSPACE& pWorkspace);
+    SNodeDisplayEdgeFlags       getNodeDisplayEdgeFlags(const CBox& box, const PHLMONITOR& monitor);
+
     std::list<SDwindleNodeData> m_dwindleNodesData;
 
     struct {

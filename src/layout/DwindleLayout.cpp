@@ -8,14 +8,51 @@
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 
+SWorkspaceGaps CHyprDwindleLayout::getWorkspaceGaps(const PHLWORKSPACE& pWorkspace) {
+    const auto     WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
+    static auto    PGAPSINDATA   = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    static auto    PGAPSOUTDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    auto* const    PGAPSIN       = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+    auto* const    PGAPSOUT      = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+
+    SWorkspaceGaps gaps;
+    gaps.in  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    gaps.out = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
+    return gaps;
+}
+
+SNodeDisplayEdgeFlags CHyprDwindleLayout::getNodeDisplayEdgeFlags(const CBox& box, const PHLMONITOR& monitor) {
+    return {
+        .top    = STICKS(box.y, monitor->m_position.y + monitor->m_reservedTopLeft.y),
+        .bottom = STICKS(box.y + box.h, monitor->m_position.y + monitor->m_size.y - monitor->m_reservedBottomRight.y),
+        .left   = STICKS(box.x, monitor->m_position.x + monitor->m_reservedTopLeft.x),
+        .right  = STICKS(box.x + box.w, monitor->m_position.x + monitor->m_size.x - monitor->m_reservedBottomRight.x),
+    };
+}
+
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
         static auto PSMARTSPLIT    = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
         static auto PPRESERVESPLIT = CConfigValue<Hyprlang::INT>("dwindle:preserve_split");
         static auto PFLMULT        = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
 
+        const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceID);
+        if (!PWORKSPACE)
+            return;
+
+        const auto PMONITOR = PWORKSPACE->m_monitor.lock();
+        if (!PMONITOR)
+            return;
+
+        const auto edges       = layout->getNodeDisplayEdgeFlags(box, PMONITOR);
+        auto [gapsIn, gapsOut] = layout->getWorkspaceGaps(PWORKSPACE);
+
+        const Vector2D availableSize = box.size() -
+            Vector2D{(edges.left ? gapsOut.m_left : gapsIn.m_left / 2.f) + (edges.right ? gapsOut.m_right : gapsIn.m_right / 2.f),
+                     (edges.top ? gapsOut.m_top : gapsIn.m_top / 2.f) + (edges.bottom ? gapsOut.m_bottom : gapsIn.m_bottom / 2.f)};
+
         if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0)
-            splitTop = box.h * *PFLMULT > box.w;
+            splitTop = availableSize.y * *PFLMULT > availableSize.x;
 
         if (verticalOverride)
             splitTop = true;
@@ -26,14 +63,28 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
         if (SPLITSIDE) {
             // split left/right
-            const float FIRSTSIZE = box.w / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
-            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
+            const float gapsAppliedToChild1 = (edges.left ? gapsOut.m_left : gapsIn.m_left / 2.f) + gapsIn.m_right / 2.f;
+            const float gapsAppliedToChild2 = gapsIn.m_left / 2.f + (edges.right ? gapsOut.m_right : gapsIn.m_right / 2.f);
+            const float totalGaps           = gapsAppliedToChild1 + gapsAppliedToChild2;
+            const float totalAvailable      = box.w - totalGaps;
+
+            const float child1Available = totalAvailable * (splitRatio / 2.f);
+            const float FIRSTSIZE       = child1Available + gapsAppliedToChild1;
+
+            children[0]->box = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
+            children[1]->box = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
         } else {
             // split top/bottom
-            const float FIRSTSIZE = box.h / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
-            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
+            const float gapsAppliedToChild1 = (edges.top ? gapsOut.m_top : gapsIn.m_top / 2.f) + gapsIn.m_bottom / 2.f;
+            const float gapsAppliedToChild2 = gapsIn.m_top / 2.f + (edges.bottom ? gapsOut.m_bottom : gapsIn.m_bottom / 2.f);
+            const float totalGaps           = gapsAppliedToChild1 + gapsAppliedToChild2;
+            const float totalAvailable      = box.h - totalGaps;
+
+            const float child1Available = totalAvailable * (splitRatio / 2.f);
+            const float FIRSTSIZE       = child1Available + gapsAppliedToChild1;
+
+            children[0]->box = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
+            children[1]->box = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
         }
 
         children[0]->recalcSizePosRecursive(force);
@@ -115,10 +166,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     }
 
     // for gaps outer
-    const bool DISPLAYLEFT   = STICKS(pNode->box.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
-    const bool DISPLAYRIGHT  = STICKS(pNode->box.x + pNode->box.w, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
-    const bool DISPLAYTOP    = STICKS(pNode->box.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
-    const bool DISPLAYBOTTOM = STICKS(pNode->box.y + pNode->box.h, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+    const auto edges = getNodeDisplayEdgeFlags(pNode->box, PMONITOR);
 
     const auto PWINDOW = pNode->pWindow.lock();
     // get specific gaps and rules for this workspace,
@@ -179,9 +227,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         }
     }
 
-    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), sc<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(edges.left ? gapsOut.m_left : gapsIn.m_left), sc<double>(edges.top ? gapsOut.m_top : gapsIn.m_top));
 
-    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(edges.right ? gapsOut.m_right : gapsIn.m_right), sc<double>(edges.bottom ? gapsOut.m_bottom : gapsIn.m_bottom));
 
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
@@ -349,7 +397,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     // get the node under our cursor
-
     m_dwindleNodesData.emplace_back();
     const auto NEWPARENT = &m_dwindleNodesData.back();
 
@@ -362,8 +409,17 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     static auto PWIDTHMULTIPLIER = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
 
+    const auto  edges = getNodeDisplayEdgeFlags(NEWPARENT->box, PMONITOR);
+
+    const auto  WORKSPACE  = g_pCompositor->getWorkspaceByID(PNODE->workspaceID);
+    auto [gapsIn, gapsOut] = getWorkspaceGaps(WORKSPACE);
+
     // if cursor over first child, make it first, etc
-    const auto SIDEBYSIDE = NEWPARENT->box.w > NEWPARENT->box.h * *PWIDTHMULTIPLIER;
+    const Vector2D availableSize = NEWPARENT->box.size() -
+        Vector2D{(edges.left ? gapsOut.m_left : gapsIn.m_left / 2.f) + (edges.right ? gapsOut.m_right : gapsIn.m_right / 2.f),
+                 (edges.top ? gapsOut.m_top : gapsIn.m_top / 2.f) + (edges.bottom ? gapsOut.m_bottom : gapsIn.m_bottom / 2.f)};
+
+    const auto SIDEBYSIDE = availableSize.x > availableSize.y * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
     static auto PFORCESPLIT                = CConfigValue<Hyprlang::INT>("dwindle:force_split");
@@ -611,11 +667,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     static auto PSMARTRESIZING = CConfigValue<Hyprlang::INT>("dwindle:smart_resizing");
 
     // get some data about our window
-    const auto PMONITOR      = PWINDOW->m_monitor.lock();
-    const bool DISPLAYLEFT   = STICKS(PWINDOW->m_position.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
-    const bool DISPLAYRIGHT  = STICKS(PWINDOW->m_position.x + PWINDOW->m_size.x, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
-    const bool DISPLAYTOP    = STICKS(PWINDOW->m_position.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
-    const bool DISPLAYBOTTOM = STICKS(PWINDOW->m_position.y + PWINDOW->m_size.y, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+    const auto PMONITOR = PWINDOW->m_monitor.lock();
+    const auto edges    = getNodeDisplayEdgeFlags(CBox{PWINDOW->m_position, PWINDOW->m_size}, PMONITOR);
 
     if (PWINDOW->m_isPseudotiled) {
         if (!m_pseudoDragFlags.started) {
@@ -663,10 +716,10 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
 
     // construct allowed movement
     Vector2D allowedMovement = pixResize;
-    if (DISPLAYLEFT && DISPLAYRIGHT)
+    if (edges.left && edges.right)
         allowedMovement.x = 0;
 
-    if (DISPLAYBOTTOM && DISPLAYTOP)
+    if (edges.bottom && edges.top)
         allowedMovement.y = 0;
 
     if (*PSMARTRESIZING == 1) {
@@ -676,10 +729,10 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         SDwindleNodeData* PHOUTER = nullptr;
         SDwindleNodeData* PHINNER = nullptr;
 
-        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
-        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
-        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
-        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || edges.right;
+        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || edges.bottom;
+        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || edges.left;
+        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || edges.top;
         const auto        NONE   = corner == CORNER_NONE;
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {

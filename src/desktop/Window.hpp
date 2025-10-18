@@ -399,6 +399,7 @@ class CWindow {
     void                       unsetWindowData(eOverridePriority priority);
     bool                       isX11OverrideRedirect();
     bool                       isModal();
+    bool                       isX11Popup();
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
     Vector2D                   realToReportSize();

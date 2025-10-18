@@ -359,6 +359,109 @@ static bool test() {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 
+    NLog::log("{}Testing asymmetric gap splits", Colors::YELLOW);
+    {
+        OK(getFromSocket("/dispatch workspace name:gap_split_test"));
+        OK(getFromSocket("r/keyword general:gaps_in 0"));
+        OK(getFromSocket("r/keyword general:border_size 0"));
+        OK(getFromSocket("r/keyword dwindle:split_width_multiplier 1.0"));
+        OK(getFromSocket("r/keyword workspace name:gap_split_test,gapsout:0 1000 0 0"));
+
+        NLog::log("{}Testing default split (force_split = 0)", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 0"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+
+        if (!Tests::spawnKitty("gaps_kitty_B")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+
+        NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        NLog::log("{}Testing force_split = 1", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 1"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+        if (!Tests::spawnKitty("gaps_kitty_B")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+
+        NLog::log("{}Expecting vertical split (B above A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        NLog::log("{}Expecting horizontal split (C left of B)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        if (!Tests::spawnKitty("gaps_kitty_C")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        } // Spawn C
+
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_C"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        NLog::log("{}Testing force_split = 2", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 2"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+        if (!Tests::spawnKitty("gaps_kitty_B")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+
+        NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        NLog::log("{}Expecting horizontal split (C right of A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        if (!Tests::spawnKitty("gaps_kitty_C")) {
+            ret = 1;
+            goto cleanup_asymmetric_gaps;
+        }
+
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_C"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+
+    cleanup_asymmetric_gaps:;
+        NLog::log("{}Cleaning up asymmetric gap test", Colors::YELLOW);
+        Tests::killAllWindows();
+        OK(getFromSocket("/reload"));
+    }
+
+    // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 

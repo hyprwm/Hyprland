@@ -9,6 +9,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../../protocols/cursor-shape-v1.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -108,8 +109,11 @@ class CHyprRenderer {
     std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {
-        int                           hotspotX = 0;
-        int                           hotspotY = 0;
+        int                           hotspotX      = 0;
+        int                           hotspotY      = 0;
+        wpCursorShapeDeviceV1Shape    shape         = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        wpCursorShapeDeviceV1Shape    shapePrevious = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        CTimer                        switchedTimer;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;
     } m_lastCursorData;
@@ -139,6 +143,7 @@ class CHyprRenderer {
     bool shouldBlur(WP<CPopup> p);
 
     bool m_cursorHidden                           = false;
+    bool m_cursorHiddenByCondition                = false;
     bool m_cursorHasSurface                       = false;
     SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;

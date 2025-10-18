@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
 #include <ranges>
+#include <algorithm>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../desktop/Window.hpp"
@@ -716,7 +717,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
         case CLICKMODE_DEFAULT:
             Debug::log(LOG, "SetClickMode: DEFAULT");
             m_clickBehavior = CLICKMODE_DEFAULT;
-            g_pHyprRenderer->setCursorFromName("left_ptr");
+            g_pHyprRenderer->setCursorFromName("left_ptr", true);
             break;
 
         case CLICKMODE_KILL:
@@ -728,7 +729,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            g_pHyprRenderer->setCursorFromName("crosshair");
+            g_pHyprRenderer->setCursorFromName("crosshair", true);
             break;
         default: break;
     }

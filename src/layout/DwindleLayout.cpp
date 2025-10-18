@@ -594,6 +594,10 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
 
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
+    const bool KEYBOARD_RESIZE = corner == CORNER_KEYBOARD;
+    if (KEYBOARD_RESIZE)
+        corner = CORNER_NONE;
+
     if (!validMapped(PWINDOW))
         return;
 
@@ -669,18 +673,28 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     if (DISPLAYBOTTOM && DISPLAYTOP)
         allowedMovement.y = 0;
 
-    if (*PSMARTRESIZING == 1) {
+    if (*PSMARTRESIZING > 0) {
         // Identify inner and outer nodes for both directions
         SDwindleNodeData* PVOUTER = nullptr;
         SDwindleNodeData* PVINNER = nullptr;
         SDwindleNodeData* PHOUTER = nullptr;
         SDwindleNodeData* PHINNER = nullptr;
 
-        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
-        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
-        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
-        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
-        const auto        NONE   = corner == CORNER_NONE;
+        bool              LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
+        bool              TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
+        bool              RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
+        bool              BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        bool              NONE   = corner == CORNER_NONE;
+
+        if (KEYBOARD_RESIZE && *PSMARTRESIZING == 2) {
+            LEFT   = ((*PSMARTRESIZING >= 1) && (corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT));
+            TOP    = ((*PSMARTRESIZING >= 1) && (corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM));
+            RIGHT  = (((*PSMARTRESIZING == 1) && (corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT)) ||
+                     (!(corner == CORNER_TOPRIGHT) && !(corner == CORNER_BOTTOMRIGHT)));
+            BOTTOM = (((*PSMARTRESIZING == 1) && (corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP)) ||
+                      (!(corner == CORNER_BOTTOMRIGHT) && !(corner == CORNER_BOTTOMLEFT)));
+            NONE   = (!KEYBOARD_RESIZE);
+        }
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
             const auto PPARENT = PCURRENT->pParent;

@@ -1,4 +1,5 @@
 #include "Fifo.hpp"
+#include "Compositor.hpp"
 #include "core/Compositor.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../helpers/Monitor.hpp"
@@ -35,6 +36,16 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {
         if (!m_pending.surfaceLocked)
             return;
+
+        //#TODO:
+        // this feels wrong, but if we have no pending frames, presented might never come because
+        // we are waiting on the barrier to unlock and no damage is around.
+        for (auto& m : m_surface->m_enteredOutputs) {
+            if (!m)
+                continue;
+
+            g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+        }
 
         state->lockMask |= LockReason::Fifo;
         m_pending = {};
@@ -131,6 +142,7 @@ void CFifoProtocol::destroyResource(CFifoResource* res) {
 }
 
 void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
+    //#TODO: this should probably not send presented from the wrong monitor.
     for (const auto& fifo : m_fifos) {
         if (!fifo->m_surface)
             continue;

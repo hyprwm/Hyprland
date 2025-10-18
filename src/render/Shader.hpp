@@ -63,6 +63,7 @@ enum eShaderUniform : uint8_t {
     SHADER_BRIGHTNESS,
     SHADER_NOISE,
     SHADER_POINTER,
+    SHADER_CAPTURE,
 
     SHADER_LAST,
 };

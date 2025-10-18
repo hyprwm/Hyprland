@@ -1,11 +1,38 @@
 #include "BorderPassElement.hpp"
 #include "../OpenGL.hpp"
+#include "../../desktop/Window.hpp"
+#include "../Renderer.hpp"
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
 
 CBorderPassElement::CBorderPassElement(const CBorderPassElement::SBorderData& data_) : m_data(data_) {
     ;
 }
 
 void CBorderPassElement::draw(const CRegion& damage) {
+    const auto prevWindow   = g_pHyprOpenGL->m_renderData.currentWindow;
+    const bool prevCaptures = g_pHyprOpenGL->captureWritesEnabled();
+
+    g_pHyprOpenGL->m_renderData.currentWindow = m_data.pWindow;
+    const auto window                         = m_data.pWindow.lock();
+    bool       allowCapture                   = !window || !window->m_windowData.noScreenShare.valueOrDefault();
+
+    if (window && window->m_windowData.noScreenShare.valueOrDefault()) {
+        const bool blackout = CHyprRenderer::shouldBlackoutNoScreenShare();
+        if (blackout && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor())
+            allowCapture = true;
+        else
+            allowCapture = false;
+    }
+
+    g_pHyprOpenGL->setCaptureWritesEnabled(allowCapture);
+
+    CScopeGuard guard{[prevWindow, prevCaptures]() {
+        g_pHyprOpenGL->m_renderData.currentWindow = prevWindow;
+        g_pHyprOpenGL->setCaptureWritesEnabled(prevCaptures);
+    }};
+
     if (m_data.hasGrad2)
         g_pHyprOpenGL->renderBorder(
             m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,

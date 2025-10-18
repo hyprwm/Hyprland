@@ -112,10 +112,8 @@ void CMonitor::onConnect(bool noRule) {
             ts = nullptr;
         }
 
-        if (!ts)
-            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
-        else
-            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
+        auto time = ts ? Time::fromTimespec(event.when) : Time::steadyNow();
+        PROTO::presentation->onPresented(m_self.lock(), time, event.refresh, event.seq, event.flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -138,7 +136,7 @@ void CMonitor::onConnect(bool noRule) {
             });
         }
 
-        m_frameScheduler->onPresented();
+        m_frameScheduler->onPresented(time);
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

@@ -30,6 +30,7 @@ runs:
           libc++ \
           libdisplay-info \
           libdrm \
+          libei \
           libepoxy \
           libfontenc \
           libglvnd \

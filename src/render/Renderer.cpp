@@ -1087,6 +1087,25 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     }
 }
 
+static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main) {
+    const auto CAN_USE_WINDOW       = pWindow && main;
+    const auto WINDOW_SIZE_MISALIGN = CAN_USE_WINDOW && pWindow->getReportedSize() != pWindow->m_wlSurface->resource()->m_current.size;
+
+    if (pSurface->m_current.viewport.hasDestination)
+        return (pSurface->m_current.viewport.destination * pMonitor->m_scale).round();
+
+    if (pSurface->m_current.viewport.hasSource)
+        return (pSurface->m_current.viewport.source.size() * pMonitor->m_scale).round();
+
+    if (WINDOW_SIZE_MISALIGN)
+        return (pSurface->m_current.size * pMonitor->m_scale).round();
+
+    if (CAN_USE_WINDOW)
+        return (pWindow->getReportedSize() * pMonitor->m_scale).round();
+
+    return std::nullopt;
+}
+
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_isX11) {
@@ -1123,14 +1142,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // this will break if later on xdg geometry is hit, but we really try
         // to let the apps know to NOT add CSD. Also if source is there.
         // there is no way to fix this if that's the case
-        if (*PEXPANDEDGES) {
+        {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
-            const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
-                                                pSurface->m_current.viewport.destination :
-                                                (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
-                                        pMonitor->m_scale)
-                                           .round();
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE > 1 && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
+            const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());
 
             const auto RATIO = projSize / EXPECTED_SIZE;
             if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {

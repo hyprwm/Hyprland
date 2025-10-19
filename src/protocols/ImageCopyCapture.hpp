@@ -12,6 +12,7 @@
 #include "ext-image-copy-capture-v1.hpp"
 
 class IHLBuffer;
+class CWLPointerResource;
 class CScreenshareSession;
 class CScreenshareFrame;
 
@@ -62,6 +63,28 @@ class CImageCopyCaptureSession {
     friend class CImageCopyCaptureFrame;
 };
 
+class CImageCopyCaptureCursorSession {
+  public:
+    CImageCopyCaptureCursorSession(SP<CExtImageCopyCaptureCursorSessionV1> resource, SP<CImageCaptureSource> source, SP<CWLPointerResource> pointer);
+    ~CImageCopyCaptureCursorSession();
+
+  private:
+    SP<CExtImageCopyCaptureCursorSessionV1> m_resource;
+    SP<CImageCaptureSource>                 m_source;
+    SP<CWLPointerResource>                  m_pointer;
+    UP<CImageCopyCaptureSession>            m_captureSession;
+
+    bool                                    m_entered = false;
+    CBox                                    m_sourceBox;
+    Vector2D                                m_pos, m_hotspot;
+
+    struct {
+        CHyprSignalListener commit;
+    } m_listeners;
+
+    void sendCursorEvents();
+};
+
 class CImageCopyCaptureProtocol : public IWaylandProtocol {
   public:
     CImageCopyCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name);
@@ -70,13 +93,15 @@ class CImageCopyCaptureProtocol : public IWaylandProtocol {
 
     void         destroyResource(CExtImageCopyCaptureManagerV1* resource);
     void         destroyResource(CImageCopyCaptureSession* resource);
+    void         destroyResource(CImageCopyCaptureCursorSession* resource);
     void         destroyResource(CImageCopyCaptureFrame* resource);
 
   private:
-    std::vector<SP<CExtImageCopyCaptureManagerV1>> m_managers;
-    std::vector<SP<CImageCopyCaptureSession>>      m_sessions;
+    std::vector<SP<CExtImageCopyCaptureManagerV1>>  m_managers;
+    std::vector<SP<CImageCopyCaptureSession>>       m_sessions;
+    std::vector<SP<CImageCopyCaptureCursorSession>> m_cursorSessions;
 
-    std::vector<SP<CImageCopyCaptureFrame>>        m_frames;
+    std::vector<SP<CImageCopyCaptureFrame>>         m_frames;
 
     friend class CImageCopyCaptureSession;
 };

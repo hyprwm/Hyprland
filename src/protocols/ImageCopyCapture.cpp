@@ -1,6 +1,9 @@
 #include "ImageCopyCapture.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
+#include "../managers/PointerManager.hpp"
+#include "./core/Seat.hpp"
 #include "LinuxDMABUF.hpp"
+#include "../desktop/Window.hpp"
 #include <cstring>
 
 CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
@@ -80,6 +83,58 @@ void CImageCopyCaptureSession::sendConstraints() {
     m_resource->sendBufferSize(m_bufferSize.x, m_bufferSize.y);
 
     m_resource->sendDone();
+}
+
+CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyCaptureCursorSessionV1> resource, SP<CImageCaptureSource> source, SP<CWLPointerResource> pointer) :
+    m_resource(resource), m_source(source), m_pointer(pointer) {
+    if (!m_source || (!m_source->m_monitor && !m_source->m_window))
+        return;
+
+    const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
+
+    if (m_source->m_monitor) {
+        m_sourceBox = PMONITOR->logicalBox();
+    } else {
+        m_sourceBox = CBox{m_source->m_window->m_position, m_source->m_window->m_size};
+    }
+
+    sendCursorEvents();
+    m_listeners.commit = PMONITOR->m_events.commit.listen([this, PMONITOR]() { sendCursorEvents(); });
+
+    m_resource->setDestroy([this](CExtImageCopyCaptureCursorSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
+    m_resource->setGetCaptureSession([this](CExtImageCopyCaptureCursorSessionV1* pMgr, uint32_t id) {
+        // TODO: implement this
+        m_resource->error(-1, "not implemented");
+    });
+}
+
+void CImageCopyCaptureCursorSession::sendCursorEvents() {
+    const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
+    bool       overlaps = m_sourceBox.overlaps(g_pPointerManager->getCursorBoxGlobal());
+
+    if (m_entered && !overlaps) {
+        m_entered = false;
+        m_resource->sendLeave();
+        return;
+    } else if (!m_entered && overlaps) {
+        m_entered = true;
+        m_resource->sendEnter();
+    }
+
+    if (!overlaps)
+        return;
+
+    Vector2D pos = g_pPointerManager->position() - m_sourceBox.pos();
+    if (pos != m_pos) {
+        m_pos = pos;
+        m_resource->sendPosition(m_pos.x, m_pos.y);
+    }
+
+    Vector2D hotspot = g_pPointerManager->hotspot();
+    if (hotspot != m_hotspot) {
+        m_hotspot = hotspot;
+        m_resource->sendHotspot(m_hotspot.x, m_hotspot.y);
+    }
 }
 
 CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> resource, WP<CImageCopyCaptureSession> session) : m_resource(resource), m_session(session) {
@@ -211,11 +266,10 @@ void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint3
             return;
         }
 
-        // TODO: find out what this would be, then implement constructor aswell
-        // auto pointer = CWLPointerResource::fromResource(pointer_);
+        m_cursorSessions.emplace_back(makeShared<CImageCopyCaptureCursorSession>(makeShared<CExtImageCopyCaptureCursorSessionV1>(pMgr->client(), pMgr->version(), id), source,
+                                                                                 CWLPointerResource::fromResource(pointer_)));
 
-        // m_sessions.emplace_back(makeShared<CImageCopyCaptureSession>(makeShared<CExtImageCopyCaptureSessionV1>(pMgr->client(), pMgr->version(), id), source, pointer));
-        // LOGM(LOG, "New image copy capture session for source ({}): {}", source->getTypeName(), source->getName());
+        LOGM(LOG, "New image copy capture cursor session for source ({}): \"{}\"", source->getTypeName(), source->getName());
     });
 }
 
@@ -225,6 +279,10 @@ void CImageCopyCaptureProtocol::destroyResource(CExtImageCopyCaptureManagerV1* r
 
 void CImageCopyCaptureProtocol::destroyResource(CImageCopyCaptureSession* resource) {
     std::erase_if(m_sessions, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CImageCopyCaptureProtocol::destroyResource(CImageCopyCaptureCursorSession* resource) {
+    std::erase_if(m_cursorSessions, [&](const auto& other) { return other.get() == resource; });
 }
 
 void CImageCopyCaptureProtocol::destroyResource(CImageCopyCaptureFrame* resource) {

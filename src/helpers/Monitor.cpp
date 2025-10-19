@@ -84,6 +84,8 @@ void CMonitor::onConnect(bool noRule) {
             m_frameScheduler->onFrame();
     });
     m_listeners.commit     = m_output->events.commit.listen([this] {
+        m_events.commit.emit();
+
         if (true && g_pScreenshareManager) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             g_pScreenshareManager->onOutputCommit(m_self.lock());
             // PROTO::screencopy->onOutputCommit(m_self.lock());

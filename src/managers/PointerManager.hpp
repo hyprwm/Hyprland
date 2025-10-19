@@ -59,12 +59,16 @@ class CPointerManager {
 
     //
     Vector2D position();
+    Vector2D hotspot();
     Vector2D cursorSizeLogical();
     void     storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
     void     setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
     void     sendStoredMovement();
 
     void     recheckEnteredOutputs();
+
+    // returns the thing in global coords
+    CBox getCursorBoxGlobal();
 
   private:
     void recheckPointerPosition();
@@ -81,9 +85,7 @@ class CPointerManager {
     // returns the thing in device coordinates. Is NOT offset by the hotspot, relies on set_cursor with hotspot.
     Vector2D getCursorPosForMonitor(PHLMONITOR pMonitor);
     // returns the thing in logical coordinates of the monitor
-    CBox getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor);
-    // returns the thing in global coords
-    CBox         getCursorBoxGlobal();
+    CBox         getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor);
 
     Vector2D     transformedHotspot(PHLMONITOR pMonitor);
 

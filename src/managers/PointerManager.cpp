@@ -87,6 +87,10 @@ Vector2D CPointerManager::position() {
     return m_pointerPos;
 }
 
+Vector2D CPointerManager::hotspot() {
+    return m_currentCursorImage.hotspot;
+}
+
 bool CPointerManager::hasCursor() {
     return m_currentCursorImage.pBuffer || m_currentCursorImage.surface;
 }

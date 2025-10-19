@@ -4,6 +4,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
+#include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
@@ -143,6 +144,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["event"]                          = event;
     m_dispatchers["global"]                         = global;
     m_dispatchers["setprop"]                        = setProp;
+    m_dispatchers["forceidle"]                      = forceIdle;
 
     m_scrollTimer.reset();
 
@@ -3253,6 +3255,19 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
     for (auto const& m : g_pCompositor->m_monitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::forceIdle(std::string args) {
+    std::optional<float> duration = getPlusMinusKeywordResult(args, 0);
+
+    if (!duration.has_value()) {
+        Debug::log(ERR, "Duration invalid in forceIdle!");
+        return {.success = false, .error = "Duration invalid in forceIdle!"};
+    }
+
+    PROTO::idle->setTimers(duration.value() * 1000.0);
 
     return {};
 }

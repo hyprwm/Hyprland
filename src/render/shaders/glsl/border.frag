@@ -25,6 +25,7 @@ uniform float alpha;
 
 #include "rounding.glsl"
 #include "CM.glsl"
+#include "capture.glsl"
 
 vec4 okLabAToSrgb(vec4 lab) {
     float l = pow(lab[0] + lab[1] * 0.3963377774 + lab[2] * 0.2158037573, 3.0);
@@ -179,4 +180,5 @@ void main() {
     pixColor *= alpha * additionalAlpha;
 
     fragColor = pixColor;
+    CAPTURE_WRITE(fragColor);
 }

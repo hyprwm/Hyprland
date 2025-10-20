@@ -66,7 +66,7 @@ void CSurfaceStateQueue::tryProcess() {
         return;
     }
 
-    while (!m_queue.empty() && next != m_queue.end() && next->get()->lockMask == LockReason::None) {
+    while (!m_queue.empty() && next != m_queue.end() && next->get()->lockMask == LockReason::None && !next->get()->updated.bits.buffer) {
         next->get()->updateFrom(**front, true);
         m_queue.pop_front();
 

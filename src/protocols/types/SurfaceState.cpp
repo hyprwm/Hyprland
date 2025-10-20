@@ -65,8 +65,11 @@ void SSurfaceState::reset() {
     lockMask = LockReason::None;
 }
 
-void SSurfaceState::updateFrom(SSurfaceState& ref) {
-    updated = ref.updated;
+void SSurfaceState::updateFrom(SSurfaceState& ref, bool merge) {
+    if (merge)
+        updated.all |= ref.updated.all;
+    else
+        updated = ref.updated;
 
     if (ref.updated.bits.buffer) {
         if (!ref.buffer.m_buffer)
@@ -80,10 +83,6 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     if (ref.updated.bits.damage) {
         damage       = ref.damage;
         bufferDamage = ref.bufferDamage;
-    } else {
-        // damage is always relative to the current commit
-        damage.clear();
-        bufferDamage.clear();
     }
 
     if (ref.updated.bits.input)

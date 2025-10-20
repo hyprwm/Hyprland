@@ -52,12 +52,28 @@ auto CSurfaceStateQueue::find(const WP<SSurfaceState>& state) -> std::deque<UP<S
 }
 
 void CSurfaceStateQueue::tryProcess() {
-    while (!m_queue.empty()) {
-        auto& front = m_queue.front();
-        if (front->lockMask != LockReason::None)
-            return;
+    if (m_queue.empty())
+        return;
 
-        m_surface->commitState(*front);
+    auto front = m_queue.begin();
+    if (front->get()->lockMask != LockReason::None)
+        return;
+
+    auto next = std::next(front);
+    if (next == m_queue.end()) {
+        m_surface->commitState(**front);
         m_queue.pop_front();
+        return;
     }
+
+    while (!m_queue.empty() && next != m_queue.end() && next->get()->lockMask == LockReason::None) {
+        next->get()->updateFrom(**front, true);
+        m_queue.pop_front();
+
+        front = m_queue.begin();
+        next  = std::next(front);
+    }
+
+    m_surface->commitState(**front);
+    m_queue.pop_front();
 }

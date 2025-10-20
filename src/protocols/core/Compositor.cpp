@@ -549,6 +549,13 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
             nullptr);
     }
 
+    if (m_current.updated.bits.damage) {
+        // damage is always relative to the current commit
+        m_current.updated.bits.damage = false;
+        m_current.damage.clear();
+        m_current.bufferDamage.clear();
+    }
+
     // release the buffer if it's synchronous (SHM) as updateSynchronousTexture() has copied the buffer data to a GPU tex
     // if it doesn't have a role, we can't release it yet, in case it gets turned into a cursor.
     if (m_current.buffer && m_current.buffer->isSynchronous() && m_role->role() != SURFACE_ROLE_UNASSIGNED)

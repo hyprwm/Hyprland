@@ -1486,8 +1486,54 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     }
 
     if (std::ranges::find(MIMES, mime) == MIMES.end()) {
-        Debug::log(ERR, "[xwm] X client asked for  unknown MIME '{}', falling back to '{}'", mime, *MIMES.begin());
-        mime = *MIMES.begin();
+        // try to guess mime, don't just blindly send random-ass shit that the app will have no fucking
+        // clue what to do with
+        Debug::log(ERR, "[xwm] X client asked for MIME '{}' that this selection doesn't support, guessing.", mime);
+
+        auto needle       = mime;
+        auto selectedMime = *MIMES.begin();
+        if (mime.contains('/'))
+            needle = mime.substr(0, mime.find('/'));
+
+        Debug::log(TRACE, "[xwm] X MIME needle '{}'", needle);
+
+        if (Debug::m_trace) {
+            std::string mimeList = "";
+            for (const auto& m : MIMES) {
+                mimeList += "'" + m + "', ";
+            }
+
+            if (!MIMES.empty())
+                mimeList = mimeList.substr(0, mimeList.size() - 2);
+
+            Debug::log(TRACE, "[xwm] X MIME supported: {}", mimeList);
+        }
+
+        bool found = false;
+
+        for (const auto& m : MIMES) {
+            if (m.starts_with(needle)) {
+                selectedMime = m;
+                Debug::log(TRACE, "[xwm] X MIME needle found type '{}'", m);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            for (const auto& m : MIMES) {
+                if (m.contains(needle)) {
+                    selectedMime = m;
+                    Debug::log(TRACE, "[xwm] X MIME needle found type '{}'", m);
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        Debug::log(ERR, "[xwm] Guessed mime: '{}'. Hopefully we're right enough.", selectedMime);
+
+        mime = selectedMime;
     }
 
     auto transfer     = makeUnique<SXTransfer>(*this);

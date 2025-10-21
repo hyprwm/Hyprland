@@ -346,7 +346,19 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
     XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
 
     if (!reply) {
-        Debug::log(ERR, "[xwm] Failed to read property notify cookie");
+        Debug::log(ERR, "[xwm] Failed to read property notify cookie, cleaning up transfers for window {}", e->window);
+
+        auto cleanupSel = [&](SXSelection& sel) {
+            std::erase_if(sel.transfers, [&](const UP<SXTransfer>& t) {
+                if (!t || (t->incomingWindow != e->window && e->window))
+                    return false;
+                return true;
+            });
+        };
+
+        cleanupSel(m_clipboard);
+        cleanupSel(m_primarySelection);
+        cleanupSel(m_dndSelection);
         return;
     }
 
@@ -1548,6 +1560,7 @@ int SXSelection::onWrite() {
             transfer->propertyReply = nullptr;
             transfer->propertyStart = 0;
         }
+        return 0;
     }
 
     return 1;

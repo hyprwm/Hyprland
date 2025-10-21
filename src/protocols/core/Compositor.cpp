@@ -149,7 +149,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
             state->buffer->m_syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
             if (state->buffer->m_syncFd.isValid())
-                m_stateQueue.lock(state, LockReason::Fence);
+                state->lockMask |= LockReason::Fence;
         }
 
         // now for timer.

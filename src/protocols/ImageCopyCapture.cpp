@@ -109,8 +109,12 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
     });
 }
 
+CImageCopyCaptureCursorSession::~CImageCopyCaptureCursorSession() {
+    ;
+}
+
 void CImageCopyCaptureCursorSession::sendCursorEvents() {
-    const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_CURSOR_POS);
+    const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_CURSOR);
     if (PERM != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
             m_resource->error(-1, "client not allowed to capture cursor");
@@ -223,6 +227,7 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
             case ERROR_BUFFER_SIZE:
             case ERROR_BUFFER_FORMAT: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS); break;
             case ERROR_STOPPED: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED); break;
+            case ERROR_UNKNOWN: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
         }
     });
 }
@@ -276,7 +281,7 @@ void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint3
             return;
         }
 
-        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(pMgr->client(), PERMISSION_TYPE_CURSOR_POS);
+        const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(pMgr->client(), PERMISSION_TYPE_CURSOR);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY)
             return;
 

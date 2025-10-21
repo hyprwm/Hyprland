@@ -156,6 +156,7 @@ void CScreencopyFrame::shareFrame(CZwlrScreencopyFrameV1* pFrame, wl_resource* b
         case ERROR_NO_BUFFER: m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer"); break;
         case ERROR_BUFFER_SIZE:
         case ERROR_BUFFER_FORMAT: m_resource->sendFailed(); break;
+        case ERROR_UNKNOWN:
         case ERROR_STOPPED: m_resource->sendFailed(); break;
     }
 }

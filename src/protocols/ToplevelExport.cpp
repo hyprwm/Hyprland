@@ -154,6 +154,7 @@ void CToplevelExportFrame::shareFrame(wl_resource* buffer, bool ignoreDamage) {
         case ERROR_NO_BUFFER: m_resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer"); break;
         case ERROR_BUFFER_SIZE:
         case ERROR_BUFFER_FORMAT: m_resource->sendFailed(); break;
+        case ERROR_UNKNOWN:
         case ERROR_STOPPED: m_resource->sendFailed(); break;
     }
 }

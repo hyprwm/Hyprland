@@ -19,6 +19,7 @@ enum eScreenshareType : uint8_t {
 
 enum eScreenshareError : uint8_t {
     ERROR_NONE,
+    ERROR_UNKNOWN,
     ERROR_STOPPED,
     ERROR_NO_BUFFER,
     ERROR_BUFFER_SIZE,
@@ -46,6 +47,7 @@ struct std::formatter<eScreenshareType> : std::formatter<std::string> {
 using FScreenshareCallback = std::function<void(eScreenshareResult result)>;
 
 class CScreenshareFrame;
+class CWLPointerResource;
 
 class CScreenshareSession {
   public:
@@ -105,6 +107,51 @@ class CScreenshareSession {
     friend class CScreenshareManager;
 };
 
+class CCursorshareSession {
+  public:
+    CCursorshareSession(const CCursorshareSession&) = delete;
+    CCursorshareSession(CCursorshareSession&&)      = delete;
+    ~CCursorshareSession();
+
+    eScreenshareError share(PHLMONITOR monitor, SP<IHLBuffer> buffer, FScreenshareCallback callback);
+
+    // constraints
+    uint32_t format() const;
+    Vector2D bufferSize() const;
+    Vector2D hotspot() const;
+
+    struct {
+        CSignalT<> stopped;
+        CSignalT<> constraintsChanged;
+    } m_events;
+
+  private:
+    CCursorshareSession(wl_client* client, WP<CWLPointerResource> pointer);
+
+    WP<CCursorshareSession> m_self;
+    bool                    m_stopped = false;
+
+    wl_client*              m_client;
+    WP<CWLPointerResource>  m_pointer;
+
+    // constraints
+    uint32_t m_format;
+    Vector2D m_hotspot;
+    Vector2D m_bufferSize;
+
+    struct {
+        CHyprSignalListener pointerDestroyed;
+        CHyprSignalListener cursorChanged;
+    } m_listeners;
+
+    bool copy(PHLMONITOR monitor, SP<IHLBuffer> buffer, FScreenshareCallback callback);
+    void calculateConstraints();
+    void stop();
+
+    friend class CScreenshareFrame;
+    friend class CScreenshareManager;
+};
+
 class CScreenshareFrame {
   public:
     CScreenshareFrame(const CScreenshareFrame&) = delete;
@@ -154,12 +201,15 @@ class CScreenshareManager {
     WP<CScreenshareSession> getManagedSession(wl_client* client, PHLMONITOR monitor, CBox captureBox);
     WP<CScreenshareSession> getManagedSession(wl_client* client, PHLWINDOW window);
 
+    UP<CCursorshareSession> newCursorSession(wl_client* client, WP<CWLPointerResource> pointer);
+
     void                    destroyClientSessions(wl_client* client);
 
     void                    onOutputCommit(PHLMONITOR monitor);
 
   private:
     std::vector<WP<CScreenshareSession>> m_sessions;
+    std::vector<WP<CCursorshareSession>> m_cursorSessions;
     std::vector<WP<CScreenshareFrame>>   m_frames;
 
     struct SManagedSession {

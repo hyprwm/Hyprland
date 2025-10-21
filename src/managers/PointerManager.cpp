@@ -110,6 +110,7 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
             m_currentCursorImage.scale   = scale;
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         }
 
         return;
@@ -127,6 +128,7 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
 
     updateCursorBackend();
     damageIfSoftware();
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
@@ -138,6 +140,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
             m_currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->m_current.scale : 1.F;
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         }
 
         return;
@@ -159,6 +162,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
             recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         });
 
         if (surf->resource()->m_current.texture) {
@@ -172,6 +176,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
     recheckEnteredOutputs();
     updateCursorBackend();
     damageIfSoftware();
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::recheckEnteredOutputs() {
@@ -256,6 +261,8 @@ void CPointerManager::resetCursorImage(bool apply) {
             ms->cursorFrontBuffer = nullptr;
         }
     }
+
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::updateCursorBackend() {
@@ -1127,4 +1134,8 @@ void CPointerManager::sendStoredMovement() {
     m_storedTime    = 0;
     m_storedDelta   = Vector2D{};
     m_storedUnaccel = Vector2D{};
+}
+
+const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
+    return m_currentCursorImage;
 }

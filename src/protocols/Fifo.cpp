@@ -47,6 +47,9 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
                 auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
                 if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                    if (m->m_tearingState.activelyTearing)
+                        return; // dont fifo lock on tearing.
+
                     g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
                 }
             }
@@ -54,6 +57,9 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             for (auto& m : m_surface->m_enteredOutputs) {
                 if (!m)
                     continue;
+
+                if (m->m_tearingState.activelyTearing)
+                    return; // dont fifo lock on tearing.
 
                 g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
             }
@@ -157,6 +163,9 @@ void CFifoProtocol::destroyResource(CFifoResource* res) {
 }
 
 void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
+    if (m->m_tearingState.activelyTearing)
+        return; // fifo isnt locked on tearing.
+
     for (const auto& fifo : m_fifos) {
         if (!fifo->m_surface)
             continue;

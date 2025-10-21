@@ -379,10 +379,7 @@ static bool test() {
         NLog::log("{}Testing default split (force_split = 0)", Colors::YELLOW);
         OK(getFromSocket("r/keyword dwindle:force_split 0"));
 
-        if (!Tests::spawnKitty("gaps_kitty_A")) {
-            return false;
-        }
-        if (!Tests::spawnKitty("gaps_kitty_B")) {
+        if (!Tests::spawnKitty("gaps_kitty_A") || !Tests::spawnKitty("gaps_kitty_B")) {
             return false;
         }
 
@@ -410,6 +407,7 @@ static bool test() {
 
         NLog::log("{}Expecting horizontal split (C left of B)", Colors::YELLOW);
         OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+
         if (!Tests::spawnKitty("gaps_kitty_C")) {
             return false;
         }
@@ -437,6 +435,7 @@ static bool test() {
 
         NLog::log("{}Expecting horizontal split (C right of A)", Colors::YELLOW);
         OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+
         if (!Tests::spawnKitty("gaps_kitty_C")) {
             return false;
         }

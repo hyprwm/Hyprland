@@ -26,6 +26,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
@@ -1087,6 +1088,25 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     }
 }
 
+static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main) {
+    const auto CAN_USE_WINDOW       = pWindow && main;
+    const auto WINDOW_SIZE_MISALIGN = CAN_USE_WINDOW && pWindow->getReportedSize() != pWindow->m_wlSurface->resource()->m_current.size;
+
+    if (pSurface->m_current.viewport.hasDestination)
+        return (pSurface->m_current.viewport.destination * pMonitor->m_scale).round();
+
+    if (pSurface->m_current.viewport.hasSource)
+        return (pSurface->m_current.viewport.source.size() * pMonitor->m_scale).round();
+
+    if (WINDOW_SIZE_MISALIGN)
+        return (pSurface->m_current.size * pMonitor->m_scale).round();
+
+    if (CAN_USE_WINDOW)
+        return (pWindow->getReportedSize() * pMonitor->m_scale).round();
+
+    return std::nullopt;
+}
+
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_isX11) {
@@ -1123,14 +1143,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // this will break if later on xdg geometry is hit, but we really try
         // to let the apps know to NOT add CSD. Also if source is there.
         // there is no way to fix this if that's the case
-        if (*PEXPANDEDGES) {
+        {
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
-            const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
-                                                pSurface->m_current.viewport.destination :
-                                                (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
-                                        pMonitor->m_scale)
-                                           .round();
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE > 1 && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
+            const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());
 
             const auto RATIO = projSize / EXPECTED_SIZE;
             if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
@@ -2027,6 +2043,42 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
         return;
 
     m_lastCursorData.name = name;
+
+    static auto getShapeOrDefault = [](std::string_view name) -> wpCursorShapeDeviceV1Shape {
+        const auto it = std::ranges::find(CURSOR_SHAPE_NAMES, name);
+
+        if (it == CURSOR_SHAPE_NAMES.end()) {
+            // clang-format off
+            static const auto overrites = std::unordered_map<std::string_view, wpCursorShapeDeviceV1Shape> {
+              {"top_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE},
+              {"bottom_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE},
+              {"left_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE},
+              {"right_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE},
+              {"top_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE},
+              {"bottom_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE},
+              {"top_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE},
+              {"bottom_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE},
+            };
+            // clang-format on
+
+            if (overrites.contains(name))
+                return overrites.at(name);
+
+            return WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        }
+
+        return sc<wpCursorShapeDeviceV1Shape>(std::distance(CURSOR_SHAPE_NAMES.begin(), it));
+    };
+
+    const auto newShape = getShapeOrDefault(name);
+
+    if (newShape != m_lastCursorData.shape) {
+        m_lastCursorData.shapePrevious = m_lastCursorData.shape;
+        m_lastCursorData.switchedTimer.reset();
+    }
+
+    m_lastCursorData.shape = newShape;
+
     m_lastCursorData.surf.reset();
 
     if (m_cursorHidden && !force)
@@ -2051,7 +2103,9 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (*PCURSORTIMEOUT > 0)
         m_cursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_lastCursorMovement.getSeconds();
 
-    const bool HIDE = m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnKeyboard || (*PINVISIBLE != 0);
+    m_cursorHiddenByCondition = m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnKeyboard;
+
+    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0);
 
     if (HIDE == m_cursorHidden)
         return;

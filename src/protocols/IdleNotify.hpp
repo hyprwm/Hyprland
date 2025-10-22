@@ -14,7 +14,6 @@ class CExtIdleNotification {
 
     bool good();
     void onTimerFired();
-    void onActivity();
 
     bool inhibitorsAreObeyed() const;
 
@@ -26,7 +25,11 @@ class CExtIdleNotification {
     bool                       m_idled          = false;
     bool                       m_obeyInhibitors = false;
 
-    void                       updateTimer();
+    void                       reset();
+    void                       update();
+    void                       update(uint32_t elapsedMs);
+
+    friend class CIdleNotifyProtocol;
 };
 
 class CIdleNotifyProtocol : public IWaylandProtocol {
@@ -37,6 +40,7 @@ class CIdleNotifyProtocol : public IWaylandProtocol {
 
     void         onActivity();
     void         setInhibit(bool inhibited);
+    void         setTimers(uint32_t elapsedMs);
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

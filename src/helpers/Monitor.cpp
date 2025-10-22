@@ -1781,10 +1781,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
 bool CMonitor::attemptDirectScanout() {
     const auto blockedReason = isDSBlocked();
-    if (blockedReason) {
-        Debug::log(TRACE, "attemptDirectScanout: blocked by {}", blockedReason);
+    if (blockedReason)
         return false;
-    }
 
     const auto PCANDIDATE = m_solitaryClient.lock();
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();

@@ -379,6 +379,7 @@ class CWindow {
     PHLWINDOW                  getGroupCurrent();
     PHLWINDOW                  getGroupPrevious();
     PHLWINDOW                  getGroupWindowByIndex(int);
+    bool                       hasInGroup(PHLWINDOW);
     int                        getGroupSize();
     bool                       canBeGroupedInto(PHLWINDOW pWindow);
     void                       setGroupCurrent(PHLWINDOW pWindow);

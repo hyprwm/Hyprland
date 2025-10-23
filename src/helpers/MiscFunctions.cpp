@@ -24,6 +24,7 @@
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
 #include "../version.h"
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 

@@ -103,7 +103,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(UP<CWpLinuxDrmSyncobjSurf
 
         state->updated.bits.acquire = true;
         state->acquire              = m_pendingAcquire;
-        state->lockMask |= LockReason::Fence;
+        m_surface->m_stateQueue.lock(state, LockReason::Fence);
         m_pendingAcquire = {};
 
         state->buffer->addReleasePoint(m_pendingRelease);

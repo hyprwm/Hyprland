@@ -43,7 +43,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
         if (!m_pendingTimeout.has_value())
             return;
 
-        state->lockMask |= LockReason::Timer;
+        m_surface->m_stateQueue.lock(state, LockReason::Timer);
 
         if (!m_timerPresent) {
             m_timerPresent = true;

@@ -12,18 +12,29 @@ WP<SSurfaceState> CSurfaceStateQueue::enqueue(UP<SSurfaceState>&& state) {
     return m_queue.emplace_back(std::move(state));
 }
 
+void CSurfaceStateQueue::dropState(const WP<SSurfaceState>& state) {
+    auto it = find(state);
+    if (it == m_queue.end())
+        return;
+
+    m_queue.erase(it);
+}
+
 void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, LockReason reason) {
     auto it = find(weakState);
-    if (it != m_queue.end())
-        it->get()->lockMask |= reason;
+    if (it == m_queue.end())
+        return;
+
+    it->get()->lockMask |= reason;
 }
 
 void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, LockReason reason) {
     auto it = find(state);
-    if (it != m_queue.end()) {
-        it->get()->lockMask &= ~reason;
-        tryProcess();
-    }
+    if (it == m_queue.end())
+        return;
+
+    it->get()->lockMask &= ~reason;
+    tryProcess();
 }
 
 void CSurfaceStateQueue::unlockFirst(LockReason reason) {

@@ -125,35 +125,59 @@ set(HYPRUTILS_VERSION "${hyprutils_dep_VERSION}")
 set(HYPRCURSOR_VERSION "${hyprcursor_dep_VERSION}")
 set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
 
+
 find_package(Git QUIET)
-if(Git_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-  execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-        OUTPUT_VARIABLE GIT_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
-        OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s
-        OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local
-        OUTPUT_VARIABLE GIT_COMMIT_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD -- OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE GIT_DIRTY_RESULT)
-  if(NOT GIT_DIRTY_RESULT EQUAL 0)
-    set(GIT_DIRTY "dirty")
+
+set(GIT_COMMIT_HASH "unknown")
+set(GIT_BRANCH "unknown")
+set(GIT_COMMIT_MESSAGE "unknown")
+set(GIT_COMMIT_DATE "unknown")
+set(GIT_DIRTY "unknown")
+set(GIT_TAG "unknown")
+set(GIT_COMMITS "0")
+
+if(Git_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TOPLEVEL
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE GIT_TOPLEVEL_RESULT
+  )
+
+  if(GIT_TOPLEVEL_RESULT EQUAL 0)
+    message(STATUS "Detected git repository root: ${GIT_TOPLEVEL}")
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD --
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      RESULT_VARIABLE GIT_DIRTY_RESULT)
+    if(NOT GIT_DIRTY_RESULT EQUAL 0)
+      set(GIT_DIRTY "dirty")
+    else()
+      set(GIT_DIRTY "clean")
+    endif()
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMITS OUTPUT_STRIP_TRAILING_WHITESPACE)
   else()
-    set(GIT_DIRTY "clean")
+    message(WARNING "No Git repository detected in ${CMAKE_SOURCE_DIR}")
   endif()
-  execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
-        OUTPUT_VARIABLE GIT_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
-        OUTPUT_VARIABLE GIT_COMMITS OUTPUT_STRIP_TRAILING_WHITESPACE)
-else()
-  set(GIT_COMMIT_HASH "unknown")
-  set(GIT_BRANCH "unknown")
-  set(GIT_COMMIT_MESSAGE "unknown")
-  set(GIT_COMMIT_DATE "unknown")
-  set(GIT_DIRTY "unknown")
-  set(GIT_TAG "unknown")
-  set(GIT_COMMITS "0")
 endif()
 
 configure_file(

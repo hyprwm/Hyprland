@@ -43,9 +43,7 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      hyprtester = final.callPackage ./hyprtester.nix {
-        inherit version;
-      };
+      hyprland-with-hyprtester = final.hyprland.override {withHyprtester = true;};
 
       # deprecated packages
       hyprland-legacy-renderer =

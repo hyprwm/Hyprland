@@ -140,7 +140,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         }
 
         // save state while we wait for buffer to become ready
-        auto state = makeUnique<SSurfaceState>(m_pending);
+        auto state = m_stateQueue.enqueue(makeUnique<SSurfaceState>(m_pending));
         m_pending.reset();
 
         // fifo and fences first
@@ -149,17 +149,18 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
             state->buffer->m_syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
             if (state->buffer->m_syncFd.isValid())
-                state->lockMask |= LockReason::Fence;
+                m_stateQueue.lock(state, LockReason::Fence);
         }
 
         // now for timer.
         m_events.stateCommit2.emit(state);
 
         if (state->rejected) {
+            m_stateQueue.dropState(state);
             return;
         }
 
-        scheduleState(m_stateQueue.enqueue(std::move(state)));
+        scheduleState(state);
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {

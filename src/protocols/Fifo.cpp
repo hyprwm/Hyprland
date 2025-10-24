@@ -67,7 +67,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
         // only lock once its mapped.
         if (m_surface->m_mapped)
-            state->lockMask |= LockReason::Fifo;
+            m_surface->m_stateQueue.lock(state, LockReason::Fifo);
 
         m_pending = {};
     });

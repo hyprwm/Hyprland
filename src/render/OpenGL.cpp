@@ -1551,15 +1551,25 @@ void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, STextureR
 static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
-    // might be too strict
-    return imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+    return (imageDescription.transferFunction != NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ &&
+            imageDescription.transferFunction != NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+    static auto PSRGBEOTF = CConfigValue<Hyprlang::INT>("render:cm_srgb_eotf");
+
+    if (m_renderData.surface.valid() &&
+        ((!m_renderData.surface->m_colorManagement.valid() && *PSRGBEOTF >= 1) ||
+         (*PSRGBEOTF == 2 && m_renderData.surface->m_colorManagement.valid() &&
+          imageDescription.transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB))) {
+        shader.setUniformInt(SHADER_SOURCE_TF, NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22);
+    } else {
+        shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+    }
+
     shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
 
     const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?

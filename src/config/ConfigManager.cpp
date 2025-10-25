@@ -2533,53 +2533,55 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked         = false;
-    bool       release        = false;
-    bool       repeat         = false;
-    bool       mouse          = false;
-    bool       nonConsuming   = false;
-    bool       transparent    = false;
-    bool       ignoreMods     = false;
-    bool       multiKey       = false;
-    bool       longPress      = false;
-    bool       hasDescription = false;
-    bool       dontInhibit    = false;
-    bool       click          = false;
-    bool       drag           = false;
-    const auto BINDARGS       = command.substr(4);
+    bool       locked          = false;
+    bool       release         = false;
+    bool       repeat          = false;
+    bool       mouse           = false;
+    bool       nonConsuming    = false;
+    bool       transparent     = false;
+    bool       ignoreMods      = false;
+    bool       multiKey        = false;
+    bool       longPress       = false;
+    bool       hasDescription  = false;
+    bool       dontInhibit     = false;
+    bool       click           = false;
+    bool       drag            = false;
+    bool       submapUniversal = false;
+    const auto BINDARGS        = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
-        if (arg == 'l') {
+        if (arg == 'l')
             locked = true;
-        } else if (arg == 'r') {
+        else if (arg == 'r')
             release = true;
-        } else if (arg == 'e') {
+        else if (arg == 'e')
             repeat = true;
-        } else if (arg == 'm') {
+        else if (arg == 'm')
             mouse = true;
-        } else if (arg == 'n') {
+        else if (arg == 'n')
             nonConsuming = true;
-        } else if (arg == 't') {
+        else if (arg == 't')
             transparent = true;
-        } else if (arg == 'i') {
+        else if (arg == 'i')
             ignoreMods = true;
-        } else if (arg == 's') {
+        else if (arg == 's')
             multiKey = true;
-        } else if (arg == 'o') {
+        else if (arg == 'o')
             longPress = true;
-        } else if (arg == 'd') {
+        else if (arg == 'd')
             hasDescription = true;
-        } else if (arg == 'p') {
+        else if (arg == 'p')
             dontInhibit = true;
-        } else if (arg == 'c') {
+        else if (arg == 'c') {
             click   = true;
             release = true;
         } else if (arg == 'g') {
             drag    = true;
             release = true;
-        } else {
+        } else if (arg == 'u')
+            submapUniversal = true;
+        else
             return "bind: invalid flag";
-        }
     }
 
     if ((longPress || release) && repeat)
@@ -2651,7 +2653,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
                                                mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag});
+                                               click,         drag,         submapUniversal});
     }
 
     return {};

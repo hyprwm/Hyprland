@@ -618,9 +618,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_windowData.noFocus.valueOrDefault() && !PWINDOW->m_noInitialFocus &&
         (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_isX11 && PWINDOW->m_xwaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
-        g_pCompositor->focusWindow(PWINDOW);
-        PWINDOW->m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
-        PWINDOW->m_dimPercent->setValueAndWarp(PWINDOW->m_windowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
+
+        // Don't steal pointer focus with X11 when buttons are held (e.g., during drags)
+        if (!(PWINDOW->m_isX11 && g_pInputManager->hasHeldButtons())) {
+            g_pCompositor->focusWindow(PWINDOW);
+            PWINDOW->m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
+            PWINDOW->m_dimPercent->setValueAndWarp(PWINDOW->m_windowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
+        }
     } else {
         PWINDOW->m_activeInactiveAlpha->setValueAndWarp(*PINACTIVEALPHA);
         PWINDOW->m_dimPercent->setValueAndWarp(0);

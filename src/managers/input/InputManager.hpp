@@ -115,6 +115,7 @@ class CInputManager {
     void               unconstrainMouse();
     bool               isConstrained();
     bool               isLocked();
+    bool               hasHeldButtons();
 
     Vector2D           getMouseCoordsInternal();
     void               refocus(std::optional<Vector2D> overridePos = std::nullopt);

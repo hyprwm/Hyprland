@@ -187,13 +187,6 @@ void CLayerSurface::onMap() {
 
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
-    // set alpha if we map on a fullscreened workspace
-    if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-        if (PWORKSPACE && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN)
-            m_alpha->setValueAndWarp(0.f);
-    }
-
     m_readyToDelete = false;
     m_fadingOut     = false;
 

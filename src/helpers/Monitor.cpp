@@ -1772,8 +1772,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) &&
-        *PPASS != 1)
+    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() &&
+        (!inHDR() || !PSURFACE->m_colorManagement.valid() || !PSURFACE->m_colorManagement->isHDR() || PSURFACE->m_colorManagement->isWindowsScRGB()) && *PPASS != 1)
         reasons |= DS_BLOCK_CM;
 
     return reasons;

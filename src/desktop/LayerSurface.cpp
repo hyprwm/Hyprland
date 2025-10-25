@@ -303,7 +303,7 @@ void CLayerSurface::onCommit() {
             auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
             if (PWORKSPACE && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
                 // warp if switching render layer so we don't see glitches and have clean fade
-                if ((m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) &&
+                if ((m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) &&
                     (m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY))
                     m_alpha->setValueAndWarp(0.f);
 

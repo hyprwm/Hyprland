@@ -1108,10 +1108,12 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
+void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory, bool neverIgnoreFullscreenConflict) {
 
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PNEWTAKESOVERFS     = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    const auto  TAKESOVERFS         = *PNEWTAKESOVERFS == 0 && neverIgnoreFullscreenConflict ? 1 : *PNEWTAKESOVERFS;
 
     if (!pWindow || !pWindow->priorityFocus()) {
         if (g_pSessionLockManager->isSessionLocked()) {
@@ -1127,6 +1129,36 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
         return;
+
+    const bool CONFLICTSWITHFULLSCREEN = pWindow && pWindow->m_workspace && pWindow->m_workspace->m_hasFullscreenWindow && pWindow->m_workspace->getFullscreenWindow() != pWindow;
+    enum eFullscreenMode restoreFsMode = FSMODE_NONE;
+    if (CONFLICTSWITHFULLSCREEN) {
+        const auto PWORKSPACE = pWindow->m_workspace;
+        const auto FSWINDOW   = PWORKSPACE->getFullscreenWindow();
+
+        if (pWindow->m_isFloating) {
+            // don't make floating implicitly fs
+            Debug::log(LOG, "Requested to focus a floating window behind a fullscreen one: bringing to the top");
+            if (!pWindow->m_createdOverFullscreen) {
+                g_pCompositor->changeWindowZOrder(pWindow, true);
+                g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+                    PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            }
+        } else {
+            if (TAKESOVERFS == 0 && !neverIgnoreFullscreenConflict) {
+                Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: ignoring according to `misc:new_window_takes_over_fullscreen = 0`");
+                return;
+            } else if (TAKESOVERFS == 1) {
+                Debug::log(LOG, "Requested to focus a tiling window behind a fullscreen one: taking over fullscreen according to `misc:new_window_takes_over_fullscreen = 1`");
+                restoreFsMode = PWORKSPACE->m_fullscreenMode;
+                g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
+            } else if (TAKESOVERFS == 2) {
+                Debug::log(LOG,
+                           "Requested to focus a tiling window behind a fullscreen one: unfullscreening/unmaximizing according to `misc:new_window_takes_over_fullscreen = 2`");
+                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
+            }
+        }
+    }
 
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
@@ -1244,6 +1276,14 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     if (pWindow->m_groupData.pNextWindow)
         pWindow->deactivateGroupMembers();
+
+    if (CONFLICTSWITHFULLSCREEN && !pWindow->m_isFloating && TAKESOVERFS == 1) {
+        g_pCompositor->setWindowFullscreenClient(pWindow, restoreFsMode);
+
+        // warp the position + size animation, otherwise it looks weird.
+        pWindow->m_realPosition->warp();
+        pWindow->m_realSize->warp();
+    }
 }
 
 void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {

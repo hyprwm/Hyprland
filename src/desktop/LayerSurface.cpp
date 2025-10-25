@@ -289,16 +289,30 @@ void CLayerSurface::onCommit() {
     g_pHyprRenderer->damageBox(geomFixed);
 
     if (m_layerSurface->m_current.committed != 0) {
-        if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER) {
+        if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
 
             for (auto it = PMONITOR->m_layerSurfaceLayers[m_layer].begin(); it != PMONITOR->m_layerSurfaceLayers[m_layer].end(); it++) {
                 if (*it == m_self) {
-                    if (m_layerSurface->m_current.layer == m_layer)
-                        break;
                     PMONITOR->m_layerSurfaceLayers[m_layerSurface->m_current.layer].emplace_back(*it);
                     PMONITOR->m_layerSurfaceLayers[m_layer].erase(it);
                     break;
                 }
+            }
+
+            // update alpha when window is in fullscreen
+            auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+            if (PWORKSPACE && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+                // warp if switching render layer so we don't see glitches and have clean fade
+                if ((m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) &&
+                    (m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY))
+                    m_alpha->setValueAndWarp(0.f);
+
+                // from overlay to top
+                if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY && m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+                    *m_alpha = 0.f;
+                // to overlay
+                if (m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
+                    *m_alpha = 1.f;
             }
 
             m_layer = m_layerSurface->m_current.layer;

@@ -736,8 +736,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("xwayland:force_zero_scaling", Hyprlang::INT{0});
     registerConfigVar("xwayland:create_abstract_socket", Hyprlang::INT{0});
 
-    registerConfigVar("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
-
     registerConfigVar("cursor:invisible", Hyprlang::INT{0});
     registerConfigVar("cursor:no_hardware_cursors", Hyprlang::INT{2});
     registerConfigVar("cursor:no_break_fs_vrr", Hyprlang::INT{2});

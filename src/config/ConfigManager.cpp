@@ -3141,6 +3141,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "cursorpos" || data[1] == "cursor")
+        type = PERMISSION_TYPE_CURSOR;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

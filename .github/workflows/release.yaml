@@ -15,12 +15,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Generate version
-        id: genversion
-        run: |
-          git fetch --unshallow || echo "failed unshallowing"
-          bash -c scripts/generateVersion.sh
-
       - name: Create tarball with submodules
         id: tar
         run: |

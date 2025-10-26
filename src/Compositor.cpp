@@ -2842,6 +2842,38 @@ PHLWINDOW CCompositor::getForceFocus() {
     return nullptr;
 }
 
+void CCompositor::scheduleMonitorStateRecheck() {
+    static bool scheduled = false;
+
+    if (!scheduled) {
+        scheduled = true;
+        g_pEventLoopManager->doLater([this] {
+            arrangeMonitors();
+            checkMonitorOverlaps();
+
+            scheduled = false;
+        });
+    }
+}
+
+void CCompositor::checkMonitorOverlaps() {
+    CRegion monitorRegion;
+
+    for (const auto& m : m_monitors) {
+        if (!monitorRegion.copy().intersect(m->logicalBox()).empty()) {
+            Debug::log(ERR, "Monitor {}: detected overlap with layout", m->m_name);
+            g_pHyprNotificationOverlay->addNotification(std::format("Your monitor layout is set up incorrectly. Monitor {} overlaps with other monitor(s) in the "
+                                                                    "layout.\nPlease see the wiki (Monitors page) for more. This will cause issues.",
+                                                                    m->m_name),
+                                                        CHyprColor{}, 15000, ICON_WARNING);
+
+            break;
+        }
+
+        monitorRegion.add(m->logicalBox());
+    }
+}
+
 void CCompositor::arrangeMonitors() {
     static auto* const      PXWLFORCESCALEZERO = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling"));
 

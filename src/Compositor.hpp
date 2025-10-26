@@ -156,7 +156,9 @@ class CCompositor {
     void                                performUserChecks();
     void                                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW                           getForceFocus();
+    void                                scheduleMonitorStateRecheck();
     void                                arrangeMonitors();
+    void                                checkMonitorOverlaps();
     void                                enterUnsafeState();
     void                                leaveUnsafeState();
     void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);

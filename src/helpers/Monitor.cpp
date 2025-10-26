@@ -344,7 +344,7 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         EMIT_HOOK_EVENT("monitorRemoved", m_self.lock());
-        g_pCompositor->arrangeMonitors();
+        g_pCompositor->scheduleMonitorStateRecheck();
     }};
 
     m_frameScheduler.reset();
@@ -955,7 +955,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     if (WAS10B != m_enabled10bit || OLDRES != m_pixelSize)
         g_pHyprOpenGL->destroyMonitorResources(m_self);
 
-    g_pCompositor->arrangeMonitors();
+    g_pCompositor->scheduleMonitorStateRecheck();
 
     m_damage.setSize(m_transformedSize);
 
@@ -1181,7 +1181,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         // remove from mvmonitors
         std::erase_if(g_pCompositor->m_monitors, [&](const auto& other) { return other == m_self; });
 
-        g_pCompositor->arrangeMonitors();
+        g_pCompositor->scheduleMonitorStateRecheck();
 
         g_pCompositor->setActiveMonitor(g_pCompositor->m_monitors.front());
 

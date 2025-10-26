@@ -790,16 +790,15 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         CBox wb = {pWindow->m_realPosition->goal() + (pWindow->m_realSize->goal() - pWindow->m_lastFloatingSize) / 2.f, pWindow->m_lastFloatingSize};
         wb.round();
 
-        if (!(pWindow->m_isFloating && pWindow->m_isPseudotiled) && DELTALESSTHAN(pWindow->m_realSize->value().x, pWindow->m_lastFloatingSize.x, 10) &&
-            DELTALESSTHAN(pWindow->m_realSize->value().y, pWindow->m_lastFloatingSize.y, 10)) {
+        if (!(pWindow->m_isFloating && pWindow->m_isPseudotiled) && DELTALESSTHAN(pWindow->m_realSize->goal().x, pWindow->m_lastFloatingSize.x, 10) &&
+            DELTALESSTHAN(pWindow->m_realSize->goal().y, pWindow->m_lastFloatingSize.y, 10)) {
             wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 
-        *pWindow->m_realPosition = wb.pos();
-        *pWindow->m_realSize     = wb.size();
-
         pWindow->m_size     = wb.size();
         pWindow->m_position = wb.pos();
+
+        fitFloatingWindowOnMonitor(pWindow, wb);
 
         g_pHyprRenderer->damageMonitor(pWindow->m_monitor.lock());
 
@@ -813,6 +812,36 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
     pWindow->updateToplevel();
     g_pHyprRenderer->damageWindow(pWindow);
+}
+
+void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb) {
+    if (!w->m_isFloating)
+        return;
+
+    const auto PMONITOR = w->m_monitor.lock();
+
+    if (!PMONITOR)
+        return;
+
+    const auto EXTENTS           = w->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
+    CBox       targetBoxMonLocal = tb.value_or(w->getWindowMainSurfaceBox()).translate(-PMONITOR->m_position).addExtents(EXTENTS);
+
+    if (targetBoxMonLocal.w < PMONITOR->m_size.x) {
+        if (targetBoxMonLocal.x < 0)
+            targetBoxMonLocal.x = 0;
+        else if (targetBoxMonLocal.x + targetBoxMonLocal.w > PMONITOR->m_size.x)
+            targetBoxMonLocal.x = PMONITOR->m_size.x - targetBoxMonLocal.w;
+    }
+
+    if (targetBoxMonLocal.h < PMONITOR->m_size.y) {
+        if (targetBoxMonLocal.y < 0)
+            targetBoxMonLocal.y = 0;
+        else if (targetBoxMonLocal.y + targetBoxMonLocal.h > PMONITOR->m_size.y)
+            targetBoxMonLocal.y = PMONITOR->m_size.y - targetBoxMonLocal.h;
+    }
+
+    *w->m_realPosition = (targetBoxMonLocal.pos() + PMONITOR->m_position + EXTENTS.topLeft).round();
+    *w->m_realSize     = (targetBoxMonLocal.size() - EXTENTS.topLeft - EXTENTS.bottomRight).round();
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {

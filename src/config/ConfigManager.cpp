@@ -2396,12 +2396,12 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             parser.parseVRR(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
+            const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = parser.name();
             wsRule.workspaceString = ARGS[argno + 1];
-            wsRule.workspaceId     = id;
+            wsRule.workspaceId     = isAutoID ? WORKSPACE_INVALID : id;
             wsRule.workspaceName   = name;
 
             m_workspaceRules.emplace_back(wsRule);
@@ -2915,7 +2915,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 
     auto       first_ident = trim(value.substr(0, FIRST_DELIM));
 
-    const auto& [id, name] = getWorkspaceIDNameFromString(first_ident);
+    const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(first_ident);
 
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
@@ -3015,8 +3015,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             return R;
     }
 
-    wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
+    wsRule.workspaceId   = isAutoID ? WORKSPACE_INVALID : id;
 
     const auto IT = std::ranges::find_if(m_workspaceRules, [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 

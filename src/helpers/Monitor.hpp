@@ -68,6 +68,7 @@ struct SMonitorRule {
 class CMonitor;
 class CSyncTimeline;
 class CEGLSync;
+class CEventLoopTimer;
 
 class CMonitorState {
   public:
@@ -137,6 +138,8 @@ class CMonitor {
     int                         m_sdrMaxLuminance  = 80;
     bool                        m_createdByUser    = false;
     bool                        m_isUnsafeFallback = false;
+
+    SP<CEventLoopTimer>         m_dpmsRetryTimer;
 
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;

@@ -1882,13 +1882,14 @@ void CMonitor::setDPMS(bool on) {
 
     if (on) {
         // enable the monitor. Wait for the frame to be presented, then begin animation
-        m_dpmsBlackOpacity->setValueAndWarp(1.F);
         m_dpmsBlackOpacity->setCallbackOnEnd(nullptr);
+        m_dpmsBlackOpacity->setValueAndWarp(1.F);
         m_pendingDpmsAnimation        = true;
         m_pendingDpmsAnimationCounter = 0;
         commitDPMSState(true);
     } else {
         // disable the monitor. Begin the animation, then do dpms on its end.
+        m_dpmsBlackOpacity->setCallbackOnEnd(nullptr);
         m_dpmsBlackOpacity->setValueAndWarp(0.F);
         *m_dpmsBlackOpacity = 1.F;
         m_dpmsBlackOpacity->setCallbackOnEnd(
@@ -1908,7 +1909,29 @@ void CMonitor::commitDPMSState(bool state) {
     m_output->state->setEnabled(state);
 
     if (!m_state.commit()) {
-        Debug::log(ERR, "Couldn't commit output {} for DPMS = {}", m_name, state);
+        Debug::log(ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
+
+        // retry in 2 frames. This could happen when the DRM backend rejects our commit
+        // because disable + enable were sent almost instantly
+
+        m_dpmsRetryTimer = makeShared<CEventLoopTimer>(
+            std::chrono::milliseconds(2000 / sc<int>(m_refreshRate)),
+            [this, self = m_self](SP<CEventLoopTimer> s, void* d) {
+                if (!self)
+                    return;
+
+                m_output->state->resetExplicitFences();
+                m_output->state->setEnabled(m_dpmsStatus);
+                if (!m_state.commit()) {
+                    Debug::log(ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
+                    return;
+                }
+
+                m_dpmsRetryTimer.reset();
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(m_dpmsRetryTimer);
+
         return;
     }
 

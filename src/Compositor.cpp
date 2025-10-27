@@ -1791,15 +1791,15 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
 
 CBox CCompositor::calculateX11WorkArea() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    CBox        workbox            = {0, 0, 0, 0};
+    bool        firstMonitor       = true;
 
-    CBox        workbox      = {0, 0, 0, 0};
-    bool        firstMonitor = true;
     for (const auto& monitor : m_monitors) {
         // we ignore monitor->m_position on purpose
         auto x   = monitor->m_reservedTopLeft.x;
         auto y   = monitor->m_reservedTopLeft.y;
-        auto w   = monitor->m_size.x - (monitor->m_reservedBottomRight.x) - x;
-        auto h   = monitor->m_size.y - (monitor->m_reservedBottomRight.y) - y;
+        auto w   = monitor->m_size.x - monitor->m_reservedBottomRight.x - x;
+        auto h   = monitor->m_size.y - monitor->m_reservedBottomRight.y - y;
         CBox box = {x, y, w, h};
         if ((*PXWLFORCESCALEZERO))
             box.scale(monitor->m_scale);

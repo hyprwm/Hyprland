@@ -1793,7 +1793,7 @@ CBox CCompositor::calculateWorkArea() {
     // returning 0, 0 will remove the _NET_WORKAREA property
     CBox workbox = {0, 0, 0, 0};
 
-    bool first_monitor = true;
+    bool firstMonitor = true;
     for (const auto& monitor : m_monitors) {
         // we ignore monitor->m_position on purpose
         auto x   = monitor->m_reservedTopLeft.x;
@@ -1803,8 +1803,8 @@ CBox CCompositor::calculateWorkArea() {
         CBox box = {x, y, w, h};
         box.scale(monitor->m_scale);
 
-        if (first_monitor) {
-            first_monitor = false;
+        if (firstMonitor) {
+            firstMonitor = false;
             workbox       = box;
         } else {
             // if this monitor creates a different workbox than previous monitor, we remove the _NET_WORKAREA property all together

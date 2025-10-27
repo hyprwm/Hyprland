@@ -8,12 +8,20 @@ on:
 jobs:
   source-tarball:
     runs-on: ubuntu-latest
+    container:
+      image: archlinux
     steps:
-      - name: Checkout Hyprland
-        id: checkout
+      - name: Checkout repository actions
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          sparse-checkout: .github/actions
+
+      - name: Setup base
+        uses: ./.github/actions/setup_base
+
+      - name: Generate version
+        run: |
+          cmake -S . -B /tmp/build
 
       - name: Create tarball with submodules
         id: tar

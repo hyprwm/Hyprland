@@ -296,7 +296,7 @@ void CHyprMasterLayout::recalculateMonitor(const MONITORID& monid) {
     calculateWorkspace(PMONITOR->m_activeWorkspace);
 
 #ifndef NO_XWAYLAND
-    CBox box = g_pCompositor->calculateWorkArea();
+    CBox box = g_pCompositor->calculateX11WorkArea();
     g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
 #endif
 }

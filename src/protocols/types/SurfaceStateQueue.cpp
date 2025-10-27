@@ -20,7 +20,7 @@ void CSurfaceStateQueue::dropState(const WP<SSurfaceState>& state) {
     m_queue.erase(it);
 }
 
-void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, LockReason reason) {
+void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, eLockReason reason) {
     auto it = find(weakState);
     if (it == m_queue.end())
         return;
@@ -28,7 +28,7 @@ void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, LockReason rea
     it->get()->lockMask |= reason;
 }
 
-void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, LockReason reason) {
+void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, eLockReason reason) {
     auto it = find(state);
     if (it == m_queue.end())
         return;
@@ -37,9 +37,9 @@ void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, LockReason reaso
     tryProcess();
 }
 
-void CSurfaceStateQueue::unlockFirst(LockReason reason) {
+void CSurfaceStateQueue::unlockFirst(eLockReason reason) {
     for (auto& it : m_queue) {
-        if ((it->lockMask & reason) != LockReason::None) {
+        if ((it->lockMask & reason) != LOCK_REASON_NONE) {
             it->lockMask &= ~reason;
             break;
         }
@@ -67,7 +67,7 @@ void CSurfaceStateQueue::tryProcess() {
         return;
 
     auto front = m_queue.begin();
-    if (front->get()->lockMask != LockReason::None)
+    if (front->get()->lockMask != LOCK_REASON_NONE)
         return;
 
     auto next = std::next(front);
@@ -77,7 +77,7 @@ void CSurfaceStateQueue::tryProcess() {
         return;
     }
 
-    while (!m_queue.empty() && next != m_queue.end() && next->get()->lockMask == LockReason::None && !next->get()->updated.bits.buffer) {
+    while (!m_queue.empty() && next != m_queue.end() && next->get()->lockMask == LOCK_REASON_NONE && !next->get()->updated.bits.buffer) {
         next->get()->updateFrom(**front, true);
         m_queue.pop_front();
 

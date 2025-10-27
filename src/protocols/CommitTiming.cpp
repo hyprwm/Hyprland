@@ -43,7 +43,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
         if (!m_pendingTimeout.has_value())
             return;
 
-        m_surface->m_stateQueue.lock(state, LockReason::Timer);
+        m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);
 
         if (!m_timerPresent) {
             m_timerPresent = true;
@@ -53,7 +53,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
                     if (!m_surface)
                         return;
 
-                    m_surface->m_stateQueue.unlockFirst(LockReason::Timer);
+                    m_surface->m_stateQueue.unlockFirst(LOCK_REASON_TIMER);
                 },
                 nullptr);
         } else

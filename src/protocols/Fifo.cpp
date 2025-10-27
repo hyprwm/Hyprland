@@ -67,7 +67,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
         // only lock once its mapped.
         if (m_surface->m_mapped)
-            m_surface->m_stateQueue.lock(state, LockReason::Fifo);
+            m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
 
         m_pending = {};
     });
@@ -82,7 +82,7 @@ bool CFifoResource::good() {
 }
 
 void CFifoResource::presented() {
-    m_surface->m_stateQueue.unlockFirst(LockReason::Fifo);
+    m_surface->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {

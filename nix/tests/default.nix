@@ -12,6 +12,7 @@ in {
         # Programs needed for tests
         jq
         kitty
+        wl-copy
         xorg.xeyes
       ];
 

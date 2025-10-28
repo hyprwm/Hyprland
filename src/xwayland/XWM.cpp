@@ -1194,11 +1194,9 @@ void CXWM::updateClientList() {
 }
 
 void CXWM::updateWorkArea(int x, int y, int w, int h) {
-    if (!g_pXWayland || !g_pXWayland->m_wm || !g_pXWayland->m_wm->getConnection())
+    if (!g_pXWayland || !g_pXWayland->m_wm || !g_pXWayland->m_wm->getConnection() || !m_screen || !m_screen->root)
         return;
     auto connection = g_pXWayland->m_wm->getConnection();
-    if (!m_screen || !m_screen->root)
-        return;
 
     if (w <= 0 || h <= 0) {
         xcb_delete_property(connection, m_screen->root, HYPRATOMS["_NET_WORKAREA"]);

@@ -1795,6 +1795,7 @@ bool CMonitor::attemptDirectScanout() {
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
+    // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
@@ -1812,6 +1813,10 @@ bool CMonitor::attemptDirectScanout() {
 
             m_scanoutNeedsCursorUpdate = false;
         }
+
+        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
+        if (PSURFACE->m_fifo)
+            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 
         return true;
     }

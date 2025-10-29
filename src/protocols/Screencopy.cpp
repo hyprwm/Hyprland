@@ -513,6 +513,10 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
 
 void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_framesAwaitingWrite.empty()) {
+        for (auto client : m_clients) {
+            if (client->m_framesInLastHalfSecond > 0)
+                return;
+        }
         g_pHyprRenderer->m_directScanoutBlocked = false;
         return; // nothing to share
     }

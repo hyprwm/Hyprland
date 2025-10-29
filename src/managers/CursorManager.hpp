@@ -55,6 +55,8 @@ class CCursorManager {
 
     void                    tickAnimatedCursor();
 
+    float                   getScaledSize() const;
+
   private:
     bool                               m_ourBufferConnected = false;
     std::vector<SP<CCursorBuffer>>     m_cursorBuffers;

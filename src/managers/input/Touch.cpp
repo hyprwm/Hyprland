@@ -124,6 +124,8 @@ void CInputManager::onTouchUp(ITouch::SUpEvent e) {
 void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
     m_lastInputTouch = true;
 
+    m_lastCursorMovement.reset();
+
     EMIT_HOOK_EVENT_CANCELLABLE("touchMove", e);
     if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         // Do nothing if this is using a different finger.

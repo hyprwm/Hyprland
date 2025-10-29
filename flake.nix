@@ -147,8 +147,8 @@
         (pkgsFor.${system})
         # hyprland-packages
         hyprland
+        hyprland-with-hyprtester
         hyprland-unwrapped
-        hyprtester
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

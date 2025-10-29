@@ -25,6 +25,7 @@ class CDRMSyncPointState {
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
 
+    //
     operator bool() const {
         return m_timeline;
     }

@@ -86,9 +86,21 @@ void CRenderPass::simplify() {
                 }
             }
 
-            auto surf           = dynamic_cast<CSurfacePassElement*>(el->element.get());
-            bool shouldSubtract = !surf || !surf->m_data.pWindow || !surf->m_data.pWindow->m_windowData.noScreenShare.valueOrDefault();
-            if (shouldSubtract) {
+            auto surf = dynamic_cast<CSurfacePassElement*>(el->element.get());
+
+            // do not occlude noscreenshare surfaces when blackout is active
+            bool skipOcclusion = false;
+            if (surf) {
+                const bool captureActive   = g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+                const bool transparentMode = captureActive && !CHyprRenderer::shouldBlackoutNoScreenShare();
+                const bool noShareWindow   = surf->m_data.pWindow && surf->m_data.pWindow->m_windowData.noScreenShare.valueOrDefault();
+                const bool noShareLayer    = surf->m_data.pLS && surf->m_data.pLS->m_noScreenShare;
+
+                if (transparentMode && (noShareWindow || noShareLayer))
+                    skipOcclusion = true;
+            }
+
+            if (!skipOcclusion) {
                 newDamage.subtract(opaque);
                 if (*PDEBUGPASS)
                     m_occludedRegions.emplace_back(opaque);

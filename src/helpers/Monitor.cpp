@@ -465,32 +465,41 @@ void CMonitor::onDisconnect(bool destroy) {
     std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
-void CMonitor::applyCMType(NCMType::eCMType cmType) {
-    auto oldImageDescription = m_imageDescription;
+void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
+    auto        oldImageDescription = m_imageDescription;
+    static auto PSDREOTF            = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+    auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
+                                                       (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+
     switch (cmType) {
-        case NCMType::CM_SRGB: m_imageDescription = {}; break; // assumes SImageDescirption defaults to sRGB
+        case NCMType::CM_SRGB: m_imageDescription = {.transferFunction = chosenSdrEotf}; break; // assumes SImageDescription defaults to sRGB
         case NCMType::CM_WIDE:
-            m_imageDescription = {.primariesNameSet = true,
+            m_imageDescription = {.transferFunction = chosenSdrEotf,
+                                  .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)};
             break;
         case NCMType::CM_DCIP3:
-            m_imageDescription = {.primariesNameSet = true,
+            m_imageDescription = {.transferFunction = chosenSdrEotf,
+                                  .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)};
             break;
         case NCMType::CM_DP3:
-            m_imageDescription = {.primariesNameSet = true,
+            m_imageDescription = {.transferFunction = chosenSdrEotf,
+                                  .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)};
             break;
         case NCMType::CM_ADOBE:
-            m_imageDescription = {.primariesNameSet = true,
+            m_imageDescription = {.transferFunction = chosenSdrEotf,
+                                  .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
                                   .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)};
             break;
         case NCMType::CM_EDID:
-            m_imageDescription = {.primariesNameSet = false,
+            m_imageDescription = {.transferFunction = chosenSdrEotf,
+                                  .primariesNameSet = true,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = {
                                              .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
@@ -868,6 +877,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         default: break;
     }
 
+    m_sdrEotf = RULE->sdrEotf;
+
     m_sdrMinLuminance = RULE->sdrMinLuminance;
     m_sdrMaxLuminance = RULE->sdrMaxLuminance;
 
@@ -875,7 +886,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_maxLuminance    = RULE->maxLuminance;
     m_maxAvgLuminance = RULE->maxAvgLuminance;
 
-    applyCMType(m_cmType);
+    applyCMType(m_cmType, m_sdrEotf);
 
     m_sdrSaturation = RULE->sdrSaturation;
     m_sdrBrightness = RULE->sdrBrightness;

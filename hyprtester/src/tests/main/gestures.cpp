@@ -45,11 +45,15 @@ static bool test() {
     EXPECT(Tests::windowCount(), 1);
 
     // Give the shell a moment to initialize
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture up,4"));
+    OK(getFromSocket("/dispatch plugin:test:gesture up,5"));
+    OK(getFromSocket("/dispatch plugin:test:gesture down,5"));
+    OK(getFromSocket("/dispatch plugin:test:gesture left,5"));
+    OK(getFromSocket("/dispatch plugin:test:gesture right,5"));
+    OK(getFromSocket("/dispatch plugin:test:gesture right,4"));
 
-    EXPECT(waitForWindowCount(0, "Gesture sent ctrl+d to kitty"), true);
+    EXPECT(waitForWindowCount(0, "Gesture sent paste exit + enter to kitty"), true);
 
     EXPECT(Tests::windowCount(), 0);
 

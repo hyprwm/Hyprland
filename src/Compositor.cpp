@@ -1789,6 +1789,37 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
     return VECNOTINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
 }
 
+CBox CCompositor::calculateX11WorkArea() {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    CBox        workbox            = {0, 0, 0, 0};
+    bool        firstMonitor       = true;
+
+    for (const auto& monitor : m_monitors) {
+        // we ignore monitor->m_position on purpose
+        auto x   = monitor->m_reservedTopLeft.x;
+        auto y   = monitor->m_reservedTopLeft.y;
+        auto w   = monitor->m_size.x - monitor->m_reservedBottomRight.x - x;
+        auto h   = monitor->m_size.y - monitor->m_reservedBottomRight.y - y;
+        CBox box = {x, y, w, h};
+        if ((*PXWLFORCESCALEZERO))
+            box.scale(monitor->m_scale);
+
+        if (firstMonitor) {
+            firstMonitor = false;
+            workbox      = box;
+        } else {
+            // if this monitor creates a different workbox than previous monitor, we remove the _NET_WORKAREA property all together
+            if ((std::abs(box.x - workbox.x) > 3) || (std::abs(box.y - workbox.y) > 3) || (std::abs(box.w - workbox.w) > 3) || (std::abs(box.h - workbox.h) > 3)) {
+                workbox = {0, 0, 0, 0};
+                break;
+            }
+        }
+    }
+
+    // returning 0, 0 will remove the _NET_WORKAREA property
+    return workbox;
+}
+
 PHLMONITOR CCompositor::getMonitorInDirection(const char& dir) {
     return getMonitorInDirection(m_lastMonitor.lock(), dir);
 }
@@ -2983,6 +3014,11 @@ void CCompositor::arrangeMonitors() {
     }
 
     PROTO::xdgOutput->updateAllOutputs();
+
+#ifndef NO_XWAYLAND
+    CBox box = g_pCompositor->calculateX11WorkArea();
+    g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
+#endif
 }
 
 void CCompositor::enterUnsafeState() {

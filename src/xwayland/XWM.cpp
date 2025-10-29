@@ -987,7 +987,7 @@ CXWM::CXWM() : m_connection(makeUnique<CXCBConnection>(g_pXWayland->m_server->m_
     xcb_atom_t supported[] = {
         HYPRATOMS["_NET_WM_STATE"],        HYPRATOMS["_NET_ACTIVE_WINDOW"],       HYPRATOMS["_NET_WM_MOVERESIZE"],           HYPRATOMS["_NET_WM_STATE_FOCUSED"],
         HYPRATOMS["_NET_WM_STATE_MODAL"],  HYPRATOMS["_NET_WM_STATE_FULLSCREEN"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"],
-        HYPRATOMS["_NET_WM_STATE_HIDDEN"], HYPRATOMS["_NET_CLIENT_LIST"],         HYPRATOMS["_NET_CLIENT_LIST_STACKING"],
+        HYPRATOMS["_NET_WM_STATE_HIDDEN"], HYPRATOMS["_NET_CLIENT_LIST"],         HYPRATOMS["_NET_CLIENT_LIST_STACKING"],    HYPRATOMS["_NET_WORKAREA"],
     };
     xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
 
@@ -1191,6 +1191,22 @@ void CXWM::updateClientList() {
     }
 
     xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_CLIENT_LIST_STACKING"], XCB_ATOM_WINDOW, 32, windows.size(), windows.data());
+}
+
+void CXWM::updateWorkArea(int x, int y, int w, int h) {
+    if (!g_pXWayland || !g_pXWayland->m_wm || !g_pXWayland->m_wm->getConnection() || !m_screen || !m_screen->root)
+        return;
+    auto connection = g_pXWayland->m_wm->getConnection();
+
+    if (w <= 0 || h <= 0) {
+        xcb_delete_property(connection, m_screen->root, HYPRATOMS["_NET_WORKAREA"]);
+        xcb_flush(connection);
+        return;
+    }
+
+    uint32_t values[4] = {sc<uint32_t>(x), sc<uint32_t>(y), sc<uint32_t>(w), sc<uint32_t>(h)};
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_WORKAREA"], XCB_ATOM_CARDINAL, 32, 4, values);
+    xcb_flush(connection);
 }
 
 bool CXWM::isWMWindow(xcb_window_t w) {

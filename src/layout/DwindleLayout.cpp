@@ -7,6 +7,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "xwayland/XWayland.hpp"
 
 SWorkspaceGaps CHyprDwindleLayout::getWorkspaceGaps(const PHLWORKSPACE& pWorkspace) {
     const auto     WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
@@ -597,6 +598,11 @@ void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
         calculateWorkspace(PMONITOR->m_activeSpecialWorkspace);
 
     calculateWorkspace(PMONITOR->m_activeWorkspace);
+
+#ifndef NO_XWAYLAND
+    CBox box = g_pCompositor->calculateX11WorkArea();
+    g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
+#endif
 }
 
 void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {

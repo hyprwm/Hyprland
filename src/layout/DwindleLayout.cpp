@@ -640,13 +640,12 @@ bool CHyprDwindleLayout::isWindowTiled(PHLWINDOW pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
-void CHyprDwindleLayout::onBeginDragWindow() {
+void CHyprDwindleLayout::onBeginDragWindow(PHLWINDOW) {
     m_pseudoDragFlags.started = false;
     m_pseudoDragFlags.pseudo  = false;
-    IHyprLayout::onBeginDragWindow();
 }
 
-void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
+void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, Interactive::eRectCorner corner, PHLWINDOW pWindow) {
 
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
@@ -729,11 +728,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         SDwindleNodeData* PHOUTER = nullptr;
         SDwindleNodeData* PHINNER = nullptr;
 
-        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || edges.right;
-        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || edges.bottom;
-        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || edges.left;
-        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || edges.top;
-        const auto        NONE   = corner == CORNER_NONE;
+        const auto        LEFT   = corner == Interactive::CORNER_TOPLEFT || corner == Interactive::CORNER_BOTTOMLEFT || edges.right;
+        const auto        TOP    = corner == Interactive::CORNER_TOPLEFT || corner == Interactive::CORNER_TOPRIGHT || edges.bottom;
+        const auto        RIGHT  = corner == Interactive::CORNER_TOPRIGHT || corner == Interactive::CORNER_BOTTOMRIGHT || edges.left;
+        const auto        BOTTOM = corner == Interactive::CORNER_BOTTOMLEFT || corner == Interactive::CORNER_BOTTOMRIGHT || edges.top;
+        const auto        NONE   = corner == Interactive::CORNER_NONE;
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {
             const auto PPARENT = PCURRENT->pParent;

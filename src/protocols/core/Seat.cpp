@@ -36,7 +36,8 @@ void CWLTouchResource::sendDown(SP<CWLSurfaceResource> surface, uint32_t timeMs,
     m_currentSurface           = surface;
     m_listeners.destroySurface = surface->m_events.destroy.listen([this, timeMs, id] { sendUp(timeMs + 10 /* hack */, id); });
 
-    m_resource->sendDown(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, surface->getResource().get(), id, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
+    m_resource->sendDown(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_TOUCH), timeMs, surface->getResource().get(), id, wl_fixed_from_double(local.x),
+                         wl_fixed_from_double(local.y));
 
     m_fingers++;
 }
@@ -48,7 +49,7 @@ void CWLTouchResource::sendUp(uint32_t timeMs, int32_t id) {
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_TOUCH))
         return;
 
-    m_resource->sendUp(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, id);
+    m_resource->sendUp(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_TOUCH), timeMs, id);
     m_fingers--;
     if (m_fingers <= 0) {
         m_currentSurface.reset();
@@ -173,7 +174,8 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
 
     const auto fixedLocal = fixPosWithWlFixed(local);
 
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_MOUSE), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x),
+                          wl_fixed_from_double(fixedLocal.y));
 }
 
 void CWLPointerResource::sendLeave() {
@@ -193,7 +195,7 @@ void CWLPointerResource::sendLeave() {
 
     m_pressedButtons.clear();
 
-    m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
+    m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_MOUSE), m_currentSurface->getResource().get());
     m_currentSurface.reset();
     m_listeners.destroySurface.reset();
 }
@@ -230,7 +232,7 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
     else if (state == WL_POINTER_BUTTON_STATE_PRESSED)
         m_pressedButtons.emplace_back(button);
 
-    m_resource->sendButton(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, button, state);
+    m_resource->sendButton(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_MOUSE), timeMs, button, state);
 }
 
 void CWLPointerResource::sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value) {
@@ -389,7 +391,7 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface, wl_array* ke
     m_currentSurface           = surface;
     m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), keys);
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_KEYBOARD), surface->getResource().get(), keys);
 }
 
 void CWLKeyboardResource::sendLeave() {
@@ -399,7 +401,7 @@ void CWLKeyboardResource::sendLeave() {
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
+    m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_KEYBOARD), m_currentSurface->getResource().get());
     m_currentSurface.reset();
     m_listeners.destroySurface.reset();
 }
@@ -411,7 +413,7 @@ void CWLKeyboardResource::sendKey(uint32_t timeMs, uint32_t key, wl_keyboard_key
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    m_resource->sendKey(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, key, state);
+    m_resource->sendKey(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_KEYBOARD), timeMs, key, state);
 }
 
 void CWLKeyboardResource::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
@@ -421,7 +423,7 @@ void CWLKeyboardResource::sendMods(uint32_t depressed, uint32_t latched, uint32_
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    m_resource->sendModifiers(g_pSeatManager->nextSerial(m_owner.lock()), depressed, latched, locked, group);
+    m_resource->sendModifiers(g_pSeatManager->nextSerial(m_owner.lock(), CSeatManager::SERIAL_TYPE_KEYBOARD), depressed, latched, locked, group);
 }
 
 void CWLKeyboardResource::repeatInfo(uint32_t rate, uint32_t delayMs) {
@@ -436,6 +438,8 @@ void CWLKeyboardResource::repeatInfo(uint32_t rate, uint32_t delayMs) {
 CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
+
+    m_resource->setData(this);
 
     m_resource->setOnDestroy([this](CWlSeat* r) {
         m_events.destroy.emit();
@@ -494,6 +498,11 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : m_resource(resource_) 
 
 CWLSeatResource::~CWLSeatResource() {
     m_events.destroy.emit();
+}
+
+SP<CWLSeatResource> CWLSeatResource::fromResource(wl_resource* res) {
+    auto data = sc<CWLSeatResource*>(sc<CWlSeat*>(wl_resource_get_user_data(res))->data());
+    return data ? data->m_self.lock() : nullptr;
 }
 
 void CWLSeatResource::sendCapabilities(uint32_t caps) {

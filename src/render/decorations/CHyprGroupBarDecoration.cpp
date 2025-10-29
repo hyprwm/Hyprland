@@ -1,6 +1,7 @@
 #include "CHyprGroupBarDecoration.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../desktop/interactive/Drag.hpp"
 #include "managers/LayoutManager.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
@@ -423,7 +424,10 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
         g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
     }
 
-    g_pInputManager->m_currentlyDraggedWindow = pWindow;
+    if (Interactive::CDrag::getDragWindow() != pWindow) {
+        Interactive::CDrag::end();
+        Interactive::CDrag::start(pWindow, Interactive::WINDOW_DRAG_MOVE);
+    }
 
     if (!g_pCompositor->isWindowActive(pWindow))
         g_pCompositor->focusWindow(pWindow);
@@ -440,13 +444,9 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_window->m_isFloating && !pDraggedWindow->m_draggingTiled;
 
-    g_pInputManager->m_wasDraggingWindow = false;
-
     if (!pDraggedWindow->canBeGroupedInto(m_window.lock()) || (*PDRAGINTOGROUP != 1 && *PDRAGINTOGROUP != 2) || (FLOATEDINTOTILED && !*PMERGEFLOATEDINTOTILEDONGROUPBAR) ||
-        (!*PMERGEGROUPSONGROUPBAR && pDraggedWindow->m_groupData.pNextWindow.lock() && m_window->m_groupData.pNextWindow.lock())) {
-        g_pInputManager->m_wasDraggingWindow = true;
+        (!*PMERGEGROUPSONGROUPBAR && pDraggedWindow->m_groupData.pNextWindow.lock() && m_window->m_groupData.pNextWindow.lock()))
         return false;
-    }
 
     const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_barHeight + *POUTERGAP) / 2 : pos.x - assignedBoxGlobal().x - m_barWidth / 2;
     const float BARSIZE     = *PSTACKED ? m_barHeight + *POUTERGAP : m_barWidth + *PINNERGAP;

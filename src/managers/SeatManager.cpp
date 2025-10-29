@@ -40,7 +40,7 @@ SP<CSeatManager::SSeatResourceContainer> CSeatManager::containerForResource(SP<C
     return nullptr;
 }
 
-uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
+uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource, eSerialType type) {
     if (!seatResource)
         return 0;
 
@@ -50,7 +50,10 @@ uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
 
     auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
-    container->serials.emplace_back(serial);
+    container->serials.emplace_back(SSerialData{
+        .serial = serial,
+        .type   = type,
+    });
 
     if (container->serials.size() > MAX_SERIAL_STORE_LEN)
         container->serials.erase(container->serials.begin());
@@ -67,7 +70,7 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
     ASSERT(container);
 
     for (auto it = container->serials.begin(); it != container->serials.end(); ++it) {
-        if (*it == serial) {
+        if (it->serial == serial) {
             if (erase)
                 container->serials.erase(it);
             return true;
@@ -75,6 +78,26 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
     }
 
     return false;
+}
+
+std::optional<CSeatManager::SSerialData> CSeatManager::serialData(SP<CWLSeatResource> seatResource, uint32_t serial, bool erase) {
+    if (!seatResource)
+        return std::nullopt;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    for (auto it = container->serials.begin(); it != container->serials.end(); ++it) {
+        if (it->serial == serial) {
+            auto cpy = *it;
+            if (erase)
+                container->serials.erase(it);
+            return cpy;
+        }
+    }
+
+    return std::nullopt;
 }
 
 void CSeatManager::updateCapabilities(uint32_t capabilities) {

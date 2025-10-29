@@ -120,8 +120,6 @@ class CKeybindManager {
     //we also store the keyboard pointer (in the string) to differentiate between different keyboard (layouts)
     std::unordered_map<std::string, xkb_keycode_t> m_keyToCodeCache;
 
-    static SDispatchResult                         changeMouseBindMode(const eMouseBindMode mode);
-
   private:
     std::vector<SPressedKeyWithMods> m_pressedKeys;
 
@@ -157,7 +155,6 @@ class CKeybindManager {
     xkb_state*                       m_xkbTranslationState = nullptr;
 
     void                             updateXKBTranslationState();
-    bool                             ensureMouseBindState();
 
     static bool                      tryMoveFocusToMonitor(PHLMONITOR monitor);
     static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");

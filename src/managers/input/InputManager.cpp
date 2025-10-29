@@ -40,6 +40,8 @@
 #include "../../managers/LayoutManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 
+#include "../../desktop/interactive/Drag.hpp"
+
 #include "../../helpers/time/Time.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
@@ -333,8 +335,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
     }
 
-    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
     // forced above all
     if (!g_pInputManager->m_exclusiveLSes.empty()) {
         if (!foundSurface)
@@ -524,7 +524,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         m_foundSurfaceToFocus = foundSurface;
     }
 
-    if (m_currentlyDraggedWindow.lock() && pFoundWindow != m_currentlyDraggedWindow) {
+    if (Interactive::CDrag::active() && pFoundWindow != Interactive::CDrag::getDragWindow()) {
         g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
         return;
     }
@@ -1909,7 +1909,7 @@ void CInputManager::releaseAllMouseButtons() {
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // do not override cursor icons set by mouse binds
-    if (g_pInputManager->m_currentlyDraggedWindow.expired()) {
+    if (Interactive::CDrag::active()) {
         m_borderIconDirection = BORDERICON_NONE;
         return;
     }
@@ -1932,7 +1932,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_currentlyHeldButtons.empty() && m_currentlyDraggedWindow.expired()))
+    else if (!boxFullGrabInput.containsPoint(mouseCoords) || !m_currentlyHeldButtons.empty())
         direction = BORDERICON_NONE;
     else {
 

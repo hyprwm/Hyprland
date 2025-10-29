@@ -16,6 +16,7 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "desktop/interactive/Drag.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/PointerManager.hpp"
@@ -778,8 +779,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    if (PWINDOW == g_pInputManager->m_currentlyDraggedWindow.lock())
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+    if (PWINDOW == Interactive::CDrag::getDragWindow())
+        Interactive::CDrag::end();
 
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = PWINDOW->m_workspace;

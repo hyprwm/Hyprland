@@ -9,6 +9,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../desktop/interactive/Drag.hpp"
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(PHLWINDOW pWindow) {
     for (auto& nd : m_masterNodesData) {
@@ -121,7 +122,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-    if (*PDROPATCURSOR && g_pInputManager->m_dragMode == MBIND_MOVE) {
+    if (*PDROPATCURSOR && Interactive::CDrag::active()) {
         if (WINDOWSONWORKSPACE > 2) {
             for (auto it = m_masterNodesData.begin(); it != m_masterNodesData.end(); ++it) {
                 if (it->workspaceID != pWindow->workspaceID())
@@ -177,11 +178,11 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         }
     }
 
-    if ((BNEWISMASTER && g_pInputManager->m_dragMode != MBIND_MOVE)                             //
+    if ((BNEWISMASTER && !Interactive::CDrag::active())                                         //
         || WINDOWSONWORKSPACE == 1                                                              //
         || (WINDOWSONWORKSPACE > 2 && !pWindow->m_firstMap && OPENINGON && OPENINGON->isMaster) //
         || forceDropAsMaster                                                                    //
-        || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && g_pInputManager->m_dragMode != MBIND_MOVE)) {
+        || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && !Interactive::CDrag::active())) {
 
         if (BNEWBEFOREACTIVE) {
             for (auto& nd : m_masterNodesData | std::views::reverse) {
@@ -745,7 +746,7 @@ bool CHyprMasterLayout::isWindowTiled(PHLWINDOW pWindow) {
     return getNodeFromWindow(pWindow) != nullptr;
 }
 
-void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
+void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, Interactive::eRectCorner corner, PHLWINDOW pWindow) {
     const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
 
     if (!validMapped(PWINDOW))
@@ -770,9 +771,9 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const bool   DISPLAYTOP    = STICKS(PWINDOW->m_position.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
     const bool   DISPLAYLEFT   = STICKS(PWINDOW->m_position.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
 
-    const bool   LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool   TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
-    const bool   NONE = corner == CORNER_NONE;
+    const bool   LEFT = corner == Interactive::CORNER_TOPLEFT || corner == Interactive::CORNER_BOTTOMLEFT;
+    const bool   TOP  = corner == Interactive::CORNER_TOPLEFT || corner == Interactive::CORNER_TOPRIGHT;
+    const bool   NONE = corner == Interactive::CORNER_NONE;
 
     const auto   MASTERS      = getMastersOnWorkspace(PNODE->workspaceID);
     const auto   WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);

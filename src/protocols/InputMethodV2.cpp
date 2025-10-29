@@ -56,13 +56,13 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 }
 
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
-    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()), CSeatManager::SERIAL_TYPE_IME);
 
     m_resource->sendKey(SERIAL, time, key, sc<uint32_t>(state));
 }
 
 void CInputMethodKeyboardGrabV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()), CSeatManager::SERIAL_TYPE_IME);
 
     m_resource->sendModifiers(SERIAL, depressed, latched, locked, group);
 }

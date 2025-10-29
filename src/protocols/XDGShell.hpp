@@ -149,8 +149,11 @@ class CXDGToplevelResource {
     std::vector<WP<CXDGToplevelResource>> m_children;
 
   private:
-    SP<CXdgToplevel> m_resource;
-    void             applyState();
+    SP<CXdgToplevel>     m_resource;
+
+    SP<HOOK_CALLBACK_FN> m_mouseHk, m_touchHk;
+
+    void                 applyState();
 };
 
 class CXDGSurfaceRole : public ISurfaceRole {

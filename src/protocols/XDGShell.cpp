@@ -4,7 +4,10 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/ANRManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../managers/LayoutManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../desktop/interactive/Drag.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "protocols/core/Output.hpp"
@@ -258,6 +261,52 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
             m_parent->m_children.emplace_back(m_self);
 
         LOGM(LOG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
+    });
+
+    m_resource->setMove([this](CXdgToplevel* r, wl_resource* seatR, uint32_t serial) {
+        LOGM(LOG, "Toplevel {:x} starts an interactive move", (uintptr_t)this);
+
+        if (!seatR) {
+            r->error(-1, "Missing seat for move");
+            return;
+        }
+
+        const auto SEAT_RESOURCE = CWLSeatResource::fromResource(seatR);
+
+        if (!SEAT_RESOURCE) {
+            r->error(-1, "Missing seat for move");
+            return;
+        }
+
+        if (!validMapped(m_window)) {
+            LOGM(LOG, "Rejecting interactive move: toplevel has no window (unmapped?)");
+            return;
+        }
+
+        const auto SERIAL_DATA = g_pSeatManager->serialData(SEAT_RESOURCE, serial, false);
+
+        if (!SERIAL_DATA.has_value()) {
+            LOGM(LOG, "Rejecting interactive move: no serial match");
+            return;
+        }
+
+        if (SERIAL_DATA->type == CSeatManager::SERIAL_TYPE_MOUSE) {
+            m_mouseHk = g_pHookSystem->hookDynamic("mouseButton", [](void* self, SCallbackInfo& info, std::any e) {
+                auto E = std::any_cast<IPointer::SButtonEvent>(e);
+
+                if (E.state != WL_POINTER_BUTTON_STATE_RELEASED)
+                    return;
+
+                Interactive::CDrag::end();
+            });
+        } else if (SERIAL_DATA->type == CSeatManager::SERIAL_TYPE_TOUCH)
+            m_touchHk = g_pHookSystem->hookDynamic("touchUp", [](void* self, SCallbackInfo& info, std::any e) { Interactive::CDrag::end(); });
+        else {
+            LOGM(LOG, "Rejecting interactive move: serial has a type that isn't mouse or touch");
+            return;
+        }
+
+        Interactive::CDrag::start(m_window.lock(), Interactive::WINDOW_DRAG_MOVE);
     });
 }
 

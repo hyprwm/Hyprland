@@ -16,8 +16,8 @@ void CResizeTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpda
 
     g_pHyprRenderer->damageWindow(m_window.lock());
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow((e.swipe ? e.swipe->delta : e.pinch->delta),
-                                                             cornerFromBox(m_window->getWindowMainSurfaceBox(), g_pInputManager->getMouseCoordsInternal()), m_window.lock());
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(
+        (e.swipe ? e.swipe->delta : e.pinch->delta), Interactive::cornerFromBox(m_window->getWindowMainSurfaceBox(), g_pInputManager->getMouseCoordsInternal()), m_window.lock());
     m_window->m_realSize->warp();
     m_window->m_realPosition->warp();
 

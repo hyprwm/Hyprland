@@ -203,6 +203,5 @@ CheckOptions:
   readability-identifier-naming.EnumConstantCase: UPPER_CASE
   readability-identifier-naming.FunctionCase: camelBack
   readability-identifier-naming.NamespaceCase: CamelCase
-  readability-identifier-naming.NamespacePrefix: N
   readability-identifier-naming.StructPrefix: S
   readability-identifier-naming.StructCase: CamelCase

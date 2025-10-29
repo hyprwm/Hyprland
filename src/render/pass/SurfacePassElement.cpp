@@ -2,6 +2,7 @@
 #include "../OpenGL.hpp"
 #include "../../desktop/WLSurface.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../desktop/interactive/Drag.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -51,7 +52,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (!TEXTURE->m_texID)
         return;
 
-    const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
+    const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && Interactive::CDrag::getDragMode() == Interactive::WINDOW_DRAG_MOVE;
     TRACY_GPU_ZONE("RenderSurface");
 
     auto        PSURFACE = CWLSurface::fromResource(m_data.surface);
@@ -163,7 +164,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 CBox CSurfacePassElement::getTexBox() {
     const double outputX = -m_data.pMonitor->m_position.x, outputY = -m_data.pMonitor->m_position.y;
 
-    const auto   INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_pInputManager->m_currentlyDraggedWindow && g_pInputManager->m_dragMode == MBIND_RESIZE;
+    const auto   INTERACTIVERESIZEINPROGRESS = m_data.pWindow && Interactive::CDrag::getDragMode() == Interactive::WINDOW_DRAG_RESIZE;
     auto         PSURFACE                    = CWLSurface::fromResource(m_data.surface);
 
     CBox         windowBox;

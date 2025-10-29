@@ -11,6 +11,7 @@
 #include "../../devices/ITouch.hpp"
 #include "../../devices/IKeyboard.hpp"
 #include "../../devices/Tablet.hpp"
+#include "../../desktop/interactive/Interactive.hpp"
 #include "../SessionLockManager.hpp"
 #include "../SeatManager.hpp"
 
@@ -32,14 +33,6 @@ AQUAMARINE_FORWARD(ITabletPad);
 enum eClickBehaviorMode : uint8_t {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
-};
-
-enum eMouseBindMode : int8_t {
-    MBIND_INVALID            = -1,
-    MBIND_MOVE               = 0,
-    MBIND_RESIZE             = 1,
-    MBIND_RESIZE_BLOCK_RATIO = 2,
-    MBIND_RESIZE_FORCE_RATIO = 3
 };
 
 enum eBorderIconDirection : uint8_t {
@@ -153,11 +146,8 @@ class CInputManager {
 
     STouchData         m_touchData;
 
-    // for dragging floating windows
-    PHLWINDOWREF   m_currentlyDraggedWindow;
-    eMouseBindMode m_dragMode             = MBIND_INVALID;
-    bool           m_wasDraggingWindow    = false;
-    bool           m_dragThresholdReached = false;
+    //
+    UP<Interactive::CDrag> m_interactiveDrag;
 
     // for refocus to be forced
     PHLWINDOWREF                 m_forcedFocus;

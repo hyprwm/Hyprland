@@ -233,165 +233,12 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     return false;
 }
 
-void IHyprLayout::onBeginDragWindow() {
-    const auto  DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
-    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
-
-    m_mouseMoveEventCount = 1;
-    m_beginDragSizeXY     = Vector2D();
-
-    // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
-    if (!validMapped(DRAGGINGWINDOW)) {
-        Debug::log(ERR, "Dragging attempted on an invalid window!");
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
-        return;
-    }
-
-    // Try to pick up dragged window now if drag_threshold is disabled
-    // or at least update dragging related variables for the cursors
-    g_pInputManager->m_dragThresholdReached = *PDRAGTHRESHOLD <= 0;
-    if (updateDragWindow())
-        return;
-
-    // get the grab corner
-    static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
-    if (*RESIZECORNER != 0 && *RESIZECORNER <= 4 && DRAGGINGWINDOW->m_isFloating) {
-        switch (*RESIZECORNER) {
-            case 1:
-                m_grabbedCorner = CORNER_TOPLEFT;
-                g_pInputManager->setCursorImageUntilUnset("nw-resize");
-                break;
-            case 2:
-                m_grabbedCorner = CORNER_TOPRIGHT;
-                g_pInputManager->setCursorImageUntilUnset("ne-resize");
-                break;
-            case 3:
-                m_grabbedCorner = CORNER_BOTTOMRIGHT;
-                g_pInputManager->setCursorImageUntilUnset("se-resize");
-                break;
-            case 4:
-                m_grabbedCorner = CORNER_BOTTOMLEFT;
-                g_pInputManager->setCursorImageUntilUnset("sw-resize");
-                break;
-        }
-    } else if (m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 2.0) {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.0) {
-            m_grabbedCorner = CORNER_TOPLEFT;
-            g_pInputManager->setCursorImageUntilUnset("nw-resize");
-        } else {
-            m_grabbedCorner = CORNER_BOTTOMLEFT;
-            g_pInputManager->setCursorImageUntilUnset("sw-resize");
-        }
-    } else {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.0) {
-            m_grabbedCorner = CORNER_TOPRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("ne-resize");
-        } else {
-            m_grabbedCorner = CORNER_BOTTOMRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("se-resize");
-        }
-    }
-
-    if (g_pInputManager->m_dragMode != MBIND_RESIZE && g_pInputManager->m_dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->m_dragMode != MBIND_RESIZE_BLOCK_RATIO)
-        g_pInputManager->setCursorImageUntilUnset("grabbing");
-
-    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-
-    g_pKeybindManager->shadowKeybinds();
-
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
-    g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
+void IHyprLayout::onBeginDragWindow(PHLWINDOW) {
+    ;
 }
 
 void IHyprLayout::onEndDragWindow() {
-    const auto DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
-
-    m_mouseMoveEventCount = 1;
-
-    if (!validMapped(DRAGGINGWINDOW)) {
-        if (DRAGGINGWINDOW) {
-            g_pInputManager->unsetCursorImage();
-            g_pInputManager->m_currentlyDraggedWindow.reset();
-        }
-        return;
-    }
-
-    g_pInputManager->unsetCursorImage();
-    g_pInputManager->m_currentlyDraggedWindow.reset();
-    g_pInputManager->m_wasDraggingWindow = true;
-
-    if (g_pInputManager->m_dragMode == MBIND_MOVE) {
-        g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
-
-        if (pWindow) {
-            if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
-                return;
-
-            const bool  FLOATEDINTOTILED = !pWindow->m_isFloating && !DRAGGINGWINDOW->m_draggingTiled;
-            static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
-
-            if (pWindow->m_groupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
-
-                if (DRAGGINGWINDOW->m_groupData.pNextWindow) {
-                    PHLWINDOW next = DRAGGINGWINDOW->m_groupData.pNextWindow.lock();
-                    while (next != DRAGGINGWINDOW) {
-                        next->m_isFloating    = pWindow->m_isFloating;           // match the floating state of group members
-                        *next->m_realSize     = pWindow->m_realSize->goal();     // match the size of group members
-                        *next->m_realPosition = pWindow->m_realPosition->goal(); // match the position of group members
-                        next                  = next->m_groupData.pNextWindow.lock();
-                    }
-                }
-
-                DRAGGINGWINDOW->m_isFloating       = pWindow->m_isFloating; // match the floating state of the window
-                DRAGGINGWINDOW->m_lastFloatingSize = m_draggingWindowOriginalFloatSize;
-                DRAGGINGWINDOW->m_draggingTiled    = false;
-
-                static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-                (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
-                pWindow->setGroupCurrent(DRAGGINGWINDOW);
-                DRAGGINGWINDOW->applyGroupRules();
-                DRAGGINGWINDOW->updateWindowDecos();
-            }
-        }
-    }
-
-    if (DRAGGINGWINDOW->m_draggingTiled) {
-        static auto PPRECISEMOUSE    = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
-        DRAGGINGWINDOW->m_isFloating = false;
-        g_pInputManager->refocus();
-
-        if (*PPRECISEMOUSE) {
-            eDirection      direction = DIRECTION_DEFAULT;
-
-            const auto      MOUSECOORDS      = g_pInputManager->getMouseCoordsInternal();
-            const PHLWINDOW pReferenceWindow = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
-
-            if (pReferenceWindow && pReferenceWindow != DRAGGINGWINDOW) {
-                const Vector2D draggedCenter   = DRAGGINGWINDOW->m_realPosition->goal() + DRAGGINGWINDOW->m_realSize->goal() / 2.f;
-                const Vector2D referenceCenter = pReferenceWindow->m_realPosition->goal() + pReferenceWindow->m_realSize->goal() / 2.f;
-                const float    xDiff           = draggedCenter.x - referenceCenter.x;
-                const float    yDiff           = draggedCenter.y - referenceCenter.y;
-
-                if (fabs(xDiff) > fabs(yDiff))
-                    direction = xDiff < 0 ? DIRECTION_LEFT : DIRECTION_RIGHT;
-                else
-                    direction = yDiff < 0 ? DIRECTION_UP : DIRECTION_DOWN;
-            }
-
-            onWindowRemovedTiling(DRAGGINGWINDOW);
-            onWindowCreatedTiling(DRAGGINGWINDOW, direction);
-        } else
-            changeWindowFloatingMode(DRAGGINGWINDOW);
-
-        DRAGGINGWINDOW->m_lastFloatingSize = m_draggingWindowOriginalFloatSize;
-    }
-
-    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
-
-    g_pInputManager->m_wasDraggingWindow = false;
+    ;
 }
 
 static inline bool canSnap(const double SIDEA, const double SIDEB, const double GAP) {
@@ -409,7 +256,8 @@ static void snapResize(double& start, double& end, const double P) {
 
 using SnapFn = std::function<void(double&, double&, const double)>;
 
-void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
+void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const Interactive::eWindowDragMode MODE, const int CORNER,
+                              const Vector2D& BEGINSIZE) {
     static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
     static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
@@ -419,7 +267,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
     static auto  PGAPSOUT = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
     const auto   GAPSNONE = CCssGapData{0, 0, 0, 0};
 
-    const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
+    const SnapFn SNAP  = (MODE == Interactive::WINDOW_DRAG_MOVE) ? snapMove : snapResize;
     int          snaps = 0;
 
     struct SRange {
@@ -450,19 +298,19 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
 
             // only snap windows if their ranges overlap in the opposite axis
             if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
-                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFBX.end, GAPSIZE)) {
+                if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFBX.end, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFBX.end);
                     snaps |= SNAP_LEFT;
-                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFBX.start, GAPSIZE)) {
+                } else if (CORNER & (Interactive::CORNER_TOPRIGHT | Interactive::CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFBX.start, GAPSIZE)) {
                     SNAP(sourceX.end, sourceX.start, SURFBX.start);
                     snaps |= SNAP_RIGHT;
                 }
             }
             if (sourceX.start <= SURFBX.end && SURFBX.start <= sourceX.end) {
-                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFBY.end, GAPSIZE)) {
+                if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFBY.end, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFBY.end);
                     snaps |= SNAP_UP;
-                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFBY.start, GAPSIZE)) {
+                } else if (CORNER & (Interactive::CORNER_BOTTOMLEFT | Interactive::CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFBY.start, GAPSIZE)) {
                     SNAP(sourceY.end, sourceY.start, SURFBY.start);
                     snaps |= SNAP_DOWN;
                 }
@@ -471,20 +319,20 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
             // corner snapping
             if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
                 const SRange SURFY = {SURFBY.start + GAPSY, SURFBY.end - GAPSY};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
+                if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_TOPRIGHT) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
-                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_DOWN) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
+                } else if (CORNER & (Interactive::CORNER_BOTTOMLEFT | Interactive::CORNER_BOTTOMRIGHT) && !(snaps & SNAP_DOWN) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
                     SNAP(sourceY.end, sourceY.start, SURFY.end);
                     snaps |= SNAP_DOWN;
                 }
             }
             if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
                 const SRange SURFX = {SURFBX.start + GAPSX, SURFBX.end - GAPSX};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
+                if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_BOTTOMLEFT) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
-                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_RIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
+                } else if (CORNER & (Interactive::CORNER_TOPRIGHT | Interactive::CORNER_BOTTOMRIGHT) && !(snaps & SNAP_RIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
                     SNAP(sourceX.end, sourceX.start, SURFX.end);
                     snaps |= SNAP_RIGHT;
                 }
@@ -502,25 +350,25 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
         SRange       monX = {MON->m_position.x + MON->m_reservedTopLeft.x + GAPSOUT->m_left, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - GAPSOUT->m_right};
         SRange       monY = {MON->m_position.y + MON->m_reservedTopLeft.y + GAPSOUT->m_top, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - GAPSOUT->m_bottom};
 
-        if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
+        if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_BOTTOMLEFT) &&
             ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
              canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + EXTENTDIFF->topLeft.x), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
+        if (CORNER & (Interactive::CORNER_TOPRIGHT | Interactive::CORNER_BOTTOMRIGHT) &&
             ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
              canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
+        if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_TOPRIGHT) &&
             ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
              canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + EXTENTDIFF->topLeft.y), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
+        if (CORNER & (Interactive::CORNER_BOTTOMLEFT | Interactive::CORNER_BOTTOMRIGHT) &&
             ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
              canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
@@ -532,16 +380,18 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
     sourceX = {sourceX.start + EXTENTS.topLeft.x, sourceX.end - EXTENTS.bottomRight.x};
     sourceY = {sourceY.start + EXTENTS.topLeft.y, sourceY.end - EXTENTS.bottomRight.y};
 
-    if (MODE == MBIND_RESIZE_FORCE_RATIO) {
-        if ((CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
+    if (MODE == Interactive::WINDOW_DRAG_RESIZE_FORCE_RATIO) {
+        if ((CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) ||
+            (CORNER & (Interactive::CORNER_TOPRIGHT | Interactive::CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
             const double SIZEY = (sourceX.end - sourceX.start) * (BEGINSIZE.y / BEGINSIZE.x);
-            if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
+            if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_TOPRIGHT))
                 sourceY.start = sourceY.end - SIZEY;
             else
                 sourceY.end = sourceY.start + SIZEY;
-        } else if ((CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && snaps & SNAP_UP) || (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
+        } else if ((CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_TOPRIGHT) && snaps & SNAP_UP) ||
+                   (CORNER & (Interactive::CORNER_BOTTOMLEFT | Interactive::CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
             const double SIZEX = (sourceY.end - sourceY.start) * (BEGINSIZE.x / BEGINSIZE.y);
-            if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
+            if (CORNER & (Interactive::CORNER_TOPLEFT | Interactive::CORNER_BOTTOMLEFT))
                 sourceX.start = sourceX.end - SIZEX;
             else
                 sourceX.end = sourceX.start + SIZEX;
@@ -550,185 +400,6 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
 
     sourcePos  = {sourceX.start, sourceY.start};
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
-}
-
-void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
-    if (g_pInputManager->m_currentlyDraggedWindow.expired())
-        return;
-
-    const auto  DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
-    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
-
-    // Window invalid or drag begin size 0,0 meaning we rejected it.
-    if ((!validMapped(DRAGGINGWINDOW) || m_beginDragSizeXY == Vector2D())) {
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
-        return;
-    }
-
-    // Yoink dragged window here instead if using drag_threshold and it has been reached
-    if (*PDRAGTHRESHOLD > 0 && !g_pInputManager->m_dragThresholdReached) {
-        if ((m_beginDragXY.distanceSq(mousePos) <= std::pow(*PDRAGTHRESHOLD, 2) && m_beginDragXY == m_lastDragXY))
-            return;
-        g_pInputManager->m_dragThresholdReached = true;
-        if (updateDragWindow())
-            return;
-    }
-
-    static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
-
-    const auto  SPECIAL = DRAGGINGWINDOW->onSpecialWorkspace();
-
-    const auto  DELTA     = Vector2D(mousePos.x - m_beginDragXY.x, mousePos.y - m_beginDragXY.y);
-    const auto  TICKDELTA = Vector2D(mousePos.x - m_lastDragXY.x, mousePos.y - m_lastDragXY.y);
-
-    static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
-    static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
-
-    static auto SNAPENABLED = CConfigValue<Hyprlang::INT>("general:snap:enabled");
-
-    const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
-    const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
-    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_mostHzMonitor->m_refreshRate;
-    static int  totalMs       = 0;
-    bool        canSkipUpdate = true;
-
-    MSTIMER = std::chrono::high_resolution_clock::now();
-
-    if (m_mouseMoveEventCount == 1)
-        totalMs = 0;
-
-    if (MSMONITOR > 16.0) {
-        totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_mouseMoveEventCount);
-        m_mouseMoveEventCount += 1;
-
-        // check if time-window is enough to skip update on 60hz monitor
-        canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_mouseMoveEventCount;
-    }
-
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate && (g_pInputManager->m_dragMode != MBIND_MOVE || *PANIMATEMOUSE)))
-        return;
-
-    TIMER = std::chrono::high_resolution_clock::now();
-
-    m_lastDragXY = mousePos;
-
-    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-
-    if (g_pInputManager->m_dragMode == MBIND_MOVE) {
-
-        Vector2D newPos  = m_beginDragPositionXY + DELTA;
-        Vector2D newSize = DRAGGINGWINDOW->m_realSize->goal();
-
-        if (*SNAPENABLED && !DRAGGINGWINDOW->m_draggingTiled)
-            performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE, -1, m_beginDragSizeXY);
-
-        newPos = newPos.round();
-
-        if (*PANIMATEMOUSE)
-            *DRAGGINGWINDOW->m_realPosition = newPos;
-        else {
-            DRAGGINGWINDOW->m_realPosition->setValueAndWarp(newPos);
-            DRAGGINGWINDOW->sendWindowSize();
-        }
-
-        DRAGGINGWINDOW->m_position = newPos;
-
-    } else if (g_pInputManager->m_dragMode == MBIND_RESIZE || g_pInputManager->m_dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->m_dragMode == MBIND_RESIZE_BLOCK_RATIO) {
-        if (DRAGGINGWINDOW->m_isFloating) {
-
-            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
-            Vector2D MAXSIZE;
-            if (DRAGGINGWINDOW->m_windowData.maxSize.hasValue())
-                MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, DRAGGINGWINDOW->m_windowData.maxSize.value());
-            else
-                MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max()));
-
-            Vector2D newSize = m_beginDragSizeXY;
-            Vector2D newPos  = m_beginDragPositionXY;
-
-            if (m_grabbedCorner == CORNER_BOTTOMRIGHT)
-                newSize = newSize + DELTA;
-            else if (m_grabbedCorner == CORNER_TOPLEFT)
-                newSize = newSize - DELTA;
-            else if (m_grabbedCorner == CORNER_TOPRIGHT)
-                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-            else if (m_grabbedCorner == CORNER_BOTTOMLEFT)
-                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
-
-            eMouseBindMode mode = g_pInputManager->m_dragMode;
-            if (DRAGGINGWINDOW->m_windowData.keepAspectRatio.valueOrDefault() && mode != MBIND_RESIZE_BLOCK_RATIO)
-                mode = MBIND_RESIZE_FORCE_RATIO;
-
-            if (m_beginDragSizeXY.x >= 1 && m_beginDragSizeXY.y >= 1 && mode == MBIND_RESIZE_FORCE_RATIO) {
-
-                const float RATIO = m_beginDragSizeXY.y / m_beginDragSizeXY.x;
-
-                if (MINSIZE.x * RATIO > MINSIZE.y)
-                    MINSIZE = Vector2D(MINSIZE.x, MINSIZE.x * RATIO);
-                else
-                    MINSIZE = Vector2D(MINSIZE.y / RATIO, MINSIZE.y);
-
-                if (MAXSIZE.x * RATIO < MAXSIZE.y)
-                    MAXSIZE = Vector2D(MAXSIZE.x, MAXSIZE.x * RATIO);
-                else
-                    MAXSIZE = Vector2D(MAXSIZE.y / RATIO, MAXSIZE.y);
-
-                if (newSize.x * RATIO > newSize.y)
-                    newSize = Vector2D(newSize.x, newSize.x * RATIO);
-                else
-                    newSize = Vector2D(newSize.y / RATIO, newSize.y);
-            }
-
-            newSize = newSize.clamp(MINSIZE, MAXSIZE);
-
-            if (m_grabbedCorner == CORNER_TOPLEFT)
-                newPos = newPos - newSize + m_beginDragSizeXY;
-            else if (m_grabbedCorner == CORNER_TOPRIGHT)
-                newPos = newPos + Vector2D(0.0, (m_beginDragSizeXY - newSize).y);
-            else if (m_grabbedCorner == CORNER_BOTTOMLEFT)
-                newPos = newPos + Vector2D((m_beginDragSizeXY - newSize).x, 0.0);
-
-            if (*SNAPENABLED) {
-                performSnap(newPos, newSize, DRAGGINGWINDOW, mode, m_grabbedCorner, m_beginDragSizeXY);
-                newSize = newSize.clamp(MINSIZE, MAXSIZE);
-            }
-
-            CBox wb = {newPos, newSize};
-            wb.round();
-
-            if (*PANIMATE) {
-                *DRAGGINGWINDOW->m_realSize     = wb.size();
-                *DRAGGINGWINDOW->m_realPosition = wb.pos();
-            } else {
-                DRAGGINGWINDOW->m_realSize->setValueAndWarp(wb.size());
-                DRAGGINGWINDOW->m_realPosition->setValueAndWarp(wb.pos());
-                DRAGGINGWINDOW->sendWindowSize();
-            }
-
-            DRAGGINGWINDOW->m_position = wb.pos();
-            DRAGGINGWINDOW->m_size     = wb.size();
-        } else {
-            resizeActiveWindow(TICKDELTA, m_grabbedCorner, DRAGGINGWINDOW);
-        }
-    }
-
-    // get middle point
-    Vector2D middle = DRAGGINGWINDOW->m_realPosition->value() + DRAGGINGWINDOW->m_realSize->value() / 2.f;
-
-    // and check its monitor
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
-
-    if (PMONITOR && !SPECIAL) {
-        DRAGGINGWINDOW->m_monitor = PMONITOR;
-        DRAGGINGWINDOW->moveToWorkspace(PMONITOR->m_activeWorkspace);
-        DRAGGINGWINDOW->updateGroupOutputs();
-
-        DRAGGINGWINDOW->updateToplevel();
-    }
-
-    DRAGGINGWINDOW->updateWindowDecos();
-
-    g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 }
 
 void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
@@ -984,48 +655,4 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
         sizePredicted = {};
 
     return sizePredicted;
-}
-
-bool IHyprLayout::updateDragWindow() {
-    const auto DRAGGINGWINDOW = g_pInputManager->m_currentlyDraggedWindow.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGWINDOW->isFullscreen();
-
-    if (g_pInputManager->m_dragThresholdReached) {
-        if (WAS_FULLSCREEN) {
-            Debug::log(LOG, "Dragging a fullscreen window");
-            g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
-        }
-
-        const auto PWORKSPACE = DRAGGINGWINDOW->m_workspace;
-
-        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGWINDOW->m_isFloating || (!DRAGGINGWINDOW->m_createdOverFullscreen && !DRAGGINGWINDOW->m_pinned))) {
-            Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-            g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
-            return true;
-        }
-    }
-
-    DRAGGINGWINDOW->m_draggingTiled   = false;
-    m_draggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_lastFloatingSize;
-
-    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_isFloating) {
-        const auto MOUSECOORDS          = g_pInputManager->getMouseCoordsInternal();
-        *DRAGGINGWINDOW->m_realPosition = MOUSECOORDS - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
-    } else if (!DRAGGINGWINDOW->m_isFloating && g_pInputManager->m_dragMode == MBIND_MOVE) {
-        Vector2D MINSIZE                   = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE)));
-        DRAGGINGWINDOW->m_lastFloatingSize = (DRAGGINGWINDOW->m_realSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
-        *DRAGGINGWINDOW->m_realPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
-        if (g_pInputManager->m_dragThresholdReached) {
-            changeWindowFloatingMode(DRAGGINGWINDOW);
-            DRAGGINGWINDOW->m_isFloating    = true;
-            DRAGGINGWINDOW->m_draggingTiled = true;
-        }
-    }
-
-    m_beginDragXY         = g_pInputManager->getMouseCoordsInternal();
-    m_beginDragPositionXY = DRAGGINGWINDOW->m_realPosition->goal();
-    m_beginDragSizeXY     = DRAGGINGWINDOW->m_realSize->goal();
-    m_lastDragXY          = m_beginDragXY;
-
-    return false;
 }

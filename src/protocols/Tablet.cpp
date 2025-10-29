@@ -531,7 +531,7 @@ void CTabletV2Protocol::down(SP<CTabletTool> tool) {
         if (t->m_tool != tool || !t->m_current)
             continue;
 
-        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()), CSeatManager::SERIAL_TYPE_TABLET);
         t->m_resource->sendDown(serial);
         t->queueFrame();
     }
@@ -578,7 +578,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
     toolResource->m_current  = true;
     toolResource->m_lastSurf = surf;
 
-    auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(toolResource->m_resource->client()));
+    auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(toolResource->m_resource->client()), CSeatManager::SERIAL_TYPE_TABLET);
     toolResource->m_resource->sendProximityIn(serial, tabletResource->m_resource.get(), surf->getResource()->resource());
     toolResource->queueFrame();
 
@@ -602,7 +602,7 @@ void CTabletV2Protocol::buttonTool(SP<CTabletTool> tool, uint32_t button, uint32
         if (t->m_tool != tool || !t->m_current)
             continue;
 
-        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()), CSeatManager::SERIAL_TYPE_TABLET);
         t->m_resource->sendButton(serial, button, sc<zwpTabletToolV2ButtonState>(state));
         t->queueFrame();
     }
@@ -626,7 +626,7 @@ void CTabletV2Protocol::mode(SP<CTabletPad> pad, uint32_t group, uint32_t mode, 
             LOGM(ERR, "BUG THIS: group >= t->groups.size()");
             return;
         }
-        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()), CSeatManager::SERIAL_TYPE_TABLET);
         t->m_groups.at(group)->m_resource->sendModeSwitch(timeMs, serial, mode);
     }
 }

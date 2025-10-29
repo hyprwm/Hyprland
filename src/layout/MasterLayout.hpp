@@ -58,7 +58,7 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual bool                     isWindowTiled(PHLWINDOW);
     virtual void                     recalculateMonitor(const MONITORID&);
     virtual void                     recalculateWindow(PHLWINDOW);
-    virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, PHLWINDOW pWindow = nullptr);
+    virtual void                     resizeActiveWindow(const Vector2D&, Interactive::eRectCorner corner = Interactive::CORNER_NONE, PHLWINDOW pWindow = nullptr);
     virtual void                     fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);

@@ -56,6 +56,7 @@ class CHLBufferReference {
     bool                operator==(const SP<IHLBuffer>& other) const;
     bool                operator==(const SP<Aquamarine::IBuffer>& other) const;
     SP<IHLBuffer>       operator->() const;
+    //
     operator bool() const;
 
     // unlock and drop the buffer without sending release

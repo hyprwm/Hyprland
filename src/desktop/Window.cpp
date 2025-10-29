@@ -1037,6 +1037,16 @@ PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
     return curr;
 }
 
+bool CWindow::hasInGroup(PHLWINDOW w) {
+    PHLWINDOW curr = m_groupData.pNextWindow.lock();
+    while (curr && curr != m_self) {
+        if (curr == w)
+            return true;
+        curr = curr->m_groupData.pNextWindow.lock();
+    }
+    return false;
+}
+
 void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     PHLWINDOW curr     = m_groupData.pNextWindow.lock();
     bool      isMember = false;

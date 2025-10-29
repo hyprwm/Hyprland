@@ -9,6 +9,7 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/CursorShapes.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../managers/PointerManager.hpp"
@@ -20,6 +21,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/CursorManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
@@ -30,6 +32,8 @@
 #include "pass/ClearPassElement.hpp"
 #include "render/Shader.hpp"
 #include "AsyncResourceGatherer.hpp"
+#include <ranges>
+#include <algorithm>
 #include <string>
 #include <xf86drm.h>
 #include <fcntl.h>
@@ -381,6 +385,50 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     m_globalTimer.reset();
 
     pushMonitorTransformEnabled(false);
+
+    static auto addLastPressToHistory = [this](const Vector2D& pos, bool killing, bool touch) {
+        // shift the new pos and time in
+        std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
+        m_pressedHistoryPositions[0] = pos;
+
+        std::ranges::rotate(m_pressedHistoryTimers, m_pressedHistoryTimers.end() - 1);
+        m_pressedHistoryTimers[0].reset();
+
+        // shift killed flag in
+        m_pressedHistoryKilled <<= 1;
+        m_pressedHistoryKilled |= killing ? 1 : 0;
+#if POINTER_PRESSED_HISTORY_LENGTH < 32
+        m_pressedHistoryKilled &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+#endif
+
+        // shift touch flag in
+        m_pressedHistoryTouched <<= 1;
+        m_pressedHistoryTouched |= touch ? 1 : 0;
+#if POINTER_PRESSED_HISTORY_LENGTH < 32
+        m_pressedHistoryTouched &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+#endif
+    };
+
+    static auto P2 = g_pHookSystem->hookDynamic("mouseButton", [](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<IPointer::SButtonEvent>(e);
+
+        if (E.state != WL_POINTER_BUTTON_STATE_PRESSED)
+            return;
+
+        addLastPressToHistory(g_pInputManager->getMouseCoordsInternal(), g_pInputManager->getClickMode() == CLICKMODE_KILL, false);
+    });
+
+    static auto P3 = g_pHookSystem->hookDynamic("touchDown", [](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<ITouch::SDownEvent>(e);
+
+        auto PMONITOR = g_pCompositor->getMonitorFromName(!E.device->m_boundOutput.empty() ? E.device->m_boundOutput : "");
+
+        PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+
+        const auto TOUCH_COORDS = PMONITOR->m_position + (E.pos * PMONITOR->m_size);
+
+        addLastPressToHistory(TOUCH_COORDS, g_pInputManager->getClickMode() == CLICKMODE_KILL, true);
+    });
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {
@@ -435,8 +483,8 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     }
 
     // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)
-    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.empty())
-        mods.push_back(DRM_FORMAT_MOD_LINEAR);
+    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end())
+        result.push_back(DRM_FORMAT_MOD_LINEAR);
 
     return result;
 }
@@ -534,8 +582,8 @@ void CHyprOpenGLImpl::initDRMFormats() {
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
-    std::array<uint32_t, 50> attribs;
-    size_t                   idx = 0;
+    std::array<EGLint, 50> attribs;
+    size_t                 idx = 0;
 
     attribs[idx++] = EGL_WIDTH;
     attribs[idx++] = attrs.size.x;
@@ -578,7 +626,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 
     RASSERT(idx <= attribs.size(), "createEglImage: attribs array out of bounds.");
 
-    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, rc<int*>(attribs.data()));
+    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
         Debug::log(ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
         return EGL_NO_IMAGE_KHR;
@@ -799,7 +847,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 }
 
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMRIGID = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
+    static auto PZOOMRIGID     = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
+    static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
 
     TRACY_GPU_ZONE("RenderEnd");
 
@@ -826,7 +875,7 @@ void CHyprOpenGLImpl::end() {
         }
 
         m_applyFinalShader = !m_renderData.blockScreenShader;
-        if (m_renderData.mouseZoomUseMouse)
+        if (m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
             m_renderData.useNearestNeighbor = true;
 
         // copy the damaged areas into the mirror buffer
@@ -1239,30 +1288,59 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_finalScreenShader.uniformLocations[SHADER_POINTER] = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
-    m_finalScreenShader.uniformLocations[SHADER_PROJ]    = glGetUniformLocation(m_finalScreenShader.program, "proj");
-    m_finalScreenShader.uniformLocations[SHADER_TEX]     = glGetUniformLocation(m_finalScreenShader.program, "tex");
-    m_finalScreenShader.uniformLocations[SHADER_TIME]    = glGetUniformLocation(m_finalScreenShader.program, "time");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_HIDDEN]            = glGetUniformLocation(m_finalScreenShader.program, "pointer_hidden");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_KILLING]           = glGetUniformLocation(m_finalScreenShader.program, "pointer_killing");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_SHAPE]             = glGetUniformLocation(m_finalScreenShader.program, "pointer_shape");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_SHAPE_PREVIOUS]    = glGetUniformLocation(m_finalScreenShader.program, "pointer_shape_previous");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_SWITCH_TIME]       = glGetUniformLocation(m_finalScreenShader.program, "pointer_switch_time");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_PRESSED_POSITIONS] = glGetUniformLocation(m_finalScreenShader.program, "pointer_pressed_positions");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_PRESSED_TIMES]     = glGetUniformLocation(m_finalScreenShader.program, "pointer_pressed_times");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_PRESSED_KILLED]    = glGetUniformLocation(m_finalScreenShader.program, "pointer_pressed_killed");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_PRESSED_TOUCHED]   = glGetUniformLocation(m_finalScreenShader.program, "pointer_pressed_touched");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_INACTIVE_TIMEOUT]  = glGetUniformLocation(m_finalScreenShader.program, "pointer_inactive_timeout");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_LAST_ACTIVE]       = glGetUniformLocation(m_finalScreenShader.program, "pointer_last_active");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER_SIZE]              = glGetUniformLocation(m_finalScreenShader.program, "pointer_size");
+    m_finalScreenShader.uniformLocations[SHADER_POINTER]                   = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
+    m_finalScreenShader.uniformLocations[SHADER_PROJ]                      = glGetUniformLocation(m_finalScreenShader.program, "proj");
+    m_finalScreenShader.uniformLocations[SHADER_TEX]                       = glGetUniformLocation(m_finalScreenShader.program, "tex");
+    m_finalScreenShader.uniformLocations[SHADER_TIME]                      = glGetUniformLocation(m_finalScreenShader.program, "time");
     if (m_finalScreenShader.uniformLocations[SHADER_TIME] != -1)
         m_finalScreenShader.initialTime = m_globalTimer.getSeconds();
     m_finalScreenShader.uniformLocations[SHADER_WL_OUTPUT] = glGetUniformLocation(m_finalScreenShader.program, "wl_output");
     m_finalScreenShader.uniformLocations[SHADER_FULL_SIZE] = glGetUniformLocation(m_finalScreenShader.program, "screen_size");
     if (m_finalScreenShader.uniformLocations[SHADER_FULL_SIZE] == -1)
         m_finalScreenShader.uniformLocations[SHADER_FULL_SIZE] = glGetUniformLocation(m_finalScreenShader.program, "screenSize");
-    if (m_finalScreenShader.uniformLocations[SHADER_TIME] != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
-        // The screen shader uses the "time" uniform
-        // Since the screen shader could change every frame, damage tracking *needs* to be disabled
-        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'time', which requires debug:damage_tracking to be switched off.\n"
-                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
-    }
     m_finalScreenShader.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "texcoord");
     m_finalScreenShader.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(m_finalScreenShader.program, "pos");
-    if (m_finalScreenShader.uniformLocations[SHADER_POINTER] != -1 && *PDT != 0 && !g_pHyprRenderer->m_crashingInProgress) {
-        // The screen shader uses the "pointer_position" uniform
+
+    static auto uniformRequireNoDamage = [this](eShaderUniform uniform, const std::string& name) {
+        if (*PDT == 0)
+            return;
+        if (m_finalScreenShader.uniformLocations[uniform] == -1)
+            return;
+
+        // The screen shader uses the uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
-        g_pConfigManager->addParseError("Screen shader: Screen shader uses uniform 'pointerPosition', which requires debug:damage_tracking to be switched off.\n"
-                                        "WARNING: Disabling damage tracking will *massively* increase GPU utilization!");
-    }
+        g_pConfigManager->addParseError(std::format("Screen shader: Screen shader uses uniform '{}', which requires debug:damage_tracking to be switched off.\n"
+                                                    "WARNING:(Disabling damage tracking will *massively* increase GPU utilization!",
+                                                    name));
+    };
+
+    // Allow glitch shader to use time uniform whighout damage tracking
+    if (!g_pHyprRenderer->m_crashingInProgress)
+        uniformRequireNoDamage(SHADER_TIME, "time");
+
+    uniformRequireNoDamage(SHADER_POINTER, "pointer_position");
+    uniformRequireNoDamage(SHADER_POINTER_PRESSED_POSITIONS, "pointer_pressed_positions");
+    uniformRequireNoDamage(SHADER_POINTER_PRESSED_TIMES, "pointer_pressed_times");
+    uniformRequireNoDamage(SHADER_POINTER_PRESSED_KILLED, "pointer_pressed_killed");
+    uniformRequireNoDamage(SHADER_POINTER_PRESSED_TOUCHED, "pointer_pressed_touched");
+    uniformRequireNoDamage(SHADER_POINTER_LAST_ACTIVE, "pointer_last_active");
+    uniformRequireNoDamage(SHADER_POINTER_HIDDEN, "pointer_hidden");
+    uniformRequireNoDamage(SHADER_POINTER_KILLING, "pointer_killing");
+    uniformRequireNoDamage(SHADER_POINTER_SHAPE, "pointer_shape");
+    uniformRequireNoDamage(SHADER_POINTER_SHAPE_PREVIOUS, "pointer_shape_previous");
+
     m_finalScreenShader.createVao();
 }
 
@@ -1474,14 +1552,24 @@ static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primaries
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
     // might be too strict
-    return imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+    static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+
+    if (m_renderData.surface.valid() &&
+        ((!m_renderData.surface->m_colorManagement.valid() && *PSDREOTF >= 1) ||
+         (*PSDREOTF == 2 && m_renderData.surface->m_colorManagement.valid() &&
+          imageDescription.transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB))) {
+        shader.setUniformInt(SHADER_SOURCE_TF, NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22);
+    } else
+        shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+
     shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
 
     const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
@@ -1538,9 +1626,10 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     CBox newBox = box;
     m_renderData.renderModif.applyToBox(newBox);
 
-    static const auto PDT       = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
-    static const auto PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PDT            = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
+    static const auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static const auto PENABLECM      = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
 
     // get the needed transform for this texture
     const bool TRANSFORMS_MATCH = wlTransformToHyprutils(m_renderData.pMonitor->m_transform) == tex->m_transform; // FIXME: combine them properly!!!
@@ -1638,6 +1727,12 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     if (usingFinalShader) {
         shader->setUniformInt(SHADER_WL_OUTPUT, m_renderData.pMonitor->m_id);
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
+        shader->setUniformFloat(SHADER_POINTER_INACTIVE_TIMEOUT, *PCURSORTIMEOUT);
+        shader->setUniformInt(SHADER_POINTER_HIDDEN, g_pHyprRenderer->m_cursorHiddenByCondition);
+        shader->setUniformInt(SHADER_POINTER_KILLING, g_pInputManager->getClickMode() == CLICKMODE_KILL);
+        shader->setUniformInt(SHADER_POINTER_SHAPE, g_pHyprRenderer->m_lastCursorData.shape);
+        shader->setUniformInt(SHADER_POINTER_SHAPE_PREVIOUS, g_pHyprRenderer->m_lastCursorData.shapePrevious);
+        shader->setUniformFloat(SHADER_POINTER_SIZE, g_pCursorManager->getScaledSize());
     }
 
     if (usingFinalShader && *PDT == 0) {
@@ -1645,8 +1740,40 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         Vector2D      p        = ((g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale);
         p                      = p.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
         shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
-    } else if (usingFinalShader)
+
+        std::vector<float> pressedPos = m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {
+                                            Vector2D pPressed = ((vec - pMonitor->m_position) * pMonitor->m_scale);
+                                            pPressed          = pPressed.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
+                                            return std::array<float, 2>{pPressed.x / pMonitor->m_pixelSize.x, pPressed.y / pMonitor->m_pixelSize.y};
+                                        }) |
+            std::views::join | std::ranges::to<std::vector<float>>();
+
+        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, pressedPos.size(), pressedPos);
+
+        std::vector<float> pressedTime =
+            m_pressedHistoryTimers | std::views::transform([](const CTimer& timer) { return timer.getSeconds(); }) | std::ranges::to<std::vector<float>>();
+
+        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, pressedTime.size(), pressedTime);
+
+        shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, m_pressedHistoryKilled);
+        shader->setUniformInt(SHADER_POINTER_PRESSED_TOUCHED, m_pressedHistoryTouched);
+
+        shader->setUniformFloat(SHADER_POINTER_LAST_ACTIVE, g_pInputManager->m_lastCursorMovement.getSeconds());
+        shader->setUniformFloat(SHADER_POINTER_SWITCH_TIME, g_pHyprRenderer->m_lastCursorData.switchedTimer.getSeconds());
+
+    } else if (usingFinalShader) {
         shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
+
+        static const std::vector<float> pressedPosDefault(POINTER_PRESSED_HISTORY_LENGTH * 2uz, 0.f);
+        static const std::vector<float> pressedTimeDefault(POINTER_PRESSED_HISTORY_LENGTH, 0.f);
+
+        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, pressedPosDefault.size(), pressedPosDefault);
+        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, pressedTimeDefault.size(), pressedTimeDefault);
+        shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, 0);
+
+        shader->setUniformFloat(SHADER_POINTER_LAST_ACTIVE, 0.f);
+        shader->setUniformFloat(SHADER_POINTER_SWITCH_TIME, 0.f);
+    }
 
     if (CRASHING) {
         shader->setUniformFloat(SHADER_DISTORT, g_pHyprRenderer->m_crashingDistort);
@@ -3206,7 +3333,7 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
 
     auto fmt = pMonitor->m_output->state->state().drmFormat;
 
-    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102)
+    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
         return DRM_FORMAT_XRGB8888;
 
     return fmt;

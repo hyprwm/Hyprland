@@ -751,6 +751,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});
+    registerConfigVar("cursor:zoom_disable_aa", Hyprlang::INT{0});
     registerConfigVar("cursor:enable_hyprcursor", Hyprlang::INT{1});
     registerConfigVar("cursor:sync_gsettings_theme", Hyprlang::INT{1});
     registerConfigVar("cursor:hide_on_key_press", Hyprlang::INT{0});
@@ -780,6 +781,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{2});
+    registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -841,6 +843,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
     m_config->addSpecialConfigValue("monitorv2", "cm", {"auto"});
+    m_config->addSpecialConfigValue("monitorv2", "sdr_eotf", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
@@ -1101,7 +1104,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
-        parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        try {
+            parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        } catch (...) { return "parse error: invalid reserved area"; }
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
     if (VAL && VAL->m_bSetByUser)
@@ -1112,6 +1117,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "cm", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_eotf", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrEotf = std::any_cast<Hyprlang::INT>(VAL->getValue());
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().sdrBrightness = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
@@ -2083,17 +2091,22 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     int argno = 1;
 
-    mode.type        = DRM_MODE_TYPE_USERDEF;
-    mode.clock       = std::stof(args[argno++]) * 1000;
-    mode.hdisplay    = std::stoi(args[argno++]);
-    mode.hsync_start = std::stoi(args[argno++]);
-    mode.hsync_end   = std::stoi(args[argno++]);
-    mode.htotal      = std::stoi(args[argno++]);
-    mode.vdisplay    = std::stoi(args[argno++]);
-    mode.vsync_start = std::stoi(args[argno++]);
-    mode.vsync_end   = std::stoi(args[argno++]);
-    mode.vtotal      = std::stoi(args[argno++]);
-    mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    try {
+        mode.type        = DRM_MODE_TYPE_USERDEF;
+        mode.clock       = std::stof(args[argno++]) * 1000;
+        mode.hdisplay    = std::stoi(args[argno++]);
+        mode.hsync_start = std::stoi(args[argno++]);
+        mode.hsync_end   = std::stoi(args[argno++]);
+        mode.htotal      = std::stoi(args[argno++]);
+        mode.vdisplay    = std::stoi(args[argno++]);
+        mode.vsync_start = std::stoi(args[argno++]);
+        mode.vsync_end   = std::stoi(args[argno++]);
+        mode.vtotal      = std::stoi(args[argno++]);
+        mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "modeline parse error: invalid numeric value: {}", e.what());
+        return false;
+    }
 
     // clang-format off
     static std::unordered_map<std::string, uint32_t> flagsmap = {
@@ -2244,6 +2257,11 @@ bool CMonitorRuleParser::parseScale(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseTransform(const std::string& value) {
+    if (!isNumber(value)) {
+        m_error += "invalid transform ";
+        return false;
+    }
+
     const auto TSF = std::stoi(value);
     if (std::clamp(TSF, 0, 7) != TSF) {
         Debug::log(ERR, "Invalid transform {} in monitor", TSF);
@@ -2260,28 +2278,12 @@ bool CMonitorRuleParser::parseBitdepth(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseCM(const std::string& value) {
-    if (value == "auto")
-        m_rule.cmType = CM_AUTO;
-    else if (value == "srgb")
-        m_rule.cmType = CM_SRGB;
-    else if (value == "wide")
-        m_rule.cmType = CM_WIDE;
-    else if (value == "edid")
-        m_rule.cmType = CM_EDID;
-    else if (value == "hdr")
-        m_rule.cmType = CM_HDR;
-    else if (value == "hdredid")
-        m_rule.cmType = CM_HDR_EDID;
-    else if (value == "dcip3")
-        m_rule.cmType = CM_DCIP3;
-    else if (value == "dp3")
-        m_rule.cmType = CM_DP3;
-    else if (value == "adobe")
-        m_rule.cmType = CM_ADOBE;
-    else {
+    auto parsedCM = NCMType::fromString(value);
+    if (!parsedCM.has_value()) {
         m_error += "invalid cm ";
         return false;
     }
+    m_rule.cmType = parsedCM.value();
     return true;
 }
 
@@ -2354,7 +2356,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            try {
+                parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            } catch (...) { return "parse error: invalid reserved area"; }
             return {};
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
@@ -2397,12 +2401,12 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             parser.parseVRR(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
+            const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = parser.name();
             wsRule.workspaceString = ARGS[argno + 1];
-            wsRule.workspaceId     = id;
+            wsRule.workspaceId     = isAutoID ? WORKSPACE_INVALID : id;
             wsRule.workspaceName   = name;
 
             m_workspaceRules.emplace_back(wsRule);
@@ -2431,18 +2435,26 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     if (ARGS[1].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[1], true))
+        return "invalid point";
     float p1x = std::stof(ARGS[1]);
 
     if (ARGS[2].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[2], true))
+        return "invalid point";
     float p1y = std::stof(ARGS[2]);
 
     if (ARGS[3].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[3], true))
+        return "invalid point";
     float p2x = std::stof(ARGS[3]);
 
     if (ARGS[4].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[4], true))
+        return "invalid point";
     float p2y = std::stof(ARGS[4]);
 
     if (!ARGS[5].empty())
@@ -2908,7 +2920,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 
     auto       first_ident = trim(value.substr(0, FIRST_DELIM));
 
-    const auto& [id, name] = getWorkspaceIDNameFromString(first_ident);
+    const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(first_ident);
 
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
@@ -3008,8 +3020,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             return R;
     }
 
-    wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
+    wsRule.workspaceId   = isAutoID ? WORKSPACE_INVALID : id;
 
     const auto IT = std::ranges::find_if(m_workspaceRules, [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 

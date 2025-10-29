@@ -23,9 +23,6 @@ set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
 message(STATUS "Gathering git info")
 
-# Get git info hash and branch
-execute_process(COMMAND ./scripts/generateVersion.sh
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 # Make shader files includable
 execute_process(COMMAND ./scripts/generateShaderIncludes.sh
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -119,14 +116,77 @@ list(GET AQ_VERSION_LIST 0 AQ_VERSION_MAJOR)
 list(GET AQ_VERSION_LIST 1 AQ_VERSION_MINOR)
 list(GET AQ_VERSION_LIST 2 AQ_VERSION_PATCH)
 
-add_compile_definitions(AQUAMARINE_VERSION="${aquamarine_dep_VERSION}")
-add_compile_definitions(AQUAMARINE_VERSION_MAJOR=${AQ_VERSION_MAJOR})
-add_compile_definitions(AQUAMARINE_VERSION_MINOR=${AQ_VERSION_MINOR})
-add_compile_definitions(AQUAMARINE_VERSION_PATCH=${AQ_VERSION_PATCH})
-add_compile_definitions(HYPRLANG_VERSION="${hyprlang_dep_VERSION}")
-add_compile_definitions(HYPRUTILS_VERSION="${hyprutils_dep_VERSION}")
-add_compile_definitions(HYPRCURSOR_VERSION="${hyprcursor_dep_VERSION}")
-add_compile_definitions(HYPRGRAPHICS_VERSION="${hyprgraphics_dep_VERSION}")
+set(AQUAMARINE_VERSION "${aquamarine_dep_VERSION}")
+set(AQUAMARINE_VERSION_MAJOR "${AQ_VERSION_MAJOR}")
+set(AQUAMARINE_VERSION_MINOR "${AQ_VERSION_MINOR}")
+set(AQUAMARINE_VERSION_PATCH "${AQ_VERSION_PATCH}")
+set(HYPRLANG_VERSION "${hyprlang_dep_VERSION}")
+set(HYPRUTILS_VERSION "${hyprutils_dep_VERSION}")
+set(HYPRCURSOR_VERSION "${hyprcursor_dep_VERSION}")
+set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
+
+
+find_package(Git QUIET)
+
+set(GIT_COMMIT_HASH "unknown")
+set(GIT_BRANCH "unknown")
+set(GIT_COMMIT_MESSAGE "unknown")
+set(GIT_COMMIT_DATE "unknown")
+set(GIT_DIRTY "unknown")
+set(GIT_TAG "unknown")
+set(GIT_COMMITS "0")
+
+if(Git_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TOPLEVEL
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE GIT_TOPLEVEL_RESULT
+  )
+
+  if(GIT_TOPLEVEL_RESULT EQUAL 0)
+    message(STATUS "Detected git repository root: ${GIT_TOPLEVEL}")
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMIT_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD --
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      RESULT_VARIABLE GIT_DIRTY_RESULT)
+    if(NOT GIT_DIRTY_RESULT EQUAL 0)
+      set(GIT_DIRTY "dirty")
+    else()
+      set(GIT_DIRTY "clean")
+    endif()
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+      WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      OUTPUT_VARIABLE GIT_COMMITS OUTPUT_STRIP_TRAILING_WHITESPACE)
+  else()
+    message(WARNING "No Git repository detected in ${CMAKE_SOURCE_DIR}")
+  endif()
+endif()
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/src/version.h.in
+    ${CMAKE_SOURCE_DIR}/src/version.h
+    @ONLY
+)
+
+set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERATED TRUE)
 
 pkg_check_modules(
   deps
@@ -459,13 +519,18 @@ install(
   PATTERN "*.hpp"
   PATTERN "*.inc")
 
-if(TESTS)
-  message(STATUS "building tests is enabled TESTS")
+if(BUILD_TESTING OR BUILD_HYPRTESTER)
+  message(STATUS "Building hyprtester")
+
+  add_subdirectory(hyprtester)
+endif()
+
+if(BUILD_TESTING)
+  message(STATUS "Testing is enabled")
 
   enable_testing()
   add_custom_target(tests)
 
-  add_subdirectory(hyprtester)
   add_test(
     NAME "Main Test"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
@@ -473,5 +538,5 @@ if(TESTS)
 
   add_dependencies(tests hyprtester)
 else()
-  message(STATUS "building tests is disabled")
+  message(STATUS "Testing is disabled")
 endif()

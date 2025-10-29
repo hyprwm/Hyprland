@@ -416,7 +416,7 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat4x2 dstPrimaries)
     mat3 dstxyz = primaries2xyz(dstPrimaries);
     pixColor = tonemap(pixColor, dstxyz);
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
-    if (srcTF == CM_TRANSFER_FUNCTION_SRGB && dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
+    if ((srcTF == CM_TRANSFER_FUNCTION_SRGB || srcTF == CM_TRANSFER_FUNCTION_GAMMA22) && dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
         pixColor = saturate(pixColor, dstxyz, sdrSaturation);
         pixColor.rgb *= sdrBrightnessMultiplier;
     }

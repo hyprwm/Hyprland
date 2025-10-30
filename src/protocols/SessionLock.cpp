@@ -79,7 +79,7 @@ void CSessionLockSurface::sendConfigure() {
         LOGM(ERR, "sendConfigure: monitor is gone");
         return;
     }
-    
+
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
     m_resource->sendConfigure(SERIAL, monitor->m_size.x, monitor->m_size.y);
 }

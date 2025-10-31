@@ -2298,8 +2298,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 }
 
 void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    const auto  PMONITOR           = g_pHyprOpenGL->m_renderData.pMonitor;
-    static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+    const auto PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
 
     g_pHyprOpenGL->m_renderData.damage = m_renderPass.render(g_pHyprOpenGL->m_renderData.damage);
 
@@ -2327,8 +2326,8 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Debug::log(TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
 
-        // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderer seems to bug out aswell.
-        if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
+        // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderers seem to bug out aswell.
+        if (isNvidia() || isSoftware())
             glFinish();
         else
             glFlush(); // mark an implicit sync point

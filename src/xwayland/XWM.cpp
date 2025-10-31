@@ -1,3 +1,4 @@
+#include "debug/Log.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -339,26 +340,27 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
 void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
-    if (!XSURF)
+    /* NOTE: Doesn't work great since we create fake windows for each selector and fd transfer then instantly destroy them when complete.
+     * Doing some extra work for no reason. No need to log higher than LOG.
+     */
+    if (!XSURF) {
+        Debug::log(LOG, "[xwm] Target surface not found: {}, cleaning up transfers.", e->window);
+
+        m_clipboard.removeTransfer(e->window);
+        m_primarySelection.removeTransfer(e->window);
+        m_dndSelection.removeTransfer(e->window);
         return;
+    }
 
     xcb_get_property_cookie_t             cookie = xcb_get_property(getConnection(), 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
     XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
 
     if (!reply) {
-        Debug::log(ERR, "[xwm] Failed to read property notify cookie, cleaning up transfers for window {}", e->window);
+        Debug::log(LOG, "[xwm] Failed to read property notify cookie, cleaning up transfers for window {}", e->window);
 
-        auto cleanupSel = [&](SXSelection& sel) {
-            std::erase_if(sel.transfers, [&](const UP<SXTransfer>& t) {
-                if (!t || (t->incomingWindow != e->window && e->window))
-                    return false;
-                return true;
-            });
-        };
-
-        cleanupSel(m_clipboard);
-        cleanupSel(m_primarySelection);
-        cleanupSel(m_dndSelection);
+        m_clipboard.removeTransfer(e->window);
+        m_primarySelection.removeTransfer(e->window);
+        m_dndSelection.removeTransfer(e->window);
         return;
     }
 
@@ -1617,15 +1619,19 @@ int SXSelection::onWrite() {
         Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
         if (!transfer->incremental) {
             transfers.erase(it);
+            return 0;
         } else {
             free(transfer->propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
             transfer->propertyReply = nullptr;
             transfer->propertyStart = 0;
         }
-        return 0;
     }
 
     return 1;
+}
+
+void SXSelection::removeTransfer(xcb_window_t& window) {
+    std::erase_if(transfers, [&window](const auto& t) { return t->incomingWindow == window; });
 }
 
 SXTransfer::~SXTransfer() {

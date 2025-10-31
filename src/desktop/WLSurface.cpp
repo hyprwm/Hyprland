@@ -122,11 +122,12 @@ CRegion CWLSurface::computeDamage() const {
     const Vector2D SCALE    = SURFSIZE / m_resource->m_current.bufferSize;
 
     damage.scale(SCALE);
-    if (BOX.has_value())
-        damage.intersect(CBox{{}, BOX->size()});
-
-    if (m_windowOwner)
-        damage.scale(m_windowOwner->m_X11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
+    if (BOX.has_value()) {
+        if (m_windowOwner)
+            damage.intersect(CBox{{}, BOX->size() * m_windowOwner->m_X11SurfaceScaledBy});
+        else
+            damage.intersect(CBox{{}, BOX->size()});
+    }
 
     return damage;
 }

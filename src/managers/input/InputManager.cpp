@@ -44,6 +44,7 @@
 #include "../../helpers/MiscFunctions.hpp"
 
 #include "trackpad/TrackpadGestures.hpp"
+#include "../cursor/CursorShapeOverrideController.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
@@ -65,20 +66,33 @@ CInputManager::CInputManager() {
         m_cursorSurfaceInfo.name     = event.shapeName;
         m_cursorSurfaceInfo.hidden   = false;
 
-        m_cursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
     });
 
-    m_listeners.newIdleInhibitor   = PROTO::idleInhibit->m_events.newIdleInhibitor.listen([this](const auto& data) { this->newIdleInhibitor(data); });
+    m_listeners.newIdleInhibitor = PROTO::idleInhibit->m_events.newIdleInhibitor.listen([this](const auto& data) { newIdleInhibitor(data); });
+
     m_listeners.newVirtualKeyboard = PROTO::virtualKeyboard->m_events.newKeyboard.listen([this](const auto& keyboard) {
-        this->newVirtualKeyboard(keyboard);
+        newVirtualKeyboard(keyboard);
         updateCapabilities();
     });
-    m_listeners.newVirtualMouse    = PROTO::virtualPointer->m_events.newPointer.listen([this](const auto& mouse) {
-        this->newVirtualMouse(mouse);
+
+    m_listeners.newVirtualMouse = PROTO::virtualPointer->m_events.newPointer.listen([this](const auto& mouse) {
+        newVirtualMouse(mouse);
         updateCapabilities();
     });
-    m_listeners.setCursor          = g_pSeatManager->m_events.setCursor.listen([this](const auto& event) { this->processMouseRequest(event); });
+
+    m_listeners.setCursor = g_pSeatManager->m_events.setCursor.listen([this](const auto& event) { processMouseRequest(event); });
+
+    m_listeners.overrideChanged = Cursor::overrideController->m_events.overrideChanged.listen([this](const std::string& shape) {
+        if (shape.empty()) {
+            m_cursorImageOverridden = false;
+            restoreCursorIconToApp();
+            return;
+        }
+
+        m_cursorImageOverridden = true;
+        g_pHyprRenderer->setCursorFromName(shape);
+    });
 
     m_cursorSurfaceInfo.wlSurface = CWLSurface::create();
 }
@@ -472,17 +486,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     if (!foundSurface) {
         if (!m_emptyFocusCursorSet) {
-            if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_borderIconDirection != BORDERICON_NONE) {
-                m_borderIconDirection = BORDERICON_NONE;
-                unsetCursorImage();
-            }
-
-            // TODO: maybe wrap?
-            if (m_clickBehavior == CLICKMODE_KILL)
-                setCursorImageOverride("crosshair");
-            else
-                setCursorImageOverride("left_ptr");
-
+            g_pHyprRenderer->setCursorFromName("left_ptr");
             m_emptyFocusCursorSet = true;
         }
 
@@ -532,7 +536,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (pFoundWindow && foundSurface == pFoundWindow->m_wlSurface->resource() && !m_cursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
         if (VECNOTINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
-            setCursorImageOverride("left_ptr");
+            g_pHyprRenderer->setCursorFromName("left_ptr");
         else
             restoreCursorIconToApp();
     }
@@ -540,11 +544,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
-            if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords)) {
+            if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords))
                 setCursorIconOnBorder(pFoundWindow);
-            } else if (m_borderIconDirection != BORDERICON_NONE) {
-                unsetCursorImage();
-            }
         }
 
         if (FOLLOWMOUSE != 1 && !refocus) {
@@ -595,7 +596,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     } else {
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_borderIconDirection != BORDERICON_NONE) {
             m_borderIconDirection = BORDERICON_NONE;
-            unsetCursorImage();
+            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         }
 
         if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
@@ -667,14 +668,10 @@ void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& eve
 
     m_cursorSurfaceInfo.name = "";
 
-    m_cursorSurfaceInfo.inUse = true;
     g_pHyprRenderer->setCursorSurface(m_cursorSurfaceInfo.wlSurface, event.hotspot.x, event.hotspot.y);
 }
 
 void CInputManager::restoreCursorIconToApp() {
-    if (m_cursorSurfaceInfo.inUse)
-        return;
-
     if (m_cursorSurfaceInfo.hidden) {
         g_pHyprRenderer->setCursorSurface(nullptr, 0, 0);
         return;
@@ -683,29 +680,12 @@ void CInputManager::restoreCursorIconToApp() {
     if (m_cursorSurfaceInfo.name.empty()) {
         if (m_cursorSurfaceInfo.wlSurface->exists())
             g_pHyprRenderer->setCursorSurface(m_cursorSurfaceInfo.wlSurface, m_cursorSurfaceInfo.vHotspot.x, m_cursorSurfaceInfo.vHotspot.y);
-    } else {
+    } else
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
-    }
-
-    m_cursorSurfaceInfo.inUse = true;
-}
-
-void CInputManager::setCursorImageOverride(const std::string& name) {
-    if (m_cursorImageOverridden)
-        return;
-
-    m_cursorSurfaceInfo.inUse = false;
-    g_pHyprRenderer->setCursorFromName(name);
 }
 
 bool CInputManager::cursorImageUnlocked() {
-    if (m_clickBehavior == CLICKMODE_KILL)
-        return false;
-
-    if (m_cursorImageOverridden)
-        return false;
-
-    return true;
+    return !m_cursorImageOverridden;
 }
 
 eClickBehaviorMode CInputManager::getClickMode() {
@@ -729,7 +709,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            g_pHyprRenderer->setCursorFromName("crosshair", true);
+            Cursor::overrideController->setOverride("crosshair", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
             break;
         default: break;
     }
@@ -834,6 +814,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
 
     // reset click behavior mode
     m_clickBehavior = CLICKMODE_DEFAULT;
+    Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 }
 
 void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
@@ -1451,16 +1432,34 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
     if (passEvent) {
+        auto state   = event.state;
+        auto pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+
+        // use merged keys states when sending to ime or when sending to seat with no ime
+        // if passing from ime, send keys directly without merging
+        if (USEIME || !HASIME) {
+            const auto ANYPRESSED = shareKeyFromAllKBs(event.keycode, pressed);
+
+            // do not turn released event into pressed event (when one keyboard has a key released but some
+            // other keyboard still has the key pressed)
+            // maybe we should keep track of pressed keys for inputs like m_pressed for seat outputs below,
+            // to avoid duplicate pressed events, but this should work well enough
+            if (!pressed && ANYPRESSED)
+                return;
+
+            pressed = ANYPRESSED;
+            state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED;
+        }
+
         if (USEIME) {
             IME->setKeyboard(pKeyboard);
-            IME->sendKey(event.timeMs, event.keycode, event.state);
+            IME->sendKey(event.timeMs, event.keycode, state);
         } else {
-            const auto PRESSED  = shareKeyFromAllKBs(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
             const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
 
-            if (CONTAINS && PRESSED)
+            if (CONTAINS && pressed)
                 return;
-            if (!CONTAINS && !PRESSED)
+            if (!CONTAINS && !pressed)
                 return;
 
             if (CONTAINS)
@@ -1469,7 +1468,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
                 m_pressed.emplace_back(event.keycode);
 
             g_pSeatManager->setKeyboard(pKeyboard);
-            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, event.state);
+            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, state);
         }
 
         updateKeyboardsLeds(pKeyboard);
@@ -1482,14 +1481,21 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
-    auto       MODS    = pKeyboard->m_modifiersState;
-    const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
-    MODS.depressed     = ALLMODS;
-    m_lastMods         = MODS.depressed;
+    const auto IME    = m_relay.m_inputMethod.lock();
+    const bool HASIME = IME && IME->hasGrab();
+    const bool USEIME = HASIME && !DISALLOWACTION;
 
-    const auto IME = m_relay.m_inputMethod.lock();
+    auto       MODS = pKeyboard->m_modifiersState;
 
-    if (IME && IME->hasGrab() && !DISALLOWACTION) {
+    // use merged mods states when sending to ime or when sending to seat with no ime
+    // if passing from ime, send mods directly without merging
+    if (USEIME || !HASIME) {
+        const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
+        MODS.depressed     = ALLMODS;
+        m_lastMods         = MODS.depressed; // for hyprland keybinds use; not for sending to seat
+    }
+
+    if (USEIME) {
         IME->setKeyboard(pKeyboard);
         IME->sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
     } else {
@@ -1842,20 +1848,6 @@ void CInputManager::destroySwitch(SSwitchDevice* pDevice) {
     m_switches.remove(*pDevice);
 }
 
-void CInputManager::setCursorImageUntilUnset(std::string name) {
-    g_pHyprRenderer->setCursorFromName(name);
-    m_cursorImageOverridden   = true;
-    m_cursorSurfaceInfo.inUse = false;
-}
-
-void CInputManager::unsetCursorImage() {
-    if (!m_cursorImageOverridden)
-        return;
-
-    m_cursorImageOverridden = false;
-    restoreCursorIconToApp();
-}
-
 std::string CInputManager::getNameForNewDevice(std::string internalName) {
 
     auto proposedNewName = deviceNameToInternalString(internalName);
@@ -1883,15 +1875,11 @@ void CInputManager::releaseAllMouseButtons() {
 }
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
-    // do not override cursor icons set by mouse binds
-    if (g_pInputManager->m_currentlyDraggedWindow.expired()) {
-        m_borderIconDirection = BORDERICON_NONE;
+    // ignore X11 OR windows, they shouldn't be touched
+    if (w->m_isX11 && w->isX11OverrideRedirect()) {
+        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         return;
     }
-
-    // ignore X11 OR windows, they shouldn't be touched
-    if (w->m_isX11 && w->isX11OverrideRedirect())
-        return;
 
     static auto PEXTENDBORDERGRAB = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     const int   BORDERSIZE        = w->getRealBorderSize();
@@ -1973,15 +1961,15 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     m_borderIconDirection = direction;
 
     switch (direction) {
-        case BORDERICON_NONE: unsetCursorImage(); break;
-        case BORDERICON_UP: setCursorImageUntilUnset("top_side"); break;
-        case BORDERICON_DOWN: setCursorImageUntilUnset("bottom_side"); break;
-        case BORDERICON_LEFT: setCursorImageUntilUnset("left_side"); break;
-        case BORDERICON_RIGHT: setCursorImageUntilUnset("right_side"); break;
-        case BORDERICON_UP_LEFT: setCursorImageUntilUnset("top_left_corner"); break;
-        case BORDERICON_DOWN_LEFT: setCursorImageUntilUnset("bottom_left_corner"); break;
-        case BORDERICON_UP_RIGHT: setCursorImageUntilUnset("top_right_corner"); break;
-        case BORDERICON_DOWN_RIGHT: setCursorImageUntilUnset("bottom_right_corner"); break;
+        case BORDERICON_NONE: Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP: Cursor::overrideController->setOverride("top_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN: Cursor::overrideController->setOverride("bottom_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_LEFT: Cursor::overrideController->setOverride("left_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_RIGHT: Cursor::overrideController->setOverride("right_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP_LEFT: Cursor::overrideController->setOverride("top_left_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN_LEFT: Cursor::overrideController->setOverride("bottom_left_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP_RIGHT: Cursor::overrideController->setOverride("top_right_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN_RIGHT: Cursor::overrideController->setOverride("bottom_right_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
     }
 }
 

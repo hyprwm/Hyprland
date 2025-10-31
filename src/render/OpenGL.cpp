@@ -483,8 +483,8 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     }
 
     // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)
-    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.empty())
-        mods.push_back(DRM_FORMAT_MOD_LINEAR);
+    if (!linearIsExternal && std::ranges::find(mods, DRM_FORMAT_MOD_LINEAR) == mods.end())
+        result.push_back(DRM_FORMAT_MOD_LINEAR);
 
     return result;
 }
@@ -582,8 +582,8 @@ void CHyprOpenGLImpl::initDRMFormats() {
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
-    std::array<uint32_t, 50> attribs;
-    size_t                   idx = 0;
+    std::array<EGLint, 50> attribs;
+    size_t                 idx = 0;
 
     attribs[idx++] = EGL_WIDTH;
     attribs[idx++] = attrs.size.x;
@@ -626,7 +626,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 
     RASSERT(idx <= attribs.size(), "createEglImage: attribs array out of bounds.");
 
-    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, rc<int*>(attribs.data()));
+    EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
         Debug::log(ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
         return EGL_NO_IMAGE_KHR;
@@ -1552,14 +1552,24 @@ static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primaries
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
     // might be too strict
-    return imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+    static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+
+    if (m_renderData.surface.valid() &&
+        ((!m_renderData.surface->m_colorManagement.valid() && *PSDREOTF >= 1) ||
+         (*PSDREOTF == 2 && m_renderData.surface->m_colorManagement.valid() &&
+          imageDescription.transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB))) {
+        shader.setUniformInt(SHADER_SOURCE_TF, NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22);
+    } else
+        shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+
     shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
 
     const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
@@ -3323,7 +3333,7 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
 
     auto fmt = pMonitor->m_output->state->state().drmFormat;
 
-    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102)
+    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
         return DRM_FORMAT_XRGB8888;
 
     return fmt;

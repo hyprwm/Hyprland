@@ -12,6 +12,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../managers/cursor/CursorShapeOverrideController.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
@@ -243,7 +244,7 @@ void IHyprLayout::onBeginDragWindow() {
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
-        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
@@ -259,41 +260,41 @@ void IHyprLayout::onBeginDragWindow() {
         switch (*RESIZECORNER) {
             case 1:
                 m_grabbedCorner = CORNER_TOPLEFT;
-                g_pInputManager->setCursorImageUntilUnset("nw-resize");
+                Cursor::overrideController->setOverride("nw-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
                 break;
             case 2:
                 m_grabbedCorner = CORNER_TOPRIGHT;
-                g_pInputManager->setCursorImageUntilUnset("ne-resize");
+                Cursor::overrideController->setOverride("ne-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
                 break;
             case 3:
                 m_grabbedCorner = CORNER_BOTTOMRIGHT;
-                g_pInputManager->setCursorImageUntilUnset("se-resize");
+                Cursor::overrideController->setOverride("se-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
                 break;
             case 4:
                 m_grabbedCorner = CORNER_BOTTOMLEFT;
-                g_pInputManager->setCursorImageUntilUnset("sw-resize");
+                Cursor::overrideController->setOverride("sw-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
                 break;
         }
     } else if (m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 2.0) {
         if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.0) {
             m_grabbedCorner = CORNER_TOPLEFT;
-            g_pInputManager->setCursorImageUntilUnset("nw-resize");
+            Cursor::overrideController->setOverride("nw-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
         } else {
             m_grabbedCorner = CORNER_BOTTOMLEFT;
-            g_pInputManager->setCursorImageUntilUnset("sw-resize");
+            Cursor::overrideController->setOverride("sw-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
         }
     } else {
         if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.0) {
             m_grabbedCorner = CORNER_TOPRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("ne-resize");
+            Cursor::overrideController->setOverride("ne-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
         } else {
             m_grabbedCorner = CORNER_BOTTOMRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("se-resize");
+            Cursor::overrideController->setOverride("se-resize", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
         }
     }
 
     if (g_pInputManager->m_dragMode != MBIND_RESIZE && g_pInputManager->m_dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->m_dragMode != MBIND_RESIZE_BLOCK_RATIO)
-        g_pInputManager->setCursorImageUntilUnset("grabbing");
+        Cursor::overrideController->setOverride("grabbing", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
 
@@ -310,13 +311,13 @@ void IHyprLayout::onEndDragWindow() {
 
     if (!validMapped(DRAGGINGWINDOW)) {
         if (DRAGGINGWINDOW) {
-            g_pInputManager->unsetCursorImage();
+            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
             g_pInputManager->m_currentlyDraggedWindow.reset();
         }
         return;
     }
 
-    g_pInputManager->unsetCursorImage();
+    Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
     g_pInputManager->m_currentlyDraggedWindow.reset();
     g_pInputManager->m_wasDraggingWindow = true;
 
@@ -790,16 +791,15 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         CBox wb = {pWindow->m_realPosition->goal() + (pWindow->m_realSize->goal() - pWindow->m_lastFloatingSize) / 2.f, pWindow->m_lastFloatingSize};
         wb.round();
 
-        if (!(pWindow->m_isFloating && pWindow->m_isPseudotiled) && DELTALESSTHAN(pWindow->m_realSize->value().x, pWindow->m_lastFloatingSize.x, 10) &&
-            DELTALESSTHAN(pWindow->m_realSize->value().y, pWindow->m_lastFloatingSize.y, 10)) {
+        if (!(pWindow->m_isFloating && pWindow->m_isPseudotiled) && DELTALESSTHAN(pWindow->m_realSize->goal().x, pWindow->m_lastFloatingSize.x, 10) &&
+            DELTALESSTHAN(pWindow->m_realSize->goal().y, pWindow->m_lastFloatingSize.y, 10)) {
             wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 
-        *pWindow->m_realPosition = wb.pos();
-        *pWindow->m_realSize     = wb.size();
-
         pWindow->m_size     = wb.size();
         pWindow->m_position = wb.pos();
+
+        fitFloatingWindowOnMonitor(pWindow, wb);
 
         g_pHyprRenderer->damageMonitor(pWindow->m_monitor.lock());
 
@@ -813,6 +813,36 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
     pWindow->updateToplevel();
     g_pHyprRenderer->damageWindow(pWindow);
+}
+
+void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb) {
+    if (!w->m_isFloating)
+        return;
+
+    const auto PMONITOR = w->m_monitor.lock();
+
+    if (!PMONITOR)
+        return;
+
+    const auto EXTENTS           = w->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
+    CBox       targetBoxMonLocal = tb.value_or(w->getWindowMainSurfaceBox()).translate(-PMONITOR->m_position).addExtents(EXTENTS);
+
+    if (targetBoxMonLocal.w < PMONITOR->m_size.x) {
+        if (targetBoxMonLocal.x < 0)
+            targetBoxMonLocal.x = 0;
+        else if (targetBoxMonLocal.x + targetBoxMonLocal.w > PMONITOR->m_size.x)
+            targetBoxMonLocal.x = PMONITOR->m_size.x - targetBoxMonLocal.w;
+    }
+
+    if (targetBoxMonLocal.h < PMONITOR->m_size.y) {
+        if (targetBoxMonLocal.y < 0)
+            targetBoxMonLocal.y = 0;
+        else if (targetBoxMonLocal.y + targetBoxMonLocal.h > PMONITOR->m_size.y)
+            targetBoxMonLocal.y = PMONITOR->m_size.y - targetBoxMonLocal.h;
+    }
+
+    *w->m_realPosition = (targetBoxMonLocal.pos() + PMONITOR->m_position + EXTENTS.topLeft).round();
+    *w->m_realSize     = (targetBoxMonLocal.size() - EXTENTS.topLeft - EXTENTS.bottomRight).round();
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {

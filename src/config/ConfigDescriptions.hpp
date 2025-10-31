@@ -1542,6 +1542,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
     },
+    SConfigOptionDescription{
+        .value       = "render:cm_sdr_eotf",
+        .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
+    },
 
     /*
      * cursor:

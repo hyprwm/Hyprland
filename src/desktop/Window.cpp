@@ -257,7 +257,10 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    CBox box = {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
+    const auto POS  = m_realPosition->value();
+    const auto SIZE = m_realSize->value();
+
+    CBox       box{POS, SIZE};
     box.addExtents(getWindowExtentsUnified(properties));
 
     return box;
@@ -1035,6 +1038,16 @@ PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
         index--;
     }
     return curr;
+}
+
+bool CWindow::hasInGroup(PHLWINDOW w) {
+    PHLWINDOW curr = m_groupData.pNextWindow.lock();
+    while (curr && curr != m_self) {
+        if (curr == w)
+            return true;
+        curr = curr->m_groupData.pNextWindow.lock();
+    }
+    return false;
 }
 
 void CWindow::setGroupCurrent(PHLWINDOW pWindow) {

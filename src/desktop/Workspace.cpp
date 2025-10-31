@@ -118,7 +118,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
         return true;
 
     if (isNumber(selector)) {
-        const auto& [wsid, wsname] = getWorkspaceIDNameFromString(selector);
+        const auto& [wsid, wsname, isAutoID] = getWorkspaceIDNameFromString(selector);
 
         if (wsid == WORKSPACE_INVALID)
             return false;

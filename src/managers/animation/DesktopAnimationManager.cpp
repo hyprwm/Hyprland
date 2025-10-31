@@ -459,6 +459,8 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
+    const auto FSWINDOW = ws->getFullscreenWindow();
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == ws) {
 
@@ -467,8 +469,11 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
             if (!FULLSCREEN)
                 *w->m_alpha = 1.F;
-            else if (!w->isFullscreen())
-                *w->m_alpha = !w->m_createdOverFullscreen ? 0.f : 1.f;
+            else if (!w->isFullscreen()) {
+                const bool CREATED_OVER_FS   = w->m_createdOverFullscreen;
+                const bool IS_IN_GROUP_OF_FS = FSWINDOW && FSWINDOW->hasInGroup(w);
+                *w->m_alpha                  = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
+            }
         }
     }
 

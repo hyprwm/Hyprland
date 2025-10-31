@@ -43,7 +43,6 @@ class CWLSHMBuffer : public IHLBuffer {
     virtual Aquamarine::SSHMAttrs                  shm();
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
     virtual void                                   endDataPtr();
-    virtual SP<CTexture>                           createTexture();
 
     bool                                           good();
 

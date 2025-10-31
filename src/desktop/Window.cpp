@@ -1927,13 +1927,18 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     if (res->m_subsurfaces.size() == 0)
         return res;
 
-    if (res->m_subsurfaces.size() == 1) {
-        if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
-            return nullptr;
-        auto surf = res->m_subsurfaces[0]->m_surface.lock();
-        if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
-            return nullptr;
-        return surf;
+    if (res->m_subsurfaces.size() >= 1) {
+        if (!res->hasVisibleSubsurface())
+            return res;
+
+        if (res->m_subsurfaces.size() == 1) {
+            if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
+                return nullptr;
+            auto surf = res->m_subsurfaces[0]->m_surface.lock();
+            if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
+                return nullptr;
+            return surf;
+        }
     }
 
     return nullptr;

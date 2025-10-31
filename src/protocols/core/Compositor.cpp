@@ -603,6 +603,23 @@ void CWLSurfaceResource::sortSubsurfaces() {
     }
 }
 
+bool CWLSurfaceResource::hasVisibleSubsurface() {
+    for (auto const& subsurface : m_subsurfaces) {
+        if (subsurface) {
+            if (subsurface.expired() || subsurface->m_surface.expired())
+                return true;
+
+            auto surf = subsurface->m_surface.lock();
+            if (!surf)
+                continue;
+
+            if (surf->m_current.size.x > 0 && surf->m_current.size.y > 0)
+                return true;
+        }
+    }
+    return false;
+}
+
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;

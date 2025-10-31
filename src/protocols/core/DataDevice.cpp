@@ -11,6 +11,7 @@
 #include "../../xwayland/Server.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
+#include "../../managers/cursor/CursorShapeOverrideController.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../xwayland/Dnd.hpp"
@@ -553,7 +554,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
         abortDrag();
     }
 
-    g_pInputManager->setCursorImageUntilUnset("grabbing");
+    Cursor::overrideController->setOverride("grabbing", Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = true;
 
     LOGM(LOG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}", (uintptr_t)currentSource.get(), (uintptr_t)dragSurface, (uintptr_t)origin);
@@ -734,7 +735,7 @@ void CWLDataDeviceProtocol::dropDrag() {
     if (m_dnd.focusedDevice->getX11()) {
         m_dnd.focusedDevice->sendLeave();
         if (m_dnd.overriddenCursor)
-            g_pInputManager->unsetCursorImage();
+            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
         m_dnd.overriddenCursor = false;
         cleanupDndState(true, true, true);
         return;
@@ -743,7 +744,7 @@ void CWLDataDeviceProtocol::dropDrag() {
 
     m_dnd.focusedDevice->sendLeave();
     if (m_dnd.overriddenCursor)
-        g_pInputManager->unsetCursorImage();
+        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = false;
     cleanupDndState(false, false, false);
 }
@@ -784,7 +785,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     cleanupDndState(false, false, false);
 
     if (m_dnd.overriddenCursor)
-        g_pInputManager->unsetCursorImage();
+        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = false;
 
     if (!m_dnd.focusedDevice && !m_dnd.currentSource)

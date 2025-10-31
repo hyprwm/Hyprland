@@ -403,10 +403,11 @@ void CLayerSurface::applyRules() {
     m_forceBlur        = false;
     m_ignoreAlpha      = false;
     m_dimAround        = false;
-    m_noScreenShare    = false;
     m_ignoreAlphaValue = 0.f;
     m_xray             = -1;
     m_animationStyle.reset();
+    const bool wasNoScreenShare = m_noScreenShare;
+    m_noScreenShare             = false;
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(m_self.lock())) {
         switch (rule->m_ruleType) {
@@ -441,6 +442,18 @@ void CLayerSurface::applyRules() {
                 break;
             }
             case CLayerRule::RULE_NOSCREENSHARE: {
+                const CVarList tokens{rule->m_rule, 0, ' '};
+
+                if (tokens.size() > 1) {
+                    if (tokens[1] == "unset")
+                        break;
+
+                    if (const auto parsed = configStringToInt(tokens[1]); parsed.has_value()) {
+                        m_noScreenShare = parsed.value() != 0;
+                        break;
+                    }
+                }
+
                 m_noScreenShare = true;
                 break;
             }
@@ -473,6 +486,9 @@ void CLayerSurface::applyRules() {
             default: break;
         }
     }
+
+    if (wasNoScreenShare != m_noScreenShare && g_pHyprRenderer && m_surface && m_surface->resource())
+        g_pHyprRenderer->damageSurface(m_surface->resource(), m_position.x, m_position.y);
 }
 
 bool CLayerSurface::isFadedOut() {

@@ -57,7 +57,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
     static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     auto        PMONITOR = g_pCompositor->m_lastMonitor.lock();
@@ -618,7 +618,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_windowData.noFocus.valueOrDefault() && !PWINDOW->m_noInitialFocus &&
         (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_isX11 && PWINDOW->m_xwaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
-        g_pCompositor->focusWindow(PWINDOW);
+        g_pCompositor->focusWindowCareful(PWINDOW);
         PWINDOW->m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_dimPercent->setValueAndWarp(PWINDOW->m_windowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
@@ -656,10 +656,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (workspaceSilent) {
         if (validMapped(PFOCUSEDWINDOWPREV)) {
-            g_pCompositor->focusWindow(PFOCUSEDWINDOWPREV);
+            g_pCompositor->focusWindowCareful(PFOCUSEDWINDOWPREV);
             PFOCUSEDWINDOWPREV->updateWindowDecos(); // need to for some reason i cba to find out why
         } else if (!PFOCUSEDWINDOWPREV)
-            g_pCompositor->focusWindow(nullptr);
+            g_pCompositor->focusWindowCareful(nullptr);
     }
 
     // swallow
@@ -806,7 +806,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
         if (PWINDOWCANDIDATE != g_pCompositor->m_lastWindow.lock() && PWINDOWCANDIDATE) {
-            g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+            g_pCompositor->focusWindowCareful(PWINDOWCANDIDATE);
             if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
@@ -961,7 +961,7 @@ void Events::listener_activateX11(void* owner, void* data) {
         if (!PWINDOW->m_xwaylandSurface->wantsFocus())
             return;
 
-        g_pCompositor->focusWindow(PWINDOW);
+        g_pCompositor->focusWindowCareful(PWINDOW);
         return;
     }
 

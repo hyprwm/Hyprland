@@ -659,7 +659,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
             // If this was a popup grab, focus its parent window to maintain context
             if (validMapped(parentWindow)) {
-                g_pCompositor->focusWindow(parentWindow);
+                g_pCompositor->focusWindowCareful(parentWindow);
                 Debug::log(LOG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
             } else
                 g_pInputManager->refocusLastWindow(PMONITOR);
@@ -692,7 +692,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             auto candidate = g_pCompositor->m_lastWindow.lock();
 
             if (candidate)
-                g_pCompositor->focusWindow(candidate);
+                g_pCompositor->focusWindowCareful(candidate);
         }
 
         if (oldGrab->m_onEnd)

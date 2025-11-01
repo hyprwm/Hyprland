@@ -1104,7 +1104,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (CURRENTISFOCUS)
-        g_pCompositor->focusWindow(pWindow);
+        g_pCompositor->focusWindowCareful(pWindow);
 
     g_pHyprRenderer->damageWindow(pWindow);
 
@@ -1465,7 +1465,7 @@ void CWindow::activate(bool force) {
     if (m_isFloating)
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    g_pCompositor->focusWindow(m_self.lock());
+    g_pCompositor->focusWindowCareful(m_self.lock());
     warpCursor();
 }
 

@@ -11,9 +11,9 @@
 
 static int  ret = 0;
 
-static bool spawnKitty(const std::string& class_) {
+static bool spawnKitty(const std::string& class_, const std::vector<std::string>& args = {}) {
     NLog::log("{}Spawning {}", Colors::YELLOW, class_);
-    if (!Tests::spawnKitty(class_)) {
+    if (!Tests::spawnKitty(class_, args)) {
         NLog::log("{}Error: {} did not spawn", Colors::RED, class_);
         return false;
     }
@@ -131,6 +131,133 @@ static void testSwapWindow() {
     EXPECT(Tests::windowCount(), 0);
 }
 
+static bool isActiveWindow(const std::string& class_, char fullscreen, bool log = true) {
+    std::string activeWin     = getFromSocket("/activewindow");
+    auto        winClass      = getWindowAttribute(activeWin, "class: ");
+    auto        winFullscreen = getWindowAttribute(activeWin, "fullscreen: ").back();
+    if (winClass == class_ && winFullscreen == fullscreen)
+        return true;
+    else {
+        if (log)
+            NLog::log("{}Wrong active window: expected class {} fullscreen '{}', found class {}, fullscreen '{}'", Colors::RED, class_, fullscreen, winClass, winFullscreen);
+        return false;
+    }
+}
+
+static bool waitForActiveWindow(const std::string& class_, char fullscreen, int maxTries = 50) {
+    int cnt = 0;
+    while (!isActiveWindow(class_, fullscreen, false)) {
+        ++cnt;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (cnt > 50) {
+            return isActiveWindow(class_, fullscreen, true);
+        }
+    }
+    return true;
+}
+
+/// Tests behavior of a window being focused when on that window's workspace
+/// another fullscreen window exists.
+static bool testWindowFocusOnFullscreenConflict() {
+    if (!spawnKitty("kitty_A"))
+        return false;
+    if (!spawnKitty("kitty_B"))
+        return false;
+
+    auto spawnKittyActivating = [] {
+        return spawnKitty("kitty_activating", {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "sleep 0.5 && kitten @ focus-window && sleep 0.5"});
+    };
+
+    // Unfullscreen on conflict
+    {
+        OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 2"));
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus the same window
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus a different window
+        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+        EXPECT(isActiveWindow("kitty_B", '0'), true);
+
+        // Make a window that will request focus
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+        EXPECT(waitForActiveWindow("kitty_activating", '0'), true);
+    }
+
+    // Take over on conflict
+    {
+        OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 1"));
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus the same window
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus a different window
+        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+        EXPECT(isActiveWindow("kitty_B", '2'), true);
+        OK(getFromSocket("/dispatch fullscreenstate 0 0"));
+
+        // Make a window that will request focus
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+        EXPECT(waitForActiveWindow("kitty_activating", '2'), true);
+    }
+
+    // Do nothing on conflict (but the dispatcher ignores this setting).
+    {
+        OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 0"));
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus the same window
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+
+        // Dispatch-focus a different window. When focused via the dispatcher,
+        // the value `misc:on_focus_under_fullscreen = 0` is treated like `= 1`
+        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+        EXPECT(isActiveWindow("kitty_B", '2'), true);
+        OK(getFromSocket("/dispatch fullscreenstate 0 0"));
+
+        // Make a window that will request focus - the setting is treated normally
+        if (!spawnKittyActivating())
+            return false;
+        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+        OK(getFromSocket("/dispatch fullscreen 0"));
+        EXPECT(isActiveWindow("kitty_A", '2'), true);
+        EXPECT(waitForActiveWindow("kitty_A", '2'), true);
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -245,6 +372,10 @@ static bool test() {
     EXPECT(Tests::windowCount(), 0);
 
     testSwapWindow();
+    if (!testWindowFocusOnFullscreenConflict()) {
+        ret = 1;
+        return false;
+    }
 
     NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
     {

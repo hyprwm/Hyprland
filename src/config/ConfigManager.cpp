@@ -510,7 +510,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
-    registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("misc:on_focus_under_fullscreen", Hyprlang::INT{0});
     registerConfigVar("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     registerConfigVar("misc:initial_workspace_tracking", Hyprlang::INT{1});
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});

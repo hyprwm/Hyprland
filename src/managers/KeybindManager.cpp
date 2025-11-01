@@ -364,7 +364,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         updateRelativeCursorCoords();
-        g_pCompositor->focusWindow(PNEWWINDOW);
+        g_pCompositor->focusWindowCareful(PNEWWINDOW);
         PNEWWINDOW->warpCursor();
 
         if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
@@ -373,7 +373,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
             g_pInputManager->m_forcedFocus.reset();
         }
     } else {
-        g_pCompositor->focusWindow(nullptr);
+        g_pCompositor->focusWindowCareful(nullptr);
         g_pCompositor->warpCursorTo(monitor->middle());
     }
     g_pCompositor->setActiveMonitor(monitor);
@@ -400,7 +400,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
         if (!PWINDOWTOCHANGETO->m_pinned)
             g_pCompositor->setWindowFullscreenInternal(PLASTWINDOW, FSMODE_NONE);
 
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
+        g_pCompositor->focusWindowCareful(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
 
         if (!PWINDOWTOCHANGETO->m_pinned)
             g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, MODE);
@@ -410,7 +410,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
         PWINDOWTOCHANGETO->m_realSize->warp();
     } else {
         updateRelativeCursorCoords();
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
+        g_pCompositor->focusWindowCareful(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
@@ -1286,7 +1286,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
         Vector2D middle = PMONITORWORKSPACEOWNER->middle();
         if (const auto PLAST = pWorkspaceToChangeTo->getLastFocusedWindow(); PLAST) {
-            g_pCompositor->focusWindow(PLAST);
+            g_pCompositor->focusWindowCareful(PLAST);
             if (*PWORKSPACECENTERON == 1)
                 middle = PLAST->middle();
         }
@@ -1433,7 +1433,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     pMonitor->changeWorkspace(pWorkspace);
 
-    g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->focusWindowCareful(PWINDOW);
     PWINDOW->warpCursor();
 
     return {};
@@ -1475,7 +1475,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     if (PWINDOW == g_pCompositor->m_lastWindow) {
         if (const auto PATCOORDS = g_pCompositor->vectorToWindowUnified(OLDMIDDLE, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, PWINDOW); PATCOORDS)
-            g_pCompositor->focusWindow(PATCOORDS);
+            g_pCompositor->focusWindowCareful(PATCOORDS);
         else
             g_pInputManager->refocus();
     }
@@ -2318,7 +2318,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    g_pCompositor->focusWindow(PWINDOW);
+    g_pCompositor->focusWindowCareful(PWINDOW);
 
     PWINDOW->warpCursor();
 
@@ -2678,7 +2678,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
 
     PLASTWINDOW->m_lastCycledWindow = toSwap;
 
-    g_pCompositor->focusWindow(PLASTWINDOW);
+    g_pCompositor->focusWindowCareful(PLASTWINDOW);
 
     return {};
 }
@@ -2884,7 +2884,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
     pWindowInDirection->setGroupCurrent(pWindow);
     pWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
-    g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->focusWindowCareful(pWindow);
     pWindow->warpCursor();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveintogroup", std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
@@ -2921,10 +2921,10 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
     }
 
     if (*BFOCUSREMOVEDWINDOW) {
-        g_pCompositor->focusWindow(pWindow);
+        g_pCompositor->focusWindowCareful(pWindow);
         pWindow->warpCursor();
     } else {
-        g_pCompositor->focusWindow(PWINDOWPREV);
+        g_pCompositor->focusWindowCareful(PWINDOWPREV);
         PWINDOWPREV->warpCursor();
     }
 
@@ -3218,9 +3218,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (!(PWINDOW->m_windowData.noFocus.valueOrDefault() == noFocus)) {
-        g_pCompositor->focusWindow(nullptr);
-        g_pCompositor->focusWindow(PWINDOW);
-        g_pCompositor->focusWindow(PLASTWINDOW);
+        g_pCompositor->focusWindowCareful(nullptr);
+        g_pCompositor->focusWindowCareful(PWINDOW);
+        g_pCompositor->focusWindowCareful(PLASTWINDOW);
     }
 
     if (PROP == "novrr")

@@ -988,7 +988,7 @@ void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
         // if same monitor, switch windows
         switchWindows(pWindow, PWINDOW2);
         if (silent)
-            g_pCompositor->focusWindow(PWINDOW2);
+            g_pCompositor->focusWindowCareful(PWINDOW2);
     }
 
     pWindow->updateGroupOutputs();
@@ -1084,11 +1084,11 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             const auto  FSMODE            = header.pWindow->m_fullscreenState.internal;
             static auto INHERITFULLSCREEN = CConfigValue<Hyprlang::INT>("master:inherit_fullscreen");
             g_pCompositor->setWindowFullscreenInternal(header.pWindow, FSMODE_NONE);
-            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            g_pCompositor->focusWindowCareful(PWINDOWTOCHANGETO);
             if (*INHERITFULLSCREEN)
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, FSMODE);
         } else {
-            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+            g_pCompositor->focusWindowCareful(PWINDOWTOCHANGETO);
             g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
         }
 

@@ -507,13 +507,17 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
         if (feedback->m_lastFeedbackWasScanout) {
             PHLMONITOR mon;
             auto       HLSurface = CWLSurface::fromResource(feedback->m_surface);
+            if (!HLSurface) {
+                feedback->sendDefaultFeedback();
+                continue;
+            }
             if (auto w = HLSurface->getWindow(); w)
                 if (auto m = w->m_monitor.lock(); m)
                     mon = m->m_self.lock();
 
             if (!mon) {
                 feedback->sendDefaultFeedback();
-                return;
+                continue;
             }
 
             updateScanoutTranche(feedback->m_surface, mon);

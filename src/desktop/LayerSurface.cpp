@@ -1,4 +1,5 @@
 #include "LayerSurface.hpp"
+#include "state/FocusState.hpp"
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -16,7 +17,7 @@
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    auto  pMonitor = resource->m_monitor.empty() ? g_pCompositor->m_lastMonitor.lock() : g_pCompositor->getMonitorFromName(resource->m_monitor);
+    auto  pMonitor = resource->m_monitor.empty() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromName(resource->m_monitor);
 
     pLS->m_surface->assign(resource->m_surface.lock(), pLS);
 
@@ -173,7 +174,7 @@ void CLayerSurface::onMap() {
             g_pSeatManager->setGrab(nullptr);
 
         g_pInputManager->releaseAllMouseButtons();
-        g_pCompositor->focusSurface(m_surface->resource());
+        Desktop::focusState()->rawSurfaceFocus(m_surface->resource());
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
         g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
@@ -244,11 +245,12 @@ void CLayerSurface::onUnmap() {
 
     // refocus if needed
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
-    if (WASLASTFOCUS || (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus->m_hlSurface && !g_pCompositor->m_lastFocus->m_hlSurface->keyboardFocusable())) {
+    if (WASLASTFOCUS ||
+        (Desktop::focusState()->surface() && Desktop::focusState()->surface()->m_hlSurface && !Desktop::focusState()->surface()->m_hlSurface->keyboardFocusable())) {
         if (!g_pInputManager->refocusLastWindow(PMONITOR))
             g_pInputManager->refocus();
-    } else if (g_pCompositor->m_lastFocus && g_pCompositor->m_lastFocus != m_surface->resource())
-        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_lastFocus.lock());
+    } else if (Desktop::focusState()->surface() && Desktop::focusState()->surface() != m_surface->resource())
+        g_pSeatManager->setKeyboardFocus(Desktop::focusState()->surface());
 
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
@@ -374,7 +376,7 @@ void CLayerSurface::onCommit() {
         if (WASLASTFOCUS && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
             // so unfocus the surface here.
-            g_pCompositor->focusSurface(nullptr);
+            Desktop::focusState()->rawSurfaceFocus(nullptr);
             g_pInputManager->refocusLastWindow(m_monitor.lock());
         } else if (WASLASTFOCUS && WASEXCLUSIVE && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
             g_pInputManager->simulateMouseMovement();
@@ -382,7 +384,7 @@ void CLayerSurface::onCommit() {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
-            g_pCompositor->focusSurface(m_surface->resource());
+            Desktop::focusState()->rawSurfaceFocus(m_surface->resource());
 
             const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
             g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);

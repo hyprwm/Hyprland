@@ -234,12 +234,6 @@ static bool testWindowFocusOnFullscreenConflict() {
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
         EXPECT(isActiveWindow("kitty_A", '2'), true);
 
-        // Dispatch-focus a different window. When focused via the dispatcher,
-        // the value `misc:on_focus_under_fullscreen = 0` is treated like `= 1`
-        OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
-        EXPECT(isActiveWindow("kitty_B", '2'), true);
-        OK(getFromSocket("/dispatch fullscreenstate 0 0"));
-
         // Make a window that will request focus - the setting is treated normally
         if (!spawnKittyActivating())
             return false;

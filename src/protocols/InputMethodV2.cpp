@@ -1,7 +1,8 @@
 #include "InputMethodV2.hpp"
-#include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../devices/IKeyboard.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include <sys/mman.h>
 #include "core/Compositor.hpp"
 #include <cstring>
@@ -96,8 +97,8 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
         m_listeners.destroySurface.reset();
         m_listeners.commitSurface.reset();
 
-        if (g_pCompositor->m_lastFocus == m_surface)
-            g_pCompositor->m_lastFocus.reset();
+        if (Desktop::focusState()->surface() == m_surface)
+            Desktop::focusState()->surface().reset();
 
         m_surface.reset();
     });

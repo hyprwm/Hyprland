@@ -7,6 +7,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Animation;
@@ -18,7 +19,7 @@ CHyprError::CHyprError() {
         if (!m_isCreated)
             return;
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_lastMonitor.lock());
+        g_pHyprRenderer->damageMonitor(Desktop::focusState()->monitor());
         m_monitorChanged = true;
     });
 

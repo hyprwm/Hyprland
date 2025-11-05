@@ -30,6 +30,7 @@
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
@@ -291,8 +292,8 @@ void CMonitor::onConnect(bool noRule) {
     if (!m_activeMonitorRule.mirrorOf.empty())
         setMirror(m_activeMonitorRule.mirrorOf);
 
-    if (!g_pCompositor->m_lastMonitor) // set the last monitor if it isn't set yet
-        g_pCompositor->setActiveMonitor(m_self.lock());
+    if (!Desktop::focusState()->monitor()) // set the last monitor if it isn't set yet
+        Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
@@ -303,7 +304,7 @@ void CMonitor::onConnect(bool noRule) {
     // verify last mon valid
     bool found = false;
     for (auto const& m : g_pCompositor->m_monitors) {
-        if (m == g_pCompositor->m_lastMonitor) {
+        if (m == Desktop::focusState()->monitor()) {
             found = true;
             break;
         }
@@ -323,7 +324,7 @@ void CMonitor::onConnect(bool noRule) {
         Debug::log(LOG, "Monitor {} was not on any workspace", m_name);
 
     if (!found)
-        g_pCompositor->setActiveMonitor(m_self.lock());
+        Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
@@ -430,9 +431,9 @@ void CMonitor::onDisconnect(bool destroy) {
             g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
     } else {
-        g_pCompositor->m_lastFocus.reset();
-        g_pCompositor->m_lastWindow.reset();
-        g_pCompositor->m_lastMonitor.reset();
+        Desktop::focusState()->surface().reset();
+        Desktop::focusState()->window().reset();
+        Desktop::focusState()->monitor().reset();
     }
 
     if (m_activeWorkspace)
@@ -446,8 +447,8 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!m_state.commit())
         Debug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
 
-    if (g_pCompositor->m_lastMonitor == m_self)
-        g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
+    if (Desktop::focusState()->monitor() == m_self)
+        Desktop::focusState()->rawMonitorFocus(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
 
     if (g_pHyprRenderer->m_mostHzMonitor == m_self) {
         int        mostHz         = 0;
@@ -1194,7 +1195,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         g_pCompositor->scheduleMonitorStateRecheck();
 
-        g_pCompositor->setActiveMonitor(g_pCompositor->m_monitors.front());
+        Desktop::focusState()->rawMonitorFocus(g_pCompositor->m_monitors.front());
 
         // Software lock mirrored monitor
         g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
@@ -1277,8 +1278,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                 w->moveToWorkspace(pWorkspace);
         }
 
-        if (!noFocus && !g_pCompositor->m_lastMonitor->m_activeSpecialWorkspace &&
-            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+        if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
+            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
@@ -1293,7 +1294,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                     pWindow = pWorkspace->getFirstWindow();
             }
 
-            g_pCompositor->focusWindowCareful(pWindow);
+            Desktop::focusState()->fullWindowFocus(pWindow);
         }
 
         if (!noMouseMove)
@@ -1352,9 +1353,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
-                g_pCompositor->focusWindowCareful(PLAST);
+                Desktop::focusState()->fullWindowFocus(PLAST);
             else
                 g_pInputManager->refocus();
         }
@@ -1434,9 +1435,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
-            g_pCompositor->focusWindowCareful(PLAST);
+            Desktop::focusState()->fullWindowFocus(PLAST);
         else
             g_pInputManager->refocus();
     }
@@ -1540,7 +1541,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == m_self) {
+    if (g_pHyprError->active() && Desktop::focusState()->monitor() == m_self) {
         reasons |= SC_ERRORBAR;
         if (!full)
             return reasons;

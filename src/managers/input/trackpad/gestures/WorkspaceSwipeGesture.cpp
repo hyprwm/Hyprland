@@ -1,7 +1,7 @@
 #include "WorkspaceSwipeGesture.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../managers/input/InputManager.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
 
 #include "../../UnifiedWorkspaceSwipeGesture.hpp"
@@ -16,7 +16,7 @@ void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin
 
     int onMonitor = 0;
     for (auto const& w : g_pCompositor->getWorkspaces()) {
-        if (w->m_monitor == g_pCompositor->m_lastMonitor && !g_pCompositor->isWorkspaceSpecial(w->m_id))
+        if (w->m_monitor == Desktop::focusState()->monitor() && !g_pCompositor->isWorkspaceSpecial(w->m_id))
             onMonitor++;
     }
 

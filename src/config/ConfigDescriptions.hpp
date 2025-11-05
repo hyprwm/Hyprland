@@ -1278,7 +1278,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "fullscreen/maximized state. Note: if configured to stay behind, the setting does not apply to the focuswindow dispather: when requested via focuswindow, "
                        "the window will always be focused. 0 - stay behind (unless via focuswindow), 1 - takes over, 2 - unfullscreen/unmaximize [0/1/2]",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "misc:exit_window_retains_fullscreen",
@@ -1940,12 +1940,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "default placement of the master area, can be left, right, top, bottom or center",
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{"left"},
-    },
-    SConfigOptionDescription{
-        .value       = "master:inherit_fullscreen",
-        .description = "inherit fullscreen status when cycling/swapping to another window (e.g. monocle layout)",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
         .value       = "master:slave_count_for_center_master",

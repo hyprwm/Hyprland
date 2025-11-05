@@ -20,6 +20,7 @@
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
@@ -60,10 +61,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    auto        PMONITOR = g_pCompositor->m_lastMonitor.lock();
-    if (!g_pCompositor->m_lastMonitor) {
-        g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = g_pCompositor->m_lastMonitor.lock();
+    auto        PMONITOR = Desktop::focusState()->monitor();
+    if (!Desktop::focusState()->monitor()) {
+        Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
+        PMONITOR = Desktop::focusState()->monitor();
     }
     auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
     PWINDOW->m_monitor       = PMONITOR;
@@ -370,7 +371,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !PWINDOW->m_noInitialFocus)
                     g_pKeybindManager->m_dispatchers["workspace"](requestedWorkspaceName);
 
-                PMONITOR = g_pCompositor->m_lastMonitor.lock();
+                PMONITOR = Desktop::focusState()->monitor();
             }
 
             requestedFSMonitor = MONITOR_INVALID;
@@ -415,6 +416,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, PWORKSPACE->m_name, PWINDOW->m_class, PWINDOW->m_title)});
+    EMIT_HOOK_EVENT("openWindowEarly", PWINDOW);
 
     if (PWINDOW->m_isFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
@@ -592,7 +594,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_pseudoSize = PWINDOW->m_realSize->goal() - Vector2D(10, 10);
     }
 
-    const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_lastWindow.lock();
+    const auto PFOCUSEDWINDOWPREV = Desktop::focusState()->window();
 
     if (PWINDOW->m_windowData.allowsInput.valueOrDefault()) { // if default value wasn't set to false getPriority() would throw an exception
         PWINDOW->m_windowData.noFocus = CWindowOverridableVar(false, PWINDOW->m_windowData.allowsInput.getPriority());
@@ -602,7 +604,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
-    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
+    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(Desktop::focusState()->surface());
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_noInitialFocus = true;
 
@@ -618,7 +620,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_windowData.noFocus.valueOrDefault() && !PWINDOW->m_noInitialFocus &&
         (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_isX11 && PWINDOW->m_xwaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
-        g_pCompositor->focusWindowCareful(PWINDOW);
+        Desktop::focusState()->fullWindowFocus(PWINDOW);
         PWINDOW->m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_dimPercent->setValueAndWarp(PWINDOW->m_windowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
@@ -656,10 +658,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (workspaceSilent) {
         if (validMapped(PFOCUSEDWINDOWPREV)) {
-            g_pCompositor->focusWindowCareful(PFOCUSEDWINDOWPREV);
+            Desktop::focusState()->rawWindowFocus(PFOCUSEDWINDOWPREV);
             PFOCUSEDWINDOWPREV->updateWindowDecos(); // need to for some reason i cba to find out why
         } else if (!PFOCUSEDWINDOWPREV)
-            g_pCompositor->focusWindowCareful(nullptr);
+            Desktop::focusState()->rawWindowFocus(nullptr);
     }
 
     // swallow
@@ -770,10 +772,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     bool wasLastWindow = false;
 
-    if (PWINDOW == g_pCompositor->m_lastWindow.lock()) {
+    if (PWINDOW == Desktop::focusState()->window()) {
         wasLastWindow = true;
-        g_pCompositor->m_lastWindow.reset();
-        g_pCompositor->m_lastFocus.reset();
+        Desktop::focusState()->window().reset();
+        Desktop::focusState()->surface().reset();
 
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -805,8 +807,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_lastWindow.lock() && PWINDOWCANDIDATE) {
-            g_pCompositor->focusWindowCareful(PWINDOWCANDIDATE);
+        if (PWINDOWCANDIDATE != Desktop::focusState()->window() && PWINDOWCANDIDATE) {
+            Desktop::focusState()->fullWindowFocus(PWINDOWCANDIDATE);
             if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
@@ -817,7 +819,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->sendMotionEventsToFocused();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
-        if (PWINDOW == g_pCompositor->m_lastWindow.lock() || !g_pCompositor->m_lastWindow.lock()) {
+        if (PWINDOW == Desktop::focusState()->window() || !Desktop::focusState()->window()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
             EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
@@ -920,9 +922,9 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
-    if (PWINDOW == g_pCompositor->m_lastWindow.lock()) {
-        g_pCompositor->m_lastWindow.reset();
-        g_pCompositor->m_lastFocus.reset();
+    if (PWINDOW == Desktop::focusState()->window()) {
+        Desktop::focusState()->window().reset();
+        Desktop::focusState()->surface().reset();
     }
 
     PWINDOW->m_wlSurface->unassign();
@@ -955,17 +957,17 @@ void Events::listener_activateX11(void* owner, void* data) {
 
         Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 
-        if (g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->getPID() != PWINDOW->getPID())
+        if (Desktop::focusState()->window() && Desktop::focusState()->window()->getPID() != PWINDOW->getPID())
             return;
 
         if (!PWINDOW->m_xwaylandSurface->wantsFocus())
             return;
 
-        g_pCompositor->focusWindowCareful(PWINDOW);
+        Desktop::focusState()->fullWindowFocus(PWINDOW);
         return;
     }
 
-    if (PWINDOW == g_pCompositor->m_lastWindow.lock() || (PWINDOW->m_suppressedEvents & SUPPRESS_ACTIVATE))
+    if (PWINDOW == Desktop::focusState()->window() || (PWINDOW->m_suppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
     PWINDOW->activate();

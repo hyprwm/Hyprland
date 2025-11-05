@@ -5,6 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
@@ -204,8 +205,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
 bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const PHLWINDOW OPENINGON        = g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace ?
-               g_pCompositor->m_lastWindow.lock() :
+    const PHLWINDOW OPENINGON        = Desktop::focusState()->window() && Desktop::focusState()->window()->m_workspace == pWindow->m_workspace ?
+               Desktop::focusState()->window() :
                (pWindow->m_workspace ? pWindow->m_workspace->getFirstWindow() : nullptr);
     const bool      FLOATEDINTOTILED = pWindow->m_isFloating && OPENINGON && !OPENINGON->m_isFloating;
     const bool      SWALLOWING       = pWindow->m_swallowed || pWindow->m_groupSwallowed;
@@ -300,7 +301,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     g_pKeybindManager->shadowKeybinds();
 
-    g_pCompositor->focusWindowCareful(DRAGGINGWINDOW);
+    Desktop::focusState()->rawWindowFocus(DRAGGINGWINDOW);
     g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
 }
 
@@ -390,7 +391,7 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-    g_pCompositor->focusWindowCareful(DRAGGINGWINDOW);
+    Desktop::focusState()->fullWindowFocus(DRAGGINGWINDOW);
 
     g_pInputManager->m_wasDraggingWindow = false;
 }
@@ -781,7 +782,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(pWindow->m_monitor.lock());
 
-        if (pWindow == g_pCompositor->m_lastWindow)
+        if (pWindow == Desktop::focusState()->window())
             m_lastTiledWindow = pWindow;
     } else {
         onWindowRemovedTiling(pWindow);
@@ -846,7 +847,7 @@ void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : Desktop::focusState()->window();
 
     if (!validMapped(PWINDOW))
         return;
@@ -921,7 +922,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = PWORKSPACE->getFirstWindow();
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_isMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_X11ShouldntFocus ||
-        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_monitor != g_pCompositor->m_lastMonitor)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_monitor != Desktop::focusState()->monitor())
         return nullptr;
 
     return pWindowCandidate;
@@ -943,13 +944,13 @@ void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
 
 void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
     bringWindowToTop(pWindow);
-    g_pCompositor->focusWindowCareful(pWindow);
+    Desktop::focusState()->fullWindowFocus(pWindow);
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
-    if (g_pCompositor->m_lastMonitor) {
+    if (Desktop::focusState()->monitor()) {
 
         // If `persistentsize` is set, use the stored size if available.
         const bool HASPERSISTENTSIZE = std::ranges::any_of(pWindow->m_matchedRules, [](const auto& rule) { return rule->m_ruleType == CWindowRule::RULE_PERSISTENTSIZE; });
@@ -972,11 +973,11 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
 
                 const auto  MAXSIZE = pWindow->requestedMaxSize();
 
-                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.x) :
-                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_lastMonitor->m_size.x);
+                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, Desktop::focusState()->monitor()->m_size.x) :
+                                                        stringToPercentage(SIZEXSTR, Desktop::focusState()->monitor()->m_size.x);
 
-                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.y) :
-                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_lastMonitor->m_size.y);
+                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, Desktop::focusState()->monitor()->m_size.y) :
+                                                        stringToPercentage(SIZEYSTR, Desktop::focusState()->monitor()->m_size.y);
 
                 sizeOverride = {SIZEX, SIZEY};
 

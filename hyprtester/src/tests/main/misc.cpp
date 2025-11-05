@@ -138,6 +138,7 @@ static bool test() {
     Tests::spawnKitty("kitty_A");
     Tests::spawnKitty("kitty_B");
 
+    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
     OK(getFromSocket("/dispatch fullscreen 0 set"));
 
     {

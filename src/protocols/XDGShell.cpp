@@ -7,7 +7,10 @@
 #include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
+#include "desktop/DesktopTypes.hpp"
+#include "desktop/Window.hpp"
 #include "protocols/core/Output.hpp"
+#include <cstddef>
 #include <cstring>
 #include <ranges>
 
@@ -461,6 +464,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         LOGM(LOG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
         g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
+
+        if (RESOURCE->m_parent != nullptr) {
+            g_pCompositor->m_windows.back()->m_pinned = true;
+        }
 
         for (auto const& p : m_popups) {
             if (!p)

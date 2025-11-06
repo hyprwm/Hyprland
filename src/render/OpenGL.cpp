@@ -1558,6 +1558,13 @@ static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescriptio
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
 }
 
+static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
+        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+}
+
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
@@ -1584,8 +1591,16 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
 
     const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription, targetImageDescription);
 
-    shader.setUniformFloat2(SHADER_SRC_TF_RANGE, imageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            imageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
+    float      srcMin = imageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1);
+    float      srcMax = imageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1);
+
+    if (isHDR2SDR(imageDescription, targetImageDescription)) {
+        const float tonemapScale = targetImageDescription.getTFRefLuminance(-1) / imageDescription.getTFRefLuminance(-1);
+        srcMax *= tonemapScale;
+        srcMin *= tonemapScale;
+    }
+
+    shader.setUniformFloat2(SHADER_SRC_TF_RANGE, srcMin, srcMax);
     shader.setUniformFloat2(SHADER_DST_TF_RANGE, targetImageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
                             targetImageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
 
@@ -1710,8 +1725,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         if (data.cmBackToSRGB) {
             // revert luma changes to avoid black screenshots.
             // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
-            imageDescription.luminances = {};
-            passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{}, true, -1, -1);
+            imageDescription.luminances = {
+                .min = imageDescription.getTFMinLuminance(-1), .max = imageDescription.getTFMinLuminance(-1), .reference = imageDescription.getTFRefLuminance(-1)};
+            static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+            auto        chosenSdrEotf = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+            passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}, true, -1, -1);
         } else
             passCMUniforms(*shader, imageDescription);
     }

@@ -69,10 +69,6 @@ void CWLSHMBuffer::endDataPtr() {
     ;
 }
 
-SP<CTexture> CWLSHMBuffer::createTexture() {
-    return nullptr;
-}
-
 bool CWLSHMBuffer::good() {
     return true;
 }

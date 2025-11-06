@@ -22,14 +22,15 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                          lock();
     virtual void                          unlock();
     virtual bool                          locked();
-    virtual SP<CTexture>                  createTexture() = 0;
 
     void                                  onBackendRelease(const std::function<void()>& fn);
     void                                  addReleasePoint(CDRMSyncPointState& point);
 
+    SP<CTexture>                          m_texture;
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
+    Hyprutils::OS::CFileDescriptor        m_syncFd;
 
     struct {
         CHyprSignalListener backendRelease;

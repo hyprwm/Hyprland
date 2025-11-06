@@ -13,6 +13,7 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
+#include "protocols/types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -29,6 +30,8 @@ class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
 class CDRMSyncobjSurfaceResource;
+class CFifoResource;
+class CCommitTimerResource;
 class CColorManagementSurface;
 class CFrogColorManagementSurface;
 class CContentType;
@@ -89,8 +92,10 @@ class CWLSurfaceResource {
     void                          resetRole();
 
     struct {
-        CSignalT<>                          precommit; // before commit
-        CSignalT<>                          commit;    // after commit
+        CSignalT<>                          precommit;    // before commit
+        CSignalT<WP<SSurfaceState>>         stateCommit;  // when placing state in queue
+        CSignalT<WP<SSurfaceState>>         stateCommit2; // when placing state in queue used for commit timing so we apply fifo/fences first.
+        CSignalT<>                          commit;       // after commit
         CSignalT<>                          map;
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
@@ -101,8 +106,7 @@ class CWLSurfaceResource {
 
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
-    std::queue<UP<SSurfaceState>>          m_pendingStates;
-    bool                                   m_pendingWaiting = false;
+    CSurfaceStateQueue                     m_stateQueue;
 
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
@@ -110,7 +114,9 @@ class CWLSurfaceResource {
     bool                                   m_mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
     SP<ISurfaceRole>                       m_role;
-    WP<CDRMSyncobjSurfaceResource>         m_syncobj; // may not be present
+    WP<CDRMSyncobjSurfaceResource>         m_syncobj;     // may not be present
+    WP<CFifoResource>                      m_fifo;        // may not be present
+    WP<CCommitTimerResource>               m_commitTimer; // may not be present
     WP<CColorManagementSurface>            m_colorManagement;
     WP<CContentType>                       m_contentType;
 

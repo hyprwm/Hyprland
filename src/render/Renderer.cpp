@@ -1137,13 +1137,11 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             const Vector2D MISALIGNMENT = pSurface->m_current.bufferSize - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
-        }
-
-        // if the surface is smaller than our viewport, extend its edges.
-        // this will break if later on xdg geometry is hit, but we really try
-        // to let the apps know to NOT add CSD. Also if source is there.
-        // there is no way to fix this if that's the case
-        {
+        } else {
+            // if the surface is smaller than our viewport, extend its edges.
+            // this will break if later on xdg geometry is hit, but we really try
+            // to let the apps know to NOT add CSD. Also if source is there.
+            // there is no way to fix this if that's the case
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
             const bool SCALE_UNAWARE    = MONITOR_WL_SCALE > 1 && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
             const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());

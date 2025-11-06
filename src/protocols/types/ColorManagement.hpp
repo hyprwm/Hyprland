@@ -6,8 +6,10 @@
 
 #define SDR_MIN_LUMINANCE 0.2
 #define SDR_MAX_LUMINANCE 80.0
+#define SDR_REF_LUMINANCE 80.0
 #define HDR_MIN_LUMINANCE 0.005
 #define HDR_MAX_LUMINANCE 10000.0
+#define HDR_REF_LUMINANCE 203.0
 #define HLG_MAX_LUMINANCE 1000.0
 
 namespace NColorManagement {
@@ -225,6 +227,25 @@ namespace NColorManagement {
                 case CM_TRANSFER_FUNCTION_ST428:
                 case CM_TRANSFER_FUNCTION_SRGB:
                 default: return sdrMaxLuminance >= 0 ? sdrMaxLuminance : SDR_MAX_LUMINANCE;
+            }
+        };
+
+        float getTFRefLuminance(int sdrRefLuminance = -1) const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                case CM_TRANSFER_FUNCTION_HLG: return HDR_REF_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_BT1886:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return sdrRefLuminance >= 0 ? sdrRefLuminance : SDR_REF_LUMINANCE;
             }
         };
 

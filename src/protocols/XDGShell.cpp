@@ -465,9 +465,8 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
 
-        if (RESOURCE->m_parent != nullptr) {
+        if (RESOURCE->m_parent != nullptr)
             g_pCompositor->m_windows.back()->m_pinned = true;
-        }
 
         for (auto const& p : m_popups) {
             if (!p)

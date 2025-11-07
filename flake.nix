@@ -35,10 +35,13 @@
       inputs.systems.follows = "systems";
     };
 
-    hyprland-qtutils = {
-      url = "github:hyprwm/hyprland-qtutils";
+    hyprland-guiutils = {
+      url = "github:hyprwm/hyprland-guiutils";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
+      inputs.aquamarine.follows = "aquamarine";
+      inputs.hyprgraphics.follows = "hyprgraphics";
+      inputs.hyprutils.follows = "hyprutils";
       inputs.hyprlang.follows = "hyprlang";
     };
 

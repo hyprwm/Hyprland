@@ -15,7 +15,7 @@
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
-  hyprland-qtutils,
+  hyprland-guiutils,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
@@ -201,7 +201,7 @@ in
           wrapProgram $out/bin/Hyprland \
             --suffix PATH : ${makeBinPath [
             binutils
-            hyprland-qtutils
+            hyprland-guiutils
             pciutils
             pkgconf
           ]}

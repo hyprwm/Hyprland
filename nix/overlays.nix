@@ -24,7 +24,7 @@ in {
     inputs.hyprcursor.overlays.default
     inputs.hyprgraphics.overlays.default
     inputs.hyprland-protocols.overlays.default
-    inputs.hyprland-qtutils.overlays.default
+    inputs.hyprland-guiutils.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default

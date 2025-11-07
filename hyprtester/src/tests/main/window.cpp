@@ -1,7 +1,9 @@
 #include <cmath>
-#include <cstring>
-#include <thread>
 #include <chrono>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 
@@ -167,8 +169,22 @@ static bool testWindowFocusOnFullscreenConflict() {
 
     OK(getFromSocket("/keyword misc:focus_on_activate true"));
 
-    auto spawnKittyActivating = [] {
-        return spawnKitty("kitty_activating", {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "sleep 0.5 && kitten @ focus-window && sleep 0.5"});
+    auto spawnKittyActivating = [] -> std::string {
+        // `XXXXXX` is what `mkstemp` expects to find in the string
+        std::string tmpFilename = (std::filesystem::temp_directory_path() / "XXXXXX").string();
+        int         fd          = mkstemp(tmpFilename.data());
+        if (fd < 0) {
+            NLog::log("{}Error: could not create tmp file: errno {}", Colors::RED, errno);
+            return "";
+        }
+        (void)close(fd);
+        bool ok = spawnKitty("kitty_activating",
+                             {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"});
+        if (!ok) {
+            NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+            return "";
+        }
+        return tmpFilename;
     };
 
     // Unfullscreen on conflict
@@ -188,11 +204,13 @@ static bool testWindowFocusOnFullscreenConflict() {
         EXPECT(isActiveWindow("kitty_B", '0'), true);
 
         // Make a window that will request focus
-        if (!spawnKittyActivating())
+        const std::string removeToActivate = spawnKittyActivating();
+        if (removeToActivate.empty())
             return false;
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
         OK(getFromSocket("/dispatch fullscreen 0 set"));
         EXPECT(isActiveWindow("kitty_A", '2'), true);
+        std::filesystem::remove(removeToActivate);
         EXPECT(waitForActiveWindow("kitty_activating", '0'), true);
     }
 
@@ -214,11 +232,13 @@ static bool testWindowFocusOnFullscreenConflict() {
         OK(getFromSocket("/dispatch fullscreenstate 0 0"));
 
         // Make a window that will request focus
-        if (!spawnKittyActivating())
+        const std::string removeToActivate = spawnKittyActivating();
+        if (removeToActivate.empty())
             return false;
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
         OK(getFromSocket("/dispatch fullscreen 0 set"));
         EXPECT(isActiveWindow("kitty_A", '2'), true);
+        std::filesystem::remove(removeToActivate);
         EXPECT(waitForActiveWindow("kitty_activating", '2'), true);
     }
 
@@ -235,11 +255,13 @@ static bool testWindowFocusOnFullscreenConflict() {
         EXPECT(isActiveWindow("kitty_A", '2'), true);
 
         // Make a window that will request focus - the setting is treated normally
-        if (!spawnKittyActivating())
+        const std::string removeToActivate = spawnKittyActivating();
+        if (removeToActivate.empty())
             return false;
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
         OK(getFromSocket("/dispatch fullscreen 0 set"));
         EXPECT(isActiveWindow("kitty_A", '2'), true);
+        std::filesystem::remove(removeToActivate);
         EXPECT(waitForActiveWindow("kitty_A", '2'), true);
     }
 

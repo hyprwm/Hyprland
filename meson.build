@@ -84,7 +84,7 @@ version_h = configure_file(
   configuration: cfg
 )
 
-install_headers(version_h, subdir: 'src')
+install_headers(version_h, subdir: 'hyprland/src')
 
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 xcb_composite_dep = dependency('xcb-composite', required: get_option('xwayland'))

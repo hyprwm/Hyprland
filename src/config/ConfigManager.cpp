@@ -517,7 +517,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});
     registerConfigVar("misc:render_unfocused_fps", Hyprlang::INT{15});
     registerConfigVar("misc:disable_xdg_env_checks", Hyprlang::INT{0});
-    registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
+    registerConfigVar("misc:disable_hyprland_guiutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});

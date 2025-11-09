@@ -159,7 +159,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
             return;
         }
 
-        if (!m_pending.anchor || !(m_pending.anchor & anchor)) {
+        if (anchor && (!m_pending.anchor || !(m_pending.anchor & anchor))) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Exclusive edge doesn't align with anchor");
             return;
         }

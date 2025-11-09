@@ -397,6 +397,39 @@ static bool test() {
         return false;
     }
 
+    NLog::log("{}Testing spawning a floating window over a fullscreen window", Colors::YELLOW);
+    {
+        if (!spawnKitty("kitty_A"))
+            return false;
+        OK(getFromSocket("/dispatch fullscreen 0 set"));
+        EXPECT(Tests::windowCount(), 1);
+
+        OK(getFromSocket("/dispatch exec [float] kitty"));
+        for (int i = 0; i <= 50; ++i) {
+            if (i == 50) {
+                NLog::log("{}Failed to spawn a floating kitty", Colors::RED);
+                return false;
+            }
+            if (Tests::windowCount() == 2)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        OK(getFromSocket("/dispatch focuswindow class:^kitty$"));
+        const auto focused1 = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(focused1, "class: kitty\n");
+
+        OK(getFromSocket("/dispatch killwindow activewindow"));
+        Tests::waitUntilWindowsN(1);
+
+        // The old window should be focused again
+        const auto focused2 = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(focused2, "class: kitty_A\n");
+
+        NLog::log("{}Killing all windows", Colors::YELLOW);
+        Tests::killAllWindows();
+    }
+
     NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
     {
         // Enable the config for testing, test max/minsize for tiled windows and centering

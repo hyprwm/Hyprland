@@ -1910,6 +1910,9 @@ void CCompositor::updateAllWindowsAnimatedDecorationValues() {
 }
 
 void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
+    if (!pWindow->m_isMapped || pWindow->isHidden())
+        return;
+
     // optimization
     static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
     static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");

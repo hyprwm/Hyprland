@@ -822,6 +822,9 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
 }
 
 void CWindow::updateDynamicRules() {
+    if (!m_isMapped || isHidden())
+        return;
+
     m_windowData.alpha.unset(PRIORITY_WINDOW_RULE);
     m_windowData.alphaInactive.unset(PRIORITY_WINDOW_RULE);
     m_windowData.alphaFullscreen.unset(PRIORITY_WINDOW_RULE);

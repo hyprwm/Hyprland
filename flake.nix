@@ -43,6 +43,7 @@
       inputs.hyprgraphics.follows = "hyprgraphics";
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprlang.follows = "hyprlang";
+      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
 
     hyprlang = {

@@ -44,6 +44,7 @@ using namespace Hyprutils::OS;
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/rule/Engine.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -317,7 +318,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
 }
 
 static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
-    const auto tags = w->m_tags.getTags();
+    const auto tags = w->m_ruleApplicator->m_tagKeeper.getTags();
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
         return std::ranges::fold_left(tags, std::string(),
@@ -1306,8 +1307,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pConfigManager->updateWatcher();
 
     // decorations will probably need a repaint
-    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source" ||
-        COMMAND.starts_with("windowrule")) {
+    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
         for (auto const& m : g_pCompositor->m_monitors) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
@@ -1315,6 +1315,9 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
+
+    if (COMMAND.contains("windowrule["))
+        g_pConfigManager->reloadRules();
 
     if (COMMAND.contains("workspace"))
         g_pConfigManager->ensurePersistentWorkspacesPresent();
@@ -1521,11 +1524,6 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
     return "ok";
 }
 
-static std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
-    auto result = g_pKeybindManager->m_dispatchers["setprop"](request.substr(request.find_first_of(' ') + 1));
-    return "DEPRECATED: use hyprctl dispatch setprop instead" + (result.success ? "" : "\n" + result.error);
-}
-
 static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
@@ -1543,9 +1541,9 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     const bool FORMNORM = format == FORMAT_NORMAL;
 
     auto       sizeToString = [&](bool max) -> std::string {
-        auto sizeValue = PWINDOW->m_windowData.minSize.valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE));
+        auto sizeValue = PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE));
         if (max)
-            sizeValue = PWINDOW->m_windowData.maxSize.valueOr(Vector2D(INFINITY, INFINITY));
+            sizeValue = PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D(INFINITY, INFINITY));
 
         if (FORMNORM)
             return std::format("{} {}", sizeValue.x, sizeValue.y);
@@ -1556,7 +1554,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         }
     };
 
-    auto alphaToString = [&](CWindowOverridableVar<SAlphaValue>& alpha, bool getAlpha) -> std::string {
+    auto alphaToString = [&](Desktop::Types::COverridableVar<Desktop::Types::SAlphaValue>& alpha, bool getAlpha) -> std::string {
         if (FORMNORM) {
             if (getAlpha)
                 return std::format("{}", alpha.valueOrDefault().alpha);
@@ -1590,7 +1588,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             const auto* const ACTIVECOLOR =
                 !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
 
-            std::string borderColorString = PWINDOW->m_windowData.activeBorderColor.valueOr(*ACTIVECOLOR).toString();
+            std::string borderColorString = PWINDOW->m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR).toString();
             if (FORMNORM)
                 return borderColorString;
             else
@@ -1603,7 +1601,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             const auto* const INACTIVECOLOR          = !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) :
                                                                                                   (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
 
-            std::string       borderColorString = PWINDOW->m_windowData.inactiveBorderColor.valueOr(*INACTIVECOLOR).toString();
+            std::string       borderColorString = PWINDOW->m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR).toString();
             if (FORMNORM)
                 return borderColorString;
             else
@@ -1618,38 +1616,92 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             return std::format(R"({{"{}": {}}})", PROP, prop.valueOrDefault());
     };
 
-    if (PROP == "animationstyle") {
-        auto& animationStyle = PWINDOW->m_windowData.animationStyle;
+    if (PROP == "animation") {
+        auto& animationStyle = PWINDOW->m_ruleApplicator->animationStyle();
         if (FORMNORM)
             return animationStyle.valueOr("(unset)");
         else
             return std::format(R"({{"{}": "{}"}})", PROP, animationStyle.valueOr(""));
-    } else if (PROP == "maxsize")
+    } else if (PROP == "max_size")
         return sizeToString(true);
-    else if (PROP == "minsize")
+    else if (PROP == "min_size")
         return sizeToString(false);
-    else if (PROP == "alpha")
-        return alphaToString(PWINDOW->m_windowData.alpha, true);
-    else if (PROP == "alphainactive")
-        return alphaToString(PWINDOW->m_windowData.alphaInactive, true);
-    else if (PROP == "alphafullscreen")
-        return alphaToString(PWINDOW->m_windowData.alphaFullscreen, true);
-    else if (PROP == "alphaoverride")
-        return alphaToString(PWINDOW->m_windowData.alpha, false);
-    else if (PROP == "alphainactiveoverride")
-        return alphaToString(PWINDOW->m_windowData.alphaInactive, false);
-    else if (PROP == "alphafullscreenoverride")
-        return alphaToString(PWINDOW->m_windowData.alphaFullscreen, false);
-    else if (PROP == "activebordercolor")
+    else if (PROP == "opacity")
+        return alphaToString(PWINDOW->m_ruleApplicator->alpha(), true);
+    else if (PROP == "opacity_inactive")
+        return alphaToString(PWINDOW->m_ruleApplicator->alphaInactive(), true);
+    else if (PROP == "opacity_fullscreen")
+        return alphaToString(PWINDOW->m_ruleApplicator->alphaFullscreen(), true);
+    else if (PROP == "opacity_override")
+        return alphaToString(PWINDOW->m_ruleApplicator->alpha(), false);
+    else if (PROP == "opacity_inactive_override")
+        return alphaToString(PWINDOW->m_ruleApplicator->alphaInactive(), false);
+    else if (PROP == "opacity_fullscreen_override")
+        return alphaToString(PWINDOW->m_ruleApplicator->alphaFullscreen(), false);
+    else if (PROP == "active_border_color")
         return borderColorToString(true);
-    else if (PROP == "inactivebordercolor")
+    else if (PROP == "inactive_border_color")
         return borderColorToString(false);
-    else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end())
-        return windowPropToString(*search->second(PWINDOW));
-    else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end())
-        return windowPropToString(*search->second(PWINDOW));
-    else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end())
-        return windowPropToString(*search->second(PWINDOW));
+    else if (PROP == "allows_input")
+        return windowPropToString(PWINDOW->m_ruleApplicator->allowsInput());
+    else if (PROP == "decorate")
+        return windowPropToString(PWINDOW->m_ruleApplicator->decorate());
+    else if (PROP == "focus_on_activate")
+        return windowPropToString(PWINDOW->m_ruleApplicator->focusOnActivate());
+    else if (PROP == "keep_aspect_ratio")
+        return windowPropToString(PWINDOW->m_ruleApplicator->keepAspectRatio());
+    else if (PROP == "nearest_neighbor")
+        return windowPropToString(PWINDOW->m_ruleApplicator->nearestNeighbor());
+    else if (PROP == "no_anim")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noAnim());
+    else if (PROP == "no_blur")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noBlur());
+    else if (PROP == "no_dim")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noDim());
+    else if (PROP == "no_focus")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noFocus());
+    else if (PROP == "no_max_size")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noMaxSize());
+    else if (PROP == "no_shadow")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noShadow());
+    else if (PROP == "no_shortcuts_inhibit")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noShortcutsInhibit());
+    else if (PROP == "opaque")
+        return windowPropToString(PWINDOW->m_ruleApplicator->opaque());
+    else if (PROP == "dim_around")
+        return windowPropToString(PWINDOW->m_ruleApplicator->dimAround());
+    else if (PROP == "force_rgbx")
+        return windowPropToString(PWINDOW->m_ruleApplicator->RGBX());
+    else if (PROP == "sync_fullscreen")
+        return windowPropToString(PWINDOW->m_ruleApplicator->syncFullscreen());
+    else if (PROP == "immediate")
+        return windowPropToString(PWINDOW->m_ruleApplicator->tearing());
+    else if (PROP == "xray")
+        return windowPropToString(PWINDOW->m_ruleApplicator->xray());
+    else if (PROP == "render_unfocused")
+        return windowPropToString(PWINDOW->m_ruleApplicator->renderUnfocused());
+    else if (PROP == "no_follow_mouse")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noFollowMouse());
+    else if (PROP == "no_screen_share")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noScreenShare());
+    else if (PROP == "no_vrr")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noVRR());
+    else if (PROP == "persistent_size")
+        return windowPropToString(PWINDOW->m_ruleApplicator->persistentSize());
+    else if (PROP == "stay_focused")
+        return windowPropToString(PWINDOW->m_ruleApplicator->stayFocused());
+    else if (PROP == "idle_inhibit")
+        return windowPropToString(PWINDOW->m_ruleApplicator->idleInhibitMode());
+    else if (PROP == "border_size")
+        return windowPropToString(PWINDOW->m_ruleApplicator->borderSize());
+    else if (PROP == "rounding")
+        return windowPropToString(PWINDOW->m_ruleApplicator->rounding());
+    else if (PROP == "rounding_power")
+        return windowPropToString(PWINDOW->m_ruleApplicator->roundingPower());
+    else if (PROP == "scroll_mouse")
+        return windowPropToString(PWINDOW->m_ruleApplicator->scrollMouse());
+    else if (PROP == "scroll_touchpad")
+        return windowPropToString(PWINDOW->m_ruleApplicator->scrollTouchpad());
 
     return "prop not found";
 }
@@ -2014,7 +2066,6 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
     registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
-    registerCommand(SHyprCtlCommand{"setprop", false, dispatchSetProp});
     registerCommand(SHyprCtlCommand{"getprop", false, dispatchGetProp});
     registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
@@ -2130,8 +2181,7 @@ std::string CHyprCtl::getReply(std::string request) {
             if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
                 continue;
 
-            w->updateDynamicRules();
-            g_pCompositor->updateWindowAnimatedDecorationValues(w);
+            Desktop::Rule::ruleEngine()->updateAllRules();
         }
 
         for (auto const& m : g_pCompositor->m_monitors) {

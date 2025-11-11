@@ -16,19 +16,11 @@
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
-#include "WindowRule.hpp"
-#include "WindowOverridableVar.hpp"
+#include "rule/windowRule/WindowRuleApplicator.hpp"
 #include "../protocols/types/ContentType.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
-
-enum eIdleInhibitMode : uint8_t {
-    IDLEINHIBIT_NONE = 0,
-    IDLEINHIBIT_ALWAYS,
-    IDLEINHIBIT_FULLSCREEN,
-    IDLEINHIBIT_FOCUS
-};
 
 enum eGroupRules : uint8_t {
     // effective only during first map, except for _ALWAYS variant
@@ -64,65 +56,6 @@ enum eSuppressEvents : uint8_t {
 };
 
 class IWindowTransformer;
-
-struct SAlphaValue {
-    float alpha;
-    bool  overridden;
-
-    float applyAlpha(float a) const {
-        if (overridden)
-            return alpha;
-        else
-            return alpha * a;
-    };
-};
-
-struct SWindowData {
-    CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{.alpha = 1.f, .overridden = false};
-    CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{.alpha = 1.f, .overridden = false};
-    CWindowOverridableVar<SAlphaValue>        alphaFullscreen = SAlphaValue{.alpha = 1.f, .overridden = false};
-
-    CWindowOverridableVar<bool>               allowsInput        = false;
-    CWindowOverridableVar<bool>               dimAround          = false;
-    CWindowOverridableVar<bool>               decorate           = true;
-    CWindowOverridableVar<bool>               focusOnActivate    = false;
-    CWindowOverridableVar<bool>               keepAspectRatio    = false;
-    CWindowOverridableVar<bool>               nearestNeighbor    = false;
-    CWindowOverridableVar<bool>               noAnim             = false;
-    CWindowOverridableVar<bool>               noBorder           = false;
-    CWindowOverridableVar<bool>               noBlur             = false;
-    CWindowOverridableVar<bool>               noDim              = false;
-    CWindowOverridableVar<bool>               noFocus            = false;
-    CWindowOverridableVar<bool>               noMaxSize          = false;
-    CWindowOverridableVar<bool>               noRounding         = false;
-    CWindowOverridableVar<bool>               noShadow           = false;
-    CWindowOverridableVar<bool>               noShortcutsInhibit = false;
-    CWindowOverridableVar<bool>               opaque             = false;
-    CWindowOverridableVar<bool>               RGBX               = false;
-    CWindowOverridableVar<bool>               syncFullscreen     = true;
-    CWindowOverridableVar<bool>               tearing            = false;
-    CWindowOverridableVar<bool>               xray               = false;
-    CWindowOverridableVar<bool>               renderUnfocused    = false;
-    CWindowOverridableVar<bool>               noFollowMouse      = false;
-    CWindowOverridableVar<bool>               noScreenShare      = false;
-    CWindowOverridableVar<bool>               noVRR              = false;
-
-    CWindowOverridableVar<Hyprlang::INT>      borderSize = {std::string("general:border_size"), sc<Hyprlang::INT>(0), std::nullopt};
-    CWindowOverridableVar<Hyprlang::INT>      rounding   = {std::string("decoration:rounding"), sc<Hyprlang::INT>(0), std::nullopt};
-
-    CWindowOverridableVar<Hyprlang::FLOAT>    roundingPower  = {std::string("decoration:rounding_power")};
-    CWindowOverridableVar<Hyprlang::FLOAT>    scrollMouse    = {std::string("input:scroll_factor")};
-    CWindowOverridableVar<Hyprlang::FLOAT>    scrollTouchpad = {std::string("input:touchpad:scroll_factor")};
-
-    CWindowOverridableVar<std::string>        animationStyle;
-    CWindowOverridableVar<Vector2D>           maxSize;
-    CWindowOverridableVar<Vector2D>           minSize;
-
-    CWindowOverridableVar<CGradientValueData> activeBorderColor;
-    CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
-
-    CWindowOverridableVar<bool>               persistentSize;
-};
 
 struct SInitialWorkspaceToken {
     PHLWINDOWREF primaryOwner;
@@ -256,7 +189,7 @@ class CWindow {
     std::vector<IHyprWindowDecoration*>    m_decosToRemove;
 
     // Special render data, rules, etc
-    SWindowData m_windowData;
+    UP<Desktop::Rule::CWindowRuleApplicator> m_ruleApplicator;
 
     // Transformers
     std::vector<UP<IWindowTransformer>> m_transformers;
@@ -280,14 +213,8 @@ class CWindow {
     bool         m_currentlySwallowed = false;
     bool         m_groupSwallowed     = false;
 
-    // focus stuff
-    bool m_stayFocused = false;
-
     // for toplevel monitor events
     MONITORID m_lastSurfaceMonitorID = -1;
-
-    // for idle inhibiting windows
-    eIdleInhibitMode m_idleInhibitMode = IDLEINHIBIT_NONE;
 
     // initial token. Will be unregistered on workspace change or timeout of 2 minutes
     std::string m_initialWorkspaceToken = "";
@@ -302,12 +229,6 @@ class CWindow {
     uint16_t m_groupRules = GROUP_NONE;
 
     bool     m_tearingHint = false;
-
-    // stores the currently matched window rules
-    std::vector<SP<CWindowRule>> m_matchedRules;
-
-    // window tags
-    CTagKeeper m_tags;
 
     // ANR
     PHLANIMVAR<float> m_notRespondingTint;
@@ -342,8 +263,7 @@ class CWindow {
     void                       onMap();
     void                       setHidden(bool hidden);
     bool                       isHidden();
-    void                       applyDynamicRule(const SP<CWindowRule>& r);
-    void                       updateDynamicRules();
+    void                       updateDecorationValues();
     SBoxExtents                getFullWindowReservedArea();
     Vector2D                   middle();
     bool                       opaque();
@@ -397,7 +317,6 @@ class CWindow {
     std::string                fetchClass();
     void                       warpCursor(bool force = false);
     PHLWINDOW                  getSwallower();
-    void                       unsetWindowData(eOverridePriority priority);
     bool                       isX11OverrideRedirect();
     bool                       isModal();
     Vector2D                   requestedMinSize();
@@ -473,45 +392,6 @@ inline bool validMapped(PHLWINDOWREF w) {
         return false;
     return w->m_isMapped;
 }
-
-namespace NWindowProperties {
-    static const std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(const PHLWINDOW&)>> boolWindowProperties = {
-        {"allowsinput", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.allowsInput; }},
-        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.dimAround; }},
-        {"decorate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.decorate; }},
-        {"focusonactivate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.focusOnActivate; }},
-        {"keepaspectratio", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.keepAspectRatio; }},
-        {"nearestneighbor", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.nearestNeighbor; }},
-        {"noanim", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noAnim; }},
-        {"noblur", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noBlur; }},
-        {"noborder", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noBorder; }},
-        {"nodim", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noDim; }},
-        {"nofocus", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFocus; }},
-        {"nomaxsize", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noMaxSize; }},
-        {"norounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noRounding; }},
-        {"noshadow", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noShadow; }},
-        {"noshortcutsinhibit", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noShortcutsInhibit; }},
-        {"opaque", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.opaque; }},
-        {"forcergbx", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.RGBX; }},
-        {"syncfullscreen", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.syncFullscreen; }},
-        {"novrr", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noVRR; }},
-        {"immediate", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.tearing; }},
-        {"xray", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.xray; }},
-        {"nofollowmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noFollowMouse; }},
-        {"noscreenshare", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.noScreenShare; }},
-    };
-
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::INT>*(const PHLWINDOW&)>> intWindowProperties = {
-        {"rounding", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.rounding; }},
-        {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.borderSize; }},
-    };
-
-    const std::unordered_map<std::string, std::function<CWindowOverridableVar<Hyprlang::FLOAT>*(PHLWINDOW)>> floatWindowProperties = {
-        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.roundingPower; }},
-        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.scrollMouse; }},
-        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_windowData.scrollTouchpad; }},
-    };
-};
 
 /**
     format specification

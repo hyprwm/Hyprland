@@ -542,7 +542,7 @@ void CWorkspace::updateWindows() {
         if (!w->m_isMapped || w->m_workspace != m_self)
             continue;
 
-        w->updateDynamicRules();
+        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 

@@ -975,3 +975,13 @@ std::string getBuiltSystemLibraryNames() {
     result += std::format("Aquamarine: built against {}, system has {}\n", AQUAMARINE_VERSION, getSystemLibraryVersion("aquamarine"));
     return result;
 }
+
+bool truthy(const std::string& str) {
+    if (str == "1")
+        return true;
+
+    std::string cpy = str;
+    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+
+    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
+}

@@ -680,7 +680,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || k->submap != m_currentSelectedSubmap || k->shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || (k->submap != m_currentSelectedSubmap && !k->submapUniversal) || k->shadowed))
             continue;
 
         if (k->multiKey) {

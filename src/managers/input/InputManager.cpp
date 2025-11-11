@@ -1554,12 +1554,12 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const auto IME    = m_relay.m_inputMethod.lock();
     const bool HASIME = IME && IME->hasGrab();
     const bool USEIME = HASIME && !DISALLOWACTION;
+    auto       MODS   = pKeyboard->m_modifiersState;
 
     PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     if (PROTO::inputCapture->isCaptured())
         return;
-    auto       MODS = pKeyboard->m_modifiersState;
 
     // use merged mods states when sending to ime or when sending to seat with no ime
     // if passing from ime, send mods directly without merging

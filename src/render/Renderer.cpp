@@ -2132,8 +2132,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     m_cursorHiddenByCondition =
         m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnTablet || m_cursorHiddenConditions.hiddenOnKeyboard;
 
-    const bool HIDE =  m_cursorHiddenByCondition || (*PINVISIBLE != 0) ||
-        PROTO::inputCapture->isCaptured();
+    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0) || PROTO::inputCapture->isCaptured();
 
     if (HIDE == m_cursorHidden)
         return;

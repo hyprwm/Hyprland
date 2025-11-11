@@ -80,6 +80,8 @@ protocols = [
 	wayland_protocol_dir / 'staging/pointer-warp/pointer-warp-v1.xml',
 	wayland_protocol_dir / 'staging/fifo/fifo-v1.xml',
 	wayland_protocol_dir / 'staging/commit-timing/commit-timing-v1.xml',
+	wayland_protocol_dir / 'staging/ext-image-capture-source/ext-image-capture-source-v1.xml',
+	wayland_protocol_dir / 'staging/ext-image-copy-capture/ext-image-copy-capture-v1.xml',
 ]
 
 wl_protocols = []

@@ -589,6 +589,11 @@ void CWindow::onMap() {
         },
         false);
 
+    m_realSize->setUpdateCallback([this](auto) {
+        if (m_isMapped)
+            m_events.resize.emit();
+    });
+
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
     g_pCompositor->m_windowFocusHistory.push_back(m_self);
@@ -625,6 +630,9 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
+
+    if (hidden)
+        m_events.hide.emit();
 
     if (hidden && g_pCompositor->m_lastWindow == m_self)
         g_pCompositor->m_lastWindow.reset();

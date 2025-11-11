@@ -246,12 +246,15 @@ static bool test() {
 
     testSwapWindow();
 
+    getFromSocket("/dispatch workspace 1");
+
     NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
     {
         // Enable the config for testing, test max/minsize for tiled windows and centering
         OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
-        OK(getFromSocket("/keyword windowrule maxsize 1500 500, class:kitty_maxsize"));
-        OK(getFromSocket("/keyword windowrule minsize 1200 500, class:kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1500 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
         if (!spawnKitty("kitty_maxsize"))
             return false;
 
@@ -297,27 +300,39 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
         EXPECT_NOT_CONTAINS(str, "pinned: 1");
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace special:magic, class:magic_kitty"));
+    }
 
-        if (!spawnKitty("magic_kitty"))
-            return false;
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
+    OK(getFromSocket("/keyword windowrule[wr-kitty-stuff]:opacity 0.5 0.5 override"));
+
+    {
+        auto str = getFromSocket("/getprop active active_opacity");
+        EXPECT_CONTAINS(str, "0.5");
+    }
+
+    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:class magic_kitty"));
+    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:workspace special:magic"));
+
+    if (!spawnKitty("magic_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "special:magic");
         EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
 
-    NLog::log("{}Testing faulty rules", Colors::YELLOW);
+    if (auto str = getFromSocket("/monitors"); str.contains("magic)")) {
+        OK(getFromSocket("/dispatch togglespecialworkspace magic"));
+    }
+
+    Tests::killAllWindows();
+
+    if (!spawnKitty("tag_kitty"))
+        return false;
+
     {
-        const auto PARAM  = "Invalid parameter";
-        const auto RULE   = "Invalid value";
-        const auto NORULE = "no rules provided";
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule notarule, class:wr_kitty"), RULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule class:wr_kitty"), NORULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, class:wr_kitty, size"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, classI:wr_kitty"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule workspace:, class:wr_kitty"), NORULE)
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
     }
 
     NLog::log("{}Reloading config", Colors::YELLOW);

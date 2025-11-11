@@ -41,8 +41,8 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     if (!pWindow->m_realPosition->enabled() && !force)
         return;
 
-    if (pWindow->m_windowData.animationStyle.hasValue()) {
-        const auto STYLE = pWindow->m_windowData.animationStyle.value();
+    if (pWindow->m_ruleApplicator->animationStyle().hasValue()) {
+        const auto STYLE = pWindow->m_ruleApplicator->animationStyle().value();
         // the window has config'd special anim
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
@@ -106,7 +106,7 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
-    const auto ANIMSTYLE = ls->m_animationStyle.value_or(ls->m_realPosition->getStyle());
+    const auto ANIMSTYLE = ls->m_ruleApplicator->animationStyle().valueOr(ls->m_realPosition->getStyle());
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
         const auto MIDDLE = ls->m_geometry.middle();

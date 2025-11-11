@@ -21,21 +21,24 @@ static bool testTags() {
 
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
 
-    OK(getFromSocket("/keyword windowrule tag +testTag, class:tagged"));
-    OK(getFromSocket("/keyword windowrule noshadow, tag:negative:testTag"));
-    OK(getFromSocket("/keyword windowrule noborder, tag:testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-1]:tag +testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-1]:class tagged"));
+    OK(getFromSocket("/keyword windowrule[tag-test-2]:tag negative:testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-2]:no_shadow true"));
+    OK(getFromSocket("/keyword windowrule[tag-test-3]:tag testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-3]:no_dim true"));
 
     EXPECT(Tests::windowCount(), 2);
     OK(getFromSocket("/dispatch focuswindow class:tagged"));
-    NLog::log("{}Testing tagged window for noborder & noshadow", Colors::YELLOW);
+    NLog::log("{}Testing tagged window for no_dim 0 & no_shadow", Colors::YELLOW);
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "testTag");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow noborder"), "true");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow noshadow"), "false");
-    NLog::log("{}Testing untagged window for noborder & noshadow", Colors::YELLOW);
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
+    NLog::log("{}Testing untagged window for no_dim & no_shadow", Colors::YELLOW);
     OK(getFromSocket("/dispatch focuswindow class:untagged"));
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "testTag");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow noborder"), "false");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow noshadow"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "false");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "true");
 
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);

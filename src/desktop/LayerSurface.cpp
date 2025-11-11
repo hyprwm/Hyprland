@@ -37,7 +37,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_monitor   = pMonitor;
     pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
 
-    pLS->m_forceBlur = g_pConfigManager->shouldBlurLS(pLS->m_namespace);
+    pLS->m_ruleApplicator = makeUnique<Desktop::Rule::CLayerRuleApplicator>(pLS);
 
     g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
@@ -55,7 +55,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
 void CLayerSurface::registerCallbacks() {
     m_alpha->setUpdateCallback([this](auto) {
-        if (m_dimAround && m_monitor)
+        if (m_ruleApplicator->dimAround().valueOrDefault() && m_monitor)
             g_pHyprRenderer->damageMonitor(m_monitor.lock());
     });
 }
@@ -137,6 +137,8 @@ void CLayerSurface::onMap() {
     m_mapped        = true;
     m_interactivity = m_layerSurface->m_current.interactivity;
 
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
+
     m_layerSurface->m_surface->map();
 
     // this layer might be re-mapped.
@@ -148,8 +150,6 @@ void CLayerSurface::onMap() {
 
     if (!PMONITOR)
         return;
-
-    applyRules();
 
     PMONITOR->m_scheduledRecalc = true;
 
@@ -396,83 +396,6 @@ void CLayerSurface::onCommit() {
 
     g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->m_transform);
-}
-
-void CLayerSurface::applyRules() {
-    m_noAnimations     = false;
-    m_forceBlur        = false;
-    m_ignoreAlpha      = false;
-    m_dimAround        = false;
-    m_noScreenShare    = false;
-    m_ignoreAlphaValue = 0.f;
-    m_xray             = -1;
-    m_animationStyle.reset();
-
-    for (auto const& rule : g_pConfigManager->getMatchingRules(m_self.lock())) {
-        switch (rule->m_ruleType) {
-            case CLayerRule::RULE_NOANIM: {
-                m_noAnimations = true;
-                break;
-            }
-            case CLayerRule::RULE_BLUR: {
-                m_forceBlur = true;
-                break;
-            }
-            case CLayerRule::RULE_BLURPOPUPS: {
-                m_forceBlurPopups = true;
-                break;
-            }
-            case CLayerRule::RULE_IGNOREALPHA:
-            case CLayerRule::RULE_IGNOREZERO: {
-                const auto  FIRST_SPACE_POS = rule->m_rule.find_first_of(' ');
-                std::string alphaValue      = "";
-                if (FIRST_SPACE_POS != std::string::npos)
-                    alphaValue = rule->m_rule.substr(FIRST_SPACE_POS + 1);
-
-                try {
-                    m_ignoreAlpha = true;
-                    if (!alphaValue.empty())
-                        m_ignoreAlphaValue = std::stof(alphaValue);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
-                break;
-            }
-            case CLayerRule::RULE_DIMAROUND: {
-                m_dimAround = true;
-                break;
-            }
-            case CLayerRule::RULE_NOSCREENSHARE: {
-                m_noScreenShare = true;
-                break;
-            }
-            case CLayerRule::RULE_XRAY: {
-                CVarList vars{rule->m_rule, 0, ' '};
-                m_xray = configStringToInt(vars[1]).value_or(false);
-
-                break;
-            }
-            case CLayerRule::RULE_ANIMATION: {
-                CVarList vars{rule->m_rule, 2, 's'};
-                m_animationStyle = vars[1];
-                break;
-            }
-            case CLayerRule::RULE_ORDER: {
-                CVarList vars{rule->m_rule, 2, 's'};
-                try {
-                    m_order = std::stoi(vars[1]);
-                } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
-                break;
-            }
-            case CLayerRule::RULE_ABOVELOCK: {
-                m_aboveLockscreen = true;
-
-                CVarList vars{rule->m_rule, 0, ' '};
-                m_aboveLockscreenInteractable = configStringToInt(vars[1]).value_or(false);
-
-                break;
-            }
-            default: break;
-        }
-    }
 }
 
 bool CLayerSurface::isFadedOut() {

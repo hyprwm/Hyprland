@@ -1509,6 +1509,10 @@ CBox CMonitor::logicalBox() {
     return {m_position, m_size};
 }
 
+CBox CMonitor::logicalBoxMinusExtents() {
+    return {m_position + m_reservedTopLeft, m_size - m_reservedTopLeft - m_reservedBottomRight};
+}
+
 void CMonitor::scheduleDone() {
     if (m_doneScheduled)
         return;

@@ -122,7 +122,7 @@ static bool test() {
 
     createChild(client);
     EXPECT(Tests::windowCount(), 2)
-    EXPECT_COUNT_STRING("/clients", "pinned: 1", 2);
+    EXPECT_COUNT_STRING(getFromSocket("/clients"), "pinned: 1", 2);
 
     stopClient(client);
     NLog::log("{}Reloading config", Colors::YELLOW);

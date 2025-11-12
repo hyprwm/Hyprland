@@ -1334,7 +1334,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
         if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_surface->m_mapped) || ls->m_alpha->value() == 0.f ||
-            (aboveLockscreen && !ls->m_ruleApplicator->aboveLock().valueOrDefault()))
+            (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);

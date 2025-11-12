@@ -1938,11 +1938,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     auto* const GROUPINACTIVELOCKEDCOL = sc<CGradientValueData*>((PGROUPINACTIVELOCKEDCOL.ptr())->getData());
 
     auto        setBorderColor = [&](CGradientValueData grad) -> void {
-        if (grad == pWindow->m_realBorderColor)
+        if (pWindow->isHidden() || grad == pWindow->m_realBorderColor)
             return;
 
-        pWindow->m_realBorderColorPrevious = pWindow->m_realBorderColor;
-        pWindow->m_realBorderColor         = grad;
+        if (pWindow->m_borderFadeAnimationProgress->value() > 0.5f) // should interpolate current and previous border color, but that isn't straightforward
+            pWindow->m_realBorderColorPrevious = pWindow->m_realBorderColor;
+
+        pWindow->m_realBorderColor = grad;
         pWindow->m_borderFadeAnimationProgress->setValueAndWarp(0.f);
         *pWindow->m_borderFadeAnimationProgress = 1.f;
     };
@@ -2339,11 +2341,11 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
         sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
 }
 
-void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
+void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool recalculate) {
     if (PWINDOW->m_windowData.syncFullscreen.valueOrDefault())
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE}, recalculate);
     else
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client}, recalculate);
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
@@ -2353,7 +2355,7 @@ void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFull
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
 }
 
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenState state) {
+void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenState state, const bool recalculate) {
     static auto PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:allow_pin_fullscreen");
 
@@ -2378,7 +2380,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     }
 
     if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen())
-        setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
+        setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE, false);
 
     const bool CHANGEINTERNAL = !PWINDOW->m_pinned && CURRENT_EFFECTIVE_MODE != EFFECTIVE_MODE;
 
@@ -2395,9 +2397,11 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
 
     if (!CHANGEINTERNAL) {
-        PWINDOW->updateDynamicRules();
-        updateWindowAnimatedDecorationValues(PWINDOW);
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+        if (recalculate) {
+            PWINDOW->updateDynamicRules();
+            updateWindowAnimatedDecorationValues(PWINDOW);
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+        }
         return;
     }
 
@@ -2410,9 +2414,11 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
     EMIT_HOOK_EVENT("fullscreen", PWINDOW);
 
-    PWINDOW->updateDynamicRules();
-    updateWindowAnimatedDecorationValues(PWINDOW);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+    if (recalculate) {
+        PWINDOW->updateDynamicRules();
+        updateWindowAnimatedDecorationValues(PWINDOW);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+    }
 
     // make all windows on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {

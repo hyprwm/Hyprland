@@ -1071,6 +1071,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
 
+    const auto PWINDOWALPHA                = PCURRENT->m_alpha->value();
     const auto PWINDOWSIZE                 = PCURRENT->m_realSize->value();
     const auto PWINDOWPOS                  = PCURRENT->m_realPosition->value();
     const auto PWINDOWSIZEGOAL             = PCURRENT->m_realSize->goal();
@@ -1079,7 +1080,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
 
     if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE, false);
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
@@ -1094,6 +1095,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     pWindow->m_realPosition->setValue(PWINDOWPOS);
     pWindow->m_realSize->setValue(PWINDOWSIZE);
+    pWindow->m_alpha->setValue(PWINDOWALPHA);
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);

@@ -16,7 +16,7 @@ static void testFloatClamp() {
     }
 
     OK(getFromSocket("/keyword dwindle:force_split 2"));
-    OK(getFromSocket("/keyword monitor addreserved, 0, 20, 0, 20"));
+    OK(getFromSocket("/keyword monitor HEADLESS-2, addreserved, 0, 20, 0, 20"));
     OK(getFromSocket("/dispatch focuswindow class:c"));
     OK(getFromSocket("/dispatch setfloating class:c"));
     OK(getFromSocket("/dispatch resizewindowpixel exact 1200 900,class:c"));

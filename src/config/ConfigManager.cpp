@@ -873,6 +873,7 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handleBezier, "bezier", {false});
     m_config->registerHandler(&::handleAnimation, "animation", {false});
     m_config->registerHandler(&::handleSource, "source", {false});
+    m_config->registerHandler(&::handleSource, "source-optional", {false});
     m_config->registerHandler(&::handleSubmap, "submap", {false});
     m_config->registerHandler(&::handleBlurLS, "blurls", {false});
     m_config->registerHandler(&::handlePlugin, "plugin", {false});
@@ -3035,6 +3036,8 @@ std::optional<std::string> CConfigManager::handleSubmap(const std::string&, cons
 }
 
 std::optional<std::string> CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
+    const bool optional = (command == "source-optional");
+
     if (rawpath.length() < 2) {
         Debug::log(ERR, "source= path garbage");
         return "source= path " + rawpath + " bogus!";
@@ -3049,6 +3052,10 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
                                                         }};
 
     if (auto r = glob(absolutePath(rawpath, m_configCurrentPath).c_str(), GLOB_TILDE, nullptr, glob_buf.get()); r != 0) {
+        if (r == GLOB_NOMATCH && optional) {
+            Debug::log(LOG, "source-optional= no match found for {}, continuing", rawpath);
+            return {};
+        }
         std::string err = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : GLOB_ABORTED ? "read error" : "out of memory");
         Debug::log(ERR, "{}", err);
         return err;

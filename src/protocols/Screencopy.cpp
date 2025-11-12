@@ -246,7 +246,8 @@ void CScreencopyFrame::renderMon() {
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-        l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        if (l->m_popupHead)
+            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     for (auto const& w : g_pCompositor->m_windows) {

@@ -25,6 +25,19 @@ struct SClient {
 
 static int ret = 0;
 
+static bool waitForWindow(SP<CProcess> proc, int windowsBefore) {
+    int counter = 0;
+    while (Tests::processAlive(proc->pid()) && Tests::windowCount() == windowsBefore) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50)
+            return false;
+    }
+
+    return Tests::processAlive(proc->pid());
+}
+
 static bool startClient(SClient& client) {
     client.proc = makeShared<CProcess>(binaryDir + "/child-window", std::vector<std::string>{});
 
@@ -61,8 +74,7 @@ static bool startClient(SClient& client) {
         return false;
     }
 
-    // wait for window to appear
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    waitForWindow(client.proc, Tests::windowCount());
 
     NLog::log("{}Started child-window client", Colors::YELLOW);
     return true;
@@ -91,8 +103,7 @@ static bool createChild(SClient& client) {
     std::string recieved      = std::string{client.readBuf.data()};
     recieved.pop_back();
 
-    // wait for window to appear
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    waitForWindow(client.proc, Tests::windowCount());
     if (getFromSocket("/dispatch focuswindow class:child-test-child") != "ok") {
         NLog::log("{}Failed to focus child window", Colors::RED);
         return false;
@@ -110,7 +121,8 @@ static bool test() {
         return false;
 
     createChild(client);
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "pinned: 1");
+    EXPECT(Tests::windowCount(), 2)
+    EXPECT_COUNT_STRING("/clients", "pinned: 1", 2);
 
     stopClient(client);
     NLog::log("{}Reloading config", Colors::YELLOW);

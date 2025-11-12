@@ -976,6 +976,11 @@ void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
 
     if (pWindow->m_workspace != PWINDOW2->m_workspace) {
         // if different monitors, send to monitor
+        // capture previous state before removal
+        const auto OLDNODE   = getNodeFromWindow(pWindow);
+        const auto SRCMON    = pWindow->m_monitor.lock();
+        const bool WASSLAVE  = OLDNODE ? !OLDNODE->isMaster : false;
+
         onWindowRemovedTiling(pWindow);
         pWindow->moveToWorkspace(PWINDOW2->m_workspace);
         pWindow->m_monitor = PWINDOW2->m_monitor;
@@ -984,6 +989,33 @@ void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
             g_pCompositor->setActiveMonitor(pMonitor);
         }
         onWindowCreatedTiling(pWindow);
+
+        // Promotion rule: make slave -> master ONLY when moving from left monitor to right monitor
+        // Determine left->right by comparing monitor X positions
+        const auto DSTMON = pWindow->m_monitor.lock();
+        if (SRCMON && DSTMON && WASSLAVE && SRCMON->m_position.x < DSTMON->m_position.x) {
+            // get the freshly created node on destination workspace
+            const auto NEWNODE = getNodeFromWindow(pWindow);
+            if (NEWNODE) {
+                const auto OLDMASTER = getMasterNodeOnWorkspace(NEWNODE->workspaceID);
+                if (OLDMASTER && OLDMASTER != NEWNODE) {
+                    const auto OLDMASTERIT = std::ranges::find(m_masterNodesData, *OLDMASTER);
+                    // promote the moved window to master
+                    NEWNODE->isMaster = true;
+                    if (OLDMASTERIT != m_masterNodesData.end()) {
+                        const auto NEWNODEIT = std::ranges::find(m_masterNodesData, *NEWNODE);
+                        // place the new master at the old master's position
+                        m_masterNodesData.splice(OLDMASTERIT, m_masterNodesData, NEWNODEIT);
+                        // demote old master and move it to the end (consistent with rollnext behavior)
+                        OLDMASTER->isMaster = false;
+                        m_masterNodesData.splice(m_masterNodesData.end(), m_masterNodesData, OLDMASTERIT);
+                    }
+                    // focus the moved window and recalc the destination monitor
+                    g_pCompositor->focusWindow(pWindow);
+                    recalculateMonitor(pWindow->monitorID());
+                }
+            }
+        }
     } else {
         // if same monitor, switch windows
         switchWindows(pWindow, PWINDOW2);

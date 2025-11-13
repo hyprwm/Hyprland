@@ -36,9 +36,6 @@ void CMonitorFrameScheduler::onSyncFired() {
         return;
     }
 
-    if (m_pendingThird)
-        return;
-
     Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, rendering third frame.", m_monitor->m_name);
     // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
     m_pendingThird = true;

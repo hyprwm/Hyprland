@@ -544,8 +544,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
-            if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords))
+            if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords)) {
                 setCursorIconOnBorder(pFoundWindow);
+            } else if (m_borderIconDirection != BORDERICON_NONE) {
+                m_borderIconDirection = BORDERICON_NONE;
+                Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
+            }
         }
 
         if (FOLLOWMOUSE != 1 && !refocus) {

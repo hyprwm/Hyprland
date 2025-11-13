@@ -31,6 +31,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
     Hyprutils::OS::CFileDescriptor        m_syncFd;
+    Hyprutils::OS::CFileDescriptor        m_syncDropFd;
 
     struct {
         CHyprSignalListener backendRelease;

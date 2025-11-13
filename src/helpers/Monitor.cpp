@@ -26,6 +26,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/BufferReleaseManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
@@ -68,6 +69,9 @@ CMonitor::~CMonitor() {
     m_events.destroy.emit();
     if (g_pHyprOpenGL)
         g_pHyprOpenGL->destroyMonitorResources(m_self);
+
+    if (g_pBufferReleaseManager)
+        g_pBufferReleaseManager->destroy(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {

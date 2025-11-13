@@ -1,6 +1,7 @@
 #include "WindowRuleApplicator.hpp"
 #include "WindowRule.hpp"
 #include "../Engine.hpp"
+#include "../utils/SetUtils.hpp"
 #include "../../Window.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../managers/LayoutManager.hpp"
@@ -11,10 +12,6 @@ using namespace Hyprutils::String;
 
 using namespace Desktop;
 using namespace Desktop::Rule;
-
-static const std::vector<eWindowRuleEffect> EFFECTS_REQUIRING_RELAYOUT = {
-    WINDOW_RULE_EFFECT_BORDER_SIZE,
-};
 
 CWindowRuleApplicator::CWindowRuleApplicator(PHLWINDOW w) : m_window(w) {
     ;
@@ -281,8 +278,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
             case WINDOW_RULE_EFFECT_BORDER_SIZE: {
                 try {
+                    auto oldBorderSize = m_borderSize.first.valueOrDefault();
                     m_borderSize.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
                     m_borderSize.second |= rule->getPropertiesMask();
+                    if (oldBorderSize != m_borderSize.first.valueOrDefault())
+                        result.needsRelayout = true;
                 } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid border_size {}", effect); }
                 break;
             }
@@ -411,8 +411,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
         }
-
-        result.needsRelayout = result.needsRelayout || std::ranges::contains(EFFECTS_REQUIRING_RELAYOUT, key);
     }
     return result;
 }
@@ -570,7 +568,10 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
 
     resetProps(props);
 
-    bool needsRelayout = false;
+    bool                                  needsRelayout = false;
+
+    std::unordered_set<eWindowRuleEffect> effectsNeedingRecheck;
+    std::unordered_set<SP<CWindowRule>>   passedWrs;
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)
@@ -584,8 +585,27 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         if (!wr->matches(m_window.lock()))
             continue;
 
-        auto res      = applyDynamicRule(wr);
-        needsRelayout = needsRelayout || res.needsRelayout;
+        for (const auto& [type, eff] : wr->effects()) {
+            effectsNeedingRecheck.emplace(type);
+        }
+
+        passedWrs.emplace(std::move(wr));
+    }
+
+    for (const auto& r : ruleEngine()->rules()) {
+        if (r->type() != RULE_TYPE_WINDOW)
+            continue;
+
+        const auto WR = reinterpretPointerCast<CWindowRule>(r);
+
+        if (!(WR->getPropertiesMask() & props) && !setsIntersect(WR->effectsSet(), effectsNeedingRecheck))
+            continue;
+
+        if (!std::ranges::contains(passedWrs, WR) && !WR->matches(m_window.lock()))
+            continue;
+
+        const auto RES = applyDynamicRule(WR);
+        needsRelayout  = needsRelayout || RES.needsRelayout;
     }
 
     m_window->updateDecorationValues();

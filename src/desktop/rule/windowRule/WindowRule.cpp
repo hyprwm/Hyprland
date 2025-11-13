@@ -117,6 +117,7 @@ eRuleType CWindowRule::type() {
 
 void CWindowRule::addEffect(eWindowRuleEffect e, const std::string& result) {
     m_effects.emplace_back(std::make_pair<>(e, result));
+    m_effectSet.emplace(e);
 }
 
 const std::vector<std::pair<eWindowRuleEffect, std::string>>& CWindowRule::effects() {
@@ -257,4 +258,8 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
     wr->registerMatch(RULE_PROP_EXEC_TOKEN, TOKEN);
 
     return wr;
+}
+
+const std::unordered_set<eWindowRuleEffect>& CWindowRule::effectsSet() {
+    return m_effectSet;
 }

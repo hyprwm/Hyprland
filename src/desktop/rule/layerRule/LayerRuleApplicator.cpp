@@ -107,6 +107,10 @@ void CLayerRuleApplicator::propertiesChanged(std::underlying_type_t<eRulePropert
 
     resetProps(props);
 
+    // FIXME: this will not update properties correctly if we implement dynamic rules for
+    // layers, due to effects overlapping on 0 prop intersection.
+    // See WindowRule.cpp, and ::propertiesChanged there.
+
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_LAYER)
             continue;

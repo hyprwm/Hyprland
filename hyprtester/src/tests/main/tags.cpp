@@ -22,10 +22,10 @@ static bool testTags() {
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
 
     OK(getFromSocket("/keyword windowrule[tag-test-1]:tag +testTag"));
-    OK(getFromSocket("/keyword windowrule[tag-test-1]:class tagged"));
-    OK(getFromSocket("/keyword windowrule[tag-test-2]:tag negative:testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-1]:match:class tagged"));
+    OK(getFromSocket("/keyword windowrule[tag-test-2]:match:tag negative:testTag"));
     OK(getFromSocket("/keyword windowrule[tag-test-2]:no_shadow true"));
-    OK(getFromSocket("/keyword windowrule[tag-test-3]:tag testTag"));
+    OK(getFromSocket("/keyword windowrule[tag-test-3]:match:tag testTag"));
     OK(getFromSocket("/keyword windowrule[tag-test-3]:no_dim true"));
 
     EXPECT(Tests::windowCount(), 2);

@@ -52,7 +52,7 @@ class CHyprRenderer {
     CHyprRenderer();
     ~CHyprRenderer();
 
-    void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
+    void renderMonitor(PHLMONITOR pMonitor, bool commit = true, bool dropBuffers = true);
     void arrangeLayersForMonitor(const MONITORID&);
     void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
     void damageWindow(PHLWINDOW, bool forceFull = false);
@@ -134,7 +134,7 @@ class CHyprRenderer {
     void renderSessionLockMissing(PHLMONITOR pMonitor);
     void renderBackground(PHLMONITOR pMonitor);
 
-    bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
+    bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool dropBuffers);
 
     bool shouldBlur(PHLLS ls);
     bool shouldBlur(PHLWINDOW w);

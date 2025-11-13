@@ -5,7 +5,9 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/BufferReleaseManager.hpp"
 #include "../Renderer.hpp"
+#include "../../Compositor.hpp"
 
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -154,8 +156,15 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here
-    if (m_data.surface->m_current.buffer && !m_data.surface->m_current.buffer->isSynchronous())
-        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(m_data.surface->m_current.buffer);
+    if (m_data.surface->m_current.buffer && !m_data.surface->m_current.buffer->isSynchronous()) {
+        for (auto& m : g_pCompositor->m_monitors) {
+            if (!m)
+                continue;
+
+            if (m_data.pMonitor == m || (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m)))
+                g_pBufferReleaseManager->addBuffer(m, m_data.surface->m_current.buffer);
+        }
+    }
 
     g_pHyprOpenGL->blend(true);
 }

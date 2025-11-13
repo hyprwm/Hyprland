@@ -29,8 +29,8 @@ struct SWlState {
     CSharedPointer<CCWlShmPool> shmPool;
     CSharedPointer<CCWlBuffer>  shmBuf;
     CSharedPointer<CCWlBuffer>  shmBuf2;
-    int                         shmFd;
-    size_t                      shmBufSize;
+    int                         shmFd = 0;
+    size_t                      shmBufSize = 0;
     bool                        xrgb8888_support = false;
 
     // surface/toplevel stuff
@@ -41,7 +41,7 @@ struct SWlState {
 
     // pointer
     CSharedPointer<CCWlPointer> pointer;
-    uint32_t                    enterSerial;
+    uint32_t                    enterSerial = 0;
 };
 
 bool debug, shouldExit, started;

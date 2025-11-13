@@ -1261,7 +1261,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit, bool dropBuffers) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -1489,7 +1489,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                                                                 Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (commit)
-        commitPendingAndDoExplicitSync(pMonitor);
+        commitPendingAndDoExplicitSync(pMonitor, dropBuffers);
 
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;
@@ -1559,7 +1559,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     };
 }
 
-bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool dropBuffers) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
@@ -1698,7 +1698,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
-    g_pBufferReleaseManager->dropBuffers(pMonitor);
+    if (dropBuffers)
+        g_pBufferReleaseManager->dropBuffers(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

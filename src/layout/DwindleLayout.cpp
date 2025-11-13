@@ -601,6 +601,8 @@ void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
 
 #ifndef NO_XWAYLAND
     CBox box = g_pCompositor->calculateX11WorkArea();
+    if (!g_pXWayland || !g_pXWayland->m_wm)
+        return;
     g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
 #endif
 }

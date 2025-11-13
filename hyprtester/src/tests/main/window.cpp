@@ -335,6 +335,23 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
     }
 
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    // test rules that overlap effects but don't overlap props
+    OK(getFromSocket("/keyword windowrule[test-kitty-1]:class overlap_kitty"));
+    OK(getFromSocket("/keyword windowrule[test-kitty-1]:border_size 0"));
+    OK(getFromSocket("/keyword windowrule[test-kitty-2]:fullscreen false"));
+    OK(getFromSocket("/keyword windowrule[test-kitty-2]:border_size 10"));
+
+    if (!spawnKitty("overlap_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "10");
+    }
+
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
 

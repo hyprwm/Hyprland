@@ -4,6 +4,8 @@
 #include "../../DesktopTypes.hpp"
 #include "../../../helpers/math/Math.hpp"
 
+#include <unordered_set>
+
 namespace Desktop::Rule {
     constexpr const char* EXEC_RULE_ENV_NAME = "HL_EXEC_RULE_TOKEN";
 
@@ -83,10 +85,12 @@ namespace Desktop::Rule {
 
         void                                                          addEffect(eWindowRuleEffect e, const std::string& result);
         const std::vector<std::pair<eWindowRuleEffect, std::string>>& effects();
+        const std::unordered_set<eWindowRuleEffect>&                  effectsSet();
 
         bool                                                          matches(PHLWINDOW w, bool allowEnvLookup = false);
 
       private:
         std::vector<std::pair<eWindowRuleEffect, std::string>> m_effects;
+        std::unordered_set<eWindowRuleEffect>                  m_effectSet;
     };
 };

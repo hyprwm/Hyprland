@@ -222,7 +222,6 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
-
     if (m_overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(monitor, Time::steadyNow(), fakeDamage,
                                                     g_pInputManager->getMouseCoordsInternal() - monitor->m_position - m_box.pos() / monitor->m_scale, true);

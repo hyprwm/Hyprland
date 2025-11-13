@@ -31,9 +31,6 @@ class CMonitorFrameScheduler {
     hrc::time_point            m_lastRenderBegun;
 
     PHLMONITORREF              m_monitor;
-
-    UP<CEGLSync>               m_sync;
-
     WP<CMonitorFrameScheduler> m_self;
 
     friend class CMonitor;

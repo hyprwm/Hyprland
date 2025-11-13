@@ -491,10 +491,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
 
         if (PWINDOW->m_ruleApplicator->static_.center) {
-            auto RESERVEDOFFSET = Vector2D();
-            if (PWINDOW->m_ruleApplicator->static_.center == 2)
-                RESERVEDOFFSET = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
-
+            auto RESERVEDOFFSET      = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
             *PWINDOW->m_realPosition = PMONITOR->middle() - PWINDOW->m_realSize->goal() / 2.f + RESERVEDOFFSET;
         }
 

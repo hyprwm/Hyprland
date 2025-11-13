@@ -32,13 +32,13 @@ static bool testTags() {
     OK(getFromSocket("/dispatch focuswindow class:tagged"));
     NLog::log("{}Testing tagged window for no_dim 0 & no_shadow", Colors::YELLOW);
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "testTag");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "false");
     NLog::log("{}Testing untagged window for no_dim & no_shadow", Colors::YELLOW);
     OK(getFromSocket("/dispatch focuswindow class:untagged"));
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "testTag");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "false");
-    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");
 
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);

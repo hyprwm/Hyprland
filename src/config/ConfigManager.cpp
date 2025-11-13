@@ -1241,6 +1241,8 @@ Hyprlang::CParseResult CConfigManager::reloadRules() {
         Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{rule});
     }
 
+    Desktop::Rule::ruleEngine()->updateAllRules();
+
     return result;
 }
 
@@ -2879,7 +2881,7 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
         const auto FIRST         = FIRST_IS_PROP ? el.substr(6, spacePos - 6) : el.substr(0, spacePos);
         if (FIRST_IS_PROP && std::ranges::contains(PROPS, std::string{"match:"} + FIRST)) {
             // it's a prop
-            const auto PROP = Desktop::Rule::matchPropFromString(std::string{"match:"} + FIRST);
+            const auto PROP = Desktop::Rule::matchPropFromString(FIRST);
             if (!PROP.has_value())
                 return std::format("invalid prop {}", el);
             rule->registerMatch(*PROP, std::string{el.substr(spacePos + 1)});

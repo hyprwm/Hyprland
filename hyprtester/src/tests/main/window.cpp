@@ -252,7 +252,7 @@ static bool test() {
     {
         // Enable the config for testing, test max/minsize for tiled windows and centering
         OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
-        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:match:class kitty_maxsize"));
         OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1500 500"));
         OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
         if (!spawnKitty("kitty_maxsize"))
@@ -309,7 +309,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "0.5");
     }
 
-    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:class magic_kitty"));
+    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:match:class magic_kitty"));
     OK(getFromSocket("/keyword windowrule[special-magic-kitty]:workspace special:magic"));
 
     if (!spawnKitty("magic_kitty"))

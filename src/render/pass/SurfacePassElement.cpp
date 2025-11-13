@@ -161,8 +161,23 @@ void CSurfacePassElement::draw(const CRegion& damage) {
             if (!m)
                 continue;
 
-            if (m_data.pMonitor == m || (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m)))
+            if (m_data.pMonitor == m || (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m))) {
                 g_pBufferReleaseManager->addBuffer(m, m_data.surface->m_current.buffer);
+
+                if (m_data.pMonitor != m) {
+                    CBox wbox = {m_data.pWindow->m_realPosition->value(), m_data.pWindow->m_realSize->value()};
+                    if (m_data.pWindow->m_isFloating)
+                        wbox = m_data.pWindow->getFullWindowBoundingBox();
+
+                    CBox monbox    = {m->m_position, m->m_size};
+                    CBox damageBox = wbox.intersection(monbox);
+
+                    if (!damageBox.empty()) {
+                        m->addDamage(damageBox);
+                        g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                    }
+                }
+            }
         }
     }
 

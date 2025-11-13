@@ -2879,7 +2879,7 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
 
         const bool FIRST_IS_PROP = el.starts_with("match:");
         const auto FIRST         = FIRST_IS_PROP ? el.substr(6, spacePos - 6) : el.substr(0, spacePos);
-        if (FIRST_IS_PROP && std::ranges::contains(PROPS, std::string{"match:"} + FIRST)) {
+        if (FIRST_IS_PROP && std::ranges::contains(PROPS, FIRST)) {
             // it's a prop
             const auto PROP = Desktop::Rule::matchPropFromString(FIRST);
             if (!PROP.has_value())

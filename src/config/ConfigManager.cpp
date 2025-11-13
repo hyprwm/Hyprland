@@ -385,6 +385,30 @@ static Hyprlang::CParseResult handleGesture(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleWindowrule(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleWindowrule(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
+static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleLayerrule(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
     m_configValueNumber++;
     m_config->addConfigValue(name, val);
@@ -843,6 +867,8 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handleBind, "bind", {true});
     m_config->registerHandler(&::handleUnbind, "unbind", {false});
     m_config->registerHandler(&::handleWorkspaceRules, "workspace", {false});
+    m_config->registerHandler(&::handleWindowrule, "windowrule", {false});
+    m_config->registerHandler(&::handleLayerrule, "layerrule", {false});
     m_config->registerHandler(&::handleBezier, "bezier", {false});
     m_config->registerHandler(&::handleAnimation, "animation", {false});
     m_config->registerHandler(&::handleSource, "source", {false});
@@ -1041,6 +1067,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_declaredPlugins.clear();
     m_failedPluginConfigValues.clear();
     m_finalExecRequests.clear();
+    m_keywordRules.clear();
 
     // paths
     m_configPaths.clear();
@@ -1209,6 +1236,11 @@ Hyprlang::CParseResult CConfigManager::reloadRules() {
         if (error.has_value())
             result.setError(error.value().c_str());
     }
+
+    for (auto& rule : m_keywordRules) {
+        Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{rule});
+    }
+
     return result;
 }
 
@@ -2788,6 +2820,80 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 
     if (!result)
         return result.error();
+
+    return std::nullopt;
+}
+
+std::optional<std::string> CConfigManager::handleWindowrule(const std::string& command, const std::string& value) {
+    CVarList2                      data(std::string{value}, 0, ',');
+
+    SP<Desktop::Rule::CWindowRule> rule = makeShared<Desktop::Rule::CWindowRule>();
+
+    const auto&                    PROPS   = Desktop::Rule::allMatchPropStrings();
+    const auto&                    EFFECTS = Desktop::Rule::allWindowEffectStrings();
+
+    for (const auto& el : data) {
+        // split on space, no need for a CVarList here
+        size_t spacePos = el.find(' ');
+        if (!spacePos)
+            return std::format("invalid field {}: missing a value", el);
+
+        const bool FIRST_IS_PROP = el.starts_with("match:");
+        const auto FIRST         = FIRST_IS_PROP ? el.substr(6, spacePos - 6) : el.substr(0, spacePos);
+        if (FIRST_IS_PROP && std::ranges::contains(PROPS, FIRST)) {
+            // it's a prop
+            const auto PROP = Desktop::Rule::matchPropFromString(FIRST);
+            if (!PROP.has_value())
+                return std::format("invalid prop {}", el);
+            rule->registerMatch(*PROP, std::string{el.substr(spacePos + 1)});
+        } else if (!FIRST_IS_PROP && std::ranges::contains(EFFECTS, FIRST)) {
+            // it's an effect
+            const auto EFFECT = Desktop::Rule::matchWindowEffectFromString(FIRST);
+            if (!EFFECT.has_value())
+                return std::format("invalid effect {}", el);
+            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+        } else
+            return std::format("invalid field type {}", FIRST);
+    }
+
+    m_keywordRules.emplace_back(std::move(rule));
+
+    return std::nullopt;
+}
+
+std::optional<std::string> CConfigManager::handleLayerrule(const std::string& command, const std::string& value) {
+    CVarList2                     data(std::string{value}, 0, ',');
+
+    SP<Desktop::Rule::CLayerRule> rule = makeShared<Desktop::Rule::CLayerRule>();
+
+    const auto&                   PROPS   = Desktop::Rule::allMatchPropStrings();
+    const auto&                   EFFECTS = Desktop::Rule::allLayerEffectStrings();
+
+    for (const auto& el : data) {
+        // split on space, no need for a CVarList here
+        size_t spacePos = el.find(' ');
+        if (!spacePos)
+            return std::format("invalid field {}: missing a value", el);
+
+        const bool FIRST_IS_PROP = el.starts_with("match:");
+        const auto FIRST         = FIRST_IS_PROP ? el.substr(6, spacePos - 6) : el.substr(0, spacePos);
+        if (FIRST_IS_PROP && std::ranges::contains(PROPS, std::string{"match:"} + FIRST)) {
+            // it's a prop
+            const auto PROP = Desktop::Rule::matchPropFromString(std::string{"match:"} + FIRST);
+            if (!PROP.has_value())
+                return std::format("invalid prop {}", el);
+            rule->registerMatch(*PROP, std::string{el.substr(spacePos + 1)});
+        } else if (!FIRST_IS_PROP && std::ranges::contains(EFFECTS, FIRST)) {
+            // it's an effect
+            const auto EFFECT = Desktop::Rule::matchLayerEffectFromString(FIRST);
+            if (!EFFECT.has_value())
+                return std::format("invalid effect {}", el);
+            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+        } else
+            return std::format("invalid field type {}", FIRST);
+    }
+
+    m_keywordRules.emplace_back(std::move(rule));
 
     return std::nullopt;
 }

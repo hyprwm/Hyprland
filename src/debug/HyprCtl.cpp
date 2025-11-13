@@ -1316,7 +1316,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         }
     }
 
-    if (COMMAND.contains("windowrule["))
+    if (COMMAND.contains("windowrule ") || COMMAND.contains("windowrule["))
         g_pConfigManager->reloadRules();
 
     if (COMMAND.contains("workspace"))

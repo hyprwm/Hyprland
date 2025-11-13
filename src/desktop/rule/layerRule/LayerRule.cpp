@@ -18,12 +18,16 @@ static const std::unordered_map<eLayerRuleEffect, std::string> EFFECT_STRINGS = 
     {LAYER_RULE_EFFECT_NO_SCREEN_SHARE, "no_screen_share"}, //
 };
 
-std::optional<eLayerRuleEffect> Rule::matchLayerEffectFromString(const std::string& s) {
+std::optional<eLayerRuleEffect> Rule::matchLayerEffectFromString(const std::string_view& s) {
     const auto IT = std::ranges::find_if(EFFECT_STRINGS, [&s](const auto& el) { return el.second == s; });
     if (IT == EFFECT_STRINGS.end())
         return std::nullopt;
 
     return IT->first;
+}
+
+std::optional<eLayerRuleEffect> Rule::matchLayerEffectFromString(const std::string& s) {
+    return matchLayerEffectFromString(std::string_view{s});
 }
 
 const std::vector<std::string>& Rule::allLayerEffectStrings() {

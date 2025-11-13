@@ -826,19 +826,20 @@ void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb
 
     const auto EXTENTS           = w->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
     CBox       targetBoxMonLocal = tb.value_or(w->getWindowMainSurfaceBox()).translate(-PMONITOR->m_position).addExtents(EXTENTS);
+    const auto MONITOR_LOCAL_BOX = PMONITOR->logicalBoxMinusExtents().translate(-PMONITOR->m_position);
 
-    if (targetBoxMonLocal.w < PMONITOR->m_size.x) {
-        if (targetBoxMonLocal.x < 0)
-            targetBoxMonLocal.x = 0;
-        else if (targetBoxMonLocal.x + targetBoxMonLocal.w > PMONITOR->m_size.x)
-            targetBoxMonLocal.x = PMONITOR->m_size.x - targetBoxMonLocal.w;
+    if (targetBoxMonLocal.w < MONITOR_LOCAL_BOX.w) {
+        if (targetBoxMonLocal.x < MONITOR_LOCAL_BOX.x)
+            targetBoxMonLocal.x = MONITOR_LOCAL_BOX.x;
+        else if (targetBoxMonLocal.x + targetBoxMonLocal.w > MONITOR_LOCAL_BOX.w)
+            targetBoxMonLocal.x = MONITOR_LOCAL_BOX.w - targetBoxMonLocal.w;
     }
 
-    if (targetBoxMonLocal.h < PMONITOR->m_size.y) {
-        if (targetBoxMonLocal.y < 0)
-            targetBoxMonLocal.y = 0;
-        else if (targetBoxMonLocal.y + targetBoxMonLocal.h > PMONITOR->m_size.y)
-            targetBoxMonLocal.y = PMONITOR->m_size.y - targetBoxMonLocal.h;
+    if (targetBoxMonLocal.h < MONITOR_LOCAL_BOX.h) {
+        if (targetBoxMonLocal.y < MONITOR_LOCAL_BOX.y)
+            targetBoxMonLocal.y = MONITOR_LOCAL_BOX.y;
+        else if (targetBoxMonLocal.y + targetBoxMonLocal.h > MONITOR_LOCAL_BOX.h)
+            targetBoxMonLocal.y = MONITOR_LOCAL_BOX.h - targetBoxMonLocal.h;
     }
 
     *w->m_realPosition = (targetBoxMonLocal.pos() + PMONITOR->m_position + EXTENTS.topLeft).round();

@@ -16,6 +16,7 @@ static void testFloatClamp() {
     }
 
     OK(getFromSocket("/keyword dwindle:force_split 2"));
+    OK(getFromSocket("/keyword monitor HEADLESS-2, addreserved, 0, 20, 0, 20"));
     OK(getFromSocket("/dispatch focuswindow class:c"));
     OK(getFromSocket("/dispatch setfloating class:c"));
     OK(getFromSocket("/dispatch resizewindowpixel exact 1200 900,class:c"));
@@ -24,7 +25,7 @@ static void testFloatClamp() {
 
     {
         auto str = getFromSocket("/clients");
-        EXPECT_CONTAINS(str, "at: 718,178");
+        EXPECT_CONTAINS(str, "at: 698,158");
         EXPECT_CONTAINS(str, "size: 1200,900");
     }
 

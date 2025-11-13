@@ -298,6 +298,7 @@ class CMonitor {
     WORKSPACEID activeWorkspaceID();
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
+    CBox        logicalBoxMinusExtents();
     void        scheduleDone();
     uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();

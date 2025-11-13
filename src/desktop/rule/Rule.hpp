@@ -41,6 +41,7 @@ namespace Desktop::Rule {
     };
 
     std::optional<eRuleProperty>    matchPropFromString(const std::string& s);
+    std::optional<eRuleProperty>    matchPropFromString(const std::string_view& s);
     const std::vector<std::string>& allMatchPropStrings();
 
     class IRule {

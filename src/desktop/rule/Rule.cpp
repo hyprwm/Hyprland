@@ -66,12 +66,16 @@ const std::vector<std::string>& Rule::allMatchPropStrings() {
     return strings;
 }
 
-std::optional<eRuleProperty> Rule::matchPropFromString(const std::string& s) {
+std::optional<eRuleProperty> Rule::matchPropFromString(const std::string_view& s) {
     const auto IT = std::ranges::find_if(MATCH_PROP_STRINGS, [&s](const auto& el) { return el.second == s; });
     if (IT == MATCH_PROP_STRINGS.end())
         return std::nullopt;
 
     return IT->first;
+}
+
+std::optional<eRuleProperty> Rule::matchPropFromString(const std::string& s) {
+    return matchPropFromString(std::string_view{s});
 }
 
 IRule::IRule(const std::string& name) : m_name(name) {

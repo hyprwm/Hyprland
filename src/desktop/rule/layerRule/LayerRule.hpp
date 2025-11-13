@@ -19,6 +19,7 @@ namespace Desktop::Rule {
     };
 
     std::optional<eLayerRuleEffect> matchLayerEffectFromString(const std::string& s);
+    std::optional<eLayerRuleEffect> matchLayerEffectFromString(const std::string_view& s);
     const std::vector<std::string>& allLayerEffectStrings();
 
     class CLayerRule : public IRule {

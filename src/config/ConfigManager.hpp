@@ -272,6 +272,8 @@ class CConfigManager {
     std::optional<std::string> handlePlugin(const std::string&, const std::string&);
     std::optional<std::string> handlePermission(const std::string&, const std::string&);
     std::optional<std::string> handleGesture(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowrule(const std::string&, const std::string&);
+    std::optional<std::string> handleLayerrule(const std::string&, const std::string&);
 
     std::optional<std::string> handleMonitorv2(const std::string& output);
     Hyprlang::CParseResult     handleMonitorv2();
@@ -301,6 +303,8 @@ class CConfigManager {
     std::vector<std::string>                         m_declaredPlugins;
     std::vector<SPluginKeyword>                      m_pluginKeywords;
     std::vector<SPluginVariable>                     m_pluginVariables;
+
+    std::vector<SP<Desktop::Rule::IRule>>            m_keywordRules;
 
     bool                                             m_isFirstLaunch = true; // For exec-once
 

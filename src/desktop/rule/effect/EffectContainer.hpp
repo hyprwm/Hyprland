@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+#include <cstdint>
 
 namespace Desktop::Rule {
     template <typename T>
@@ -15,7 +16,7 @@ namespace Desktop::Rule {
       public:
         // Make sure we're using at least a uint16_t for dynamic registrations to not overflow.
         // 32k should be enough
-        using storageType = std::conditional_t<(sizeof(std::underlying_type_t<T>) >= 2), std::underlying_type_t<T>, std::uint16_t>;
+        using storageType = std::conditional_t<(sizeof(std::underlying_type_t<T>) >= 2), std::underlying_type_t<T>, uint16_t>;
 
         IEffectContainer(std::vector<std::string>&& defaultKeys) : m_keys(std::move(defaultKeys)), m_originalSize(m_keys.size()) {
             ;

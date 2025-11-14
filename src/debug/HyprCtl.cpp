@@ -1273,7 +1273,11 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.empty())
         return "Invalid input: command is empty";
 
+    g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = true;
+
     std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
+
+    g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = false;
 
     // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
     if (COMMAND == "monitor" || COMMAND == "source")

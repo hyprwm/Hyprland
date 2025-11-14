@@ -305,7 +305,7 @@ static bool test() {
     OK(getFromSocket("/keyword windowrule[wr-kitty-stuff]:opacity 0.5 0.5 override"));
 
     {
-        auto str = getFromSocket("/getprop active active_opacity");
+        auto str = getFromSocket("/getprop active opacity");
         EXPECT_CONTAINS(str, "0.5");
     }
 

@@ -906,7 +906,7 @@ void CConfigManager::reloadRuleConfigs() {
         m_config->addSpecialConfigValue("layerrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
     }
 
-    for (const auto& r : Desktop::Rule::allLayerEffectStrings()) {
+    for (const auto& r : Desktop::Rule::layerEffects()->allEffectStrings()) {
         m_config->addSpecialConfigValue("layerrule", r.c_str(), Hyprlang::STRING{""});
     }
 }
@@ -1223,10 +1223,10 @@ std::optional<std::string> CConfigManager::addLayerRuleFromConfigKey(const std::
             rule->registerMatch(Desktop::Rule::matchPropFromString(r).value_or(Desktop::Rule::RULE_PROP_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }
 
-    for (const auto& e : Desktop::Rule::allLayerEffectStrings()) {
+    for (const auto& e : Desktop::Rule::layerEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("layerrule", e.c_str(), name.c_str());
         if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::matchLayerEffectFromString(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            rule->addEffect(Desktop::Rule::layerEffects()->get(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -2882,7 +2882,7 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
     SP<Desktop::Rule::CLayerRule> rule = makeShared<Desktop::Rule::CLayerRule>();
 
     const auto&                   PROPS   = Desktop::Rule::allMatchPropStrings();
-    const auto&                   EFFECTS = Desktop::Rule::allLayerEffectStrings();
+    const auto&                   EFFECTS = Desktop::Rule::layerEffects()->allEffectStrings();
 
     for (const auto& el : data) {
         // split on space, no need for a CVarList here
@@ -2900,7 +2900,7 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
             rule->registerMatch(*PROP, std::string{el.substr(spacePos + 1)});
         } else if (!FIRST_IS_PROP && std::ranges::contains(EFFECTS, FIRST)) {
             // it's an effect
-            const auto EFFECT = Desktop::Rule::matchLayerEffectFromString(FIRST);
+            const auto EFFECT = Desktop::Rule::layerEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
             rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});

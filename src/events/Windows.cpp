@@ -593,6 +593,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pInputManager->recheckIdleInhibitorStatus();
 
     PWINDOW->updateToplevel();
+    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
 
     if (workspaceSilent) {
         if (validMapped(PFOCUSEDWINDOWPREV)) {

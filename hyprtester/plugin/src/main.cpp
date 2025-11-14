@@ -252,6 +252,9 @@ static Desktop::Rule::CWindowRuleEffectContainer::storageType ruleIDX = 0;
 //
 static SDispatchResult addRule(std::string in) {
     ruleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
+
+    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule") != ruleIDX)
+        return {.success = false, .error = "re-registering returned a different id?"};
     return {};
 }
 

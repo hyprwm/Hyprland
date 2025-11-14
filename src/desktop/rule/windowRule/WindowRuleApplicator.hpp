@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"

@@ -179,7 +179,7 @@ void CGammaControlProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CGammaControlProtocol::destroyGammaControl(CGammaControl* gamma) {
-    std::erase_if(m_gammaControllers, [&](const auto& other) { return other.get() == gamma; });
+    std::erase_if(m_gammaControllers, [&](const auto& other) { return other->getMonitor() == gamma->getMonitor(); });
 }
 
 void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output) {

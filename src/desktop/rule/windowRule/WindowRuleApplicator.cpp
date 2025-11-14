@@ -396,6 +396,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 m_noVRR.second |= rule->getPropertiesMask();
                 break;
             }
+            case WINDOW_RULE_EFFECT_STAY_FOCUSED: {
+                m_stayFocused.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_stayFocused.second |= rule->getPropertiesMask();
+                break;
+            }
             case WINDOW_RULE_EFFECT_SCROLL_MOUSE: {
                 try {
                     m_scrollMouse.first.set(std::clamp(std::stof(effect), 0.01F, 10.F), Types::PRIORITY_WINDOW_RULE);

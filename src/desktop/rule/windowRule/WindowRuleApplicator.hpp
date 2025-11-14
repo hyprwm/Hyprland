@@ -1,5 +1,6 @@
 #pragma once
 
+#include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
@@ -53,6 +54,17 @@ namespace Desktop::Rule {
 
             std::vector<std::string> suppressEvent;
         } static_;
+
+        struct SCustomPropContainer {
+            CWindowRuleEffectContainer::storageType idx      = WINDOW_RULE_EFFECT_NONE;
+            std::underlying_type_t<eRuleProperty>   propMask = RULE_PROP_NONE;
+            std::string                             effect;
+        };
+
+        // This struct holds props that were dynamically registered. Plugins may read this.
+        struct {
+            std::unordered_map<CWindowRuleEffectContainer::storageType, UP<SCustomPropContainer>> props;
+        } m_otherProps;
 
 #define COMMA ,
 #define DEFINE_PROP(type, name, def)                                                                                                                                               \

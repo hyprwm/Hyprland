@@ -76,6 +76,8 @@ void CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> pro
 
         return REMOVE;
     });
+
+    std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
 }
 
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule) {
@@ -84,7 +86,25 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
             default: {
-                Debug::log(TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                if (key <= WINDOW_RULE_EFFECT_LAST_STATIC) {
+                    Debug::log(TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                    break;
+                }
+
+                // custom type, add to our vec
+                if (!m_otherProps.props.contains(key)) {
+                    m_otherProps.props.emplace(key,
+                                               makeUnique<SCustomPropContainer>(SCustomPropContainer{
+                                                   .idx      = key,
+                                                   .propMask = rule->getPropertiesMask(),
+                                                   .effect   = effect,
+                                               }));
+                } else {
+                    auto& e = m_otherProps.props[key];
+                    e->propMask |= rule->getPropertiesMask();
+                    e->effect = effect;
+                }
+
                 break;
             }
 
@@ -573,10 +593,10 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
 
     resetProps(props);
 
-    bool                                  needsRelayout = false;
+    bool                                                        needsRelayout = false;
 
-    std::unordered_set<eWindowRuleEffect> effectsNeedingRecheck;
-    std::unordered_set<SP<CWindowRule>>   passedWrs;
+    std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNeedingRecheck;
+    std::unordered_set<SP<CWindowRule>>                         passedWrs;
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)

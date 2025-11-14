@@ -7,86 +7,6 @@
 using namespace Desktop;
 using namespace Desktop::Rule;
 
-static const std::unordered_map<eWindowRuleEffect, std::string> EFFECT_STRINGS = {
-    {WINDOW_RULE_EFFECT_FLOAT, "float"},                               //
-    {WINDOW_RULE_EFFECT_TILE, "tile"},                                 //
-    {WINDOW_RULE_EFFECT_FULLSCREEN, "fullscreen"},                     //
-    {WINDOW_RULE_EFFECT_MAXIMIZE, "maximize"},                         //
-    {WINDOW_RULE_EFFECT_FULLSCREENSTATE, "fullscreen_state"},          //
-    {WINDOW_RULE_EFFECT_MOVE, "move"},                                 //
-    {WINDOW_RULE_EFFECT_SIZE, "size"},                                 //
-    {WINDOW_RULE_EFFECT_CENTER, "center"},                             //
-    {WINDOW_RULE_EFFECT_PSEUDO, "pseudo"},                             //
-    {WINDOW_RULE_EFFECT_MONITOR, "monitor"},                           //
-    {WINDOW_RULE_EFFECT_WORKSPACE, "workspace"},                       //
-    {WINDOW_RULE_EFFECT_NOINITIALFOCUS, "no_initial_focus"},           //
-    {WINDOW_RULE_EFFECT_PIN, "pin"},                                   //
-    {WINDOW_RULE_EFFECT_GROUP, "group"},                               //
-    {WINDOW_RULE_EFFECT_SUPPRESSEVENT, "suppress_event"},              //
-    {WINDOW_RULE_EFFECT_CONTENT, "content"},                           //
-    {WINDOW_RULE_EFFECT_NOCLOSEFOR, "no_close_for"},                   //
-    {WINDOW_RULE_EFFECT_ROUNDING, "rounding"},                         //
-    {WINDOW_RULE_EFFECT_ROUNDING_POWER, "rounding_power"},             //
-    {WINDOW_RULE_EFFECT_PERSISTENT_SIZE, "persistent_size"},           //
-    {WINDOW_RULE_EFFECT_ANIMATION, "animation"},                       //
-    {WINDOW_RULE_EFFECT_BORDER_COLOR, "border_color"},                 //
-    {WINDOW_RULE_EFFECT_IDLE_INHIBIT, "idle_inhibit"},                 //
-    {WINDOW_RULE_EFFECT_OPACITY, "opacity"},                           //
-    {WINDOW_RULE_EFFECT_TAG, "tag"},                                   //
-    {WINDOW_RULE_EFFECT_MAX_SIZE, "max_size"},                         //
-    {WINDOW_RULE_EFFECT_MIN_SIZE, "min_size"},                         //
-    {WINDOW_RULE_EFFECT_BORDER_SIZE, "border_size"},                   //
-    {WINDOW_RULE_EFFECT_ALLOWS_INPUT, "allows_input"},                 //
-    {WINDOW_RULE_EFFECT_DIM_AROUND, "dim_around"},                     //
-    {WINDOW_RULE_EFFECT_DECORATE, "decorate"},                         //
-    {WINDOW_RULE_EFFECT_FOCUS_ON_ACTIVATE, "focus_on_activate"},       //
-    {WINDOW_RULE_EFFECT_KEEP_ASPECT_RATIO, "keep_aspect_ratio"},       //
-    {WINDOW_RULE_EFFECT_NEAREST_NEIGHBOR, "nearest_neighbor"},         //
-    {WINDOW_RULE_EFFECT_NO_ANIM, "no_anim"},                           //
-    {WINDOW_RULE_EFFECT_NO_BLUR, "no_blur"},                           //
-    {WINDOW_RULE_EFFECT_NO_DIM, "no_dim"},                             //
-    {WINDOW_RULE_EFFECT_NO_FOCUS, "no_focus"},                         //
-    {WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE, "no_follow_mouse"},           //
-    {WINDOW_RULE_EFFECT_NO_MAX_SIZE, "no_max_size"},                   //
-    {WINDOW_RULE_EFFECT_NO_SHADOW, "no_shadow"},                       //
-    {WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT, "no_shortcuts_inhibit"}, //
-    {WINDOW_RULE_EFFECT_OPAQUE, "opaque"},                             //
-    {WINDOW_RULE_EFFECT_FORCE_RGBX, "force_rgbx"},                     //
-    {WINDOW_RULE_EFFECT_SYNC_FULLSCREEN, "sync_fullscreen"},           //
-    {WINDOW_RULE_EFFECT_IMMEDIATE, "immediate"},                       //
-    {WINDOW_RULE_EFFECT_XRAY, "xray"},                                 //
-    {WINDOW_RULE_EFFECT_RENDER_UNFOCUSED, "render_unfocused"},         //
-    {WINDOW_RULE_EFFECT_NO_SCREEN_SHARE, "no_screen_share"},           //
-    {WINDOW_RULE_EFFECT_NO_VRR, "no_vrr"},                             //
-    {WINDOW_RULE_EFFECT_SCROLL_MOUSE, "scroll_mouse"},                 //
-    {WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD, "scroll_touchpad"},           //
-    {WINDOW_RULE_EFFECT_STAY_FOCUSED, "stay_focused"},                 //
-};
-
-std::optional<eWindowRuleEffect> Rule::matchWindowEffectFromString(const std::string_view& s) {
-    const auto IT = std::ranges::find_if(EFFECT_STRINGS, [&s](const auto& el) { return el.second == s; });
-    if (IT == EFFECT_STRINGS.end())
-        return std::nullopt;
-
-    return IT->first;
-}
-
-std::optional<eWindowRuleEffect> Rule::matchWindowEffectFromString(const std::string& s) {
-    return matchWindowEffectFromString(std::string_view{s});
-}
-
-const std::vector<std::string>& Rule::allWindowEffectStrings() {
-    static std::vector<std::string> strings;
-    static bool                     once = true;
-    if (once) {
-        for (const auto& [k, v] : EFFECT_STRINGS) {
-            strings.emplace_back(v);
-        }
-        once = false;
-    }
-    return strings;
-}
-
 std::optional<Vector2D> Rule::parseRelativeVector(PHLWINDOW w, const std::string& s) {
     try {
         const auto  VALUE    = s.substr(s.find(' ') + 1);
@@ -116,12 +36,12 @@ eRuleType CWindowRule::type() {
     return RULE_TYPE_WINDOW;
 }
 
-void CWindowRule::addEffect(eWindowRuleEffect e, const std::string& result) {
+void CWindowRule::addEffect(CWindowRule::storageType e, const std::string& result) {
     m_effects.emplace_back(std::make_pair<>(e, result));
     m_effectSet.emplace(e);
 }
 
-const std::vector<std::pair<eWindowRuleEffect, std::string>>& CWindowRule::effects() {
+const std::vector<std::pair<CWindowRule::storageType, std::string>>& CWindowRule::effects() {
     return m_effects;
 }
 
@@ -234,7 +154,7 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
         if (spacePos != std::string::npos) {
             // great, split and try to parse
             auto       LHS    = el.substr(0, spacePos);
-            const auto EFFECT = matchWindowEffectFromString(LHS);
+            const auto EFFECT = windowEffects()->get(LHS);
 
             if (!EFFECT.has_value() || *EFFECT == WINDOW_RULE_EFFECT_NONE)
                 continue; // invalid...
@@ -245,7 +165,7 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
 
         // assume 1 maybe...
 
-        const auto EFFECT = matchWindowEffectFromString(el);
+        const auto EFFECT = windowEffects()->get(el);
 
         if (!EFFECT.has_value() || *EFFECT == WINDOW_RULE_EFFECT_NONE)
             continue; // invalid...
@@ -261,6 +181,6 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
     return wr;
 }
 
-const std::unordered_set<eWindowRuleEffect>& CWindowRule::effectsSet() {
+const std::unordered_set<CWindowRule::storageType>& CWindowRule::effectsSet() {
     return m_effectSet;
 }

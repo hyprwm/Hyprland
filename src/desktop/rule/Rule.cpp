@@ -16,17 +16,17 @@ static const std::unordered_map<eRuleProperty, std::string> MATCH_PROP_STRINGS =
     {RULE_PROP_TITLE, "title"},                                       //
     {RULE_PROP_INITIAL_CLASS, "initial_class"},                       //
     {RULE_PROP_INITIAL_TITLE, "initial_title"},                       //
-    {RULE_PROP_FLOATING, "floating"},                                 //
+    {RULE_PROP_FLOATING, "float"},                                    //
     {RULE_PROP_TAG, "tag"},                                           //
     {RULE_PROP_XWAYLAND, "xwayland"},                                 //
     {RULE_PROP_FULLSCREEN, "fullscreen"},                             //
-    {RULE_PROP_PINNED, "pinned"},                                     //
+    {RULE_PROP_PINNED, "pin"},                                        //
     {RULE_PROP_FOCUS, "focus"},                                       //
     {RULE_PROP_GROUP, "group"},                                       //
     {RULE_PROP_MODAL, "modal"},                                       //
     {RULE_PROP_FULLSCREENSTATE_INTERNAL, "fullscreenstate_internal"}, //
     {RULE_PROP_FULLSCREENSTATE_CLIENT, "fullscreenstate_client"},     //
-    {RULE_PROP_ON_WORKSPACE, "on_workspace"},                         //
+    {RULE_PROP_ON_WORKSPACE, "workspace"},                            //
     {RULE_PROP_CONTENT, "content"},                                   //
     {RULE_PROP_XDG_TAG, "xdg_tag"},                                   //
     {RULE_PROP_NAMESPACE, "namespace"},                               //

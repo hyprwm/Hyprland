@@ -839,24 +839,12 @@ CConfigManager::CConfigManager() {
     // windowrule v3
     m_config->addSpecialCategory("windowrule", {.key = "name"});
     m_config->addSpecialConfigValue("windowrule", "enable", Hyprlang::INT{1});
-    for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        m_config->addSpecialConfigValue("windowrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
-    }
-
-    for (const auto& r : Desktop::Rule::allWindowEffectStrings()) {
-        m_config->addSpecialConfigValue("windowrule", r.c_str(), Hyprlang::STRING{""});
-    }
 
     // layerrule v2
     m_config->addSpecialCategory("layerrule", {.key = "name"});
     m_config->addSpecialConfigValue("layerrule", "enable", Hyprlang::INT{1});
-    for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        m_config->addSpecialConfigValue("layerrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
-    }
 
-    for (const auto& r : Desktop::Rule::allLayerEffectStrings()) {
-        m_config->addSpecialConfigValue("layerrule", r.c_str(), Hyprlang::STRING{""});
-    }
+    reloadRuleConfigs();
 
     // keywords
     m_config->registerHandler(&::handleExec, "exec", {false});
@@ -901,6 +889,26 @@ CConfigManager::CConfigManager() {
 
     if (g_pEventLoopManager && ERR.has_value())
         g_pEventLoopManager->doLater([ERR] { g_pHyprError->queueCreate(ERR.value(), CHyprColor{1.0, 0.1, 0.1, 1.0}); });
+}
+
+void CConfigManager::reloadRuleConfigs() {
+    // FIXME: this should also remove old values if they are removed
+
+    for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
+        m_config->addSpecialConfigValue("windowrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
+    }
+
+    for (const auto& r : Desktop::Rule::windowEffects()->allEffectStrings()) {
+        m_config->addSpecialConfigValue("windowrule", r.c_str(), Hyprlang::STRING{""});
+    }
+
+    for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
+        m_config->addSpecialConfigValue("layerrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
+    }
+
+    for (const auto& r : Desktop::Rule::allLayerEffectStrings()) {
+        m_config->addSpecialConfigValue("layerrule", r.c_str(), Hyprlang::STRING{""});
+    }
 }
 
 std::optional<std::string> CConfigManager::generateConfig(std::string configPath) {
@@ -1078,6 +1086,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 
     const auto RET = verifyConfigExists();
 
+    reloadRuleConfigs();
+
     return RET;
 }
 
@@ -1189,10 +1199,10 @@ std::optional<std::string> CConfigManager::addRuleFromConfigKey(const std::strin
             rule->registerMatch(Desktop::Rule::matchPropFromString(r).value_or(Desktop::Rule::RULE_PROP_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }
 
-    for (const auto& e : Desktop::Rule::allWindowEffectStrings()) {
+    for (const auto& e : Desktop::Rule::windowEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("windowrule", e.c_str(), name.c_str());
         if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::matchWindowEffectFromString(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            rule->addEffect(Desktop::Rule::windowEffects()->get(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -2833,7 +2843,7 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     SP<Desktop::Rule::CWindowRule> rule = makeShared<Desktop::Rule::CWindowRule>();
 
     const auto&                    PROPS   = Desktop::Rule::allMatchPropStrings();
-    const auto&                    EFFECTS = Desktop::Rule::allWindowEffectStrings();
+    const auto&                    EFFECTS = Desktop::Rule::windowEffects()->allEffectStrings();
 
     for (const auto& el : data) {
         // split on space, no need for a CVarList here
@@ -2851,7 +2861,7 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
             rule->registerMatch(*PROP, std::string{el.substr(spacePos + 1)});
         } else if (!FIRST_IS_PROP && std::ranges::contains(EFFECTS, FIRST)) {
             // it's an effect
-            const auto EFFECT = Desktop::Rule::matchWindowEffectFromString(FIRST);
+            const auto EFFECT = Desktop::Rule::windowEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
             rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});

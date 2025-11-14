@@ -4,6 +4,7 @@
 #include <vector>
 #include <type_traits>
 #include <cstdint>
+#include <optional>
 
 namespace Desktop::Rule {
     template <typename T>

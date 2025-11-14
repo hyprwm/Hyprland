@@ -8,6 +8,8 @@
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "./EventManager.hpp"
+#include <string>
 
 using namespace Hyprutils::OS;
 
@@ -58,11 +60,6 @@ void CANRManager::onTick() {
     static auto PENABLEANR    = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
     static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
 
-    if (!*PENABLEANR) {
-        m_timer->updateTimeout(TIMER_TIMEOUT * 10);
-        return;
-    }
-
     for (auto& data : m_data) {
         PHLWINDOW firstWindow;
         int       count = 0;
@@ -76,23 +73,27 @@ void CANRManager::onTick() {
             count++;
             if (!firstWindow)
                 firstWindow = w;
+
+            *w->m_notRespondingTint = 0.2F;
         }
 
-        if (count == 0)
+        if (count == 0) {
+            if (data->wasNotResponding) {
+                g_pEventManager->postEvent(SHyprIPCEvent{.event = "anrrecovered", .data = std::to_string(data->getPid())});
+                data->wasNotResponding = false;
+            }
             continue;
+        }
 
         if (data->missedResponses >= *PANRTHRESHOLD) {
+            data->wasNotResponding = true;
+
             if (!data->isRunning() && !data->dialogSaidWait) {
-                data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
+                if (data->missedResponses == *PANRTHRESHOLD)
+                    g_pEventManager->postEvent(SHyprIPCEvent{.event = "anr", .data = std::to_string(data->getPid())});
 
-                for (const auto& w : g_pCompositor->m_windows) {
-                    if (!w->m_isMapped)
-                        continue;
-
-                    if (!data->fitsWindow(w))
-                        continue;
-
-                    *w->m_notRespondingTint = 0.2F;
+                if (*PENABLEANR) {
+                    data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
                 }
             }
         } else if (data->isRunning())
@@ -128,6 +129,13 @@ void CANRManager::onResponse(SP<CXWaylandSurface> pXwaylandSurface) {
 }
 
 void CANRManager::onResponse(SP<CANRManager::SANRData> data) {
+    static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
+
+    if (data->wasNotResponding && data->missedResponses >= *PANRTHRESHOLD) {
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "anrrecovered", .data = std::to_string(data->getPid())});
+        data->wasNotResponding = false;
+    }
+
     data->missedResponses = 0;
     if (data->isRunning())
         data->killDialog();
@@ -168,7 +176,13 @@ SP<CANRManager::SANRData> CANRManager::dataFor(SP<CXWaylandSurface> pXwaylandSur
 
 CANRManager::SANRData::SANRData(PHLWINDOW pWindow) :
     xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->m_owner : WP<CXDGWMBase>{}) {
-    ;
+
+    // Cache the PID at creation time because it is unavalable after a window is closed. This is needed to send anrrecovered if a non responding app is killed
+    if (xdgBase) {
+        wl_client_get_credentials(xdgBase->client(), &cachedPid, nullptr, nullptr);
+    } else if (xwaylandSurface) {
+        cachedPid = xwaylandSurface->m_pid;
+    }
 }
 
 CANRManager::SANRData::~SANRData() {
@@ -236,7 +250,7 @@ pid_t CANRManager::SANRData::getPid() const {
     if (xwaylandSurface)
         return xwaylandSurface->m_pid;
 
-    return 0;
+    return cachedPid;
 }
 
 void CANRManager::SANRData::ping() {

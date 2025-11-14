@@ -2838,7 +2838,7 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     for (const auto& el : data) {
         // split on space, no need for a CVarList here
         size_t spacePos = el.find(' ');
-        if (!spacePos)
+        if (spacePos == std::string::npos)
             return std::format("invalid field {}: missing a value", el);
 
         const bool FIRST_IS_PROP = el.starts_with("match:");

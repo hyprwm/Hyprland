@@ -16,6 +16,7 @@
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/layerRule/LayerRule.hpp"
+#include "../debug/HyprCtl.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -2859,6 +2860,8 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     }
 
     m_keywordRules.emplace_back(std::move(rule));
+    if (g_pHyprCtl->m_currentRequestParams.isDynamicKeyword)
+        Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{m_keywordRules.back()});
 
     return std::nullopt;
 }

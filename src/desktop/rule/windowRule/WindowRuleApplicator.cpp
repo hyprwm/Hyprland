@@ -424,19 +424,19 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
 
             case WINDOW_RULE_EFFECT_FLOAT: {
-                static_.floating = true;
+                static_.floating = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_TILE: {
-                static_.floating = false;
+                static_.floating = !truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_FULLSCREEN: {
-                static_.fullscreen = true;
+                static_.fullscreen = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_MAXIMIZE: {
-                static_.maximize = true;
+                static_.maximize = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_FULLSCREENSTATE: {
@@ -457,11 +457,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 break;
             }
             case WINDOW_RULE_EFFECT_CENTER: {
-                static_.center = true;
+                static_.center = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_PSEUDO: {
-                static_.pseudo = true;
+                static_.pseudo = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_MONITOR: {
@@ -473,11 +473,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 break;
             }
             case WINDOW_RULE_EFFECT_NOINITIALFOCUS: {
-                static_.noInitialFocus = true;
+                static_.noInitialFocus = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_PIN: {
-                static_.pin = true;
+                static_.pin = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_GROUP: {

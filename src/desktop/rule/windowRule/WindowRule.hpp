@@ -67,6 +67,7 @@ namespace Desktop::Rule {
         WINDOW_RULE_EFFECT_NO_VRR,
         WINDOW_RULE_EFFECT_SCROLL_MOUSE,
         WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD,
+        WINDOW_RULE_EFFECT_STAY_FOCUSED,
     };
 
     std::optional<Vector2D>          parseRelativeVector(PHLWINDOW w, const std::string& s);

@@ -60,6 +60,7 @@ static const std::unordered_map<eWindowRuleEffect, std::string> EFFECT_STRINGS =
     {WINDOW_RULE_EFFECT_NO_VRR, "no_vrr"},                             //
     {WINDOW_RULE_EFFECT_SCROLL_MOUSE, "scroll_mouse"},                 //
     {WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD, "scroll_touchpad"},           //
+    {WINDOW_RULE_EFFECT_STAY_FOCUSED, "stay_focused"},                 //
 };
 
 std::optional<eWindowRuleEffect> Rule::matchWindowEffectFromString(const std::string_view& s) {

@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 #include "Rule.hpp"
+#include "../LayerSurface.hpp"
 #include "../../Compositor.hpp"
 
 using namespace Desktop;
@@ -33,10 +34,16 @@ void CRuleEngine::cleanExecRules() {
 void CRuleEngine::updateAllRules() {
     cleanExecRules();
     for (const auto& w : g_pCompositor->m_windows) {
-        if (!validMapped(w) || w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible())
+        if (!validMapped(w) || w->isHidden())
             continue;
 
         w->m_ruleApplicator->propertiesChanged(RULE_PROP_ALL);
+    }
+    for (const auto& ls : g_pCompositor->m_layers) {
+        if (!validMapped(ls))
+            continue;
+
+        ls->m_ruleApplicator->propertiesChanged(RULE_PROP_ALL);
     }
 }
 

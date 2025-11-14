@@ -350,6 +350,33 @@ static bool test() {
         EXPECT_CONTAINS(str, "10");
     }
 
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule match:class plugin_kitty, plugin_rule effect"));
+
+    if (!spawnKitty("plugin_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule[test-plugin-rule]:match:class plugin_kitty"));
+    OK(getFromSocket("/keyword windowrule[test-plugin-rule]:plugin_rule effect"));
+
+    if (!spawnKitty("plugin_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
 

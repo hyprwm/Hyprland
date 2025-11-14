@@ -11,6 +11,8 @@
 #include <src/managers/input/InputManager.hpp>
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
+#include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
+#include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/Compositor.hpp>
 #undef private
 
@@ -245,6 +247,27 @@ static SDispatchResult keybind(std::string in) {
     return {};
 }
 
+static Desktop::Rule::CWindowRuleEffectContainer::storageType ruleIDX = 0;
+
+//
+static SDispatchResult addRule(std::string in) {
+    ruleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
+    return {};
+}
+
+static SDispatchResult checkRule(std::string in) {
+    if (!g_pCompositor->m_lastWindow)
+        return {.success = false, .error = "No window"};
+
+    if (!g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props.contains(ruleIDX))
+        return {.success = false, .error = "No rule"};
+
+    if (g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props[ruleIDX]->effect != "effect")
+        return {.success = false, .error = "Effect isn't \"effect\""};
+
+    return {};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -255,6 +278,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:gesture", ::simulateGesture);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:scroll", ::scroll);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:keybind", ::keybind);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_rule", ::addRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_rule", ::checkRule);
 
     // init mouse
     g_mouse = CTestMouse::create(false);

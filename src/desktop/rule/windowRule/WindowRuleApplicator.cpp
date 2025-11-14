@@ -68,16 +68,18 @@ void CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> pro
 
 #undef UNSET
 
-    std::erase_if(m_dynamicTags, [props, this](const auto& el) {
-        const bool REMOVE = el.second & props;
+    if (prio == Types::PRIORITY_WINDOW_RULE) {
+        std::erase_if(m_dynamicTags, [props, this](const auto& el) {
+            const bool REMOVE = el.second & props;
 
-        if (REMOVE)
-            m_tagKeeper.removeDynamicTag(el.first);
+            if (REMOVE)
+                m_tagKeeper.removeDynamicTag(el.first);
 
-        return REMOVE;
-    });
+            return REMOVE;
+        });
 
-    std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
+        std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
+    }
 }
 
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule) {

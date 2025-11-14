@@ -2860,7 +2860,7 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     }
 
     m_keywordRules.emplace_back(std::move(rule));
-    if (g_pHyprCtl->m_currentRequestParams.isDynamicKeyword)
+    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.isDynamicKeyword)
         Desktop::Rule::ruleEngine()->registerRule(SP<Desktop::Rule::IRule>{m_keywordRules.back()});
 
     return std::nullopt;

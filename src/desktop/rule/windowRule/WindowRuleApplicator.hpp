@@ -101,7 +101,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, opaque, false)
         DEFINE_PROP(bool, dimAround, false)
         DEFINE_PROP(bool, RGBX, false)
-        DEFINE_PROP(bool, syncFullscreen, false)
+        DEFINE_PROP(bool, syncFullscreen, true)
         DEFINE_PROP(bool, tearing, false)
         DEFINE_PROP(bool, xray, false)
         DEFINE_PROP(bool, renderUnfocused, false)

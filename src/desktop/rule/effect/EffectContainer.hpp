@@ -25,6 +25,8 @@ namespace Desktop::Rule {
         virtual storageType registerEffect(std::string&& name) {
             if (m_keys.size() >= std::numeric_limits<storageType>::max())
                 return 0;
+            if (auto it = std::ranges::find(m_keys, name); it != m_keys.end())
+                return it - m_keys.begin();
             m_keys.emplace_back(std::move(name));
             return m_keys.size() - 1;
         }

@@ -24,6 +24,7 @@ uniform vec3 tint;
 
 #include "rounding.glsl"
 #include "CM.glsl"
+#include "capture.glsl"
 
 layout(location = 0) out vec4 fragColor;
 void main() {
@@ -51,4 +52,5 @@ void main() {
         pixColor = rounding(pixColor);
     
     fragColor = pixColor * alpha;
+    CAPTURE_WRITE(fragColor);
 }

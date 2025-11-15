@@ -522,6 +522,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});
     registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
+    registerConfigVar("misc:screencopy_noscreenshare_visibility", Hyprlang::INT{1});
     registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
     registerConfigVar("misc:size_limits_tiled", Hyprlang::INT{0});
 
@@ -783,6 +784,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:capture_mrt_mode", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -2852,6 +2854,10 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 
     if (RULE == "unset") {
         std::erase_if(m_layerRules, [&](const auto& other) { return other->m_targetNamespace == VALUE; });
+        for (auto const& m : g_pCompositor->m_monitors)
+            for (auto const& lsl : m->m_layerSurfaceLayers)
+                for (auto const& ls : lsl)
+                    ls->applyRules();
         return {};
     }
 
@@ -2865,7 +2871,6 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     rule->m_targetNamespaceRegex = {VALUE};
 
     m_layerRules.emplace_back(rule);
-
     for (auto const& m : g_pCompositor->m_monitors)
         for (auto const& lsl : m->m_layerSurfaceLayers)
             for (auto const& ls : lsl)

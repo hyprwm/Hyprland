@@ -1,5 +1,6 @@
 #include "TexPassElement.hpp"
 #include "../OpenGL.hpp"
+#include "../Renderer.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -15,8 +16,13 @@ CTexPassElement::CTexPassElement(CTexPassElement::SRenderData&& data) : m_data(s
 void CTexPassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
+    const bool  blackoutRequested = m_data.captureBlackout && CHyprRenderer::shouldBlackoutNoScreenShare();
+    const bool  maskApplied       = blackoutRequested && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    const bool  allowCapture      = m_data.captureWrites || maskApplied;
+
+    auto        captureState = g_pHyprOpenGL->captureStateGuard(allowCapture, maskApplied);
+
     CScopeGuard x = {[this]() {
-        //
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)

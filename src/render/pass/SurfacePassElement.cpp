@@ -1,6 +1,7 @@
 #include "SurfacePassElement.hpp"
 #include "../OpenGL.hpp"
 #include "../../desktop/WLSurface.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../desktop/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
@@ -25,6 +26,16 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_renderData.discardOpacity     = m_data.discardOpacity;
     g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
+
+    const auto monitor  = m_data.pMonitor.lock();
+    const bool blackout = monitor && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    const bool maskWindow =
+        blackout && m_data.pWindow && m_data.pWindow->m_windowData.noScreenShare.valueOrDefault() && g_pHyprRenderer->isWindowVisibleOnMonitor(m_data.pWindow, monitor);
+    const bool  maskLayer    = blackout && m_data.pLS && m_data.pLS->m_noScreenShare && m_data.pLS->m_monitor.lock() == monitor;
+    const bool  maskApplied  = maskWindow || maskLayer;
+    const bool  allowCapture = m_data.captureWrites || maskApplied;
+
+    auto        captureState = g_pHyprOpenGL->captureStateGuard(allowCapture, maskApplied);
 
     CScopeGuard x = {[]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);

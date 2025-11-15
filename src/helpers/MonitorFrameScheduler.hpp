@@ -28,6 +28,7 @@ class CMonitorFrameScheduler {
 
     bool                       m_renderAtFrame = true;
     bool                       m_pendingThird  = false;
+    bool                       m_skipThird     = false;
     hrc::time_point            m_lastRenderBegun;
 
     PHLMONITORREF              m_monitor;

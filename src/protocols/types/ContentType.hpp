@@ -13,6 +13,7 @@ namespace NContentType {
     };
 
     eContentType fromString(const std::string name);
+    const char*  toString(eContentType contentType);
     eContentType fromWP(wpContentTypeV1Type contentType);
     uint16_t     toDRM(eContentType contentType);
 }

@@ -15,6 +15,16 @@ namespace NContentType {
             throw std::invalid_argument(std::format("Unknown content type {}", name));
     }
 
+    const char* toString(eContentType contentType) {
+        switch (contentType) {
+            case CONTENT_TYPE_NONE: return "";
+            case CONTENT_TYPE_PHOTO: return "photo";
+            case CONTENT_TYPE_VIDEO: return "video";
+            case CONTENT_TYPE_GAME: return "game";
+            default: return "";
+        }
+    }
+
     eContentType fromWP(wpContentTypeV1Type contentType) {
         switch (contentType) {
             case WP_CONTENT_TYPE_V1_TYPE_NONE: return CONTENT_TYPE_NONE;

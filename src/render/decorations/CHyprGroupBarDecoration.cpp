@@ -126,6 +126,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     static auto PKEEPUPPERGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
     static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
+    static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
     auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
     auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
     auto* const GROUPCOLACTIVELOCKED       = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
@@ -143,6 +144,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     float xoff = 0;
     float yoff = 0;
+
+    bool  blur = *PBLUR != 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
@@ -163,6 +166,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         if (!rect.empty()) {
             CRectPassElement::SRectData rectdata;
             rectdata.color = color;
+            rectdata.blur  = blur;
             rectdata.box   = rect;
             if (*PROUNDING) {
                 rectdata.round         = *PROUNDING;
@@ -194,8 +198,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                                                                                          (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
                 if (GRADIENTTEX->m_texID) {
                     CTexPassElement::SRenderData data;
-                    data.tex = GRADIENTTEX;
-                    data.box = rect;
+                    data.tex  = GRADIENTTEX;
+                    data.blur = blur;
+                    data.box  = rect;
                     if (*PGRADIENTROUNDING) {
                         data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;

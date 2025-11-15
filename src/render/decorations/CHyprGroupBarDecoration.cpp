@@ -165,29 +165,20 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             rectdata.color = color;
             rectdata.box   = rect;
             if (*PROUNDING) {
+                rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
                 if (*PROUNDONLYEDGES) {
-                    static constexpr double PADDING = 20;
-
-                    if (i == 0 && barsToDraw == 1)
-                        rectdata.round = *PROUNDING;
-                    else if (i == 0) {
-                        double first     = rect.w - (*PROUNDING * 2);
+                    if (i == 0) {
                         rectdata.round   = *PROUNDING;
-                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
-                        rectdata.round   = 0;
-                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                        rectdata.clipBox = rect;
+                        rectdata.box     = CBox{rect.pos(), Vector2D{rect.w + (*PROUNDING * 2), rect.h}};
                     } else if (i == barsToDraw - 1) {
-                        double first     = *PROUNDING * 2;
-                        rectdata.round   = 0;
-                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
+                        double offset    = *PROUNDING * 2;
                         rectdata.round   = *PROUNDING;
-                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                        rectdata.clipBox = rect;
+                        rectdata.box     = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
                     }
-                } else
-                    rectdata.round = *PROUNDING;
+                }
             }
             g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
         }
@@ -206,29 +197,20 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                     data.tex = GRADIENTTEX;
                     data.box = rect;
                     if (*PGRADIENTROUNDING) {
+                        data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
                         if (*PGRADIENTROUNDINGONLYEDGES) {
-                            static constexpr double PADDING = 20;
-
-                            if (i == 0 && barsToDraw == 1)
-                                data.round = *PGRADIENTROUNDING;
-                            else if (i == 0) {
-                                double first = rect.w - (*PGRADIENTROUNDING * 2);
+                            if (i == 0) {
                                 data.round   = *PGRADIENTROUNDING;
-                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
-                                data.round   = 0;
-                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                                data.clipBox = rect;
+                                data.box     = CBox{rect.pos(), Vector2D{rect.w + (*PGRADIENTROUNDING * 2), rect.h}};
                             } else if (i == barsToDraw - 1) {
-                                double first = *PGRADIENTROUNDING * 2;
-                                data.round   = 0;
-                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
-                                data.round   = *PGRADIENTROUNDING;
-                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                                double offset = *PGRADIENTROUNDING * 2;
+                                data.round    = *PGRADIENTROUNDING;
+                                data.clipBox  = rect;
+                                data.box      = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
                             }
-                        } else
-                            data.round = *PGRADIENTROUNDING;
+                        }
                     }
                     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
                 }

@@ -1789,8 +1789,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && (!inHDR() || (PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isWindowsScRGB())) &&
-        *PPASS != 1)
+    const bool surfaceIsHDR = PSURFACE->m_colorManagement.valid() && (PSURFACE->m_colorManagement->isHDR() || PSURFACE->m_colorManagement->isWindowsScRGB());
+    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && ((inHDR() && (*PPASS == 0 || !surfaceIsHDR)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
         reasons |= DS_BLOCK_CM;
 
     return reasons;
@@ -2055,10 +2055,13 @@ bool CMonitor::canNoShaderCM() {
     if (SRC_DESC->icc.fd >= 0 || m_imageDescription.icc.fd >= 0)
         return false; // no ICC support
 
+    static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
     // only primaries differ
-    if (SRC_DESC->transferFunction == m_imageDescription.transferFunction && SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower &&
-        (!inHDR() || SRC_DESC->luminances == m_imageDescription.luminances) && SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances &&
-        SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
+    if ((SRC_DESC->transferFunction == m_imageDescription.transferFunction ||
+         (*PSDREOTF == 2 && SRC_DESC->transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+          m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
+        SRC_DESC->transferFunctionPower == m_imageDescription.transferFunctionPower && (!inHDR() || SRC_DESC->luminances == m_imageDescription.luminances) &&
+        SRC_DESC->masteringLuminances == m_imageDescription.masteringLuminances && SRC_DESC->maxCLL == m_imageDescription.maxCLL && SRC_DESC->maxFALL == m_imageDescription.maxFALL)
         return true;
 
     return false;

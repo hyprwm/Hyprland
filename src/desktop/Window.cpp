@@ -711,6 +711,8 @@ void CWindow::createGroup() {
 
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", rc<uintptr_t>(this))});
     }
+
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 }
 
 void CWindow::destroyGroup() {
@@ -730,6 +732,7 @@ void CWindow::destroyGroup() {
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(this))});
+        m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         return;
     }
 
@@ -756,6 +759,7 @@ void CWindow::destroyGroup() {
     g_pKeybindManager->m_groupsLocked = true;
     for (auto const& w : members) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         w->updateWindowDecos();
     }
     g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
@@ -769,6 +773,8 @@ void CWindow::destroyGroup() {
 
     if (!addresses.empty())
         addresses.pop_back();
+
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{}", addresses)});
 }
 

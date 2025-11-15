@@ -7,6 +7,7 @@
 #include <bit>
 #include <string_view>
 #include "Window.hpp"
+#include "state/FocusState.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
@@ -118,9 +119,9 @@ CWindow::CWindow(SP<CXWaylandSurface> surface) : m_xwaylandSurface(surface) {
 }
 
 CWindow::~CWindow() {
-    if (g_pCompositor->m_lastWindow == m_self) {
-        g_pCompositor->m_lastFocus.reset();
-        g_pCompositor->m_lastWindow.reset();
+    if (Desktop::focusState()->window() == m_self) {
+        Desktop::focusState()->surface().reset();
+        Desktop::focusState()->window().reset();
     }
 
     m_events.destroy.emit();
@@ -525,8 +526,6 @@ void CWindow::onUnmap() {
     if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0)
         m_lastWorkspace = m_monitor->activeWorkspaceID();
 
-    std::erase_if(g_pCompositor->m_windowFocusHistory, [this](const auto& other) { return other.expired() || other == m_self; });
-
     if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
@@ -591,8 +590,6 @@ void CWindow::onMap() {
 
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
-    g_pCompositor->m_windowFocusHistory.push_back(m_self);
-
     m_reportedSize = m_pendingReportedSize;
     m_animatingIn  = true;
 
@@ -626,8 +623,8 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
-    if (hidden && g_pCompositor->m_lastWindow == m_self)
-        g_pCompositor->m_lastWindow.reset();
+    if (hidden && Desktop::focusState()->window() == m_self)
+        Desktop::focusState()->window().reset();
 
     setSuspended(hidden);
 }
@@ -1069,7 +1066,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto WORKSPACE  = PCURRENT->m_workspace;
     const auto MODE       = PCURRENT->m_fullscreenState.internal;
 
-    const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_lastWindow.lock();
+    const auto CURRENTISFOCUS = PCURRENT == Desktop::focusState()->window();
 
     const auto PWINDOWSIZE                 = PCURRENT->m_realSize->value();
     const auto PWINDOWPOS                  = PCURRENT->m_realPosition->value();
@@ -1104,7 +1101,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (CURRENTISFOCUS)
-        g_pCompositor->focusWindow(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow);
 
     g_pHyprRenderer->damageWindow(pWindow);
 
@@ -1444,7 +1441,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 }
 
 void CWindow::activate(bool force) {
-    if (g_pCompositor->m_lastWindow == m_self)
+    if (Desktop::focusState()->window() == m_self)
         return;
 
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
@@ -1465,7 +1462,7 @@ void CWindow::activate(bool force) {
     if (m_isFloating)
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    g_pCompositor->focusWindow(m_self.lock());
+    Desktop::focusState()->fullWindowFocus(m_self.lock());
     warpCursor();
 }
 
@@ -1479,7 +1476,7 @@ void CWindow::onUpdateState() {
             if (m_isMapped) {
                 const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
                 g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
-                g_pCompositor->setActiveMonitor(monitor);
+                Desktop::focusState()->rawMonitorFocus(monitor);
             }
 
             if (!m_isMapped)
@@ -1514,7 +1511,7 @@ void CWindow::onUpdateMeta() {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", rc<uintptr_t>(this), m_title)});
         EMIT_HOOK_EVENT("windowTitle", m_self.lock());
 
-        if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
+        if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
@@ -1528,7 +1525,7 @@ void CWindow::onUpdateMeta() {
     if (m_class != NEWCLASS) {
         m_class = NEWCLASS;
 
-        if (m_self == g_pCompositor->m_lastWindow) { // if it's the active, let's post an event to update others
+        if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
             EMIT_HOOK_EVENT("activeWindow", m_self.lock());
@@ -1706,7 +1703,7 @@ PHLWINDOW CWindow::getSwallower() {
         return candidates[0];
 
     // walk up the focus history and find the last focused
-    for (auto const& w : g_pCompositor->m_windowFocusHistory) {
+    for (auto const& w : Desktop::focusState()->windowHistory()) {
         if (!w)
             continue;
 

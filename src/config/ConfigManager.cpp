@@ -14,6 +14,7 @@
 #include "../protocols/OutputManagement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -511,7 +512,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
-    registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("misc:on_focus_under_fullscreen", Hyprlang::INT{2});
     registerConfigVar("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     registerConfigVar("misc:initial_workspace_tracking", Hyprlang::INT{1});
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});
@@ -639,7 +640,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:new_on_active", {"none"});
     registerConfigVar("master:new_on_top", Hyprlang::INT{0});
     registerConfigVar("master:orientation", {"left"});
-    registerConfigVar("master:inherit_fullscreen", Hyprlang::INT{1});
     registerConfigVar("master:allow_small_split", Hyprlang::INT{0});
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
@@ -1562,7 +1562,7 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 }
 
                 if (rule->m_focus != -1) {
-                    if (rule->m_focus != (g_pCompositor->m_lastWindow.lock() == pWindow))
+                    if (rule->m_focus != (Desktop::focusState()->window() == pWindow))
                         continue;
                 }
 

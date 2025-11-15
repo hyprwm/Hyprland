@@ -12,6 +12,7 @@
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/Compositor.hpp>
+#include <src/desktop/state/FocusState.hpp>
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -43,7 +44,7 @@ static SDispatchResult test(std::string in) {
 
 // Trigger a snap move event for the active window
 static SDispatchResult snapMove(std::string in) {
-    const auto PLASTWINDOW = g_pCompositor->m_lastWindow.lock();
+    const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 

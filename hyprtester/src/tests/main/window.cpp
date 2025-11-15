@@ -353,6 +353,22 @@ static bool test() {
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
+    // test expression rules
+    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, move 20+(monitor_w*0.1) monitor_h*0.5"));
+
+    if (!spawnKitty("expr_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "at: 212,540");
+        EXPECT_CONTAINS(str, "size: 960,540");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
     OK(getFromSocket("/dispatch plugin:test:add_rule"));
     OK(getFromSocket("/reload"));
 

@@ -98,7 +98,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         if (!PMONITOR)
             return;
 
-        animationsDisabled = PWINDOW->m_windowData.noAnim.valueOr(animationsDisabled);
+        animationsDisabled = PWINDOW->m_ruleApplicator->noAnim().valueOr(animationsDisabled);
     } else if (PWORKSPACE) {
         PMONITOR = PWORKSPACE->m_monitor.lock();
         if (!PMONITOR)
@@ -142,7 +142,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->m_realPosition->goal() + PLAYER->m_realSize->goal() / 2.F);
         if (!PMONITOR)
             return;
-        animationsDisabled = animationsDisabled || PLAYER->m_noAnimations;
+        animationsDisabled = animationsDisabled || PLAYER->m_ruleApplicator->noanim().valueOrDefault();
     }
 
     const auto SPENT   = av.getPercent();

@@ -166,7 +166,7 @@ CHyprRenderer::CHyprRenderer() {
             }
 
             if (dirty)
-                std::erase_if(m_renderUnfocused, [](const auto& e) { return !e || !e->m_windowData.renderUnfocused.valueOr(false); });
+                std::erase_if(m_renderUnfocused, [](const auto& e) { return !e || !e->m_ruleApplicator->renderUnfocused().valueOr(false); });
 
             if (!m_renderUnfocused.empty())
                 m_renderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
@@ -508,7 +508,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_monitorMovedFrom != -1 && (!PWORKSPACE || !PWORKSPACE->isVisible());
 
     renderdata.surface   = pWindow->m_wlSurface->resource();
-    renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_windowData.noRounding.valueOrDefault();
+    renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
     renderdata.fadeAlpha = pWindow->m_alpha->value() * (pWindow->m_pinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_movingToWorkspaceAlpha->value() : 1.F) * pWindow->m_movingFromWorkspaceAlpha->value();
     renderdata.alpha         = pWindow->m_activeInactiveAlpha->value();
@@ -524,7 +524,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     }
 
     // apply opaque
-    if (pWindow->m_windowData.opaque.valueOrDefault())
+    if (pWindow->m_ruleApplicator->opaque().valueOrDefault())
         renderdata.alpha = 1.f;
 
     renderdata.pWindow = pWindow;
@@ -536,7 +536,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
 
-    if (*PDIMAROUND && pWindow->m_windowData.dimAround.valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
+    if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox                        monbox = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
         CRectPassElement::SRectData data;
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
@@ -584,7 +584,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         static auto PXWLUSENN = CConfigValue<Hyprlang::INT>("xwayland:use_nearest_neighbor");
-        if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_windowData.nearestNeighbor.valueOrDefault())
+        if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
         if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall && renderdata.blur) {
@@ -656,7 +656,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 renderdata.discardOpacity = *PBLURIGNOREA;
             }
 
-            if (pWindow->m_windowData.nearestNeighbor.valueOrDefault())
+            if (pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
                 renderdata.useNearestNeighbor = true;
 
             renderdata.surfaceCounter = 0;
@@ -713,12 +713,13 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         return;
 
     // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
-    if ((pLayer->m_aboveLockscreen && !lockscreen && g_pSessionLockManager->isSessionLocked()) || (lockscreen && !pLayer->m_aboveLockscreen))
+    if ((pLayer->m_ruleApplicator->aboveLock().valueOrDefault() && !lockscreen && g_pSessionLockManager->isSessionLocked()) ||
+        (lockscreen && !pLayer->m_ruleApplicator->aboveLock().valueOrDefault()))
         return;
 
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
-    if (*PDIMAROUND && pLayer->m_dimAround && !m_bRenderingSnapshot && !popups) {
+    if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
@@ -748,9 +749,9 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     renderdata.clipBox = CBox{0, 0, pMonitor->m_size.x, pMonitor->m_size.y}.scale(pMonitor->m_scale);
 
-    if (renderdata.blur && pLayer->m_ignoreAlpha) {
+    if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
         renderdata.discardMode |= DISCARD_ALPHA;
-        renderdata.discardOpacity = pLayer->m_ignoreAlphaValue;
+        renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
     }
 
     if (!popups)
@@ -768,7 +769,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
-    renderdata.blur            = pLayer->m_forceBlurPopups;
+    renderdata.blur            = pLayer->m_ruleApplicator->blurPopups().valueOrDefault();
     renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
@@ -1853,7 +1854,8 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     }
 
     for (auto& la : PMONITOR->m_layerSurfaceLayers) {
-        std::ranges::stable_sort(la, [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_order > b->m_order; });
+        std::ranges::stable_sort(
+            la, [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_ruleApplicator->order().valueOrDefault() > b->m_ruleApplicator->order().valueOrDefault(); });
     }
 
     for (auto const& la : PMONITOR->m_layerSurfaceLayers)
@@ -2558,7 +2560,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    if (*PDIMAROUND && pWindow->m_windowData.dimAround.valueOrDefault()) {
+    if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault()) {
         CRectPassElement::SRectData data;
 
         data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y};
@@ -2575,7 +2577,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.blurA         = sqrt(pWindow->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
         data.round         = pWindow->rounding();
         data.roundingPower = pWindow->roundingPower();
-        data.xray          = pWindow->m_windowData.xray.valueOr(false);
+        data.xray          = pWindow->m_ruleApplicator->xray().valueOr(false);
 
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
@@ -2627,7 +2629,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     data.blur         = SHOULD_BLUR;
     data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
     if (SHOULD_BLUR)
-        data.ignoreAlpha = pLayer->m_ignoreAlpha ? pLayer->m_ignoreAlphaValue : 0.01F /* ignore the alpha 0 regions */;
+        data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2672,7 +2674,7 @@ bool CHyprRenderer::shouldBlur(PHLLS ls) {
         return false;
 
     static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    return *PBLUR && ls->m_forceBlur;
+    return *PBLUR && ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
 bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
@@ -2680,7 +2682,7 @@ bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
         return false;
 
     static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    const bool  DONT_BLUR = w->m_windowData.noBlur.valueOrDefault() || w->m_windowData.RGBX.valueOrDefault() || w->opaque();
+    const bool  DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
     return *PBLUR && !DONT_BLUR;
 }
 

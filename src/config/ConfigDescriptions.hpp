@@ -16,12 +16,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
-        .value       = "general:no_border_on_floating",
-        .description = "disable borders for floating windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "general:gaps_in",
         .description = "gaps between windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,

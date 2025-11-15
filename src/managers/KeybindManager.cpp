@@ -21,6 +21,8 @@
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../desktop/rule/windowRule/WindowRule.hpp"
+#include "../desktop/rule/Engine.hpp"
 
 #include <optional>
 #include <iterator>
@@ -929,17 +931,19 @@ uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitial
         args  = args.substr(args.find_first_of(']') + 1);
     }
 
-    const uint64_t PROC = spawnRawProc(args, pInitialWorkspace);
+    std::string execToken = "";
 
     if (!RULES.empty()) {
-        const auto RULESLIST = CVarList(RULES, 0, ';');
+        auto rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
 
-        for (auto const& r : RULESLIST) {
-            g_pConfigManager->addExecRule({r, sc<unsigned long>(PROC)});
-        }
+        execToken = rule->execToken();
 
-        Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
+        Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
+
+        Debug::log(LOG, "Applied rule arguments for exec.");
     }
+
+    const uint64_t PROC = spawnRawProc(args, pInitialWorkspace, execToken);
 
     return PROC;
 }
@@ -949,7 +953,7 @@ SDispatchResult CKeybindManager::spawnRaw(std::string args) {
     return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
-uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace) {
+uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace, const std::string& execRuleToken) {
     Debug::log(LOG, "Executing {}", args);
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
@@ -971,6 +975,8 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
             setenv(e.first.c_str(), e.second.c_str(), 1);
         }
         setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
+        if (!execRuleToken.empty())
+            setenv(Desktop::Rule::EXEC_RULE_ENV_NAME, execRuleToken.c_str(), true);
 
         int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
         if (devnull != -1) {
@@ -1344,7 +1350,7 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    PWINDOW->m_windowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
+    PWINDOW->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_SET_PROP));
 
     int internalMode, clientMode;
     try {
@@ -1370,7 +1376,8 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
         g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
     }
 
-    PWINDOW->m_windowData.syncFullscreen = CWindowOverridableVar(PWINDOW->m_fullscreenState.internal == PWINDOW->m_fullscreenState.client, PRIORITY_SET_PROP);
+    PWINDOW->m_ruleApplicator->syncFullscreenOverride(
+        Desktop::Types::COverridableVar(PWINDOW->m_fullscreenState.internal == PWINDOW->m_fullscreenState.client, Desktop::Types::PRIORITY_SET_PROP));
 
     return {};
 }
@@ -2363,9 +2370,9 @@ SDispatchResult CKeybindManager::tagWindow(std::string args) {
     else
         return {.success = false, .error = "Invalid number of arguments, expected 1 or 2 arguments"};
 
-    if (PWINDOW && PWINDOW->m_tags.applyTag(vars[0])) {
-        PWINDOW->updateDynamicRules();
-        g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW->m_self.lock());
+    if (PWINDOW && PWINDOW->m_ruleApplicator->m_tagKeeper.applyTag(vars[0])) {
+        PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_TAG);
+        PWINDOW->updateDecorationValues();
     }
 
     return {};
@@ -2756,8 +2763,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
 
     PWINDOW->m_workspace = PMONITOR->m_activeWorkspace;
 
-    PWINDOW->updateDynamicRules();
-    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);
 
     const auto PWORKSPACE = PWINDOW->m_workspace;
 
@@ -2887,7 +2893,7 @@ SDispatchResult CKeybindManager::lockActiveGroup(std::string args) {
     else
         PHEAD->m_groupData.locked = false;
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    PWINDOW->updateDecorationValues();
 
     return {};
 }
@@ -3064,7 +3070,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
         PWINDOW->warpCursor();
     }
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    PWINDOW->updateDecorationValues();
 
     return {};
 }
@@ -3092,7 +3098,7 @@ SDispatchResult CKeybindManager::denyWindowFromGroup(std::string args) {
     else
         PWINDOW->m_groupData.deny = args == "on";
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    PWINDOW->updateDecorationValues();
 
     return {};
 }
@@ -3142,6 +3148,39 @@ SDispatchResult CKeybindManager::event(std::string args) {
 #include <utility>
 #include <type_traits>
 
+template <typename T>
+static void parsePropTrivial(Desktop::Types::COverridableVar<T>& prop, const std::string& s) {
+    static_assert(std::is_same_v<T, bool> || std::is_same_v<T, Hyprlang::INT> || std::is_same_v<T, int> || std::is_same_v<T, Hyprlang::FLOAT> || std::is_same_v<T, std::string>,
+                  "Invalid type passed to parsePropTrivial");
+
+    if (s == "unset") {
+        prop.unset(Desktop::Types::PRIORITY_SET_PROP);
+        return;
+    }
+
+    try {
+        if constexpr (std::is_same_v<T, bool>) {
+            if (s == "toggle")
+                prop.increment(true, Desktop::Types::PRIORITY_SET_PROP);
+            else
+                prop = Desktop::Types::COverridableVar<T>(truthy(s), Desktop::Types::PRIORITY_SET_PROP);
+        } else if constexpr (std::is_same_v<T, Hyprlang::INT> || std::is_same_v<T, int>) {
+            if (s.starts_with("relative")) {
+                const auto VAL = std::stoi(s.substr(s.find(' ') + 1));
+                prop.increment(VAL, Desktop::Types::PRIORITY_SET_PROP);
+            } else
+                prop = Desktop::Types::COverridableVar<T>(std::stoull(s), Desktop::Types::PRIORITY_SET_PROP);
+        } else if constexpr (std::is_same_v<T, Hyprlang::FLOAT>) {
+            if (s.starts_with("relative")) {
+                const auto VAL = std::stof(s.substr(s.find(' ') + 1));
+                prop.increment(VAL, Desktop::Types::PRIORITY_SET_PROP);
+            } else
+                prop = Desktop::Types::COverridableVar<T>(std::stof(s), Desktop::Types::PRIORITY_SET_PROP);
+        } else if constexpr (std::is_same_v<T, std::string>)
+            prop = Desktop::Types::COverridableVar<T>(s, Desktop::Types::PRIORITY_SET_PROP);
+    } catch (...) { Debug::log(ERR, "Hyprctl: parsePropTrivial: failed to parse setprop for {}", s); }
+}
+
 SDispatchResult CKeybindManager::setProp(std::string args) {
     CVarList vars(args, 3, ' ');
 
@@ -3157,37 +3196,18 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     const auto PROP = vars[1];
     const auto VAL  = vars[2];
 
-    bool       noFocus = PWINDOW->m_windowData.noFocus.valueOrDefault();
+    bool       noFocus = PWINDOW->m_ruleApplicator->noFocus().valueOrDefault();
 
     try {
-        if (PROP == "animationstyle") {
-            PWINDOW->m_windowData.animationStyle = CWindowOverridableVar(VAL, PRIORITY_SET_PROP);
-        } else if (PROP == "maxsize") {
-            PWINDOW->m_windowData.maxSize = CWindowOverridableVar(configStringToVector2D(VAL), PRIORITY_SET_PROP);
-            PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_windowData.maxSize.value());
+        if (PROP == "max_size") {
+            PWINDOW->m_ruleApplicator->maxSizeOverride(Desktop::Types::COverridableVar(configStringToVector2D(VAL), Desktop::Types::PRIORITY_SET_PROP));
+            PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_ruleApplicator->maxSize().value());
             PWINDOW->setHidden(false);
-        } else if (PROP == "minsize") {
-            PWINDOW->m_windowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL), PRIORITY_SET_PROP);
-            PWINDOW->clampWindowSize(PWINDOW->m_windowData.minSize.value(), std::nullopt);
+        } else if (PROP == "min_size") {
+            PWINDOW->m_ruleApplicator->minSizeOverride(Desktop::Types::COverridableVar(configStringToVector2D(VAL), Desktop::Types::PRIORITY_SET_PROP));
+            PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_ruleApplicator->minSize().value());
             PWINDOW->setHidden(false);
-        } else if (PROP == "alpha") {
-            PWINDOW->m_windowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alpha.valueOrDefault().overridden}, PRIORITY_SET_PROP);
-        } else if (PROP == "alphainactive") {
-            PWINDOW->m_windowData.alphaInactive =
-                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaInactive.valueOrDefault().overridden}, PRIORITY_SET_PROP);
-        } else if (PROP == "alphafullscreen") {
-            PWINDOW->m_windowData.alphaFullscreen =
-                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_windowData.alphaFullscreen.valueOrDefault().overridden}, PRIORITY_SET_PROP);
-        } else if (PROP == "alphaoverride") {
-            PWINDOW->m_windowData.alpha =
-                CWindowOverridableVar(SAlphaValue{PWINDOW->m_windowData.alpha.valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))}, PRIORITY_SET_PROP);
-        } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_windowData.alphaInactive =
-                CWindowOverridableVar(SAlphaValue{PWINDOW->m_windowData.alphaInactive.valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))}, PRIORITY_SET_PROP);
-        } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_windowData.alphaFullscreen =
-                CWindowOverridableVar(SAlphaValue{PWINDOW->m_windowData.alphaFullscreen.valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))}, PRIORITY_SET_PROP);
-        } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
+        } else if (PROP == "active_border_color" || PROP == "inactive_border_color") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {
                 for (int i = 3; i < sc<int>(vars.size()); ++i) {
@@ -3208,43 +3228,101 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
             colorData.updateColorsOk();
 
-            if (PROP == "activebordercolor")
-                PWINDOW->m_windowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
+            if (PROP == "active_border_color")
+                PWINDOW->m_ruleApplicator->activeBorderColorOverride(Desktop::Types::COverridableVar(colorData, Desktop::Types::PRIORITY_SET_PROP));
             else
-                PWINDOW->m_windowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
-        } else if (auto search = NWindowProperties::boolWindowProperties.find(PROP); search != NWindowProperties::boolWindowProperties.end()) {
-            auto pWindowDataElement = search->second(PWINDOW);
-            if (VAL == "toggle")
-                pWindowDataElement->increment(true, PRIORITY_SET_PROP);
-            else if (VAL == "unset")
-                pWindowDataElement->unset(PRIORITY_SET_PROP);
-            else
-                *pWindowDataElement = CWindowOverridableVar(sc<bool>(configStringToInt(VAL).value_or(0)), PRIORITY_SET_PROP);
-        } else if (auto search = NWindowProperties::intWindowProperties.find(PROP); search != NWindowProperties::intWindowProperties.end()) {
-            if (VAL == "unset")
-                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
-            else if (VAL.starts_with("relative")) {
-                const Hyprlang::INT V = std::stoi(VAL.substr(VAL.find(' ')));
-                search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
-            } else if (const auto V = configStringToInt(VAL); V)
-                *(search->second(PWINDOW)) = CWindowOverridableVar(*V, PRIORITY_SET_PROP);
-        } else if (auto search = NWindowProperties::floatWindowProperties.find(PROP); search != NWindowProperties::floatWindowProperties.end()) {
-            if (VAL == "unset")
-                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
-            else if (VAL.starts_with("relative")) {
-                const auto V = std::stof(VAL.substr(VAL.find(' ')));
-                search->second(PWINDOW)->increment(V, PRIORITY_SET_PROP);
-            } else {
-                const auto V               = std::stof(VAL);
-                *(search->second(PWINDOW)) = CWindowOverridableVar(V, PRIORITY_SET_PROP);
-            }
-        } else
-            return {.success = false, .error = "Prop not found"};
+                PWINDOW->m_ruleApplicator->inactiveBorderColorOverride(Desktop::Types::COverridableVar(colorData, Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity") {
+            PWINDOW->m_ruleApplicator->alphaOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alpha().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity_inactive") {
+            PWINDOW->m_ruleApplicator->alphaInactiveOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity_fullscreen") {
+            PWINDOW->m_ruleApplicator->alphaFullscreenOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity_override") {
+            PWINDOW->m_ruleApplicator->alphaOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alpha().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity_inactive_override") {
+            PWINDOW->m_ruleApplicator->alphaInactiveOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "opacity_fullscreen_override") {
+            PWINDOW->m_ruleApplicator->alphaFullscreenOverride(Desktop::Types::COverridableVar(
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::PRIORITY_SET_PROP));
+        } else if (PROP == "allows_input")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->allowsInput(), VAL);
+        else if (PROP == "decorate")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->decorate(), VAL);
+        else if (PROP == "focus_on_activate")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->focusOnActivate(), VAL);
+        else if (PROP == "keep_aspect_ratio")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->keepAspectRatio(), VAL);
+        else if (PROP == "nearest_neighbor")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->nearestNeighbor(), VAL);
+        else if (PROP == "no_anim")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noAnim(), VAL);
+        else if (PROP == "no_blur")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noBlur(), VAL);
+        else if (PROP == "no_dim")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noDim(), VAL);
+        else if (PROP == "no_focus")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noFocus(), VAL);
+        else if (PROP == "no_max_size")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noMaxSize(), VAL);
+        else if (PROP == "no_shadow")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noShadow(), VAL);
+        else if (PROP == "no_shortcuts_inhibit")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noShortcutsInhibit(), VAL);
+        else if (PROP == "dim_around")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->dimAround(), VAL);
+        else if (PROP == "opaque")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->opaque(), VAL);
+        else if (PROP == "force_rgbx")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->RGBX(), VAL);
+        else if (PROP == "sync_fullscreen")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->syncFullscreen(), VAL);
+        else if (PROP == "immediate")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->tearing(), VAL);
+        else if (PROP == "xray")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->xray(), VAL);
+        else if (PROP == "render_unfocused")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->renderUnfocused(), VAL);
+        else if (PROP == "no_follow_mouse")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noFollowMouse(), VAL);
+        else if (PROP == "no_screen_share")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noScreenShare(), VAL);
+        else if (PROP == "no_vrr")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noVRR(), VAL);
+        else if (PROP == "persistent_size")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->persistentSize(), VAL);
+        else if (PROP == "stay_focused")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->stayFocused(), VAL);
+        else if (PROP == "idle_inhibit")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->idleInhibitMode(), VAL);
+        else if (PROP == "border_size")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->borderSize(), VAL);
+        else if (PROP == "rounding")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->rounding(), VAL);
+        else if (PROP == "rounding_power")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->roundingPower(), VAL);
+        else if (PROP == "scroll_mouse")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->scrollMouse(), VAL);
+        else if (PROP == "scroll_touchpad")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->scrollTouchpad(), VAL);
+        else if (PROP == "animation")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationStyle(), VAL);
+        else
+            return {.success = false, .error = "prop not found"};
+
     } catch (std::exception& e) { return {.success = false, .error = std::format("Error parsing prop value: {}", std::string(e.what()))}; }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_windowData.noFocus.valueOrDefault() == noFocus)) {
+    if (!(PWINDOW->m_ruleApplicator->noFocus().valueOrDefault() == noFocus)) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);

@@ -16,7 +16,7 @@ bool CMonitorFrameScheduler::newSchedulingEnabled() {
 
 void CMonitorFrameScheduler::onSyncFired() {
 
-    if (!newSchedulingEnabled())
+    if (!newSchedulingEnabled() || m_skipThird)
         return;
 
     // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
@@ -58,6 +58,8 @@ void CMonitorFrameScheduler::onPresented() {
     if (!newSchedulingEnabled())
         return;
 
+    m_skipThird = false;
+
     if (!m_pendingThird)
         return;
 
@@ -73,6 +75,7 @@ void CMonitorFrameScheduler::onPresented() {
     }
 
     g_pHyprRenderer->commitPendingAndDoExplicitSync(mon, true); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
+    m_skipThird = true;
 
     // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
     // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
@@ -109,7 +112,7 @@ void CMonitorFrameScheduler::onFrame() {
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
     auto self = m_self;
 
-    g_pHyprRenderer->renderMonitor(m_monitor.lock(), true, m_renderAtFrame);
+    g_pHyprRenderer->renderMonitor(m_monitor.lock(), true, (m_renderAtFrame && !m_pendingThird));
 
     if (!self)
         return;

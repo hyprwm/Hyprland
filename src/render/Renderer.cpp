@@ -1115,7 +1115,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         Vector2D    uvTL;
         Vector2D    uvBR = Vector2D(1, 1);
 
-        if (pSurface->m_current.viewport.hasSource) {
+        if (pSurface->m_current.viewport.hasSource && !fixMisalignedFSV1) {
             // we stretch it to dest. if no dest, to 1,1
             Vector2D const& bufferSize   = pSurface->m_current.bufferSize;
             auto const&     bufferSource = pSurface->m_current.viewport.source;

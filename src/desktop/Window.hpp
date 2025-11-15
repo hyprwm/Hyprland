@@ -337,6 +337,7 @@ class CWindow {
     bool                       priorityFocus();
     SP<CWLSurfaceResource>     getSolitaryResource();
     Vector2D                   getReportedSize();
+    std::optional<Vector2D>    calculateExpression(const std::string& s);
 
     CBox                       getWindowMainSurfaceBox() const {
         return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
@@ -367,6 +368,8 @@ class CWindow {
     } m_listeners;
 
   private:
+    std::optional<double> calculateSingleExpr(const std::string& s);
+
     // For hidden windows and stuff
     bool        m_hidden        = false;
     bool        m_suspended     = false;

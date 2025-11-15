@@ -26,6 +26,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../i18n/Engine.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
@@ -1576,7 +1577,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             Debug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
             static bool shown = false;
             if (!shown) {
-                g_pHyprNotificationOverlay->addNotification("Wide color gamut is enabled but the display is not in 10bit mode", CHyprColor{}, 15000, ICON_WARNING);
+                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
+                                                            ICON_WARNING);
                 shown = true;
             }
         }

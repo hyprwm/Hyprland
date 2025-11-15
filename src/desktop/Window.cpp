@@ -24,6 +24,7 @@
 #include "../protocols/FractionalScale.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
+#include "../helpers/math/Expression.hpp"
 #include "../events/Events.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../render/Renderer.hpp"
@@ -1808,4 +1809,37 @@ void CWindow::updateDecorationValues() {
         m_realShadowColor->setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
 
     updateWindowDecos();
+}
+
+std::optional<double> CWindow::calculateSingleExpr(const std::string& s) {
+    const auto        PMONITOR     = m_monitor ? m_monitor : g_pCompositor->m_lastMonitor;
+    const auto        CURSOR_LOCAL = g_pInputManager->getMouseCoordsInternal() - (PMONITOR ? PMONITOR->m_position : Vector2D{});
+
+    Math::CExpression expr;
+    expr.addVariable("window_w", m_realSize->goal().x);
+    expr.addVariable("window_h", m_realSize->goal().y);
+    expr.addVariable("window_x", m_realPosition->goal().x - (PMONITOR ? PMONITOR->m_position.x : 0));
+    expr.addVariable("window_y", m_realPosition->goal().y - (PMONITOR ? PMONITOR->m_position.y : 0));
+
+    expr.addVariable("monitor_w", PMONITOR ? PMONITOR->m_size.x : 1920);
+    expr.addVariable("monitor_h", PMONITOR ? PMONITOR->m_size.y : 1080);
+
+    expr.addVariable("cursor_x", CURSOR_LOCAL.x);
+    expr.addVariable("cursor_y", CURSOR_LOCAL.y);
+
+    return expr.compute(s);
+}
+
+std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
+    auto spacePos = s.find(' ');
+    if (spacePos == std::string::npos)
+        return std::nullopt;
+
+    const auto LHS = calculateSingleExpr(s.substr(0, spacePos));
+    const auto RHS = calculateSingleExpr(s.substr(spacePos + 1));
+
+    if (!LHS || !RHS)
+        return std::nullopt;
+
+    return Vector2D{*LHS, *RHS};
 }

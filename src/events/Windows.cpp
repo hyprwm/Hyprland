@@ -374,120 +374,23 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_createdOverFullscreen = true;
 
         if (!PWINDOW->m_ruleApplicator->static_.size.empty()) {
-            const auto& EFFECT = PWINDOW->m_ruleApplicator->static_.size;
-            try {
-                auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
-                    if (VALUE.starts_with('<'))
-                        return std::min(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
-                    else if (VALUE.starts_with('>'))
-                        return std::max(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
-
-                    return stringToPercentage(VALUE, REL);
-                };
-
-                const auto  VALUE    = EFFECT.substr(EFFECT.find(' ') + 1);
-                const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
-
-                const auto  MAXSIZE = PWINDOW->requestedMaxSize();
-
-                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->m_size.x) :
-                                                        stringToFloatClamp(SIZEXSTR, PWINDOW->m_realSize->goal().x, PMONITOR->m_size.x);
-
-                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->m_size.y) :
-                                                        stringToFloatClamp(SIZEYSTR, PWINDOW->m_realSize->goal().y, PMONITOR->m_size.y);
-
-                Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
-
-                PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
-
+            const auto COMPUTED = PWINDOW->calculateExpression(PWINDOW->m_ruleApplicator->static_.size);
+            if (!COMPUTED)
+                Debug::log(ERR, "failed to parse {} as an expression", PWINDOW->m_ruleApplicator->static_.size);
+            else {
+                *PWINDOW->m_realSize = *COMPUTED;
                 PWINDOW->setHidden(false);
-            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {}", EFFECT); }
+            }
         }
 
         if (!PWINDOW->m_ruleApplicator->static_.position.empty()) {
-            const auto& EFFECT = PWINDOW->m_ruleApplicator->static_.position;
-            try {
-                auto       value = EFFECT.substr(EFFECT.find(' ') + 1);
-
-                const bool ONSCREEN = value.starts_with("onscreen");
-
-                if (ONSCREEN)
-                    value = value.substr(value.find_first_of(' ') + 1);
-
-                const bool CURSOR = value.starts_with("cursor");
-
-                if (CURSOR)
-                    value = value.substr(value.find_first_of(' ') + 1);
-
-                const auto POSXSTR = value.substr(0, value.find(' '));
-                const auto POSYSTR = value.substr(value.find(' ') + 1);
-
-                int        posX = 0;
-                int        posY = 0;
-
-                if (POSXSTR.starts_with("100%-")) {
-                    const bool subtractWindow = POSXSTR.starts_with("100%-h-");
-                    const auto POSXRAW        = (subtractWindow) ? POSXSTR.substr(7) : POSXSTR.substr(5);
-                    posX = PMONITOR->m_size.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->m_size.x);
-
-                    if (subtractWindow)
-                        posX -= PWINDOW->m_realSize->goal().x;
-
-                    if (CURSOR)
-                        Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
-                } else if (!CURSOR)
-                    posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->m_size.x;
-                else {
-                    // cursor
-                    if (POSXSTR == "cursor")
-                        posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->m_position.x;
-                    else {
-                        posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->m_position.x +
-                            (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_realSize->goal().x);
-                    }
-                }
-
-                if (POSYSTR.starts_with("100%-")) {
-                    const bool subtractWindow = POSYSTR.starts_with("100%-w-");
-                    const auto POSYRAW        = (subtractWindow) ? POSYSTR.substr(7) : POSYSTR.substr(5);
-                    posY = PMONITOR->m_size.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->m_size.y);
-
-                    if (subtractWindow)
-                        posY -= PWINDOW->m_realSize->goal().y;
-
-                    if (CURSOR)
-                        Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
-                } else if (!CURSOR) {
-                    posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->m_size.y;
-                } else {
-                    // cursor
-                    if (POSYSTR == "cursor") {
-                        posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->m_position.y;
-                    } else {
-                        posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->m_position.y +
-                            (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_realSize->goal().y);
-                    }
-                }
-
-                if (ONSCREEN) {
-                    int borderSize = PWINDOW->getRealBorderSize();
-
-                    posX = std::clamp(posX, sc<int>(PMONITOR->m_reservedTopLeft.x + borderSize),
-                                      std::max(sc<int>(PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PWINDOW->m_realSize->goal().x - borderSize),
-                                               sc<int>(PMONITOR->m_reservedTopLeft.x + borderSize + 1)));
-
-                    posY = std::clamp(posY, sc<int>(PMONITOR->m_reservedTopLeft.y + borderSize),
-                                      std::max(sc<int>(PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PWINDOW->m_realSize->goal().y - borderSize),
-                                               sc<int>(PMONITOR->m_reservedTopLeft.y + borderSize + 1)));
-                }
-
-                Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
-
-                *PWINDOW->m_realPosition = Vector2D(posX, posY) + PMONITOR->m_position;
-
+            const auto COMPUTED = PWINDOW->calculateExpression(PWINDOW->m_ruleApplicator->static_.position);
+            if (!COMPUTED)
+                Debug::log(ERR, "failed to parse {} as an expression", PWINDOW->m_ruleApplicator->static_.position);
+            else {
+                *PWINDOW->m_realPosition = *COMPUTED + PMONITOR->m_position;
                 PWINDOW->setHidden(false);
-            } catch (...) { Debug::log(LOG, "Rule move failed, rule: {}", EFFECT); }
+            }
         }
 
         if (PWINDOW->m_ruleApplicator->static_.center) {
@@ -506,26 +409,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
         bool setPseudo = false;
 
         if (!PWINDOW->m_ruleApplicator->static_.size.empty()) {
-            const auto& EFFECT = PWINDOW->m_ruleApplicator->static_.size;
-
-            try {
-                const auto  VALUE    = EFFECT.substr(EFFECT.find(' ') + 1);
-                const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
-
-                const auto  MAXSIZE = PWINDOW->requestedMaxSize();
-
-                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->m_size.x) : stringToPercentage(SIZEXSTR, PMONITOR->m_size.x);
-
-                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->m_size.y) : stringToPercentage(SIZEYSTR, PMONITOR->m_size.y);
-
-                Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
-
+            const auto COMPUTED = PWINDOW->calculateExpression(PWINDOW->m_ruleApplicator->static_.size);
+            if (!COMPUTED)
+                Debug::log(ERR, "failed to parse {} as an expression", PWINDOW->m_ruleApplicator->static_.size);
+            else {
                 setPseudo             = true;
-                PWINDOW->m_pseudoSize = Vector2D(SIZEX, SIZEY);
-
+                PWINDOW->m_pseudoSize = *COMPUTED;
                 PWINDOW->setHidden(false);
-            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {}", EFFECT); }
+            }
         }
 
         if (!setPseudo)

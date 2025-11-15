@@ -233,7 +233,8 @@ pkg_check_modules(
   libinput>=1.28
   gbm
   gio-2.0
-  re2)
+  re2
+  muparser)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

@@ -353,6 +353,34 @@ static bool test() {
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
+    OK(getFromSocket("/keyword general:border_size 0"));
+    OK(getFromSocket("/keyword windowrule match:float true, border_size 10"));
+
+    if (!spawnKitty("border_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/dispatch togglefloating"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "10");
+    }
+
+    OK(getFromSocket("/dispatch togglefloating"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
     // test expression rules
     OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, move 20+(monitor_w*0.1) monitor_h*0.5"));
 

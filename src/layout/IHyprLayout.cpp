@@ -811,6 +811,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
             m_lastTiledWindow.reset();
     }
 
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE | Desktop::Rule::RULE_PROP_FLOATING);
     pWindow->updateDecorationValues();
     pWindow->updateToplevel();
     g_pHyprRenderer->damageWindow(pWindow);

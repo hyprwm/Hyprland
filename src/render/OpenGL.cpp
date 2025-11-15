@@ -24,6 +24,7 @@
 #include "../managers/CursorManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
+#include "../i18n/Engine.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "pass/TexPassElement.hpp"
@@ -1006,7 +1007,7 @@ bool CHyprOpenGLImpl::initShaders() {
 
             prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
             if (m_shadersInitialized && m_cmSupported && prog == 0)
-                g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
+                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_CM_RELOAD_FAILED), CHyprColor{}, 15000, ICON_WARNING);
 
             m_cmSupported = prog > 0;
             if (m_cmSupported) {

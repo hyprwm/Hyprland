@@ -4,8 +4,6 @@ on:
   pull_request_target:
     types:
       - opened
-    paths:
-      - 'src/i18n/**'
   issue_comment:
     types:
       - created
@@ -29,11 +27,22 @@ jobs:
       AI_PROMPT: Translation patch below.
 
     steps:
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            i18n:
+              - 'src/i18n/**'
+
+      - name: Stop if i18n not changed
+        if: steps.changes.outputs.i18n != 'true'
+        run: echo "No i18n changes in this PR; skipping." && exit 0
+
       - name: Determine PR number
         id: pr
         run: |
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            echo "number=${{ github.event.pull_request_target.number }}" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           else
             echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           fi
@@ -112,9 +121,9 @@ jobs:
           fi
 
           # If failed, add a note
-          $ADDITIONAL_NOTE = ""
-          if [[ $COMMENT == *"not ok"* ]]; then
-            $ADDITIONAL_NOTE = "\n\nPlease note this check is a guideline, not a hard requirement. It is here to help you translate. If you disagree with some points, just state that. Any typos should be fixed."
+          ADDITIONAL_NOTE=""
+          if [[ "$COMMENT" == *"not ok"* ]]; then
+            ADDITIONAL_NOTE="\n\nPlease note this check is a guideline, not a hard requirement. It is here to help you translate. If you disagree with some points, just state that. Any typos should be fixed."
           fi
 
           # Post the review as a PR comment

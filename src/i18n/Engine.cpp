@@ -167,7 +167,7 @@ I18n::CI18nEngine::CI18nEngine() {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
             return "O Hyprland falhou ao carregar {count} recurso essencial, culpe o empacotador da sua distro por fazer um péssimo trabalho!";
-        return "O Hyprland falhou ao carregar {count} recursos essencial, culpe o empacotador da sua distro por fazer um péssimo trabalho!";
+        return "O Hyprland falhou ao carregar {count} recursos essenciais, culpe o empacotador da sua distro por fazer um péssimo trabalho!";
     });
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Sua disposição de monitores está configurada incorretamente. O monitor {name} se sobrepõe a outro(s) monitor(es) na disposição.\nPor favor consulte "
@@ -175,7 +175,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "mais informações. Isso <b>vai</b> causar problemas.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "O monitor {name} falhou em definir qualquer um dos modos solicitados, voltando ao modo {mode}.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-                            "Uma fator de escala inválido foi passado para o monitor {name}: {scale}, usando o fator sujerido: {fixed_scale}");
+                            "Uma fator de escala inválido foi passado para o monitor {name}: {scale}, usando o fator sugerido: {fixed_scale}");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Falha ao carregar o plugin {name}: {error}");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Falha ao carregar o shader CM, voltando para rgba/rgbx.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: o modo de gama de cores amplo está ativado, mas a tela não está configurada para 10 bits.");

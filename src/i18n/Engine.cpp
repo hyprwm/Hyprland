@@ -272,6 +272,45 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Impossibile ricaricare gli shader CM, sarà usato rgba/rgbx.");
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Schermo {name}: la gamma di colori ampia è abilitata ma lo schermo non è in modalità 10-bit.");
 
+    // hu_Hung (Old Hungarian Runes)
+    huEngine->registerEntry("hu_Hung", TXT_KEY_ANR_TITLE, "𐲀𐲥 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 𐲙𐲉𐲘 𐲮𐲀𐲗𐲀𐲤𐲏𐲛𐲗");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_ANR_CONTENT, "𐲀 {title} - {class} 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 𐲙𐲉𐲘 𐲮𐲀𐲗𐲀𐲤𐲏𐲛𐲗.\n𐲘𐲐𐲦 𐲤𐲉𐲢𐲉𐲦𐲙𐲉 𐲦𐲉𐲙𐲙𐲐 𐲮𐲉𐲗𐲉?");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_ANR_OPTION_TERMINATE, "𐲗𐲉𐲀𐲗𐲗𐲐𐲦𐲀𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_ANR_OPTION_WAIT, "𐲮𐲀𐲢𐲀𐲓𐲛𐲏𐲀𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_ANR_PROP_UNKNOWN, "(𐲐𐲤𐲘𐲉𐲢𐲉𐲦𐲗𐲉𐲙)");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "𐲀 <b>{app}</b> 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 𐲐𐲤𐲘𐲉𐲢𐲉𐲦𐲗𐲉𐲙 𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲦 𐲓𐲉𐲢.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "𐲀 <b>{app}</b> 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 𐲘𐲉𐲍𐲯𐲢𐲛𐲃𐲀𐲗𐲑𐲀 𐲢𐲛𐲍𐲏𐲐𐲦𐲉𐲙𐲐 𐲀 𐲓𐲉𐲯𐲉𐲢𐲙𐲉𐲱𐲱𐲱𐲦.\n\n𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲐𐲉𐲏𐲐?");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "𐲀 <b>{app}</b> 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 𐲘𐲉𐲍𐲯𐲢𐲛𐲃𐲀𐲗 𐲉𐲍𐲱 𐲃𐲱𐲮𐲐𐲦𐲘𐲉𐲙𐲱𐲦 𐲃𐲉𐲦𐲱𐲗𐲦𐲉𐲙𐲐: <b>{plugin}</b>.\n\n𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲐𐲉𐲏𐲐?");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "𐲒𐲑 𐲃𐲐𐲗𐲗𐲉𐲙𐲦𐲱𐲏𐲉𐲦𐲉𐲦 𐲉𐲤𐲏𐲗𐲉𐲗𐲦𐲱𐲙𐲓: <b>{keyboard}</b>.\n\n𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲐𐲉𐲏𐲐 𐲀 𐲘𐲱𐲓𐲱𐲇𐲉𐲤𐲉𐲦?");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(𐲐𐲤𐲘𐲉𐲢𐲉𐲦𐲗𐲉𐲙)");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_TITLE, "𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲱𐲓𐲉𐲢𐲉𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "𐲦𐲐𐲯𐲯: 𐲀𐲗𐲗𐲀𐲙𐲇𐲛 𐲤𐲏𐲀𐲃𐲀𐲗𐲱𐲛𐲓𐲀𐲦 𐲀𐲗𐲗𐲐𐲦𐲔𐲀𐲦 𐲃𐲉 𐲉𐲏𐲉𐲓𐲔𐲉𐲏 𐲀 𐲛𐲱𐲯𐲢𐲗𐲀𐲙𐲇 𐲓𐲛𐲙𐲘𐲐𐲍𐲱𐲢𐲀𐲑𐲐𐲛𐲤 𐲘𐲀𐲑𐲗𐲃𐲀𐲙.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_ALLOW, "𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲱𐲉𐲏𐲉𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲱𐲉𐲏𐲉𐲤 𐲉𐲤 𐲘𐲉𐲍𐲑𐲉𐲍𐲱𐲉𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_ALLOW_ONCE, "𐲉𐲍𐲱𐲤𐲏𐲉𐲢𐲐 𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲱𐲉𐲏𐲉𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_DENY, "𐲉𐲗𐲱𐲦𐲀𐲤𐲐𐲦𐲀𐲤");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "𐲐𐲤𐲘𐲉𐲢𐲉𐲦𐲗𐲉𐲙 𐲀𐲖𐲀𐲗𐲘𐲀𐲏𐲀𐲤 (𐲮𐲀𐲱𐲗𐲀𐲙𐲇 𐲓𐲗𐲐𐲉𐲙𐲤 𐲀𐲏𐲛𐲙𐲛𐲤𐲐𐲦𐲛 {wayland_id})");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "𐲒𐲍𐲱 𐲦𐲱𐲙𐲐𐲓, 𐲔𐲛𐲍𐲱 𐲀𐲏 XDG_CURRENT_DESKTOP 𐲓𐲱𐲢𐲙𐲱𐲉𐲏𐲉𐲦𐲉𐲦 𐲓𐲱𐲗𐲤𐲱𐲗𐲉𐲍 𐲓𐲉𐲏𐲉𐲗𐲐𐲓, 𐲉𐲤 𐲀 𐲑𐲉𐲗𐲉𐲙𐲗𐲉𐲍𐲐 𐲉𐲢𐲦𐲉𐲓 {value}.\n𐲉𐲏 𐲯𐲢𐲛𐲃𐲗𐲉𐲘𐲀𐲓𐲀𐲦 𐲛𐲓𐲛𐲏𐲔𐲀𐲦, 𐲔𐲀𐲑𐲀𐲓 𐲙𐲉𐲘 𐲤𐲏𐲀𐲙𐲇𐲉𐲓𐲛𐲤.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "𐲀 𐲢𐲉𐲙𐲇𐲤𐲏𐲉𐲢𐲉𐲃𐲉𐲙 𐲙𐲐𐲙𐲑 𐲦𐲉𐲗𐲉𐲯𐲐𐲦𐲮𐲉 𐲀 𐲛𐲱𐲯𐲢𐲗𐲀𐲙𐲇-𐲍𐲱𐲐𐲱𐲦𐲐𐲗𐲤. 𐲉𐲏 𐲉𐲍𐲱 𐲘𐲱𐲦𐲀𐲤𐲐𐲇𐲉𐲑𐲱 𐲘𐲱𐲍𐲍𐲱𐲤𐲉𐲍 𐲙𐲉𐲔𐲀𐲙𐲱 𐲯𐲀𐲢𐲃𐲉𐲤𐲏𐲉𐲇𐲀𐲃𐲗𐲀𐲓𐲔𐲛𐲏. 𐲘𐲛𐲙𐲦𐲛𐲗𐲑𐲀 𐲘𐲉𐲍 𐲀 𐲦𐲉𐲗𐲉𐲯𐲐𐲦𐲉𐲤𐲉𐲦.");
+    huEngine->registerEntry(
+        "hu_Hung", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+            int assetsNo = std::stoi(vars.at("count"));
+            if (assetsNo <= 1)
+                return "𐲀 𐲛𐲱𐲯𐲢𐲗𐲀𐲙𐲇 𐲙𐲉𐲘 𐲦𐲱𐲇𐲛𐲦𐲦 𐲃𐲉𐲦𐲱𐲗𐲦𐲉𐲙𐲐 {count} 𐲀𐲗𐲀𐲯𐲮𐲉𐲦𐲱 𐲉𐲢𐲱𐲘𐲛𐲢𐲢𐲀𐲤𐲦, 𐲔𐲐𐲃𐲀𐲏𐲦𐲀𐲤𐲤𐲀 𐲀 𐲇𐲐𐲤𐲏𐲦𐲢𐲐𐲃𐲱𐲑𐲐𐲛𐲑𐲀 𐲑𐲀𐲗𐲀𐲍𐲛𐲗𐲛𐲑𐲀𐲦 𐲀 𐲢𐲛𐲤𐲤𐲏 𐲘𐲱𐲙𐲓𐲀𐲉𐲢𐲦!";
+            return "𐲀 𐲛𐲱𐲯𐲢𐲗𐲀𐲙𐲇 𐲙𐲉𐲘 𐲦𐲱𐲇𐲛𐲦𐲦 𐲃𐲉𐲦𐲱𐲗𐲦𐲉𐲙𐲐 {count} 𐲀𐲗𐲀𐲯𐲮𐲉𐲦𐲱 𐲉𐲢𐲱𐲘𐲛𐲢𐲢𐲀𐲤𐲦, 𐲔𐲐𐲃𐲀𐲏𐲦𐲀𐲤𐲤𐲀 𐲀 𐲇𐲐𐲤𐲏𐲦𐲢𐲐𐲃𐲱𐲑𐲐𐲛𐲑𐲀 𐲑𐲀𐲗𐲀𐲍𐲛𐲗𐲛𐲑𐲀𐲦 𐲀 𐲢𐲛𐲤𐲤𐲏 𐲘𐲱𐲙𐲓𐲀𐲉𐲢𐲦!";
+        });
+    huEngine->registerEntry(
+        "hu_Hung", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "𐲀 𐲘𐲛𐲙𐲐𐲦𐲛𐲢 𐲉𐲗𐲢𐲉𐲙𐲇𐲉𐲏𐲉𐲤𐲉 𐲔𐲉𐲗𐲱𐲦𐲉𐲗𐲉𐲙𐲱𐲗 𐲮𐲀𐲙 𐲃𐲉𐲀𐲗𐲗𐲐𐲦𐲮𐲀. 𐲀 {name} 𐲘𐲛𐲙𐲐𐲦𐲛𐲢 𐲀𐲦𐲘𐲉𐲇𐲐 𐲀 𐲦𐲱𐲃𐲃𐲐 𐲘𐲛𐲙𐲐𐲦𐲛𐲢𐲦 𐲀𐲏 𐲉𐲗𐲢𐲉𐲙𐲇𐲉𐲏𐲉𐲤𐲃𐲉𐲙.\n𐲓𐲉𐲢𐲑𐲱𐲓, 𐲦𐲛𐲮𐲀𐲃𐲃𐲐 𐲐𐲙𐲘𐲛𐲢𐲘𐲀𐲑𐲐𐲛𐲉𐲢𐲦 𐲦𐲉𐲓𐲐𐲙𐲦𐲤𐲉 𐲘𐲉𐲍 𐲀 𐲮𐲐𐲓𐲐𐲦 "
+        "(𐲘𐲛𐲙𐲐𐲦𐲛𐲢𐲤 𐲛𐲗𐲇𐲀𐲗). 𐲉𐲏 <b>𐲯𐲢𐲛𐲃𐲗𐲉𐲘𐲀𐲓𐲀𐲦</b> 𐲘𐲛𐲍 𐲛𐲓𐲛𐲏𐲙𐲐.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "𐲀 {name} 𐲘𐲛𐲙𐲐𐲦𐲛𐲢 𐲙𐲉𐲘 𐲦𐲱𐲇𐲦𐲀 𐲃𐲉𐲀𐲗𐲗𐲐𐲦𐲀𐲙𐲐 𐲀 𐲓𐲉𐲢𐲦 𐲘𐲛𐲇𐲛𐲓𐲀𐲦, 𐲮𐲐𐲤𐲤𐲏𐲀𐲀𐲗𐲗 𐲀 {mode} 𐲘𐲛𐲇𐲢𐲀.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "𐲉𐲢𐲮𐲉𐲙𐲱𐲦𐲗𐲉𐲙 𐲤𐲓𐲀𐲗𐲀𐲏𐲀𐲤 𐲀 {name} 𐲘𐲛𐲙𐲐𐲦𐲛𐲢𐲔𐲛𐲏: {scale}, 𐲀 𐲑𐲀𐲮𐲀𐲤𐲛𐲗𐲦 𐲤𐲓𐲀𐲗𐲀𐲏𐲀𐲤 𐲔𐲀𐲤𐲏𐲙𐲀𐲗𐲀𐲦𐲀: {fixed_scale}");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "𐲙𐲉𐲘 𐲤𐲐𐲓𐲉𐲢𐲱𐲗𐲦 𐲃𐲉𐲦𐲱𐲗𐲦𐲉𐲙𐲐 𐲀 {name} 𐲃𐲱𐲮𐲐𐲦𐲘𐲉𐲙𐲱𐲦: {error}");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "𐲀 𐲑𐲘 𐲤𐲔𐲀𐲇𐲉𐲢 𐲱𐲑𐲢𐲀𐲦𐲱𐲗𐲦𐲉𐲤𐲉 𐲤𐲐𐲓𐲉𐲢𐲦𐲉𐲗𐲉𐲙, 𐲮𐲐𐲤𐲤𐲏𐲀𐲀𐲗𐲗 𐲢𐲍𐲃𐲀/𐲢𐲍𐲃𐲜-𐲢𐲉.");
+    huEngine->registerEntry("hu_Hung", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "𐲘𐲛𐲙𐲐𐲦𐲛𐲢 {name}: 𐲀 𐲤𐲉𐲗𐲉𐲤 𐲤𐲏𐲐𐲙𐲦𐲀𐲢𐲦𐲛𐲘𐲀𐲙𐲱 𐲉𐲙𐲍𐲉𐲇𐲉𐲗𐲱𐲉𐲏𐲮𐲉 𐲮𐲀𐲙, 𐲇𐲉 𐲀 𐲓𐲐𐲑𐲉𐲗𐲏𐲱 𐲙𐲉𐲘 10 𐲃𐲐𐲦𐲉𐲤 𐲘𐲛𐲇𐲃𐲀𐲙 𐲮𐲀𐲙.");
+
     // ja_JP (Japanese)
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_TITLE, "アプリは応答しません");
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_CONTENT, "アプリ {title} ー {class}は応答しません。\n何をしたいですか？");

@@ -1,7 +1,7 @@
 name: AI Translation Check
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
     paths:
@@ -18,7 +18,7 @@ permissions:
 jobs:
   review:
     name: Review Translation
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
+    if: ${{ github.event_name == 'pull_request_target' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
     runs-on: ubuntu-latest
     env:
       OPENAI_MODEL: gpt-5-mini
@@ -32,8 +32,8 @@ jobs:
       - name: Determine PR number
         id: pr
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            echo "number=${{ github.event.pull_request_target.number }}" >> "$GITHUB_OUTPUT"
           else
             echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           fi

@@ -249,18 +249,18 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
     // sr_RS (Serbian)
-    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_TITLE, "Aplikacije ne reaguje");
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_TITLE, "Aplikacija ne reaguje");
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} ne reaguje.\nŠta želite da uradite sa njom?");
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_OPTION_TERMINATE, "Prekini");
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_OPTION_WAIT, "Čekaj");
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_PROP_UNKNOWN, "(nepoznato)");
 
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Aplikacija <b>{app}</b> zahteva nepoznatu dozvolu.");
-    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikacija <b>{app}</b> pokušava da usnimi vaš ekran.\n\nDa li želiš da to dozvoliš?");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikacija <b>{app}</b> pokušava da snima tvoj ekran.\n\nDa li želiš da to dozvoliš?");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Aplikacija <b>{app}</b> pokušava da učita dodatak: <b>{plugin}</b>.\n\nDa li želiš da to dozvoliš?");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Nova tastatura je detektovana: <b>{keyboard}</b>.\n\nDa li želiš da dozvoliš njen rad?");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(nepoznato)");
-    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_TITLE, "Zahtev dozvole");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_TITLE, "Zahtev za dozvolu");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Savet: možeš napraviti trajna pravila za ovo u Hyprland konfiguracionoj datoteci.");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_ALLOW, "Dozvoli");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Dozvoli i zapamti");
@@ -276,17 +276,19 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland nije uspeo da učita {count} ključno sredstvo, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
-        return "Hyprland nije uspeo da učita {count} ključnih sredstava, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
+            return "Hyprland nije uspeo da učita {count} ključni resurs, krivi pakera tvoje distribucije za loše odrađen posao!";
+        if (assetsNo <= 4)
+        	return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
+        return "Hyprland nije uspeo da učita {count} ključnih resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
     });
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Tvoj raspored monitora je nepravilno postavljen. Monitor {name} se preklapa sa drugim monitorom/monitorima u rasporedu.\nMolim te pogledaj wiki (Monitors stranicu) za "
                             "više informacija. Ovo <b>će</b> izazvati probleme.");
-    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} nije uspeo da postavi nijedan traženi režim, vraća se na režim {mode}.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} nije uspeo da postavi nijedan traženi režim, vraćanje na režim {mode}.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Nevalidna skala prosleđena monitoru {name}: {scale}, koristi se preporučena skala: {fixed_scale}");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Neuspešno učitavanje dodatka {name}: {error}");
-    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno učitavanje CM šejdera nije uspelo, vraća se na rgba/rgbx.");
-    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: širok spektar boja je uključen ali ekran nije u 10-bitnom režimu.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno učitavanje CM šejdera nije uspelo, vraćanje na rgba/rgbx.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: širok spektar boja je omogućen ali ekran nije u 10-bitnom režimu.");
 }
 
 std::string I18n::CI18nEngine::localize(eI18nKeys key, const Hyprutils::I18n::translationVarMap& vars) {

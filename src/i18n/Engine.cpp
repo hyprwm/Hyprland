@@ -390,12 +390,14 @@ I18n::CI18nEngine::CI18nEngine() {
 
     // ar (Arabic - Modern Standard)
     huEngine->registerEntry("ar", TXT_KEY_ANR_TITLE, "التطبيق لا يستجيب");
-    huEngine->registerEntry("ar", TXT_KEY_ANR_CONTENT, "التطبيق {title} - {class} لا يستجيب.\nماذا تريد أن تفعل به؟");
+    huEngine->registerEntry("ar", TXT_KEY_ANR_CONTENT,
+                            "التطبيق {title} - {class} لا يستجيب.\nما الذي تريد فعله؟");
     huEngine->registerEntry("ar", TXT_KEY_ANR_OPTION_TERMINATE, "إنهاء");
     huEngine->registerEntry("ar", TXT_KEY_ANR_OPTION_WAIT, "الانتظار");
     huEngine->registerEntry("ar", TXT_KEY_ANR_PROP_UNKNOWN, "(غير معروف)");
 
-    huEngine->registerEntry("ar", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "يطلب التطبيق <b>{app}</b> صلاحية غير معروفة.");
+    huEngine->registerEntry("ar", TXT_KEY_PERMISSION_REQUEST_UNKNOWN,
+                            "يطلب التطبيق <b>{app}</b> صلاحية غير معروفة.");
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY,
                             "يحاول التطبيق <b>{app}</b> التقاط الشاشة.\n\nهل تريد السماح له بذلك؟");
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
@@ -403,7 +405,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
                             "تم اكتشاف لوحة مفاتيح جديدة: <b>{keyboard}</b>.\n\nهل تريد السماح لها بالعمل؟");
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(غير معروف)");
-    huEngine->registerEntry("ar", TXT_KEY_PERMISSION_TITLE, "طلب إذن");
+    huEngine->registerEntry("ar", TXT_KEY_PERMISSION_TITLE, "طلب الإذن");
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_PERSISTENCE_HINT,
                             "تلميح: يمكنك تعيين قواعد دائمة لهذه الطلبات في ملف إعدادات Hyprland.");
     huEngine->registerEntry("ar", TXT_KEY_PERMISSION_ALLOW, "السماح");
@@ -415,28 +417,39 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry(
         "ar", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "يبدو أنّ متغيّر البيئة XDG_CURRENT_DESKTOP تتم إدارته من خارج النظام، والقيمة الحالية هي {value}.\nقد يؤدي ذلك إلى مشكلات ما لم يكن مقصودًا.");
+        "يبدو أنّ متغيّر البيئة XDG_CURRENT_DESKTOP يُدار من خارج النظام، والقيمة الحالية هي {value}.\n"
+        "قد يؤدي ذلك إلى مشكلات ما لم يكن مقصودًا.");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "لا يحتوي نظامك على الحزمة hyprland-guiutils مثبتة. هذه حزمة مطلوبة أثناء التشغيل لبعض مربعات الحوار. يُنصَح بتثبيتها.");
-    huEngine->registerEntry("ar", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
-        int assetsNo = std::stoi(vars.at("count"));
-        if (assetsNo <= 1)
-            return "فشل Hyprland في تحميل مورد أساسي واحد ({count})، ألقِ اللوم على جهة إعداد توزيعتك لسوء حزم البرنامج!";
-        return "فشل Hyprland في تحميل {count} من الموارد الأساسية، ألقِ اللوم على جهة إعداد توزيعتك لسوء حزم البرنامج!";
-    });
+
+    huEngine->registerEntry("ar", TXT_KEY_NOTIF_FAILED_ASSETS,
+        [](const Hyprutils::I18n::translationVarMap& vars) {
+            int assetsNo = std::stoi(vars.at("count"));
+            if (assetsNo <= 1)
+                return "فشل Hyprland في تحميل مورد أساسي ({count}). قد يكون السبب سوء تغليف الحزم في التوزيعة.";
+            return "فشل Hyprland في تحميل {count} من الموارد الأساسية. قد يكون السبب سوء تغليف الحزم في التوزيعة.";
+        });
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "تم إعداد مخطط الشاشات لديك بشكل غير صحيح. الشاشة {name} تتداخل مع شاشة أو أكثر في المخطط.\n"
                             "يرجى مراجعة صفحة الشاشات في الويكي لمزيد من التفاصيل. هذا <b>سيسبب</b> مشكلات.");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
-                            "فشلت الشاشة {name} في ضبط أي من الأوضاع المطلوبة، سيتم الرجوع إلى الوضع {mode}.");
+                            "فشلت الشاشة {name} في ضبط أي من الأوضاع المطلوبة، وسيتم الرجوع إلى الوضع {mode}.");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-                            "تم تمرير قيمة تحجيم غير صالحة إلى الشاشة {name}: {scale}، سيتم استخدام قيمة التحجيم المقترحة: {fixed_scale}.");
+                            "تم تمرير قيمة تحجيم غير صالحة إلى الشاشة {name}: {scale}. سيتم استخدام قيمة التحجيم المقترحة: {fixed_scale}.");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN,
                             "فشل تحميل الإضافة {name}: {error}");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_CM_RELOAD_FAILED,
-                            "فشلت إعادة تحميل مظلّل إدارة الألوان (CM)، سيتم الرجوع إلى صيغة الألوان rgba/rgbx.");
+                            "فشلت إعادة تحميل نظام إدارة الألوان (CM). سيتم الرجوع إلى صيغة الألوان rgba/rgbx.");
+
     huEngine->registerEntry("ar", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
-                            "الشاشة {name}: تم تفعيل نطاق الألوان الواسع لكن العرض ليس في وضع 10 بت.");
+                            "الشاشة {name}: تم تفعيل نطاق الألوان الواسع، لكن العرض ليس في وضع 10 بت.");
+
 
     // ru_RU (Russian)
     huEngine->registerEntry("ru_RU", TXT_KEY_ANR_TITLE, "Приложение не отвечает");

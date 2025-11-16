@@ -159,8 +159,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland kon {count} essentieel bestand niet laden, Geef de pakketbeheerder van je distro de schult voor slecht verpakkingswerk!";
-        return "Hyprland kon {count} essentiële bestanden niet laden, Geef de pakketbeheerder van je distro de schult voor slecht verpakkingswerk!";
+            return "Hyprland kon {count} essentieel bestand niet laden, Geef de pakketbeheerder van je distro de schuld voor slecht verpakkingswerk!";
+        return "Hyprland kon {count} essentiële bestanden niet laden, Geef de pakketbeheerder van je distro de schuld voor slecht verpakkingswerk!";
     });
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Uw monitorindeling is onjuist ingesteld. Monitor {name} overlapt met één of meerdere andere monitoren in de indeling.\n"
@@ -171,7 +171,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Ongeldige schaal opgegeven voor monitor {name}: {scale}, De voorgestelde schaal {fixed_scale} wordt gebruikt");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Plugin {name} kon niet worden geladen : {error}");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
-    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is ingeschakeld maar het scherm staat buet ub 10-bitmodus.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is ingeschakeld maar het scherm staat niet in 10-bitmodus.");
 
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");

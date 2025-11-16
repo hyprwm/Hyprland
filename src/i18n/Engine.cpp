@@ -153,7 +153,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry(
         "nl_NL", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan probelmen veroorzaken, tenzij dit opzettelijk is.");
+        "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan problemen veroorzaken, tenzij dit opzettelijk is.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Hyprland-guiutils is niet op uw systeem geïnstalleerd. Dit is een runtime-afhankelijkheid voor sommige dialogen. Overweeg het te installeren.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
@@ -166,9 +166,9 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Uw monitorindeling is onjuist ingesteld. Monitor {name} overlapt met één of meerdere andere monitoren in de indeling.\n"
                             "Zie de wiki (Monitors pagina) voor meer informatie. Dit <b>zal</b> problemen veroorzaken.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
-                            "Monitor {name} is er niet in geslaagd om een van de aangevraagde modi toe te passen en gebruikt nu modus {mode}.");
+                            "Monitor {name} is er niet in geslaagd om een van de aangevraagde modi toe te passen en gebruikt nu de modus {mode}.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-                            "Ongeldige schaal opgegeven voor monitor {name}: {scale}, de voorgestelde schaal {fixed_scale} wordt gebruikt");
+                            "Ongeldige schaal opgegeven voor monitor {name}: {scale}, de voorgestelde schaal {fixed_scale} wordt gebruikt.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Plugin {name} kon niet worden geladen: {error}");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: breed kleurbereik is ingeschakeld maar het scherm staat niet in 10-bitmodus.");

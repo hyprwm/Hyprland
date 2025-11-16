@@ -223,7 +223,36 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
             std::erase(m_parent->m_children, m_self);
 
         auto newp = parentR ? CXDGToplevelResource::fromResource(parentR) : nullptr;
-        m_parent  = newp;
+
+        if (newp) {
+            // check for protocol constraints
+            if (newp == m_self) {
+                r->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be self");
+                return;
+            }
+
+            static std::function<bool(WP<CXDGToplevelResource>, WP<CXDGToplevelResource>)> exploreChildren = [](WP<CXDGToplevelResource> tl,
+                                                                                                                WP<CXDGToplevelResource> target) -> bool {
+                bool any = false;
+                for (const auto& c : tl->m_children) {
+                    if (c == target)
+                        return true;
+
+                    any = any || exploreChildren(c, target);
+
+                    if (any)
+                        break;
+                }
+                return any;
+            };
+
+            if (exploreChildren(m_self, newp)) {
+                r->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be a descendant");
+                return;
+            }
+        }
+
+        m_parent = newp;
 
         if (m_parent)
             m_parent->m_children.emplace_back(m_self);

@@ -484,6 +484,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:col.inactive_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xff444444"});
     registerConfigVar("general:col.nogroup_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffaaff"});
     registerConfigVar("general:col.nogroup_border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffff00ff"});
+    registerConfigVar("general:modal_parent_blocking", Hyprlang::INT{1});
 
     registerConfigVar("misc:disable_hyprland_logo", Hyprlang::INT{0});
     registerConfigVar("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -516,12 +517,13 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});
     registerConfigVar("misc:render_unfocused_fps", Hyprlang::INT{15});
     registerConfigVar("misc:disable_xdg_env_checks", Hyprlang::INT{0});
-    registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
+    registerConfigVar("misc:disable_hyprland_guiutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
     registerConfigVar("misc:anr_missed_pings", Hyprlang::INT{5});
     registerConfigVar("misc:screencopy_force_8b", Hyprlang::INT{1});
     registerConfigVar("misc:disable_scale_notification", Hyprlang::INT{0});
+    registerConfigVar("misc:size_limits_tiled", Hyprlang::INT{0});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});
     registerConfigVar("group:focus_removed_window", Hyprlang::INT{1});
@@ -654,6 +656,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:off_window_axis_events", Hyprlang::INT{1});
     registerConfigVar("input:sensitivity", {0.f});
     registerConfigVar("input:accel_profile", {STRVAL_EMPTY});
+    registerConfigVar("input:rotation", Hyprlang::INT{0});
     registerConfigVar("input:kb_file", {STRVAL_EMPTY});
     registerConfigVar("input:kb_layout", {"us"});
     registerConfigVar("input:kb_variant", {STRVAL_EMPTY});
@@ -749,6 +752,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:default_monitor", {STRVAL_EMPTY});
     registerConfigVar("cursor:zoom_factor", {1.f});
     registerConfigVar("cursor:zoom_rigid", Hyprlang::INT{0});
+    registerConfigVar("cursor:zoom_disable_aa", Hyprlang::INT{0});
     registerConfigVar("cursor:enable_hyprcursor", Hyprlang::INT{1});
     registerConfigVar("cursor:sync_gsettings_theme", Hyprlang::INT{1});
     registerConfigVar("cursor:hide_on_key_press", Hyprlang::INT{0});
@@ -777,7 +781,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:send_content_type", Hyprlang::INT{1});
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
-    registerConfigVar("render:non_shader_cm", Hyprlang::INT{2});
+    registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
+    registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -789,6 +794,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialCategory("device", {"name"});
     m_config->addSpecialConfigValue("device", "sensitivity", {0.F});
     m_config->addSpecialConfigValue("device", "accel_profile", {STRVAL_EMPTY});
+    m_config->addSpecialConfigValue("device", "rotation", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("device", "kb_file", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "kb_layout", {"us"});
     m_config->addSpecialConfigValue("device", "kb_variant", {STRVAL_EMPTY});
@@ -838,6 +844,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
     m_config->addSpecialConfigValue("monitorv2", "cm", {"auto"});
+    m_config->addSpecialConfigValue("monitorv2", "sdr_eotf", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
@@ -1098,7 +1105,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "addreserved", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
-        parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        try {
+            parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+        } catch (...) { return "parse error: invalid reserved area"; }
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
     if (VAL && VAL->m_bSetByUser)
@@ -1109,6 +1118,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "cm", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_eotf", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().sdrEotf = std::any_cast<Hyprlang::INT>(VAL->getValue());
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().sdrBrightness = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
@@ -1556,6 +1568,11 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
 
                 if (rule->m_group != -1) {
                     if (rule->m_group != isGrouped)
+                        continue;
+                }
+
+                if (rule->m_modal != -1) {
+                    if (rule->m_modal != pWindow->isModal())
                         continue;
                 }
 
@@ -2075,17 +2092,22 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     int argno = 1;
 
-    mode.type        = DRM_MODE_TYPE_USERDEF;
-    mode.clock       = std::stof(args[argno++]) * 1000;
-    mode.hdisplay    = std::stoi(args[argno++]);
-    mode.hsync_start = std::stoi(args[argno++]);
-    mode.hsync_end   = std::stoi(args[argno++]);
-    mode.htotal      = std::stoi(args[argno++]);
-    mode.vdisplay    = std::stoi(args[argno++]);
-    mode.vsync_start = std::stoi(args[argno++]);
-    mode.vsync_end   = std::stoi(args[argno++]);
-    mode.vtotal      = std::stoi(args[argno++]);
-    mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    try {
+        mode.type        = DRM_MODE_TYPE_USERDEF;
+        mode.clock       = std::stof(args[argno++]) * 1000;
+        mode.hdisplay    = std::stoi(args[argno++]);
+        mode.hsync_start = std::stoi(args[argno++]);
+        mode.hsync_end   = std::stoi(args[argno++]);
+        mode.htotal      = std::stoi(args[argno++]);
+        mode.vdisplay    = std::stoi(args[argno++]);
+        mode.vsync_start = std::stoi(args[argno++]);
+        mode.vsync_end   = std::stoi(args[argno++]);
+        mode.vtotal      = std::stoi(args[argno++]);
+        mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "modeline parse error: invalid numeric value: {}", e.what());
+        return false;
+    }
 
     // clang-format off
     static std::unordered_map<std::string, uint32_t> flagsmap = {
@@ -2236,6 +2258,11 @@ bool CMonitorRuleParser::parseScale(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseTransform(const std::string& value) {
+    if (!isNumber(value)) {
+        m_error += "invalid transform ";
+        return false;
+    }
+
     const auto TSF = std::stoi(value);
     if (std::clamp(TSF, 0, 7) != TSF) {
         Debug::log(ERR, "Invalid transform {} in monitor", TSF);
@@ -2252,28 +2279,12 @@ bool CMonitorRuleParser::parseBitdepth(const std::string& value) {
 }
 
 bool CMonitorRuleParser::parseCM(const std::string& value) {
-    if (value == "auto")
-        m_rule.cmType = CM_AUTO;
-    else if (value == "srgb")
-        m_rule.cmType = CM_SRGB;
-    else if (value == "wide")
-        m_rule.cmType = CM_WIDE;
-    else if (value == "edid")
-        m_rule.cmType = CM_EDID;
-    else if (value == "hdr")
-        m_rule.cmType = CM_HDR;
-    else if (value == "hdredid")
-        m_rule.cmType = CM_HDR_EDID;
-    else if (value == "dcip3")
-        m_rule.cmType = CM_DCIP3;
-    else if (value == "dp3")
-        m_rule.cmType = CM_DP3;
-    else if (value == "adobe")
-        m_rule.cmType = CM_ADOBE;
-    else {
+    auto parsedCM = NCMType::fromString(value);
+    if (!parsedCM.has_value()) {
         m_error += "invalid cm ";
         return false;
     }
+    m_rule.cmType = parsedCM.value();
     return true;
 }
 
@@ -2346,7 +2357,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
-            parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            try {
+                parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+            } catch (...) { return "parse error: invalid reserved area"; }
             return {};
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
@@ -2389,12 +2402,12 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             parser.parseVRR(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
+            const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = parser.name();
             wsRule.workspaceString = ARGS[argno + 1];
-            wsRule.workspaceId     = id;
+            wsRule.workspaceId     = isAutoID ? WORKSPACE_INVALID : id;
             wsRule.workspaceName   = name;
 
             m_workspaceRules.emplace_back(wsRule);
@@ -2423,18 +2436,26 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     if (ARGS[1].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[1], true))
+        return "invalid point";
     float p1x = std::stof(ARGS[1]);
 
     if (ARGS[2].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[2], true))
+        return "invalid point";
     float p1y = std::stof(ARGS[2]);
 
     if (ARGS[3].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[3], true))
+        return "invalid point";
     float p2x = std::stof(ARGS[3]);
 
     if (ARGS[4].empty())
         return "too few arguments";
+    else if (!isNumber(ARGS[4], true))
+        return "invalid point";
     float p2y = std::stof(ARGS[4]);
 
     if (!ARGS[5].empty())
@@ -2518,52 +2539,45 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked         = false;
-    bool       release        = false;
-    bool       repeat         = false;
-    bool       mouse          = false;
-    bool       nonConsuming   = false;
-    bool       transparent    = false;
-    bool       ignoreMods     = false;
-    bool       multiKey       = false;
-    bool       longPress      = false;
-    bool       hasDescription = false;
-    bool       dontInhibit    = false;
-    bool       click          = false;
-    bool       drag           = false;
-    const auto BINDARGS       = command.substr(4);
+    bool       locked          = false;
+    bool       release         = false;
+    bool       repeat          = false;
+    bool       mouse           = false;
+    bool       nonConsuming    = false;
+    bool       transparent     = false;
+    bool       ignoreMods      = false;
+    bool       multiKey        = false;
+    bool       longPress       = false;
+    bool       hasDescription  = false;
+    bool       dontInhibit     = false;
+    bool       click           = false;
+    bool       drag            = false;
+    bool       submapUniversal = false;
+    const auto BINDARGS        = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
-        if (arg == 'l') {
-            locked = true;
-        } else if (arg == 'r') {
-            release = true;
-        } else if (arg == 'e') {
-            repeat = true;
-        } else if (arg == 'm') {
-            mouse = true;
-        } else if (arg == 'n') {
-            nonConsuming = true;
-        } else if (arg == 't') {
-            transparent = true;
-        } else if (arg == 'i') {
-            ignoreMods = true;
-        } else if (arg == 's') {
-            multiKey = true;
-        } else if (arg == 'o') {
-            longPress = true;
-        } else if (arg == 'd') {
-            hasDescription = true;
-        } else if (arg == 'p') {
-            dontInhibit = true;
-        } else if (arg == 'c') {
-            click   = true;
-            release = true;
-        } else if (arg == 'g') {
-            drag    = true;
-            release = true;
-        } else {
-            return "bind: invalid flag";
+        switch (arg) {
+            case 'l': locked = true; break;
+            case 'r': release = true; break;
+            case 'e': repeat = true; break;
+            case 'm': mouse = true; break;
+            case 'n': nonConsuming = true; break;
+            case 't': transparent = true; break;
+            case 'i': ignoreMods = true; break;
+            case 's': multiKey = true; break;
+            case 'o': longPress = true; break;
+            case 'd': hasDescription = true; break;
+            case 'p': dontInhibit = true; break;
+            case 'c':
+                click   = true;
+                release = true;
+                break;
+            case 'g':
+                drag    = true;
+                release = true;
+                break;
+            case 'u': submapUniversal = true; break;
+            default: return "bind: invalid flag";
         }
     }
 
@@ -2628,7 +2642,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if ((!KEY.empty()) || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
-        if (parsedKey.catchAll && m_currentSubmap.empty()) {
+        if (parsedKey.catchAll && m_currentSubmap.name.empty()) {
             Debug::log(ERR, "Catchall not allowed outside of submap!");
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
@@ -2636,7 +2650,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
                                                mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag});
+                                               click,         drag,         submapUniversal});
     }
 
     return {};
@@ -2732,6 +2746,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
             set |= (rule->m_focus = (v == "1"), true);
         if (auto v = get("group"); !v.empty())
             set |= (rule->m_group = (v == "1"), true);
+        if (auto v = get("modal"); !v.empty())
+            set |= (rule->m_modal = (v == "1"), true);
 
         if (auto v = get("fullscreenstate"); !v.empty())
             set |= (rule->m_fullscreenState = v, true);
@@ -2793,6 +2809,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
                 if (!rule->m_contentType.empty() && rule->m_contentType != other->m_contentType)
                     return false;
                 if (rule->m_group != -1 && rule->m_group != other->m_group)
+                    return false;
+                if (rule->m_modal != -1 && rule->m_modal != other->m_modal)
                     return false;
                 return true;
             });
@@ -2896,7 +2914,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 
     auto       first_ident = trim(value.substr(0, FIRST_DELIM));
 
-    const auto& [id, name] = getWorkspaceIDNameFromString(first_ident);
+    const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(first_ident);
 
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
@@ -2996,8 +3014,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             return R;
     }
 
-    wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
+    wsRule.workspaceId   = isAutoID ? WORKSPACE_INVALID : id;
 
     const auto IT = std::ranges::find_if(m_workspaceRules, [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 
@@ -3009,12 +3027,10 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     return {};
 }
 
-std::optional<std::string> CConfigManager::handleSubmap(const std::string& command, const std::string& submap) {
-    if (submap == "reset")
-        m_currentSubmap = "";
-    else
-        m_currentSubmap = submap;
-
+std::optional<std::string> CConfigManager::handleSubmap(const std::string&, const std::string& submap) {
+    const auto SUBMAP     = CConstVarList(submap);
+    m_currentSubmap.name  = (SUBMAP[0] == "reset") ? "" : SUBMAP[0];
+    m_currentSubmap.reset = SUBMAP[1];
     return {};
 }
 

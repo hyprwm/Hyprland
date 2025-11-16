@@ -17,6 +17,7 @@ struct SCallstackFrameInfo {
 struct SWorkspaceIDName {
     WORKSPACEID id = WORKSPACE_INVALID;
     std::string name;
+    bool        isAutoIDd = false;
 };
 
 std::string                             absolutePath(const std::string&, const std::string&);

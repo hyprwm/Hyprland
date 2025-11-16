@@ -4,6 +4,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
+#include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
@@ -143,6 +144,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["event"]                          = event;
     m_dispatchers["global"]                         = global;
     m_dispatchers["setprop"]                        = setProp;
+    m_dispatchers["forceidle"]                      = forceIdle;
 
     m_scrollTimer.reset();
 
@@ -643,7 +645,7 @@ eMultiKeyCase CKeybindManager::mkBindMatches(const SP<SKeybind> keybind) {
     return mkKeysymSetMatches(keybind->sMkKeys, m_mkKeys);
 }
 
-std::string CKeybindManager::getCurrentSubmap() {
+SSubmap CKeybindManager::getCurrentSubmap() {
     return m_currentSelectedSubmap;
 }
 
@@ -678,7 +680,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || k->submap != m_currentSelectedSubmap || k->shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || (k->submap != m_currentSelectedSubmap && !k->submapUniversal) || k->shadowed))
             continue;
 
         if (k->multiKey) {
@@ -795,6 +797,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // don't process keybinds on submap change.
                 break;
             }
+            if (k->handler != "submap" && !k->submap.reset.empty())
+                setSubmap(k->submap.reset);
         }
 
         if (pressed && k->repeat) {
@@ -1223,7 +1227,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
     const bool EXPLICITPREVIOUS  = args.contains("previous");
 
-    const auto& [workspaceToChangeTo, workspaceName] = getWorkspaceToChangeFromArgs(args, PCURRENTWORKSPACE, PMONITOR);
+    const auto& [workspaceToChangeTo, workspaceName, isAutoID] = getWorkspaceToChangeFromArgs(args, PCURRENTWORKSPACE, PMONITOR);
     if (workspaceToChangeTo == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
         return {.success = false, .error = "Error in changeworkspace, invalid value"};
@@ -1385,7 +1389,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
+    const auto& [WORKSPACEID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
         return {.success = false, .error = "Invalid workspace in moveActiveToWorkspace"};
@@ -1448,7 +1452,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
+    const auto& [WORKSPACEID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return {.success = false, .error = "Error in moveActiveToWorkspaceSilent, invalid value"};
@@ -2046,7 +2050,7 @@ SDispatchResult CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 }
 
 SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
-    auto [workspaceID, workspaceName] = getWorkspaceIDNameFromString(args);
+    auto [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
     if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return {.success = false, .error = "focusWorkspaceOnCurrentMonitor invalid workspace!"};
@@ -2100,7 +2104,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
 }
 
 SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
-    const auto& [workspaceID, workspaceName] = getWorkspaceIDNameFromString("special:" + args);
+    const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + args);
     if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
         return {.success = false, .error = "Invalid workspace passed to special"};
@@ -2390,19 +2394,19 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
 
 SDispatchResult CKeybindManager::setSubmap(std::string submap) {
     if (submap == "reset" || submap.empty()) {
-        m_currentSelectedSubmap = "";
+        m_currentSelectedSubmap.name = "";
         Debug::log(LOG, "Reset active submap to the default one.");
         g_pEventManager->postEvent(SHyprIPCEvent{"submap", ""});
-        EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
+        EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap.name);
         return {};
     }
 
     for (const auto& k : g_pKeybindManager->m_keybinds) {
-        if (k->submap == submap) {
-            m_currentSelectedSubmap = submap;
+        if (k->submap.name == submap) {
+            m_currentSelectedSubmap.name = submap;
             Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});
-            EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap);
+            EMIT_HOOK_EVENT("submap", m_currentSelectedSubmap.name);
             return {};
         }
     }
@@ -3251,6 +3255,19 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
     for (auto const& m : g_pCompositor->m_monitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::forceIdle(std::string args) {
+    std::optional<float> duration = getPlusMinusKeywordResult(args, 0);
+
+    if (!duration.has_value()) {
+        Debug::log(ERR, "Duration invalid in forceIdle!");
+        return {.success = false, .error = "Duration invalid in forceIdle!"};
+    }
+
+    PROTO::idle->setTimers(duration.value() * 1000.0);
 
     return {};
 }

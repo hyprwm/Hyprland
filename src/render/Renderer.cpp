@@ -26,6 +26,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
@@ -1087,6 +1088,25 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     }
 }
 
+static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main) {
+    const auto CAN_USE_WINDOW       = pWindow && main;
+    const auto WINDOW_SIZE_MISALIGN = CAN_USE_WINDOW && pWindow->getReportedSize() != pWindow->m_wlSurface->resource()->m_current.size;
+
+    if (pSurface->m_current.viewport.hasDestination)
+        return (pSurface->m_current.viewport.destination * pMonitor->m_scale).round();
+
+    if (pSurface->m_current.viewport.hasSource)
+        return (pSurface->m_current.viewport.source.size() * pMonitor->m_scale).round();
+
+    if (WINDOW_SIZE_MISALIGN)
+        return (pSurface->m_current.size * pMonitor->m_scale).round();
+
+    if (CAN_USE_WINDOW)
+        return (pWindow->getReportedSize() * pMonitor->m_scale).round();
+
+    return std::nullopt;
+}
+
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_isX11) {
@@ -1117,20 +1137,14 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             const Vector2D MISALIGNMENT = pSurface->m_current.bufferSize - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
-        }
-
-        // if the surface is smaller than our viewport, extend its edges.
-        // this will break if later on xdg geometry is hit, but we really try
-        // to let the apps know to NOT add CSD. Also if source is there.
-        // there is no way to fix this if that's the case
-        if (*PEXPANDEDGES) {
+        } else {
+            // if the surface is smaller than our viewport, extend its edges.
+            // this will break if later on xdg geometry is hit, but we really try
+            // to let the apps know to NOT add CSD. Also if source is there.
+            // there is no way to fix this if that's the case
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination;
-            const auto EXPECTED_SIZE    = ((pSurface->m_current.viewport.hasDestination ?
-                                                pSurface->m_current.viewport.destination :
-                                                (pSurface->m_current.viewport.hasSource ? pSurface->m_current.viewport.source.size() / pSurface->m_current.scale : projSize)) *
-                                        pMonitor->m_scale)
-                                           .round();
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE > 1 && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
+            const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());
 
             const auto RATIO = projSize / EXPECTED_SIZE;
             if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
@@ -1490,7 +1504,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     static bool needsHDRupdate = false;
 
-    const bool  configuredHDR = (pMonitor->m_cmType == CM_HDR_EDID || pMonitor->m_cmType == CM_HDR);
+    const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
 
     const auto  FS_WINDOW = pMonitor->inFullscreenMode() ? pMonitor->m_activeWorkspace->getFullscreenWindow() : nullptr;
@@ -1539,9 +1553,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
-                    const auto targetCM = wantHDR ? (*PAUTOHDR == 2 ? CM_HDR_EDID : CM_HDR) : pMonitor->m_cmType;
+                    const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
+                    const auto targetSDREOTF = pMonitor->m_sdrEotf;
                     Debug::log(INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
-                    pMonitor->applyCMType(targetCM);
+                    pMonitor->applyCMType(targetCM, targetSDREOTF);
                     pMonitor->m_previousFSWindow.reset(); // trigger CTM update
                 }
                 Debug::log(INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
@@ -1571,7 +1586,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
     if (FS_WINDOW != pMonitor->m_previousFSWindow) {
-        if (!FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() || (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
+        if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
+            (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
             if (pMonitor->m_noShaderCTM) {
                 Debug::log(INFO, "[CM] No fullscreen CTM, restoring previous one");
                 pMonitor->m_noShaderCTM = false;
@@ -1958,7 +1974,7 @@ void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
             continue; // don't damage mirrors traditionally
 
         if (!skipFrameSchedule) {
-            CBox damageBox = box.copy().translate(-m->m_position).scale(m->m_scale);
+            CBox damageBox = box.copy().translate(-m->m_position).scale(m->m_scale).round();
             m->addDamage(damageBox);
         }
     }
@@ -2027,6 +2043,42 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
         return;
 
     m_lastCursorData.name = name;
+
+    static auto getShapeOrDefault = [](std::string_view name) -> wpCursorShapeDeviceV1Shape {
+        const auto it = std::ranges::find(CURSOR_SHAPE_NAMES, name);
+
+        if (it == CURSOR_SHAPE_NAMES.end()) {
+            // clang-format off
+            static const auto overrites = std::unordered_map<std::string_view, wpCursorShapeDeviceV1Shape> {
+              {"top_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE},
+              {"bottom_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE},
+              {"left_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE},
+              {"right_side",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE},
+              {"top_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE},
+              {"bottom_left_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE},
+              {"top_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE},
+              {"bottom_right_corner",  WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE},
+            };
+            // clang-format on
+
+            if (overrites.contains(name))
+                return overrites.at(name);
+
+            return WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        }
+
+        return sc<wpCursorShapeDeviceV1Shape>(std::distance(CURSOR_SHAPE_NAMES.begin(), it));
+    };
+
+    const auto newShape = getShapeOrDefault(name);
+
+    if (newShape != m_lastCursorData.shape) {
+        m_lastCursorData.shapePrevious = m_lastCursorData.shape;
+        m_lastCursorData.switchedTimer.reset();
+    }
+
+    m_lastCursorData.shape = newShape;
+
     m_lastCursorData.surf.reset();
 
     if (m_cursorHidden && !force)
@@ -2051,7 +2103,9 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (*PCURSORTIMEOUT > 0)
         m_cursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_lastCursorMovement.getSeconds();
 
-    const bool HIDE = m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnKeyboard || (*PINVISIBLE != 0);
+    m_cursorHiddenByCondition = m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnKeyboard;
+
+    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0);
 
     if (HIDE == m_cursorHidden)
         return;

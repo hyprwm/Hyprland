@@ -257,7 +257,10 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    CBox box = {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
+    const auto POS  = m_realPosition->value();
+    const auto SIZE = m_realSize->value();
+
+    CBox       box{POS, SIZE};
     box.addExtents(getWindowExtentsUnified(properties));
 
     return box;
@@ -634,7 +637,8 @@ bool CWindow::isHidden() {
 }
 
 void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
-    const eOverridePriority priority = r->m_execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    const eOverridePriority priority     = r->m_execRule ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    static auto             PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
 
     switch (r->m_ruleType) {
         case CWindowRule::RULE_TAG: {
@@ -751,7 +755,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MAXSIZE: {
             try {
-                if (!m_isFloating)
+                if (!m_isFloating && !sc<bool>(*PCLAMP_TILED))
                     return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
@@ -767,7 +771,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
         }
         case CWindowRule::RULE_MINSIZE: {
             try {
-                if (!m_isFloating)
+                if (!m_isFloating && !sc<bool>(*PCLAMP_TILED))
                     return;
                 const auto VEC = configStringToVector2D(r->m_rule.substr(8));
                 if (VEC.x < 1 || VEC.y < 1) {
@@ -1034,6 +1038,16 @@ PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
         index--;
     }
     return curr;
+}
+
+bool CWindow::hasInGroup(PHLWINDOW w) {
+    PHLWINDOW curr = m_groupData.pNextWindow.lock();
+    while (curr && curr != m_self) {
+        if (curr == w)
+            return true;
+        curr = curr->m_groupData.pNextWindow.lock();
+    }
+    return false;
 }
 
 void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
@@ -1359,7 +1373,8 @@ int CWindow::surfacesCount() {
 
 void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
-    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
+    const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
+    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
     const Vector2D DELTA    = REALSIZE - NEWSIZE;
 
     *m_realPosition = m_realPosition->goal() + DELTA / 2.0;
@@ -1912,13 +1927,18 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     if (res->m_subsurfaces.size() == 0)
         return res;
 
-    if (res->m_subsurfaces.size() == 1) {
-        if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
-            return nullptr;
-        auto surf = res->m_subsurfaces[0]->m_surface.lock();
-        if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
-            return nullptr;
-        return surf;
+    if (res->m_subsurfaces.size() >= 1) {
+        if (!res->hasVisibleSubsurface())
+            return res;
+
+        if (res->m_subsurfaces.size() == 1) {
+            if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
+                return nullptr;
+            auto surf = res->m_subsurfaces[0]->m_surface.lock();
+            if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
+                return nullptr;
+            return surf;
+        }
     }
 
     return nullptr;

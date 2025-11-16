@@ -23,6 +23,8 @@
 #endif
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
+#include "../version.h"
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 
@@ -111,6 +113,10 @@ bool isDirection(const std::string& arg) {
 
 bool isDirection(const char& arg) {
     return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
+static bool isAutoIDdWorkspace(WORKSPACEID id) {
+    return id < WORKSPACE_INVALID;
 }
 
 SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
@@ -453,6 +459,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = std::to_string(result.id);
         }
     }
+
+    result.isAutoIDd = isAutoIDdWorkspace(result.id);
 
     return result;
 }

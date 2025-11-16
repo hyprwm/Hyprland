@@ -142,6 +142,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "general:modal_parent_blocking",
+        .description = "If true, parent windows of modals will not be interactive.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * decoration:
@@ -477,6 +483,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "potential cursor desynchronization.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:rotation",
+        .description = "Sets the rotation of a device in degrees clockwise off the logical neutral position. Value is clamped to the range 0 to 359.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 359},
     },
     SConfigOptionDescription{
         .value       = "input:left_handed",
@@ -1298,8 +1310,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_hyprland_qtutils_check",
-        .description = "disable the warning if hyprland-qtutils is missing",
+        .value       = "misc:disable_hyprland_guiutils_check",
+        .description = "disable the warning if hyprland-guiutils is missing",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1330,6 +1342,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "misc:disable_scale_notification",
         .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:size_limits_tiled",
+        .description = "whether to apply minsize and maxsize rules to tiled windows",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1526,9 +1544,16 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "render:non_shader_cm",
-        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - don't block DS when non-shader CM isn't available",
+        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - disable and ignore CM issues",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_sdr_eotf",
+        .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
     },
 
     /*
@@ -1612,6 +1637,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "cursor:zoom_rigid",
         .description = "whether the zoom should follow the cursor rigidly (cursor is always centered if it can be) or loosely",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:zoom_disable_aa",
+        .description = "If enabled, when zooming, no antialiasing will be used (zoom will be pixelated)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

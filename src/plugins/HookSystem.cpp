@@ -172,8 +172,8 @@ bool CFunctionHook::hook() {
         return false;
     }
 
-    if (rc<int64_t>(m_source) - rc<int64_t>(m_destination) > 2000000000 /* 2 GB */) {
-        Debug::log(ERR, "[functionhook] failed, source and dest are over 2GB apart");
+    if (std::abs(rc<int64_t>(m_source) - rc<int64_t>(m_landTrampolineAddr)) > 2000000000 /* 2 GB */) {
+        Debug::log(ERR, "[functionhook] failed, source and trampo are over 2GB apart");
         return false;
     }
 
@@ -312,8 +312,11 @@ static uintptr_t seekNewPageAddr() {
             continue;
         }
 
-        if (start - lastEnd > PAGESIZE_VAR * 2) {
-            if (!line.contains("Hyprland") && !anchoredToHyprland) {
+        if (!anchoredToHyprland && line.contains("Hyprland")) {
+            Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
+            anchoredToHyprland = true;
+        } else if (start - lastEnd > PAGESIZE_VAR * 2) {
+            if (!anchoredToHyprland) {
                 Debug::log(LOG, "seekNewPageAddr: skipping gap 0x{:x}-0x{:x}, not anchored to Hyprland code pages yet.", lastEnd, start);
                 lastStart = start;
                 lastEnd   = end;
@@ -323,11 +326,6 @@ static uintptr_t seekNewPageAddr() {
             Debug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
             MAPS.close();
             return lastEnd;
-        }
-
-        if (!anchoredToHyprland && line.contains("Hyprland")) {
-            Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
-            anchoredToHyprland = true;
         }
 
         lastStart = start;

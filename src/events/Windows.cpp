@@ -498,7 +498,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         }
 
                         if (POSYSTR.starts_with("100%-")) {
-                            const bool subtractWindow = POSYSTR.starts_with("100%-w-");
+                            const bool subtractWindow = POSYSTR.starts_with("100%-h-");
                             const auto POSYRAW        = (subtractWindow) ? POSYSTR.substr(7) : POSYSTR.substr(5);
                             posY =
                                 PMONITOR->m_size.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->m_size.y);

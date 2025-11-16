@@ -152,22 +152,40 @@ static bool test() {
 
     NLog::log("{}Testing window split ratios", Colors::YELLOW);
     {
-        const double RATIO   = 1.25;
-        const double PERCENT = RATIO / 2.0 * 100.0;
-        const int    GAPSIN  = 5;
-        const int    GAPSOUT = 20;
-        const int    BORDERS = 2 * 2;
-        const int    WTRIM   = BORDERS + GAPSIN + GAPSOUT;
-        const int    HEIGHT  = 1080 - (BORDERS + (GAPSOUT * 2));
-        const int    WIDTH1  = std::round(1920.0 / 2.0 * (2 - RATIO)) - WTRIM;
-        const int    WIDTH2  = std::round(1920.0 / 2.0 * RATIO) - WTRIM;
+        const double INITIAL_RATIO = 1.25;
+        const int    GAPSIN        = 5;
+        const int    GAPSOUT       = 20;
+        const int    BORDERSIZE    = 2;
+        const int    BORDERS       = BORDERSIZE * 2;
+        const int    MONITOR_W     = 1920;
+        const int    MONITOR_H     = 1080;
+
+        const float  totalAvailableHeight   = MONITOR_H - (GAPSOUT * 2);
+        const int    HEIGHT                 = std::round(totalAvailableHeight) - BORDERS;
+        const float  availableWidthForSplit = MONITOR_W - (GAPSOUT * 2) - GAPSIN;
+
+        auto         calculateFinalWidth = [&](double boxWidth, bool isLeftWindow) {
+            double gapLeft  = isLeftWindow ? GAPSOUT : GAPSIN;
+            double gapRight = isLeftWindow ? GAPSIN : GAPSOUT;
+            return std::round(boxWidth - gapLeft - gapRight - BORDERS);
+        };
+
+        double       geomBoxWidthA_R1 = (availableWidthForSplit * INITIAL_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R1 = MONITOR_W - geomBoxWidthA_R1;
+        const int    WIDTH1           = calculateFinalWidth(geomBoxWidthB_R1, false);
+
+        const double INVERTED_RATIO   = 0.75;
+        double       geomBoxWidthA_R2 = (availableWidthForSplit * INVERTED_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R2 = MONITOR_W - geomBoxWidthA_R2;
+        const int    WIDTH2           = calculateFinalWidth(geomBoxWidthB_R2, false);
+        const int    WIDTH_A_FINAL    = calculateFinalWidth(geomBoxWidthA_R2, true);
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1.25"));
 
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, 100 - PERCENT);
+        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH1, HEIGHT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
 
         OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -179,12 +197,12 @@ static bool test() {
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, PERCENT);
+        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH2, HEIGHT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH2, HEIGHT));
 
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
-        NLog::log("{}Expecting kitty_A to have the same width as the previous kitty_B", Colors::YELLOW);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
+        NLog::log("{}Expecting kitty_A size: {},{}", Colors::YELLOW, WIDTH_A_FINAL, HEIGHT);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH_A_FINAL, HEIGHT));
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1"));
     }
@@ -228,6 +246,48 @@ static bool test() {
 
     testSwapWindow();
 
+    NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
+    {
+        // Enable the config for testing, test max/minsize for tiled windows and centering
+        OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
+        OK(getFromSocket("/keyword windowrule maxsize 1500 500, class:kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule minsize 1200 500, class:kitty_maxsize"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        auto dwindle = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(dwindle, "size: 1500,500");
+        EXPECT_CONTAINS(dwindle, "at: 210,290");
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        OK(getFromSocket("/keyword general:layout master"));
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        auto master = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(master, "size: 1500,500");
+        EXPECT_CONTAINS(master, "at: 210,290");
+
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        OK(getFromSocket("/dispatch focuswindow class:kitty_maxsize"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500")
+
+        NLog::log("{}Reloading config", Colors::YELLOW);
+        OK(getFromSocket("/reload"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
     NLog::log("{}Testing window rules", Colors::YELLOW);
     if (!spawnKitty("wr_kitty"))
         return false;
@@ -247,6 +307,7 @@ static bool test() {
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
         EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
+
     NLog::log("{}Testing faulty rules", Colors::YELLOW);
     {
         const auto PARAM  = "Invalid parameter";

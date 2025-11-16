@@ -881,13 +881,18 @@ bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
 }
 
 PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
-    const auto  PMONITOR          = getMonitorFromVector(pos);
-    static auto PRESIZEONBORDER   = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PBORDERSIZE       = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PBORDERGRABEXTEND = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
-    static auto PSPECIALFALLTHRU  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
-    const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
-    const bool  ONLY_PRIORITY     = properties & FOCUS_PRIORITY;
+    const auto  PMONITOR             = getMonitorFromVector(pos);
+    static auto PRESIZEONBORDER      = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+    static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+    static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
+    const bool  ONLY_PRIORITY        = properties & FOCUS_PRIORITY;
+
+    const auto  isShadowedByModal = [](PHLWINDOW w) -> bool {
+        return *PMODALPARENTBLOCKING && w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal();
+    };
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
@@ -895,7 +900,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
 
-            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
+            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow &&
+                !isShadowedByModal(w)) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -933,7 +939,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 }
 
                 if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() &&
-                    w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen)) {
+                    w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
@@ -993,7 +999,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 continue;
 
             if (!w->m_isX11 && !w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus &&
-                !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
+                !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
                 if (w->hasPopupAt(pos))
                     return w;
             }
@@ -1010,7 +1016,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 continue;
 
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_windowData.noFocus.valueOrDefault() &&
-                w != pIgnoreWindow) {
+                w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if (box.containsPoint(pos))
                     return w;
@@ -1110,8 +1116,14 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 
 void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
 
-    static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PFOLLOWMOUSE         = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PSPECIALFALLTHROUGH  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+
+    if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
+        Debug::log(LOG, "Refusing focus to window shadowed by modal dialog");
+        return;
+    }
 
     if (!pWindow || !pWindow->priorityFocus()) {
         if (g_pSessionLockManager->isSessionLocked()) {
@@ -1787,6 +1799,37 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
     const auto XY2 = PMONITOR->m_position + PMONITOR->m_size - PMONITOR->m_reservedBottomRight;
 
     return VECNOTINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
+}
+
+CBox CCompositor::calculateX11WorkArea() {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    CBox        workbox            = {0, 0, 0, 0};
+    bool        firstMonitor       = true;
+
+    for (const auto& monitor : m_monitors) {
+        // we ignore monitor->m_position on purpose
+        auto x   = monitor->m_reservedTopLeft.x;
+        auto y   = monitor->m_reservedTopLeft.y;
+        auto w   = monitor->m_size.x - monitor->m_reservedBottomRight.x - x;
+        auto h   = monitor->m_size.y - monitor->m_reservedBottomRight.y - y;
+        CBox box = {x, y, w, h};
+        if ((*PXWLFORCESCALEZERO))
+            box.scale(monitor->m_scale);
+
+        if (firstMonitor) {
+            firstMonitor = false;
+            workbox      = box;
+        } else {
+            // if this monitor creates a different workbox than previous monitor, we remove the _NET_WORKAREA property all together
+            if ((std::abs(box.x - workbox.x) > 3) || (std::abs(box.y - workbox.y) > 3) || (std::abs(box.w - workbox.w) > 3) || (std::abs(box.h - workbox.h) > 3)) {
+                workbox = {0, 0, 0, 0};
+                break;
+            }
+        }
+    }
+
+    // returning 0, 0 will remove the _NET_WORKAREA property
+    return workbox;
 }
 
 PHLMONITOR CCompositor::getMonitorInDirection(const char& dir) {
@@ -2715,8 +2758,8 @@ std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
 }
 
 void CCompositor::performUserChecks() {
-    static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
-    static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");
+    static auto PNOCHECKXDG      = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
+    static auto PNOCHECKGUIUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_guiutils_check");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2728,10 +2771,10 @@ void CCompositor::performUserChecks() {
         }
     }
 
-    if (!*PNOCHECKQTUTILS) {
+    if (!*PNOCHECKGUIUTILS) {
         if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
             g_pHyprNotificationOverlay->addNotification(
-                "Your system does not have hyprland-qtutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
+                "Your system does not have hyprland-guiutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
         }
     }
 
@@ -2840,6 +2883,38 @@ PHLWINDOW CCompositor::getForceFocus() {
     }
 
     return nullptr;
+}
+
+void CCompositor::scheduleMonitorStateRecheck() {
+    static bool scheduled = false;
+
+    if (!scheduled) {
+        scheduled = true;
+        g_pEventLoopManager->doLater([this] {
+            arrangeMonitors();
+            checkMonitorOverlaps();
+
+            scheduled = false;
+        });
+    }
+}
+
+void CCompositor::checkMonitorOverlaps() {
+    CRegion monitorRegion;
+
+    for (const auto& m : m_monitors) {
+        if (!monitorRegion.copy().intersect(m->logicalBox()).empty()) {
+            Debug::log(ERR, "Monitor {}: detected overlap with layout", m->m_name);
+            g_pHyprNotificationOverlay->addNotification(std::format("Your monitor layout is set up incorrectly. Monitor {} overlaps with other monitor(s) in the "
+                                                                    "layout.\nPlease see the wiki (Monitors page) for more. This will cause issues.",
+                                                                    m->m_name),
+                                                        CHyprColor{}, 15000, ICON_WARNING);
+
+            break;
+        }
+
+        monitorRegion.add(m->logicalBox());
+    }
 }
 
 void CCompositor::arrangeMonitors() {
@@ -2951,6 +3026,13 @@ void CCompositor::arrangeMonitors() {
     }
 
     PROTO::xdgOutput->updateAllOutputs();
+
+#ifndef NO_XWAYLAND
+    CBox box = g_pCompositor->calculateX11WorkArea();
+    if (!g_pXWayland || !g_pXWayland->m_wm)
+        return;
+    g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
+#endif
 }
 
 void CCompositor::enterUnsafeState() {

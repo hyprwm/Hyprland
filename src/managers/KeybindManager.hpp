@@ -17,30 +17,39 @@ class IKeyboard;
 
 enum eMouseBindMode : int8_t;
 
+struct SSubmap {
+    std::string name  = "";
+    std::string reset = "";
+    bool        operator==(const SSubmap& other) const {
+        return name == other.name;
+    }
+};
+
 struct SKeybind {
-    std::string            key            = "";
-    std::set<xkb_keysym_t> sMkKeys        = {};
-    uint32_t               keycode        = 0;
-    bool                   catchAll       = false;
-    uint32_t               modmask        = 0;
-    std::set<xkb_keysym_t> sMkMods        = {};
-    std::string            handler        = "";
-    std::string            arg            = "";
-    bool                   locked         = false;
-    std::string            submap         = "";
-    std::string            description    = "";
-    bool                   release        = false;
-    bool                   repeat         = false;
-    bool                   longPress      = false;
-    bool                   mouse          = false;
-    bool                   nonConsuming   = false;
-    bool                   transparent    = false;
-    bool                   ignoreMods     = false;
-    bool                   multiKey       = false;
-    bool                   hasDescription = false;
-    bool                   dontInhibit    = false;
-    bool                   click          = false;
-    bool                   drag           = false;
+    std::string            key             = "";
+    std::set<xkb_keysym_t> sMkKeys         = {};
+    uint32_t               keycode         = 0;
+    bool                   catchAll        = false;
+    uint32_t               modmask         = 0;
+    std::set<xkb_keysym_t> sMkMods         = {};
+    std::string            handler         = "";
+    std::string            arg             = "";
+    bool                   locked          = false;
+    SSubmap                submap          = {};
+    std::string            description     = "";
+    bool                   release         = false;
+    bool                   repeat          = false;
+    bool                   longPress       = false;
+    bool                   mouse           = false;
+    bool                   nonConsuming    = false;
+    bool                   transparent     = false;
+    bool                   ignoreMods      = false;
+    bool                   multiKey        = false;
+    bool                   hasDescription  = false;
+    bool                   dontInhibit     = false;
+    bool                   click           = false;
+    bool                   drag            = false;
+    bool                   submapUniversal = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -63,7 +72,7 @@ struct SPressedKeyWithMods {
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
-    std::string  submapAtPress      = "";
+    SSubmap      submapAtPress      = {};
     Vector2D     mousePosAtPress    = {};
 };
 
@@ -98,7 +107,7 @@ class CKeybindManager {
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
     void                                                                         clearKeybinds();
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
-    std::string                                                                  getCurrentSubmap();
+    SSubmap                                                                      getCurrentSubmap();
 
     std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_dispatchers;
 
@@ -117,7 +126,7 @@ class CKeybindManager {
   private:
     std::vector<SPressedKeyWithMods> m_pressedKeys;
 
-    inline static std::string        m_currentSelectedSubmap = "";
+    inline static SSubmap            m_currentSelectedSubmap = {};
 
     std::vector<WP<SKeybind>>        m_activeKeybinds;
     WP<SKeybind>                     m_lastLongPressKeybind;
@@ -229,6 +238,7 @@ class CKeybindManager {
     static SDispatchResult global(std::string);
     static SDispatchResult event(std::string);
     static SDispatchResult setProp(std::string);
+    static SDispatchResult forceIdle(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

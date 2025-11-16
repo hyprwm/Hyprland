@@ -205,9 +205,9 @@ static SDispatchResult vkb(std::string in) {
 }
 
 static SDispatchResult scroll(std::string in) {
-    int by;
+    double by;
     try {
-        by = std::stoi(in);
+        by = std::stod(in);
     } catch (...) { return SDispatchResult{.success = false, .error = "invalid input"}; }
 
     Debug::log(LOG, "tester: scrolling by {}", by);

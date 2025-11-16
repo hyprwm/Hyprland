@@ -57,7 +57,8 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         m_surface.reset();
     });
 
-    PROTO::fractional->sendScale(surface_, pMonitor_->m_scale);
+    if (m_monitor)
+        PROTO::fractional->sendScale(surface_, m_monitor->m_scale);
 
     sendConfigure();
 
@@ -73,6 +74,11 @@ CSessionLockSurface::~CSessionLockSurface() {
 }
 
 void CSessionLockSurface::sendConfigure() {
+    if (!m_monitor) {
+        LOGM(ERR, "sendConfigure: monitor is gone");
+        return;
+    }
+
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
     m_resource->sendConfigure(SERIAL, m_monitor->m_size.x, m_monitor->m_size.y);
 }

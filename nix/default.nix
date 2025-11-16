@@ -6,8 +6,6 @@
   pkgconf,
   makeWrapper,
   cmake,
-  meson,
-  ninja,
   aquamarine,
   binutils,
   cairo,
@@ -17,7 +15,7 @@
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
-  hyprland-qtutils,
+  hyprland-guiutils,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
@@ -47,6 +45,7 @@
   commit,
   revCount,
   date,
+  withHyprtester ? false,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
@@ -57,7 +56,7 @@
   inherit (lib.asserts) assertMsg;
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
-  inherit (lib.strings) makeBinPath optionalString mesonBool mesonEnable trim;
+  inherit (lib.strings) makeBinPath optionalString cmakeBool trim;
   fs = lib.fileset;
 
   adapters = flatten [
@@ -81,13 +80,12 @@ in
           fs.intersection
           # allows non-flake builds to only include files tracked by git
           (fs.gitTracked ../.)
-          (fs.unions [
+          (fs.unions (flatten [
             ../assets/hyprland-portals.conf
             ../assets/install
             ../hyprctl
             ../hyprland.pc.in
             ../LICENSE
-            ../meson_options.txt
             ../protocols
             ../src
             ../systemd
@@ -95,8 +93,9 @@ in
             (fs.fileFilter (file: file.hasExt "1") ../docs)
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
-            (fs.fileFilter (file: file.name == "meson.build") ../.)
-          ]);
+            (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
+            (optional withHyprtester ../hyprtester)
+          ]));
       };
 
       postPatch = ''
@@ -120,9 +119,7 @@ in
       nativeBuildInputs = [
         hyprwayland-scanner
         makeWrapper
-        meson
-        ninja
-        cmake # needed for glaze
+        cmake
         pkg-config
       ];
 
@@ -174,34 +171,44 @@ in
 
       strictDeps = true;
 
-      mesonBuildType =
+      cmakeBuildType =
         if debug
-        then "debug"
-        else "release";
+        then "Debug"
+        else "RelWithDebInfo";
 
-      mesonFlags = flatten [
-        (mapAttrsToList mesonEnable {
-          "xwayland" = enableXWayland;
-          "systemd" = withSystemd;
-          "uwsm" = false;
-          "hyprpm" = false;
-        })
-        (mapAttrsToList mesonBool {
-          "b_pch" = false;
-          "tracy_enable" = false;
-        })
-      ];
+      # we want as much debug info as possible
+      dontStrip = debug;
+
+      cmakeFlags = mapAttrsToList cmakeBool {
+        "NO_XWAYLAND" = !enableXWayland;
+        "LEGACY_RENDERER" = legacyRenderer;
+        "NO_SYSTEMD" = !withSystemd;
+        "CMAKE_DISABLE_PRECOMPILE_HEADERS" = true;
+        "NO_UWSM" = true;
+        "NO_HYPRPM" = true;
+        "TRACY_ENABLE" = false;
+        "BUILD_HYPRTESTER" = withHyprtester;
+      };
+
+      preConfigure = ''
+        substituteInPlace hyprtester/CMakeLists.txt --replace-fail \
+          "\''${CMAKE_CURRENT_BINARY_DIR}" \
+          "${placeholder "out"}/bin"
+      '';
 
       postInstall = ''
         ${optionalString wrapRuntimeDeps ''
           wrapProgram $out/bin/Hyprland \
             --suffix PATH : ${makeBinPath [
             binutils
-            hyprland-qtutils
+            hyprland-guiutils
             pciutils
             pkgconf
           ]}
         ''}
+      '' + optionalString withHyprtester ''
+        install hyprtester/pointer-warp -t $out/bin
+        install hyprtester/pointer-scroll -t $out/bin
       '';
 
       passthru.providedSessions = ["hyprland"];

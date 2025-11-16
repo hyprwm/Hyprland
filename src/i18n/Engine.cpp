@@ -394,6 +394,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM ഷേഡർ റീലോഡ് പരാജയപ്പെട്ടു, rgba/rgbx ലേക്ക് മാറുന്നു.");
     huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "മോണിറ്റർ {name}: വൈഡ് കളർ ഗാമട്ട് പ്രവർത്തനക്ഷമമാണെങ്കിലും, മോഡ് 10-bit അല്ല.");
 
+
     // nb_NO (Norwegian Bokmål)
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_TITLE, "Applikasjonen svarer ikke");
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_CONTENT, "En applikasjon {title} - {class} svarer ikke.\nHva vil du gjøre med den?");
@@ -401,10 +402,10 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_OPTION_WAIT, "Vent");
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_PROP_UNKNOWN, "(ukjent)");
 
-    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "En applikasjon <b>{app}</b> ber om en ukjent tilatelse.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "En applikasjon <b>{app}</b> ber om en ukjent tillatelse.");
     huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "En applikasjon <b>{app}</b> prøver å fange skjermen din.\n\nVil du tillate den?");
     huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "En applikasjon <b>{app}</b> prøver å laste en plugin: <b>{plugin}</b>.\n\nVil du tillate den?");
-    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nytt tastatur er oppdaget: <b>{keyboard}</b>.\n\nVil du tillate at den opererer?");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nytt tastatur er oppdaget: <b>{keyboard}</b>.\n\nVil du tillate at det opererer?");
     huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ukjent)");
     huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_TITLE, "Tillatelsesforespørsel");
     huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Hint: du kan angi vedvarende regler for disse i Hyprland konfigurasjonsfilen.");
@@ -416,17 +417,17 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry(
         "nb_NO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "Ditt XDG_CURRENT_DESKTOP miljø ser ut til å være eksternt administrert, og den nåværende verdien er {value}.\nDette kan forårsake problemer med mindre det er bevidst.");
+        "Ditt XDG_CURRENT_DESKTOP miljø ser ut til å være eksternt administrert, og den nåværende verdien er {value}.\nDette kan forårsake problemer med mindre det er bevisst.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Ditt system har ikke hyprland-guiutils installert. Dette er en kjøretidsavhengighet for noen dialoger. Vurder å installere den.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland kunne ikke laste {count} essensiell ressurs, skyld på distroens pakker-bygger for å ha gjort en dårlig jobb med pakkingen!";
-        return "Hyprland kunne ikke laste {count} essensiell ressurser, skyld på distroens pakker-bygger for å ha gjort en dårlig jobb med pakkingen!";
+            return "Hyprland kunne ikke laste {count} essensiell ressurs, skyld på distroens pakkeansvarlig for å ha gjort en dårlig jobb med pakkingen!";
+        return "Hyprland kunne ikke laste {count} essensielle ressurser, skyld på distroens pakkeansvarlig for å ha gjort en dårlig jobb med pakkingen!";
     });
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Skjermoppsettet ditt er satt opp feil. Skjerm {name} overlapper med annen skjerm(er) i oppsettet.\nSjekk wiki (Skjerm siden) for "
+                            "Skjermoppsettet ditt er satt opp feil. Skjerm {name} overlapper med skjerm(er) i oppsettet.\nSjekk wiki (Skjerm siden) for "
                             "mer. Dette <b>vil</b> skape problemer.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Skjerm {name} feilet å sette de forespurte modusene, faller tilbake til modus {mode}.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ugyldig skala sendt til skjerm {name}: {scale}, bruker foreslått skala: {fixed_scale}");

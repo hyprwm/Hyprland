@@ -468,8 +468,8 @@ I18n::CI18nEngine::CI18nEngine() {
         "pt_PT", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
         "O layout do teu monitor não está configurado correctamente. Monitor {name} está em conflito com outro(s) monitor(es) no layout.\nProcura na wiki (página Monitores) para "
         "mais informações. Isto <b>vai</b> causar problemas.");
-    huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} falhou ao configurar os modos requisitados, usando o modo {mode} de volta.");
-    huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Resolução inválida para o monitor {name}: {scale}, usando a resolução sugerida: {fixed_scale}");
+    huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} falhou ao configurar os modos requisitados, revertento para o modo {mode} de volta.");
+    huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Resolução inválida para o monitor {name}: {scale}, revertendo para a resolução sugerida: {fixed_scale}");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Falha ao carregar o plugin {name}: {error}");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader falhou ao recarregar, usando de volta rgba/rgbx.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: gama de cores ampla está activada mas o monitor não está em modo 10-bits.");

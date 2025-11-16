@@ -278,7 +278,7 @@ I18n::CI18nEngine::CI18nEngine() {
             return "Hyprland није успео да учита {count} кључни ресурс, криви пакера твоје дистрибуције за лоше одрађен посао!";
         if (assetsNo <= 4)
             return "Hyprland није успео да учита {count} кључна ресурса, криви пакера твоје дистрибуције за лоше одрађен посао!";
-        return "Hyprland није успео да учита {count} кључних ресурса, криви пакера твоје дистрибуције за лоше одрађен посао паковања!";
+        return "Hyprland није успео да учита {count} кључних ресурса, криви пакера твоје дистрибуције за лоше одрађен посао!";
     });
     huEngine->registerEntry(
         "sr_RS", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
@@ -320,7 +320,7 @@ I18n::CI18nEngine::CI18nEngine() {
             return "Hyprland nije uspeo da učita {count} ključni resurs, krivi pakera tvoje distribucije za loše odrađen posao!";
         if (assetsNo <= 4)
             return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao!";
-        return "Hyprland nije uspeo da učita {count} ključnih resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
+        return "Hyprland nije uspeo da učita {count} ključnih resursa, krivi pakera tvoje distribucije za loše odrađen posao!";
     });
     huEngine->registerEntry(
         "sr_RS@latin", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,

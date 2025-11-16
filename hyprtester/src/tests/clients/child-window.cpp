@@ -23,7 +23,7 @@ struct SClient {
     struct pollfd          fds;
 };
 
-static int ret = 0;
+static int  ret = 0;
 
 static bool waitForWindow(SP<CProcess> proc, int windowsBefore) {
     int counter = 0;
@@ -108,7 +108,6 @@ static bool createChild(SClient& client) {
         NLog::log("{}Failed to focus child window", Colors::RED);
         return false;
     }
-
 
     return true;
 }

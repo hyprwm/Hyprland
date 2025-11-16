@@ -65,6 +65,7 @@
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
+#include "i18n/Engine.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -2765,22 +2766,19 @@ void CCompositor::performUserChecks() {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
         if (!CURRENT_DESKTOP_ENV || std::string{CURRENT_DESKTOP_ENV} != "Hyprland") {
             g_pHyprNotificationOverlay->addNotification(
-                std::format("Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {}.\nThis might cause issues unless it's intentional.",
-                            CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
-                CHyprColor{}, 15000, ICON_WARNING);
+                I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP, {{"value", CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"}}), CHyprColor{}, 15000,
+                ICON_WARNING);
         }
     }
 
     if (!*PNOCHECKGUIUTILS) {
         if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-            g_pHyprNotificationOverlay->addNotification(
-                "Your system does not have hyprland-guiutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
+            g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_GUIUTILS), CHyprColor{}, 15000, ICON_WARNING);
         }
     }
 
     if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
-        g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
-                                                                g_pHyprOpenGL->m_failedAssetsNo, g_pHyprOpenGL->m_failedAssetsNo > 1 ? "s" : ""),
+        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprOpenGL->m_failedAssetsNo)}}),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 }
@@ -2905,10 +2903,8 @@ void CCompositor::checkMonitorOverlaps() {
     for (const auto& m : m_monitors) {
         if (!monitorRegion.copy().intersect(m->logicalBox()).empty()) {
             Debug::log(ERR, "Monitor {}: detected overlap with layout", m->m_name);
-            g_pHyprNotificationOverlay->addNotification(std::format("Your monitor layout is set up incorrectly. Monitor {} overlaps with other monitor(s) in the "
-                                                                    "layout.\nPlease see the wiki (Monitors page) for more. This will cause issues.",
-                                                                    m->m_name),
-                                                        CHyprColor{}, 15000, ICON_WARNING);
+            g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT, {{"name", m->m_name}}), CHyprColor{}, 15000,
+                                                        ICON_WARNING);
 
             break;
         }

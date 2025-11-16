@@ -61,15 +61,23 @@ I18n::CI18nEngine::CI18nEngine() {
 
     // hi_IN (Hindi)
     huEngine->registerEntry("hi_IN", TXT_KEY_ANR_TITLE, "एप्लिकेशन प्रतिक्रिया नहीं दे रहा है");
-    huEngine->registerEntry("hi_IN", TXT_KEY_ANR_CONTENT, "एक एप्लिकेशन {title} - {class} प्रतिक्रिया नहीं दे रहा है।\nआप इसके साथ क्या करना चाहेंगे?");
+    huEngine->registerEntry("hi_IN", TXT_KEY_ANR_CONTENT,
+                            "एक एप्लिकेशन {title} - {class} प्रतिक्रिया नहीं दे रहा "
+                            "है।\nआप इसके साथ क्या करना चाहेंगे?");
     huEngine->registerEntry("hi_IN", TXT_KEY_ANR_OPTION_TERMINATE, "समाप्त करें");
     huEngine->registerEntry("hi_IN", TXT_KEY_ANR_OPTION_WAIT, "इंतजार करें");
     huEngine->registerEntry("hi_IN", TXT_KEY_ANR_PROP_UNKNOWN, "(अज्ञात)");
 
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "एक एप्लिकेशन <b>{app}</b> एक अज्ञात अनुमति का अनुरोध कर रहा है।");
-    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "एक एप्लिकेशन <b>{app}</b> आपकी स्क्रीन कैप्चर करने की कोशिश कर रहा है।\n\nक्या आप इसे अनुमति देना चाहते हैं?");
-    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "एक एप्लिकेशन <b>{app}</b> एक प्लगइन लोड करने की कोशिश कर रहा है: <b>{plugin}</b>.\n\nक्या आप इसे अनुमति देना चाहते हैं?");
-    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "नया कीबोर्ड पाया गया: <b>{keyboard}</b>.\n\nक्या आप इसे काम करने की अनुमति देना चाहते हैं?");
+    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY,
+                            "एक एप्लिकेशन <b>{app}</b> आपकी स्क्रीन कैप्चर करने की "
+                            "कोशिश कर रहा है।\n\nक्या आप इसे अनुमति देना चाहते हैं?");
+    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "एक एप्लिकेशन <b>{app}</b> एक प्लगइन लोड करने की कोशिश कर रहा है: "
+                            "<b>{plugin}</b>.\n\nक्या आप इसे अनुमति देना चाहते हैं?");
+    huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
+                            "नया कीबोर्ड पाया गया: <b>{keyboard}</b>.\n\nक्या आप "
+                            "इसे काम करने की अनुमति देना चाहते हैं?");
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(अज्ञात)");
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_TITLE, "अनुमति अनुरोध");
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "संकेत: आप Hyprland कॉन्फ़िग फ़ाइल में इनके लिए स्थायी नियम सेट कर सकते हैं।");
@@ -79,23 +87,34 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_DENY, "अस्वीकार करें");
     huEngine->registerEntry("hi_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "अज्ञात एप्लिकेशन (wayland क्लाइंट ID {wayland_id})");
 
-    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP, "आपका XDG_CURRENT_DESKTOP परिवेश बाहरी रूप से प्रबंधित लगता है, और वर्तमान मान {value} है।\nयह समस्या पैदा कर सकता " 
+    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "आपका XDG_CURRENT_DESKTOP परिवेश बाहरी रूप से प्रबंधित लगता है, और वर्तमान मान "
+                            "{value} है।\nयह समस्या पैदा कर सकता "
                             "है जब तक कि यह जानबूझकर न किया गया हो।");
-    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_NO_GUIUTILS, "आपके सिस्टम में hyprland-guiutils इंस्टॉल नहीं है। यह कुछ संवादों के लिए एक रनटाइम निर्भरता है। इसे इंस्टॉल करने पर विचार करें।");
+    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "आपके सिस्टम में hyprland-guiutils इंस्टॉल नहीं है। यह कुछ संवादों के लिए एक रनटाइम "
+                            "निर्भरता है। इसे इंस्टॉल करने पर विचार करें।");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland {count} आवश्यक संसाधन लोड करने में विफल रहा, अपने डिस्ट्रो के पैकेजर को पैकेजिंग में खराब काम करने का दोष दें!";
-        return "Hyprland {count} आवश्यक संसाधनों को लोड करने में विफल रहा, अपने डिस्ट्रो के पैकेजर को पैकेजिंग में खराब काम करने का दोष दें!";
+            return "Hyprland {count} आवश्यक संसाधन लोड करने में विफल रहा, अपने डिस्ट्रो "
+                   "के पैकेजर को पैकेजिंग में खराब काम करने का दोष दें!";
+        return "Hyprland {count} आवश्यक संसाधनों को लोड करने में विफल रहा, अपने "
+               "डिस्ट्रो के पैकेजर को पैकेजिंग में खराब काम करने का दोष दें!";
     });
-    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT, "आपका मॉनिटर लेआउट गलत तरीके से सेट है। मॉनिटर {name} लेआउट में अन्य मॉनिटर(ओं) के साथ ओवरलैप कर रहा है।\nकृपया विकि " 
+    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "आपका मॉनिटर लेआउट गलत तरीके से सेट है। मॉनिटर {name} लेआउट में अन्य मॉनिटर(ओं) के "
+                            "साथ ओवरलैप कर रहा है।\nकृपया विकि "
                             " (Monitors पेज) देखें। यह <b>समस्याएँ</b> पैदा करेगा।");
-    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "मॉनिटर {name} ने किसी भी अनुरोधित मोड को सेट करने में विफल रहा, मोड {mode} पर वापस जा रहा है।");
-    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "मॉनिटर {name} को अवैध स्केल दिया गया: {scale}, सुझाया गया स्केल इस्तेमाल किया जा रहा है: {fixed_scale}");
+    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
+                            "मॉनिटर {name} ने किसी भी अनुरोधित मोड को सेट करने में "
+                            "विफल रहा, मोड {mode} पर वापस जा रहा है।");
+    huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                            "मॉनिटर {name} को अवैध स्केल दिया गया: {scale}, सुझाया "
+                            "गया स्केल इस्तेमाल किया जा रहा है: {fixed_scale}");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "प्लगइन {name} लोड करने में विफल: {error}");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM शेडर रीलोड विफल हुआ, rgba/rgbx पर वापस जा रहा है।");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "मॉनिटर {name}: वाइड कलर गैम सक्षम है लेकिन डिस्प्ले 10-बिट मोड में नहीं है।");
-
 
     // it_IT (Italian)
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_TITLE, "L'applicazione non risponde");

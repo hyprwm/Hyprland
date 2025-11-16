@@ -1,0 +1,139 @@
+name: AI Translation Check
+
+on:
+  pull_request_target:
+    types:
+      - opened
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    name: Review Translation
+    if: ${{ github.event_name == 'pull_request_target' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_MODEL: gpt-5-mini
+      SYSTEM_PROMPT: |
+        You are a programmer and a translator. Your job is to review the attached patch for adding translation to a piece of software and make sure the submitted translation is not malicious, and that it makes sense. If the translation is not malicious, and doesn't contain obvious grammatical mistakes, say "Translation check OK". Otherwise, say "Translation check not ok" and list bad entries.
+        Examples of bad translations include obvious trolling (slurs, etc) or nonsense sentences. Meaningful improvements may be suggested, but if there are only minor improvements, just reply with "Translation check OK". Do not provide anything but the result and (if applicable) the bad entries or improvements.
+
+      AI_PROMPT: Translation patch below.
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            i18n:
+              - 'src/i18n/**'
+
+      - name: Stop if i18n not changed
+        if: steps.changes.outputs.i18n != 'true'
+        run: echo "No i18n changes in this PR; skipping." && exit 0
+
+      - name: Determine PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download combined PR diff
+        id: get_diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          # Get the combined diff for the entire PR
+          curl -sSL \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" \
+            -o pr.diff
+
+          # Compute character length
+          LEN=$(wc -c < pr.diff | tr -d ' ')
+          echo "len=$LEN" >> "$GITHUB_OUTPUT"
+          if [ "$LEN" -gt 25000 ]; then
+            echo "too_long=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "too_long=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "got diff:"
+          cat pr.diff
+
+      - name: Comment when diff length exceeded
+        if: steps.get_diff.outputs.too_long == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          jq -n --arg body "Diff length exceeded, can't query API" '{body: ("AI translation check result:\n\n" + $body)}' > body.json
+          curl -sS -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+            --data @body.json
+
+      - name: Query OpenAI and post review
+        if: steps.get_diff.outputs.too_long == 'false'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ env.OPENAI_MODEL }}
+          SYSTEM_PROMPT: ${{ env.SYSTEM_PROMPT }}
+          AI_PROMPT: ${{ env.AI_PROMPT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          # Prepare OpenAI chat request payload (embed diff safely)
+          jq -n \
+            --arg model "$OPENAI_MODEL" \
+            --arg sys "$SYSTEM_PROMPT" \
+            --arg prompt "$AI_PROMPT" \
+            --rawfile diff pr.diff \
+            '{model:$model,
+              messages:[
+                {role:"system", content:$sys},
+                {role:"user", content: ($prompt + "\n\n```diff\n" + $diff + "\n```")}
+              ]
+            }' > payload.json
+
+          # Call OpenAI
+          curl -sS https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload.json > response.json
+
+          # Extract response text
+          COMMENT=$(jq -r '.choices[0].message.content // empty' response.json)
+          if [ -z "$COMMENT" ]; then
+            COMMENT="AI did not return a response."
+          fi
+
+          # If failed, add a note
+          ADDITIONAL_NOTE=""
+          if [[ "$COMMENT" == *"not ok"* ]]; then
+            ADDITIONAL_NOTE=$(echo -ne "\n\nPlease note this check is a guideline, not a hard requirement. It is here to help you translate. If you disagree with some points, just state that. Any typos should be fixed.")
+          fi
+
+          # Post the review as a PR comment
+          jq -n --arg body "$COMMENT" --arg note "$ADDITIONAL_NOTE" '{body: ("AI translation check result:\n\n" + $body + $note)}' > body.json
+          echo "CURLing https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments"
+          curl -sS -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+            --data @body.json

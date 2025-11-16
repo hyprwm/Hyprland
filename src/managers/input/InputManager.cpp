@@ -50,9 +50,6 @@
 
 CInputManager::CInputManager() {
     m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
-        if (!cursorImageUnlocked())
-            return;
-
         if (!g_pSeatManager->m_state.pointerFocusResource)
             return;
 
@@ -65,6 +62,9 @@ CInputManager::CInputManager() {
         m_cursorSurfaceInfo.vHotspot = {};
         m_cursorSurfaceInfo.name     = event.shapeName;
         m_cursorSurfaceInfo.hidden   = false;
+
+        if (!cursorImageUnlocked())
+            return;
 
         g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
     });
@@ -653,9 +653,6 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
 }
 
 void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& event) {
-    if (!cursorImageUnlocked())
-        return;
-
     Debug::log(LOG, "cursorImage request: surface {:x}", rc<uintptr_t>(event.surf.get()));
 
     if (event.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
@@ -674,6 +671,9 @@ void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& eve
     }
 
     m_cursorSurfaceInfo.name = "";
+
+    if (!cursorImageUnlocked())
+        return;
 
     g_pHyprRenderer->setCursorSurface(m_cursorSurfaceInfo.wlSurface, event.hotspot.x, event.hotspot.y);
 }

@@ -349,6 +349,46 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CMシェーダーのリロード失敗、rgba/rgbxを使いました。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "画面{name}：広い色域は設定していますけど、画面は10ビットモードに設定されていません。");
 
+    // nb_NO (Norwegian Bokmål)
+    huEngine->registerEntry("nb_NO", TXT_KEY_ANR_TITLE, "Applikasjonen svarer ikke");
+    huEngine->registerEntry("nb_NO", TXT_KEY_ANR_CONTENT, "En applikasjon {title} - {class} svarer ikke.\nHva vil du gjøre med den?");
+    huEngine->registerEntry("nb_NO", TXT_KEY_ANR_OPTION_TERMINATE, "Avslutt");
+    huEngine->registerEntry("nb_NO", TXT_KEY_ANR_OPTION_WAIT, "Vent");
+    huEngine->registerEntry("nb_NO", TXT_KEY_ANR_PROP_UNKNOWN, "(ukjent)");
+
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "En applikasjon <b>{app}</b> ber om en ukjent tilatelse.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "En applikasjon <b>{app}</b> prøver å fange skjermen din.\n\nVil du tillate den?");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "En applikasjon <b>{app}</b> prøver å laste en plugin: <b>{plugin}</b>.\n\nVil du tillate den?");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nytt tastatur er oppdaget: <b>{keyboard}</b>.\n\nVil du tillate at den opererer?");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ukjent)");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_TITLE, "Tillatelsesforespørsel");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Hint: du kan angi vedvarende regler for disse i Hyprland konfigurasjonsfilen.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_ALLOW, "Tillat");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Tillat og husk");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_ALLOW_ONCE, "Tillat en gang");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_DENY, "Nekte");
+    huEngine->registerEntry("nb_NO", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Ukjent applikasjon (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry(
+        "nb_NO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Ditt XDG_CURRENT_DESKTOP miljø ser ut til å være eksternt administrert, og den nåværende verdien er {value}.\nDette kan forårsake problemer med mindre det er bevidst.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Ditt system har ikke hyprland-guiutils installert. Dette er en kjøretidsavhengighet for noen dialoger. Vurder å installere den.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland kunne ikke laste {count} essensiell ressurs, skyld på distroens pakker-bygger for å ha gjort en dårlig jobb med pakkingen!";
+        return "Hyprland kunne ikke laste {count} essensiell ressurser, skyld på distroens pakker-bygger for å ha gjort en dårlig jobb med pakkingen!";
+    });
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Skjermoppsettet ditt er satt opp feil. Skjerm {name} overlapper med annen skjerm(er) i oppsettet.\nSjekk wiki (Skjerm siden) for "
+                            "mer. Dette <b>vil</b> skape problemer.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Skjerm {name} feilet å sette de forespurte modusene, faller tilbake til modus {mode}.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ugyldig skala sendt til skjerm {name}: {scale}, bruker foreslått skala: {fixed_scale}");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Feilet å laste plugin {name}: {error}");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader omlading feilet, faller tilbake til rgba/rgbx.");
+    huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skjerm {name}: bredt fargespekter er aktivert, men skjermen er ikke i 10-bit modus.");
+    
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_CONTENT, "Aplikacja {title} - {class} nie odpowiada.\nCo chcesz z nią zrobić?");

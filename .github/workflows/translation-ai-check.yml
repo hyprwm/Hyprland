@@ -65,7 +65,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          jq -n --arg body "AI translation check result:\n\nDiff length exceeded, can't query API" '{body:$body}' > body.json
+          jq -n --arg body "Diff length exceeded, can't query API" '{body: ("AI translation check result:\n\n" + $body)}' > body.json
           curl -sS -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
@@ -103,11 +103,11 @@ jobs:
           # Extract response text
           COMMENT=$(jq -r '.choices[0].message.content // empty' response.json)
           if [ -z "$COMMENT" ]; then
-            COMMENT="AI translation check result:\n\nAI did not return a response."
+            COMMENT="AI did not return a response."
           fi
 
           # Post the review as a PR comment
-          jq -n --arg body "AI translation check result:\n\n$COMMENT" '{body:$body}' > body.json
+          jq -n --arg body "$COMMENT" '{body: ("AI translation check result:\n\n" + $body)}' > body.json
           curl -sS -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \

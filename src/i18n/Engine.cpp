@@ -18,6 +18,46 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine = makeShared<Hyprutils::I18n::CI18nEngine>();
     huEngine->setFallbackLocale("en_US");
     localeStr = huEngine->getSystemLocale().locale();
+    
+    // da_DK (Danish)
+    huEngine->registerEntry("da_DK", TXT_KEY_ANR_TITLE, "Applikationen Svarer Ikke");
+    huEngine->registerEntry("da_DK", TXT_KEY_ANR_CONTENT, "En applikation {title} - {class} svarer ikke.\nHvad vil du gøre ved det?");
+    huEngine->registerEntry("da_DK", TXT_KEY_ANR_OPTION_TERMINATE, "Luk");
+    huEngine->registerEntry("da_DK", TXT_KEY_ANR_OPTION_WAIT, "Vent");
+    huEngine->registerEntry("da_DK", TXT_KEY_ANR_PROP_UNKNOWN, "(ukendt)");
+
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "En applikation <b>{app}</b> forespørger en ukendt rettighed.");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "En applikation <b>{app}</b> forsøger at optage din skærm.\n\nVil du tillade dette?");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "En applikation <b>{app}</b> forsøger at indlæse et plugin: <b>{plugin}</b>.\n\nVil du tillade dette?");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nyt keyboard er fundet: <b>{keyboard}</b>.\n\nVil du tillade den at fungere?");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ukendt)");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_TITLE, "Anmodning om tilladelse");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: Du kan indstille vedvarende regler for disse i Hyprland-konfigurationsfilen.");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_ALLOW, "Tillad");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Tillad og husk");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_ALLOW_ONCE, "Tillad én gang");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_DENY, "Nægt");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Ukendt applikation (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry(
+        "da_DK", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Dit XDG_CURRENT_DESKTOP miljø ser ud til at være administreret externt, og den nuværende værdi er {value}.\nDette kan forårsage problemer, medmindre det er bevidst.");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Dit system har ikke hyprland-guiutils indstalleret. Dette er en runtime-afhængighed for nogle dialoger. Overvej at installere den.");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland kunne ikke indlæse {count} essentiale aktiver, skyd skylden på din distributions pakker for et dårligt stykke arbejde af pakningen!";
+        return "Hyprland kunne ikke indlæse {count} essentiale aktiver, skyd skylden på din distributions pakker for et dårligt stykke arbejde af pakningen!";
+    });
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Din skærms layout har en ukorrekt opsætning. Skærm {name} overlapper med andre skærm(e) i layoutet.\nLæs venligst wiki'en (Skærm side) for "
+                            "mere. Dette <b>vil</b> skabe problemer.");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Skærm {name} kunne ikke indlæse nogen af de ønskede tilstande, vender tilbage til tilstand {mode}.");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ugyldig skalering sendt til skærm {name}: {scale}, bruger foreslået skalering: {fixed_scale}");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Kunne ikke indlæse plugin {name}: {error}");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Genindlæsning af CM-shader mislykkedes, går tilbage til rgba/rgbx.");
+    huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skærm {name}: wide color gamut er aktiveret men skærmen er ikke i 10-bit tilstand.");
 
     // en_US (English)
     huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Application Not Responding");

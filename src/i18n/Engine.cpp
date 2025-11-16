@@ -19,6 +19,46 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->setFallbackLocale("en_US");
     localeStr = huEngine->getSystemLocale().locale();
 
+    // be_BY (Belarusian)
+    huEngine->registerEntry("be_BY", TXT_KEY_ANR_TITLE, "Праграма не адказвае");
+    huEngine->registerEntry("be_BY", TXT_KEY_ANR_CONTENT, "Праграма {title} - {class} не адказвае.\nШто хочаце з ёй зрабіць?");
+    huEngine->registerEntry("be_BY", TXT_KEY_ANR_OPTION_TERMINATE, "Прымусова спыніць");
+    huEngine->registerEntry("be_BY", TXT_KEY_ANR_OPTION_WAIT, "Пачакаць");
+    huEngine->registerEntry("be_BY", TXT_KEY_ANR_PROP_UNKNOWN, "(невядома)");
+
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Праграма <b>{app}</b> запытвае невядомы дазвол.");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Праграма <b>{app}</b> спрабуе здымаць экран.\n\nЦі хочаце дазволіць?");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Праграма <b>{app}</b> спрабуе загрузіць плагін: <b>{plugin}</b>.\n\nХочаце дазволіць?");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Выяўленая новая клавіятура: <b>{keyboard}</b>.\n\nХочаце дазволіць яе выкарыстанне?");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(невядома)");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_TITLE, "Запыт дазволу");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Падказка: вы можаце задаць пастаянныя правілы для гэтага ў файле канфігурацыі Hyprland.");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_ALLOW, "Дазволіць");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Дазволіць і запомніць");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_ALLOW_ONCE, "Дазволіць аднойчы");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_DENY, "Забараніць");
+    huEngine->registerEntry("be_BY", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Невядомая праграма (Ідэнтыфікатар кліента wayland {wayland_id})");
+
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Выглядае, што вашая пераменная асяроддзя XDG_CURRENT_DESKTOP зададзеная звонку, цяперашняе значэнне: {value}.\nГэта можа выклікаць праблемы, калі "
+                            "гэта не зроблена наўмысна.");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "У вашай сістэме не ўсталяваны hyprland-guiutils, што выкарыстоўваецца для некаторых дыялогавых вокнаў. Разгледзьце ўсталёўку пакета.");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland не змог загрузіць {count} важны рэсурс, вінавацьце ў гэтым адказнага за зборку пакетаў для свайго дыстрыбутыва!";
+        return "Hyprland не змог загрузіць {count} важных рэсурсаў, вінавацьце ў гэтым адказнага за зборку пакетаў для свайго дыстрыбутыва!";
+    });
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Макет манітораў наладжаны некарэктна. Манітор {name} накладаецца на іншы(я) манітор(ы).\nДля падрабязнасцей звярніцеся да Wiki (Старонка Monitors). "
+                            "Гэта <b>абавязкова</b> створыць праблемы.");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Манітор {name} не змог наладзіць ніводны з запатрабаваных рэжымаў, аварыйна ўжыты рэжым {mode}.");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Няверна зададзены маштаб для манітора {name}: {scale}, ужываецца прапанаваны маштаб: {fixed_scale}");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Не атрымалася загрузіць плагін {name}: {error}");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не атрымалася перазагрузіць шэйдар CM, аварыйна ўжываецца rgba/rgbx.");
+    huEngine->registerEntry("be_BY", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Манітор {name}: пашыраны каляровы дыяпазон уключаны, але экран не ў рэжыме 10-біт.");
+
     // en_US (English)
     huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Application Not Responding");
     huEngine->registerEntry("en_US", TXT_KEY_ANR_CONTENT, "An application {title} - {class} is not responding.\nWhat do you want to do with it?");

@@ -141,7 +141,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Een applicatie <b>{app}</b> probeert uw scherm op te nemen.\n\nWilt u dit toestaan?");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Een applicatie <b>{app}</b> probeert een plugin te laden: <b>{plugin}</b>.\n\nWilt u dit toestaan?");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
-                            "Een nieuw toetsenbord is gedetecteerd: <b>{keyboard}</b>.\n\nWilt u toestemming geven om te functioneren?");
+                            "Een nieuw toetsenbord is gedetecteerd: <b>{keyboard}</b>.\n\nWilt u toestemming geven dat het wordt gebruikt?");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(onbekend)");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_TITLE, "Toestemmingsverzoek");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: U kunt hiervoor vaste regels instellen in het Hyprland-configuratiebestand.");
@@ -153,14 +153,14 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry(
         "nl_NL", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan problmen veroorzaken, tenzij dit opzettelijk is.");
+        "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan probelmen veroorzaken, tenzij dit opzettelijk is.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Hyprland-guiutils is niet op uw systeem geïnstalleerd. Dit is een runtime-afhankelijkheid voor sommige dialogen. Overweeg het te installeren.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland kon {count} essentieel bestand niet laden, Geef de pakketbeheerder van je distro de schuld voor slecht verpakkingswerk!";
-        return "Hyprland kon {count} essentiële bestanden niet laden, Geef de pakketbeheerder van je distro de schuld voor slecht verpakkingswerk!";
+            return "Hyprland kon {count} essentieel bestand niet laden, geef de pakketbeheerder van uw distro de schuld voor slecht verpakkingswerk!";
+        return "Hyprland kon {count} essentiële bestanden niet laden, geef de pakketbeheerder van uw distro de schuld voor slecht verpakkingswerk!";
     });
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Uw monitorindeling is onjuist ingesteld. Monitor {name} overlapt met één of meerdere andere monitoren in de indeling.\n"
@@ -168,10 +168,10 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
                             "Monitor {name} is er niet in geslaagd om een van de aangevraagde modi toe te passen en gebruikt nu modus {mode}.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-                            "Ongeldige schaal opgegeven voor monitor {name}: {scale}, De voorgestelde schaal {fixed_scale} wordt gebruikt");
-    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Plugin {name} kon niet worden geladen : {error}");
+                            "Ongeldige schaal opgegeven voor monitor {name}: {scale}, de voorgestelde schaal {fixed_scale} wordt gebruikt");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Plugin {name} kon niet worden geladen: {error}");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
-    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is ingeschakeld maar het scherm staat niet in 10-bitmodus.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: breed kleurbereik is ingeschakeld maar het scherm staat niet in 10-bitmodus.");
 
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");

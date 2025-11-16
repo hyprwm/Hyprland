@@ -43,6 +43,7 @@
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Utils;
 using namespace NColorManagement;
 
 const std::vector<const char*> ASSET_PATHS = {
@@ -811,6 +812,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
 
     // ensure a framebuffer for the monitor exists
+    bool fbResized = false;
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {
         m_renderData.pCurrentMonData->stencilTex->allocate();
 
@@ -821,7 +823,11 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         m_renderData.pCurrentMonData->offloadFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
         m_renderData.pCurrentMonData->mirrorFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
         m_renderData.pCurrentMonData->mirrorSwapFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
+        fbResized = true;
     }
+
+    if (fbResized)
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
 
     if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
         m_renderData.pCurrentMonData->monitorMirrorFB.release();
@@ -837,7 +843,38 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         applyScreenShader(*PSHADER);
     }
 
+    const bool hadCaptureAttachment               = m_renderData.pCurrentMonData->offloadFB.getCaptureTexture() != nullptr;
+    const bool PREV_CAPTURE_MRT                   = m_renderData.pCurrentMonData->captureMRTValid;
+    const bool ENABLE_CAPTURE_MRT                 = g_pHyprRenderer->shouldEnableCaptureMRTForMonitor(pMonitor);
+    m_renderData.pCurrentMonData->captureMRTValid = ENABLE_CAPTURE_MRT;
+
+    if (ENABLE_CAPTURE_MRT && (!hadCaptureAttachment || !PREV_CAPTURE_MRT))
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = true;
+
+    m_renderData.forcedFullDamageForCapture = false;
+    if (m_renderData.pCurrentMonData->captureMRTValid && m_renderData.pCurrentMonData->forceFullCaptureFrame) {
+        CRegion fullDamage = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        m_renderData.damage.set(fullDamage);
+        m_renderData.finalDamage.set(fullDamage);
+        m_renderData.forcedFullDamageForCapture = true;
+    }
+
     m_renderData.pCurrentMonData->offloadFB.bind();
+    if (ENABLE_CAPTURE_MRT) {
+        if (m_renderData.pCurrentMonData->offloadFB.ensureSecondColorAttachment()) {
+            const GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+            glDrawBuffers(2, bufs);
+        } else {
+            Debug::log(WARN, "Failed to ensure second color attachment; disabling capture MRT for this frame");
+            m_renderData.pCurrentMonData->captureMRTValid = false;
+            const GLenum bufs[1]                          = {GL_COLOR_ATTACHMENT0};
+            glDrawBuffers(1, bufs);
+        }
+    } else {
+        const GLenum bufs[1] = {GL_COLOR_ATTACHMENT0};
+        glDrawBuffers(1, bufs);
+    }
+
     m_renderData.currentFB = &m_renderData.pCurrentMonData->offloadFB;
     m_offloadedFramebuffer = true;
 
@@ -845,6 +882,10 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     m_renderData.outFB  = fb ? fb : g_pHyprRenderer->getCurrentRBO()->getFB();
 
     pushMonitorTransformEnabled(false);
+    setCaptureWritesEnabled(true);
+
+    if (PREV_CAPTURE_MRT != m_renderData.pCurrentMonData->captureMRTValid)
+        Debug::log(TRACE, "renderer: capture MRT {} for monitor {}", m_renderData.pCurrentMonData->captureMRTValid ? "ENABLED" : "DISABLED", pMonitor->m_name);
 }
 
 void CHyprOpenGLImpl::end() {
@@ -852,6 +893,12 @@ void CHyprOpenGLImpl::end() {
     static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
 
     TRACY_GPU_ZONE("RenderEnd");
+
+    const bool captureMRTActive        = m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
+    const bool forcedCaptureFullDamage = m_renderData.forcedFullDamageForCapture;
+
+    if (captureMRTActive && forcedCaptureFullDamage)
+        m_renderData.pCurrentMonData->forceFullCaptureFrame = false;
 
     // end the render, copy the data to the main framebuffer
     if (m_offloadedFramebuffer) {
@@ -899,6 +946,8 @@ void CHyprOpenGLImpl::end() {
         popMonitorTransformEnabled();
     }
 
+    m_renderData.forcedFullDamageForCapture = false;
+
     // reset our data
     m_renderData.pMonitor.reset();
     m_renderData.mouseZoomFactor   = 1.f;
@@ -920,6 +969,90 @@ void CHyprOpenGLImpl::end() {
 
     if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
+}
+
+SP<CTexture> CHyprOpenGLImpl::getMonitorCaptureTexture(PHLMONITOR pMonitor) {
+    if (!pMonitor)
+        return nullptr;
+    if (!m_monitorRenderResources.contains(pMonitor))
+        return nullptr;
+    auto& res = m_monitorRenderResources[pMonitor];
+    if (!res.captureMRTValid)
+        return nullptr;
+    return res.offloadFB.getCaptureTexture();
+}
+
+void CHyprOpenGLImpl::setCaptureWritesEnabled(bool enable) {
+    if (m_captureWritesEnabled == enable)
+        return;
+    m_captureWritesEnabled = enable;
+    glColorMaski(1, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE, enable ? GL_TRUE : GL_FALSE);
+}
+
+bool CHyprOpenGLImpl::captureWritesEnabled() const {
+    return m_captureWritesEnabled;
+}
+
+void CHyprOpenGLImpl::setCaptureNoScreenShareMask(bool enabled, bool force) {
+    if (!force && m_captureNoScreenShareMask == enabled)
+        return;
+
+    const GLuint previousProgram = m_currentProgram;
+
+    auto         updateShaderUniforms = [&](SShader& shader) {
+        if (!shader.program)
+            return;
+
+        useProgram(shader.program);
+
+        if (shader.uniformLocations[SHADER_CAPTURE] != -1)
+            shader.setUniformInt(SHADER_CAPTURE, enabled ? 1 : 0);
+    };
+
+    if (m_shaders) {
+        for (SShader* shader : {&m_shaders->m_shCM, &m_shaders->m_shQUAD, &m_shaders->m_shRGBA, &m_shaders->m_shPASSTHRURGBA, &m_shaders->m_shMATTE, &m_shaders->m_shRGBX,
+                                &m_shaders->m_shEXT, &m_shaders->m_shBLUR1, &m_shaders->m_shBLUR2, &m_shaders->m_shBLURPREPARE, &m_shaders->m_shBLURFINISH, &m_shaders->m_shSHADOW,
+                                &m_shaders->m_shBORDER1, &m_shaders->m_shGLITCH})
+            updateShaderUniforms(*shader);
+    }
+
+    updateShaderUniforms(m_finalScreenShader);
+
+    useProgram(previousProgram);
+
+    m_captureNoScreenShareMask = enabled;
+}
+
+bool CHyprOpenGLImpl::captureNoScreenShareMaskEnabled() const {
+    return m_captureNoScreenShareMask;
+}
+
+bool CHyprOpenGLImpl::captureMRTActiveForCurrentMonitor() const {
+    return m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid;
+}
+
+bool CHyprOpenGLImpl::isCaptureMRTActiveOnMonitor(PHLMONITOR pMonitor) const {
+    if (!pMonitor)
+        return false;
+
+    auto it = m_monitorRenderResources.find(pMonitor);
+    if (it == m_monitorRenderResources.end())
+        return false;
+
+    return it->second.captureMRTValid;
+}
+
+CScopeGuard CHyprOpenGLImpl::captureStateGuard(bool allowCaptureWrites, bool enableMask) {
+    const bool prevCaptureWrites = captureWritesEnabled();
+    const bool prevMaskEnabled   = captureNoScreenShareMaskEnabled();
+
+    setCaptureWritesEnabled(allowCaptureWrites);
+    setCaptureNoScreenShareMask(enableMask);
+
+    return CScopeGuard{[this, prevCaptureWrites, prevMaskEnabled]() {
+        setCaptureWritesEnabled(prevCaptureWrites);
+        setCaptureNoScreenShareMask(prevMaskEnabled);
+    }};
 }
 
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
@@ -985,6 +1118,10 @@ static void getRoundingShaderUniforms(SShader& shader) {
     shader.uniformLocations[SHADER_ROUNDING_POWER] = glGetUniformLocation(shader.program, "roundingPower");
 }
 
+static void getCaptureUniforms(SShader& shader) {
+    shader.uniformLocations[SHADER_CAPTURE] = glGetUniformLocation(shader.program, "capture");
+}
+
 bool CHyprOpenGLImpl::initShaders() {
     auto              shaders   = makeShared<SPreparedShaders>();
     const bool        isDynamic = m_shadersInitialized;
@@ -994,6 +1131,10 @@ bool CHyprOpenGLImpl::initShaders() {
         std::map<std::string, std::string> includes;
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
+
+        auto captureSource = loadShader("capture.glsl");
+        captureSource.insert(0, "#define HYPR_USE_CAPTURE_ATTACHMENT\n");
+        includes["capture.glsl"] = std::move(captureSource);
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
@@ -1029,6 +1170,7 @@ bool CHyprOpenGLImpl::initShaders() {
                 shaders->m_shCM.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
                 shaders->m_shCM.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
                 shaders->m_shCM.createVao();
+                getCaptureUniforms(shaders->m_shCM);
             } else
                 Debug::log(ERR,
                            "WARNING: CM Shader failed compiling, color management will not work. It's likely because your GPU is an old piece of garbage, don't file bug reports "
@@ -1058,6 +1200,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shQUAD.uniformLocations[SHADER_COLOR]      = glGetUniformLocation(prog, "color");
         shaders->m_shQUAD.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
         shaders->m_shQUAD.createVao();
+        getCaptureUniforms(shaders->m_shQUAD);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic);
         if (!prog)
@@ -1078,6 +1221,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
         shaders->m_shRGBA.createVao();
+        getCaptureUniforms(shaders->m_shRGBA);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU, isDynamic);
         if (!prog)
@@ -1088,6 +1232,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shPASSTHRURGBA.uniformLocations[SHADER_TEX_ATTRIB] = glGetAttribLocation(prog, "texcoord");
         shaders->m_shPASSTHRURGBA.uniformLocations[SHADER_POS_ATTRIB] = glGetAttribLocation(prog, "pos");
         shaders->m_shPASSTHRURGBA.createVao();
+        getCaptureUniforms(shaders->m_shPASSTHRURGBA);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE, isDynamic);
         if (!prog)
@@ -1099,6 +1244,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shMATTE.uniformLocations[SHADER_TEX_ATTRIB]  = glGetAttribLocation(prog, "texcoord");
         shaders->m_shMATTE.uniformLocations[SHADER_POS_ATTRIB]  = glGetAttribLocation(prog, "pos");
         shaders->m_shMATTE.createVao();
+        getCaptureUniforms(shaders->m_shMATTE);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGGLITCH, isDynamic);
         if (!prog)
@@ -1112,6 +1258,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shGLITCH.uniformLocations[SHADER_TIME]       = glGetUniformLocation(prog, "time");
         shaders->m_shGLITCH.uniformLocations[SHADER_FULL_SIZE]  = glGetUniformLocation(prog, "screenSize");
         shaders->m_shGLITCH.createVao();
+        getCaptureUniforms(shaders->m_shGLITCH);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX, isDynamic);
         if (!prog)
@@ -1129,6 +1276,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBX.createVao();
+        getCaptureUniforms(shaders->m_shRGBX);
 
         prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT, isDynamic);
         if (!prog)
@@ -1146,6 +1294,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shEXT.createVao();
+        getCaptureUniforms(shaders->m_shEXT);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR1, isDynamic);
         if (!prog)
@@ -1162,6 +1311,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR1.uniformLocations[SHADER_VIBRANCY]          = glGetUniformLocation(prog, "vibrancy");
         shaders->m_shBLUR1.uniformLocations[SHADER_VIBRANCY_DARKNESS] = glGetUniformLocation(prog, "vibrancy_darkness");
         shaders->m_shBLUR1.createVao();
+        getCaptureUniforms(shaders->m_shBLUR1);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLUR2, isDynamic);
         if (!prog)
@@ -1175,6 +1325,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLUR2.uniformLocations[SHADER_RADIUS]     = glGetUniformLocation(prog, "radius");
         shaders->m_shBLUR2.uniformLocations[SHADER_HALFPIXEL]  = glGetUniformLocation(prog, "halfpixel");
         shaders->m_shBLUR2.createVao();
+        getCaptureUniforms(shaders->m_shBLUR2);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic);
         if (!prog)
@@ -1189,6 +1340,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_CONTRAST]   = glGetUniformLocation(prog, "contrast");
         shaders->m_shBLURPREPARE.uniformLocations[SHADER_BRIGHTNESS] = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURPREPARE.createVao();
+        getCaptureUniforms(shaders->m_shBLURPREPARE);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic);
         if (!prog)
@@ -1203,6 +1355,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBLURFINISH.uniformLocations[SHADER_BRIGHTNESS] = glGetUniformLocation(prog, "brightness");
         shaders->m_shBLURFINISH.uniformLocations[SHADER_NOISE]      = glGetUniformLocation(prog, "noise");
         shaders->m_shBLURFINISH.createVao();
+        getCaptureUniforms(shaders->m_shBLURFINISH);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGSHADOW, isDynamic);
         if (!prog)
@@ -1219,6 +1372,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shSHADOW.uniformLocations[SHADER_SHADOW_POWER] = glGetUniformLocation(prog, "shadowPower");
         shaders->m_shSHADOW.uniformLocations[SHADER_COLOR]        = glGetUniformLocation(prog, "color");
         shaders->m_shSHADOW.createVao();
+        getCaptureUniforms(shaders->m_shSHADOW);
 
         prog = createProgram(shaders->TEXVERTSRC, FRAGBORDER1, isDynamic);
         if (!prog)
@@ -1243,6 +1397,7 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shBORDER1.uniformLocations[SHADER_GRADIENT_LERP]           = glGetUniformLocation(prog, "gradientLerp");
         shaders->m_shBORDER1.uniformLocations[SHADER_ALPHA]                   = glGetUniformLocation(prog, "alpha");
         shaders->m_shBORDER1.createVao();
+        getCaptureUniforms(shaders->m_shBORDER1);
 
     } catch (const std::exception& e) {
         if (!m_shadersInitialized)
@@ -1254,6 +1409,8 @@ bool CHyprOpenGLImpl::initShaders() {
 
     m_shaders            = shaders;
     m_shadersInitialized = true;
+
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, true);
 
     Debug::log(LOG, "Shaders initialized successfully.");
     return true;
@@ -1343,6 +1500,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     uniformRequireNoDamage(SHADER_POINTER_SHAPE_PREVIOUS, "pointer_shape_previous");
 
     m_finalScreenShader.createVao();
+    getCaptureUniforms(m_finalScreenShader);
+
+    setCaptureNoScreenShareMask(m_captureNoScreenShareMask, true);
 }
 
 void CHyprOpenGLImpl::clear(const CHyprColor& color) {
@@ -1350,14 +1510,20 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
     TRACY_GPU_ZONE("RenderClear");
 
-    glClearColor(color.r, color.g, color.b, color.a);
-
-    if (!m_renderData.damage.empty()) {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
-            glClear(GL_COLOR_BUFFER_BIT);
-        });
+    const GLfloat col[4] = {color.r, color.g, color.b, color.a};
+    if (m_renderData.damage.empty()) {
+        scissor(nullptr);
+        return;
     }
+
+    const bool shouldClearCapture = m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid && color.a > 0.0f;
+    m_renderData.damage.forEachRect([this, &col, shouldClearCapture](const auto& rect) {
+        scissor(&rect);
+        glClearBufferfv(GL_COLOR, 0, col);
+        if (shouldClearCapture) {
+            glClearBufferfv(GL_COLOR, 1, col);
+        }
+    });
 
     scissor(nullptr);
 }
@@ -1449,9 +1615,14 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -2387,7 +2558,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
         renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
     else
@@ -2399,7 +2572,10 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
                                          .allowCustomUV = true,
                                          .wrapX         = data.wrapX,
                                          .wrapY         = data.wrapY}); // discard opaque
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    if (m_renderData.pCurrentMonData && m_renderData.pCurrentMonData->captureMRTValid)
+        glColorMaski(1, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE, m_captureWritesEnabled ? GL_TRUE : GL_FALSE,
+                     m_captureWritesEnabled ? GL_TRUE : GL_FALSE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);

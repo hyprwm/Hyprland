@@ -804,7 +804,19 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             } else if (auto search = NWindowProperties::boolWindowProperties.find(VARS[1]); search != NWindowProperties::boolWindowProperties.end()) {
                 try {
-                    *(search->second(m_self.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : sc<bool>(std::stoi(VARS[2])), priority);
+                    auto*      target          = search->second(m_self.lock());
+                    const bool isNoScreenShare = VARS[1] == "noscreenshare";
+                    const bool hasArg          = VARS.size() > 2 && !VARS[2].empty();
+
+                    if (isNoScreenShare && hasArg && VARS[2] == "unset") {
+                        target->unset(priority);
+                    } else {
+                        const bool value = hasArg ? sc<bool>(std::stoi(VARS[2])) : true;
+                        *target          = CWindowOverridableVar(value, priority);
+                    }
+
+                    if (isNoScreenShare)
+                        g_pHyprRenderer->damageWindow(m_self.lock());
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->m_rule, e.what()); }
             }
             break;

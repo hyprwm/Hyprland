@@ -1,11 +1,11 @@
 #pragma once
 #include "PassElement.hpp"
-#include <optional>
 #include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
 class CTexture;
 class CSyncTimeline;
+class CRenderPass;
 
 class CSurfacePassElement : public IPassElement {
   public:
@@ -47,6 +47,8 @@ class CSurfacePassElement : public IPassElement {
         bool     useNearestNeighbor = false;
 
         bool     flipEndFrame = false;
+
+        bool     captureWrites = true;
     };
 
     CSurfacePassElement(const SRenderData& data);
@@ -68,4 +70,6 @@ class CSurfacePassElement : public IPassElement {
     SRenderData m_data;
 
     CBox        getTexBox();
+
+    friend class CRenderPass;
 };

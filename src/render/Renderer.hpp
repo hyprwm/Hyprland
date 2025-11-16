@@ -93,8 +93,15 @@ class CHyprRenderer {
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
-    bool m_bBlockSurfaceFeedback = false;
-    bool m_bRenderingSnapshot    = false;
+    static bool                     shouldBlackoutNoScreenShare();
+
+    bool                            shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor);
+    void                            setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending);
+
+    bool                            isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
+
+    bool                            m_bBlockSurfaceFeedback = false;
+    bool                            m_bRenderingSnapshot    = false;
     PHLMONITORREF                   m_mostHzMonitor;
     bool                            m_directScanoutBlocked = false;
 

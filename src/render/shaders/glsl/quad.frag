@@ -5,6 +5,7 @@ precision highp float;
 in vec4 v_color;
 
 #include "rounding.glsl"
+#include "capture.glsl"
 
 layout(location = 0) out vec4 fragColor;
 void main() {
@@ -14,4 +15,5 @@ void main() {
         pixColor = rounding(pixColor);
 
     fragColor = pixColor;
+    CAPTURE_WRITE(fragColor);
 }

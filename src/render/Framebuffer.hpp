@@ -17,14 +17,17 @@ class CFramebuffer {
     void         reset();
     bool         isAllocated();
     SP<CTexture> getTexture();
+    SP<CTexture> getCaptureTexture();
     SP<CTexture> getStencilTex();
     GLuint       getFBID();
+    bool         ensureSecondColorAttachment();
 
     Vector2D     m_size;
     DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;
 
   private:
     SP<CTexture> m_tex;
+    SP<CTexture> m_captureTex;
     GLuint       m_fb          = -1;
     bool         m_fbAllocated = false;
 

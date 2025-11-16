@@ -106,11 +106,13 @@ in
         sed -i "s#@PREFIX@/##g" hyprland.pc.in
       '';
 
-      COMMITS = revCount;
-      DATE = date;
-      DIRTY = optionalString (commit == "") "dirty";
-      HASH = commit;
-      TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
+      env = {
+        GIT_COMMITS = revCount;
+        GIT_COMMIT_DATE = date;
+        GIT_COMMIT_HASH = commit;
+        GIT_DIRTY = if (commit == "") then "clean" else "dirty";
+        GIT_TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
+      };
 
       depsBuildBuild = [
         pkg-config

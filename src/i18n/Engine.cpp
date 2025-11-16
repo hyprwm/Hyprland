@@ -248,6 +248,48 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
+    // sr_RS (Serbian)
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_TITLE, "Апликација не реагује");
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_CONTENT, "Апликација {title} - {class} не реагује.\nШта желите да урадите са њом?");
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_OPTION_TERMINATE, "Прекини");
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_OPTION_WAIT, "Чекај");
+    huEngine->registerEntry("sr_RS", TXT_KEY_ANR_PROP_UNKNOWN, "(непознато)");
+
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Апликација <b>{app}</b> захтева непознату дозволу.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Апликација <b>{app}</b> покушава да снима твој екран.\n\nДа ли желиш да то дозволиш?");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Апликација <b>{app}</b> покушава да учита додатак: <b>{plugin}</b>.\n\nДа ли желиш да то дозволиш?");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Нова тастатура је детектована: <b>{keyboard}</b>.\n\nДа ли желиш да дозволиш њен рад?");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(непознато)");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_TITLE, "Захтев за дозволу");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Савет: можеш направити трајна правила за ово у Hyprland конфигурационој датотеци.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_ALLOW, "Дозволи");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Дозволи и запамти");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_ALLOW_ONCE, "Дозволи једном");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_DENY, "Одбиј");
+    huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Непозната апликација (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Изгледа да се твојим XDG_CURRENT_DESKTOP окружењем управља споља, и тренутна вредност је {value}.\nОво може правити проблеме осим ако је намерно.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Твој систем нема инсталиран hyprland-guiutils. Ово је зависност при покретању за неке дијалоге. Размотри инсталацију.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland није успео да учита {count} кључни ресурс, криви пакера твоје дистрибуције за лоше одрађен посао!";
+        if (assetsNo <= 4)
+            return "Hyprland није успео да учита {count} кључна ресурса, криви пакера твоје дистрибуције за лоше одрађен посао!";
+        return "Hyprland није успео да учита {count} кључних ресурса, криви пакера твоје дистрибуције за лоше одрађен посао паковања!";
+    });
+    huEngine->registerEntry(
+        "sr_RS", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "Твој распоред монитора је неправилно постављен. Монитор {name} се преклапа са другим монитором/мониторима у распореду.\nМолим те погледај вики (Monitors страницу) за "
+        "више информација. Ово <b>ће</b> изазвати проблеме.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Монитор {name} није успео да постави ниједан тражени режим, враћање на режим {mode}.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Невалидна скала прослеђена монитору {name}: {scale}, користи се препоручена скала: {fixed_scale}");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Неуспешно учитавање додатка {name}: {error}");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Поново учитавање CM шејдера није успело, враћање на rgba/rgbx.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: широк спектар боја је омогућен али екран није у 10-битном режиму.");
+    
     // sr_RS@latin (Serbian Latin)
     huEngine->registerEntry("sr_RS@latin", TXT_KEY_ANR_TITLE, "Aplikacija ne reaguje");
     huEngine->registerEntry("sr_RS@latin", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} ne reaguje.\nŠta želite da uradite sa njom?");

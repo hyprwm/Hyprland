@@ -308,76 +308,48 @@ I18n::CI18nEngine::CI18nEngine() {
 
     // ml_IN (Malayalam)
     huEngine->registerEntry("ml_IN", TXT_KEY_ANR_TITLE, "ആപ്ലിക്കേഷൻ പ്രതികരിക്കുന്നില്ല");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_ANR_CONTENT,
-        "ആപ്ലിക്കേഷൻ {title} - {class} പ്രതികരിക്കുന്നില്ല.\nഇതിന് നിങ്ങൾ എന്ത് ചെയ്യാൻ ആഗ്രഹിക്കുന്നു?");
+    huEngine->registerEntry("ml_IN", TXT_KEY_ANR_CONTENT, "ആപ്ലിക്കേഷൻ {title} - {class} പ്രതികരിക്കുന്നില്ല.\nഇതിന് നിങ്ങൾ എന്ത് ചെയ്യാൻ ആഗ്രഹിക്കുന്നു?");
     huEngine->registerEntry("ml_IN", TXT_KEY_ANR_OPTION_TERMINATE, "അവസാനിപ്പിക്കുക");
     huEngine->registerEntry("ml_IN", TXT_KEY_ANR_OPTION_WAIT, "കാത്തിരിക്കുക");
     huEngine->registerEntry("ml_IN", TXT_KEY_ANR_PROP_UNKNOWN, "(അജ്ഞാതം)");
 
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN,
-        "ആപ്ലിക്കേഷൻ <b>{app}</b> ഒരു അജ്ഞാത അനുമതി അഭ്യർത്ഥിക്കുന്നു.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY,
-        "ആപ്ലിക്കേഷൻ <b>{app}</b> നിങ്ങളുടെ സ്ക്രീൻ പകർത്താൻ ശ്രമിക്കുന്നു.\n\nനിങ്ങൾ അത് അനുവദിക്കണോ?");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
-        "ആപ്ലിക്കേഷൻ <b>{app}</b> ഒരു പ്ലഗിൻ ലോഡ് ചെയ്യാൻ ശ്രമിക്കുന്നു: <b>{plugin}</b>.\n\nഇത് അനുവദിക്കണോ?");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
-        "പുതിയ കീബോർഡ് കണ്ടെത്തി: <b>{keyboard}</b>.\n\nഇത് പ്രവർത്തിക്കാൻ അനുവദിക്കണോ?");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "ആപ്ലിക്കേഷൻ <b>{app}</b> ഒരു അജ്ഞാത അനുമതി അഭ്യർത്ഥിക്കുന്നു.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "ആപ്ലിക്കേഷൻ <b>{app}</b> നിങ്ങളുടെ സ്ക്രീൻ പകർത്താൻ ശ്രമിക്കുന്നു.\n\nനിങ്ങൾ അത് അനുവദിക്കണോ?");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "ആപ്ലിക്കേഷൻ <b>{app}</b> ഒരു പ്ലഗിൻ ലോഡ് ചെയ്യാൻ ശ്രമിക്കുന്നു: <b>{plugin}</b>.\n\nഇത് അനുവദിക്കണോ?");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "പുതിയ കീബോർഡ് കണ്ടെത്തി: <b>{keyboard}</b>.\n\nഇത് പ്രവർത്തിക്കാൻ അനുവദിക്കണോ?");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(അജ്ഞാതം)");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_TITLE, "അനുമതി അഭ്യർത്ഥന");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT,
-        "സൂചന: Hyprland കോൺഫിഗ് ഫയലിൽ സ്ഥിരനിയമങ്ങൾ സജ്ജമാക്കാം.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "സൂചന: Hyprland കോൺഫിഗ് ഫയലിൽ സ്ഥിരനിയമങ്ങൾ സജ്ജമാക്കാം.");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_ALLOW, "അനുവദിക്കുക");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "അനുവദിച്ച് ഓർക്കുക");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_ALLOW_ONCE, "ഒന്നുതവണ അനുവദിക്കുക");
     huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_DENY, "നിരസിക്കുക");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP,
-        "അജ്ഞാത അപ്ലിക്കേഷൻ (wayland client ID {wayland_id})");
+    huEngine->registerEntry("ml_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "അജ്ഞാത അപ്ലിക്കേഷൻ (wayland client ID {wayland_id})");
 
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "നിങ്ങളുടെ XDG_CURRENT_DESKTOP പരിസ്ഥിതി പുറത്ത് നിന്ന് നിയന്ത്രിക്കപ്പെടുന്നു, ഇപ്പോഴത്തെ മൂല്യം "
-        "{value}.\nഇത് ഉദ്ദേശ്യമായല്ലെങ്കിൽ പ്രശ്നങ്ങൾ ഉണ്ടാകും.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_NO_GUIUTILS,
-        "നിങ്ങളുടെ സിസ്റ്റത്തിൽ hyprland-guiutils ഇൻസ്റ്റാൾ ചെയ്തിട്ടില്ല. ഇത് ചില ഡയലോഗുകൾക്ക് ആവശ്യമായ "
-        "റൺടൈം ആശ്രയമാണ്. ഇൻസ്റ്റാൾ ചെയ്യുക.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_FAILED_ASSETS,
-        [](const Hyprutils::I18n::translationVarMap& vars) {
-            int assetsNo = std::stoi(vars.at("count"));
-            if (assetsNo <= 1)
-                return "Hyprland {count} പ്രധാന അസറ്റ് ലോഡുചെയ്യാൻ പരാജയപ്പെട്ടു, നിങ്ങളുടെ ഡിസ്‌ട്രോ "
-                       "പാക്കേജർ പിശക് ചെയ്തിരിക്കുന്നു!";
-            return "Hyprland {count} പ്രധാന അസറ്റുകൾ ലോഡുചെയ്യാൻ പരാജയപ്പെട്ടു, നിങ്ങളുടെ ഡിസ്‌ട്രോ "
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "നിങ്ങളുടെ XDG_CURRENT_DESKTOP പരിസ്ഥിതി പുറത്ത് നിന്ന് നിയന്ത്രിക്കപ്പെടുന്നു, ഇപ്പോഴത്തെ മൂല്യം "
+                            "{value}.\nഇത് ഉദ്ദേശ്യമായല്ലെങ്കിൽ പ്രശ്നങ്ങൾ ഉണ്ടാകും.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "നിങ്ങളുടെ സിസ്റ്റത്തിൽ hyprland-guiutils ഇൻസ്റ്റാൾ ചെയ്തിട്ടില്ല. ഇത് ചില ഡയലോഗുകൾക്ക് ആവശ്യമായ "
+                            "റൺടൈം ആശ്രയമാണ്. ഇൻസ്റ്റാൾ ചെയ്യുക.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland {count} പ്രധാന അസറ്റ് ലോഡുചെയ്യാൻ പരാജയപ്പെട്ടു, നിങ്ങളുടെ "
+                   "ഡിസ്‌ട്രോ "
                    "പാക്കേജർ പിശക് ചെയ്തിരിക്കുന്നു!";
-        });
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "മോണിറ്റർ ലേയൗട്ട് തെറ്റാണ്. മോണിറ്റർ {name} മറ്റുള്ളവയുമായ് ഒതുങ്ങുന്നു.\nകൂടുതൽ വിവരങ്ങൾക്ക് Wiki "
-        "(Monitors page) കാണുക. ഇത് <b>പ്രശ്നങ്ങൾ ഉണ്ടാക്കും</b>.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
-        "മോണിറ്റർ {name} ആവശ്യപ്പെട്ട മോഡുകൾ സജ്ജമാക്കാൻ പരാജയപ്പെട്ടു, ഇപ്പോൾ {mode} ഉപയോഗിക്കുന്നു.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-        "മോണിറ്റർ {name} ന് അസാധുവായ സ്കെയിൽ: {scale}, നിർദ്ദേശിച്ച സ്കെയിൽ: {fixed_scale}");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN,
-        "പ്ലഗിൻ {name} ലോഡ് ചെയ്യാൻ പരാജയപ്പെട്ടു: {error}");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED,
-        "CM ഷേഡർ റീലോഡ് പരാജയപ്പെട്ടു, rgba/rgbx ലേക്ക് മാറുന്നു.");
-    huEngine->registerEntry(
-        "ml_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
-        "മോണിറ്റർ {name}: വൈഡ് കളർ ഗാമട്ട് പ്രവർത്തനക്ഷമമാണെങ്കിലും, മോഡ് 10-bit അല്ല.");
-
+        return "Hyprland {count} പ്രധാന അസറ്റുകൾ ലോഡുചെയ്യാൻ പരാജയപ്പെട്ടു, നിങ്ങളുടെ "
+               "ഡിസ്‌ട്രോ "
+               "പാക്കേജർ പിശക് ചെയ്തിരിക്കുന്നു!";
+    });
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "മോണിറ്റർ ലേയൗട്ട് തെറ്റാണ്. മോണിറ്റർ {name} മറ്റുള്ളവയുമായ് ഒതുങ്ങുന്നു.\nകൂടുതൽ വിവരങ്ങൾക്ക് Wiki "
+                            "(Monitors page) കാണുക. ഇത് <b>പ്രശ്നങ്ങൾ ഉണ്ടാക്കും</b>.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "മോണിറ്റർ {name} ആവശ്യപ്പെട്ട മോഡുകൾ സജ്ജമാക്കാൻ പരാജയപ്പെട്ടു, ഇപ്പോൾ {mode} ഉപയോഗിക്കുന്നു.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "മോണിറ്റർ {name} ന് അസാധുവായ സ്കെയിൽ: {scale}, നിർദ്ദേശിച്ച സ്കെയിൽ: {fixed_scale}");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "പ്ലഗിൻ {name} ലോഡ് ചെയ്യാൻ പരാജയപ്പെട്ടു: {error}");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM ഷേഡർ റീലോഡ് പരാജയപ്പെട്ടു, rgba/rgbx ലേക്ക് മാറുന്നു.");
+    huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "മോണിറ്റർ {name}: വൈഡ് കളർ ഗാമട്ട് പ്രവർത്തനക്ഷമമാണെങ്കിലും, മോഡ് 10-bit അല്ല.");
 
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");

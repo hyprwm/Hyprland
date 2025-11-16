@@ -138,6 +138,49 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader hed ned chönne neu glade wärde, es werd uf rgba/rgbx zrogggfalle.");
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Beldscherm {name}: wide color gamut esch aktiviert aber de Beldscherm esch ned im 10-bit Modus.");
 
+    // es (Spanish)
+    huEngine->registerEntry("es", TXT_KEY_ANR_TITLE, "La aplicación no responde");
+    huEngine->registerEntry("es", TXT_KEY_ANR_CONTENT, "Una aplicación {title} - {class} no responde.\n¿Qué quieres hacer?");
+    huEngine->registerEntry("es", TXT_KEY_ANR_OPTION_TERMINATE, "Terminar");
+    huEngine->registerEntry("es", TXT_KEY_ANR_OPTION_WAIT, "Esperar");
+    huEngine->registerEntry("es", TXT_KEY_ANR_PROP_UNKNOWN, "(desconocido)");
+
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Una aplicación <b>{app}</b> está solicitando un permiso desconocido.");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Una aplicación <b>{app}</b> está intentando capturar la pantalla.\n\n¿Quieres permitirlo?");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Una aplicación <b>{app}</b> está intentando cargar un plugin: <b>{plugin}</b>.\n\n¿Quieres permitirlo?");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Se ha detectado un nuevo teclado: <b>{keyboard}</b>.\n\n¿Quieres permitir su funcionamiento?");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(desconocido)");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_TITLE, "Solicitud de permiso");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Sugerencia: puedes establecer reglas persistentes para estos en el archivo de configuración de Hyprland.");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_ALLOW, "Permitir");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Permitir y recordar");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_ALLOW_ONCE, "Permitir una vez");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_DENY, "Denegar");
+    huEngine->registerEntry("es", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplicación desconocida (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "La variable de entorno XDG_CURRENT_DESKTOP parece estar gestionada externamente, y el valor actual es {value}.\nEsto podría causar problemas, a menos "
+                            "que sea intencionado.");
+    huEngine->registerEntry(
+        "es", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "Tu sistema no tiene instalado hyprland-guiutils. Se trata de una dependencia de tiempo de ejecución para algunos diálogos. Considera la posibilidad de instalarlo.");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "No se ha podido cargar {count} recurso clave, ¡culpa a tu empaquetador por hacer un mal trabajo!";
+        return "No se ha podido cargar {count} recursos clave, ¡culpa a tu empaquetador por hacer un mal trabajo!";
+    });
+    huEngine->registerEntry(
+        "es", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "La configuración de su monitor no es correcta. El monitor {name} se superpone con otros monitores en la configuración. Consulte la wiki (página Monitors, en inglés) "
+        "para obtener más información. Esto <b>provocará</b> problemas.");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
+                            "El monitor {name} no ha podido configurar ninguno de los modos solicitados, por lo que ha recurrido al modo {mode}.");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Escala no válida pasada al monitor {name}: {scale}, utilizando la escala sugerida: {fixed_scale}");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Error al cargar el plugin {name}: {error}");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Error al recargar el sombreador CM, recurriendo a rgba/rgbx.");
+    huEngine->registerEntry("es", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: la gama de colores amplia está habilitada, pero la pantalla no está en modo de 10-bit.");
+
     // fr_FR (French)
     huEngine->registerEntry("fr_FR", TXT_KEY_ANR_TITLE, "L'application ne répond plus");
     huEngine->registerEntry("fr_FR", TXT_KEY_ANR_CONTENT, "L'application {title} - {class} ne répond plus.\nQue voulez-vous faire?");

@@ -18,17 +18,7 @@ permissions:
 jobs:
   review:
     name: Review Translation
-    if: >
-      ${{
-        github.event_name == 'pull_request' ||
-        (
-          github.event_name == 'issue_comment' &&
-          github.event.action == 'created' &&
-          github.event.issue.pull_request != null &&
-          github.event.comment.user.login == 'vaxerski' &&
-          github.event.comment.body == 'ai, please recheck'
-        )
-      }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
     runs-on: ubuntu-latest
     env:
       OPENAI_MODEL: gpt-5-mini
@@ -39,12 +29,26 @@ jobs:
       AI_PROMPT: Translation patch below.
 
     steps:
+      - name: Determine PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download combined PR diff
         id: get_diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           # Get the combined diff for the entire PR
           curl -sSL \
-            "${{ github.event.pull_request.diff_url }}" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" \
             -o pr.diff
 
           # Compute character length
@@ -63,12 +67,13 @@ jobs:
         if: steps.get_diff.outputs.too_long == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           jq -n --arg body "Diff length exceeded, can't query API" '{body: ("AI translation check result:\n\n" + $body)}' > body.json
           curl -sS -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
             --data @body.json
 
       - name: Query OpenAI and post review
@@ -79,6 +84,7 @@ jobs:
           SYSTEM_PROMPT: ${{ env.SYSTEM_PROMPT }}
           AI_PROMPT: ${{ env.AI_PROMPT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           # Prepare OpenAI chat request payload (embed diff safely)
           jq -n \
@@ -107,8 +113,9 @@ jobs:
 
           # Post the review as a PR comment
           jq -n --arg body "$COMMENT" '{body: ("AI translation check result:\n\n" + $body)}' > body.json
+          echo "CURLing https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments"
           curl -sS -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
             --data @body.json

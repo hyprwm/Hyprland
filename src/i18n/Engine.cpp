@@ -153,7 +153,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry(
         "nl_NL", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan problmen veroorzaken, tenzij dit opzettelijk is.");
-    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_NO_GUIUTILS,
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Hyprland-guiutils is niet op uw systeem geïnstalleerd. Dit is een runtime-afhankelijkheid voor sommige dialogen. Overweeg het te installeren.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));

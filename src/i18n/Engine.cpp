@@ -268,9 +268,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_DENY, "Odbij");
     huEngine->registerEntry("sr_RS", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Nepoznata aplikacija (wayland client ID {wayland_id})");
 
-    huEngine->registerEntry(
-        "sr_RS", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "Izgleda da se tvojim XDG_CURRENT_DESKTOP okruženjem upravlja spolja, i trenutna vrednost je {value}.\nOvo može praviti probleme osim ako je namerno.");
+    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Izgleda da se tvojim XDG_CURRENT_DESKTOP okruženjem upravlja spolja, i trenutna vrednost je {value}.\nOvo može praviti probleme osim ako je namerno.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Tvoj sistem nema instaliran hyprland-guiutils. Ovo je zavisnost pri pokretanju za neke dijaloge. Razmotri instalaciju.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
@@ -278,12 +277,13 @@ I18n::CI18nEngine::CI18nEngine() {
         if (assetsNo <= 1)
             return "Hyprland nije uspeo da učita {count} ključni resurs, krivi pakera tvoje distribucije za loše odrađen posao!";
         if (assetsNo <= 4)
-        	return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
+            return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
         return "Hyprland nije uspeo da učita {count} ključnih resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
     });
-    huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Tvoj raspored monitora je nepravilno postavljen. Monitor {name} se preklapa sa drugim monitorom/monitorima u rasporedu.\nMolim te pogledaj wiki (Monitors stranicu) za "
-                            "više informacija. Ovo <b>će</b> izazvati probleme.");
+    huEngine->registerEntry(
+        "sr_RS", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "Tvoj raspored monitora je nepravilno postavljen. Monitor {name} se preklapa sa drugim monitorom/monitorima u rasporedu.\nMolim te pogledaj wiki (Monitors stranicu) za "
+        "više informacija. Ovo <b>će</b> izazvati probleme.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} nije uspeo da postavi nijedan traženi režim, vraćanje na režim {mode}.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Nevalidna skala prosleđena monitoru {name}: {scale}, koristi se preporučena skala: {fixed_scale}");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Neuspešno učitavanje dodatka {name}: {error}");

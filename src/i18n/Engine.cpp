@@ -433,6 +433,44 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
+    // en_US (Pirate English)
+    huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Th’ Application Be Refusin’ t’ Respond!");
+    huEngine->registerEntry("en_US", TXT_KEY_ANR_CONTENT, "The scurvy application {title} - {class} be refusin’ t’ answer.\nWhat be yer command, captain?");
+    huEngine->registerEntry("en_US", TXT_KEY_ANR_OPTION_TERMINATE, "Send it t’ Davy Jones");
+    huEngine->registerEntry("en_US", TXT_KEY_ANR_OPTION_WAIT, "Keep Waitin’, Ye Impatient Dog");
+    huEngine->registerEntry("en_US", TXT_KEY_ANR_PROP_UNKNOWN, "(be unknown)");
+
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "An application <b>{app}</b> be askin’ fer some mysterious permission, arr.");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "An application <b>{app}</b> be tryin’ t’ capture yer lookin’-glass.\n\nDo ye allow such treachery?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "An application <b>{app}</b> be tryin’ t’ load a plugin: <b>{plugin}</b>.\n\nShall we let th’ beast through?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A new writin’ contraption be detected: <b>{keyboard}</b>.\n\nDo ye allow it t’ join yer crew?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(be unknown)");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_TITLE, "Permission be Requested");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Hint: ye can carve persistent rules fer these in th’ Hyprland config scroll.");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_ALLOW, "Aye, Allow It");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Allow, an’ Burn it in Memory");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_ALLOW_ONCE, "Allow Just This Once");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_DENY, "Nay, Deny It");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Unknown application (Wayland client ID {wayland_id})");
+
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Yer XDG_CURRENT_DESKTOP be managed by forces beyond these seas, an’ its current mark be {value}.\nThis may bring trouble unless ye meant t’ do it.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_NO_GUIUTILS,
+                        "Yer vessel be lackin’ hyprland-guiutils. Some dialogs will mutiny without it. Best be installin’ it.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland failed t’ load {count} essential booty—curse th’ packager fer their shoddy work!";
+        return "Hyprland failed t’ load {count} essential pieces o’ booty—curse th’ packager fer their disgraceful job!";
+    });
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Yer monitor layout be all tangled, matey. Monitor {name} be overlapin’ with th’ others.\nCheck th’ Monitors page in th’ wiki.\nThis <b>will</b> cause ye strife.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} failed t’ set any o’ th’ requested modes, fallin’ back t’ mode {mode}.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ye gave monitor {name} a cursed scale: {scale}. Usin’ th’ recommended one: {fixed_scale}");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Couldn’t load plugin {name}: {error}");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload be failin’, fallin’ back t’ rgba/rgbx.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color be enabled, but th’ display ain’t sailin’ in 10-bit waters.");
+
     // ru_RU (Russian)
     huEngine->registerEntry("ru_RU", TXT_KEY_ANR_TITLE, "Приложение не отвечает");
     huEngine->registerEntry("ru_RU", TXT_KEY_ANR_CONTENT, "Приложение {title} - {class} не отвечает.\nЧто вы хотите сделать?");

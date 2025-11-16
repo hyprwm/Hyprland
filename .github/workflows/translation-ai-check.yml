@@ -126,7 +126,7 @@ jobs:
           # If failed, add a note
           ADDITIONAL_NOTE=""
           if [[ "$COMMENT" == *"not ok"* ]]; then
-            ADDITIONAL_NOTE="\n\nPlease note this check is a guideline, not a hard requirement. It is here to help you translate. If you disagree with some points, just state that. Any typos should be fixed."
+            ADDITIONAL_NOTE=$(echo -ne "\n\nPlease note this check is a guideline, not a hard requirement. It is here to help you translate. If you disagree with some points, just state that. Any typos should be fixed.")
           fi
 
           # Post the review as a PR comment

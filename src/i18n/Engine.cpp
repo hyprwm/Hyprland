@@ -457,12 +457,12 @@ I18n::CI18nEngine::CI18nEngine() {
         "pt_PT", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "O teu ambiente XDG_CURRENT_DESKTOP parece estar a ser gerido externamente, e o valor actual é {value}.\nIsto pode causar problemas a não ser que seja intencional.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "O teu sistema não tem o hyprland-guiutils instalado. Esta dependencia de runtime é necessária para algumas caixas de diálogo, deverias instalá-la.");
+                            "O teu sistema não tem o hyprland-guiutils instalado. Esta dependência de runtime é necessária para algumas caixas de diálogo, deverias instalá-la.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland não conseguiu carregar {count} asset essencial, podes culpar o gestor de dependencias da tua distro por fazer um mau trabalho!";
-        return "Hyprland não conseguiu carregar {count} assets essenciais, podes culpar o gestor de dependencias da tua distro por fazer um mau trabalho!";
+            return "Hyprland não conseguiu carregar {count} asset essencial, podes culpar o gestor de dependências da tua distro por fazer um mau trabalho!";
+        return "Hyprland não conseguiu carregar {count} assets essenciais, podes culpar o gestor de dependências da tua distro por fazer um mau trabalho!";
     });
     huEngine->registerEntry(
         "pt_PT", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,

@@ -277,7 +277,7 @@ I18n::CI18nEngine::CI18nEngine() {
         if (assetsNo <= 1)
             return "Hyprland nije uspeo da učita {count} ključni resurs, krivi pakera tvoje distribucije za loše odrađen posao!";
         if (assetsNo <= 4)
-            return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
+            return "Hyprland nije uspeo da učita {count} ključna resursa, krivi pakera tvoje distribucije za loše odrađen posao!";
         return "Hyprland nije uspeo da učita {count} ključnih resursa, krivi pakera tvoje distribucije za loše odrađen posao pakovanja!";
     });
     huEngine->registerEntry(

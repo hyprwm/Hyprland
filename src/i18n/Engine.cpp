@@ -130,6 +130,46 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CMシェーダーのリロード失敗、rgba/rgbxを使いました。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "画面{name}：広い色域は設定していますけど、画面は10ビットモードに設定されていません。");
 
+    // nl_NL (Dutch)
+    huEngine->registerEntry("nl_NL", TXT_KEY_ANR_TITLE, "Applicatie Reageert Niet");
+    huEngine->registerEntry("nl_NL", TXT_KEY_ANR_CONTENT, "Een applicatie {title} - {class} reageert niet.\nWat wilt u doen?");
+    huEngine->registerEntry("nl_NL", TXT_KEY_ANR_OPTION_TERMINATE, "Beëindigen");
+    huEngine->registerEntry("nl_NL", TXT_KEY_ANR_OPTION_WAIT, "Wachten");
+    huEngine->registerEntry("nl_NL", TXT_KEY_ANR_PROP_UNKNOWN, "(onbekend)");
+
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Een applicatie <b>{app}</b> vraagt om een onbekende machtiging.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Een applicatie <b>{app}</b> probeert uw scherm op te nemen.\n\nWilt u dit toestaan?");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Een applicatie <b>{app}</b> probeert een plugin te laden: <b>{plugin}</b>.\n\nWilt u dit toestaan?");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Een nieuw toetsenbord is gedetecteerd: <b>{keyboard}</b>.\n\nWilt u toestemming geven om te functioneren?");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(onbekend)");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_TITLE, "Toestemmingsverzoek");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: U kunt hiervoor vaste regels instellen in het Hyprland-configuratiebestand.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW, "Toestaan");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Toestaan en onthouden");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW_ONCE, "Een keer toestaan");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_DENY, "Weigeren");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Onbekende applicatie (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry(
+        "nl_NL", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\nDit kan problmen veroorzaken, tenzij dit opzettelijk is.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Hyprland-guiutils is niet op uw systeem geïnstalleerd. Dit is een runtime-afhankelijkheid voor sommige dialogen. Overweeg het te installeren.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland kon {count} essentieel bestand niet laden, Geef de pakketbeheerder van je distro de schult voor slecht verpakkingswerk!";
+        return "Hyprland kon {count} essentiële bestanden niet laden, Geef de pakketbeheerder van je distro de schult voor slecht verpakkingswerk!";
+    });
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Uw monitorindeling is onjuist ingesteld. Monitor {name} overlapt met één of meerdere andere monitoren in de indeling.\n"
+                            "Zie de wiki (Monitors pagina) voor meer informatie. Dit <b>zal</b> problemen veroorzaken.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} is er niet in geslaagd om een van de aangevraagde modi toe te passen en gebruikt nu modus {mode}.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ongeldige schaal opgegeven voor monitor {name}: {scale}, De voorgestelde schaal {fixed_scale} wordt gebruikt");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Plugin {name} kon niet worden geladen : {error}");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
+    huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is ingeschakeld maar het scherm staat buet ub 10-bitmodus.");
+    
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_CONTENT, "Aplikacja {title} - {class} nie odpowiada.\nCo chcesz z nią zrobić?");

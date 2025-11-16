@@ -235,6 +235,42 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM शेडर रीलोड विफल हुआ, rgba/rgbx पर वापस जा रहा है।");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "मॉनिटर {name}: वाइड कलर गैम सक्षम है लेकिन डिस्प्ले 10-बिट मोड में नहीं है।");
 
+        // hu_HU (Hungarian)
+    huEngine->registerEntry("hu_HU", TXT_KEY_ANR_TITLE, "Az alkalmazás nem válaszol");
+    huEngine->registerEntry("hu_HU", TXT_KEY_ANR_CONTENT, "A(z) {title} - {class} alkalmazás nem válaszol.\nMit szeretnél tenni vele?");
+    huEngine->registerEntry("hu_HU", TXT_KEY_ANR_OPTION_TERMINATE, "Befejezés");
+    huEngine->registerEntry("hu_HU", TXT_KEY_ANR_OPTION_WAIT, "Várakozás");
+    huEngine->registerEntry("hu_HU", TXT_KEY_ANR_PROP_UNKNOWN, "(ismeretlen)");
+
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "A(z) <b>{app}</b> alkalmazás ismeretlen engedélyt kér.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "A(z) <b>{app}</b> alkalmazás rögzíteni szeretné a képernyődet.\n\nEngedélyezed?");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "A(z) <b>{app}</b> alkalmazás be szeretne tölteni egy bővítményt: <b>{plugin}</b>.\n\nEngedélyezed?");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Új billentyűzet került felismerésre: <b>{keyboard}</b>.\n\nEngedélyezed a működését?");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ismeretlen)");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_TITLE, "Engedélykérés");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tipp: ezekhez állandó szabályokat állíthatsz be a Hyprland konfigurációs fájlban.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_ALLOW, "Engedélyezés");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Engedélyezés és megjegyzés");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_ALLOW_ONCE, "Egyszeri engedélyezés");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_DENY, "Elutasítás");
+    huEngine->registerEntry("hu_HU", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Ismeretlen alkalmazás (Wayland-kliensazonosító: {wayland_id})");
+
+    huEngine->registerEntry(
+        "hu_HU", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Az XDG_CURRENT_DESKTOP környezeti változó külsőleg van kezelve, jelenlegi értéke: {value}.\nEz problémákat okozhat, kivéve ha ez szándékos.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "A rendszeren nincs telepítve a hyprland-guiutils. Ez néhány párbeszédablakhoz futásidejű függőség. Fontold meg a telepítését.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_FAILED_ASSETS,
+                            "A Hyprland nem tudott betölteni {count} alapvető erőforrást, hibáztasd a disztribúciód csomagolóját a rossz csomagolásért!");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "A monitor-elrendezésed helytelenül van beállítva. A(z) {name} monitor átfed más monitor(oka)t az elrendezésben.\nTovábbi információkért "
+                            "lásd a wikit (Monitorok oldal). Ez problémákat <b>fog</b> okozni.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "A(z) {name} monitor nem tudta beállítani a kért módokat, visszaváltás erre a módra: {mode}.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Érvénytelen méretezés lett megadva a(z) {name} monitornak: {scale}, javasolt méretezés használata: {fixed_scale}");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nem sikerült betölteni a(z) {name} bővítményt: {error}");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "A CM shader újratöltése sikertelen, visszaváltás rgba-ra/rgbx-re.");
+    huEngine->registerEntry("hu_HU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "{name} monitor: a széles színtartomány engedélyezve van, de a kijelző nincs 10 bites módban.");
+
     // it_IT (Italian)
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_TITLE, "L'applicazione non risponde");
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_CONTENT, "Un'applicazione {title} - {class} non risponde.\nCosa vuoi fare?");

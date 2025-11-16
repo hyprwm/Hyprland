@@ -29,7 +29,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "En applikation <b>{app}</b> forespørger en ukendt rettighed.");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "En applikation <b>{app}</b> forsøger at optage din skærm.\n\nVil du tillade dette?");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "En applikation <b>{app}</b> forsøger at indlæse et plugin: <b>{plugin}</b>.\n\nVil du tillade dette?");
-    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nyt keyboard er fundet: <b>{keyboard}</b>.\n\nVil du tillade den at fungere?");
+    huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Et nyt tastatur er fundet: <b>{keyboard}</b>.\n\nVil du tillade den at fungere?");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ukendt)");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_TITLE, "Anmodning om tilladelse");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: Du kan indstille vedvarende regler for disse i Hyprland-konfigurationsfilen.");
@@ -43,7 +43,7 @@ I18n::CI18nEngine::CI18nEngine() {
         "da_DK", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "Dit XDG_CURRENT_DESKTOP miljø ser ud til at være administreret externt, og den nuværende værdi er {value}.\nDette kan forårsage problemer, medmindre det er bevidst.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "Dit system har ikke hyprland-guiutils indstalleret. Dette er en runtime-afhængighed for nogle dialoger. Overvej at installere den.");
+                            "Dit system har ikke hyprland-guiutils installeret. Dette er en runtime-afhængighed for nogle dialoger. Overvej at installere den.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
@@ -51,7 +51,7 @@ I18n::CI18nEngine::CI18nEngine() {
         return "Hyprland kunne ikke indlæse {count} essentiale aktiver, skyd skylden på din distributions pakker for et dårligt stykke arbejde af pakningen!";
     });
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Din skærms layout har en ukorrekt opsætning. Skærm {name} overlapper med andre skærm(e) i layoutet.\nLæs venligst wiki'en (Skærm side) for "
+                            "Dit skærmlayout har en ukorrekt opsætning. Skærm {name} overlapper med andre skærm(e) i layoutet.\nLæs venligst wiki'en (Monitors page) for "
                             "mere. Dette <b>vil</b> skabe problemer.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Skærm {name} kunne ikke indlæse nogen af de ønskede tilstande, vender tilbage til tilstand {mode}.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ugyldig skalering sendt til skærm {name}: {scale}, bruger foreslået skalering: {fixed_scale}");

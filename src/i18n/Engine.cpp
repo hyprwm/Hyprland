@@ -87,7 +87,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_FAILED_ASSETS,
                             "Hyprland hed {count} essentielli Ressource ned chönne lade, gäbed Sie im Packager vo Ehrere Distribution schold för es schlächts Package!");
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Ehres Beldschermlayout esch fählerhaft uufgsetzt. De Beldscherm {name} öberlappt met andere Beldscherm(e) im Layout.\nBitte lueged sie im Wiki "
+                            "Ehres Beldschermlayout esch fählerhaft uufgsetzt. De Beldscherm {name} öberlappt met andere Beldscherm(e) im Layout.\nBitte lueged Sie im Wiki "
                             "(Monitors Siite) för meh Informatione. Das <b>werd</b> zo Problem füehre.");
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "De Beldscherm {name} hed keine vode aagforderete Modi chönne setze, ond fallt uf de Modus {mode} zrogg.");
     huEngine->registerEntry("de_CH", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,

@@ -99,6 +99,43 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload failed, falling back to rgba/rgbx.");
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is enabled but the display is not in 10-bit mode.");
 
+    // as_IN (Assamese)
+    huEngine->registerEntry("as_IN", TXT_KEY_ANR_TITLE, "এপ্লিকেচনে উত্তৰ দিয়া নাই");
+    huEngine->registerEntry("as_IN", TXT_KEY_ANR_CONTENT, "এপ্লিকেচন {title} - {class}-এ উত্তৰ দিয়া নাই।\nআপুনি এয়াৰ লগত কি কৰিব বিচাৰে?");
+    huEngine->registerEntry("as_IN", TXT_KEY_ANR_OPTION_TERMINATE, "সমাপ্ত কৰক");
+    huEngine->registerEntry("as_IN", TXT_KEY_ANR_OPTION_WAIT, "অপেক্ষা কৰক");
+    huEngine->registerEntry("as_IN", TXT_KEY_ANR_PROP_UNKNOWN, "(অজ্ঞাত)");
+
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "এপ্লিকেচন <b>{app}</b>-এ এটা অজ্ঞাত অনুমতি বিচাৰিছে।");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "এটা এপ্লিকেচন <b>{app}</b>-এ আপোনাৰ স্ক্ৰীণ কেপচাৰ কৰিবলৈ চেষ্টা কৰিছে।\n\nআপুনি ইয়াক অনুমতি দিব বিচাৰেনে?");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "এপ্লিকেচন <b>{app}</b>-এ এটা প্লাগিন লোড কৰিবলৈ চেষ্টা কৰিছে: <b>{plugin}</b>।\n\nআপুনি ইয়াক অনুমতি দিব বিচাৰেনে?");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "এটা নতুন কিবৰ্ড ধৰা পৰিছে: <b>{keyboard}</b>।\n\nআপুনি ইয়াক চলাবলৈ অনুমতি দিব বিচাৰেনে?");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(অজ্ঞাত)");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_TITLE, "অনুমতিৰ অনুৰোধ");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ইঙ্গিত: আপুনি হাইপাৰলেণ্ড কনফিগ ফাইলত এইবোৰৰ বাবে স্থায়ী নিয়ম স্থাপন কৰিব পাৰে।");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_ALLOW, "অনুমতি দিয়ক");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "অনুমতি দি মনত ৰাখক");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_ALLOW_ONCE, "এবাৰ অনুমতি দিয়ক");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_DENY, "অস্বীকাৰ কৰক");
+    huEngine->registerEntry("as_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "অজ্ঞাত এপ্লিকেচন (ৱেইলেণ্ড ক্লায়েণ্ট আইডি {wayland_id})");
+
+    huEngine->registerEntry(
+        "as_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "আপোনাৰ XDG_CURRENT_DESKTOP পৰিৱেশটো বাহ্যিকভাৱে পৰিচালিত হোৱা যেন লাগিছে, আৰু বৰ্তমানৰ মান হৈছে {value}।\nযদি ই ইচ্ছাকৃতভাৱে নহয়, তেনে হলে সমস্যাৰ সৃষ্টি হ'ব পাৰে।");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "আপোনাৰ চিষ্টেমত hyprland-guiutils ইনষ্টল কৰা নাই। কিছুমান ডাইলগৰ বাবে ই এটা ৰানটাইম নিৰ্ভৰশীলতা। ইয়াক ইনষ্টল কৰাৰ কথা চিন্তা কৰক।");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_FAILED_ASSETS,
+                            "হাইপাৰলেণ্ড {count}-টা প্ৰয়োজনীয় সম্পদ লোড কৰাত অসফল হৈছে, বেয়া পেকজিং কৰাৰ বাবে আপোনাৰ ডিষ্ট্ৰ'ৰ পেকেজাৰক দোষাৰোপ কৰক!");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "আপোনাৰ মনিটৰৰ লেআউট ভুলকৈ ছেট কৰা হৈছে। মনিটৰ {name} লেআউটত আন মনিটৰ(সমূহ)ৰ সৈতে ওপৰা-উপৰি হৈ আছে।\nঅধিক তথ্যৰ বাবে অনুগ্ৰহ কৰি ৱিকি (মনিটৰ পৃষ্ঠা) চাওক। ই "
+                            "<b>সমস্যাৰ</b> সৃষ্টি কৰিব।");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "মনিটৰ {name}-এ কোনো অনুৰোধ কৰা মোড ছেট কৰাত অসফল হৈছে, মোড {mode}-লৈ ঘূৰি আহিছে।");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "মনিটৰ {name}: {scale}-লৈ অবৈধ মাপন দিয়া হৈছে, পৰামৰ্শ দিয়া মাপন ব্যৱহাৰ কৰা যাব: {fixed_scale}");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "প্লাগিন {name} লোড কৰাত অসফল হৈছে: {error}");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM শ্বেডাৰ ৰিলোড কৰাত অসফল হৈছে, rgba/rgbx-লৈ ঘূৰি আহিছে।");
+    huEngine->registerEntry("as_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "প্ৰসাৰিত ৰঙৰ বৰ্গ সক্ষম কৰা হৈছে কিন্তু ডিচপ্লে 10-বিট মোডত নাই।");
+
     // de_DE (German)
     huEngine->registerEntry("de_DE", TXT_KEY_ANR_TITLE, "Anwendung Reagiert Nicht");
     huEngine->registerEntry("de_DE", TXT_KEY_ANR_CONTENT, "Eine Anwendung {title} - {class} reagiert nicht.\nWas möchten Sie damit tun?");

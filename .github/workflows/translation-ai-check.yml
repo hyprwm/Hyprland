@@ -6,6 +6,8 @@ on:
       - opened
     paths:
       - 'src/i18n/**'
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -15,6 +17,18 @@ permissions:
 jobs:
   review:
     name: Review Translation
+    # Allow:
+    # - Normal run on new PR (filtered by paths above)
+    # - Re-run when a specific user comments "ai, please recheck" on a PR
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.action == 'created' &&
+        github.event.issue.pull_request != null &&
+        github.event.comment.user.login == 'vaxerski' &&
+        contains(github.event.comment.body, 'ai, please recheck')
+      )
     runs-on: ubuntu-latest
     env:
       # Customize the prompt/model if you like
@@ -23,7 +37,7 @@ jobs:
         You are a programmer and a translator. Your job is to review the attached patch for adding translation to a piece of software and make sure the submitted translation is not malicious, and that it makes sense. If the translation is not malicious, and doesn't contain obvious grammatical mistakes, say "Translation check OK". Otherwise, say "Translation check not ok" and list bad entries.
         Examples of bad translations include obvious trolling (slurs, etc) or nonsense sentences. Minor improvements may be suggested, but if there are only minor improvements, still reply with "Translation check OK".
 
-      PROMPT: Translation patch below.
+      AI_PROMPT: Translation patch below.
 
     steps:
       - name: Download combined PR diff
@@ -43,6 +57,9 @@ jobs:
             echo "too_long=false" >> "$GITHUB_OUTPUT"
           fi
 
+          echo "got diff:"
+          cat pr.diff
+
       - name: Comment when diff length exceeded
         if: steps.get_diff.outputs.too_long == 'true'
         env:
@@ -61,21 +78,20 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ env.OPENAI_MODEL }}
           SYSTEM_PROMPT: ${{ env.SYSTEM_PROMPT }}
-          PROMPT: ${{ env.PROMPT }}
+          AI_PROMPT: ${{ env.AI_PROMPT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Prepare OpenAI chat request payload (embed diff safely)
           jq -n \
             --arg model "$OPENAI_MODEL" \
             --arg sys "$SYSTEM_PROMPT" \
-            --arg prompt "$PROMPT" \
+            --arg prompt "$AI_PROMPT" \
             --rawfile diff pr.diff \
             '{model:$model,
               messages:[
                 {role:"system", content:$sys},
-                {role:"user", content: ($prompt + "\n\n```diff\n&quot; + $diff + &quot;\n```")}
-              ],
-              temperature: 0.2
+                {role:"user", content: ($prompt + "\n\n```diff\n" + $diff + "\n```")}
+              ]
             }' > payload.json
 
           # Call OpenAI

@@ -38,7 +38,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_ALLOW_ONCE, "Tillad én gang");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_DENY, "Nægt");
     huEngine->registerEntry("da_DK", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Ukendt applikation (wayland client ID {wayland_id})");
-
+    
     huEngine->registerEntry(
         "da_DK", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "Dit XDG_CURRENT_DESKTOP miljø ser ud til at være administreret externt, og den nuværende værdi er {value}.\nDette kan forårsage problemer, medmindre det er bevidst.");
@@ -58,7 +58,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Kunne ikke indlæse plugin {name}: {error}");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Genindlæsning af CM-shader mislykkedes, går tilbage til rgba/rgbx.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skærm {name}: wide color gamut er aktiveret men skærmen er ikke i 10-bit tilstand.");
-
+    
     // en_US (English)
     huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Application Not Responding");
     huEngine->registerEntry("en_US", TXT_KEY_ANR_CONTENT, "An application {title} - {class} is not responding.\nWhat do you want to do with it?");

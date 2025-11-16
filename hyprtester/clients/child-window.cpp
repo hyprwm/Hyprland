@@ -14,23 +14,22 @@
 using Hyprutils::Math::Vector2D;
 using namespace Hyprutils::Memory;
 
-
 struct SWlState {
     wl_display*                  display;
     CSharedPointer<CCWlRegistry> registry;
 
     // protocols
-    CSharedPointer<CCWlCompositor>    wlCompositor;
-    CSharedPointer<CCWlSeat>          wlSeat;
-    CSharedPointer<CCWlShm>           wlShm;
-    CSharedPointer<CCXdgWmBase>       xdgShell;
+    CSharedPointer<CCWlCompositor> wlCompositor;
+    CSharedPointer<CCWlSeat>       wlSeat;
+    CSharedPointer<CCWlShm>        wlShm;
+    CSharedPointer<CCXdgWmBase>    xdgShell;
 
     // shm/buffer stuff
     CSharedPointer<CCWlShmPool> shmPool;
     CSharedPointer<CCWlBuffer>  shmBuf;
     CSharedPointer<CCWlBuffer>  shmBuf2;
-    int                         shmFd = 0;
-    size_t                      shmBufSize = 0;
+    int                         shmFd            = 0;
+    size_t                      shmBufSize       = 0;
     bool                        xrgb8888_support = false;
 
     // surface/toplevel stuff
@@ -228,9 +227,9 @@ static bool setupSeat(SWlState& state) {
 }
 
 struct SChildWindow {
-    CSharedPointer<CCWlSurface>     surface;
-    CSharedPointer<CCXdgSurface>    xSurface;
-    CSharedPointer<CCXdgToplevel>   toplevel;
+    CSharedPointer<CCWlSurface>   surface;
+    CSharedPointer<CCXdgSurface>  xSurface;
+    CSharedPointer<CCXdgToplevel> toplevel;
 };
 
 static void parseRequest(SWlState& state, std::string str, SChildWindow& window) {
@@ -240,10 +239,10 @@ static void parseRequest(SWlState& state, std::string str, SChildWindow& window)
     }
 
     size_t index = str.find_first_of('\n');
-    str = str.substr(0, index);
+    str          = str.substr(0, index);
 
     if (str == "toplevel") {
-        window.surface = makeShared<CCWlSurface>(state.wlCompositor->sendCreateSurface());
+        window.surface  = makeShared<CCWlSurface>(state.wlCompositor->sendCreateSurface());
         window.xSurface = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(window.surface->resource()));
 
         window.xSurface->setConfigure([&](CCXdgSurface* p, uint32_t serial) {
@@ -277,7 +276,7 @@ int main(int argc, char** argv) {
     if (argc == 2 && std::string{argv[1]} == "--debug")
         debug = true;
 
-    SWlState state;
+    SWlState     state;
     SChildWindow window;
 
     // WAYLAND_DISPLAY env should be set to the correct one

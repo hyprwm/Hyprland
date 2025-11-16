@@ -289,7 +289,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Неуспешно учитавање додатка {name}: {error}");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Поново учитавање CM шејдера није успело, враћање на rgba/rgbx.");
     huEngine->registerEntry("sr_RS", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: широк спектар боја је омогућен али екран није у 10-битном режиму.");
-    
+
     // sr_RS@latin (Serbian Latin)
     huEngine->registerEntry("sr_RS@latin", TXT_KEY_ANR_TITLE, "Aplikacija ne reaguje");
     huEngine->registerEntry("sr_RS@latin", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} ne reaguje.\nŠta želite da uradite sa njom?");

@@ -147,7 +147,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: U kunt hiervoor vaste regels instellen in het Hyprland-configuratiebestand.");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW, "Toestaan");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Toestaan en onthouden");
-    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW_ONCE, "Een keer toestaan");
+    huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_ALLOW_ONCE, "Één keer toestaan");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_DENY, "Weigeren");
     huEngine->registerEntry("nl_NL", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Onbekende applicatie (wayland client ID {wayland_id})");
 

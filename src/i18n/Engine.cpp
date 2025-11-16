@@ -467,7 +467,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry(
         "pt_PT", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
         "O layout do teu monitor não está configurado correctamente. Monitor {name} está em conflito com outro(s) monitor(es) no layout.\nProcura na wiki (página Monitores) para "
-        "mais informações. isto <b>vai</b> causar problemas.");
+        "mais informações. Isto <b>vai</b> causar problemas.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} falhou ao configurar os modos requisitados, usando o modo {mode} de volta.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Resolução inválida para o monitor {name}: {scale}, usando a resolução sugerida: {fixed_scale}");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Falha ao carregar o plugin {name}: {error}");

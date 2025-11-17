@@ -286,8 +286,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("es", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland no pudo cargar {count} recurso esencial; ¡culpa al empaquetador de tu distribución por un mal empaquetado!";
-        return "Hyprland no pudo cargar {count} recursos esenciales; ¡culpa al empaquetador de tu distribución por un mal empaquetado!";
+            return "No se pudo cargar {count} recurso esencial. Contacta al empaquetador de tu distribución.";
+        return "No se pudieron cargar {count} recursos esenciales. Contacta al empaquetador de tu distribución.";
     });
     huEngine->registerEntry("es", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "La configuración de tus monitores no es correcta. El monitor {name} se superpone con otros monitores en la disposición. Consulta la wiki (página "

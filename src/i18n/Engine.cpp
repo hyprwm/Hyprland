@@ -572,11 +572,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_DENY, "阻止");
     huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "未知的应用程序 （Wayland客户端ID {wayland_id}）");
 
-    huEngine->registerEntry(
-        "zh_CN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "你的环境变量XDG_CURRENT_DESKTOP似乎被外部管理，且当前的值为{value}。如果你不是有意这么做，这可能会导致问题。");
-    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "你的系统似乎没有安装hyprland-guiutils。这是一个用于部分对话框的运行时依赖。请考虑安装。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "你的环境变量XDG_CURRENT_DESKTOP似乎被外部管理，且当前的值为{value}。如果你不是有意这么做，这可能会导致问题。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_NO_GUIUTILS, "你的系统似乎没有安装hyprland-guiutils。这是一个用于部分对话框的运行时依赖。请考虑安装。");
     huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_FAILED_ASSETS, "Hyprland无法加载{count}个重要资产，问问你发行版的打包者在打包个什么玩意！？");
     huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "你的显示器没有被正确设置。显示器 {name} 和其他显示器的布局重叠了。请看wiki中的“显示器”一章获取更多信息。这<b>会</b>导致问题。");

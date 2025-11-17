@@ -634,6 +634,43 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
+    // sl_SI (Slovenian)
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_TITLE, "Aplikacija se ne Odziva");
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} se ne odziva.\nKaj želite narediti z njo?");
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_OPTION_TERMINATE, "Ubij");
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_OPTION_WAIT, "Počakaj");
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_PROP_UNKNOWN, "(neznano)");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Aplikacija <b>{app}</b> zahteva neznano dovoljenje.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikacija <b>{app}</b> poskuša zajeti vaš zaslon.\n\nAli ji želite to dovoliti?");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Aplikacija <b>{app}</b> poskuša naložiti vtičnik: <b>{plugin}</b>.\n\nAli ji želite to dovoliti?");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Zaznana je nova tipkovnica: <b>{keyboard}</b>.\n\nAli ji želite dovoliti delovanje?");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(neznano)");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_TITLE, "Zahteva za Dovoljenje");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Namig: V konfiguracijski datoteki Hyprland lahko nastavite trajna pravila.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_ALLOW, "Dovoli");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Vedno dovoli");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_ALLOW_ONCE, "Dovoli enkrat");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_DENY, "Zavrni");
+    huEngine->registerEntry("sl_SI", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Neznana aplikacija (Wayland ID {wayland_id})");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Zdi se, da je okoljska spremenljivka XDG_CURRENT_DESKTOP upravljana od zunaj, trenutna vrednost je {value}.\nTo lahko povzroča težave, razen če je namerno.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Vaš sistem nima nameščenega paketa hyprland-guiutils. To je odvisnost za nekatera pogovorna okna. Razmislite o namestitvi.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland ni uspel naložiti {count} bistvenega vira, krivite pakirnika vaše distribucije za slabo delo!";
+        return "Hyprland ni uspel naložiti {count} bistvenih virov, krivite pakirnika vaše distribucije za slabo delo!";
+    });
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Postavitev vaših monitorjev ni pravilno nastavljena. Monitor {name} se prekriva z enim ali več monitorji.\nZa več informacij si oglejte wiki (stran Monitorji). To <b>bo</b> povzročalo težave.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} ni mogel sprejeti nekatere od nastavljenih načinov in zdaj uporablja način {mode}.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Neveljavno merilo za zaslon {name}: {scale}, uporabljeno je predlagano merilo: {fixed_scale}");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nalaganje vtičnika {name} ni uspelo: {error}");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno nalaganje CM shaderja ni uspelo, uporabljen je rgba/rgbx.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Zaslon {name}: širok barvni spekter je omogočen, vendar zaslon ni v 10-bitnem načinu.");
+    //
+
     // zh_CN (Simplified Chinese)
     huEngine->registerEntry("zh_CN", TXT_KEY_ANR_TITLE, "应用程序未响应");
     huEngine->registerEntry("zh_CN", TXT_KEY_ANR_CONTENT, "应用程序 {title} - {class} 未响应。\n你想要采取什么行动？");

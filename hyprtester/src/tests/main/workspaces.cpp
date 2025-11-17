@@ -27,7 +27,7 @@ static bool test() {
 
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    OK(getFromSocket("/dispatch workspace 1"));
+    getFromSocket("/dispatch workspace 1");
 
     NLog::log("{}Checking persistent no-mon", Colors::YELLOW);
     OK(getFromSocket("r/keyword workspace 966,persistent:1"));

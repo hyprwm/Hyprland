@@ -597,5 +597,5 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
 bool CHyprGroupBarDecoration::visible() {
     static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
-    return *PENABLED && m_window->m_windowData.decorate.valueOrDefault();
+    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault();
 }

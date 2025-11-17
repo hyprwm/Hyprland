@@ -3,6 +3,7 @@
 #include <string>
 #include "../defines.hpp"
 #include "WLSurface.hpp"
+#include "rule/layerRule/LayerRuleApplicator.hpp"
 #include "../helpers/AnimatedVariable.hpp"
 
 class CLayerShellResource;
@@ -17,7 +18,6 @@ class CLayerSurface {
   public:
     ~CLayerSurface();
 
-    void                    applyRules();
     bool                    isFadedOut();
     int                     popupsCount();
 
@@ -28,47 +28,35 @@ class CLayerSurface {
     WP<CLayerShellResource> m_layerSurface;
 
     // the header providing the enum type cannot be imported here
-    int                        m_interactivity = 0;
+    int                                     m_interactivity = 0;
 
-    SP<CWLSurface>             m_surface;
+    SP<CWLSurface>                          m_surface;
 
-    bool                       m_mapped = false;
-    uint32_t                   m_layer  = 0;
+    bool                                    m_mapped = false;
+    uint32_t                                m_layer  = 0;
 
-    PHLMONITORREF              m_monitor;
+    PHLMONITORREF                           m_monitor;
 
-    bool                       m_fadingOut     = false;
-    bool                       m_readyToDelete = false;
-    bool                       m_noProcess     = false;
-    bool                       m_noAnimations  = false;
+    bool                                    m_fadingOut     = false;
+    bool                                    m_readyToDelete = false;
+    bool                                    m_noProcess     = false;
 
-    bool                       m_forceBlur                   = false;
-    bool                       m_forceBlurPopups             = false;
-    int64_t                    m_xray                        = -1;
-    bool                       m_ignoreAlpha                 = false;
-    float                      m_ignoreAlphaValue            = 0.f;
-    bool                       m_dimAround                   = false;
-    bool                       m_noScreenShare               = false;
-    int64_t                    m_order                       = 0;
-    bool                       m_aboveLockscreen             = false;
-    bool                       m_aboveLockscreenInteractable = false;
+    UP<Desktop::Rule::CLayerRuleApplicator> m_ruleApplicator;
 
-    std::optional<std::string> m_animationStyle;
+    PHLLSREF                                m_self;
 
-    PHLLSREF                   m_self;
+    CBox                                    m_geometry = {0, 0, 0, 0};
+    Vector2D                                m_position;
+    std::string                             m_namespace = "";
+    UP<CPopup>                              m_popupHead;
 
-    CBox                       m_geometry = {0, 0, 0, 0};
-    Vector2D                   m_position;
-    std::string                m_namespace = "";
-    UP<CPopup>                 m_popupHead;
+    pid_t                                   getPID();
 
-    pid_t                      getPID();
-
-    void                       onDestroy();
-    void                       onMap();
-    void                       onUnmap();
-    void                       onCommit();
-    MONITORID                  monitorID();
+    void                                    onDestroy();
+    void                                    onMap();
+    void                                    onUnmap();
+    void                                    onCommit();
+    MONITORID                               monitorID();
 
   private:
     struct {

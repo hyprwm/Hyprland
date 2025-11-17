@@ -26,6 +26,7 @@
   libxkbcommon,
   libuuid,
   libgbm,
+  muparser,
   pango,
   pciutils,
   re2,
@@ -149,6 +150,7 @@ in
           libuuid
           libxkbcommon
           libgbm
+          muparser
           pango
           pciutils
           re2

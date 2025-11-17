@@ -25,9 +25,10 @@ class CHyprCtl {
     Hyprutils::OS::CFileDescriptor m_socketFD;
 
     struct {
-        bool                      all           = false;
-        bool                      sysInfoConfig = false;
-        pid_t                     pid           = 0;
+        bool                      all              = false;
+        bool                      sysInfoConfig    = false;
+        bool                      isDynamicKeyword = false;
+        pid_t                     pid              = 0;
         SP<CPromise<std::string>> pendingPromise;
     } m_currentRequestParams;
 

@@ -800,27 +800,34 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_ALLOW, "Разрешить");
     huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Разрешить и запомнить");
     huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_ALLOW_ONCE, "Разрешить в этот раз");
-    huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_DENY, "Отклонить");
+    huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_DENY, "Запретить");
     huEngine->registerEntry("ru_RU", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Неизвестное приложение (wayland client ID {wayland_id})");
 
     huEngine->registerEntry(
         "ru_RU", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "Переменная окружения XDG_CURRENT_DESKTOP установлена извне, текущее значение: {value}.\nЭто может вызвать проблемы, если только это не сделано намеренно.");
-    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_NO_GUIUTILS, "Пакет hyprland-guiutils не установлен. Он необходим для некоторых диалогов. Рекомендуется установить его.");
+    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "В вашей системе не установлен пакет hyprland-guiutils. Он необходим для некоторых диалогов. Рекомендуется установить его.");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
-        if (assetsNo <= 1)
-            return "Не удалось загрузить {count} критически важный ресурс, пожалуйтесь мейнтейнеру вашего дистрибутива за кривую сборку пакета!";
-        return "Не удалось загрузить {count} критически важных ресурсов, пожалуйтесь мейнтейнеру вашего дистрибутива за кривую сборку пакета!";
+        int lastOne  = assetsNo % 10;
+        int lastTwo  = assetsNo % 100;
+        if (lastTwo >= 11 && lastTwo <= 14)
+            return "Не удалось загрузить {count} критически важных ресурсов. Вините мейнтейнера пакетов вашего дистрибутива, плохо справившегося со своей работой!";
+        if (lastOne == 1)
+            return "Не удалось загрузить {count} критически важный ресурс. Вините мейнтейнера пакетов вашего дистрибутива, плохо справившегося со своей работой!";
+        if (lastOne <= 4)
+            return "Не удалось загрузить {count} критически важных ресурса. Вините мейнтейнера пакетов вашего дистрибутива, плохо справившегося со своей работой!";
+        return "Не удалось загрузить {count} критически важных ресурсов. Вините мейнтейнера пакетов вашего дистрибутива, плохо справившегося со своей работой!";
     });
     huEngine->registerEntry(
         "ru_RU", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "Неправильно настроен макет мониторов. Монитор {name} перекрывает другие.\nПодробнее см. в документации (страница Monitors). Это <b>обязательно</b> вызовет проблемы.");
+        "Макет мониторов настроен неправильно. Монитор {name} перекрывает другие.\nПодробнее см. в документации (страница Monitors). Это <b>обязательно</b> вызовет проблемы.");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Монитор {name} не смог установить ни один из запрошенных режимов, выбран режим {mode}.");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Недопустимый масштаб для монитора {name}: {scale}, используется предложенный масштаб: {fixed_scale}");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Не удалось загрузить плагин {name}: {error}");
-    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не удалось перезагрузить CM shader, используется rgba/rgbx.");
-    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: расширенный цветовой охват включён, но дисплей не в 10-bit режиме.");
+    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не удалось перезагрузить шейдер CM, возврат к формату rgba/rgbx.");
+    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: расширенный цветовой охват включён, но дисплей не в 10-битном режиме.");
 
     // sr_RS (Serbian)
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_TITLE, "Апликација не реагује");

@@ -337,11 +337,12 @@ I18n::CI18nEngine::CI18nEngine() {
                             "متغیر XDG_CURRENT_DESKTOP توسط محیطی خارجی تنظیم شده است و مقدار فعلی آن {value} است.\n"
                             "اگر این کار عمدی نباشد ممکن است باعث ایجاد مشکل شود.");
 
-    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب "
-                            "آن "
-                            "پیشنهاد "
-                            "می‌شود.");
+    huEngine->registerEntry(
+        "fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب "
+        "آن "
+        "پیشنهاد "
+        "می‌شود.");
 
     huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));

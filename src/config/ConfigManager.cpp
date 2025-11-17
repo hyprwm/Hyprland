@@ -990,12 +990,34 @@ std::string CConfigManager::getErrors() {
     return m_configErrors;
 }
 
+static std::vector<const char*> HL_VERSION_VARS = {
+    "HYPRLAND_V_0_53",
+};
+
+static void exportHlVersionVars() {
+    for (const auto& v : HL_VERSION_VARS) {
+        setenv(v, "1", 1);
+    }
+}
+
+static void clearHlVersionVars() {
+    for (const auto& v : HL_VERSION_VARS) {
+        unsetenv(v);
+    }
+}
+
 void CConfigManager::reload() {
     EMIT_HOOK_EVENT("preConfigReload", nullptr);
     setDefaultAnimationVars();
     resetHLConfig();
-    m_configCurrentPath                   = getMainConfigPath();
-    const auto ERR                        = m_config->parse();
+    m_configCurrentPath = getMainConfigPath();
+
+    exportHlVersionVars();
+
+    const auto ERR = m_config->parse();
+
+    clearHlVersionVars();
+
     const auto monitorError               = handleMonitorv2();
     const auto ruleError                  = reloadRules();
     m_lastConfigVerificationWasSuccessful = !ERR.error && !monitorError.error;

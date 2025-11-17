@@ -755,7 +755,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     // sl_SI (Slovenian)
     huEngine->registerEntry("sl_SI", TXT_KEY_ANR_TITLE, "Program se ne odziva");
-    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_CONTENT, "Program {title} - {class} se ne odziva.\nKaj želite storiti?")
+    huEngine->registerEntry("sl_SI", TXT_KEY_ANR_CONTENT, "Program {title} - {class} se ne odziva.\nKaj želite storiti?");
     huEngine->registerEntry("sl_SI", TXT_KEY_ANR_OPTION_TERMINATE, "Prekini");
     huEngine->registerEntry("sl_SI", TXT_KEY_ANR_OPTION_WAIT, "Počakaj");
     huEngine->registerEntry("sl_SI", TXT_KEY_ANR_PROP_UNKNOWN, "(neznano)");

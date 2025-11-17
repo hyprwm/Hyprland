@@ -638,6 +638,50 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не удалось перезагрузить CM shader, используется rgba/rgbx.");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: расширенный цветовой охват включён, но дисплей не в 10-bit режиме.");
 
+    // si_LK (Sinhala)
+    huEngine->registerEntry("si_LK", TXT_KEY_ANR_TITLE, "application එක ප්‍රතිචාර නොදක්වයි");
+    huEngine->registerEntry("si_LK", TXT_KEY_ANR_CONTENT,
+                            "{title} - {class} application එක ප්‍රතිචාර නොදක්වයි.\nඑයට කුමක් කළ යුතුද?");
+    huEngine->registerEntry("si_LK", TXT_KEY_ANR_OPTION_TERMINATE, "අවසන් කරන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_ANR_OPTION_WAIT, "රැඳී සිටින්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_ANR_PROP_UNKNOWN, "(හඳුනා නොගත්)");
+
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "<b>{app}</b> application එක හඳුනා නොගත් අවසරයක් ඉල්ලා සිටී.");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> application එක ඔබේ screen එකෙහි දිස්වන දේ බැලීමට උත්සාහ කරයි.\n\nඑයට අවසර ලබා දෙන්නද?");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> application එක, <b>{plugin}</b> නමැති plugin එකක් ලෝඩ් කිරීමට උත්සාහ කරයි.\n\nඑයට අවසර ලබා දෙන්නද?");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
+                            "නව keyboard එකක් හඳුනාගෙන ඇත: <b>{keyboard}</b>.\n\nඑයට ක්‍රියාත්මක වීමට අවසර ලබා දෙන්නද?");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(හඳුනා නොගත්)");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_TITLE, "අවසර ඉල්ලීම");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ඉඟිය: ඔබට Hyprland config file එක තුල මේවා සඳහා ස්ථිර රීති සැකසිය හැක.");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_ALLOW, "අවසර දෙන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "සෑම විටම අවසර දෙන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_ALLOW_ONCE, "මෙවරට පමණක් අවසර දෙන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_DENY, "ප්‍රතික්ෂේප කරන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "හඳුනා නොගත් application එක (Wayland client ID: {wayland_id})");
+
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "ඔබගේ XDG_CURRENT_DESKTOP environment එක බාහිරව පාලනය වන බව පෙනේ. එහි වත්මන් අගය {value} වේ.\nමෙය ඔබ හිතාමතාම සිදුකළ දෙයක් නොවේ නම් ගැටළු ඇති වීමට ඉඩ ඇත.");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "ඔබගේ පද්ධතියේ hyprland-guiutils install කර නොමැත. මෙය සමහර dialog සඳහා අවශ්‍ය වන runtime dependency එකකි. එය install කිරීම පිළිබඳ සලකා බලන්න");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland හට අත්‍යවශ්‍ය asset එකක් load කරගැනීමට නොහැකි විය. packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
+        return "Hyprland හට අත්‍යවශ්‍ය assets {count}ක් load කරගැනීමට නොහැකි විය. packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
+    });
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "ඔබගේ monitor layout එක නිවැරදිව සකසා නොමැත. {name} monitor එක, layout එකේ ඇති අනෙකුත් monitor(s) සමග overlap වේ.\nවැඩි විස්තර සඳහා කරුණාකර wiki හි (Monitors "
+                            "page) එක බලන්න. මෙය <b>අනිවාර්යයෙන්ම</b> ගැටළු ඇති කරයි.");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "{name} monitor එක, ඉල්ලා සිටි කිසිදු mode එකක් set කිරීමට අසමත් විය. ඒ වෙනුවට දැන් {mode} mode එක භාවිතා කරයි.");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                            "{name} monitor එකට ලබාදුන් scale අගය වලංගු නොවේ: {scale}. ඒ වෙනුවට යෝජිත scale අගය වන {fixed_scale} භාවිතා කෙරේ.");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} plugin එක load කරගැනීමට අසමත් විය: {error}");
+    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload කිරීම අසමත් විය, ඒ වෙනුවට rgba/rgbx භාවිතා කෙරේ.");
+    huEngine->registerEntry(
+        "si_LK", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
+        "{name} monitor එක: wide color gamut එක සක්‍රීය කර ඇත, නමුත් display එක 10-bit mode එකේ නොමැත.");
+
     // sr_RS (Serbian)
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_TITLE, "Апликација не реагује");
     huEngine->registerEntry("sr_RS", TXT_KEY_ANR_CONTENT, "Апликација {title} - {class} не реагује.\nШта желите да урадите са њом?");

@@ -300,6 +300,71 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("es", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Error al recargar el sombreador CM, recurriendo a rgba/rgbx.");
     huEngine->registerEntry("es", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: la gama de colores amplia está habilitada, pero la pantalla no está en modo de 10-bit.");
 
+    // fa_IR (Persian)
+    huEngine->registerEntry("fa_IR", TXT_KEY_ANR_TITLE, "برنامه پاسخ نمی‌دهد");
+    huEngine->registerEntry("fa_IR", TXT_KEY_ANR_CONTENT, "برنامه {title} - {class} پاسخی نمی‌دهد.\nمی‌خواهید چه کاری انجام شود؟");
+    huEngine->registerEntry("fa_IR", TXT_KEY_ANR_OPTION_TERMINATE, "بستن برنامه");
+    huEngine->registerEntry("fa_IR", TXT_KEY_ANR_OPTION_WAIT, "صبر کنید");
+    huEngine->registerEntry("fa_IR", TXT_KEY_ANR_PROP_UNKNOWN, "(نامشخص)");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "برنامه <b>{app}</b> در حال درخواست یک مجوز ناشناخته است.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY,
+                            "برنامه <b>{app}</b> می‌خواهد صفحه‌نمایش شما را ضبط کند.\n\nآیا اجازه می‌دهید؟");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "برنامه <b>{app}</b> می‌خواهد پلاگین <b>{plugin}</b> را بارگذاری کند.\n\nاجازه داده شود؟");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
+                            "یک کیبورد جدید شناسایی شد: <b>{keyboard}</b>.\n\nآیا اجازه استفاده از آن را صادر می‌کنید؟");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(نامشخص)");
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_TITLE, "درخواست مجوز");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_PERSISTENCE_HINT,
+                            "نکته: می‌توانید قوانین دائمی مرتبط را در فایل تنظیمات هایپرلند تعریف کنید.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW, "اجازه");
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "اجازه و ذخیره");
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW_ONCE, "اجازه یک‌بار");
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_DENY, "عدم اجازه");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "برنامه ناشناخته (شناسه Wayland: {wayland_id})");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "متغیر XDG_CURRENT_DESKTOP توسط محیطی خارجی تنظیم شده است و مقدار فعلی آن {value} است.\n"
+                            "اگر این کار عمدی نباشد ممکن است باعث ایجاد مشکل شود.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب آن پیشنهاد "
+                            "می‌شود.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند؛ تقصیر بسته‌بند توزیع‌تونه، بد بسته‌بندی "
+                   "کرده!";
+        return "هایپرلند نتوانست {count} فایل ضروری رو بارگذاری کنه؛ تقصیر بسته‌بند توزیع‌تونه، بد بسته‌بندی "
+               "کرده!";
+    });
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "چیدمان مانیتورها صحیح نیست. مانیتور {name} با یک یا چند مانیتور دیگر تداخل دارد.\n"
+                            "برای اطلاعات بیشتر به صفحهٔ مانیتورها در ویکی مراجعه کنید. این موضوع <b>حتماً</b> باعث مشکل "
+                            "می‌شود.");
+
+    huEngine->registerEntry(
+        "fa_IR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
+        "مانیتور {name} نتوانست هیچ‌کدام از حالت‌های درخواستی را اعمال کند؛ بازگشت به حالت {mode}.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "مقیاس واردشده برای مانیتور {name} نامعتبر است: {scale}. مقیاس پیشنهادی اعمال شد: {fixed_scale}");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "بارگذاری پلاگین {name} با خطا روبه‌رو شد: {error}");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "بارگذاری دوبارهٔ شیدر CM ناموفق بود؛ از حالت rgba/rgbx استفاده شد.");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "مانیتور {name}: گسترهٔ رنگ وسیع فعال است اما نمایشگر در حالت ۱۰ بیتی نیست.");
+
     // fr_FR (French)
     huEngine->registerEntry("fr_FR", TXT_KEY_ANR_TITLE, "L'application ne répond plus");
     huEngine->registerEntry("fr_FR", TXT_KEY_ANR_CONTENT, "L'application {title} - {class} ne répond plus.\nQue voulez-vous faire?");

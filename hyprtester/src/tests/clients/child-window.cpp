@@ -115,9 +115,10 @@ static bool createChild(SClient& client) {
 static bool test() {
     SClient client;
 
-    OK(getFromSocket("/keyword windowrule float, pin, class:child-test-parent"));
     if (!startClient(client))
         return false;
+    OK(getFromSocket("/dispatch setfloating class:child-test-parent"));
+    OK(getFromSocket("/dispatch pin class:child-test-parent"));
 
     createChild(client);
     EXPECT(Tests::windowCount(), 2)

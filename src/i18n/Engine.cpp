@@ -776,18 +776,18 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Zdi se, da je Vaše okolje XDG_CURRENT_DESKTOP upravljano od zunaj, trenutna vrednost je {value}.\nTo lahko povzroči težave, če ni namerno.");
     huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "hyprland-guiutils ni nameščen na vaši napravi. To je odvisnost od izvajalnega okolja za nekatera pogovorna okna. Razmislite o namestitvi.");
-    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars){
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assertNo = std::stoi(vars.at("count"));
         if (assertNo <= 1)
             return "Hyprlandu ni uspelo naložiti {count} bistvenega sredstva, krivite upravitelja paketov vaše distribucije za slabo opravljeno pakiranje!";
         return "Hyprlandu ni uspelo naložiti {count} bistvenih sredstev, krivite upravitelja paketov vaše distribucije za slabo opravljeno pakiranje!";
     });
-    huEngine->registerEntry(
-        "sl_SI", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "Vaša zaslonska razporeditev je napačno nastavljena. Zaslon {monitor} se prekriva z drugimi zasloni v razporeditvi.\n"
-        "Prosimo poglejte wiki (stran Monitors) za več. To <b>bo</b> povzročilo težave.");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Vaša zaslonska razporeditev je napačno nastavljena. Zaslon {monitor} se prekriva z drugimi zasloni v razporeditvi.\n"
+                            "Prosimo poglejte wiki (stran Monitors) za več. To <b>bo</b> povzročilo težave.");
     huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Zaslon {name} ni uspel nastaviti nobenega zahtevanega načina, vrnitev k načinu {mode}.");
-    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Neveljavna skala je bila posredovana zaslonu {name}: {scale}, uporabljena je predlagana skala: {fixed_scale}");
+    huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                            "Neveljavna skala je bila posredovana zaslonu {name}: {scale}, uporabljena je predlagana skala: {fixed_scale}");
     huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Vtičnika {name} ni bilo mogoče naložiti: {error}");
     huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno nalaganje senčnika CM ni uspelo, vrnitev k rgba/rgbx.");
     huEngine->registerEntry("sl_SI", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Zaslon {name}: širok barvni razpon je omogočen, vendar zaslon ni v 10-bitnem načinu.");

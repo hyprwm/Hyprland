@@ -172,12 +172,13 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
                 if (*PROUNDONLYEDGES) {
+                    rectdata.round      = 0;
+                    const double offset = *PROUNDING * 2;
                     if (i == 0) {
                         rectdata.round   = *PROUNDING;
                         rectdata.clipBox = rect;
-                        rectdata.box     = CBox{rect.pos(), Vector2D{rect.w + (*PROUNDING * 2), rect.h}};
+                        rectdata.box     = CBox{rect.pos(), Vector2D{rect.w + offset, rect.h}};
                     } else if (i == barsToDraw - 1) {
-                        double offset    = *PROUNDING * 2;
                         rectdata.round   = *PROUNDING;
                         rectdata.clipBox = rect;
                         rectdata.box     = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
@@ -205,15 +206,16 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                         data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
                         if (*PGRADIENTROUNDINGONLYEDGES) {
+                            data.round          = 0;
+                            const double offset = *PGRADIENTROUNDING * 2;
                             if (i == 0) {
                                 data.round   = *PGRADIENTROUNDING;
                                 data.clipBox = rect;
-                                data.box     = CBox{rect.pos(), Vector2D{rect.w + (*PGRADIENTROUNDING * 2), rect.h}};
+                                data.box     = CBox{rect.pos(), Vector2D{rect.w + offset, rect.h}};
                             } else if (i == barsToDraw - 1) {
-                                double offset = *PGRADIENTROUNDING * 2;
-                                data.round    = *PGRADIENTROUNDING;
-                                data.clipBox  = rect;
-                                data.box      = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
+                                data.round   = *PGRADIENTROUNDING;
+                                data.clipBox = rect;
+                                data.box     = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
                             }
                         }
                     }

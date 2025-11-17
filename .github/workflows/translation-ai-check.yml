@@ -14,18 +14,10 @@ permissions:
   issues: write
 
 jobs:
-  review:
-    name: Review Translation
+  changes:
+    name: Check i18n changes
     if: ${{ github.event_name == 'pull_request_target' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
     runs-on: ubuntu-latest
-    env:
-      OPENAI_MODEL: gpt-5-mini
-      SYSTEM_PROMPT: |
-        You are a programmer and a translator. Your job is to review the attached patch for adding translation to a piece of software and make sure the submitted translation is not malicious, and that it makes sense. If the translation is not malicious, and doesn't contain obvious grammatical mistakes, say "Translation check OK". Otherwise, say "Translation check not ok" and list bad entries.
-        Examples of bad translations include obvious trolling (slurs, etc) or nonsense sentences. Meaningful improvements may be suggested, but if there are only minor improvements, just reply with "Translation check OK". Do not provide anything but the result and (if applicable) the bad entries or improvements.
-
-      AI_PROMPT: Translation patch below.
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v5
@@ -36,11 +28,21 @@ jobs:
           filters: |
             i18n:
               - 'src/i18n/**'
+  review:
+    name: Review Translation
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
 
-      - name: Stop if i18n not changed
-        if: steps.changes.outputs.i18n != 'true'
-        run: echo "No i18n changes in this PR; skipping." && exit 0
+    env:
+      OPENAI_MODEL: gpt-5-mini
+      SYSTEM_PROMPT: |
+        You are a programmer and a translator. Your job is to review the attached patch for adding translation to a piece of software and make sure the submitted translation is not malicious, and that it makes sense. If the translation is not malicious, and doesn't contain obvious grammatical mistakes, say "Translation check OK". Otherwise, say "Translation check not ok" and list bad entries.
+        Examples of bad translations include obvious trolling (slurs, etc) or nonsense sentences. Meaningful improvements may be suggested, but if there are only minor improvements, just reply with "Translation check OK". Do not provide anything but the result and (if applicable) the bad entries or improvements.
 
+      AI_PROMPT: Translation patch below.
+
+    steps:
       - name: Determine PR number
         id: pr
         run: |

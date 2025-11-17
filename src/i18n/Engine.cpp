@@ -650,7 +650,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> application එක ඔබේ screen එකෙහි දිස්වන දේ බැලීමට උත්සාහ කරයි.\n\nඑයට අවසර ලබා දෙන්නද?");
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> application එක, <b>{plugin}</b> නමැති plugin එකක් ලෝඩ් කිරීමට උත්සාහ කරයි.\n\nඑයට අවසර ලබා දෙන්නද?");
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
-                            "නව keyboard එකක් හඳුනාගෙන ඇත: <b>{keyboard}</b>.\n\nඑයට ක්‍රියාත්මක වීමට අවසර ලබා දෙන්නද?");
+                            "නව keyboard එකක් හඳුනාගෙන ඇත: <b>{keyboard}</b>."
+                            "\n\nඑයට ක්‍රියාත්මක වීමට අවසර ලබා දෙන්නද?");
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(හඳුනා නොගත්)");
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_TITLE, "අවසර ඉල්ලීම");
     huEngine->registerEntry("si_LK", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ඉඟිය: ඔබට Hyprland config file එක තුල මේවා සඳහා ස්ථිර රීති සැකසිය හැක.");
@@ -662,13 +663,17 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
                             "ඔබගේ XDG_CURRENT_DESKTOP environment එක බාහිරව පාලනය වන බව පෙනේ. එහි වත්මන් අගය {value} වේ.\nමෙය ඔබ හිතාමතාම සිදුකළ දෙයක් නොවේ නම් ගැටළු ඇති වීමට ඉඩ ඇත.");
-    huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "ඔබගේ පද්ධතියේ hyprland-guiutils install කර නොමැත. මෙය සමහර dialog සඳහා අවශ්‍ය වන runtime dependency එකකි. එය install කිරීම පිළිබඳ සලකා බලන්න");
+    huEngine->registerEntry(
+        "si_LK", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "ඔබගේ පද්ධතියේ hyprland-guiutils install කර නොමැත. මෙය සමහර dialog සඳහා අවශ්‍ය වන"
+        "runtime dependency එකකි. එය install කිරීම පිළිබඳ සලකා බලන්න");
     huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland හට අත්‍යවශ්‍ය asset එකක් load කරගැනීමට නොහැකි විය. packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
-        return "Hyprland හට අත්‍යවශ්‍ය assets {count}ක් load කරගැනීමට නොහැකි විය. packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
+            return "Hyprland හට අත්‍යවශ්‍ය asset එකක් load කරගැනීමට නොහැකි විය."
+                   "packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
+        return "Hyprland හට අත්‍යවශ්‍ය assets {count}ක් load කරගැනීමට නොහැකි විය."
+               "packaging කිරීම නිසි ලෙස සිදු නොකිරීම සම්බන්ධයෙන් ඔබගේ distro packager ට දොස් කියන්න!";
     });
     huEngine->registerEntry("si_LK", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "ඔබගේ monitor layout එක නිවැරදිව සකසා නොමැත. {name} monitor එක, layout එකේ ඇති අනෙකුත් monitor(s) සමග overlap වේ.\nවැඩි විස්තර සඳහා කරුණාකර wiki හි (Monitors "

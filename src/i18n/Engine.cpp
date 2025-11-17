@@ -895,8 +895,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry(
         "uk_UA", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "Ваше середовище XDG_CURRENT_DESKTOP, схоже, керується ззовні, і поточне значення становить {value}.\nЦе може спричинити проблеми, якщо це не зроблено навмисно.");
-    huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "У вашій системі не встановлено hyprland-guiutils. Це залежність, потрібна для роботи деяких діалогових вікон. Розгляньте можливість його встановлення.");
+    huEngine->registerEntry(
+        "uk_UA", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "У вашій системі не встановлено hyprland-guiutils. Це залежність, потрібна для роботи деяких діалогових вікон. Розгляньте можливість його встановлення.");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
@@ -907,7 +908,8 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Макет моніторів налаштовано неправильно. Монітор {name} перекриває інші монітори у макеті.\nБудь ласка, перегляньте wiki (сторінка Monitors). "
                             "Це <b>обов'язково</b> створить проблеми.");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Монітор {name} не зміг встановити жодного із запитуваних режимів, повернення до режиму {mode}.");
-    huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Неправильний масштаб переданий монітору {name}: {scale}, використання запропонованого масштабу: {fixed_scale}");
+    huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                            "Неправильний масштаб переданий монітору {name}: {scale}, використання запропонованого масштабу: {fixed_scale}");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Помилка завантаження плагіна {name}: {error}");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не вдалося перезавантажити шейдер CM, повернення до rgba/rgbx.");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монітор {name}: широка кольорова гама увімкнена, але дисплей не працює в 10-бітному режимі.");

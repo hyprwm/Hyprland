@@ -1629,6 +1629,10 @@ bool CInputManager::isLocked() {
     return CONSTRAINT && CONSTRAINT->isLocked();
 }
 
+bool CInputManager::hasHeldButtons() {
+    return !m_currentlyHeldButtons.empty();
+}
+
 void CInputManager::updateCapabilities() {
     uint32_t caps = 0;
 

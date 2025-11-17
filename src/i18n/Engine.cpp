@@ -394,7 +394,6 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM ഷേഡർ റീലോഡ് പരാജയപ്പെട്ടു, rgba/rgbx ലേക്ക് മാറുന്നു.");
     huEngine->registerEntry("ml_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "മോണിറ്റർ {name}: വൈഡ് കളർ ഗാമട്ട് പ്രവർത്തനക്ഷമമാണെങ്കിലും, മോഡ് 10-bit അല്ല.");
 
-
     // nb_NO (Norwegian Bokmål)
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_TITLE, "Applikasjonen svarer ikke");
     huEngine->registerEntry("nb_NO", TXT_KEY_ANR_CONTENT, "En applikasjon {title} - {class} svarer ikke.\nHva vil du gjøre med den?");
@@ -434,7 +433,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Feilet å laste plugin {name}: {error}");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader omlading feilet, faller tilbake til rgba/rgbx.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skjerm {name}: bredt fargespekter er aktivert, men skjermen er ikke i 10-bit modus.");
-    
+
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_CONTENT, "Aplikacja {title} - {class} nie odpowiada.\nCo chcesz z nią zrobić?");

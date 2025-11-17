@@ -591,6 +591,38 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
+    // zh_CN (Simplified Chinese)
+    huEngine->registerEntry("zh_CN", TXT_KEY_ANR_TITLE, "应用程序未响应");
+    huEngine->registerEntry("zh_CN", TXT_KEY_ANR_CONTENT, "应用程序 {title} - {class} 未响应。\n你想要采取什么行动？");
+    huEngine->registerEntry("zh_CN", TXT_KEY_ANR_OPTION_TERMINATE, "终止");
+    huEngine->registerEntry("zh_CN", TXT_KEY_ANR_OPTION_WAIT, "等待");
+    huEngine->registerEntry("zh_CN", TXT_KEY_ANR_PROP_UNKNOWN, "（未知）");
+
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "应用程序 <b>{app}</b> 正在请求一个未知的权限。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "应用程序 <b>{app}</b> 想要捕获你的屏幕。\n\n允许它这么做吗？");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "应用程序 <b>{app}</b> 想要加载插件： <b>{plugin}</b>。\n\n允许它这么做吗？");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "检测到新的键盘 <b>{keyboard}</b> 接入了。\n\n允许这个键盘操作你的系统吗？");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "（未知）");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_TITLE, "权限请求");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "提示：你可以在Hyprland配置中为他们创建永久性的规则。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_ALLOW, "允许");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "总是允许");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_ALLOW_ONCE, "允许一次");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_DENY, "阻止");
+    huEngine->registerEntry("zh_CN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "未知的应用程序 （Wayland客户端ID {wayland_id}）");
+
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "你的环境变量XDG_CURRENT_DESKTOP似乎被外部管理，且当前的值为{value}。如果你不是有意这么做，这可能会导致问题。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_NO_GUIUTILS, "你的系统似乎没有安装hyprland-guiutils。这是一个用于部分对话框的运行时依赖。请考虑安装。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_FAILED_ASSETS, "Hyprland无法加载{count}个重要资产，问问你发行版的打包者在打包个什么玩意！？");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "你的显示器没有被正确设置。显示器 {name} 和其他显示器的布局重叠了。请看wiki中的“显示器”一章获取更多信息。这<b>会</b>导致问题。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "显示器 {name} 无法被设置为任何请求的模式，将使用 {mode} 兜底。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "显示器 {name} 被设置了非法的缩放：{scale}，将使用建议的缩放：{fixed_scale}");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "无法加载插件 {name}：{error}");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "无法重新加载CM着色器，将使用rgba/rgbx兜底。");
+    huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "显示器 {name}：宽色域被启用了，但是显示器并不在10-bit模式。");
+
     // ar (Arabic - Modern Standard)
     huEngine->registerEntry("ar", TXT_KEY_ANR_TITLE, "التطبيق لا يستجيب");
     huEngine->registerEntry("ar", TXT_KEY_ANR_CONTENT, "التطبيق {title} - {class} لا يستجيب.\nما الذي تريد فعله؟");

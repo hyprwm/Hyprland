@@ -467,6 +467,48 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM शेडर रीलोड विफल हुआ, rgba/rgbx पर वापस जा रहा है।");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "मॉनिटर {name}: वाइड कलर गैम सक्षम है लेकिन डिस्प्ले 10-बिट मोड में नहीं है।");
 
+    // hr_HR (Croatian)
+    huEngine->registerEntry("hr_HR", TXT_KEY_ANR_TITLE, "Aplikacija ne reagira");
+    huEngine->registerEntry("hr_HR", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} ne reagira.\nŠto želiš napraviti s njom?");
+    huEngine->registerEntry("hr_HR", TXT_KEY_ANR_OPTION_TERMINATE, "Terminiraj");
+    huEngine->registerEntry("hr_HR", TXT_KEY_ANR_OPTION_WAIT, "Pričekaj");
+    huEngine->registerEntry("hr_HR", TXT_KEY_ANR_PROP_UNKNOWN, "(nepoznato)");
+
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Aplikacija <b>{app}</b> zahtijeva nepoznatu privilegiju.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikacija <b>{app}</b> pokušava snimati vaš zaslon.\n\nŽeliš li dopustiti?");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Aplikacija <b>{app}</b> pokušava učitati dodatak: <b>{plugin}</b>.\n\nŽeliš li dopustiti?");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Otkrivena je nova tipkovnica: <b>{keyboard}</b>.\n\nŽeliš li omogućiti njen rad?");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(nepoznato)");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_TITLE, "Zahtjev za dozvolu");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Savjet: za ovo možeš postaviti trajna pravila u Hyprland konfiguracijskoj datoteci.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_ALLOW, "Dozvoli");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Dozvoli i zapamti");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_ALLOW_ONCE, "Dozvoli samo ovaj put");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_DENY, "Uskrati");
+    huEngine->registerEntry("hr_HR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Nepoznata aplikacija (ID wayland klijenta {wayland_id})");
+
+    huEngine->registerEntry(
+        "hr_HR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Izgleda da je tvoja XDG_CURRENT_DESKTOP okolina vanjski upravljana te je trenutna vrijednost {value}.\nOvo može izazvati problem, osim ako je namjerno.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Na tvojem sustavu nije instaliran hyprland-guiutils. Ovo je zavisnost tokom pokretanja nekih dijaloga. Preporučeno je da ju instaliraš.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo % 10 <= 1 && assetsNo % 100 != 11)
+            return "Hyprland nije uspio učitati {count} neophodnu komponentu, krivi pakera svog distroja za loš posao pakiranja!";
+        else if (assetNo % 10 <= 4 && assetsNo % 100 > 14)
+            return "Hyprland nije uspio učitati {count} neophodne komponente, krivi pakera svog distroja za loš posao pakiranja!";
+        return "Hyprland nije uspio učitati {count} neophodnih komponenata, krivi pakera svog distroja za loš posao pakiranja!";
+    });
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Poredak tvojih monitora je krio postavljen. Monitor {name} preklapa se s ostalim monitorom/ima u poretku.\nProvijeri wiki (Monitors stranicu) za "
+                            "više informacija. Ovo <b>hoće</b> izazvati probleme.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} nije uspio odrediti zatražene načine rada, povratak na zadani način rada: {mode}.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Nevažeći razmjer proslijeđen monitoru {name}: {scale}, koristi se predloženi razmjer: {fixed_scale}");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Učitavanje dodatka {name} nije uspjelo: {error}");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno učitavanje CM shadera nije uspjelo, povratak na zadano: rgba/rgbx.");
+    huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: široki raspon boja je omogućen, ali ekran nije u 10-bitnom načinu rada.");
+
     // it_IT (Italian)
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_TITLE, "L'applicazione non risponde");
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_CONTENT, "Un'applicazione {title} - {class} non risponde.\nCosa vuoi fare?");

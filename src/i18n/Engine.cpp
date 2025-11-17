@@ -313,7 +313,8 @@ I18n::CI18nEngine::CI18nEngine() {
                             "برنامه <b>{app}</b> می‌خواهد صفحه‌نمایش شما را ضبط کند.\n\nآیا اجازه می‌دهید؟");
 
     huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
-                            "برنامه <b>{app}</b> می‌خواهد پلاگین <b>{plugin}</b> را بارگذاری کند.\n\nاجازه داده شود؟");
+                            "برنامه <b>{app}</b> می‌خواهد پلاگین <b>{plugin}</b> را بارگذاری کند.\n\nآیا اجازه می‌دهید پلاگین بارگذاری "
+                            "شود؟");
 
     huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
                             "یک کیبورد جدید شناسایی شد: <b>{keyboard}</b>.\n\nآیا اجازه استفاده از آن را صادر می‌کنید؟");
@@ -336,16 +337,17 @@ I18n::CI18nEngine::CI18nEngine() {
                             "اگر این کار عمدی نباشد ممکن است باعث ایجاد مشکل شود.");
 
     huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب آن پیشنهاد "
+                            "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب آن "
+                            "پیشنهاد "
                             "می‌شود.");
 
     huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند؛ تقصیر بسته‌بند توزیع‌تونه، بد بسته‌بندی "
-                   "کرده!";
-        return "هایپرلند نتوانست {count} فایل ضروری رو بارگذاری کنه؛ تقصیر بسته‌بند توزیع‌تونه، بد بسته‌بندی "
-               "کرده!";
+            return std::string("هایپرلند نتوانست یک فایل ضروری را بارگذاری کند؛ ممکن است بسته‌بندی توزیع مشکل داشته "
+                               "باشد.");
+        return std::string("هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند؛ ممکن است بسته‌بندی توزیع مشکل داشته "
+                           "باشد.");
     });
 
     huEngine->registerEntry("fa_IR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,

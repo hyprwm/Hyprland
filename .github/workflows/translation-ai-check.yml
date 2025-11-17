@@ -1,6 +1,9 @@
 name: AI Translation Check
 
 on:
+  # pull_request_target:
+  #   types:
+  #     - opened
   issue_comment:
     types:
       - created
@@ -13,8 +16,8 @@ permissions:
 jobs:
   review:
     name: Review Translation
+    if: ${{ github.event_name == 'pull_request_target' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
     runs-on: ubuntu-latest
-
     env:
       OPENAI_MODEL: gpt-5-mini
       SYSTEM_PROMPT: |
@@ -24,6 +27,20 @@ jobs:
       AI_PROMPT: Translation patch below.
 
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            i18n:
+              - 'src/i18n/**'
+
+      - name: Stop if i18n not changed
+        if: steps.changes.outputs.i18n != 'true'
+        run: echo "No i18n changes in this PR; skipping." && exit 0
+
       - name: Determine PR number
         id: pr
         run: |

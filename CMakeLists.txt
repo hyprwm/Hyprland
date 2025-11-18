@@ -183,7 +183,7 @@ if(Git_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s --no-show-signature
+    execute_process(COMMAND sh "-c" "${GIT_EXECUTABLE} show -s --format=%s --no-show-signature | sed \"s/\\\"/\'/g\""
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local --no-show-signature

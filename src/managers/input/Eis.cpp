@@ -174,13 +174,13 @@ void CEis::ensureKeyboard() {
 
     SKeymap _keymap = getKeymap();
     if (_keymap.fd != -1) {
-        Debug::log(LOG, "Using keymap {}", _keymap.fd, _keymap.size);
+        Debug::log(LOG, "[EIS] Using keymap {}", _keymap.fd, _keymap.size);
         eis_keymap* eis_keymap = eis_device_new_keymap(keyboard, EIS_KEYMAP_TYPE_XKB, _keymap.fd, _keymap.size);
         if (eis_keymap) {
             eis_keymap_add(eis_keymap);
             eis_keymap_unref(eis_keymap);
         } else {
-            Debug::log(LOG, "Cannot open keymap");
+            Debug::log(LOG, "[EIS] Cannot open keymap");
         }
     }
 

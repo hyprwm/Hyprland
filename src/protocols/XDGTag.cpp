@@ -1,5 +1,6 @@
 #include "XDGTag.hpp"
 #include "XDGShell.hpp"
+#include "../desktop/Window.hpp"
 
 CXDGToplevelTagManagerResource::CXDGToplevelTagManagerResource(UP<CXdgToplevelTagManagerV1>&& resource) : m_resource(std::move(resource)) {
     if UNLIKELY (!good())
@@ -17,6 +18,8 @@ CXDGToplevelTagManagerResource::CXDGToplevelTagManagerResource(UP<CXdgToplevelTa
         }
 
         TOPLEVEL->m_toplevelTag = tag;
+        if (TOPLEVEL->m_window)
+            TOPLEVEL->m_window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_XDG_TAG);
     });
 
     m_resource->setSetToplevelDescription([](CXdgToplevelTagManagerV1* r, wl_resource* toplevel, const char* description) {

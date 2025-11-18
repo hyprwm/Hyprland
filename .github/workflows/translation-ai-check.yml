@@ -1,9 +1,9 @@
 name: AI Translation Check
 
 on:
-  pull_request_target:
-    types:
-      - opened
+  # pull_request_target:
+  #   types:
+  #     - opened
   issue_comment:
     types:
       - created

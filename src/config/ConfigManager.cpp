@@ -2810,6 +2810,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "input-capture")
+        type = PERMISSION_TYPE_INPUT_CAPTURE;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

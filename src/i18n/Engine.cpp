@@ -288,7 +288,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
-        // el_GR (Greek)
+    // el_GR (Greek)
     huEngine->registerEntry("el_GR", TXT_KEY_ANR_TITLE, "Η εφαρμογή δεν αποκρίνεται");
     huEngine->registerEntry("el_GR", TXT_KEY_ANR_CONTENT, "Μια εφαρμογή {title} - {class} δεν αποκρίνεται.\nΤι θέλετε να κάνετε;");
     huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_TERMINATE, "Τερματισμός");
@@ -323,7 +323,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Η διάταξη των οθονών σας έχει ρυθμιστεί λανθασμένα. Η οθόνη {name} επικαλύπτει άλλες οθόνες στη διάταξη.\nΠαρακαλώ δείτε το wiki (σελίδα Οθόνες) για "
                             "περισσότερα. Αυτό <b>θα</b> προκαλέσει προβλήματα.");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Η οθόνη {name} δεν μπόρεσε να ορίσει κανένα από τους ζητούμενους τρόπους λειτουργίας, επιστροφή στη λειτουργία {mode}.");
-    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Μη έγκυρh κλίμακα για την οθόνη {name}: {scale}, χρησιμοποιείται η προτεινόμενη κλίμακα: {fixed_scale}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Μη έγκυρη κλίμακα για την οθόνη {name}: {scale}, χρησιμοποιείται η προτεινόμενη κλίμακα: {fixed_scale}");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Αποτυχία φόρτωσης πρόσθετου {name}: {error}");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Η φόρτωση του CM shader απέτυχε, επιστροφή σε rgba/rgbx.");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Οθόνη {name}: το ευρύ χρωματικό φάσμα είναι ενεργοποιημένο αλλά η οθόνη δεν είναι σε λειτουργία 10-bit.");

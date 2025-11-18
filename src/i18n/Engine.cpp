@@ -295,9 +295,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_WAIT, "Αναμονή");
     huEngine->registerEntry("el_GR", TXT_KEY_ANR_PROP_UNKNOWN, "(άγνωστο)");
 
-    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Mια εφαρμογή <b>{app}</b> ζητά άγνωστη άδεια.");
-    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Mια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει την οθόνη σας.\n\nΘέλετε να της το επιτρέψετε;");
-    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Mια εφαρμογή <b>{app}</b> προσπαθεί να φορτώσει ένα πρόσθετο: <b>{plugin}</b>.\n\nΘέλετε να της το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Μια εφαρμογή <b>{app}</b> ζητά άγνωστη άδεια.");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Μια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει την οθόνη σας.\n\nΘέλετε να της το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Μια εφαρμογή <b>{app}</b> προσπαθεί να φορτώσει ένα πρόσθετο: <b>{plugin}</b>.\n\nΘέλετε να της το επιτρέψετε;");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Ένα νέο πληκτρολόγιο εντοπίστηκε: <b>{keyboard}</b>.\n\nΘέλετε να του επιτρέψετε να λειτουργήσει;");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(άγνωστο)");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_TITLE, "Αίτημα άδειας");
@@ -305,7 +305,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW, "Επιτρέπω");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Επιτρέπω και θυμήσου");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_ONCE, "Επίτρεψε μία φορά");
-    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_DENY, "Aρνούμαι");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_DENY, "Αρνούμαι");
     huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Άγνωστη εφαρμογή (wayland client ID {wayland_id})");
 
     huEngine->registerEntry(
@@ -320,11 +320,11 @@ I18n::CI18nEngine::CI18nEngine() {
         return "Το Hyprland απέτυχε να φορτώσει {count} βασικά στοιχεία, κατηγορήστε τον πακετά της διανομής σας για την κακή δουλειά στη συσκευασία!";
     });
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Η διάταξη των οθονών σας έχει ρυθμιστεί λανθασμένα. Η οθόνη {name} επικαλύπτει άλλες οθόνες στη διάταξη.\nΠαρακαλώ δείτε το wiki (σελίδα Οθόνες) για"
+                            "Η διάταξη των οθονών σας έχει ρυθμιστεί λανθασμένα. Η οθόνη {name} επικαλύπτει άλλες οθόνες στη διάταξη.\nΠαρακαλώ δείτε το wiki (σελίδα Οθόνες) για "
                             "περισσότερα. Αυτό <b>θα</b> προκαλέσει προβλήματα.");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Η οθόνη {name} δεν μπόρεσε να ορίσει κανένα από τους ζητούμενους τρόπους λειτουργίας, επιστροφή στη λειτουργία {mode}.");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Μη έγκυρh κλίμακα για την οθόνη {name}: {scale}, χρησιμοποιείται η προτεινόμενη κλίμακα: {fixed_scale}");
-    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Failed to load plugin {name}: {error}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Αποτυχία φόρτωσης πρόσθετου {name}: {error}");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Η φόρτωση του CM shader απέτυχε, επιστροφή σε rgba/rgbx.");
     huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Οθόνη {name}: το ευρύ χρωματικό φάσμα είναι ενεργοποιημένο αλλά η οθόνη δεν είναι σε λειτουργία 10-bit.");
 }

@@ -220,7 +220,7 @@ pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  xkbcommon
+  xkbcommon>=1.11.0
   uuid
   wayland-server>=1.22.90
   wayland-protocols>=1.45

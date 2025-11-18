@@ -704,7 +704,6 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
 
-
     // pt_PT (Portuguese Portugal)
     huEngine->registerEntry("pt_PT", TXT_KEY_ANR_TITLE, "A aplicação não está a responder");
     huEngine->registerEntry("pt_PT", TXT_KEY_ANR_CONTENT, "Uma aplicação {title} - {class} não está a responder.\nO que pretendes fazer com ela?");

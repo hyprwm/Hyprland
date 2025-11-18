@@ -57,6 +57,10 @@ int                        main(int argc, char** argv, char** envp) {
                 return 0;
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
+            } else if (ARGS[i] == "--notify-fail" || ARGS[i] == "-nn") {
+                // TODO: Deprecated since v.053.0. Remove in version>0.56.0
+                std::println(stderr, "{}", failureString("Deprececated flag."));
+                g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] -n flag is deprecated, see hyprpm --help.");
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {

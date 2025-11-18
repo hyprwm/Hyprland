@@ -121,7 +121,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_XDG_TAG:
-                if (w->xdgTag().has_value() && !engine->match(*w->xdgTag()))
+                if (!w->xdgTag().has_value() || !engine->match(*w->xdgTag()))
                     return false;
                 break;
             case RULE_PROP_EXEC_TOKEN:

@@ -1607,10 +1607,13 @@ bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
 bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {
     const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
 
-    const auto XY1 = PMONITOR->m_position + PMONITOR->m_reservedTopLeft;
-    const auto XY2 = PMONITOR->m_position + PMONITOR->m_size - PMONITOR->m_reservedBottomRight;
+    auto       box = PMONITOR->logicalBox();
+    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.w + 2, box.h + 2))
+        return false;
 
-    return VECNOTINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
+    PMONITOR->m_reservedArea.applyip(box);
+
+    return VECNOTINRECT(point, box.x, box.y, box.x, box.y);
 }
 
 CBox CCompositor::calculateX11WorkArea() {
@@ -1620,11 +1623,7 @@ CBox CCompositor::calculateX11WorkArea() {
 
     for (const auto& monitor : m_monitors) {
         // we ignore monitor->m_position on purpose
-        auto x   = monitor->m_reservedTopLeft.x;
-        auto y   = monitor->m_reservedTopLeft.y;
-        auto w   = monitor->m_size.x - monitor->m_reservedBottomRight.x - x;
-        auto h   = monitor->m_size.y - monitor->m_reservedBottomRight.y - y;
-        CBox box = {x, y, w, h};
+        CBox box = monitor->logicalBoxMinusReserved().translate(-monitor->m_position);
         if ((*PXWLFORCESCALEZERO))
             box.scale(monitor->m_scale);
 

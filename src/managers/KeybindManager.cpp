@@ -1156,11 +1156,7 @@ SDispatchResult CKeybindManager::centerWindow(std::string args) {
 
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 
-    auto       RESERVEDOFFSET = Vector2D();
-    if (args == "1")
-        RESERVEDOFFSET = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
-
-    *PWINDOW->m_realPosition = PMONITOR->middle() - PWINDOW->m_realSize->goal() / 2.f + RESERVEDOFFSET;
+    *PWINDOW->m_realPosition = PMONITOR->logicalBoxMinusReserved().middle() - PWINDOW->m_realSize->goal() / 2.f;
     PWINDOW->m_position      = PWINDOW->m_realPosition->goal();
 
     return {};
@@ -1670,15 +1666,15 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
             PGAPSOUT = sc<CCssGapData*>(PGAPSOUTDATA.ptr()->getData());
 
         switch (arg) {
-            case 'l': vPosx = PMONITOR->m_reservedTopLeft.x + BORDERSIZE + PMONITOR->m_position.x + PGAPSOUT->m_left; break;
+            case 'l': vPosx = PMONITOR->m_reservedArea.left() + BORDERSIZE + PMONITOR->m_position.x + PGAPSOUT->m_left; break;
             case 'r':
-                vPosx = PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x - PLASTWINDOW->m_realSize->goal().x - BORDERSIZE + PMONITOR->m_position.x - PGAPSOUT->m_right;
+                vPosx = PMONITOR->m_size.x - PMONITOR->m_reservedArea.right() - PLASTWINDOW->m_realSize->goal().x - BORDERSIZE + PMONITOR->m_position.x - PGAPSOUT->m_right;
                 break;
             case 't':
-            case 'u': vPosy = PMONITOR->m_reservedTopLeft.y + BORDERSIZE + PMONITOR->m_position.y + PGAPSOUT->m_top; break;
+            case 'u': vPosy = PMONITOR->m_reservedArea.top() + BORDERSIZE + PMONITOR->m_position.y + PGAPSOUT->m_top; break;
             case 'b':
             case 'd':
-                vPosy = PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y - PLASTWINDOW->m_realSize->goal().y - BORDERSIZE + PMONITOR->m_position.y - PGAPSOUT->m_bottom;
+                vPosy = PMONITOR->m_size.y - PMONITOR->m_reservedArea.bottom() - PLASTWINDOW->m_realSize->goal().y - BORDERSIZE + PMONITOR->m_position.y - PGAPSOUT->m_bottom;
                 break;
         }
 

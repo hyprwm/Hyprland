@@ -1883,30 +1883,16 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 }
 
 void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
-    const auto  PMONITOR = g_pCompositor->getMonitorFromID(monitor);
-
-    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
     if (!PMONITOR)
         return;
 
     // Reset the reserved
-    PMONITOR->m_reservedBottomRight = Vector2D();
-    PMONITOR->m_reservedTopLeft     = Vector2D();
+    PMONITOR->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_LS);
 
-    CBox usableArea = {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
-
-    if (g_pHyprError->active() && Desktop::focusState()->monitor() == PMONITOR->m_self) {
-        const auto HEIGHT = g_pHyprError->height();
-        if (*BAR_POSITION == 0) {
-            PMONITOR->m_reservedTopLeft.y = HEIGHT;
-            usableArea.y += HEIGHT;
-            usableArea.h -= HEIGHT;
-        } else {
-            PMONITOR->m_reservedBottomRight.y = HEIGHT;
-            usableArea.h -= HEIGHT;
-        }
-    }
+    const CBox ORIGINAL_USABLE_AREA = PMONITOR->logicalBoxMinusReserved();
+    CBox       usableArea           = ORIGINAL_USABLE_AREA;
 
     for (auto& la : PMONITOR->m_layerSurfaceLayers) {
         std::ranges::stable_sort(
@@ -1919,18 +1905,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     for (auto const& la : PMONITOR->m_layerSurfaceLayers)
         arrangeLayerArray(PMONITOR, la, false, &usableArea);
 
-    PMONITOR->m_reservedTopLeft     = Vector2D(usableArea.x, usableArea.y) - PMONITOR->m_position;
-    PMONITOR->m_reservedBottomRight = PMONITOR->m_size - Vector2D(usableArea.width, usableArea.height) - PMONITOR->m_reservedTopLeft;
-
-    auto ADDITIONALRESERVED = g_pConfigManager->m_mAdditionalReservedAreas.find(PMONITOR->m_name);
-    if (ADDITIONALRESERVED == g_pConfigManager->m_mAdditionalReservedAreas.end()) {
-        ADDITIONALRESERVED = g_pConfigManager->m_mAdditionalReservedAreas.find(""); // glob wildcard
-    }
-
-    if (ADDITIONALRESERVED != g_pConfigManager->m_mAdditionalReservedAreas.end()) {
-        PMONITOR->m_reservedTopLeft     = PMONITOR->m_reservedTopLeft + Vector2D(ADDITIONALRESERVED->second.left, ADDITIONALRESERVED->second.top);
-        PMONITOR->m_reservedBottomRight = PMONITOR->m_reservedBottomRight + Vector2D(ADDITIONALRESERVED->second.right, ADDITIONALRESERVED->second.bottom);
-    }
+    PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_LS, Desktop::CReservedArea{ORIGINAL_USABLE_AREA, usableArea});
 
     // damage the monitor if can
     damageMonitor(PMONITOR);

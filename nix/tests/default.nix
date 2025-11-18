@@ -1,6 +1,6 @@
 inputs: pkgs: let
   flake = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
-  hyprland = flake.hyprland;
+  hyprland = flake.hyprland-with-tests;
 in {
   tests = pkgs.testers.runNixOSTest {
     name = "hyprland-tests";
@@ -68,6 +68,12 @@ in {
       # Wait for tty to be up
       machine.wait_for_unit("multi-user.target")
 
+
+      # Run gtests
+      print("Running gtests")
+      exit_status, _out = machine.execute("su - alice -c 'hyprland_gtests 2>&1 | tee /tmp/gtestslog; exit ''${PIPESTATUS[0]}'")
+      machine.execute(f'echo {exit_status} > /tmp/exit_status_gtests')
+
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
       exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test.conf -p ${hyprland}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
@@ -76,6 +82,7 @@ in {
       # Copy logs to host
       machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
       machine.execute(f'echo {exit_status} > /tmp/exit_status')
+      machine.copy_from_vm("/tmp/gtestslog")
       machine.copy_from_vm("/tmp/testerlog")
       machine.copy_from_vm("/tmp/hyprlog")
       machine.copy_from_vm("/tmp/exit_status")

@@ -230,6 +230,12 @@ class IHyprLayout {
     */
     virtual void fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> targetBox = std::nullopt);
 
+    /*
+        Returns a logical box describing the work area on a workspace
+        (monitor size - reserved - gapsOut)
+    */
+    virtual CBox workAreaOnWorkspace(const PHLWORKSPACE& pWorkspace);
+
   private:
     int          m_mouseMoveEventCount;
     Vector2D     m_beginDragXY;

@@ -13,24 +13,25 @@ class CHyprDwindleLayout;
 enum eFullscreenMode : int8_t;
 
 struct SDwindleNodeData {
-    SDwindleNodeData*                pParent = nullptr;
-    bool                             isNode  = false;
+    WP<SDwindleNodeData>                pParent;
+    bool                                isNode = false;
 
-    PHLWINDOWREF                     pWindow;
+    PHLWINDOWREF                        pWindow;
 
-    std::array<SDwindleNodeData*, 2> children = {nullptr, nullptr};
+    std::array<WP<SDwindleNodeData>, 2> children = {};
+    WP<SDwindleNodeData>                self;
 
-    bool                             splitTop = false; // for preserve_split
+    bool                                splitTop = false; // for preserve_split
 
-    CBox                             box = {0};
+    CBox                                box = {0};
 
-    WORKSPACEID                      workspaceID = WORKSPACE_INVALID;
+    WORKSPACEID                         workspaceID = WORKSPACE_INVALID;
 
-    float                            splitRatio = 1.f;
+    float                               splitRatio = 1.f;
 
-    bool                             valid = true;
+    bool                                valid = true;
 
-    bool                             ignoreFullscreenChecks = false;
+    bool                                ignoreFullscreenChecks = false;
 
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) const {
@@ -39,6 +40,7 @@ struct SDwindleNodeData {
     }
 
     void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
+    void                applyRootBox();
     CHyprDwindleLayout* layout = nullptr;
 };
 
@@ -65,7 +67,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onDisable();
 
   private:
-    std::list<SDwindleNodeData> m_dwindleNodesData;
+    std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;
 
     struct {
         bool started = false;
@@ -77,12 +79,12 @@ class CHyprDwindleLayout : public IHyprLayout {
     std::optional<Vector2D> m_overrideFocalPoint; // for onWindowCreatedTiling.
 
     int                     getNodesOnWorkspace(const WORKSPACEID&);
-    void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
+    void                    applyNodeDataToWindow(SP<SDwindleNodeData>, bool force = false);
     void                    calculateWorkspace(const PHLWORKSPACE& pWorkspace);
-    SDwindleNodeData*       getNodeFromWindow(PHLWINDOW);
-    SDwindleNodeData*       getFirstNodeOnWorkspace(const WORKSPACEID&);
-    SDwindleNodeData*       getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
-    SDwindleNodeData*       getMasterNodeOnWorkspace(const WORKSPACEID&);
+    SP<SDwindleNodeData>    getNodeFromWindow(PHLWINDOW);
+    SP<SDwindleNodeData>    getFirstNodeOnWorkspace(const WORKSPACEID&);
+    SP<SDwindleNodeData>    getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
+    SP<SDwindleNodeData>    getMasterNodeOnWorkspace(const WORKSPACEID&);
 
     void                    toggleSplit(PHLWINDOW);
     void                    swapSplit(PHLWINDOW);
@@ -94,13 +96,13 @@ class CHyprDwindleLayout : public IHyprLayout {
 };
 
 template <typename CharT>
-struct std::formatter<SDwindleNodeData*, CharT> : std::formatter<CharT> {
+struct std::formatter<SP<SDwindleNodeData>, CharT> : std::formatter<CharT> {
     template <typename FormatContext>
-    auto format(const SDwindleNodeData* const& node, FormatContext& ctx) const {
+    auto format(const SP<SDwindleNodeData>& node, FormatContext& ctx) const {
         auto out = ctx.out();
         if (!node)
             return std::format_to(out, "[Node nullptr]");
-        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", rc<uintptr_t>(node), node->workspaceID, node->box.pos(), node->box.size());
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", rc<uintptr_t>(node.get()), node->workspaceID, node->box.pos(), node->box.size());
         if (!node->isNode && !node->pWindow.expired())
             std::format_to(out, ", window: {:x}", node->pWindow.lock());
         return std::format_to(out, "]");

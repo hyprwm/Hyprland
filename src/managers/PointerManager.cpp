@@ -928,7 +928,10 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         bool shouldSkip = false;
         if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
             auto PMONITOR = g_pCompositor->m_lastMonitor.get();
-            shouldSkip    = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+            if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
+                auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
+                shouldSkip    = fsWindow && fsWindow->m_isX11;
+            }
         }
         g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
         if (!g_pSeatManager->m_isPointerFrameSkipped)

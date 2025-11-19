@@ -7,27 +7,6 @@
 using namespace Desktop;
 using namespace Desktop::Rule;
 
-std::optional<Vector2D> Rule::parseRelativeVector(PHLWINDOW w, const std::string& s) {
-    try {
-        const auto  VALUE    = s.substr(s.find(' ') + 1);
-        const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-        const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
-
-        const auto  MAXSIZE = w->requestedMaxSize();
-
-        const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.x) :
-                                                stringToPercentage(SIZEXSTR, g_pCompositor->m_lastMonitor->m_size.x);
-
-        const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_lastMonitor->m_size.y) :
-                                                stringToPercentage(SIZEYSTR, g_pCompositor->m_lastMonitor->m_size.y);
-
-        return Vector2D{SIZEX, SIZEY};
-
-    } catch (...) { Debug::log(LOG, "Rule size failed, rule: {}", s); }
-
-    return std::nullopt;
-}
-
 CWindowRule::CWindowRule(const std::string& name) : IRule(name) {
     ;
 }

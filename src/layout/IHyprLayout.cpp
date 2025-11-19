@@ -965,7 +965,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
         }
 
         if (!pWindow->m_ruleApplicator->static_.size.empty()) {
-            const auto SIZE = Desktop::Rule::parseRelativeVector(pWindow, pWindow->m_ruleApplicator->static_.size);
+            const auto SIZE = pWindow->calculateExpression(pWindow->m_ruleApplicator->static_.size);
             if (SIZE)
                 return SIZE.value();
         }

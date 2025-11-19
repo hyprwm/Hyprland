@@ -1,6 +1,6 @@
 inputs: pkgs: let
   flake = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
-  hyprland = flake.hyprland-with-hyprtester;
+  hyprland = flake.hyprland;
 in {
   tests = pkgs.testers.runNixOSTest {
     name = "hyprland-tests";

@@ -30,7 +30,7 @@ void CXDGDialogV1Resource::updateWindow() {
     if UNLIKELY (!HLSurface || !HLSurface->getWindow())
         return;
 
-    g_pCompositor->updateWindowAnimatedDecorationValues(HLSurface->getWindow());
+    HLSurface->getWindow()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_MODAL);
 }
 
 bool CXDGDialogV1Resource::good() {

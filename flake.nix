@@ -151,7 +151,6 @@
         (pkgsFor.${system})
         # hyprland-packages
         hyprland
-        hyprland-with-hyprtester
         hyprland-unwrapped
         # hyprland-extras
         xdg-desktop-portal-hyprland

@@ -230,7 +230,7 @@ void CScreencopyFrame::renderMon() {
     };
 
     for (auto const& l : g_pCompositor->m_layers) {
-        if (!l->m_noScreenShare)
+        if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
         if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
@@ -246,11 +246,12 @@ void CScreencopyFrame::renderMon() {
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-        l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        if (l->m_popupHead)
+            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
+        if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
@@ -271,7 +272,7 @@ void CScreencopyFrame::renderMon() {
                                           .scale(m_monitor->m_scale)
                                           .translate(-m_box.pos());
 
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
+        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 

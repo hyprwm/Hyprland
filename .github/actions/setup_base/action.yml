@@ -45,6 +45,7 @@ runs:
           libxkbfile \
           lld \
           meson \
+          muparser \
           ninja \
           pango \
           pixman \

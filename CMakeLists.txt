@@ -183,7 +183,7 @@ if(Git_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s --no-show-signature
+    execute_process(COMMAND sh "-c" "${GIT_EXECUTABLE} show -s --format=%s --no-show-signature | sed \"s/\\\"/\'/g\""
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local --no-show-signature
@@ -220,7 +220,7 @@ pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  xkbcommon
+  xkbcommon>=1.11.0
   uuid
   wayland-server>=1.22.90
   wayland-protocols>=1.45
@@ -233,7 +233,8 @@ pkg_check_modules(
   libinput>=1.28
   gbm
   gio-2.0
-  re2)
+  re2
+  muparser)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -511,7 +512,6 @@ add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
 # installable assets
 file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
-list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
 install(FILES ${INSTALLABLE_ASSETS}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 

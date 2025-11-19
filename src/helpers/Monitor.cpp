@@ -177,7 +177,11 @@ void CMonitor::onConnect(bool noRule) {
         m_forceSize = SIZE;
 
         SMonitorRule rule = m_activeMonitorRule;
-        rule.resolution   = SIZE;
+
+        if (SIZE == rule.resolution)
+            return;
+
+        rule.resolution = SIZE;
 
         applyMonitorRule(&rule);
     });

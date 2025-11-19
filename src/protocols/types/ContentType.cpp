@@ -12,7 +12,15 @@ namespace NContentType {
         if (it != table.end())
             return it->second;
         else
-            throw std::invalid_argument(std::format("Unknown content type {}", name));
+            return CONTENT_TYPE_NONE;
+    }
+
+    std::string toString(eContentType type) {
+        for (const auto& [k, v] : table) {
+            if (v == type)
+                return k;
+        }
+        return "";
     }
 
     eContentType fromWP(wpContentTypeV1Type contentType) {

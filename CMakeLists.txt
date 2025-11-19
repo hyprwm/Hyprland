@@ -128,13 +128,41 @@ set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
 
 find_package(Git QUIET)
 
-set(GIT_COMMIT_HASH "unknown")
-set(GIT_BRANCH "unknown")
-set(GIT_COMMIT_MESSAGE "unknown")
-set(GIT_COMMIT_DATE "unknown")
-set(GIT_DIRTY "unknown")
-set(GIT_TAG "unknown")
-set(GIT_COMMITS "0")
+# Populate variables with env vars if present
+set(GIT_COMMIT_HASH "$ENV{GIT_COMMIT_HASH}")
+if(NOT GIT_COMMIT_HASH)
+  set(GIT_COMMIT_HASH "unknown")
+endif()
+
+set(GIT_BRANCH "$ENV{GIT_BRANCH}")
+if(NOT GIT_BRANCH)
+  set(GIT_BRANCH "unknown")
+endif()
+
+set(GIT_COMMIT_MESSAGE "$ENV{GIT_COMMIT_MESSAGE}")
+if(NOT GIT_COMMIT_MESSAGE)
+  set(GIT_COMMIT_MESSAGE "unknown")
+endif()
+
+set(GIT_COMMIT_DATE "$ENV{GIT_COMMIT_DATE}")
+if(NOT GIT_COMMIT_DATE)
+  set(GIT_COMMIT_DATE "unknown")
+endif()
+
+set(GIT_DIRTY "$ENV{GIT_DIRTY}")
+if(NOT GIT_DIRTY)
+  set(GIT_DIRTY "unknown")
+endif()
+
+set(GIT_TAG "$ENV{GIT_TAG}")
+if(NOT GIT_TAG)
+  set(GIT_TAG "unknown")
+endif()
+
+set(GIT_COMMITS "$ENV{GIT_COMMITS}")
+if(NOT GIT_COMMITS)
+  set(GIT_COMMITS "0")
+endif()
 
 if(Git_FOUND)
   execute_process(
@@ -155,7 +183,7 @@ if(Git_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%s --no-show-signature
+    execute_process(COMMAND sh "-c" "${GIT_EXECUTABLE} show -s --format=%s --no-show-signature | sed \"s/\\\"/\'/g\""
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
       OUTPUT_VARIABLE GIT_COMMIT_MESSAGE OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%cd --date=local --no-show-signature
@@ -192,7 +220,7 @@ pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  xkbcommon
+  xkbcommon>=1.11.0
   uuid
   wayland-server>=1.22.90
   wayland-protocols>=1.45
@@ -205,7 +233,8 @@ pkg_check_modules(
   libinput>=1.28
   gbm
   gio-2.0
-  re2)
+  re2
+  muparser)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -483,7 +512,6 @@ add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
 # installable assets
 file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
-list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
 install(FILES ${INSTALLABLE_ASSETS}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 

@@ -1,5 +1,0 @@
-[wrap-file]
-method = cmake
-
-[provide]
-udis86 = libudis86_dep

@@ -9,6 +9,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../i18n/Engine.hpp"
 
 CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = makeUnique<CHookSystem>();
@@ -224,7 +225,8 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
             if (result->hasError()) {
                 const auto NAME = path.contains('/') ? path.substr(path.find_last_of('/') + 1) : path;
                 Debug::log(ERR, "CPluginSystem::updateConfigPlugins: failed to load plugin {}: {}", NAME, result->error());
-                g_pHyprNotificationOverlay->addNotification(std::format("Failed to load plugin {}: {}", NAME, result->error()), CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
+                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, {{"name", NAME}, {"error", result->error()}}),
+                                                            CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
                 return;
             }
 

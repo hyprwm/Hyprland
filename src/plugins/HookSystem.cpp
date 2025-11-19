@@ -144,6 +144,12 @@ bool CFunctionHook::hook() {
     return false;
 #endif
 
+    if (g_pFunctionHookSystem->m_activeHooks.contains(rc<uint64_t>(m_source))) {
+        // TODO: return actual error codes...
+        Debug::log(ERR, "[functionhook] failed, function is already hooked");
+        return false;
+    }
+
     // jmp rel32
     // offset for relative addr: 1
     static constexpr uint8_t RELATIVE_JMP_ADDRESS[]      = {0xE9, 0x00, 0x00, 0x00, 0x00};
@@ -231,6 +237,8 @@ bool CFunctionHook::hook() {
     m_active  = true;
     m_hookLen = ORIGSIZE;
 
+    g_pFunctionHookSystem->m_activeHooks.emplace(rc<uint64_t>(m_source));
+
     return true;
 }
 
@@ -242,6 +250,8 @@ bool CFunctionHook::unhook() {
 
     if (!m_active)
         return false;
+
+    g_pFunctionHookSystem->m_activeHooks.erase(rc<uint64_t>(m_source));
 
     // allow write to src
     mprotect(sc<uint8_t*>(m_source) - rc<uint64_t>(m_source) % sysconf(_SC_PAGE_SIZE), sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE | PROT_EXEC);

@@ -211,8 +211,26 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
+    auto hidePopups = [&](Vector2D popupBaseOffset) {
+        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
+            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+                return;
+
+            const auto popRel = popup->coordsRelativeToParent();
+            popup->m_wlSurface->resource()->breadthfirst(
+                [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
+                    const auto size    = surf->m_current.size;
+                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+                    if LIKELY (surfBox.w > 0 && surfBox.h > 0)
+                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                },
+                nullptr);
+        };
+    };
+
     for (auto const& l : g_pCompositor->m_layers) {
-        if (!l->m_noScreenShare)
+        if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
         if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
@@ -225,10 +243,15 @@ void CScreencopyFrame::renderMon() {
             CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
 
         g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+
+        const auto     geom            = l->m_geometry;
+        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+        if (l->m_popupHead)
+            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
+        if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
@@ -249,7 +272,7 @@ void CScreencopyFrame::renderMon() {
                                           .scale(m_monitor->m_scale)
                                           .translate(-m_box.pos());
 
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
+        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
@@ -261,23 +284,7 @@ void CScreencopyFrame::renderMon() {
         const auto     geom            = w->m_xdgSurface->m_current.geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
 
-        w->m_popupHead->breadthfirst(
-            [&](WP<CPopup> popup, void*) {
-                if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
-                    return;
-
-                const auto popRel = popup->coordsRelativeToParent();
-                popup->m_wlSurface->resource()->breadthfirst(
-                    [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                        const auto size    = surf->m_current.size;
-                        const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
-
-                        if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
-                    },
-                    nullptr);
-            },
-            nullptr);
+        w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     if (m_overlayCursor)

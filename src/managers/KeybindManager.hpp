@@ -26,29 +26,30 @@ struct SSubmap {
 };
 
 struct SKeybind {
-    std::string            key            = "";
-    std::set<xkb_keysym_t> sMkKeys        = {};
-    uint32_t               keycode        = 0;
-    bool                   catchAll       = false;
-    uint32_t               modmask        = 0;
-    std::set<xkb_keysym_t> sMkMods        = {};
-    std::string            handler        = "";
-    std::string            arg            = "";
-    bool                   locked         = false;
-    SSubmap                submap         = {};
-    std::string            description    = "";
-    bool                   release        = false;
-    bool                   repeat         = false;
-    bool                   longPress      = false;
-    bool                   mouse          = false;
-    bool                   nonConsuming   = false;
-    bool                   transparent    = false;
-    bool                   ignoreMods     = false;
-    bool                   multiKey       = false;
-    bool                   hasDescription = false;
-    bool                   dontInhibit    = false;
-    bool                   click          = false;
-    bool                   drag           = false;
+    std::string            key             = "";
+    std::set<xkb_keysym_t> sMkKeys         = {};
+    uint32_t               keycode         = 0;
+    bool                   catchAll        = false;
+    uint32_t               modmask         = 0;
+    std::set<xkb_keysym_t> sMkMods         = {};
+    std::string            handler         = "";
+    std::string            arg             = "";
+    bool                   locked          = false;
+    SSubmap                submap          = {};
+    std::string            description     = "";
+    bool                   release         = false;
+    bool                   repeat          = false;
+    bool                   longPress       = false;
+    bool                   mouse           = false;
+    bool                   nonConsuming    = false;
+    bool                   transparent     = false;
+    bool                   ignoreMods      = false;
+    bool                   multiKey        = false;
+    bool                   hasDescription  = false;
+    bool                   dontInhibit     = false;
+    bool                   click           = false;
+    bool                   drag            = false;
+    bool                   submapUniversal = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -163,7 +164,7 @@ class CKeybindManager {
     static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
     static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
     static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory = false);
-    static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
+    static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace, const std::string& execRuleToken = "");
     static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //

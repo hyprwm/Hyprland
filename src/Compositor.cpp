@@ -65,6 +65,7 @@
 #include "debug/HyprNotificationOverlay.hpp"
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
+#include "i18n/Engine.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -900,8 +901,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
 
-            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow &&
-                !isShadowedByModal(w)) {
+            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+                w != pIgnoreWindow && !isShadowedByModal(w)) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -938,7 +939,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         continue;
                 }
 
-                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() &&
+                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                     w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
@@ -999,7 +1000,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 continue;
 
             if (!w->m_isX11 && !w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus &&
-                !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
+                !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
                 if (w->hasPopupAt(pos))
                     return w;
             }
@@ -1015,7 +1016,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (!w->m_workspace)
                 continue;
 
-            if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_windowData.noFocus.valueOrDefault() &&
+            if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if (box.containsPoint(pos))
@@ -1151,7 +1152,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         m_lastWindow.reset();
 
         if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
-            updateWindowAnimatedDecorationValues(PLASTWINDOW);
+            PLASTWINDOW->updateDecorationValues();
 
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
         }
@@ -1171,7 +1172,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
     }
 
-    if (pWindow->m_windowData.noFocus.valueOrDefault()) {
+    if (pWindow->m_ruleApplicator->noFocus().valueOrDefault()) {
         Debug::log(LOG, "Ignoring focus to nofocus window!");
         return;
     }
@@ -1208,9 +1209,9 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
     if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
-        PLASTWINDOW->updateDynamicRules();
+        PLASTWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FOCUS);
 
-        updateWindowAnimatedDecorationValues(PLASTWINDOW);
+        PLASTWINDOW->updateDecorationValues();
 
         if (!pWindow->m_isX11 || !pWindow->isX11OverrideRedirect())
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
@@ -1224,10 +1225,10 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
-    pWindow->updateDynamicRules();
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FOCUS);
     pWindow->onFocusAnimUpdate();
 
-    updateWindowAnimatedDecorationValues(pWindow);
+    pWindow->updateDecorationValues();
 
     if (pWindow->m_isUrgent)
         pWindow->m_isUrgent = false;
@@ -1333,7 +1334,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
         if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_surface->m_mapped) || ls->m_alpha->value() == 0.f ||
-            (aboveLockscreen && (!ls->m_aboveLockscreen || !ls->m_aboveLockscreenInteractable)))
+            (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
@@ -1714,7 +1715,7 @@ static bool isFloatingMatches(WINDOWPTR w, std::optional<bool> floating) {
 template <typename WINDOWPTR>
 static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false) {
     return isFloatingMatches(w, floating) &&
-        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && !w->isHidden() && (!focusableOnly || !w->m_windowData.noFocus.valueOrDefault()));
+        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && !w->isHidden() && (!focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
 }
 
 template <typename Iterator>
@@ -1905,101 +1906,8 @@ void CCompositor::updateAllWindowsAnimatedDecorationValues() {
         if (!w->m_isMapped)
             continue;
 
-        updateWindowAnimatedDecorationValues(w);
+        w->updateDecorationValues();
     }
-}
-
-void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
-    // optimization
-    static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
-    static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");
-    static auto PNOGROUPACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border_active");
-    static auto PNOGROUPINACTIVECOL     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border");
-    static auto PGROUPACTIVECOL         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_active");
-    static auto PGROUPINACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_inactive");
-    static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_active");
-    static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_inactive");
-    static auto PINACTIVEALPHA          = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA            = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PFULLSCREENALPHA        = CConfigValue<Hyprlang::FLOAT>("decoration:fullscreen_opacity");
-    static auto PSHADOWCOL              = CConfigValue<Hyprlang::INT>("decoration:shadow:color");
-    static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:shadow:color_inactive");
-    static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
-    static auto PDIMMODAL               = CConfigValue<Hyprlang::INT>("decoration:dim_modal");
-
-    auto* const ACTIVECOL              = sc<CGradientValueData*>((PACTIVECOL.ptr())->getData());
-    auto* const INACTIVECOL            = sc<CGradientValueData*>((PINACTIVECOL.ptr())->getData());
-    auto* const NOGROUPACTIVECOL       = sc<CGradientValueData*>((PNOGROUPACTIVECOL.ptr())->getData());
-    auto* const NOGROUPINACTIVECOL     = sc<CGradientValueData*>((PNOGROUPINACTIVECOL.ptr())->getData());
-    auto* const GROUPACTIVECOL         = sc<CGradientValueData*>((PGROUPACTIVECOL.ptr())->getData());
-    auto* const GROUPINACTIVECOL       = sc<CGradientValueData*>((PGROUPINACTIVECOL.ptr())->getData());
-    auto* const GROUPACTIVELOCKEDCOL   = sc<CGradientValueData*>((PGROUPACTIVELOCKEDCOL.ptr())->getData());
-    auto* const GROUPINACTIVELOCKEDCOL = sc<CGradientValueData*>((PGROUPINACTIVELOCKEDCOL.ptr())->getData());
-
-    auto        setBorderColor = [&](CGradientValueData grad) -> void {
-        if (grad == pWindow->m_realBorderColor)
-            return;
-
-        pWindow->m_realBorderColorPrevious = pWindow->m_realBorderColor;
-        pWindow->m_realBorderColor         = grad;
-        pWindow->m_borderFadeAnimationProgress->setValueAndWarp(0.f);
-        *pWindow->m_borderFadeAnimationProgress = 1.f;
-    };
-
-    const bool IS_SHADOWED_BY_MODAL = pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal();
-
-    // border
-    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
-    if (RENDERDATA.isBorderGradient)
-        setBorderColor(*RENDERDATA.borderGradient);
-    else {
-        const bool GROUPLOCKED = pWindow->m_groupData.pNextWindow.lock() ? pWindow->getGroupHead()->m_groupData.locked : false;
-        if (pWindow == m_lastWindow) {
-            const auto* const ACTIVECOLOR =
-                !pWindow->m_groupData.pNextWindow.lock() ? (!pWindow->m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
-            setBorderColor(pWindow->m_windowData.activeBorderColor.valueOr(*ACTIVECOLOR));
-        } else {
-            const auto* const INACTIVECOLOR = !pWindow->m_groupData.pNextWindow.lock() ? (!pWindow->m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) :
-                                                                                         (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
-            setBorderColor(pWindow->m_windowData.inactiveBorderColor.valueOr(*INACTIVECOLOR));
-        }
-    }
-
-    // opacity
-    const auto PWORKSPACE = pWindow->m_workspace;
-    if (pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) {
-        *pWindow->m_activeInactiveAlpha = pWindow->m_windowData.alphaFullscreen.valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
-    } else {
-        if (pWindow == m_lastWindow)
-            *pWindow->m_activeInactiveAlpha = pWindow->m_windowData.alpha.valueOrDefault().applyAlpha(*PACTIVEALPHA);
-        else
-            *pWindow->m_activeInactiveAlpha = pWindow->m_windowData.alphaInactive.valueOrDefault().applyAlpha(*PINACTIVEALPHA);
-    }
-
-    // dim
-    float goalDim = 1.F;
-    if (pWindow == m_lastWindow.lock() || pWindow->m_windowData.noDim.valueOrDefault() || !*PDIMENABLED)
-        goalDim = 0;
-    else
-        goalDim = *PDIMSTRENGTH;
-
-    if (IS_SHADOWED_BY_MODAL && *PDIMMODAL)
-        goalDim += (1.F - goalDim) / 2.F;
-
-    *pWindow->m_dimPercent = goalDim;
-
-    // shadow
-    if (!pWindow->isX11OverrideRedirect() && !pWindow->m_X11DoesntWantBorders) {
-        if (pWindow == m_lastWindow)
-            *pWindow->m_realShadowColor = CHyprColor(*PSHADOWCOL);
-        else
-            *pWindow->m_realShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != -1 ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
-    } else {
-        pWindow->m_realShadowColor->setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
-    }
-
-    pWindow->updateWindowDecos();
 }
 
 MONITORID CCompositor::getNextAvailableMonitorID(std::string const& name) {
@@ -2340,14 +2248,14 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
 }
 
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (PWINDOW->m_windowData.syncFullscreen.valueOrDefault())
+    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (PWINDOW->m_windowData.syncFullscreen.valueOrDefault())
+    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
@@ -2388,15 +2296,16 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     }
 
     // TODO: update the state on syncFullscreen changes
-    if (!CHANGEINTERNAL && PWINDOW->m_windowData.syncFullscreen.valueOrDefault())
+    if (!CHANGEINTERNAL && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         return;
 
     PWINDOW->m_fullscreenState.client = state.client;
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
 
     if (!CHANGEINTERNAL) {
-        PWINDOW->updateDynamicRules();
-        updateWindowAnimatedDecorationValues(PWINDOW);
+        PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+        PWINDOW->updateDecorationValues();
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
         return;
     }
@@ -2410,8 +2319,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
     EMIT_HOOK_EVENT("fullscreen", PWINDOW);
 
-    PWINDOW->updateDynamicRules();
-    updateWindowAnimatedDecorationValues(PWINDOW);
+    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+
+    PWINDOW->updateDecorationValues();
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
 
     // make all windows on the same workspace under the fullscreen window
@@ -2551,7 +2462,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
             }
             case MODE_TAG_REGEX: {
                 bool tagMatched = false;
-                for (auto const& t : w->m_tags.getTags()) {
+                for (auto const& t : w->m_ruleApplicator->m_tagKeeper.getTags()) {
                     if (RE2::FullMatch(t, regexCheck)) {
                         tagMatched = true;
                         break;
@@ -2765,22 +2676,19 @@ void CCompositor::performUserChecks() {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
         if (!CURRENT_DESKTOP_ENV || std::string{CURRENT_DESKTOP_ENV} != "Hyprland") {
             g_pHyprNotificationOverlay->addNotification(
-                std::format("Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {}.\nThis might cause issues unless it's intentional.",
-                            CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
-                CHyprColor{}, 15000, ICON_WARNING);
+                I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP, {{"value", CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"}}), CHyprColor{}, 15000,
+                ICON_WARNING);
         }
     }
 
     if (!*PNOCHECKGUIUTILS) {
         if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-            g_pHyprNotificationOverlay->addNotification(
-                "Your system does not have hyprland-guiutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
+            g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_GUIUTILS), CHyprColor{}, 15000, ICON_WARNING);
         }
     }
 
     if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
-        g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
-                                                                g_pHyprOpenGL->m_failedAssetsNo, g_pHyprOpenGL->m_failedAssetsNo > 1 ? "s" : ""),
+        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprOpenGL->m_failedAssetsNo)}}),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 }
@@ -2845,7 +2753,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     }
 
     pWindow->updateToplevel();
-    pWindow->updateDynamicRules();
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     pWindow->uncacheWindowDecos();
     pWindow->updateGroupOutputs();
 
@@ -2876,7 +2784,7 @@ PHLWINDOW CCompositor::getForceFocus() {
         if (!w->m_isMapped || w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible())
             continue;
 
-        if (!w->m_stayFocused)
+        if (!w->m_ruleApplicator->stayFocused().valueOrDefault())
             continue;
 
         return w;
@@ -2905,10 +2813,8 @@ void CCompositor::checkMonitorOverlaps() {
     for (const auto& m : m_monitors) {
         if (!monitorRegion.copy().intersect(m->logicalBox()).empty()) {
             Debug::log(ERR, "Monitor {}: detected overlap with layout", m->m_name);
-            g_pHyprNotificationOverlay->addNotification(std::format("Your monitor layout is set up incorrectly. Monitor {} overlaps with other monitor(s) in the "
-                                                                    "layout.\nPlease see the wiki (Monitors page) for more. This will cause issues.",
-                                                                    m->m_name),
-                                                        CHyprColor{}, 15000, ICON_WARNING);
+            g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT, {{"name", m->m_name}}), CHyprColor{}, 15000,
+                                                        ICON_WARNING);
 
             break;
         }
@@ -3029,6 +2935,8 @@ void CCompositor::arrangeMonitors() {
 
 #ifndef NO_XWAYLAND
     CBox box = g_pCompositor->calculateX11WorkArea();
+    if (!g_pXWayland || !g_pXWayland->m_wm)
+        return;
     g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
 #endif
 }

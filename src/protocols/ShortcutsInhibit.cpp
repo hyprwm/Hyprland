@@ -70,7 +70,7 @@ bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
     if (!g_pCompositor->m_lastFocus)
         return false;
 
-    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock()); PWINDOW && PWINDOW->m_windowData.noShortcutsInhibit.valueOrDefault())
+    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_lastFocus.lock()); PWINDOW && PWINDOW->m_ruleApplicator->noShortcutsInhibit().valueOrDefault())
         return false;
 
     for (auto const& in : m_inhibitors) {

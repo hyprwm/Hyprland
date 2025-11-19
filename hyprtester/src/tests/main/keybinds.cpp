@@ -34,6 +34,17 @@ static bool checkFlag() {
     return exists;
 }
 
+static bool attemptCheckFlag(int attempts, int intervalMs) {
+    for (int i = 0; i < attempts; i++) {
+        if (checkFlag())
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
+    }
+
+    return false;
+}
+
 static std::string readKittyOutput() {
     std::string output = Tests::execAndGet("kitten @ --to unix:/tmp/hyprtester-kitty.sock get-text --extent all");
     // chop off shell prompt
@@ -443,6 +454,34 @@ static void testSubmap() {
     Tests::killAllWindows();
 }
 
+static void testSubmapUniversal() {
+    NLog::log("{}Testing submap universal", Colors::GREEN);
+
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindu SUPER,Y,exec,touch " + flagFile), "ok");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+
+    // keybind works on default submap
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
+    EXPECT(attemptCheckFlag(30, 5), true);
+
+    // keybind works on submap1
+    getFromSocket("/dispatch plugin:test:keybind 1,7,30");
+    getFromSocket("/dispatch plugin:test:keybind 0,7,30");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,7,29"));
+    EXPECT(attemptCheckFlag(30, 5), true);
+
+    // reset to default submap
+    getFromSocket("/dispatch plugin:test:keybind 1,0,33");
+    getFromSocket("/dispatch plugin:test:keybind 0,0,33");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+}
+
 static bool test() {
     NLog::log("{}Testing keybinds", Colors::GREEN);
 
@@ -462,8 +501,8 @@ static bool test() {
     testShortcutLongPressKeyRelease();
     testShortcutRepeat();
     testShortcutRepeatKeyRelease();
-
     testSubmap();
+    testSubmapUniversal();
 
     clearFlag();
     return !ret;

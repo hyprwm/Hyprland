@@ -152,40 +152,22 @@ static bool test() {
 
     NLog::log("{}Testing window split ratios", Colors::YELLOW);
     {
-        const double INITIAL_RATIO = 1.25;
-        const int    GAPSIN        = 5;
-        const int    GAPSOUT       = 20;
-        const int    BORDERSIZE    = 2;
-        const int    BORDERS       = BORDERSIZE * 2;
-        const int    MONITOR_W     = 1920;
-        const int    MONITOR_H     = 1080;
-
-        const float  totalAvailableHeight   = MONITOR_H - (GAPSOUT * 2);
-        const int    HEIGHT                 = std::round(totalAvailableHeight) - BORDERS;
-        const float  availableWidthForSplit = MONITOR_W - (GAPSOUT * 2) - GAPSIN;
-
-        auto         calculateFinalWidth = [&](double boxWidth, bool isLeftWindow) {
-            double gapLeft  = isLeftWindow ? GAPSOUT : GAPSIN;
-            double gapRight = isLeftWindow ? GAPSIN : GAPSOUT;
-            return std::round(boxWidth - gapLeft - gapRight - BORDERS);
-        };
-
-        double       geomBoxWidthA_R1 = (availableWidthForSplit * INITIAL_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
-        double       geomBoxWidthB_R1 = MONITOR_W - geomBoxWidthA_R1;
-        const int    WIDTH1           = calculateFinalWidth(geomBoxWidthB_R1, false);
-
-        const double INVERTED_RATIO   = 0.75;
-        double       geomBoxWidthA_R2 = (availableWidthForSplit * INVERTED_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
-        double       geomBoxWidthB_R2 = MONITOR_W - geomBoxWidthA_R2;
-        const int    WIDTH2           = calculateFinalWidth(geomBoxWidthB_R2, false);
-        const int    WIDTH_A_FINAL    = calculateFinalWidth(geomBoxWidthA_R2, true);
+        const double RATIO   = 1.25;
+        const double PERCENT = RATIO / 2.0 * 100.0;
+        const int    GAPSIN  = 5;
+        const int    GAPSOUT = 20;
+        const int    BORDERS = 2 * 2;
+        const int    WTRIM   = BORDERS + GAPSIN + GAPSOUT;
+        const int    HEIGHT  = 1080 - (BORDERS + (GAPSOUT * 2));
+        const int    WIDTH1  = std::round(1920.0 / 2.0 * (2 - RATIO)) - WTRIM;
+        const int    WIDTH2  = std::round(1920.0 / 2.0 * RATIO) - WTRIM;
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1.25"));
 
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH1, HEIGHT);
+        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, 100 - PERCENT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
 
         OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -197,12 +179,12 @@ static bool test() {
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH2, HEIGHT);
+        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, PERCENT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH2, HEIGHT));
 
         OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
-        NLog::log("{}Expecting kitty_A size: {},{}", Colors::YELLOW, WIDTH_A_FINAL, HEIGHT);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH_A_FINAL, HEIGHT));
+        NLog::log("{}Expecting kitty_A to have the same width as the previous kitty_B", Colors::YELLOW);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1"));
     }
@@ -246,12 +228,15 @@ static bool test() {
 
     testSwapWindow();
 
+    getFromSocket("/dispatch workspace 1");
+
     NLog::log("{}Testing minsize/maxsize rules for tiled windows", Colors::YELLOW);
     {
         // Enable the config for testing, test max/minsize for tiled windows and centering
         OK(getFromSocket("/keyword misc:size_limits_tiled 1"));
-        OK(getFromSocket("/keyword windowrule maxsize 1500 500, class:kitty_maxsize"));
-        OK(getFromSocket("/keyword windowrule minsize 1200 500, class:kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:match:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1500 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
         if (!spawnKitty("kitty_maxsize"))
             return false;
 
@@ -297,28 +282,126 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, std::format("size: {},{}", SIZE, SIZE));
         EXPECT_NOT_CONTAINS(str, "pinned: 1");
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule plugin:someplugin:variable 10, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace 1, class:wr_kitty"));
-        OK(getFromSocket("/keyword windowrule workspace special:magic, class:magic_kitty"));
+    }
 
-        if (!spawnKitty("magic_kitty"))
-            return false;
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:magic");
+    OK(getFromSocket("/keyword windowrule[wr-kitty-stuff]:opacity 0.5 0.5 override"));
+
+    {
+        auto str = getFromSocket("/getprop active opacity");
+        EXPECT_CONTAINS(str, "0.5");
+    }
+
+    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:match:class magic_kitty"));
+    OK(getFromSocket("/keyword windowrule[special-magic-kitty]:workspace special:magic"));
+
+    if (!spawnKitty("magic_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "special:magic");
         EXPECT_NOT_CONTAINS(str, "workspace: 9");
     }
 
-    NLog::log("{}Testing faulty rules", Colors::YELLOW);
-    {
-        const auto PARAM  = "Invalid parameter";
-        const auto RULE   = "Invalid value";
-        const auto NORULE = "no rules provided";
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule notarule, class:wr_kitty"), RULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule class:wr_kitty"), NORULE)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, class:wr_kitty, size"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule float, classI:wr_kitty"), PARAM)
-        EXPECT_CONTAINS(getFromSocket("/keyword windowrule workspace:, class:wr_kitty"), NORULE)
+    if (auto str = getFromSocket("/monitors"); str.contains("magic)")) {
+        OK(getFromSocket("/dispatch togglespecialworkspace magic"));
     }
+
+    Tests::killAllWindows();
+
+    if (!spawnKitty("tag_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    // test rules that overlap effects but don't overlap props
+    OK(getFromSocket("/keyword windowrule match:class overlap_kitty, border_size 0"));
+    OK(getFromSocket("/keyword windowrule match:fullscreen false, border_size 10"));
+
+    if (!spawnKitty("overlap_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "10");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/keyword general:border_size 0"));
+    OK(getFromSocket("/keyword windowrule match:float true, border_size 10"));
+
+    if (!spawnKitty("border_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/dispatch togglefloating"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "10");
+    }
+
+    OK(getFromSocket("/dispatch togglefloating"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    // test expression rules
+    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, move 20+(monitor_w*0.1) monitor_h*0.5"));
+
+    if (!spawnKitty("expr_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "at: 212,540");
+        EXPECT_CONTAINS(str, "size: 960,540");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule match:class plugin_kitty, plugin_rule effect"));
+
+    if (!spawnKitty("plugin_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule[test-plugin-rule]:match:class plugin_kitty"));
+    OK(getFromSocket("/keyword windowrule[test-plugin-rule]:plugin_rule effect"));
+
+    if (!spawnKitty("plugin_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch plugin:test:check_rule"));
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

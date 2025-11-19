@@ -131,6 +131,56 @@ static void testSwapWindow() {
     EXPECT(Tests::windowCount(), 0);
 }
 
+static void testGroupRules() {
+    NLog::log("{}Testing group window rules", Colors::YELLOW);
+
+    OK(getFromSocket("/keyword general:border_size 8"));
+    OK(getFromSocket("/keyword workspace w[tv1], bordersize:0"));
+    OK(getFromSocket("/keyword workspace f[1], bordersize:0"));
+    OK(getFromSocket("/keyword windowrule match:workspace w[tv1], border_size 0"));
+    OK(getFromSocket("/keyword windowrule match:workspace f[1], border_size 0"));
+
+    if (!Tests::spawnKitty("kitty_A")) {
+        ret = 1;
+        return;
+    }
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    if (!Tests::spawnKitty("kitty_B")) {
+        ret = 1;
+        return;
+    }
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "8");
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+    OK(getFromSocket("/dispatch moveintogroup l"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/dispatch changegroupactive f"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -402,6 +452,11 @@ static bool test() {
         return false;
 
     OK(getFromSocket("/dispatch plugin:test:check_rule"));
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
+    testGroupRules();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

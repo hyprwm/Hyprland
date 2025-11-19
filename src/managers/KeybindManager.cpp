@@ -1769,11 +1769,10 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
         return {};
     }
 
-    if (args != "b" && args != "prev") {
+    if (args != "b" && args != "prev")
         PWINDOW->setGroupCurrent(PWINDOW->m_groupData.pNextWindow.lock());
-    } else {
+    else
         PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
-    }
 
     return {};
 }

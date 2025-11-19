@@ -60,20 +60,6 @@ static bool startClient(SClient& client) {
     close(procInPipeFd[0]);
     close(procOutPipeFd[1]);
 
-    client.fds = {.fd = client.readFd.get(), .events = POLLIN};
-    if (poll(&client.fds, 1, 1000) != 1 || !(client.fds.revents & POLLIN))
-        return false;
-
-    client.readBuf.fill(0);
-    if (read(client.readFd.get(), client.readBuf.data(), client.readBuf.size() - 1) == -1)
-        return false;
-
-    std::string startStr = std::string{client.readBuf.data()};
-    if (startStr.find("started") == std::string::npos) {
-        NLog::log("{}Failed to start child-window client, read {}", Colors::RED, startStr);
-        return false;
-    }
-
     waitForWindow(client.proc, Tests::windowCount());
 
     NLog::log("{}Started child-window client", Colors::YELLOW);
@@ -92,16 +78,6 @@ static bool createChild(SClient& client) {
     std::string cmd = "toplevel\n";
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
-
-    if (poll(&client.fds, 1, 1500) != 1 || !(client.fds.revents & POLLIN))
-        return false;
-    ssize_t bytesRead = read(client.fds.fd, client.readBuf.data(), 1023);
-    if (bytesRead == -1)
-        return false;
-
-    client.readBuf[bytesRead] = 0;
-    std::string recieved      = std::string{client.readBuf.data()};
-    recieved.pop_back();
 
     waitForWindow(client.proc, Tests::windowCount());
     if (getFromSocket("/dispatch focuswindow class:child-test-child") != "ok") {

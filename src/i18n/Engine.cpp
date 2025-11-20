@@ -496,7 +496,7 @@ I18n::CI18nEngine::CI18nEngine() {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo % 10 <= 1 && assetsNo % 100 != 11)
             return "Hyprland nije uspio učitati {count} neophodnu komponentu, krivi pakera svojeg distroja za loš posao pakiranja!";
-        else if (assetNo % 10 <= 4 && assetsNo % 100 > 14)
+        else if (assetsNo % 10 <= 4 && assetsNo % 100 > 14)
             return "Hyprland nije uspio učitati {count} neophodne komponente, krivi pakera svojeg distroja za loš posao pakiranja!";
         return "Hyprland nije uspio učitati {count} neophodnih komponenata, krivi pakera svojeg distroja za loš posao pakiranja!";
     });

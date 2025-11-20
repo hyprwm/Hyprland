@@ -373,6 +373,7 @@ endif()
 
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)
+set(PROTOCOL_SOURCES "")
 
 function(protocolnew protoPath protoName external)
   if(external)
@@ -390,6 +391,11 @@ function(protocolnew protoPath protoName external)
                                   protocols/${protoName}.hpp)
   target_sources(generate-protocol-headers
                  PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp)
+
+  list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.cpp")
+  set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
+  list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp")
+  set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
 function(protocolWayland)
   add_custom_command(
@@ -402,6 +408,11 @@ function(protocolWayland)
   target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers
                  PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
+
+  list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/wayland.hpp")
+  set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
+  list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/wayland.cpp")
+  set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
 
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
@@ -567,6 +578,62 @@ if(BUILD_TESTING)
     COMMAND hyprtester)
 
   add_dependencies(tests hyprtester)
+
+  # GTest
+  find_package(GTest CONFIG REQUIRED)
+  include(GoogleTest)
+  add_executable(hyprland_gtests ${SRCFILES})
+  target_compile_definitions(hyprland_gtests PRIVATE HL_UNIT_TESTS=1)
+  target_compile_options(hyprland_gtests PRIVATE --coverage)
+  target_link_options(hyprland_gtests PRIVATE --coverage)
+  target_include_directories(
+    hyprland_gtests
+    PUBLIC "./include"
+    PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
+
+  if(udis_dep_FOUND)
+    target_link_libraries(hyprland_gtests PkgConfig::udis_dep)
+  else()
+    target_link_libraries(hyprland_gtests libudis86)
+  endif()
+
+  if(HAVE_LIBEXECINFO)
+    target_link_libraries(hyprland_gtests execinfo)
+  endif()
+
+  if(NOT HAS_TIMERFD AND epoll_FOUND)
+    target_link_libraries(hyprland_gtests PkgConfig::epoll)
+  endif()
+
+  if(NOT HAS_INOTIFY AND inotify_FOUND)
+    target_link_libraries(hyprland_gtests PkgConfig::inotify)
+  endif()
+
+  if(NOT NO_XWAYLAND)
+    message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
+    target_link_libraries(hyprland_gtests PkgConfig::xdeps)
+  endif()
+
+  if(NOT HAS_TIMERFD AND epoll_FOUND)
+    target_link_libraries(hyprland_gtests PUBLIC PkgConfig::epoll)
+  endif()
+  if(NOT HAS_INOTIFY AND inotify_FOUND)
+    target_link_libraries(hyprland_gtests PUBLIC PkgConfig::inotify)
+  endif()
+
+  target_sources(hyprland_gtests PRIVATE ${PROTOCOL_SOURCES})
+
+  target_link_libraries(
+    hyprland_gtests GTest::gtest_main rt
+      PkgConfig::aquamarine_dep
+      PkgConfig::hyprlang_dep
+      PkgConfig::hyprutils_dep
+      PkgConfig::hyprcursor_dep
+      PkgConfig::hyprgraphics_dep
+      PkgConfig::deps
+      OpenGL::EGL OpenGL::GL Threads::Threads)
+
+  gtest_discover_tests(hyprland_gtests)
 else()
   message(STATUS "Testing is disabled")
 endif()

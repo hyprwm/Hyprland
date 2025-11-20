@@ -23,6 +23,8 @@ using namespace Hyprutils::Memory;
 #include <span>
 #include <filesystem>
 
+#ifndef HL_UNIT_TESTS
+
 static void help() {
     std::println("usage: Hyprland [arg [...]].\n");
     std::println(R"(Arguments:
@@ -210,3 +212,5 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+
+#endif

@@ -2221,11 +2221,22 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
+            std::optional<Desktop::CReservedArea> area;
             try {
                 // top, right, bottom, left
-                parser.setReserved({std::stoi(ARGS[2]), std::stoi(ARGS[5]), std::stoi(ARGS[3]), std::stoi(ARGS[4])});
+                area = {std::stoi(ARGS[2]), std::stoi(ARGS[5]), std::stoi(ARGS[3]), std::stoi(ARGS[4])};
             } catch (...) { return "parse error: invalid reserved area"; }
-            return {};
+
+            if (!area.has_value())
+                return "parse error: bad addreserved";
+
+            auto rule = std::ranges::find_if(m_monitorRules, [n = ARGS[0]](const auto& other) { return other.name == n; });
+            if (rule != m_monitorRules.end()) {
+                rule->reservedArea = area.value();
+                return {};
+            }
+
+            // fall
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
             return "parse error: curitem bogus";

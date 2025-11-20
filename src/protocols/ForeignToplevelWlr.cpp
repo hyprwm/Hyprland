@@ -1,9 +1,10 @@
 #include "ForeignToplevelWlr.hpp"
+#include "core/Output.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
-#include "managers/input/InputManager.hpp"
-#include "protocols/core/Output.hpp"
-#include "render/Renderer.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../desktop/state/FocusState.hpp"
+#include "../render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/EventManager.hpp"
 
@@ -50,7 +51,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
 
                 if (PWINDOW->m_workspace != monitor->m_activeWorkspace) {
                     g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->m_activeWorkspace);
-                    g_pCompositor->setActiveMonitor(monitor);
+                    Desktop::focusState()->rawMonitorFocus(monitor);
                 }
             }
         }
@@ -178,7 +179,7 @@ void CForeignToplevelHandleWlr::sendState() {
     wl_array state;
     wl_array_init(&state);
 
-    if (PWINDOW == g_pCompositor->m_lastWindow) {
+    if (PWINDOW == Desktop::focusState()->window()) {
         auto p = sc<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
@@ -216,7 +217,7 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
         onMap(w);
     }
 
-    m_lastFocus = g_pCompositor->m_lastWindow;
+    m_lastFocus = Desktop::focusState()->window();
 }
 
 void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {

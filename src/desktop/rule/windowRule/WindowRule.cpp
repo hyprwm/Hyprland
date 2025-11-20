@@ -3,6 +3,7 @@
 #include "../../../helpers/Monitor.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"
+#include "../../../desktop/state/FocusState.hpp"
 
 using namespace Desktop;
 using namespace Desktop::Rule;
@@ -72,7 +73,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FOCUS:
-                if (!engine->match(g_pCompositor->m_lastWindow == w))
+                if (!engine->match(Desktop::focusState()->window() == w))
                     return false;
                 break;
             case RULE_PROP_GROUP:

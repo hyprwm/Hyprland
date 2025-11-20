@@ -14,6 +14,7 @@
 #include "../config/ConfigManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ColorManagement.hpp"
@@ -424,7 +425,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
         auto PMONITOR = g_pCompositor->getMonitorFromName(!E.device->m_boundOutput.empty() ? E.device->m_boundOutput : "");
 
-        PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+        PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
         const auto TOUCH_COORDS = PMONITOR->m_position + (E.pos * PMONITOR->m_size);
 

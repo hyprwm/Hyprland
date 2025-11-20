@@ -230,6 +230,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     // recalc
     recalculateMonitor(pWindow->monitorID());
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprMasterLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
@@ -280,6 +281,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         }
     }
     recalculateMonitor(pWindow->monitorID());
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprMasterLayout::recalculateMonitor(const MONITORID& monid) {

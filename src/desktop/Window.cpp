@@ -901,6 +901,8 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
 
     g_pHyprRenderer->damageWindow(pWindow);
 
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     pWindow->updateWindowDecos();
 }
 
@@ -922,6 +924,10 @@ void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
     SHEAD->m_groupData.head          = false;
     BEGINAT->m_groupData.pNextWindow = SHEAD;
     STAIL->m_groupData.pNextWindow   = ENDAT;
+
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    pWindow->updateWindowDecos();
 }
 
 PHLWINDOW CWindow::getGroupPrevious() {
@@ -954,6 +960,10 @@ void CWindow::switchWithWindowInGroup(PHLWINDOW pWindow) {
 
     std::swap(m_groupData.head, pWindow->m_groupData.head);
     std::swap(m_groupData.locked, pWindow->m_groupData.locked);
+
+    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    pWindow->updateWindowDecos();
 }
 
 void CWindow::updateGroupOutputs() {

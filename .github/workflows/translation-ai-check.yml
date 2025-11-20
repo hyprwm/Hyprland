@@ -22,16 +22,16 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v5
 
-      - uses: dorny/paths-filter@v3
+      - uses: yumemi-inc/path-filter@v2
         id: changes
         with:
-          filters: |
-            i18n:
-              - 'src/i18n/**'
+          patterns: |
+            src/i18n/**
+
   review:
     name: Review Translation
     needs: changes
-    if: ${{ needs.changes.outputs.i18n == 'true' }}
+    if: ${{ needs.changes.outputs.exists == 'true' }}
     runs-on: ubuntu-latest
     env:
       OPENAI_MODEL: gpt-5-mini

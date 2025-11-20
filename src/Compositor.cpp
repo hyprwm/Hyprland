@@ -60,6 +60,7 @@
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
+#include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
 #include "hyprerror/HyprError.hpp"
@@ -603,6 +604,7 @@ void CCompositor::cleanup() {
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
+    g_pWelcomeManager.reset();
     g_pANRManager.reset();
     g_pConfigWatcher.reset();
     g_pAsyncResourceGatherer.reset();
@@ -707,6 +709,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the DonationNag!");
             g_pDonationNagManager = makeUnique<CDonationNagManager>();
+
+            Debug::log(LOG, "Creating the WelcomeManager!");
+            g_pWelcomeManager = makeUnique<CWelcomeManager>();
 
             Debug::log(LOG, "Creating the ANRManager!");
             g_pANRManager = makeUnique<CANRManager>();

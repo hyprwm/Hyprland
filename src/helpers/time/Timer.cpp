@@ -6,15 +6,15 @@ void CTimer::reset() {
     m_lastReset = Time::steadyNow();
 }
 
-Time::steady_dur CTimer::getDuration() {
+Time::steady_dur CTimer::getDuration() const {
     return Time::steadyNow() - m_lastReset;
 }
 
-float CTimer::getMillis() {
+float CTimer::getMillis() const {
     return chr::duration_cast<chr::microseconds>(getDuration()).count() / 1000.F;
 }
 
-float CTimer::getSeconds() {
+float CTimer::getSeconds() const {
     return chr::duration_cast<chr::milliseconds>(getDuration()).count() / 1000.F;
 }
 

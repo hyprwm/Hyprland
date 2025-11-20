@@ -41,8 +41,8 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     if (!pWindow->m_realPosition->enabled() && !force)
         return;
 
-    if (pWindow->m_windowData.animationStyle.hasValue()) {
-        const auto STYLE = pWindow->m_windowData.animationStyle.value();
+    if (pWindow->m_ruleApplicator->animationStyle().hasValue()) {
+        const auto STYLE = pWindow->m_ruleApplicator->animationStyle().value();
         // the window has config'd special anim
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
@@ -106,7 +106,7 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
-    const auto ANIMSTYLE = ls->m_animationStyle.value_or(ls->m_realPosition->getStyle());
+    const auto ANIMSTYLE = ls->m_ruleApplicator->animationStyle().valueOr(ls->m_realPosition->getStyle());
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
         const auto MIDDLE = ls->m_geometry.middle();
@@ -459,6 +459,8 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
+    const auto FSWINDOW = ws->getFullscreenWindow();
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == ws) {
 
@@ -467,8 +469,11 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
             if (!FULLSCREEN)
                 *w->m_alpha = 1.F;
-            else if (!w->isFullscreen())
-                *w->m_alpha = !w->m_createdOverFullscreen ? 0.f : 1.f;
+            else if (!w->isFullscreen()) {
+                const bool CREATED_OVER_FS   = w->m_createdOverFullscreen;
+                const bool IS_IN_GROUP_OF_FS = FSWINDOW && FSWINDOW->hasInGroup(w);
+                *w->m_alpha                  = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
+            }
         }
     }
 

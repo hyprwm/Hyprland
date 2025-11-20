@@ -24,7 +24,7 @@ in {
     inputs.hyprcursor.overlays.default
     inputs.hyprgraphics.overlays.default
     inputs.hyprland-protocols.overlays.default
-    inputs.hyprland-qtutils.overlays.default
+    inputs.hyprland-guiutils.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
@@ -43,9 +43,12 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      hyprtester = final.callPackage ./hyprtester.nix {
-        inherit version;
-      };
+      hyprland-with-hyprtester =
+        builtins.trace ''
+          hyprland-with-hyprtester was removed. Please use the hyprland package.
+          Hyprtester is always built now.
+        ''
+        final.hyprland;
 
       # deprecated packages
       hyprland-legacy-renderer =

@@ -125,10 +125,10 @@ class CCompositor {
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
+    CBox                   calculateX11WorkArea();
     PHLMONITOR             getMonitorInDirection(const char&);
     PHLMONITOR             getMonitorInDirection(PHLMONITOR, const char&);
     void                   updateAllWindowsAnimatedDecorationValues();
-    void                   updateWindowAnimatedDecorationValues(PHLWINDOW);
     MONITORID              getNextAvailableMonitorID(std::string const& name);
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
@@ -156,7 +156,9 @@ class CCompositor {
     void                                performUserChecks();
     void                                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW                           getForceFocus();
+    void                                scheduleMonitorStateRecheck();
     void                                arrangeMonitors();
+    void                                checkMonitorOverlaps();
     void                                enterUnsafeState();
     void                                leaveUnsafeState();
     void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);

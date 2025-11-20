@@ -193,11 +193,7 @@ class CInputManager {
     uint32_t                     getModsFromAllKBs();
 
     // for virtual keyboards: whether we should respect them as normal ones
-    bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
-
-    // for special cursors that we choose
-    void        setCursorImageUntilUnset(std::string);
-    void        unsetCursorImage();
+    bool        shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
 
     std::string getNameForNewDevice(std::string);
 
@@ -226,6 +222,7 @@ class CInputManager {
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
         CHyprSignalListener setCursor;
+        CHyprSignalListener overrideChanged;
     } m_listeners;
 
     bool                 m_cursorImageOverridden = false;
@@ -282,16 +279,12 @@ class CInputManager {
     void                            setBorderCursorIcon(eBorderIconDirection);
     void                            setCursorIconOnBorder(PHLWINDOW w);
 
-    // temporary. Obeys setUntilUnset.
-    void setCursorImageOverride(const std::string& name);
-
     // cursor surface
     struct {
         bool           hidden = false; // null surface = hidden
         SP<CWLSurface> wlSurface;
         Vector2D       vHotspot;
         std::string    name; // if not empty, means set by name.
-        bool           inUse = false;
     } m_cursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored

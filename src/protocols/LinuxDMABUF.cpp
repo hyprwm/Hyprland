@@ -103,6 +103,9 @@ CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDM
         m_listeners.bufferResourceDestroy.reset();
         PROTO::linuxDma->destroyResource(this);
     });
+
+    if (!m_buffer->m_success)
+        LOGM(ERR, "Possibly compositor bug: buffer failed to create");
 }
 
 CLinuxDMABuffer::~CLinuxDMABuffer() {
@@ -214,7 +217,7 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
 
     auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs));
 
-    if UNLIKELY (!buf->good()) {
+    if UNLIKELY (!buf->good() || !buf->m_buffer->m_success) {
         m_resource->sendFailed();
         PROTO::linuxDma->m_buffers.pop_back();
         return;
@@ -507,13 +510,17 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
         if (feedback->m_lastFeedbackWasScanout) {
             PHLMONITOR mon;
             auto       HLSurface = CWLSurface::fromResource(feedback->m_surface);
+            if (!HLSurface) {
+                feedback->sendDefaultFeedback();
+                continue;
+            }
             if (auto w = HLSurface->getWindow(); w)
                 if (auto m = w->m_monitor.lock(); m)
                     mon = m->m_self.lock();
 
             if (!mon) {
                 feedback->sendDefaultFeedback();
-                return;
+                continue;
             }
 
             updateScanoutTranche(feedback->m_surface, mon);

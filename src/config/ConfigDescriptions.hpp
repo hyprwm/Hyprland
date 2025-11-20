@@ -16,12 +16,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
-        .value       = "general:no_border_on_floating",
-        .description = "disable borders for floating windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "general:gaps_in",
         .description = "gaps between windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,
@@ -141,6 +135,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if true, snapping will respect gaps between windows",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "general:modal_parent_blocking",
+        .description = "If true, parent windows of modals will not be interactive.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
     /*
@@ -1109,6 +1109,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
     },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:blur",
+        .description = "enable background blur for groupbars",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * misc:
@@ -1304,8 +1310,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_hyprland_qtutils_check",
-        .description = "disable the warning if hyprland-qtutils is missing",
+        .value       = "misc:disable_hyprland_guiutils_check",
+        .description = "disable the warning if hyprland-guiutils is missing",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1538,9 +1544,16 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "render:non_shader_cm",
-        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - don't block DS when non-shader CM isn't available",
+        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - disable and ignore CM issues",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_sdr_eotf",
+        .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
     },
 
     /*
@@ -1624,6 +1637,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "cursor:zoom_rigid",
         .description = "whether the zoom should follow the cursor rigidly (cursor is always centered if it can be) or loosely",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:zoom_disable_aa",
+        .description = "If enabled, when zooming, no antialiasing will be used (zoom will be pixelated)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

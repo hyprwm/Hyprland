@@ -51,8 +51,8 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
 
         m_animatingOut = false;
 
-        const auto& [workspaceID, workspaceName] = getWorkspaceIDNameFromString("special:" + m_specialWorkspaceName);
-        const auto WS                            = g_pCompositor->createNewWorkspace(workspaceID, m_monitor->m_id, workspaceName);
+        const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + m_specialWorkspaceName);
+        const auto WS                                      = g_pCompositor->createNewWorkspace(workspaceID, m_monitor->m_id, workspaceName);
         m_monitor->setSpecialWorkspace(WS);
         m_specialWorkspace = WS;
     }

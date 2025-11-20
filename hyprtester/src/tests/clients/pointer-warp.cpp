@@ -64,7 +64,7 @@ static bool startClient(SClient& client) {
     // wait for window to appear
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    if (getFromSocket(std::format("/dispatch setprop pid:{} noanim 1", client.proc->pid())) != "ok") {
+    if (getFromSocket(std::format("/dispatch setprop pid:{} no_anim 1", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to disable animations for client window", Colors::RED, ret);
         return false;
     }

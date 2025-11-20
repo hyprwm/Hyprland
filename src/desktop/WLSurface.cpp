@@ -117,14 +117,17 @@ CRegion CWLSurface::computeDamage() const {
 
     // go from buffer coords in the damage to hl logical
 
-    const auto     BOX   = getSurfaceBoxGlobal();
-    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_resource->m_current.bufferSize :
-                                             Vector2D{1.0 / m_resource->m_current.scale, 1.0 / m_resource->m_current.scale /* Wrong... but we can't really do better */};
+    const auto     BOX      = getSurfaceBoxGlobal();
+    const auto     SURFSIZE = m_resource->m_current.size;
+    const Vector2D SCALE    = SURFSIZE / m_resource->m_current.bufferSize;
 
     damage.scale(SCALE);
-
-    if (m_windowOwner)
-        damage.scale(m_windowOwner->m_X11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
+    if (BOX.has_value()) {
+        if (m_windowOwner)
+            damage.intersect(CBox{{}, BOX->size() * m_windowOwner->m_X11SurfaceScaledBy});
+        else
+            damage.intersect(CBox{{}, BOX->size()});
+    }
 
     return damage;
 }

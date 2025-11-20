@@ -9,17 +9,36 @@ jobs:
   source-tarball:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Hyprland
-        id: checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
+          fetch-depth: 0
           submodules: recursive
 
-      - name: Generate version
-        id: genversion
+      - name: Populate git info in version.h.in
         run: |
-          git fetch --unshallow || echo "failed unshallowing"
-          bash -c scripts/generateVersion.sh
+          git fetch --tags --unshallow || true
+
+          COMMIT_HASH=$(git rev-parse HEAD)
+          BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          COMMIT_MSG=$(git show -s --format=%s | sed 's/[&/]/\\&/g')
+          COMMIT_DATE=$(git show -s --format=%cd --date=local)
+          GIT_DIRTY=$(git diff-index --quiet HEAD -- && echo "clean" || echo "dirty")
+          GIT_TAG=$(git describe --tags --always || echo "unknown")
+          GIT_COMMITS=$(git rev-list --count HEAD)
+
+          echo "Branch: $BRANCH"
+          echo "Tag: $GIT_TAG"
+
+          sed -i \
+            -e "s|@GIT_COMMIT_HASH@|$COMMIT_HASH|" \
+            -e "s|@GIT_BRANCH@|$BRANCH|" \
+            -e "s|@GIT_COMMIT_MESSAGE@|$COMMIT_MSG|" \
+            -e "s|@GIT_COMMIT_DATE@|$COMMIT_DATE|" \
+            -e "s|@GIT_DIRTY@|$GIT_DIRTY|" \
+            -e "s|@GIT_TAG@|$GIT_TAG|" \
+            -e "s|@GIT_COMMITS@|$GIT_COMMITS|" \
+            src/version.h.in
 
       - name: Create tarball with submodules
         id: tar

@@ -31,6 +31,9 @@
 
 #define MIN_WINDOW_SIZE 20.0
 
+// max value 32 because killed is a int uniform
+#define POINTER_PRESSED_HISTORY_LENGTH 32
+
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \
     inline wl_listener listen_##name = {.notify = listener_##name}

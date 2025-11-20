@@ -133,7 +133,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
                 return;
 
             g_pLayoutManager->getCurrentLayout()->recalculateWindow(window.lock());
-            g_pCompositor->updateWindowAnimatedDecorationValues(window.lock());
+            window->updateDecorationValues();
             window->sendWindowSize(true);
             *window->m_alpha = 1.F;
         },

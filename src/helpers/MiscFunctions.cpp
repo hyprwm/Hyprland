@@ -23,6 +23,8 @@
 #endif
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
+#include "../version.h"
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 
@@ -111,6 +113,10 @@ bool isDirection(const std::string& arg) {
 
 bool isDirection(const char& arg) {
     return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
+static bool isAutoIDdWorkspace(WORKSPACEID id) {
+    return id < WORKSPACE_INVALID;
 }
 
 SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
@@ -453,6 +459,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = std::to_string(result.id);
         }
     }
+
+    result.isAutoIDd = isAutoIDdWorkspace(result.id);
 
     return result;
 }
@@ -966,4 +974,14 @@ std::string getBuiltSystemLibraryNames() {
     result += std::format("Hyprlang: built against {}, system has {}\n", HYPRLANG_VERSION, getSystemLibraryVersion("hyprlang"));
     result += std::format("Aquamarine: built against {}, system has {}\n", AQUAMARINE_VERSION, getSystemLibraryVersion("aquamarine"));
     return result;
+}
+
+bool truthy(const std::string& str) {
+    if (str == "1")
+        return true;
+
+    std::string cpy = str;
+    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+
+    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
 }

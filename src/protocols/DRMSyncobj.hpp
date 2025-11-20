@@ -25,7 +25,8 @@ class CDRMSyncPointState {
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
 
-                                                     operator bool() const {
+    //
+    operator bool() const {
         return m_timeline;
     }
 
@@ -50,7 +51,7 @@ class CDRMSyncobjSurfaceResource {
     CDRMSyncPointState              m_pendingRelease;
 
     struct {
-        CHyprSignalListener surfacePrecommit;
+        CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 };
 

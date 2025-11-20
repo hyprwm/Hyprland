@@ -118,7 +118,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
         return true;
 
     if (isNumber(selector)) {
-        const auto& [wsid, wsname] = getWorkspaceIDNameFromString(selector);
+        const auto& [wsid, wsname, isAutoID] = getWorkspaceIDNameFromString(selector);
 
         if (wsid == WORKSPACE_INVALID)
             return false;
@@ -542,7 +542,7 @@ void CWorkspace::updateWindows() {
         if (!w->m_isMapped || w->m_workspace != m_self)
             continue;
 
-        w->updateDynamicRules();
+        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 

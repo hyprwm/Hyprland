@@ -8,6 +8,7 @@
 #include "WLClasses.hpp"
 #include <array>
 #include "AnimatedVariable.hpp"
+#include "CMType.hpp"
 
 #include <xf86drmMode.h>
 #include "time/Timer.hpp"
@@ -35,18 +36,6 @@ enum eAutoDirs : uint8_t {
     DIR_AUTO_CENTER_RIGHT
 };
 
-enum eCMType : uint8_t {
-    CM_AUTO = 0, // subject to change. srgb for 8bpc, wide for 10bpc if supported
-    CM_SRGB,     // default, sRGB primaries
-    CM_WIDE,     // wide color gamut, BT2020 primaries
-    CM_EDID,     // primaries from edid (known to be inaccurate)
-    CM_HDR,      // wide color gamut and HDR PQ transfer function
-    CM_HDR_EDID, // same as CM_HDR with edid primaries
-    CM_DCIP3,    // movie theatre with greenish white point
-    CM_DP3,      // applle P3 variant with blueish white point
-    CM_ADOBE,    // adobe colorspace
-};
-
 struct SMonitorRule {
     eAutoDirs           autoDir       = DIR_AUTO_NONE;
     std::string         name          = "";
@@ -58,7 +47,8 @@ struct SMonitorRule {
     wl_output_transform transform     = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string         mirrorOf      = "";
     bool                enable10bit   = false;
-    eCMType             cmType        = CM_SRGB;
+    NCMType::eCMType    cmType        = NCMType::CM_SRGB;
+    int                 sdrEotf       = 0;
     float               sdrSaturation = 1.0f; // SDR -> HDR
     float               sdrBrightness = 1.0f; // SDR -> HDR
 
@@ -79,6 +69,7 @@ struct SMonitorRule {
 class CMonitor;
 class CSyncTimeline;
 class CEGLSync;
+class CEventLoopTimer;
 
 class CMonitorState {
   public:
@@ -141,13 +132,16 @@ class CMonitor {
     bool                        m_dpmsStatus       = true;
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
-    eCMType                     m_cmType           = CM_SRGB;
+    NCMType::eCMType            m_cmType           = NCMType::CM_SRGB;
+    int                         m_sdrEotf          = 0;
     float                       m_sdrSaturation    = 1.0f;
     float                       m_sdrBrightness    = 1.0f;
     float                       m_sdrMinLuminance  = 0.2f;
     int                         m_sdrMaxLuminance  = 80;
     bool                        m_createdByUser    = false;
     bool                        m_isUnsafeFallback = false;
+
+    SP<CEventLoopTimer>         m_dpmsRetryTimer;
 
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;
@@ -214,6 +208,7 @@ class CMonitor {
         CSignalT<> disconnect;
         CSignalT<> dpmsChanged;
         CSignalT<> modeChanged;
+        CSignalT<> presented;
     } m_events;
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
@@ -283,7 +278,7 @@ class CMonitor {
     // methods
     void        onConnect(bool noRule);
     void        onDisconnect(bool destroy = false);
-    void        applyCMType(eCMType cmType);
+    void        applyCMType(NCMType::eCMType cmType, int cmSdrEotf);
     bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
     void        addDamage(const pixman_region32_t* rg);
     void        addDamage(const CRegion& rg);
@@ -303,6 +298,7 @@ class CMonitor {
     WORKSPACEID activeWorkspaceID();
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
+    CBox        logicalBoxMinusExtents();
     void        scheduleDone();
     uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();

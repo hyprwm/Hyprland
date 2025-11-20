@@ -43,7 +43,7 @@ bool CPresentationFeedback::good() {
 void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = m_resource->client();
 
-    if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name)) {
+    if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name) && data->m_wasPresented) {
         if LIKELY (auto outputResource = PROTO::outputs.at(data->m_monitor->m_name)->outputResourceFrom(client); outputResource)
             m_resource->sendSyncOutput(outputResource->getResource()->resource());
     }

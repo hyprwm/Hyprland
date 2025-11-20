@@ -18,6 +18,8 @@ jobs:
     name: Check i18n changes
     if: ${{ github.event_name == 'pull_request_target' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.user.login == 'vaxerski' && github.event.comment.body == 'ai, please recheck' ) }}
     runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.changes.outputs.exists }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v5
@@ -31,7 +33,7 @@ jobs:
   review:
     name: Review Translation
     needs: changes
-    if: ${{ needs.changes.outputs.exists == 'true' }}
+    if: needs.changes.outputs.exists == 'true'
     runs-on: ubuntu-latest
     env:
       OPENAI_MODEL: gpt-5-mini

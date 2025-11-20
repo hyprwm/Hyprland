@@ -177,6 +177,18 @@ static void testGroupRules() {
         EXPECT_CONTAINS(str, "0");
     }
 
+    if (!Tests::spawnKitty("kitty_C")) {
+        ret = 1;
+        return;
+    }
+
+    OK(getFromSocket("/dispatch moveoutofgroup r"));
+
+    {
+        auto str = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(str, "8");
+    }
+
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 }

@@ -480,6 +480,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
     recalculateMonitor(pWindow->monitorID());
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
@@ -528,6 +529,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     m_dwindleNodesData.remove(*PPARENT);
     m_dwindleNodesData.remove(*PNODE);
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {

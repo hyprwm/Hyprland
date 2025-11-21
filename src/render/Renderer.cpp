@@ -138,6 +138,13 @@ CHyprRenderer::CHyprRenderer() {
         });
     });
 
+    static auto P4 = g_pHookSystem->hookDynamic("windowUpdateRules", [&](void* self, SCallbackInfo& info, std::any param) {
+        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
+
+        if (PWINDOW->m_ruleApplicator->renderUnfocused().valueOrDefault())
+            addWindowToRenderUnfocused(PWINDOW);
+    });
+
     m_cursorTicker = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, cursorTicker, nullptr);
     wl_event_source_timer_update(m_cursorTicker, 500);
 

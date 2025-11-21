@@ -12,6 +12,7 @@
   epoll-shim,
   git,
   glaze,
+  gtest,
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
@@ -139,6 +140,7 @@ in
           cairo
           git
           glaze
+          gtest
           hyprcursor
           hyprgraphics
           hyprland-protocols

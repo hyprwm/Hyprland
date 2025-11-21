@@ -40,6 +40,7 @@
   xorg,
   xwayland,
   debug ? false,
+  doCheck ? false,
   enableXWayland ? true,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
@@ -75,7 +76,7 @@ in
   assert assertMsg (!withHyprtester) "The option `withHyprtester` has been removed. Hyprtester is always built now.";
     customStdenv.mkDerivation (finalAttrs: {
       pname = "hyprland${optionalString debug "-debug"}";
-      inherit version;
+      inherit version doCheck;
 
       src = fs.toSource {
         root = ../.;
@@ -98,6 +99,7 @@ in
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
+            (optional doCheck ../tests)
           ]));
       };
 

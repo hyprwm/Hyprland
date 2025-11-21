@@ -152,6 +152,7 @@
         # hyprland-packages
         hyprland
         hyprland-unwrapped
+        hyprland-with-tests
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

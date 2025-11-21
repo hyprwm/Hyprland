@@ -18,7 +18,8 @@ echo 'std::ranges::sort(shaders, {}, [](auto pair) { return pair.first; });' >> 
 echo 'return shaders;' >> ./src/render/shaders/Shaders.hpp
 echo '}(std::to_array<std::pair<std::string_view, std::string_view>>({' >> ./src/render/shaders/Shaders.hpp
 
-for filename in `ls ${SHADERS_SRC}`; do
+find "$SHADERS_SRC" -maxdepth 1 -type f | sort -fdi | while read -r filepath; do
+	filename=${filepath#"${SHADERS_SRC}"/}
 	echo "--	${filename}"
 	
 	{ echo -n 'R"#('; cat ${SHADERS_SRC}/${filename}; echo ')#"'; } > ./src/render/shaders/${filename}.inc

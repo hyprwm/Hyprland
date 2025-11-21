@@ -576,13 +576,6 @@ if(BUILD_TESTING)
   enable_testing()
   add_custom_target(tests)
 
-  add_test(
-    NAME "Main Test"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/hyprtester
-    COMMAND hyprtester)
-
-  add_dependencies(tests hyprtester)
-
   # GTest
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
@@ -595,10 +588,21 @@ if(BUILD_TESTING)
     PUBLIC "./include"
     PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
 
-  target_link_libraries(
-    hyprland_gtests hyprland_lib GTest::gtest_main)
+  target_link_libraries(hyprland_gtests hyprland_lib GTest::gtest_main)
 
   gtest_discover_tests(hyprland_gtests)
+
+  add_dependencies(tests hyprland_gtests)
+
+  # Enable coverage in main hyprland lib
+  target_compile_options(hyprland_lib PRIVATE --coverage)
+  target_link_options(hyprland_lib PRIVATE --coverage)
+  target_link_libraries(hyprland_lib gcov)
+
+  # Enable coverage in hyprland exe
+  target_compile_options(Hyprland PRIVATE --coverage)
+  target_link_options(Hyprland PRIVATE --coverage)
+  target_link_libraries(Hyprland gcov)
 else()
   message(STATUS "Testing is disabled")
 endif()

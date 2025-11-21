@@ -239,6 +239,8 @@ pkg_check_modules(
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
+get_filename_component(FULL_MAIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp ABSOLUTE)
+list(REMOVE_ITEM SRCFILES "${FULL_MAIN_PATH}")
 
 set(TRACY_CPP_FILES "")
 if(USE_TRACY)
@@ -246,7 +248,9 @@ if(USE_TRACY)
   message(STATUS "Tracy enabled, TRACY_CPP_FILES: " ${TRACY_CPP_FILES})
 endif()
 
-add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
+add_library(hyprland_lib STATIC ${SRCFILES})
+add_executable(Hyprland src/main.cpp ${TRACY_CPP_FILES})
+target_link_libraries(Hyprland hyprland_lib)
 
 set(USE_GPROF OFF)
 
@@ -256,8 +260,8 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   if(WITH_ASAN)
     message(STATUS "Enabling ASan")
 
-    target_link_libraries(Hyprland asan)
-    target_compile_options(Hyprland PUBLIC -fsanitize=address)
+    target_link_libraries(hyprland_lib asan)
+    target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
   endif()
 
   if(USE_TRACY)
@@ -267,7 +271,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     option(TRACY_ON_DEMAND "" ON)
     add_subdirectory(subprojects/tracy)
 
-    target_link_libraries(Hyprland Tracy::TracyClient)
+    target_link_libraries(hyprland_lib Tracy::TracyClient)
 
     if(USE_TRACY_GPU)
       message(STATUS "Tracy GPU Profiling is turned on")
@@ -292,19 +296,19 @@ endif()
 include(CheckLibraryExists)
 check_library_exists(execinfo backtrace "" HAVE_LIBEXECINFO)
 if(HAVE_LIBEXECINFO)
-  target_link_libraries(Hyprland execinfo)
+  target_link_libraries(hyprland_lib execinfo)
 endif()
 
 check_include_file("sys/timerfd.h" HAS_TIMERFD)
 pkg_check_modules(epoll IMPORTED_TARGET epoll-shim)
 if(NOT HAS_TIMERFD AND epoll_FOUND)
-  target_link_libraries(Hyprland PkgConfig::epoll)
+  target_link_libraries(hyprland_lib PkgConfig::epoll)
 endif()
 
 check_include_file("sys/inotify.h" HAS_INOTIFY)
 pkg_check_modules(inotify IMPORTED_TARGET libinotify)
 if(NOT HAS_INOTIFY AND inotify_FOUND)
-  target_link_libraries(Hyprland PkgConfig::inotify)
+  target_link_libraries(hyprland_lib PkgConfig::inotify)
 endif()
 
 if(NO_XWAYLAND)
@@ -323,7 +327,7 @@ else()
     xcb-composite
     xcb-res
     xcb-errors)
-  target_link_libraries(Hyprland PkgConfig::xdeps)
+  target_link_libraries(hyprland_lib PkgConfig::xdeps)
 endif()
 
 if(NO_SYSTEMD)
@@ -350,14 +354,14 @@ if(CMAKE_DISABLE_PRECOMPILE_HEADERS)
   message(STATUS "Not using precompiled headers")
 else()
   message(STATUS "Setting precompiled headers")
-  target_precompile_headers(Hyprland PRIVATE
+  target_precompile_headers(hyprland_lib PRIVATE
                             $<$<COMPILE_LANGUAGE:CXX>:src/pch/pch.hpp>)
 endif()
 
 message(STATUS "Setting link libraries")
 
 target_link_libraries(
-  Hyprland
+  hyprland_lib
   rt
   PkgConfig::aquamarine_dep
   PkgConfig::hyprlang_dep
@@ -366,9 +370,9 @@ target_link_libraries(
   PkgConfig::hyprgraphics_dep
   PkgConfig::deps)
 if(udis_dep_FOUND)
-  target_link_libraries(Hyprland PkgConfig::udis_dep)
+  target_link_libraries(hyprland_lib PkgConfig::udis_dep)
 else()
-  target_link_libraries(Hyprland libudis86)
+  target_link_libraries(hyprland_lib libudis86)
 endif()
 
 # used by `make installheaders`, to ensure the headers are generated
@@ -387,7 +391,7 @@ function(protocolnew protoPath protoName external)
     COMMAND hyprwayland-scanner ${path}/${protoName}.xml
             ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_sources(Hyprland PRIVATE protocols/${protoName}.cpp
+  target_sources(hyprland_lib PRIVATE protocols/${protoName}.cpp
                                   protocols/${protoName}.hpp)
   target_sources(generate-protocol-headers
                  PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp)
@@ -405,7 +409,7 @@ function(protocolWayland)
       hyprwayland-scanner --wayland-enums
       ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
+  target_sources(hyprland_lib PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers
                  PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
 
@@ -415,7 +419,7 @@ function(protocolWayland)
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
 
-target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
+target_link_libraries(hyprland_lib OpenGL::EGL OpenGL::GL Threads::Threads)
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
 if(hyprland_protocols_dep_FOUND)
@@ -582,8 +586,8 @@ if(BUILD_TESTING)
   # GTest
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
-  add_executable(hyprland_gtests ${SRCFILES})
-  target_compile_definitions(hyprland_gtests PRIVATE HL_UNIT_TESTS=1)
+  file(GLOB_RECURSE TESTFILES "tests/*.cpp")
+  add_executable(hyprland_gtests ${TESTFILES})
   target_compile_options(hyprland_gtests PRIVATE --coverage)
   target_link_options(hyprland_gtests PRIVATE --coverage)
   target_include_directories(
@@ -591,47 +595,8 @@ if(BUILD_TESTING)
     PUBLIC "./include"
     PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
 
-  if(udis_dep_FOUND)
-    target_link_libraries(hyprland_gtests PkgConfig::udis_dep)
-  else()
-    target_link_libraries(hyprland_gtests libudis86)
-  endif()
-
-  if(HAVE_LIBEXECINFO)
-    target_link_libraries(hyprland_gtests execinfo)
-  endif()
-
-  if(NOT HAS_TIMERFD AND epoll_FOUND)
-    target_link_libraries(hyprland_gtests PkgConfig::epoll)
-  endif()
-
-  if(NOT HAS_INOTIFY AND inotify_FOUND)
-    target_link_libraries(hyprland_gtests PkgConfig::inotify)
-  endif()
-
-  if(NOT NO_XWAYLAND)
-    message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-    target_link_libraries(hyprland_gtests PkgConfig::xdeps)
-  endif()
-
-  if(NOT HAS_TIMERFD AND epoll_FOUND)
-    target_link_libraries(hyprland_gtests PUBLIC PkgConfig::epoll)
-  endif()
-  if(NOT HAS_INOTIFY AND inotify_FOUND)
-    target_link_libraries(hyprland_gtests PUBLIC PkgConfig::inotify)
-  endif()
-
-  target_sources(hyprland_gtests PRIVATE ${PROTOCOL_SOURCES})
-
   target_link_libraries(
-    hyprland_gtests GTest::gtest_main rt
-      PkgConfig::aquamarine_dep
-      PkgConfig::hyprlang_dep
-      PkgConfig::hyprutils_dep
-      PkgConfig::hyprcursor_dep
-      PkgConfig::hyprgraphics_dep
-      PkgConfig::deps
-      OpenGL::EGL OpenGL::GL Threads::Threads)
+    hyprland_gtests hyprland_lib GTest::gtest_main)
 
   gtest_discover_tests(hyprland_gtests)
 else()

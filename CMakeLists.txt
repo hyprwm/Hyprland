@@ -566,17 +566,11 @@ install(
   PATTERN "*.hpp"
   PATTERN "*.inc")
 
-if(BUILD_TESTING OR BUILD_HYPRTESTER)
-  message(STATUS "Building hyprtester")
+if(BUILD_TESTING OR WITH_TESTS)
+  message(STATUS "Building tests")
 
+  # hyprtester
   add_subdirectory(hyprtester)
-endif()
-
-if(BUILD_TESTING)
-  message(STATUS "Testing is enabled")
-
-  enable_testing()
-  add_custom_target(tests)
 
   # GTest
   find_package(GTest CONFIG REQUIRED)
@@ -594,8 +588,6 @@ if(BUILD_TESTING)
 
   gtest_discover_tests(hyprland_gtests)
 
-  add_dependencies(tests hyprland_gtests)
-
   # Enable coverage in main hyprland lib
   target_compile_options(hyprland_lib PRIVATE --coverage)
   target_link_options(hyprland_lib PRIVATE --coverage)
@@ -605,6 +597,16 @@ if(BUILD_TESTING)
   target_compile_options(Hyprland PRIVATE --coverage)
   target_link_options(Hyprland PRIVATE --coverage)
   target_link_libraries(Hyprland gcov)
+endif()
+
+if(BUILD_TESTING)
+  message(STATUS "Testing is enabled")
+
+  enable_testing()
+  add_custom_target(tests)
+
+  add_dependencies(tests hyprland_gtests)
+
 else()
   message(STATUS "Testing is disabled")
 endif()

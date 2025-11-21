@@ -43,7 +43,7 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      hyprland-with-tests = final.hyprland.override {doCheck = true;};
+      hyprland-with-tests = final.hyprland.override {withTests = true;};
 
       hyprland-with-hyprtester =
         builtins.trace ''

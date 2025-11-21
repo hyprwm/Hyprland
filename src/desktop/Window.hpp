@@ -319,6 +319,7 @@ class CWindow {
     PHLWINDOW                  getSwallower();
     bool                       isX11OverrideRedirect();
     bool                       isModal();
+    bool                       isX11Popup();
     Vector2D                   requestedMinSize();
     Vector2D                   requestedMaxSize();
     Vector2D                   realToReportSize();

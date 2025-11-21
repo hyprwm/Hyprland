@@ -31,9 +31,6 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
         if (output->client() == m_resource->client())
             m_resource->sendOutputEnter(output->getResource()->resource());
     });
-
-    m_manager->sendGroupToWorkspaces(m_self);
-    m_manager->scheduleDone();
 }
 
 bool CExtWorkspaceGroupResource::good() const {
@@ -44,6 +41,11 @@ WP<CExtWorkspaceGroupResource> CExtWorkspaceGroupResource::fromResource(wl_resou
     auto handle = sc<CExtWorkspaceGroupHandleV1*>(wl_resource_get_user_data(resource))->data();
     auto data   = sc<CExtWorkspaceGroupResource*>(handle);
     return data ? data->m_self : WP<CExtWorkspaceGroupResource>();
+}
+
+void CExtWorkspaceGroupResource::sendToWorkspaces() {
+    m_manager->sendGroupToWorkspaces(m_self);
+    m_manager->scheduleDone();
 }
 
 void CExtWorkspaceGroupResource::workspaceEnter(const WP<CExtWorkspaceHandleV1>& handle) {
@@ -265,6 +267,7 @@ void CExtWorkspaceManagerResource::onMonitorCreated(const PHLMONITOR& monitor) {
     auto& group = PROTO::extWorkspace->m_groups.emplace_back(
         makeUnique<CExtWorkspaceGroupResource>(m_self, makeUnique<CExtWorkspaceGroupHandleV1>(m_resource->client(), m_resource->version(), 0), monitor));
     group->m_self = group;
+    group->sendToWorkspaces();
 
     if UNLIKELY (!group->good()) {
         LOGM(ERR, "Couldn't create a workspace group object");

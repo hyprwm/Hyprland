@@ -819,7 +819,7 @@ I18n::CI18nEngine::CI18nEngine() {
     });
     huEngine->registerEntry(
         "ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "Dispunerea monitoarelor este configurată incorect. Monitorul {name} se suprapune cu alt(e) monitor(oare) în dispunere.\nVă rugăm să consultați wiki-ul "
+        "Dispunerea monitoarelor este configurată incorect. Monitorul {name} se suprapune cu alte monitoare din configurație.\nVă rugăm să consultați wiki-ul  "
         "(pagina Monitors) pentru mai multe detalii. Acest lucru <b>va</b> cauza probleme.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciunul dintre modurile solicitate, revenind la modul {mode}.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scară invalidă transmisă monitorului {name}: {scale}, se utilizează scara sugerată: {fixed_scale}");

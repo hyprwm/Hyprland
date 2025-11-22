@@ -12,7 +12,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/LayoutManager.hpp"
-#include "../managers/BufferReleaseManager.hpp"
+#include "../managers/SurfaceManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/SessionLock.hpp"
@@ -160,7 +160,7 @@ CHyprRenderer::CHyprRenderer() {
                 if (!w->m_wlSurface || !w->m_wlSurface->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                w->m_wlSurface->resource()->frame(Time::steadyNow());
+                g_pSurfaceManager->sendFrameCallbacks(w->m_wlSurface->resource(), Time::steadyNow());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->m_wlSurface->resource());
                 FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
                 FEEDBACK->discarded();
@@ -1644,7 +1644,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool dro
     }
 
     if (dropBuffers)
-        g_pBufferReleaseManager->dropBuffers(pMonitor);
+        g_pSurfaceManager->dropBuffers(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
@@ -1689,7 +1689,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
-        w->m_wlSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
+        w->m_wlSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { g_pSurfaceManager->sendFrameCallbacks(r, now); }, nullptr);
     }
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
@@ -1697,7 +1697,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
             if (ls->m_fadingOut || !ls->m_surface->resource())
                 continue;
 
-            ls->m_surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
+            ls->m_surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { g_pSurfaceManager->sendFrameCallbacks(r, now); }, nullptr);
         }
     }
 }
@@ -2377,7 +2377,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
 
             if (m_renderMode == RENDER_MODE_NORMAL) {
                 PMONITOR->m_inFence = eglSync->takeFd();
-                g_pBufferReleaseManager->addFence(PMONITOR);
+                g_pSurfaceManager->addFence(PMONITOR);
             }
         } else {
             Debug::log(ERR, "renderer: Explicit sync failed, calling renderingDoneCallback without sync");

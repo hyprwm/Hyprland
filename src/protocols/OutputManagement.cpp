@@ -28,6 +28,8 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : m_resource(
             PROTO::outputManagement->m_configurations.pop_back();
             return;
         }
+
+        RESOURCE->m_self = RESOURCE;
     });
 
     // send all heads at start
@@ -335,7 +337,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         const auto SUCCESS = applyTestConfiguration(false);
 
         if (SUCCESS)
-            m_resource->sendSucceeded();
+            PROTO::outputManagement->m_pendingConfigurationSuccessEvents.emplace_back(m_self);
         else
             m_resource->sendFailed();
 
@@ -480,7 +482,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         }
 
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
-        m_state.customMode = {{w, h}, (uint32_t)refresh};
+        m_state.customMode = {{w, h}, sc<uint32_t>(refresh)};
 
         LOGM(LOG, " | configHead for {}: set custom mode to {}x{}@{}", m_monitor->m_name, w, h, refresh);
     });
@@ -519,7 +521,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         }
 
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_TRANSFORM;
-        m_state.transform = (wl_output_transform)transform;
+        m_state.transform = sc<wl_output_transform>(transform);
 
         LOGM(LOG, " | configHead for {}: set transform to {}", m_monitor->m_name, transform);
     });
@@ -576,7 +578,10 @@ bool COutputConfigurationHead::good() {
 }
 
 COutputManagementProtocol::COutputManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
+    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) {
+        updateAllOutputs();
+        sendPendingSuccessEvents();
+    });
 }
 
 void COutputManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -646,4 +651,20 @@ SP<SWlrManagerSavedOutputState> COutputManagementProtocol::getOutputStateFor(PHL
     }
 
     return nullptr;
+}
+
+void COutputManagementProtocol::sendPendingSuccessEvents() {
+    if (m_pendingConfigurationSuccessEvents.empty())
+        return;
+
+    LOGM(LOG, "Sending {} pending configuration success events", m_pendingConfigurationSuccessEvents.size());
+
+    for (auto const& config : m_pendingConfigurationSuccessEvents) {
+        if (!config)
+            continue;
+
+        config->m_resource->sendSucceeded();
+    }
+
+    m_pendingConfigurationSuccessEvents.clear();
 }

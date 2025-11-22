@@ -26,6 +26,14 @@ enum eRectCorner : uint8_t {
     CORNER_BOTTOMLEFT  = (1 << 3),
 };
 
+inline eRectCorner cornerFromBox(const CBox& box, const Vector2D& pos) {
+    const auto CENTER = box.middle();
+
+    if (pos.x < CENTER.x)
+        return pos.y < CENTER.y ? CORNER_TOPLEFT : CORNER_BOTTOMLEFT;
+    return pos.y < CENTER.y ? CORNER_TOPRIGHT : CORNER_BOTTOMRIGHT;
+}
+
 enum eSnapEdge : uint8_t {
     SNAP_INVALID = 0,
     SNAP_UP      = (1 << 0),
@@ -216,6 +224,11 @@ class IHyprLayout {
         Triggers a window snap event
     */
     virtual void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
+
+    /*
+        Fits a floating window on its monitor
+    */
+    virtual void fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> targetBox = std::nullopt);
 
   private:
     int          m_mouseMoveEventCount;

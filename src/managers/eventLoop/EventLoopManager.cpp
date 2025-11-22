@@ -45,7 +45,7 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
-    auto POLLFD = (Aquamarine::SPollFD*)data;
+    auto POLLFD = sc<Aquamarine::SPollFD*>(data);
     POLLFD->onSignal();
     return 1;
 }
@@ -62,7 +62,7 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
     }
 
     if (mask & WL_EVENT_READABLE)
-        g_pEventLoopManager->onFdReadable((CEventLoopManager::SReadableWaiter*)data);
+        g_pEventLoopManager->onFdReadable(sc<CEventLoopManager::SReadableWaiter*>(data));
 
     return 0;
 }
@@ -129,7 +129,7 @@ static void timespecAddNs(timespec* pTimespec, int64_t delta) {
 
     pTimespec->tv_sec += delta_s_high;
 
-    pTimespec->tv_nsec += (long)delta_ns_low;
+    pTimespec->tv_nsec += delta_ns_low;
     if (pTimespec->tv_nsec >= TIMESPEC_NSEC_PER_SEC) {
         pTimespec->tv_nsec -= TIMESPEC_NSEC_PER_SEC;
         ++pTimespec->tv_sec;
@@ -181,7 +181,7 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
     m_idle.eventSource = wl_event_loop_add_idle(
         m_wayland.loop,
         [](void* data) {
-            auto IDLE = (CEventLoopManager::SIdleData*)data;
+            auto IDLE = sc<CEventLoopManager::SIdleData*>(data);
             auto cpy  = IDLE->fns;
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;
@@ -193,13 +193,13 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
         &m_idle);
 }
 
-void CEventLoopManager::doOnReadable(CFileDescriptor fd, const std::function<void()>& fn) {
+void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&& fn) {
     if (!fd.isValid() || fd.isReadable()) {
         fn();
         return;
     }
 
-    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), fn));
+    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
     waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
 }
 

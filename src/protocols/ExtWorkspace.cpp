@@ -20,7 +20,7 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
     m_resource->setOnDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
     m_resource->setDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
 
-    m_resource->sendCapabilities(static_cast<extWorkspaceGroupHandleV1GroupCapabilities>(0));
+    m_resource->sendCapabilities(sc<extWorkspaceGroupHandleV1GroupCapabilities>(0));
 
     const auto& output = PROTO::outputs.at(m_monitor->m_name);
 
@@ -31,9 +31,6 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
         if (output->client() == m_resource->client())
             m_resource->sendOutputEnter(output->getResource()->resource());
     });
-
-    m_manager->sendGroupToWorkspaces(m_self);
-    m_manager->scheduleDone();
 }
 
 bool CExtWorkspaceGroupResource::good() const {
@@ -41,9 +38,14 @@ bool CExtWorkspaceGroupResource::good() const {
 }
 
 WP<CExtWorkspaceGroupResource> CExtWorkspaceGroupResource::fromResource(wl_resource* resource) {
-    auto handle = static_cast<CExtWorkspaceGroupHandleV1*>(wl_resource_get_user_data(resource))->data();
-    auto data   = static_cast<CExtWorkspaceGroupResource*>(handle);
+    auto handle = sc<CExtWorkspaceGroupHandleV1*>(wl_resource_get_user_data(resource))->data();
+    auto data   = sc<CExtWorkspaceGroupResource*>(handle);
     return data ? data->m_self : WP<CExtWorkspaceGroupResource>();
+}
+
+void CExtWorkspaceGroupResource::sendToWorkspaces() {
+    m_manager->sendGroupToWorkspaces(m_self);
+    m_manager->scheduleDone();
 }
 
 void CExtWorkspaceGroupResource::workspaceEnter(const WP<CExtWorkspaceHandleV1>& handle) {
@@ -105,7 +107,7 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
         id += UINT32_MAX - 1337;
 
     if (id > 0)
-        *static_cast<uint32_t*>(wl_array_add(&coordinates, sizeof(uint32_t))) = id;
+        *sc<uint32_t*>(wl_array_add(&coordinates, sizeof(uint32_t))) = id;
 
     m_resource->sendCoordinates(&coordinates);
     wl_array_release(&coordinates);
@@ -142,7 +144,7 @@ void CExtWorkspaceResource::sendState() {
     if (m_workspace->m_isSpecialWorkspace)
         state |= EXT_WORKSPACE_HANDLE_V1_STATE_HIDDEN;
 
-    m_resource->sendState(static_cast<extWorkspaceHandleV1State>(state));
+    m_resource->sendState(sc<extWorkspaceHandleV1State>(state));
 
     if (m_manager)
         m_manager->scheduleDone();
@@ -158,7 +160,7 @@ void CExtWorkspaceResource::sendCapabilities() {
     if (active && m_workspace->m_isSpecialWorkspace)
         capabilities |= EXT_WORKSPACE_HANDLE_V1_WORKSPACE_CAPABILITIES_DEACTIVATE;
 
-    m_resource->sendCapabilities(static_cast<extWorkspaceHandleV1WorkspaceCapabilities>(capabilities));
+    m_resource->sendCapabilities(sc<extWorkspaceHandleV1WorkspaceCapabilities>(capabilities));
 
     if (m_manager)
         m_manager->scheduleDone();
@@ -265,6 +267,7 @@ void CExtWorkspaceManagerResource::onMonitorCreated(const PHLMONITOR& monitor) {
     auto& group = PROTO::extWorkspace->m_groups.emplace_back(
         makeUnique<CExtWorkspaceGroupResource>(m_self, makeUnique<CExtWorkspaceGroupHandleV1>(m_resource->client(), m_resource->version(), 0), monitor));
     group->m_self = group;
+    group->sendToWorkspaces();
 
     if UNLIKELY (!group->good()) {
         LOGM(ERR, "Couldn't create a workspace group object");

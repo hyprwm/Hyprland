@@ -35,7 +35,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (!PROTO::foreignToplevel->windowValidForForeign(w))
-            return;
+            continue;
 
         onMap(w);
     }
@@ -44,6 +44,15 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
 void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
     if UNLIKELY (m_finished)
         return;
+
+    // check if the window already had a handle in the past
+    const auto OLDHANDLE = handleForWindow(pWindow);
+    if (OLDHANDLE) {
+        if (!OLDHANDLE->m_closed)
+            OLDHANDLE->m_resource->sendClosed();
+
+        std::erase_if(m_handles, [&](const auto& other) { return other.get() == OLDHANDLE.get(); });
+    }
 
     const auto NEWHANDLE = PROTO::foreignToplevel->m_handles.emplace_back(
         makeShared<CForeignToplevelHandle>(makeShared<CExtForeignToplevelHandleV1>(m_resource->client(), m_resource->version(), 0), pWindow));
@@ -55,7 +64,7 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
         return;
     }
 
-    const auto IDENTIFIER = std::format("{:08x}->{:016x}", static_cast<uint32_t>((uintptr_t)this & 0xFFFFFFFF), (uintptr_t)pWindow.get());
+    const auto IDENTIFIER = std::format("{:08x}->{:016x}", sc<uint32_t>(rc<uintptr_t>(this) & 0xFFFFFFFF), rc<uintptr_t>(pWindow.get()));
 
     LOGM(LOG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     m_resource->sendToplevel(NEWHANDLE->m_resource.get());
@@ -172,6 +181,6 @@ bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
 }
 
 PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {
-    auto data = (CForeignToplevelHandle*)(((CExtForeignToplevelHandleV1*)wl_resource_get_user_data(res))->data());
+    auto data = sc<CForeignToplevelHandle*>(sc<CExtForeignToplevelHandleV1*>(wl_resource_get_user_data(res))->data());
     return data ? data->window() : nullptr;
 }

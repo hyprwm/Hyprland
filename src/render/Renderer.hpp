@@ -9,6 +9,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../../protocols/cursor-shape-v1.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -69,12 +70,13 @@ class CHyprRenderer {
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
     void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
-    void                            recheckSolitaryForMonitor(PHLMONITOR pMonitor);
     void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
+    bool                            isIntel();
+    bool                            isSoftware();
     bool                            isMgpu();
     void                            makeEGLCurrent();
     void                            unsetEGL();
@@ -104,13 +106,14 @@ class CHyprRenderer {
     wl_event_source*                m_crashingLoop       = nullptr;
     wl_event_source*                m_cursorTicker       = nullptr;
 
-    CTimer                          m_renderTimer;
-
     std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {
-        int                           hotspotX = 0;
-        int                           hotspotY = 0;
+        int                           hotspotX      = 0;
+        int                           hotspotY      = 0;
+        wpCursorShapeDeviceV1Shape    shape         = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        wpCursorShapeDeviceV1Shape    shapePrevious = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        CTimer                        switchedTimer;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;
     } m_lastCursorData;
@@ -131,6 +134,7 @@ class CHyprRenderer {
     void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
     void renderSessionLockPrimer(PHLMONITOR pMonitor);
     void renderSessionLockMissing(PHLMONITOR pMonitor);
+    void renderBackground(PHLMONITOR pMonitor);
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
@@ -139,11 +143,14 @@ class CHyprRenderer {
     bool shouldBlur(WP<CPopup> p);
 
     bool m_cursorHidden                           = false;
+    bool m_cursorHiddenByCondition                = false;
     bool m_cursorHasSurface                       = false;
     SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
     eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
     bool                    m_nvidia              = false;
+    bool                    m_intel               = false;
+    bool                    m_software            = false;
     bool                    m_mgpu                = false;
 
     struct {

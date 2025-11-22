@@ -131,6 +131,73 @@ static bool test() {
         EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
+    Tests::killAllWindows();
+
+    NLog::log("{}Testing fullscreen and fullscreenstate dispatcher", Colors::YELLOW);
+
+    Tests::spawnKitty("kitty_A");
+    Tests::spawnKitty("kitty_B");
+
+    OK(getFromSocket("/dispatch fullscreen 0 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 0 unset"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 1 toggle"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 1 toggle"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    // Ensure that the process autostarted in the config does not
+    // become a zombie even if it terminates very quickly.
+    EXPECT(Tests::execAndGet("pgrep -f 'sleep 0'").empty(), true);
+
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

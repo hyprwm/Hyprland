@@ -20,11 +20,12 @@ class CDRMSyncPointState {
     const uint64_t&                                  point();
     WP<CSyncTimeline>                                timeline();
     Hyprutils::Memory::CUniquePointer<CSyncReleaser> createSyncRelease();
-    bool                                             addWaiter(const std::function<void()>& waiter);
+    bool                                             addWaiter(std::function<void()>&& waiter);
     bool                                             committed();
     Hyprutils::OS::CFileDescriptor                   exportAsFD();
     void                                             signal();
 
+    //
     operator bool() const {
         return m_timeline;
     }
@@ -50,7 +51,7 @@ class CDRMSyncobjSurfaceResource {
     CDRMSyncPointState              m_pendingRelease;
 
     struct {
-        CHyprSignalListener surfacePrecommit;
+        CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 };
 

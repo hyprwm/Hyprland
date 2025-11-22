@@ -222,7 +222,7 @@ const SPixelFormat* NFormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
 
 const SPixelFormat* NFormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha) {
     for (auto const& fmt : GLES3_FORMATS) {
-        if (fmt.glFormat == (int)glFormat && fmt.glType == (int)glType && fmt.withAlpha == alpha)
+        if (fmt.glFormat == sc<int>(glFormat) && fmt.glType == sc<int>(glType) && fmt.withAlpha == alpha)
             return &fmt;
     }
 
@@ -264,13 +264,13 @@ uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
 std::string NFormatUtils::drmFormatName(DRMFormat drm) {
     auto        n    = drmGetFormatName(drm);
     std::string name = n;
-    free(n);
+    free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }
 
 std::string NFormatUtils::drmModifierName(uint64_t mod) {
     auto        n    = drmGetFormatModifierName(mod);
     std::string name = n;
-    free(n);
+    free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }

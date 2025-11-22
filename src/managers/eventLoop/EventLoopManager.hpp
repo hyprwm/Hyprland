@@ -63,7 +63,7 @@ class CEventLoopManager {
 
     // schedule function to when fd is readable (WL_EVENT_READABLE / POLLIN),
     // takes ownership of fd
-    void doOnReadable(Hyprutils::OS::CFileDescriptor fd, const std::function<void()>& fn);
+    void doOnReadable(Hyprutils::OS::CFileDescriptor fd, std::function<void()>&& fn);
     void onFdReadable(SReadableWaiter* waiter);
 
   private:
@@ -99,6 +99,7 @@ class CEventLoopManager {
     wl_event_source* m_configWatcherInotifySource = nullptr;
 
     friend class CAsyncDialogBox;
+    friend class CMainLoopExecutor;
 };
 
 inline UP<CEventLoopManager> g_pEventLoopManager;

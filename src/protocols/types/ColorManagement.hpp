@@ -2,6 +2,7 @@
 
 #include "color-management-v1.hpp"
 #include <hyprgraphics/color/Color.hpp>
+#include "../../helpers/memory/Memory.hpp"
 
 #define SDR_MIN_LUMINANCE 0.2
 #define SDR_MAX_LUMINANCE 80.0
@@ -10,6 +11,13 @@
 #define HLG_MAX_LUMINANCE 1000.0
 
 namespace NColorManagement {
+    enum eNoShader : uint8_t {
+        CM_NS_DISABLE  = 0,
+        CM_NS_ALWAYS   = 1,
+        CM_NS_ONDEMAND = 2,
+        CM_NS_IGNORE   = 3,
+    };
+
     enum ePrimaries : uint8_t {
         CM_PRIMARIES_SRGB         = 1,
         CM_PRIMARIES_PAL_M        = 2,
@@ -42,16 +50,16 @@ namespace NColorManagement {
     // NOTE should be ok this way. unsupported primaries/tfs must be rejected earlier. supported enum values should be in sync with proto.
     // might need a proper switch-case and additional INVALID enum value.
     inline wpColorManagerV1Primaries convertPrimaries(ePrimaries primaries) {
-        return (wpColorManagerV1Primaries)primaries;
+        return sc<wpColorManagerV1Primaries>(primaries);
     }
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
-        return (ePrimaries)primaries;
+        return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return (wpColorManagerV1TransferFunction)tf;
+        return sc<wpColorManagerV1TransferFunction>(tf);
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
-        return (eTransferFunction)tf;
+        return sc<eTransferFunction>(tf);
     }
 
     using SPCPRimaries = Hyprgraphics::SPCPRimaries;
@@ -202,6 +210,8 @@ namespace NColorManagement {
 
         float getTFMaxLuminance(int sdrMaxLuminance = -1) const {
             switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                    return SDR_MAX_LUMINANCE; // assume Windows scRGB. white color range 1.0 - 125.0 maps to SDR_MAX_LUMINANCE (80) - HDR_MAX_LUMINANCE (10000)
                 case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_GAMMA22:

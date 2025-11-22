@@ -62,9 +62,10 @@ bool CWLSurface::small() const {
     if (!m_resource->m_current.texture)
         return false;
 
-    const auto O = m_windowOwner.lock();
+    const auto O             = m_windowOwner.lock();
+    const auto REPORTED_SIZE = O->getReportedSize();
 
-    return O->m_reportedSize.x > m_resource->m_current.size.x + 1 || O->m_reportedSize.y > m_resource->m_current.size.y + 1;
+    return REPORTED_SIZE.x > m_resource->m_current.size.x + 1 || REPORTED_SIZE.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -73,8 +74,9 @@ Vector2D CWLSurface::correctSmallVec() const {
 
     const auto SIZE = getViewporterCorrectedSize();
     const auto O    = m_windowOwner.lock();
+    const auto REP  = O->getReportedSize();
 
-    return Vector2D{(O->m_reportedSize.x - SIZE.x) / 2, (O->m_reportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / O->m_reportedSize);
+    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / REP);
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
@@ -115,14 +117,17 @@ CRegion CWLSurface::computeDamage() const {
 
     // go from buffer coords in the damage to hl logical
 
-    const auto     BOX   = getSurfaceBoxGlobal();
-    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_resource->m_current.bufferSize :
-                                             Vector2D{1.0 / m_resource->m_current.scale, 1.0 / m_resource->m_current.scale /* Wrong... but we can't really do better */};
+    const auto     BOX      = getSurfaceBoxGlobal();
+    const auto     SURFSIZE = m_resource->m_current.size;
+    const Vector2D SCALE    = SURFSIZE / m_resource->m_current.bufferSize;
 
     damage.scale(SCALE);
-
-    if (m_windowOwner)
-        damage.scale(m_windowOwner->m_X11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
+    if (BOX.has_value()) {
+        if (m_windowOwner)
+            damage.intersect(CBox{{}, BOX->size() * m_windowOwner->m_X11SurfaceScaledBy});
+        else
+            damage.intersect(CBox{{}, BOX->size()});
+    }
 
     return damage;
 }
@@ -148,7 +153,7 @@ void CWLSurface::destroy() {
 
     m_resource.reset();
 
-    Debug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
+    Debug::log(LOG, "CWLSurface {:x} called destroy()", rc<uintptr_t>(this));
 }
 
 void CWLSurface::init() {
@@ -161,7 +166,7 @@ void CWLSurface::init() {
 
     m_listeners.destroy = m_resource->m_events.destroy.listen([this] { destroy(); });
 
-    Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
+    Debug::log(LOG, "CWLSurface {:x} called init()", rc<uintptr_t>(this));
 }
 
 PHLWINDOW CWLSurface::getWindow() const {

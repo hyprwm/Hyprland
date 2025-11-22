@@ -17,16 +17,22 @@
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/main/tests.hpp"
+#include "tests/clients/tests.hpp"
 #include "tests/plugin/plugin.hpp"
 
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
+
 #include <csignal>
 #include <cerrno>
 #include <chrono>
 #include <thread>
 #include <print>
+#include <string_view>
+#include <span>
 
 #include "Log.hpp"
 
@@ -87,97 +93,101 @@ static void help() {
 
 int main(int argc, char** argv, char** envp) {
 
-    std::string              configPath = "";
-    std::string              binaryPath = "";
-    std::string              pluginPath = std::filesystem::current_path().string();
+    std::string configPath = "";
+    std::string binaryPath = "";
+    std::string pluginPath = std::filesystem::current_path().string();
 
-    std::vector<std::string> args{argv + 1, argv + argc};
+    if (argc > 1) {
+        std::span<char*> args{argv + 1, sc<std::size_t>(argc - 1)};
 
-    for (auto it = args.begin(); it != args.end(); it++) {
-        if (*it == "--config" || *it == "-c") {
-            if (std::next(it) == args.end()) {
-                help();
+        for (auto it = args.begin(); it != args.end(); it++) {
+            std::string_view value = *it;
 
-                return 1;
-            }
+            if (value == "--config" || value == "-c") {
+                if (std::next(it) == args.end()) {
+                    help();
 
-            configPath = *std::next(it);
-
-            try {
-                configPath = std::filesystem::canonical(configPath);
-
-                if (!std::filesystem::is_regular_file(configPath)) {
-                    throw std::exception();
+                    return 1;
                 }
-            } catch (...) {
-                std::println(stderr, "[ ERROR ] Config file '{}' doesn't exist!", configPath);
-                help();
 
-                return 1;
-            }
+                configPath = *std::next(it);
 
-            it++;
+                try {
+                    configPath = std::filesystem::canonical(configPath);
 
-            continue;
-        } else if (*it == "--binary" || *it == "-b") {
-            if (std::next(it) == args.end()) {
-                help();
+                    if (!std::filesystem::is_regular_file(configPath)) {
+                        throw std::exception();
+                    }
+                } catch (...) {
+                    std::println(stderr, "[ ERROR ] Config file '{}' doesn't exist!", configPath);
+                    help();
 
-                return 1;
-            }
-
-            binaryPath = *std::next(it);
-
-            try {
-                binaryPath = std::filesystem::canonical(binaryPath);
-
-                if (!std::filesystem::is_regular_file(binaryPath)) {
-                    throw std::exception();
+                    return 1;
                 }
-            } catch (...) {
-                std::println(stderr, "[ ERROR ] Binary '{}' doesn't exist!", binaryPath);
-                help();
 
-                return 1;
-            }
+                it++;
 
-            it++;
+                continue;
+            } else if (value == "--binary" || value == "-b") {
+                if (std::next(it) == args.end()) {
+                    help();
 
-            continue;
-        } else if (*it == "--plugin" || *it == "-p") {
-            if (std::next(it) == args.end()) {
-                help();
-
-                return 1;
-            }
-
-            pluginPath = *std::next(it);
-
-            try {
-                pluginPath = std::filesystem::canonical(pluginPath);
-
-                if (!std::filesystem::is_regular_file(pluginPath)) {
-                    throw std::exception();
+                    return 1;
                 }
-            } catch (...) {
-                std::println(stderr, "[ ERROR ] plugin '{}' doesn't exist!", pluginPath);
+
+                binaryPath = *std::next(it);
+
+                try {
+                    binaryPath = std::filesystem::canonical(binaryPath);
+
+                    if (!std::filesystem::is_regular_file(binaryPath)) {
+                        throw std::exception();
+                    }
+                } catch (...) {
+                    std::println(stderr, "[ ERROR ] Binary '{}' doesn't exist!", binaryPath);
+                    help();
+
+                    return 1;
+                }
+
+                it++;
+
+                continue;
+            } else if (value == "--plugin" || value == "-p") {
+                if (std::next(it) == args.end()) {
+                    help();
+
+                    return 1;
+                }
+
+                pluginPath = *std::next(it);
+
+                try {
+                    pluginPath = std::filesystem::canonical(pluginPath);
+
+                    if (!std::filesystem::is_regular_file(pluginPath)) {
+                        throw std::exception();
+                    }
+                } catch (...) {
+                    std::println(stderr, "[ ERROR ] plugin '{}' doesn't exist!", pluginPath);
+                    help();
+
+                    return 1;
+                }
+
+                it++;
+
+                continue;
+            } else if (value == "--help" || value == "-h") {
+                help();
+
+                return 0;
+            } else {
+                std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
                 help();
 
                 return 1;
             }
-
-            it++;
-
-            continue;
-        } else if (*it == "--help" || *it == "-h") {
-            help();
-
-            return 0;
-        } else {
-            std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
-            help();
-
-            return 1;
         }
     }
 
@@ -219,7 +229,15 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
+    NLog::log("{}Running main tests", Colors::YELLOW);
+
     for (const auto& fn : testFns) {
+        EXPECT(fn(), true);
+    }
+
+    NLog::log("{}Running protocol client tests", Colors::YELLOW);
+
+    for (const auto& fn : clientTestFns) {
         EXPECT(fn(), true);
     }
 

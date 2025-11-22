@@ -35,11 +35,11 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_x
             xcb_res_client_id_value_next(&iter);
         }
         if (!ppid) {
-            free(reply);
+            free(reply); // NOLINT(cppcoreguidelines-no-malloc)
             return;
         }
         m_pid = *ppid;
-        free(reply);
+        free(reply); // NOLINT(cppcoreguidelines-no-malloc)
     }
 
     m_events.resourceChange.listenStatic([this] { ensureListeners(); });
@@ -98,7 +98,7 @@ void CXWaylandSurface::map() {
     m_mapped = true;
     m_surface->map();
 
-    Debug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
+    Debug::log(LOG, "XWayland surface {:x} mapping", rc<uintptr_t>(this));
 
     m_events.map.emit();
 
@@ -118,7 +118,7 @@ void CXWaylandSurface::unmap() {
     m_events.unmap.emit();
     m_surface->unmap();
 
-    Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
+    Debug::log(LOG, "XWayland surface {:x} unmapping", rc<uintptr_t>(this));
 
     g_pXWayland->m_wm->updateClientList();
 }
@@ -184,7 +184,7 @@ void CXWaylandSurface::configure(const CBox& box) {
         e.border_width      = 0;
         e.above_sibling     = XCB_NONE;
         e.override_redirect = m_overrideRedirect;
-        xcb_send_event(g_pXWayland->m_wm->getConnection(), false, m_xID, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (const char*)&e);
+        xcb_send_event(g_pXWayland->m_wm->getConnection(), false, m_xID, XCB_EVENT_MASK_STRUCTURE_NOTIFY, rc<const char*>(&e));
     }
 
     g_pXWayland->m_wm->updateClientList();
@@ -195,6 +195,7 @@ void CXWaylandSurface::configure(const CBox& box) {
 void CXWaylandSurface::activate(bool activate) {
     if (m_overrideRedirect && !activate)
         return;
+    setWithdrawn(false);
     g_pXWayland->m_wm->activateSurface(m_self.lock(), activate);
 }
 

@@ -30,6 +30,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
+    Hyprutils::OS::CFileDescriptor        m_syncFd;
 
     struct {
         CHyprSignalListener backendRelease;
@@ -38,7 +39,6 @@ class IHLBuffer : public Aquamarine::IBuffer {
 
   private:
     int                   m_locks = 0;
-
     std::function<void()> m_backendReleaseQueuedFn;
 
     friend class CHLBufferReference;
@@ -57,6 +57,7 @@ class CHLBufferReference {
     bool                operator==(const SP<IHLBuffer>& other) const;
     bool                operator==(const SP<Aquamarine::IBuffer>& other) const;
     SP<IHLBuffer>       operator->() const;
+    //
     operator bool() const;
 
     // unlock and drop the buffer without sending release

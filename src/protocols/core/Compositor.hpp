@@ -13,6 +13,7 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
+#include "../types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -29,16 +30,26 @@ class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
 class CDRMSyncobjSurfaceResource;
+class CFifoResource;
+class CCommitTimerResource;
 class CColorManagementSurface;
 class CFrogColorManagementSurface;
 class CContentType;
 
 class CWLCallbackResource {
   public:
-    CWLCallbackResource(SP<CWlCallback> resource_);
+    CWLCallbackResource(SP<CWlCallback>&& resource_);
+    ~CWLCallbackResource() noexcept = default;
+    // disable copy
+    CWLCallbackResource(const CWLCallbackResource&)            = delete;
+    CWLCallbackResource& operator=(const CWLCallbackResource&) = delete;
 
-    bool good();
-    void send(const Time::steady_tp& now);
+    // allow move
+    CWLCallbackResource(CWLCallbackResource&&) noexcept            = default;
+    CWLCallbackResource& operator=(CWLCallbackResource&&) noexcept = default;
+
+    bool                 good();
+    void                 send(const Time::steady_tp& now);
 
   private:
     SP<CWlCallback> m_resource;
@@ -81,8 +92,10 @@ class CWLSurfaceResource {
     void                          resetRole();
 
     struct {
-        CSignalT<>                          precommit; // before commit
-        CSignalT<>                          commit;    // after commit
+        CSignalT<>                          precommit;    // before commit
+        CSignalT<WP<SSurfaceState>>         stateCommit;  // when placing state in queue
+        CSignalT<WP<SSurfaceState>>         stateCommit2; // when placing state in queue used for commit timing so we apply fifo/fences first.
+        CSignalT<>                          commit;       // after commit
         CSignalT<>                          map;
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
@@ -93,25 +106,29 @@ class CWLSurfaceResource {
 
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
-    std::queue<UP<SSurfaceState>>          m_pendingStates;
+    CSurfaceStateQueue                     m_stateQueue;
 
-    std::vector<SP<CWLCallbackResource>>   m_callbacks;
     WP<CWLSurfaceResource>                 m_self;
     WP<CWLSurface>                         m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;
     bool                                   m_mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
     SP<ISurfaceRole>                       m_role;
-    WP<CDRMSyncobjSurfaceResource>         m_syncobj; // may not be present
+    WP<CDRMSyncobjSurfaceResource>         m_syncobj;     // may not be present
+    WP<CFifoResource>                      m_fifo;        // may not be present
+    WP<CCommitTimerResource>               m_commitTimer; // may not be present
     WP<CColorManagementSurface>            m_colorManagement;
     WP<CContentType>                       m_contentType;
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
+    SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
+    void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::SImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();
+    bool                                   hasVisibleSubsurface();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

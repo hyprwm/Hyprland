@@ -7,11 +7,10 @@ in {
 
     nodes.machine = {pkgs, ...}: {
       environment.systemPackages = with pkgs; [
-        flake.hyprtester
-
         # Programs needed for tests
         jq
         kitty
+        wl-clipboard
         xorg.xeyes
       ];
 
@@ -23,7 +22,12 @@ in {
         "HYPRLAND_TRACE" = "1";
         "XDG_RUNTIME_DIR" = "/tmp";
         "XDG_CACHE_HOME" = "/tmp";
+        "KITTY_CONFIG_DIRECTORY" = "/etc/kitty";
       };
+
+      environment.etc."kitty/kitty.conf".text = ''
+        confirm_os_window_close 0
+      '';
 
       programs.hyprland = {
         enable = true;
@@ -32,7 +36,7 @@ in {
       };
 
       # Test configuration
-      environment.etc."test.conf".source = "${flake.hyprtester}/share/hypr/test.conf";
+      environment.etc."test.conf".source = "${hyprland}/share/hypr/test.conf";
 
       # Disable portals
       xdg.portal.enable = pkgs.lib.mkForce false;
@@ -66,7 +70,7 @@ in {
 
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
-      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test.conf -p ${flake.hyprtester}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
+      exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test.conf -p ${hyprland}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
       print(f"Hyprtester exited with {exit_status}")
 
       # Copy logs to host

@@ -27,7 +27,7 @@ class CColorManager {
 
 class CColorManagementOutput {
   public:
-    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CMonitor> monitor);
+    CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CWLOutputResource> output);
 
     bool                                 good();
     wl_client*                           client();
@@ -38,7 +38,7 @@ class CColorManagementOutput {
   private:
     SP<CWpColorManagementOutputV1> m_resource;
     wl_client*                     m_client = nullptr;
-    WP<CMonitor>                   m_monitor;
+    WP<CWLOutputResource>          m_output;
 
     friend class CColorManagementProtocol;
     friend class CColorManagementImageDescription;
@@ -61,6 +61,8 @@ class CColorManagementSurface {
     const hdr_output_metadata&                 hdrMetadata();
     void                                       setHDRMetadata(const hdr_output_metadata& metadata);
     bool                                       needsHdrMetadataUpdate();
+    bool                                       isHDR();
+    bool                                       isWindowsScRGB();
 
   private:
     SP<CWpColorManagementSurfaceV1>     m_resource;
@@ -89,7 +91,6 @@ class CColorManagementFeedbackSurface {
     SP<CWpColorManagementSurfaceFeedbackV1> m_resource;
     wl_client*                              m_client = nullptr;
 
-    WP<CColorManagementImageDescription>    m_currentPreferred;
     uint32_t                                m_currentPreferredId = 0;
 
     struct {

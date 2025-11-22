@@ -432,7 +432,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
-        options.multigpu = state->monitor->m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drmFD;
+        options.multigpu = state->monitor->m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd;
         // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
         if (shouldUseCpuBuffer)
@@ -502,9 +502,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         const auto DMABUF      = buf->dmabuf();
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
-        auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
-        auto CAIRODATASURFACE =
-            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
+        auto CAIROSURFACE     = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
+        auto CAIRODATASURFACE = cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
 
         auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -525,7 +524,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
 
         if (TR) {
-            cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
+            cairo_matrix_rotate(&matrixPre, M_PI_2 * sc<double>(TR));
 
             // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
             // cba to do it rn, does anyone fucking use that??
@@ -550,7 +549,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         cairo_pattern_destroy(PATTERNPRE);
 
-        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), (size_t)cairo_image_surface_get_height(CAIROSURFACE) * cairo_image_surface_get_stride(CAIROSURFACE));
+        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), sc<size_t>(cairo_image_surface_get_height(CAIROSURFACE)) * cairo_image_surface_get_stride(CAIROSURFACE));
 
         cairo_destroy(CAIRO);
         cairo_surface_destroy(CAIROSURFACE);
@@ -664,7 +663,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
 
-    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 0, 100);
+    auto        CURSOR_PADDING = std::clamp(sc<int>(*PADDING), 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
 
     //
@@ -809,7 +808,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     switch (dev->getType()) {
         case HID_TYPE_TABLET: {
-            CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
+            CTablet* TAB = rc<CTablet*>(dev.get());
             if (!TAB->m_boundOutput.empty()) {
                 mappedArea = outputMappedArea(TAB->m_boundOutput);
                 mappedArea.translate(TAB->m_boundBox.pos());
@@ -826,13 +825,13 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
             break;
         }
         case HID_TYPE_TOUCH: {
-            ITouch* TOUCH = reinterpret_cast<ITouch*>(dev.get());
+            ITouch* TOUCH = rc<ITouch*>(dev.get());
             if (!TOUCH->m_boundOutput.empty())
                 mappedArea = outputMappedArea(TOUCH->m_boundOutput);
             break;
         }
         case HID_TYPE_POINTER: {
-            IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
+            IPointer* POINTER = rc<IPointer*>(dev.get());
             if (!POINTER->m_boundOutput.empty())
                 mappedArea = outputMappedArea(POINTER->m_boundOutput);
             break;
@@ -903,7 +902,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->motionAbsolute = pointer->m_pointerEvents.motionAbsolute.listen([](const IPointer::SMotionAbsoluteEvent& event) {
@@ -912,7 +911,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->button = pointer->m_pointerEvents.button.listen([](const IPointer::SButtonEvent& event) {
@@ -920,8 +919,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->m_pointerEvents.axis.listen([](const IPointer::SAxisEvent& event) {
-        g_pInputManager->onMouseWheel(event);
+    listener->axis = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
+        g_pInputManager->onMouseWheel(event, weak.lock());
         PROTO::idle->onActivity();
     });
 
@@ -942,7 +941,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->swipeEnd = pointer->m_pointerEvents.swipeEnd.listen([](const IPointer::SSwipeEndEvent& event) {
@@ -956,21 +955,23 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->pinchBegin = pointer->m_pointerEvents.pinchBegin.listen([](const IPointer::SPinchBeginEvent& event) {
-        PROTO::pointerGestures->pinchBegin(event.timeMs, event.fingers);
+        g_pInputManager->onPinchBegin(event);
 
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->pinchEnd = pointer->m_pointerEvents.pinchEnd.listen([](const IPointer::SPinchEndEvent& event) {
-        PROTO::pointerGestures->pinchEnd(event.timeMs, event.cancelled);
+        g_pInputManager->onPinchEnd(event);
+
         PROTO::idle->onActivity();
     });
 
     listener->pinchUpdate = pointer->m_pointerEvents.pinchUpdate.listen([](const IPointer::SPinchUpdateEvent& event) {
-        PROTO::pointerGestures->pinchUpdate(event.timeMs, event.delta, event.scale, event.rotation);
+        g_pInputManager->onPinchUpdate(event);
+
         PROTO::idle->onActivity();
     });
 
@@ -1006,7 +1007,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->up = touch->m_touchEvents.up.listen([](const ITouch::SUpEvent& event) {
@@ -1047,7 +1048,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->proximity = tablet->m_tabletEvents.proximity.listen([](const CTablet::SProximityEvent& event) {
@@ -1061,7 +1062,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            g_pKeybindManager->dpms("on");
+            CKeybindManager::dpms("on");
     });
 
     listener->button = tablet->m_tabletEvents.button.listen([](const CTablet::SButtonEvent& event) {
@@ -1118,7 +1119,7 @@ void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, co
 }
 
 void CPointerManager::sendStoredMovement() {
-    PROTO::relativePointer->sendRelativeMotion((uint64_t)m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
+    PROTO::relativePointer->sendRelativeMotion(m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
     m_storedTime    = 0;
     m_storedDelta   = Vector2D{};
     m_storedUnaccel = Vector2D{};

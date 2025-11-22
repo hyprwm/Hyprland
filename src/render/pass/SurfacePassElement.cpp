@@ -75,10 +75,9 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     const bool MISALIGNEDFSV1 = std::floor(m_data.pMonitor->m_scale) != m_data.pMonitor->m_scale /* Fractional */ && m_data.surface->m_current.scale == 1 /* fs protocol */ &&
         windowBox.size() != m_data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, m_data.surface->m_current.bufferSize.x, 3) &&
         DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
+        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
+        (!m_data.pLS || (!m_data.pLS->m_realSize->isBeingAnimated())); /* not LS or not animated */
 
-    if (m_data.surface->m_colorManagement.valid())
-        Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;
@@ -169,34 +168,40 @@ CBox CSurfacePassElement::getTexBox() {
 
     CBox         windowBox;
     if (m_data.surface && m_data.mainSurface) {
-        windowBox = {(int)outputX + m_data.pos.x + m_data.localPos.x, (int)outputY + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
+        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them
         const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
 
         // center the surface if it's smaller than the viewport we assign it
         if (PSURFACE && !PSURFACE->m_fillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
-            const auto CORRECT = PSURFACE->correctSmallVec();
-            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
+            const auto CORRECT  = PSURFACE->correctSmallVec();
+            const auto SIZE     = PSURFACE->getViewporterCorrectedSize();
+            const auto REPORTED = PWINDOW->getReportedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.translate(CORRECT);
 
-                windowBox.width  = SIZE.x * (PWINDOW->m_realSize->value().x / PWINDOW->m_reportedSize.x);
-                windowBox.height = SIZE.y * (PWINDOW->m_realSize->value().y / PWINDOW->m_reportedSize.y);
+                windowBox.width  = SIZE.x * (PWINDOW->m_realSize->value().x / REPORTED.x);
+                windowBox.height = SIZE.y * (PWINDOW->m_realSize->value().y / REPORTED.y);
             } else {
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
             }
         }
-
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + m_data.pos.x + m_data.localPos.x, (int)outputY + m_data.pos.y + m_data.localPos.y, std::max((float)m_data.surface->m_current.size.x, 2.F),
-                     std::max((float)m_data.surface->m_current.size.y, 2.F)};
+
+        const auto SURFSIZE = m_data.surface->m_current.size;
+
+        windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(sc<float>(SURFSIZE.x), 2.F),
+                     std::max(sc<float>(SURFSIZE.y), 2.F)};
         if (m_data.pWindow && m_data.pWindow->m_realSize->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / m_data.pWindow->m_reportedSize.x) * m_data.pWindow->m_realSize->value().x;
-            windowBox.height = (windowBox.height / m_data.pWindow->m_reportedSize.y) * m_data.pWindow->m_realSize->value().y;
+            const auto REPORTED = m_data.pWindow->getReportedSize();
+            if (REPORTED.x != 0 && REPORTED.y != 0) {
+                windowBox.width  = (windowBox.width / REPORTED.x) * m_data.pWindow->m_realSize->value().x;
+                windowBox.height = (windowBox.height / REPORTED.y) * m_data.pWindow->m_realSize->value().y;
+            }
         }
     }
 

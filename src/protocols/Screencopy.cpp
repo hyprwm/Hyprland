@@ -60,10 +60,10 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = m_monitor->m_output->state->state().drmFormat;
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
 
     if (box_.width == 0 && box_.height == 0)
-        m_box = {0, 0, (int)(m_monitor->m_size.x), (int)(m_monitor->m_size.y)};
+        m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
     else
         m_box = box_;
 
@@ -133,7 +133,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             PROTO::screencopy->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != m_shmStride) {
+        } else if (attrs.stride != m_shmStride) {
             LOGM(ERR, "Invalid buffer shm stride in {:x}", (uintptr_t)pFrame);
             m_resource->error(ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             PROTO::screencopy->destroyResource(this);
@@ -172,7 +172,7 @@ void CScreencopyFrame::share() {
             return;
         }
 
-        m_resource->sendFlags((zwlrScreencopyFrameV1Flags)0);
+        m_resource->sendFlags(sc<zwlrScreencopyFrameV1Flags>(0));
         if (m_withDamage) {
             // TODO: add a damage ring for this.
             m_resource->sendDamage(0, 0, m_buffer->size.x, m_buffer->size.y);
@@ -211,8 +211,47 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
+    auto hidePopups = [&](Vector2D popupBaseOffset) {
+        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
+            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+                return;
+
+            const auto popRel = popup->coordsRelativeToParent();
+            popup->m_wlSurface->resource()->breadthfirst(
+                [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
+                    const auto size    = surf->m_current.size;
+                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+                    if LIKELY (surfBox.w > 0 && surfBox.h > 0)
+                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                },
+                nullptr);
+        };
+    };
+
+    for (auto const& l : g_pCompositor->m_layers) {
+        if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
+            continue;
+
+        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+            continue;
+
+        const auto REALPOS  = l->m_realPosition->value();
+        const auto REALSIZE = l->m_realSize->value();
+
+        const auto noScreenShareBox =
+            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
+
+        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+
+        const auto     geom            = l->m_geometry;
+        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+        if (l->m_popupHead)
+            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+    }
+
     for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_windowData.noScreenShare.valueOrDefault())
+        if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w, m_monitor.lock()))
@@ -223,16 +262,17 @@ void CScreencopyFrame::renderMon() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE)
+        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
             continue;
 
-        const auto REALPOS          = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
+        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
                                           .translate(-m_monitor->m_position)
                                           .scale(m_monitor->m_scale)
                                           .translate(-m_box.pos());
 
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || w->m_windowData.noRounding.valueOrDefault();
+        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
@@ -244,23 +284,7 @@ void CScreencopyFrame::renderMon() {
         const auto     geom            = w->m_xdgSurface->m_current.geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
 
-        w->m_popupHead->breadthfirst(
-            [&](WP<CPopup> popup, void*) {
-                if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
-                    return;
-
-                const auto popRel = popup->coordsRelativeToParent();
-                popup->m_wlSurface->resource()->breadthfirst(
-                    [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                        const auto size    = surf->m_current.size;
-                        const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
-
-                        if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
-                    },
-                    nullptr);
-            },
-            nullptr);
+        w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     if (m_overlayCursor)
@@ -377,12 +401,12 @@ bool CScreencopyFrame::copyShm() {
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
-    if (packStride == (uint32_t)shm.stride) {
+    if (packStride == sc<uint32_t>(shm.stride)) {
         glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
             uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, ((unsigned char*)pixelData) + i * shm.stride);
+            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
         }
     }
 
@@ -446,11 +470,11 @@ void CScreencopyClient::onTick() {
     const bool FRAMEAWAITING  = std::ranges::any_of(PROTO::screencopy->m_frames, [&](const auto& frame) { return frame->m_client.get() == this; });
 
     if (m_framesInLastHalfSecond > 3 && !m_sentScreencast) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(m_clientOwner)});
         m_sentScreencast = true;
     } else if (m_framesInLastHalfSecond < 4 && m_sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
-        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)m_framesInLastHalfSecond, (uint64_t)m_clientOwner}));
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, sc<uint64_t>(m_framesInLastHalfSecond), sc<uint64_t>(m_clientOwner)}));
         g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(m_clientOwner)});
         m_sentScreencast = false;
     }
@@ -496,6 +520,10 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
 
 void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_framesAwaitingWrite.empty()) {
+        for (auto client : m_clients) {
+            if (client->m_framesInLastHalfSecond > 0)
+                return;
+        }
         g_pHyprRenderer->m_directScanoutBlocked = false;
         return; // nothing to share
     }

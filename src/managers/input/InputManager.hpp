@@ -90,13 +90,14 @@ class CInputManager {
     void               onMouseMoved(IPointer::SMotionEvent);
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
     void               onMouseButton(IPointer::SButtonEvent);
-    void               onMouseWheel(IPointer::SAxisEvent);
+    void               onMouseWheel(IPointer::SAxisEvent, SP<IPointer> pointer = nullptr);
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
     void               newKeyboard(SP<IKeyboard>);
     void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
+    void               newMouse(SP<IPointer>);
     void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(SP<Aquamarine::ITouch>);
@@ -116,7 +117,7 @@ class CInputManager {
     bool               isLocked();
 
     Vector2D           getMouseCoordsInternal();
-    void               refocus();
+    void               refocus(std::optional<Vector2D> overridePos = std::nullopt);
     bool               refocusLastWindow(PHLMONITOR pMonitor);
     void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
@@ -140,6 +141,10 @@ class CInputManager {
     void               onSwipeBegin(IPointer::SSwipeBeginEvent);
     void               onSwipeEnd(IPointer::SSwipeEndEvent);
     void               onSwipeUpdate(IPointer::SSwipeUpdateEvent);
+
+    void               onPinchBegin(IPointer::SPinchBeginEvent);
+    void               onPinchUpdate(IPointer::SPinchUpdateEvent);
+    void               onPinchEnd(IPointer::SPinchEndEvent);
 
     void               onTabletAxis(CTablet::SAxisEvent);
     void               onTabletProximity(CTablet::SProximityEvent);
@@ -179,8 +184,6 @@ class CInputManager {
     void              recheckIdleInhibitorStatus();
     bool              isWindowInhibiting(const PHLWINDOW& pWindow, bool onlyHl = true);
 
-    SSwipeGesture     m_activeSwipe;
-
     CTimer            m_lastCursorMovement;
 
     CInputMethodRelay m_relay;
@@ -190,11 +193,7 @@ class CInputManager {
     uint32_t                     getModsFromAllKBs();
 
     // for virtual keyboards: whether we should respect them as normal ones
-    bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
-
-    // for special cursors that we choose
-    void        setCursorImageUntilUnset(std::string);
-    void        unsetCursorImage();
+    bool        shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
 
     std::string getNameForNewDevice(std::string);
 
@@ -223,6 +222,7 @@ class CInputManager {
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
         CHyprSignalListener setCursor;
+        CHyprSignalListener overrideChanged;
     } m_listeners;
 
     bool                 m_cursorImageOverridden = false;
@@ -244,7 +244,7 @@ class CInputManager {
 
     uint32_t           m_capabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false);
+    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt);
     void               recheckMouseWarpOnMouseInput();
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
@@ -276,16 +276,8 @@ class CInputManager {
     };
     std::vector<UP<SIdleInhibitor>> m_idleInhibitors;
 
-    // swipe
-    void beginWorkspaceSwipe();
-    void updateWorkspaceSwipe(double);
-    void endWorkspaceSwipe();
-
-    void setBorderCursorIcon(eBorderIconDirection);
-    void setCursorIconOnBorder(PHLWINDOW w);
-
-    // temporary. Obeys setUntilUnset.
-    void setCursorImageOverride(const std::string& name);
+    void                            setBorderCursorIcon(eBorderIconDirection);
+    void                            setCursorIconOnBorder(PHLWINDOW w);
 
     // cursor surface
     struct {
@@ -293,7 +285,6 @@ class CInputManager {
         SP<CWLSurface> wlSurface;
         Vector2D       vHotspot;
         std::string    name; // if not empty, means set by name.
-        bool           inUse = false;
     } m_cursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
@@ -313,6 +304,7 @@ class CInputManager {
 
     friend class CKeybindManager;
     friend class CWLSurface;
+    friend class CWorkspaceSwipeGesture;
 };
 
 inline UP<CInputManager> g_pInputManager;

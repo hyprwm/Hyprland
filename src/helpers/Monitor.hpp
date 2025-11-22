@@ -8,6 +8,7 @@
 #include "WLClasses.hpp"
 #include <array>
 #include "AnimatedVariable.hpp"
+#include "CMType.hpp"
 
 #include <xf86drmMode.h>
 #include "time/Timer.hpp"
@@ -35,15 +36,6 @@ enum eAutoDirs : uint8_t {
     DIR_AUTO_CENTER_RIGHT
 };
 
-enum eCMType : uint8_t {
-    CM_AUTO = 0, // subject to change. srgb for 8bpc, wide for 10bpc if supported
-    CM_SRGB,     // default, sRGB primaries
-    CM_WIDE,     // wide color gamut, BT2020 primaries
-    CM_EDID,     // primaries from edid (known to be inaccurate)
-    CM_HDR,      // wide color gamut and HDR PQ transfer function
-    CM_HDR_EDID, // same as CM_HDR with edid primaries
-};
-
 struct SMonitorRule {
     eAutoDirs           autoDir       = DIR_AUTO_NONE;
     std::string         name          = "";
@@ -55,7 +47,8 @@ struct SMonitorRule {
     wl_output_transform transform     = WL_OUTPUT_TRANSFORM_NORMAL;
     std::string         mirrorOf      = "";
     bool                enable10bit   = false;
-    eCMType             cmType        = CM_SRGB;
+    NCMType::eCMType    cmType        = NCMType::CM_SRGB;
+    int                 sdrEotf       = 0;
     float               sdrSaturation = 1.0f; // SDR -> HDR
     float               sdrBrightness = 1.0f; // SDR -> HDR
 
@@ -76,6 +69,7 @@ struct SMonitorRule {
 class CMonitor;
 class CSyncTimeline;
 class CEGLSync;
+class CEventLoopTimer;
 
 class CMonitorState {
   public:
@@ -138,13 +132,16 @@ class CMonitor {
     bool                        m_dpmsStatus       = true;
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
-    eCMType                     m_cmType           = CM_SRGB;
+    NCMType::eCMType            m_cmType           = NCMType::CM_SRGB;
+    int                         m_sdrEotf          = 0;
     float                       m_sdrSaturation    = 1.0f;
     float                       m_sdrBrightness    = 1.0f;
     float                       m_sdrMinLuminance  = 0.2f;
     int                         m_sdrMaxLuminance  = 80;
     bool                        m_createdByUser    = false;
     bool                        m_isUnsafeFallback = false;
+
+    SP<CEventLoopTimer>         m_dpmsRetryTimer;
 
     bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                        m_renderingActive = false;
@@ -181,7 +178,20 @@ class CMonitor {
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
 
+    // for dpms off anim
+    PHLANIMVAR<float> m_dpmsBlackOpacity;
+    bool              m_pendingDpmsAnimation        = false;
+    int               m_pendingDpmsAnimationCounter = 0;
+
     PHLANIMVAR<float> m_cursorZoom;
+
+    // for fading in the wallpaper because it doesn't happen instantly (it's loaded async)
+    PHLANIMVAR<float> m_backgroundOpacity;
+
+    // for initial zoom anim
+    PHLANIMVAR<float> m_zoomAnimProgress;
+    CTimer            m_newMonitorAnimTimer;
+    int               m_zoomAnimFrameCounter = 0;
 
     struct {
         bool canTear         = false;
@@ -198,50 +208,135 @@ class CMonitor {
         CSignalT<> disconnect;
         CSignalT<> dpmsChanged;
         CSignalT<> modeChanged;
+        CSignalT<> presented;
     } m_events;
 
     std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
 
+    // keep in sync with HyprCtl
+    enum eDSBlockReason : uint16_t {
+        DS_OK = 0,
+
+        DS_BLOCK_UNKNOWN   = (1 << 0),
+        DS_BLOCK_USER      = (1 << 1),
+        DS_BLOCK_WINDOWED  = (1 << 2),
+        DS_BLOCK_CONTENT   = (1 << 3),
+        DS_BLOCK_MIRROR    = (1 << 4),
+        DS_BLOCK_RECORD    = (1 << 5),
+        DS_BLOCK_SW        = (1 << 6),
+        DS_BLOCK_CANDIDATE = (1 << 7),
+        DS_BLOCK_SURFACE   = (1 << 8),
+        DS_BLOCK_TRANSFORM = (1 << 9),
+        DS_BLOCK_DMA       = (1 << 10),
+        DS_BLOCK_TEARING   = (1 << 11),
+        DS_BLOCK_FAILED    = (1 << 12),
+        DS_BLOCK_CM        = (1 << 13),
+
+        DS_CHECKS_COUNT = 14,
+    };
+
+    // keep in sync with HyprCtl
+    enum eSolitaryCheck : uint32_t {
+        SC_OK = 0,
+
+        SC_UNKNOWN      = (1 << 0),
+        SC_NOTIFICATION = (1 << 1),
+        SC_LOCK         = (1 << 2),
+        SC_WORKSPACE    = (1 << 3),
+        SC_WINDOWED     = (1 << 4),
+        SC_DND          = (1 << 5),
+        SC_SPECIAL      = (1 << 6),
+        SC_ALPHA        = (1 << 7),
+        SC_OFFSET       = (1 << 8),
+        SC_CANDIDATE    = (1 << 9),
+        SC_OPAQUE       = (1 << 10),
+        SC_TRANSFORM    = (1 << 11),
+        SC_OVERLAYS     = (1 << 12),
+        SC_FLOAT        = (1 << 13),
+        SC_WORKSPACES   = (1 << 14),
+        SC_SURFACES     = (1 << 15),
+        SC_ERRORBAR     = (1 << 16),
+
+        SC_CHECKS_COUNT = 17,
+    };
+
+    // keep in sync with HyprCtl
+    enum eTearingCheck : uint8_t {
+        TC_OK = 0,
+
+        TC_UNKNOWN   = (1 << 0),
+        TC_NOT_TORN  = (1 << 1),
+        TC_USER      = (1 << 2),
+        TC_ZOOM      = (1 << 3),
+        TC_SUPPORT   = (1 << 4),
+        TC_CANDIDATE = (1 << 5),
+        TC_WINDOW    = (1 << 6),
+
+        TC_CHECKS_COUNT = 7,
+    };
+
     // methods
-    void                                onConnect(bool noRule);
-    void                                onDisconnect(bool destroy = false);
-    void                                applyCMType(eCMType cmType);
-    bool                                applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
-    void                                addDamage(const pixman_region32_t* rg);
-    void                                addDamage(const CRegion& rg);
-    void                                addDamage(const CBox& box);
-    bool                                shouldSkipScheduleFrameOnMouseEvent();
-    void                                setMirror(const std::string&);
-    bool                                isMirror();
-    bool                                matchesStaticSelector(const std::string& selector) const;
-    float                               getDefaultScale();
-    void                                changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void                                changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void                                setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-    void                                setSpecialWorkspace(const WORKSPACEID& id);
-    void                                moveTo(const Vector2D& pos);
-    Vector2D                            middle();
-    void                                updateMatrix();
-    WORKSPACEID                         activeWorkspaceID();
-    WORKSPACEID                         activeSpecialWorkspaceID();
-    CBox                                logicalBox();
-    void                                scheduleDone();
-    bool                                attemptDirectScanout();
-    void                                setCTM(const Mat3x3& ctm);
-    void                                onCursorMovedOnMonitor();
+    void        onConnect(bool noRule);
+    void        onDisconnect(bool destroy = false);
+    void        applyCMType(NCMType::eCMType cmType, int cmSdrEotf);
+    bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
+    void        addDamage(const pixman_region32_t* rg);
+    void        addDamage(const CRegion& rg);
+    void        addDamage(const CBox& box);
+    bool        shouldSkipScheduleFrameOnMouseEvent();
+    void        setMirror(const std::string&);
+    bool        isMirror();
+    bool        matchesStaticSelector(const std::string& selector) const;
+    float       getDefaultScale();
+    void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+    void        setSpecialWorkspace(const WORKSPACEID& id);
+    void        moveTo(const Vector2D& pos);
+    Vector2D    middle();
+    void        updateMatrix();
+    WORKSPACEID activeWorkspaceID();
+    WORKSPACEID activeSpecialWorkspaceID();
+    CBox        logicalBox();
+    CBox        logicalBoxMinusExtents();
+    void        scheduleDone();
+    uint32_t    isSolitaryBlocked(bool full = false);
+    void        recheckSolitary();
+    uint8_t     isTearingBlocked(bool full = false);
+    bool        updateTearing();
+    uint16_t    isDSBlocked(bool full = false);
+    bool        attemptDirectScanout();
+    void        setCTM(const Mat3x3& ctm);
+    void        onCursorMovedOnMonitor();
+    void        setDPMS(bool on);
 
-    void                                debugLastPresentation(const std::string& message);
+    void        debugLastPresentation(const std::string& message);
 
-    bool                                supportsWideColor();
-    bool                                supportsHDR();
-    float                               minLuminance();
-    int                                 maxLuminance();
-    int                                 maxAvgLuminance();
+    bool        supportsWideColor();
+    bool        supportsHDR();
+    float       minLuminance(float defaultValue = 0);
+    int         maxLuminance(int defaultValue = 80);
+    int         maxAvgLuminance(int defaultValue = 80);
+
+    bool        wantsWideColor();
+    bool        wantsHDR();
+
+    bool        inHDR();
+
+    /// Has an active workspace with a real fullscreen window
+    bool                                               inFullscreenMode();
+    std::optional<NColorManagement::SImageDescription> getFSImageDescription();
+
+    bool                                               needsCM();
+    /// Can do CM without shader
+    bool                                canNoShaderCM();
+    bool                                doesNoShaderCM();
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
     WP<CWindow>                         m_previousFSWindow;
     NColorManagement::SImageDescription m_imageDescription;
+    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
 
     // For the list lookup
 
@@ -256,6 +351,7 @@ class CMonitor {
   private:
     void                    setupDefaultWS(const SMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
+    void                    commitDPMSState(bool state);
 
     bool                    m_doneScheduled = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;

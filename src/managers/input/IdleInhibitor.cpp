@@ -8,7 +8,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_idleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
     PINHIBIT->inhibitor = std::any_cast<SP<CIdleInhibitor>>(inhibitor);
 
-    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->m_surface.get());
+    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", rc<uintptr_t>(PINHIBIT->inhibitor->m_surface.get()));
 
     PINHIBIT->inhibitor->m_listeners.destroy = PINHIBIT->inhibitor->m_resource->m_events.destroy.listen([this, PINHIBIT] {
         std::erase_if(m_idleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
@@ -61,13 +61,13 @@ void CInputManager::recheckIdleInhibitorStatus() {
 }
 
 bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
-    if (w->m_idleInhibitMode == IDLEINHIBIT_ALWAYS)
+    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_ALWAYS)
         return true;
 
-    if (w->m_idleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w))
+    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w))
         return true;
 
-    if (w->m_idleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && w->m_workspace && w->m_workspace->isVisible())
+    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && w->m_workspace && w->m_workspace->isVisible())
         return true;
 
     if (onlyHl)
@@ -89,7 +89,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
                     return;
 
                 if (WLSurface->visible())
-                    *(bool*)data = true;
+                    *sc<bool*>(data) = true;
             },
             &isInhibiting);
 

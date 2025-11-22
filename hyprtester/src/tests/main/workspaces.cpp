@@ -25,7 +25,17 @@ static bool test() {
 
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    OK(getFromSocket("/dispatch workspace 1"));
+    getFromSocket("/dispatch workspace 1");
+
+    NLog::log("{}Checking persistent no-mon", Colors::YELLOW);
+    OK(getFromSocket("r/keyword workspace 966,persistent:1"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "workspace ID 966 (966)");
+    }
+
+    OK(getFromSocket("/reload"));
 
     NLog::log("{}Spawning kittyProc on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();

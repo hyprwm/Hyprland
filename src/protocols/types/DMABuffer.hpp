@@ -18,7 +18,6 @@ class CDMABuffer : public IHLBuffer {
     bool                                           good();
     void                                           closeFDs();
     Hyprutils::OS::CFileDescriptor                 exportSyncFile();
-
     bool                                           m_success = false;
 
   private:

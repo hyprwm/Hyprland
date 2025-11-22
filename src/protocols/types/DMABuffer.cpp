@@ -20,15 +20,15 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
         m_listeners.resourceDestroy.reset();
     });
 
-    size       = m_attrs.size;
-    m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
-
+    size          = m_attrs.size;
+    m_resource    = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
     auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
     if UNLIKELY (!eglImage) {
         Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
         m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
         eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
+
         if UNLIKELY (!eglImage) {
             Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
             return;
@@ -118,8 +118,12 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
         if (fd == -1)
             continue;
 
-        if (CFileDescriptor::isReadable(fd))
-            continue;
+        // buffer readability checks are rather slow on some Intel laptops
+        // see https://gitlab.freedesktop.org/drm/intel/-/issues/9415
+        if (g_pHyprRenderer && !g_pHyprRenderer->isIntel()) {
+            if (CFileDescriptor::isReadable(fd))
+                continue;
+        }
 
         dma_buf_export_sync_file request{
             .flags = DMA_BUF_SYNC_READ,

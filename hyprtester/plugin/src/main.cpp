@@ -9,11 +9,17 @@
 #include <src/layout/IHyprLayout.hpp>
 #include <src/managers/LayoutManager.hpp>
 #include <src/managers/input/InputManager.hpp>
+#include <src/managers/PointerManager.hpp>
+#include <src/managers/input/trackpad/TrackpadGestures.hpp>
+#include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
+#include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/Compositor.hpp>
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/VarList.hpp>
 using namespace Hyprutils::Utils;
+using namespace Hyprutils::String;
 
 #include "globals.hpp"
 
@@ -72,7 +78,7 @@ class CTestKeyboard : public IKeyboard {
 
     void sendKey(uint32_t key, bool pressed) {
         auto event = IKeyboard::SKeyEvent{
-            .timeMs  = static_cast<uint32_t>(Time::millis(Time::steadyNow())),
+            .timeMs  = sc<uint32_t>(Time::millis(Time::steadyNow())),
             .keycode = key,
             .state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         };
@@ -85,8 +91,73 @@ class CTestKeyboard : public IKeyboard {
     }
 
   private:
-    bool m_isVirtual;
+    bool m_isVirtual = false;
 };
+
+class CTestMouse : public IPointer {
+  public:
+    static SP<CTestMouse> create(bool isVirtual) {
+        auto maus          = SP<CTestMouse>(new CTestMouse());
+        maus->m_self       = maus;
+        maus->m_isVirtual  = isVirtual;
+        maus->m_deviceName = "test-mouse";
+        maus->m_hlName     = "test-mouse";
+        return maus;
+    }
+
+    virtual bool isVirtual() {
+        return m_isVirtual;
+    }
+
+    virtual SP<Aquamarine::IPointer> aq() {
+        return nullptr;
+    }
+
+    void destroy() {
+        m_events.destroy.emit();
+    }
+
+  private:
+    bool m_isVirtual = false;
+};
+
+SP<CTestMouse>         g_mouse;
+SP<CTestKeyboard>      g_keyboard;
+
+static SDispatchResult pressAlt(std::string in) {
+    g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
+
+    return {.success = true};
+}
+
+static SDispatchResult simulateGesture(std::string in) {
+    CVarList data(in);
+
+    uint32_t fingers = 3;
+    try {
+        fingers = std::stoul(data[1]);
+    } catch (...) { return {.success = false}; }
+
+    if (data[0] == "down") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {0, 300}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else if (data[0] == "up") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {0, -300}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else if (data[0] == "left") {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {-300, 0}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    } else {
+        g_pTrackpadGestures->gestureBegin(IPointer::SSwipeBeginEvent{});
+        g_pTrackpadGestures->gestureUpdate(IPointer::SSwipeUpdateEvent{.fingers = fingers, .delta = {300, 0}});
+        g_pTrackpadGestures->gestureEnd(IPointer::SSwipeEndEvent{});
+    }
+
+    return {.success = true};
+}
 
 static SDispatchResult vkb(std::string in) {
     auto tkb0 = CTestKeyboard::create(false);
@@ -135,16 +206,98 @@ static SDispatchResult vkb(std::string in) {
     return {};
 }
 
+static SDispatchResult scroll(std::string in) {
+    double by;
+    try {
+        by = std::stod(in);
+    } catch (...) { return SDispatchResult{.success = false, .error = "invalid input"}; }
+
+    Debug::log(LOG, "tester: scrolling by {}", by);
+
+    g_mouse->m_pointerEvents.axis.emit(IPointer::SAxisEvent{
+        .delta         = by,
+        .deltaDiscrete = 120,
+        .mouse         = true,
+    });
+
+    return {};
+}
+
+static SDispatchResult keybind(std::string in) {
+    CVarList data(in);
+    // 0 = release, 1 = press
+    bool press;
+    // See src/devices/IKeyboard.hpp : eKeyboardModifiers for modifier bitmasks
+    // 0 = none, eKeyboardModifiers is shifted to start at 1
+    uint32_t modifier;
+    // keycode
+    uint32_t key;
+    try {
+        press    = std::stoul(data[0]) == 1;
+        modifier = std::stoul(data[1]);
+        key      = std::stoul(data[2]) - 8; // xkb offset
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    uint32_t modifierMask = 0;
+    if (modifier > 0)
+        modifierMask = 1 << (modifier - 1);
+    g_pInputManager->m_lastMods = modifierMask;
+    g_keyboard->sendKey(key, press);
+
+    return {};
+}
+
+static Desktop::Rule::CWindowRuleEffectContainer::storageType ruleIDX = 0;
+
+//
+static SDispatchResult addRule(std::string in) {
+    ruleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
+
+    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule") != ruleIDX)
+        return {.success = false, .error = "re-registering returned a different id?"};
+    return {};
+}
+
+static SDispatchResult checkRule(std::string in) {
+    if (!g_pCompositor->m_lastWindow)
+        return {.success = false, .error = "No window"};
+
+    if (!g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props.contains(ruleIDX))
+        return {.success = false, .error = "No rule"};
+
+    if (g_pCompositor->m_lastWindow->m_ruleApplicator->m_otherProps.props[ruleIDX]->effect != "effect")
+        return {.success = false, .error = "Effect isn't \"effect\""};
+
+    return {};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:test", ::test);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:snapmove", ::snapMove);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:vkb", ::vkb);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:alt", ::pressAlt);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:gesture", ::simulateGesture);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:scroll", ::scroll);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:keybind", ::keybind);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_rule", ::addRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_rule", ::checkRule);
+
+    // init mouse
+    g_mouse = CTestMouse::create(false);
+    g_pInputManager->newMouse(g_mouse);
+
+    // init keyboard
+    g_keyboard = CTestKeyboard::create(false);
+    g_pInputManager->newKeyboard(g_keyboard);
 
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
-    ;
+    g_mouse->destroy();
+    g_mouse.reset();
+    g_keyboard->destroy();
+    g_keyboard.reset();
 }

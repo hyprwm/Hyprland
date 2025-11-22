@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include "ConfigManager.hpp"
 
 inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
@@ -13,12 +14,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "size of the border around windows",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
-    },
-    SConfigOptionDescription{
-        .value       = "general:no_border_on_floating",
-        .description = "disable borders for floating windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
         .value       = "general:gaps_in",
@@ -141,6 +136,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "general:modal_parent_blocking",
+        .description = "if true, parent windows of modals will not be interactive.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "general:locale",
+        .description = "overrides the system locale",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{""},
+    },
 
     /*
      * decoration:
@@ -229,6 +236,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "shadow's scale. [0.0 - 1.0]",
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
+    },
+    SConfigOptionDescription{
+        .value       = "decoration:dim_modal",
+        .description = "enables dimming of parents of modal windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
         .value       = "decoration:dim_inactive",
@@ -380,12 +393,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "animations:first_launch_animation",
-        .description = "enable first launch animation",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
         .value       = "animations:workspace_wraparound",
         .description = "changes the direction of slide animations between the first and last workspaces",
         .type        = CONFIG_OPTION_BOOL,
@@ -428,7 +435,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
-        .description = "Appropriate XKB keymap parameter",
+        .description = "Appropriate XKB keymap file",
         .type        = CONFIG_OPTION_STRING_LONG,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
@@ -476,6 +483,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "potential cursor desynchronization.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:rotation",
+        .description = "Sets the rotation of a device in degrees clockwise off the logical neutral position. Value is clamped to the range 0 to 359.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 359},
     },
     SConfigOptionDescription{
         .value       = "input:left_handed",
@@ -682,9 +695,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "input:virtualkeyboard:share_states",
-        .description = "Unify key down states and modifier states with other keyboards",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "Unify key down states and modifier states with other keyboards. 0 -> no, 1 -> yes, 2 -> yes unless IME client",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:virtualkeyboard:release_pressed_on_close",
@@ -763,24 +776,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe",
-        .description = "enable workspace swipe gesture on touchpad",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_fingers",
-        .description = "how many fingers for the touchpad gesture",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{3, 0, 5}, //##TODO RANGE?
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_min_fingers",
-        .description = "if enabled, workspace_swipe_fingers is considered the minimum number of fingers to swipe",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_distance",
         .description = "in px, the distance of the touchpad gesture",
         .type        = CONFIG_OPTION_INT,
@@ -845,6 +840,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "gestures:close_max_timeout",
+        .description = "Timeout for closing windows with the close gesture, in ms.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1000, 10, 2000},
     },
 
     /*
@@ -1013,10 +1014,22 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:rounding_power",
+        .description = "rounding power of groupbar corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:gradient_rounding",
         .description = "how much to round the groupbar gradient",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:gradient_rounding_power",
+        .description = "rounding power of groupbar gradient corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:round_only_edges",
@@ -1101,6 +1114,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "set an offset for a text",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:blur",
+        .description = "enable background blur for groupbars",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -1297,8 +1316,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_hyprland_qtutils_check",
-        .description = "disable the warning if hyprland-qtutils is missing",
+        .value       = "misc:disable_hyprland_guiutils_check",
+        .description = "disable the warning if hyprland-guiutils is missing",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1318,7 +1337,25 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "misc:anr_missed_pings",
         .description = "number of missed pings before showing the ANR dialog",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+        .data        = SConfigOptionDescription::SRangeData{5, 1, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:screencopy_force_8b",
+        .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_scale_notification",
+        .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:size_limits_tiled",
+        .description = "whether to apply minsize and maxsize rules to tiled windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -1511,6 +1548,19 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "render:non_shader_cm",
+        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - disable and ignore CM issues",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_sdr_eotf",
+        .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
+    },
 
     /*
      * cursor:
@@ -1593,6 +1643,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "cursor:zoom_rigid",
         .description = "whether the zoom should follow the cursor rigidly (cursor is always centered if it can be) or loosely",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:zoom_disable_aa",
+        .description = "If enabled, when zooming, no antialiasing will be used (zoom will be pixelated)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1820,9 +1876,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "dwindle:split_bias",
-        .description = "specifies which window will receive the larger half of a split. positional - 0, current window - 1, opening window - 2 [0/1/2]",
+        .description = "specifies which window will receive the split ratio. 0 -> directional (the top or left window), 1 -> the current window",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "positional,current,opening"},
+        .data        = SConfigOptionDescription::SChoiceData{0, "directional,current"},
     },
     SConfigOptionDescription{
         .value       = "dwindle:precise_mouse_move",

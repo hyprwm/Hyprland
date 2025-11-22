@@ -3,10 +3,11 @@
 #include <string>
 #include <vector>
 #include <cstddef>
+#include <unordered_set>
 #include "../helpers/memory/Memory.hpp"
 
 #define HANDLE                   void*
-#define HOOK_TRAMPOLINE_MAX_SIZE 64
+#define HOOK_TRAMPOLINE_MAX_SIZE 32
 
 class CFunctionHook {
   public:
@@ -24,13 +25,13 @@ class CFunctionHook {
     void*          m_original = nullptr;
 
   private:
-    void*                      m_source         = nullptr;
-    void*                      m_trampolineAddr = nullptr;
-    void*                      m_destination    = nullptr;
-    size_t                     m_hookLen        = 0;
-    size_t                     m_trampoLen      = 0;
-    HANDLE                     m_owner          = nullptr;
-    bool                       m_active         = false;
+    void*                      m_source               = nullptr;
+    void*                      m_launchTrampolineAddr = nullptr;
+    void*                      m_landTrampolineAddr   = nullptr;
+    void*                      m_destination          = nullptr;
+    size_t                     m_hookLen              = 0;
+    HANDLE                     m_owner                = nullptr;
+    bool                       m_active               = false;
 
     std::vector<unsigned char> m_originalBytes;
 
@@ -70,7 +71,8 @@ class CHookSystem {
         uint64_t used = 0;
     };
 
-    std::vector<SAllocatedPage> m_pages;
+    std::vector<SAllocatedPage>  m_pages;
+    std::unordered_set<uint64_t> m_activeHooks;
 
     friend class CFunctionHook;
 };

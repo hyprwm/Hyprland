@@ -60,10 +60,16 @@ void SSurfaceState::reset() {
     // wl_surface.commit assigns pending ... and clears pending damage.
     damage.clear();
     bufferDamage.clear();
+
+    callbacks.clear();
+    lockMask = LOCK_REASON_NONE;
 }
 
-void SSurfaceState::updateFrom(SSurfaceState& ref) {
-    updated = ref.updated;
+void SSurfaceState::updateFrom(SSurfaceState& ref, bool merge) {
+    if (merge)
+        updated.all |= ref.updated.all;
+    else
+        updated = ref.updated;
 
     if (ref.updated.bits.buffer) {
         buffer     = ref.buffer;
@@ -97,4 +103,12 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.bits.acquire)
         acquire = ref.acquire;
+
+    if (ref.updated.bits.acked)
+        ackedSize = ref.ackedSize;
+
+    if (ref.updated.bits.frame) {
+        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
+        ref.callbacks.clear();
+    }
 }

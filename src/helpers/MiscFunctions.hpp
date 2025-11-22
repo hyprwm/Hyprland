@@ -17,6 +17,7 @@ struct SCallstackFrameInfo {
 struct SWorkspaceIDName {
     WORKSPACEID id = WORKSPACE_INVALID;
     std::string name;
+    bool        isAutoIDd = false;
 };
 
 std::string                             absolutePath(const std::string&, const std::string&);
@@ -43,6 +44,9 @@ bool                                    isNvidiaDriverVersionAtLeast(int thresho
 std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client);
 std::expected<std::string, std::string> binaryNameForPid(pid_t pid);
 std::string                             deviceNameToInternalString(std::string in);
+std::string                             getSystemLibraryVersion(const std::string& name);
+std::string                             getBuiltSystemLibraryNames();
+bool                                    truthy(const std::string& str);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

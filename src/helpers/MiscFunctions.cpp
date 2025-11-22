@@ -23,6 +23,8 @@
 #endif
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
+#include "../version.h"
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 
@@ -87,7 +89,7 @@ std::string escapeJSONStrings(const std::string& str) {
             case '\t': oss << "\\t"; break;
             default:
                 if ('\x00' <= c && c <= '\x1f') {
-                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << sc<int>(c);
                 } else {
                     oss << c;
                 }
@@ -111,6 +113,10 @@ bool isDirection(const std::string& arg) {
 
 bool isDirection(const char& arg) {
     return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
+static bool isAutoIDdWorkspace(WORKSPACEID id) {
+    return id < WORKSPACE_INVALID;
 }
 
 SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
@@ -148,7 +154,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (PMONITOR && (PMONITOR->m_id != g_pCompositor->m_lastMonitor->m_id))
                     invalidWSes.insert(rule.workspaceId);
             }
@@ -213,7 +219,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             WORKSPACEID           remains = result.id;
 
@@ -227,7 +233,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 }
             }
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
                 if (!PMONITOR || PMONITOR->m_id == g_pCompositor->m_lastMonitor->m_id) {
                     // Can't be invalid
                     continue;
@@ -251,7 +257,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 remains -= 1;
 
                 // traverse valid workspaces until we reach the remains
-                if ((size_t)remains < namedWSes.size()) {
+                if (sc<size_t>(remains) < namedWSes.size()) {
                     result.id = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
@@ -272,7 +278,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 char        walkDir       = in[1];
 
                 // sanitize. 0 means invalid oob in -
-                predictedWSID = std::max(predictedWSID, static_cast<int64_t>(0));
+                predictedWSID = std::max(predictedWSID, sc<int64_t>(0));
 
                 // Count how many invalidWSes are in between (how bad the prediction was)
                 WORKSPACEID beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
@@ -295,7 +301,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     }
 
                     currentItem += remains;
-                    currentItem = std::max(currentItem, static_cast<size_t>(0));
+                    currentItem = std::max(currentItem, sc<size_t>(0));
                     if (currentItem >= namedWSes.size()) {
                         // At the seam between namedWSes and normal WSes. Behave like r+[diff] at imaginary ws 0
                         size_t diff         = currentItem - (namedWSes.size() - 1);
@@ -332,7 +338,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                             // Need remainingWSes more
                             auto namedWSIdx = namedWSes.size() - remainingWSes;
                             // Sanitze
-                            namedWSIdx = std::clamp(namedWSIdx, static_cast<size_t>(0), namedWSes.size() - static_cast<size_t>(1));
+                            namedWSIdx = std::clamp(namedWSIdx, sc<size_t>(0), namedWSes.size() - sc<size_t>(1));
                             finalWSID  = namedWSes[namedWSIdx];
                         } else {
                             // Couldn't find valid workspace in negative direction, search last first one back up positive direction
@@ -376,10 +382,10 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             // result now has +/- what we should move on mon
-            int                      remains = (int)result.id;
+            int                      remains = sc<int>(result.id);
 
             std::vector<WORKSPACEID> validWSes;
             for (auto const& ws : g_pCompositor->getWorkspaces()) {
@@ -400,7 +406,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 // clamp
                 if (currentItem < 0) {
                     currentItem = 0;
-                } else if (currentItem >= (ssize_t)validWSes.size()) {
+                } else if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = validWSes.size() - 1;
                 }
             } else {
@@ -409,7 +415,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 // get the current item
                 WORKSPACEID activeWSID = g_pCompositor->m_lastMonitor->m_activeWorkspace ? g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id : 1;
-                for (ssize_t i = 0; i < (ssize_t)validWSes.size(); i++) {
+                for (ssize_t i = 0; i < sc<ssize_t>(validWSes.size()); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
@@ -420,7 +426,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 currentItem += remains;
 
                 // sanitize
-                if (currentItem >= (ssize_t)validWSes.size()) {
+                if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = currentItem % validWSes.size();
                 } else if (currentItem < 0) {
                     currentItem = validWSes.size() + currentItem;
@@ -436,7 +442,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     if (!PLUSMINUSRESULT.has_value())
                         return {WORKSPACE_INVALID};
 
-                    result.id = std::max((int)PLUSMINUSRESULT.value(), 1);
+                    result.id = std::max(sc<int>(PLUSMINUSRESULT.value()), 1);
                 } else {
                     Debug::log(ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
@@ -453,6 +459,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = std::to_string(result.id);
         }
     }
+
+    result.isAutoIDd = isAutoIDdWorkspace(result.id);
 
     return result;
 }
@@ -599,7 +607,7 @@ int64_t getPPIDof(int64_t pid) {
 
     fclose(infile);
     if (line)
-        free(line);
+        free(line); // NOLINT(cppcoreguidelines-no-malloc)
 
     try {
         return std::stoll(pidstr);
@@ -642,7 +650,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
             } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * (Hyprlang::INT)0x1000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return a * sc<Hyprlang::INT>(0x1000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
@@ -670,7 +678,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
             if (!r || !g || !b)
                 return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
 
-            return (Hyprlang::INT)0xFF000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return sc<Hyprlang::INT>(0xFF000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
             auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
@@ -717,7 +725,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    return Vector2D((double)x, (double)y);
+    return Vector2D(sc<double>(x), sc<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
@@ -910,7 +918,7 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     sysctl(mib, miblen, &exe, &sz, NULL, 0);
     std::string path = exe;
 #else
-    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
+    std::string path = std::format("/proc/{}/exe", sc<uint64_t>(pid));
 #endif
     std::error_code ec;
 
@@ -925,6 +933,55 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
 std::string deviceNameToInternalString(std::string in) {
     std::ranges::replace(in, ' ', '-');
     std::ranges::replace(in, '\n', '-');
+    std::ranges::replace(in, ',', '-');
     std::ranges::transform(in, in.begin(), ::tolower);
     return in;
+}
+
+static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};
+
+//
+std::string getSystemLibraryVersion(const std::string& name) {
+    for (const auto& pkgconf : PKGCONF_PATHS) {
+        std::error_code   ec;
+        const std::string PATH = std::string{pkgconf} + "/" + name + ".pc";
+        if (!std::filesystem::exists(PATH, ec))
+            continue;
+
+        const auto DATA = NFsUtils::readFileAsString(PATH);
+
+        if (!DATA)
+            continue;
+
+        size_t versionAt    = DATA->find("\nVersion: ");
+        size_t versionAtEnd = DATA->find("\n", versionAt + 11);
+
+        if (versionAt == std::string::npos)
+            continue;
+
+        versionAt += 10;
+
+        return DATA->substr(versionAt, versionAtEnd == std::string::npos ? std::string::npos : versionAtEnd - versionAt);
+    }
+    return "unknown";
+}
+
+std::string getBuiltSystemLibraryNames() {
+    std::string result = "Libraries:\n";
+    result += std::format("Hyprgraphics: built against {}, system has {}\n", HYPRGRAPHICS_VERSION, getSystemLibraryVersion("hyprgraphics"));
+    result += std::format("Hyprutils: built against {}, system has {}\n", HYPRUTILS_VERSION, getSystemLibraryVersion("hyprutils"));
+    result += std::format("Hyprcursor: built against {}, system has {}\n", HYPRCURSOR_VERSION, getSystemLibraryVersion("hyprcursor"));
+    result += std::format("Hyprlang: built against {}, system has {}\n", HYPRLANG_VERSION, getSystemLibraryVersion("hyprlang"));
+    result += std::format("Aquamarine: built against {}, system has {}\n", AQUAMARINE_VERSION, getSystemLibraryVersion("aquamarine"));
+    return result;
+}
+
+bool truthy(const std::string& str) {
+    if (str == "1")
+        return true;
+
+    std::string cpy = str;
+    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+
+    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
 }

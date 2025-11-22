@@ -251,7 +251,7 @@ void CTextInput::commitStateToIME(SP<CInputMethodV2> ime) {
         ime->textChangeCause(ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_INPUT_METHOD);
 
         if (m_v1Input->m_pendingContentType.isPending)
-            ime->textContentType((zwpTextInputV3ContentHint)INPUT->m_pendingContentType.hint, (zwpTextInputV3ContentPurpose)INPUT->m_pendingContentType.purpose);
+            ime->textContentType(sc<zwpTextInputV3ContentHint>(INPUT->m_pendingContentType.hint), sc<zwpTextInputV3ContentPurpose>(INPUT->m_pendingContentType.purpose));
     }
 
     g_pInputManager->m_relay.updateAllPopups();

@@ -5,6 +5,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../helpers/MiscFunctions.hpp"
+#include "../../i18n/Engine.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -57,17 +58,6 @@ static const char* permissionToString(eDynamicPermissionType type) {
     return "error";
 }
 
-static const char* permissionToHumanString(eDynamicPermissionType type) {
-    switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{}</b> is requesting an unknown permission.";
-        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
-        case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
-        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: {}.<br/><br/>Do you want to allow it to operate?";
-    }
-
-    return "error";
-}
-
 static const char* specialPidToString(eSpecialPidTypes type) {
     switch (type) {
         case SPECIAL_PID_TYPE_CONFIG: return "config";
@@ -92,7 +82,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 
     const auto LOOKUP = binaryNameForWlClient(client);
 
-    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), (uintptr_t)client,
+    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), rc<uintptr_t>(client),
                LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
@@ -174,7 +164,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         if (lookup.has_value())
             binaryName = *lookup;
     } else
-        binaryName = specialPidToString((eSpecialPidTypes)pid);
+        binaryName = specialPidToString(sc<eSpecialPidTypes>(pid));
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [str, permission, pid](const auto& e) { return e->m_keyString == str && pid && pid == e->m_pid && e->m_type == permission; });
@@ -244,49 +234,51 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
     rule->m_pid = pid;
 
-    std::string description = "";
+    std::string appName = "";
     if (binaryPath.empty())
-        description = std::format(std::runtime_format(permissionToHumanString(type)), std::format("unknown application (wayland client ID 0x{:x})", (uintptr_t)client));
+        appName = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, {{"wayland_id", std::format("{:x}", rc<uintptr_t>(client))}});
     else if (client) {
-        std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format(std::runtime_format(permissionToHumanString(type)), std::format("{}</b> ({})", binaryName, binaryPath));
+        appName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
     } else {
-        std::string lookup = "";
         if (pid < 0)
-            lookup = specialPidToString((eSpecialPidTypes)pid);
+            appName = specialPidToString(sc<eSpecialPidTypes>(pid));
         else {
             const auto LOOKUP = binaryNameForPid(pid);
-            lookup            = LOOKUP.value_or("Unknown");
-        }
-
-        if (type == PERMISSION_TYPE_PLUGIN) {
-            const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
-        } else {
-            const auto LOOKUP = binaryNameForPid(pid);
-            description       = std::format(std::runtime_format(permissionToHumanString(type)), lookup, binaryPath);
+            appName           = LOOKUP.value_or(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_UNKNOWN_NAME));
         }
     }
 
+    std::string description = "";
+    switch (rule->m_type) {
+        case PERMISSION_TYPE_SCREENCOPY: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}}); break;
+        case PERMISSION_TYPE_PLUGIN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}, {"plugin", binaryPath}}); break;
+        case PERMISSION_TYPE_KEYBOARD: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_KEYBOARD, {{"keyboard", binaryPath}}); break;
+        case PERMISSION_TYPE_UNKNOWN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_UNKNOWN, {{"app", appName}}); break;
+    }
+
     std::vector<std::string> options;
+    const auto               ALLOW              = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW);
+    const auto               ALLOW_AND_REMEMBER = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER);
+    const auto               ALLOW_ONCE         = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW_ONCE);
+    const auto               DENY               = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_DENY);
 
     if (!binaryPath.empty() && client) {
-        description += "<br/><br/><i>Hint: you can set persistent rules for these in the Hyprland config file.</i>";
-        options = {"Deny", "Allow and remember app", "Allow once"};
+        description += std::format("<br/><br/><i>{}</i>", I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_PERSISTENCE_HINT));
+        options = {DENY, ALLOW_AND_REMEMBER, ALLOW_ONCE};
     } else
-        options = {"Deny", "Allow"};
+        options = {DENY, ALLOW};
 
-    rule->m_dialogBox             = CAsyncDialogBox::create("Permission request", description, options);
+    rule->m_dialogBox             = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_TITLE), description, options);
     rule->m_dialogBox->m_priority = true;
 
     if (!rule->m_dialogBox) {
-        Debug::log(ERR, "CDynamicPermissionManager::askForPermission: hyprland-qtutils likely missing, cannot ask! Disabling permission control...");
+        Debug::log(ERR, "CDynamicPermissionManager::askForPermission: hyprland-guiutils likely missing, cannot ask! Disabling permission control...");
         rule->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
         return;
     }
 
     rule->m_promise = rule->m_dialogBox->open();
-    rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath](SP<CPromiseResult<std::string>> pr) {
+    rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath, ALLOW, ALLOW_AND_REMEMBER, ALLOW_ONCE, DENY](SP<CPromiseResult<std::string>> pr) {
         if (!r)
             return;
 
@@ -303,15 +295,15 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
         Debug::log(TRACE, "CDynamicPermissionRule: user returned {}", result);
 
-        if (result.starts_with("Allow once"))
+        if (result.starts_with(ALLOW_ONCE))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
-        else if (result.starts_with("Deny")) {
+        else if (result.starts_with(DENY)) {
             r->m_allowMode  = PERMISSION_RULE_ALLOW_MODE_DENY;
             r->m_binaryPath = binaryPath;
-        } else if (result.starts_with("Allow and remember")) {
+        } else if (result.starts_with(ALLOW_AND_REMEMBER)) {
             r->m_allowMode  = PERMISSION_RULE_ALLOW_MODE_ALLOW;
             r->m_binaryPath = binaryPath;
-        } else if (result.starts_with("Allow"))
+        } else if (result.starts_with(ALLOW))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
         if (r->m_promiseResolverForExternal)

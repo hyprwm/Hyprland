@@ -33,22 +33,22 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 
     m_lastKeyboard = keyboard;
 
-    auto keymapFD = allocateSHMFile(keyboard->m_xkbKeymapString.length() + 1);
+    auto keymapFD = allocateSHMFile(keyboard->m_xkbKeymapV1String.length() + 1);
     if UNLIKELY (!keymapFD.isValid()) {
         LOGM(ERR, "Failed to create a keymap file for keyboard grab");
         return;
     }
 
-    void* data = mmap(nullptr, keyboard->m_xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD.get(), 0);
+    void* data = mmap(nullptr, keyboard->m_xkbKeymapV1String.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD.get(), 0);
     if UNLIKELY (data == MAP_FAILED) {
         LOGM(ERR, "Failed to mmap a keymap file for keyboard grab");
         return;
     }
 
-    memcpy(data, keyboard->m_xkbKeymapString.c_str(), keyboard->m_xkbKeymapString.length());
-    munmap(data, keyboard->m_xkbKeymapString.length() + 1);
+    memcpy(data, keyboard->m_xkbKeymapV1String.c_str(), keyboard->m_xkbKeymapV1String.length());
+    munmap(data, keyboard->m_xkbKeymapV1String.length() + 1);
 
-    m_resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD.get(), keyboard->m_xkbKeymapString.length() + 1);
+    m_resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD.get(), keyboard->m_xkbKeymapV1String.length() + 1);
 
     sendMods(keyboard->m_modifiersState.depressed, keyboard->m_modifiersState.latched, keyboard->m_modifiersState.locked, keyboard->m_modifiersState.group);
 
@@ -58,7 +58,7 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
 
-    m_resource->sendKey(SERIAL, time, key, (uint32_t)state);
+    m_resource->sendKey(SERIAL, time, key, sc<uint32_t>(state));
 }
 
 void CInputMethodKeyboardGrabV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
@@ -243,11 +243,11 @@ void CInputMethodV2::surroundingText(const std::string& text, uint32_t cursor, u
 }
 
 void CInputMethodV2::textChangeCause(zwpTextInputV3ChangeCause changeCause) {
-    m_resource->sendTextChangeCause((uint32_t)changeCause);
+    m_resource->sendTextChangeCause(changeCause);
 }
 
 void CInputMethodV2::textContentType(zwpTextInputV3ContentHint hint, zwpTextInputV3ContentPurpose purpose) {
-    m_resource->sendContentType((uint32_t)hint, (uint32_t)purpose);
+    m_resource->sendContentType(hint, purpose);
 }
 
 void CInputMethodV2::done() {

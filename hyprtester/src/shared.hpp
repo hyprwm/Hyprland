@@ -45,7 +45,7 @@ namespace Colors {
 
 #define EXPECT_CONTAINS(haystack, needle)                                                                                                                                          \
     if (const auto EXPECTED = needle; !std::string{haystack}.contains(EXPECTED)) {                                                                                                 \
-        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, EXPECTED, __FILE__, __LINE__,            \
+        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
                   std::string{haystack});                                                                                                                                          \
         ret = 1;                                                                                                                                                                   \
         TESTS_FAILED++;                                                                                                                                                            \

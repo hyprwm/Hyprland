@@ -3,7 +3,7 @@
 
 static int onTimer(SP<CEventLoopTimer> self, void* data) {
 
-    const auto NOTIF = (CExtIdleNotification*)data;
+    const auto NOTIF = sc<CExtIdleNotification*>(data);
 
     NOTIF->onTimerFired();
 
@@ -21,7 +21,7 @@ CExtIdleNotification::CExtIdleNotification(SP<CExtIdleNotificationV1> resource_,
     m_timer = makeShared<CEventLoopTimer>(std::nullopt, onTimer, this);
     g_pEventLoopManager->addTimer(m_timer);
 
-    updateTimer();
+    update();
 
     LOGM(LOG, "Registered idle-notification for {}ms", timeoutMs_);
 }
@@ -35,24 +35,39 @@ bool CExtIdleNotification::good() {
     return m_resource->resource();
 }
 
-void CExtIdleNotification::updateTimer() {
-    if (PROTO::idle->isInhibited && m_obeyInhibitors)
-        m_timer->updateTimeout(std::nullopt);
-    else
-        m_timer->updateTimeout(std::chrono::milliseconds(m_timeoutMs));
+void CExtIdleNotification::update(uint32_t elapsedMs) {
+    m_timer->updateTimeout(std::nullopt);
+
+    if (elapsedMs == 0 && PROTO::idle->isInhibited && m_obeyInhibitors) {
+        reset();
+        return;
+    }
+
+    if (m_timeoutMs > elapsedMs) {
+        reset();
+        m_timer->updateTimeout(std::chrono::milliseconds(m_timeoutMs - elapsedMs));
+    } else
+        onTimerFired();
+}
+
+void CExtIdleNotification::update() {
+    update(0);
 }
 
 void CExtIdleNotification::onTimerFired() {
+    if (m_idled)
+        return;
+
     m_resource->sendIdled();
     m_idled = true;
 }
 
-void CExtIdleNotification::onActivity() {
-    if (m_idled)
-        m_resource->sendResumed();
+void CExtIdleNotification::reset() {
+    if (!m_idled)
+        return;
 
+    m_resource->sendResumed();
     m_idled = false;
-    updateTimer();
 }
 
 bool CExtIdleNotification::inhibitorsAreObeyed() const {
@@ -96,7 +111,7 @@ void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t i
 
 void CIdleNotifyProtocol::onActivity() {
     for (auto const& n : m_notifications) {
-        n->onActivity();
+        n->update();
     }
 }
 
@@ -104,6 +119,12 @@ void CIdleNotifyProtocol::setInhibit(bool inhibited) {
     isInhibited = inhibited;
     for (auto const& n : m_notifications) {
         if (n->inhibitorsAreObeyed())
-            n->onActivity();
+            n->update();
+    }
+}
+
+void CIdleNotifyProtocol::setTimers(uint32_t elapsedMs) {
+    for (auto const& n : m_notifications) {
+        n->update(elapsedMs);
     }
 }

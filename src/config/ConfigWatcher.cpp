@@ -1,4 +1,7 @@
 #include "ConfigWatcher.hpp"
+#if defined(__linux__)
+#include <linux/limits.h>
+#endif
 #include <sys/inotify.h>
 #include "../debug/Log.hpp"
 #include <ranges>
@@ -71,15 +74,15 @@ void CConfigWatcher::onInotifyEvent() {
     if (bytesRead <= 0)
         return;
 
-    for (size_t offset = 0; offset < (size_t)bytesRead;) {
-        const auto* ev = (const inotify_event*)(buffer.data() + offset);
+    for (size_t offset = 0; offset < sc<size_t>(bytesRead);) {
+        const auto* ev = rc<const inotify_event*>(buffer.data() + offset);
 
-        if (offset + sizeof(inotify_event) > (size_t)bytesRead) {
+        if (offset + sizeof(inotify_event) > sc<size_t>(bytesRead)) {
             Debug::log(ERR, "CConfigWatcher: malformed inotify event, truncated header");
             break;
         }
 
-        if (offset + sizeof(inotify_event) + ev->len > (size_t)(bytesRead)) {
+        if (offset + sizeof(inotify_event) + ev->len > sc<size_t>(bytesRead)) {
             Debug::log(ERR, "CConfigWatcher: malformed inotify event, truncated name field");
             break;
         }

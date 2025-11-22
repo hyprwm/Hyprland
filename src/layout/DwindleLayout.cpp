@@ -7,6 +7,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "xwayland/XWayland.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -134,13 +135,13 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (PWINDOW->isFullscreen() && !pNode->ignoreFullscreenChecks)
         return;
 
-    PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
+    PWINDOW->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
 
     static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    auto* const PGAPSIN      = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+    auto* const PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -179,9 +180,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         }
     }
 
-    const auto GAPOFFSETTOPLEFT = Vector2D((double)(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), (double)(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
+    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? gapsOut.m_left : gapsIn.m_left), sc<double>(DISPLAYTOP ? gapsOut.m_top : gapsIn.m_top));
 
-    const auto GAPOFFSETBOTTOMRIGHT = Vector2D((double)(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), (double)(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
+    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? gapsOut.m_right : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? gapsOut.m_bottom : gapsIn.m_bottom));
 
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
@@ -213,6 +214,28 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto RESERVED = PWINDOW->getFullWindowReservedArea();
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
+
+    Vector2D    availableSpace = calcSize;
+
+    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
+
+    if (*PCLAMP_TILED) {
+        const auto borderSize       = PWINDOW->getRealBorderSize();
+        Vector2D   monitorAvailable = PMONITOR->m_size - PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight -
+            Vector2D{(double)(gapsOut.m_left + gapsOut.m_right), (double)(gapsOut.m_top + gapsOut.m_bottom)} - Vector2D{2.0 * borderSize, 2.0 * borderSize};
+
+        Vector2D minSize = PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}).clamp(Vector2D{0, 0}, monitorAvailable);
+        Vector2D maxSize = PWINDOW->isFullscreen() ? Vector2D{INFINITY, INFINITY} :
+                                                     PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}).clamp(Vector2D{0, 0}, monitorAvailable);
+        calcSize         = calcSize.clamp(minSize, maxSize);
+
+        calcPos += (availableSpace - calcSize) / 2.0;
+
+        calcPos.x = std::clamp(calcPos.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x + gapsOut.m_left + borderSize,
+                               PMONITOR->m_size.x + PMONITOR->m_position.x - PMONITOR->m_reservedBottomRight.x - gapsOut.m_right - calcSize.x - borderSize);
+        calcPos.y = std::clamp(calcPos.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y + gapsOut.m_top + borderSize,
+                               PMONITOR->m_size.y + PMONITOR->m_position.y - PMONITOR->m_reservedBottomRight.y - gapsOut.m_bottom - calcSize.y - borderSize);
+    }
 
     if (PWINDOW->onSpecialWorkspace() && !PWINDOW->isFullscreen()) {
         // if special, we adjust the coords a bit
@@ -347,6 +370,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     static auto PFORCESPLIT                = CConfigValue<Hyprlang::INT>("dwindle:force_split");
     static auto PERMANENTDIRECTIONOVERRIDE = CConfigValue<Hyprlang::INT>("dwindle:permanent_direction_override");
     static auto PSMARTSPLIT                = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
+    static auto PSPLITBIAS                 = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
 
     bool        horizontalOverride = false;
     bool        verticalOverride   = false;
@@ -427,9 +451,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     // split in favor of a specific window
-    const auto  first      = NEWPARENT->children[0];
-    static auto PSPLITBIAS = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
-    if ((*PSPLITBIAS == 1 && first == PNODE) || (*PSPLITBIAS == 2 && first == OPENINGON))
+    if (*PSPLITBIAS && NEWPARENT->children[0] == PNODE)
         NEWPARENT->splitRatio = 2.f - NEWPARENT->splitRatio;
 
     // and update the previous parent if it exists
@@ -458,6 +480,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     NEWPARENT->recalcSizePosRecursive(false, horizontalOverride, verticalOverride);
 
     recalculateMonitor(pWindow->monitorID());
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
@@ -469,7 +492,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         return;
     }
 
-    pWindow->unsetWindowData(PRIORITY_LAYOUT);
+    pWindow->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
     pWindow->updateWindowData();
 
     if (pWindow->isFullscreen())
@@ -506,6 +529,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 
     m_dwindleNodesData.remove(*PPARENT);
     m_dwindleNodesData.remove(*PNODE);
+    pWindow->m_workspace->updateWindows();
 }
 
 void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
@@ -520,6 +544,13 @@ void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
         calculateWorkspace(PMONITOR->m_activeSpecialWorkspace);
 
     calculateWorkspace(PMONITOR->m_activeWorkspace);
+
+#ifndef NO_XWAYLAND
+    CBox box = g_pCompositor->calculateX11WorkArea();
+    if (!g_pXWayland || !g_pXWayland->m_wm)
+        return;
+    g_pXWayland->m_wm->updateWorkArea(box.x, box.y, box.w, box.h);
+#endif
 }
 
 void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
@@ -579,9 +610,9 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-        *PWINDOW->m_realSize =
-            (PWINDOW->m_realSize->goal() + pixResize)
-                .clamp(PWINDOW->m_windowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_windowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
+        *PWINDOW->m_realSize = (PWINDOW->m_realSize->goal() + pixResize)
+                                   .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}),
+                                          PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}));
         PWINDOW->updateWindowDecos();
         return;
     }
@@ -627,7 +658,11 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
             CBox wbox = PNODE->box;
             wbox.round();
 
-            PWINDOW->m_pseudoSize = {std::clamp(PWINDOW->m_pseudoSize.x, 30.0, wbox.w), std::clamp(PWINDOW->m_pseudoSize.y, 30.0, wbox.h)};
+            Vector2D minSize    = PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{30.0, 30.0});
+            Vector2D maxSize    = PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
+            Vector2D upperBound = Vector2D{std::min(maxSize.x, wbox.w), std::min(maxSize.y, wbox.h)};
+
+            PWINDOW->m_pseudoSize = PWINDOW->m_pseudoSize.clamp(minSize, upperBound);
 
             PWINDOW->m_lastFloatingSize = PWINDOW->m_pseudoSize;
             PNODE->recalcSizePosRecursive(*PANIMATE == 0);
@@ -784,7 +819,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFu
             *pWindow->m_realPosition = pWindow->m_lastFloatingPosition;
             *pWindow->m_realSize     = pWindow->m_lastFloatingSize;
 
-            pWindow->unsetWindowData(PRIORITY_LAYOUT);
+            pWindow->m_ruleApplicator->resetProps(Desktop::Rule::RULE_PROP_ALL, Desktop::Types::PRIORITY_LAYOUT);
             pWindow->updateWindowData();
         }
     } else {

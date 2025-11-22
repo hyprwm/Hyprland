@@ -43,7 +43,7 @@ bool CPresentationFeedback::good() {
 void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = m_resource->client();
 
-    if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name)) {
+    if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name) && data->m_wasPresented) {
         if LIKELY (auto outputResource = PROTO::outputs.at(data->m_monitor->m_name)->outputResourceFrom(client); outputResource)
             m_resource->sendSyncOutput(outputResource->getResource()->resource());
     }
@@ -64,9 +64,11 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const T
     if (sizeof(time_t) > 4)
         tv_sec = TIMESPEC.tv_sec >> 32;
 
+    uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
+
     if (data->m_wasPresented)
-        m_resource->sendPresented((uint32_t)tv_sec, (uint32_t)(TIMESPEC.tv_sec & 0xFFFFFFFF), (uint32_t)(TIMESPEC.tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
-                                  (uint32_t)(seq & 0xFFFFFFFF), (wpPresentationFeedbackKind)flags);
+        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), sc<uint32_t>(TIMESPEC.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
+                                  sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
     else
         m_resource->sendDiscarded();
 

@@ -15,7 +15,12 @@ CDecorationPositioner::CDecorationPositioner() {
     });
 }
 
-Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pWindow) {
+Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF pWindow) {
+    if (!pWindow) {
+        Debug::log(ERR, "getEdgeDefinedPoint: invalid pWindow");
+        return {};
+    }
+
     const bool TOP    = edges & DECORATION_EDGE_TOP;
     const bool BOTTOM = edges & DECORATION_EDGE_BOTTOM;
     const bool LEFT   = edges & DECORATION_EDGE_LEFT;
@@ -234,26 +239,26 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
             } else if (LEFT) {
                 pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, -stickyOffsetYT};
                 pos.x -= desiredSize;
-                size = {(double)desiredSize, wb.size().y + stickyOffsetYB + stickyOffsetYT};
+                size = {sc<double>(desiredSize), wb.size().y + stickyOffsetYB + stickyOffsetYT};
 
                 if (SOLID)
                     stickyOffsetXL += desiredSize;
             } else if (RIGHT) {
                 pos  = wb.pos() + Vector2D{wb.size().x, 0.0} - EDGEPOINT + Vector2D{stickyOffsetXR, -stickyOffsetYT};
-                size = {(double)desiredSize, wb.size().y + stickyOffsetYB + stickyOffsetYT};
+                size = {sc<double>(desiredSize), wb.size().y + stickyOffsetYB + stickyOffsetYT};
 
                 if (SOLID)
                     stickyOffsetXR += desiredSize;
             } else if (TOP) {
                 pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYT};
                 pos.y -= desiredSize;
-                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, (double)desiredSize};
+                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, sc<double>(desiredSize)};
 
                 if (SOLID)
                     stickyOffsetYT += desiredSize;
             } else {
                 pos  = wb.pos() + Vector2D{0.0, wb.size().y} - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYB};
-                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, (double)desiredSize};
+                size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, sc<double>(desiredSize)};
 
                 if (SOLID)
                     stickyOffsetYB += desiredSize;
@@ -286,14 +291,14 @@ void CDecorationPositioner::onWindowMap(PHLWINDOW pWindow) {
     m_windowDatas[pWindow] = {};
 }
 
-SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOW pWindow) {
+SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOWREF pWindow) {
     try {
         const auto E = m_windowDatas.at(pWindow);
         return E.reserved;
     } catch (std::out_of_range& e) { return {}; }
 }
 
-SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly) {
+SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
     CBox const mainSurfaceBox = pWindow->getWindowMainSurfaceBox();
     CBox       accum          = mainSurfaceBox;
 
@@ -301,7 +306,7 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow,
         if (!data->pDecoration || (inputOnly && !(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT)))
             continue;
 
-        auto const window = data->pWindow.lock();
+        auto const window = data->pWindow;
         if (!window || window != pWindow)
             continue;
 

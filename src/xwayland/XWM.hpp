@@ -71,7 +71,7 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            Debug::log(LOG, "Disconnecting XCB connection {:x}", (uintptr_t)m_connection);
+            Debug::log(LOG, "Disconnecting XCB connection {:x}", rc<uintptr_t>(m_connection));
             xcb_disconnect(m_connection);
             m_connection = nullptr;
         } else
@@ -118,6 +118,7 @@ class CXWM {
     int                onEvent(int fd, uint32_t mask);
     SP<CX11DataDevice> getDataDevice();
     SP<IDataOffer>     createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source);
+    void               updateWorkArea(int x, int y, int w, int h);
 
   private:
     void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);

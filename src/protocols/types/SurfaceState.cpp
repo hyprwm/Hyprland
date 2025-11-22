@@ -61,7 +61,6 @@ void SSurfaceState::reset() {
     damage.clear();
     bufferDamage.clear();
 
-    callbacks.clear();
     lockMask = LOCK_REASON_NONE;
 }
 
@@ -107,9 +106,4 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
 
     if (ref.updated.bits.acked)
         ackedSize = ref.ackedSize;
-
-    if (ref.updated.bits.frame) {
-        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
-        ref.callbacks.clear();
-    }
 }

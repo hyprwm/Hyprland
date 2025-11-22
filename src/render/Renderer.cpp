@@ -16,7 +16,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/GlobalViewMethods.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../managers/BufferReleaseManager.hpp"
+#include "../managers/SurfaceManager.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -171,9 +171,10 @@ CHyprRenderer::CHyprRenderer() {
                 if (!w->wlSurface() || !w->wlSurface()->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                w->wlSurface()->resource()->frame(Time::steadyNow());
+                g_pSurfaceManager->sendFrameCallbacks(w->wlSurface()->resource(), Time::steadyNow());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->wlSurface()->resource());
                 FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
+
                 FEEDBACK->discarded();
                 PROTO::presentation->queueData(std::move(FEEDBACK));
             }
@@ -1699,7 +1700,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool dro
     }
 
     if (dropBuffers)
-        g_pBufferReleaseManager->dropBuffers(pMonitor);
+        g_pSurfaceManager->dropBuffers(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
@@ -1741,7 +1742,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
         if (!view->aliveAndVisible())
             continue;
 
-        view->wlSurface()->resource()->frame(now);
+        g_pSurfaceManager->sendFrameCallbacks(view->wlSurface()->resource(), Time::steadyNow());
     }
 }
 
@@ -2399,7 +2400,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
 
             if (m_renderMode == RENDER_MODE_NORMAL) {
                 PMONITOR->m_inFence = eglSync->takeFd();
-                g_pBufferReleaseManager->addFence(PMONITOR);
+                g_pSurfaceManager->addFence(PMONITOR);
             }
         } else {
             Log::logger->log(Log::ERR, "renderer: Explicit sync failed, calling renderingDoneCallback without sync");

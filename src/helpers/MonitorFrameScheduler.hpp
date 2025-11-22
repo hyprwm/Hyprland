@@ -18,7 +18,7 @@ class CMonitorFrameScheduler {
     CMonitorFrameScheduler& operator=(CMonitorFrameScheduler&&)      = delete;
 
     void                    onSyncFired();
-    void                    onPresented();
+    void                    onPresented(const Time::steady_tp& when);
     void                    onFrame();
 
   private:

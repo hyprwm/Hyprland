@@ -1,4 +1,4 @@
-#include "BufferReleaseManager.hpp"
+#include "SurfaceManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "render/OpenGL.hpp"
@@ -40,7 +40,7 @@ static CFileDescriptor mergeSyncFds(const CFileDescriptor& fd1, const CFileDescr
         return CFileDescriptor(data.fence);
 }
 
-bool CBufferReleaseManager::addBuffer(PHLMONITORREF monitor, const CHLBufferReference& buf) {
+bool CSurfaceManager::addBuffer(PHLMONITORREF monitor, const CHLBufferReference& buf) {
     if (!monitor)
         return false;
 
@@ -53,7 +53,17 @@ bool CBufferReleaseManager::addBuffer(PHLMONITORREF monitor, const CHLBufferRefe
     return true;
 }
 
-void CBufferReleaseManager::addFence(PHLMONITORREF monitor) {
+bool CSurfaceManager::addFrameCallback(WP<CWLSurfaceResource> surf, SP<CWLCallbackResource> cb) {
+    auto it = std::ranges::find_if(m_frameCallbacks[surf], [&cb](auto& c) { return c == cb; });
+
+    if (it != m_frameCallbacks[surf].end())
+        return false;
+
+    m_frameCallbacks[surf].emplace_back(cb);
+    return true;
+}
+
+void CSurfaceManager::addFence(PHLMONITORREF monitor) {
     if (g_pHyprOpenGL->explicitSyncSupported() && monitor->m_inFence.isValid()) {
         for (auto& b : m_buffers[monitor]) {
             if (!b->m_syncReleasers.empty()) {
@@ -70,7 +80,7 @@ void CBufferReleaseManager::addFence(PHLMONITORREF monitor) {
     }
 }
 
-void CBufferReleaseManager::dropBuffers(PHLMONITORREF monitor) {
+void CSurfaceManager::dropBuffers(PHLMONITORREF monitor) {
     if (g_pHyprOpenGL->explicitSyncSupported()) {
         std::erase_if(m_buffers[monitor], [](auto& b) { return !b->m_syncReleasers.empty(); });
         for (auto& b : m_buffers[monitor]) {
@@ -82,6 +92,35 @@ void CBufferReleaseManager::dropBuffers(PHLMONITORREF monitor) {
     std::erase_if(m_buffers, [](auto& b) { return !b.first; }); // if monitor is gone.
 }
 
-void CBufferReleaseManager::destroy(PHLMONITORREF monitor) {
+void CSurfaceManager::sendFrameCallbacks(WP<CWLSurfaceResource> surf, const Time::steady_tp& now) {
+    if (surf) {
+        for (auto& cb : m_frameCallbacks[surf]) {
+            cb->send(now);
+        }
+
+        m_frameCallbacks.erase(surf);
+    }
+
+    std::erase_if(m_frameCallbacks, [](auto& b) { return !b.first; }); // if surface is gone.
+}
+
+void CSurfaceManager::scheduleForFrame(PHLMONITORREF monitor, WP<CWLSurfaceResource> surf) {
+    auto it = std::ranges::find_if(m_scheduledForFrame[monitor], [&surf](auto& b) { return b == surf; });
+
+    if (it != m_scheduledForFrame[monitor].end()) // already scheduled
+        return;
+
+    m_scheduledForFrame[monitor].emplace_back(surf);
+}
+
+void CSurfaceManager::sendScheduledFrames(PHLMONITORREF monitor, const Time::steady_tp& now) {
+    for (auto& f : m_scheduledForFrame[monitor]) {
+        sendFrameCallbacks(f, now);
+    }
+
+    std::erase_if(m_scheduledForFrame, [](auto& b) { return !b.first; }); // if monitor is gone.
+}
+
+void CSurfaceManager::destroy(PHLMONITORREF monitor) {
     m_buffers.erase(monitor);
 }

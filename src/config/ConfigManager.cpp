@@ -1,3 +1,4 @@
+#include <hyprlang.hpp>
 #include <re2/re2.h>
 
 #include "ConfigManager.hpp"
@@ -608,6 +609,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:precise_mouse_move", Hyprlang::INT{0});
     registerConfigVar("dwindle:single_window_aspect_ratio", Hyprlang::VEC2{0, 0});
     registerConfigVar("dwindle:single_window_aspect_ratio_tolerance", {0.1f});
+    registerConfigVar("dwindle:resize_corner_tile", Hyprlang::INT{0});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});

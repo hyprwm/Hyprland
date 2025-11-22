@@ -1892,6 +1892,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
     },
+    SConfigOptionDescription{
+        .value       = "dwindle:resize_corner_tile",
+        .description = "When resizing a window the the keyboard force windows to be resized from a specific corner, (1-4 going clockwise from the top left, 0 to disable).",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 4},
+    },
 
     /*
      * master:

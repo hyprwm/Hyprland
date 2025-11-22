@@ -5,7 +5,7 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/BufferReleaseManager.hpp"
+#include "../../managers/SurfaceManager.hpp"
 #include "../Renderer.hpp"
 #include "../../Compositor.hpp"
 
@@ -162,7 +162,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
                 continue;
 
             if (m_data.pMonitor == m || (m_data.pWindow && m_data.pWindow->visibleOnMonitor(m))) {
-                g_pBufferReleaseManager->addBuffer(m, m_data.surface->m_current.buffer);
+                g_pSurfaceManager->addBuffer(m, m_data.surface->m_current.buffer);
 
                 if (m_data.pMonitor != m) {
                     CBox wbox = {m_data.pWindow->m_realPosition->value(), m_data.pWindow->m_realSize->value()};

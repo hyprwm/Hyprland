@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/SurfaceManager.hpp"
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
@@ -45,6 +46,7 @@ void CMonitorFrameScheduler::onSyncFired() {
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
     auto self = m_self;
+    g_pSurfaceManager->sendScheduledFrames(m_monitor, Time::steadyNow());
 
     g_pHyprRenderer->renderMonitor(m_monitor.lock(), false);
 
@@ -54,7 +56,9 @@ void CMonitorFrameScheduler::onSyncFired() {
     onFinishRender();
 }
 
-void CMonitorFrameScheduler::onPresented() {
+void CMonitorFrameScheduler::onPresented(const Time::steady_tp& now) {
+    g_pSurfaceManager->sendScheduledFrames(m_monitor, now);
+
     if (!newSchedulingEnabled())
         return;
 
@@ -66,13 +70,6 @@ void CMonitorFrameScheduler::onPresented() {
     Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", m_monitor->m_name);
     m_pendingThird = false;
     auto mon       = m_monitor.lock();
-    auto now       = Time::steadyNow();
-
-    if (!mon->isMirror()) {
-        g_pHyprRenderer->sendFrameEventsToWorkspace(mon, mon->m_activeWorkspace, now);
-        if (mon->m_activeSpecialWorkspace)
-            g_pHyprRenderer->sendFrameEventsToWorkspace(mon, mon->m_activeSpecialWorkspace, now);
-    }
 
     g_pHyprRenderer->commitPendingAndDoExplicitSync(mon, true); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
     m_skipThird = true;

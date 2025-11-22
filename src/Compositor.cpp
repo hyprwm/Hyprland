@@ -8,7 +8,7 @@
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
-#include "managers/BufferReleaseManager.hpp"
+#include "managers/SurfaceManager.hpp"
 #include "managers/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
 #include "managers/PointerManager.hpp"
@@ -663,8 +663,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the SeatManager!");
             g_pSeatManager = makeUnique<CSeatManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the CBufferReleaseManager!");
-            g_pBufferReleaseManager = makeUnique<CBufferReleaseManager>();
+            Log::logger->log(Log::DEBUG, "Creating the CSurfaceManager!");
+            g_pSurfaceManager = makeUnique<CSurfaceManager>();
         } break;
         case STAGE_LATE: {
             Log::logger->log(Log::DEBUG, "Creating CHyprCtl");

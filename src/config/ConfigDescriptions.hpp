@@ -138,9 +138,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "general:modal_parent_blocking",
-        .description = "If true, parent windows of modals will not be interactive.",
+        .description = "if true, parent windows of modals will not be interactive.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "general:locale",
+        .description = "overrides the system locale",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{""},
     },
 
     /*

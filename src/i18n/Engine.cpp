@@ -1,6 +1,7 @@
 #include "Engine.hpp"
 
 #include <hyprutils/i18n/I18nEngine.hpp>
+#include "../config/ConfigValue.hpp"
 
 using namespace I18n;
 using namespace Hyprutils::I18n;
@@ -1105,5 +1106,7 @@ I18n::CI18nEngine::CI18nEngine() {
 }
 
 std::string I18n::CI18nEngine::localize(eI18nKeys key, const Hyprutils::I18n::translationVarMap& vars) {
-    return huEngine->localizeEntry(localeStr, key, vars);
+    static auto CONFIG_LOCALE = CConfigValue<std::string>("general:locale");
+    std::string locale        = *CONFIG_LOCALE != "" ? *CONFIG_LOCALE : localeStr;
+    return huEngine->localizeEntry(locale, key, vars);
 }

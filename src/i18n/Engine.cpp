@@ -537,6 +537,45 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CMシェーダーのリロード失敗、rgba/rgbxを使いました。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "画面{name}：広い色域は設定していますけど、画面は10ビットモードに設定されていません。");
 
+    // lv_LV (Latvian)
+    huEngine->registerEntry("lv_LV", TXT_KEY_ANR_TITLE, "Lietotne nereaģē");
+    huEngine->registerEntry("lv_LV", TXT_KEY_ANR_CONTENT, "Lietotne {title} - {class} nereaģē.\nKo jūs vēlaties darīt?");
+    huEngine->registerEntry("lv_LV", TXT_KEY_ANR_OPTION_TERMINATE, "Beigt procesu");
+    huEngine->registerEntry("lv_LV", TXT_KEY_ANR_OPTION_WAIT, "Gaidīt");
+    huEngine->registerEntry("lv_LV", TXT_KEY_ANR_PROP_UNKNOWN, "(nezināms)");
+
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Lietotne <b>{app}</b> pieprasa nezināmu atļauju.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Lietotne <b>{app}</b> mēģina lasīt no jūsu ekrāna.\n\nVai vēlaties to atļaut?");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Lietotne <b>{app}</b> mēģina ielādēt spraudni: <b>{plugin}</b>.\n\nVai vēlaties to atļaut?");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Ir atrasta jauna tastatūra: <b>{keyboard}</b>.\n\nVai vēlaties atļaut tās darbību?");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(nezināms)");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_TITLE, "Atļaujas pieprasījums");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Padoms: Hyprland konfigurācijas failā varat arī iestatīt atļaujas.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_ALLOW, "Atļaut");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Atļaut un atcerēties");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_ALLOW_ONCE, "Atļaut vienreiz");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_DENY, "Aizliegt");
+    huEngine->registerEntry("lv_LV", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Nezināma lietotne (Wayland klienta ID {wayland_id})");
+
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Jūsu XDG_CURRENT_DESKTOP tiek ārēji pārvaldīts, tās vērtība ir {value}.\nTas var neapzināti izraisīt problēmas.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_NO_GUIUTILS, "Jums nav instalēts hyprland-guiutils. Šī pakotne ir nepieciešama dažiem dialogiem. Apsveriet tās instalēšanu.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland nevarēja ielādēt {count} būtisku resursu, vainojiet sava distro iepakotāju par sliktu iepakošanu!";
+        return "Hyprland nevarēja ielādēt {count} būtiskus resursus, vainojiet sava distro iepakotāju par sliktu iepakošanu!";
+    });
+    huEngine->registerEntry(
+        "lv_LV", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "Jūsu monitora izkārtojums ir nepareizi iestatīts. Monitors {name} pārklājas ar citiem izkārtojumā iestatītajiem monitoriem.\nLūdzu apskatieties (Monitoru lapā),"
+        "lai uzzinātu vairāk. Tas <b>radīs</b> problēmas.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitoram {name} neizdevās iestatīt nevienu no pieprasītajiem režīmiem, izmantojam {mode}.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Monitoram {name} ir nodots nederīgs mērogs: {scale}, izmantojam ieteikto mērogu: {fixed_scale}");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nevarēja ielādēt spraudni {name}: {error}");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM šeiderus neizdevās pārlādēt, izmantojam rgba/rgbx.");
+    huEngine->registerEntry("lv_LV", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitors {name}: Ir iespējota plaša krāsu gamma, bet displejs nav 10-bitu režīmā.");
+
     // hu_HU (Hungarian)
     huEngine->registerEntry("hu_HU", TXT_KEY_ANR_TITLE, "Az alkalmazás nem válaszol");
     huEngine->registerEntry("hu_HU", TXT_KEY_ANR_CONTENT, "A(z) {title} - {class} alkalmazás nem válaszol.\nMit szeretne tenni vele?");

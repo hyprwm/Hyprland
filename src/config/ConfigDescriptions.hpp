@@ -688,6 +688,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "input:touchdevice:change_focus",
+        .description = "Whether a window should be focused when it receives a touch event.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * input:virtualkeyboard:

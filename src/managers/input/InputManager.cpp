@@ -182,7 +182,7 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_lastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos, bool allowKeyboardRefocus) {
     m_lastInputMouse = mouse;
 
     if (!g_pCompositor->m_readyToProcess || g_pCompositor->m_isShuttingDown || g_pCompositor->m_unsafeState)
@@ -511,8 +511,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
         surfaceLocal = surfaceLocal * pFoundWindow->m_X11SurfaceScaledBy;
-
-    bool allowKeyboardRefocus = true;
 
     if (!refocus && g_pCompositor->m_lastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_lastFocus.lock());
@@ -1765,6 +1763,8 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
                 // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, PMONITOR->output);
             } else if (bound)
                 Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->m_hlName, output);
+
+            PTOUCHDEV->m_changeFocus = g_pConfigManager->getDeviceInt(PTOUCHDEV->m_hlName, "change_focus", "input:touchdevice:change_focus") != 0;
         }
     };
 

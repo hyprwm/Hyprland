@@ -672,6 +672,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
     registerConfigVar("input:touchdevice:enabled", Hyprlang::INT{1});
+    registerConfigVar("input:touchdevice:change_focus", Hyprlang::INT{1});
     registerConfigVar("input:virtualkeyboard:share_states", Hyprlang::INT{2});
     registerConfigVar("input:virtualkeyboard:release_pressed_on_close", Hyprlang::INT{0});
     registerConfigVar("input:tablet:transform", Hyprlang::INT{0});
@@ -814,6 +815,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
     m_config->addSpecialConfigValue("device", "share_states", Hyprlang::INT{0});             // only for virtualkeyboards
     m_config->addSpecialConfigValue("device", "release_pressed_on_close", Hyprlang::INT{0}); // only for virtualkeyboards
+    m_config->addSpecialConfigValue("device", "change_focus", Hyprlang::INT{1});             // only for touchdevices
 
     m_config->addSpecialCategory("monitorv2", {.key = "output"});
     m_config->addSpecialConfigValue("monitorv2", "disabled", Hyprlang::INT{0});

@@ -30,7 +30,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
 
-    refocus(TOUCH_COORDS);
+    const auto allowKeyboardRefocus = e.device->m_changeFocus;
+    mouseMoveUnified(0, true, false, TOUCH_COORDS, allowKeyboardRefocus);
 
     if (m_clickBehavior == CLICKMODE_KILL) {
         IPointer::SButtonEvent e;

@@ -244,7 +244,7 @@ class CInputManager {
 
     uint32_t           m_capabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt);
+    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt, bool allowKeyboardRefocus = true);
     void               recheckMouseWarpOnMouseInput();
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);

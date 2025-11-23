@@ -45,6 +45,7 @@ class ITouch : public IHID {
     } m_touchEvents;
 
     std::string m_boundOutput = "";
+    bool        m_changeFocus = true;
 
     WP<ITouch>  m_self;
 };

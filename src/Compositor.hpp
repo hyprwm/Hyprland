@@ -169,6 +169,7 @@ class CCompositor {
     std::optional<unsigned int>         getVTNr();
 
     NColorManagement::SImageDescription getPreferredImageDescription();
+    NColorManagement::SImageDescription getHDRImageDescription();
     bool                                shouldChangePreferredImageDescription();
 
     bool                                supportsDrmSyncobjTimeline() const;

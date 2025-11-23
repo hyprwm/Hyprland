@@ -35,10 +35,13 @@ static bool waitForWindow(SP<CProcess> proc, int windowsBefore) {
             return false;
     }
 
+    NLog::log("{}Waited {} milliseconds for window to open", Colors::YELLOW, counter * 100);
     return Tests::processAlive(proc->pid());
 }
 
 static bool startClient(SClient& client) {
+    NLog::log("{}Attempting to start child-window client", Colors::YELLOW);
+
     client.proc = makeShared<CProcess>(binaryDir + "/child-window", std::vector<std::string>{});
 
     client.proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
@@ -55,12 +58,18 @@ static bool startClient(SClient& client) {
     client.readFd = CFileDescriptor(procOutPipeFd[0]);
     client.proc->setStdoutFD(procOutPipeFd[1]);
 
-    client.proc->runAsync();
+    if (!client.proc->runAsync()) {
+        NLog::log("{}Failed to run client", Colors::RED);
+        return false;
+    }
 
     close(procInPipeFd[0]);
     close(procOutPipeFd[1]);
 
-    waitForWindow(client.proc, Tests::windowCount());
+    if (!waitForWindow(client.proc, Tests::windowCount())) {
+        NLog::log("{}Window took too long to open", Colors::RED);
+        return false;
+    }
 
     NLog::log("{}Started child-window client", Colors::YELLOW);
     return true;
@@ -79,7 +88,9 @@ static bool createChild(SClient& client) {
     if ((size_t)write(client.writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return false;
 
-    waitForWindow(client.proc, Tests::windowCount());
+    if (!waitForWindow(client.proc, Tests::windowCount()))
+        NLog::log("{}Child window took too long to open", Colors::RED);
+
     if (getFromSocket("/dispatch focuswindow class:child-test-child") != "ok") {
         NLog::log("{}Failed to focus child window", Colors::RED);
         return false;

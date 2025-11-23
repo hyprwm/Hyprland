@@ -123,4 +123,5 @@ void CSurfaceManager::sendScheduledFrames(PHLMONITORREF monitor, const Time::ste
 
 void CSurfaceManager::destroy(PHLMONITORREF monitor) {
     m_buffers.erase(monitor);
+    m_scheduledForFrame.erase(monitor);
 }

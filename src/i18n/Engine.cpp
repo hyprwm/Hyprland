@@ -491,17 +491,17 @@ I18n::CI18nEngine::CI18nEngine() {
         "hr_HR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
         "Izgleda da je tvoja XDG_CURRENT_DESKTOP okolina vanjski upravljana te je trenutna vrijednost {value}.\nOvo može izazvati problem, osim ako je namjerno.");
     huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "Na tvojem sustavu nije instaliran hyprland-guiutils. Ovo je zavisnost tokom pokretanja nekih dijaloga. Preporučeno je da ju instaliraš.");
+                            "Na tvojem sustavu nije instaliran hyprland-guiutils. Ovo je ovisnost tijekom pokretanja nekih dijaloga. Preporučeno je da je instaliraš.");
     huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo % 10 <= 1 && assetsNo % 100 != 11)
-            return "Hyprland nije uspio učitati {count} neophodnu komponentu, krivi pakera svojeg distroja za loš posao pakiranja!";
+            return "Hyprland nije uspio učitati {count} neophodnu komponentu, krivi pakera svoje distribucije za loš posao pakiranja!";
         else if (assetsNo % 10 <= 4 && assetsNo % 100 > 14)
-            return "Hyprland nije uspio učitati {count} neophodne komponente, krivi pakera svojeg distroja za loš posao pakiranja!";
-        return "Hyprland nije uspio učitati {count} neophodnih komponenata, krivi pakera svojeg distroja za loš posao pakiranja!";
+            return "Hyprland nije uspio učitati {count} neophodne komponente, krivi pakera svoje distribucije za loš posao pakiranja!";
+        return "Hyprland nije uspio učitati {count} neophodnih komponenata, krivi pakera svoje distribucije za loš posao pakiranja!";
     });
     huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Raspored tvojih monitora je krio postavljen. Monitor {name} preklapa se s ostalim monitorom/ima u rasporedu.\nProvijeri wiki (Monitors stranicu) za "
+                            "Raspored tvojih monitora je krivo postavljen. Monitor {name} preklapa se s ostalim monitorom/ima u rasporedu.\nProvjeri wiki (Monitors stranicu) za "
                             "više informacija. Ovo <b>hoće</b> izazvati probleme.");
     huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} nije uspio odrediti zatražene načine rada, povratak na zadani način rada: {mode}.");
     huEngine->registerEntry("hr_HR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Nevažeći razmjer proslijeđen monitoru {name}: {scale}, koristi se predloženi razmjer: {fixed_scale}");

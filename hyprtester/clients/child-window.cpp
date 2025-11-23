@@ -141,17 +141,6 @@ static bool createShm(SWlState& state, Vector2D geom) {
     }
     state.shmBuf = buf;
 
-    buf = makeShared<CCWlBuffer>(state.shmPool->sendCreateBuffer(size, geom.x, geom.y, stride, WL_SHM_FORMAT_XRGB8888));
-    if (!buf->resource()) {
-        clientLog("Failed to create child buffer");
-        return false;
-    }
-    if (state.shmBuf2) {
-        state.shmBuf2->sendDestroy();
-        state.shmBuf2.reset();
-    }
-    state.shmBuf2 = buf;
-
     return true;
 }
 
@@ -257,6 +246,21 @@ static void parseRequest(SWlState& state, std::string str, SChildWindow& window)
         });
 
         window.toplevel = makeShared<CCXdgToplevel>(window.xSurface->sendGetToplevel());
+
+        window.toplevel->setConfigure([&](CCXdgToplevel* p, int32_t w, int32_t h, wl_array* arr) {
+            size_t stride = 1280 * 4;
+            size_t size   = 720 * stride;
+
+            auto   buf = makeShared<CCWlBuffer>(state.shmPool->sendCreateBuffer(size, state.geom.x, state.geom.y, stride, WL_SHM_FORMAT_XRGB8888));
+            if (!buf->resource())
+                clientLog("Failed to create child buffer");
+
+            if (state.shmBuf2) {
+                state.shmBuf2->sendDestroy();
+                state.shmBuf2.reset();
+            }
+            state.shmBuf2 = buf;
+        });
 
         window.toplevel->sendSetTitle("child-test child");
         window.toplevel->sendSetAppId("child-test-child");

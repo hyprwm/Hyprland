@@ -784,6 +784,49 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader falhou ao recarregar, revertendo para rgba/rgbx.");
     huEngine->registerEntry("pt_PT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: gama de cores ampla está activada mas o monitor não está em modo 10-bits.");
 
+    // ro_RO (Romanian)
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_TITLE, "Aplicația nu răspunde");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_CONTENT, "Aplicația {title} - {class} nu răspunde.\nCe doriți să faceți?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_OPTION_TERMINATE, "Închideți forțat");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_OPTION_WAIT, "Așteptați");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_PROP_UNKNOWN, "(necunoscut)");
+
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "O aplicație <b>{app}</b> solicită o permisiune necunoscută.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicație <b>{app}</b> încearcă să captureze ecranul.\n\nDoriți să permiteți?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "O aplicație <b>{app}</b> încearcă să încarce un plugin: <b>{plugin}</b>.\n\nDoriți să permiteți?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "O nouă tastatură a fost detectată: <b>{keyboard}</b>.\n\nDoriți să permiteți funcționarea acesteia?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(necunoscut)");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_TITLE, "Solicitare permisiune");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Sfat: puteți seta reguli persistente pentru acestea în fișierul de configurare Hyprland.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW, "Permiteți");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Permiteți și rețineți");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW_ONCE, "Permiteți o singură dată");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_DENY, "Refuzați");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplicație necunoscută (ID client wayland {wayland_id})");
+
+    huEngine->registerEntry(
+        "ro_RO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Variabila de mediu XDG_CURRENT_DESKTOP pare să fie gestionată extern, iar valoarea curentă este {value}.\nAcest lucru poate cauza probleme dacă nu este "
+        "intenționat.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Sistemul dumneavoastră nu are instalat hyprland-guiutils. Aceasta este o dependență necesară pentru unele dialoguri. Luați în considerare instalarea "
+                            "acestuia.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland nu a reușit să încarce {count} resursă esențială, dați vina pe cel care a împachetat distribuția pentru o treabă proastă!";
+        return "Hyprland nu a reușit să încarce {count} resurse esențiale, dați vina pe cel care a împachetat distribuția pentru o treabă proastă!";
+    });
+    huEngine->registerEntry(
+        "ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+        "Dispunerea monitoarelor este configurată incorect. Monitorul {name} se suprapune cu alte monitoare din configurație.\n"
+        "Vă rugăm să consultați wiki-ul (pagina Monitors) pentru mai multe detalii. Acest lucru <b>va</b> cauza probleme.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciunul dintre modurile solicitate, revenind la modul {mode}.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scară invalidă transmisă monitorului {name}: {scale}, se utilizează scara sugerată: {fixed_scale}");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nu s-a reușit încărcarea plugin-ului {name}: {error}");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Reîncărcarea shader-ului CM a eșuat, revenind la rgba/rgbx.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: gama largă de culori este activată, dar afișajul nu este în modul 10-bit.");
+
     // zh_CN (Simplified Chinese)
     huEngine->registerEntry("zh_CN", TXT_KEY_ANR_TITLE, "应用程序未响应");
     huEngine->registerEntry("zh_CN", TXT_KEY_ANR_CONTENT, "应用程序 {title} - {class} 未响应。\n你想要采取什么行动？");

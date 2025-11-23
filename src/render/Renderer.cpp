@@ -1247,6 +1247,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!g_pCompositor->m_sessionActive)
         return;
 
+    if (g_pAnimationManager)
+        g_pAnimationManager->frameTick();
+
     if (pMonitor->m_id == m_mostHzMonitor->m_id ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
 

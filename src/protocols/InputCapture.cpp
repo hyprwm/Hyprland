@@ -1,6 +1,7 @@
 #include "InputCapture.hpp"
 
 #include "Compositor.hpp"
+#include "config/ConfigValue.hpp"
 #include "debug/Log.hpp"
 #include "hyprland-input-capture-v1.hpp"
 #include "managers/HookSystemManager.hpp"
@@ -13,6 +14,7 @@
 #include <fcntl.h>
 #include <glaze/core/context.hpp>
 #include <glaze/util/parse.hpp>
+#include <hyprlang.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <libeis.h>
 #include <optional>
@@ -129,13 +131,16 @@ static bool isBarrierValid(int x1, int y1, int x2, int y2) {
 }
 
 void CInputCaptureResource::onAddBarrier(uint32_t zoneSet, uint32_t id, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
+	static auto PENFORCEBARRIERS = CConfigValue<Hyprlang::INT>("inputcapture:enforce_barriers");
     bool valid = isBarrierValid(x1, y1, x2, y2);
 
     if (!valid) {
-        m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, "The barrier id " + std::to_string(id) + " is invalid");
         Debug::log(LOG, "[input-capture]({}) Barrier {} is invalid [{}, {}], [{}, {}]", m_sessionId.c_str(), id, x1, y1, x2, y2);
 
-        return;
+		if (*PENFORCEBARRIERS) {
+        	m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, "The barrier id " + std::to_string(id) + " is invalid");
+			return;
+		}
     }
 
     Debug::log(LOG, "[input-capture]({}) Barrier {} [{}, {}], [{}, {}] added", m_sessionId.c_str(), id, x1, y1, x2, y2);
@@ -302,7 +307,7 @@ void CInputCaptureProtocol::onCreateSession(CHyprlandInputCaptureManagerV1* pMgr
         return;
     }
 
-    LOGM(LOG, "New InputCapture at id {}", id);
+	Debug::log(LOG, "New InputCapture at id {}", id);
 }
 
 void CInputCaptureProtocol::destroyResource(CInputCaptureResource* resource) {

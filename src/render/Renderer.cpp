@@ -604,6 +604,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         renderdata.surfaceCounter = 0;
         pWindow->m_wlSurface->resource()->breadthfirst(
             [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                if (!s->m_current.texture)
+                    return;
+
+                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                    return;
+
                 renderdata.localPos    = offset;
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
@@ -677,6 +683,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
                     popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                            if (!s->m_current.texture)
+                                return;
+
+                            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                                return;
+
                             renderdata.localPos    = offset;
                             renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
@@ -756,6 +768,12 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     if (!popups)
         pLayer->m_surface->resource()->breadthfirst(
             [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                if (!s->m_current.texture)
+                    return;
+
+                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                    return;
+
                 renderdata.localPos    = offset;
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
@@ -776,10 +794,18 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                     return;
 
+                const auto SURF = popup->m_wlSurface->resource();
+
+                if (!SURF->m_current.texture)
+                    return;
+
+                if (SURF->m_current.size.x < 1 || SURF->m_current.size.y < 1)
+                    return;
+
                 Vector2D pos           = popup->coordsRelativeToParent();
                 renderdata.localPos    = pos;
-                renderdata.texture     = popup->m_wlSurface->resource()->m_current.texture;
-                renderdata.surface     = popup->m_wlSurface->resource();
+                renderdata.texture     = SURF->m_current.texture;
+                renderdata.surface     = SURF;
                 renderdata.mainSurface = false;
                 m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
@@ -812,6 +838,12 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
 
     SURF->breadthfirst(
         [this, &renderdata, &SURF](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
@@ -833,6 +865,12 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 
     renderdata.surface->breadthfirst(
         [this, &renderdata, &pSurface](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
@@ -2516,6 +2554,12 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
 
     popup->m_wlSurface->resource()->breadthfirst(
         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;

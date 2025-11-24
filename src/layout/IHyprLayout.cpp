@@ -108,6 +108,9 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         xy                = g_pXWaylandManager->xwaylandToWaylandCoords(xy);
         desiredGeometry.x = xy.x;
         desiredGeometry.y = xy.y;
+    } else if (pWindow->m_ruleApplicator->persistentSize().valueOrDefault()) {
+        desiredGeometry.w = pWindow->m_lastFloatingSize.x;
+        desiredGeometry.h = pWindow->m_lastFloatingSize.y;
     }
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");

@@ -28,4 +28,11 @@ TEST(Desktop, reservedArea) {
     EXPECT_EQ(box.y, 1000 + 30 + 20);
     EXPECT_EQ(box.w, 1000 - 20 - 40 - 10 - 30);
     EXPECT_EQ(box.h, 1000 - 30 - 50 - 20 - 40);
+
+    Desktop::CReservedArea b{CBox{10, 10, 1000, 1000}, CBox{20, 30, 900, 900}};
+
+    EXPECT_EQ(b.left(), 20 - 10);
+    EXPECT_EQ(b.top(), 30 - 10);
+    EXPECT_EQ(b.right(), 1010 - 920);
+    EXPECT_EQ(b.bottom(), 1010 - 930);
 }

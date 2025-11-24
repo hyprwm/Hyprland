@@ -1,4 +1,5 @@
 #include "ReservedArea.hpp"
+#include "../../macros.hpp"
 
 using namespace Desktop;
 
@@ -10,6 +11,18 @@ CReservedArea::CReservedArea(const Vector2D& tl, const Vector2D& br) : m_initial
 }
 
 CReservedArea::CReservedArea(double top, double right, double bottom, double left) : m_initialTopLeft(left, top), m_initialBottomRight(right, bottom) {
+    calculate();
+}
+
+CReservedArea::CReservedArea(const CBox& parent, const CBox& child) {
+    ASSERT(!parent.empty() && !child.empty());
+
+    ASSERT(parent.containsPoint(child.pos() + Vector2D{0.0001, 0.0001}));
+    ASSERT(parent.containsPoint(child.pos() + child.size() - Vector2D{0.0001, 0.0001}));
+
+    m_initialTopLeft     = child.pos() - parent.pos();
+    m_initialBottomRight = (parent.pos() + parent.size()) - (child.pos() + child.size());
+
     calculate();
 }
 
@@ -69,4 +82,8 @@ void CReservedArea::addType(eReservedDynamicType t, const Vector2D& topLeft, con
     ref.topLeft += topLeft;
     ref.bottomRight += bottomRight;
     calculate();
+}
+
+void CReservedArea::addType(eReservedDynamicType t, const CReservedArea& area) {
+    addType(t, {area.left(), area.top()}, {area.right(), area.bottom()});
 }

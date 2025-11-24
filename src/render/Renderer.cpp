@@ -1856,8 +1856,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     for (auto const& la : PMONITOR->m_layerSurfaceLayers)
         arrangeLayerArray(PMONITOR, la, false, &usableArea);
 
-    PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_LS, Vector2D{usableArea.x, usableArea.y} - PMONITOR->m_position,
-                                     ORIGINAL_USABLE_AREA.size() - Vector2D{usableArea.w, usableArea.h});
+    PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_LS, Desktop::CReservedArea{ORIGINAL_USABLE_AREA, usableArea});
 
     // damage the monitor if can
     damageMonitor(PMONITOR);

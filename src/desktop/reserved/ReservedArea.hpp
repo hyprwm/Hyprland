@@ -16,6 +16,7 @@ namespace Desktop {
         CReservedArea() = default;
         CReservedArea(const Vector2D& tl, const Vector2D& br);
         CReservedArea(double top, double right, double bottom, double left);
+        CReservedArea(const CBox& parent, const CBox& child);
         ~CReservedArea() = default;
 
         CBox   apply(const CBox& other) const;
@@ -23,6 +24,7 @@ namespace Desktop {
 
         void   resetType(eReservedDynamicType);
         void   addType(eReservedDynamicType, const Vector2D& topLeft, const Vector2D& bottomRight);
+        void   addType(eReservedDynamicType, const CReservedArea& area);
 
         double left() const;
         double right() const;

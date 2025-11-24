@@ -130,10 +130,8 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_PERSISTENT_SIZE: {
-                try {
-                    m_persistentSize.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_persistentSize.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding_power {}", effect); }
+                m_persistentSize.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_persistentSize.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_ANIMATION: {

@@ -397,6 +397,34 @@ static bool test() {
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
+    // test persistent_size between floating window launches
+    OK(getFromSocket("/keyword windowrule match:class persistent_size_kitty, persistent_size true, float true"));
+
+    if (!spawnKitty("persistent_size_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch resizeactive exact 600 400"))
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 600,400");
+        EXPECT_CONTAINS(str, "floating: 1");
+    }
+
+    Tests::killAllWindows();
+
+    if (!spawnKitty("persistent_size_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 600,400");
+        EXPECT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+
     OK(getFromSocket("/keyword general:border_size 0"));
     OK(getFromSocket("/keyword windowrule match:float true, border_size 10"));
 

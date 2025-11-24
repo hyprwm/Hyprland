@@ -1,3 +1,4 @@
+#include <hyprlang.hpp>
 #include <re2/re2.h>
 
 #include "ConfigManager.hpp"
@@ -770,6 +771,9 @@ CConfigManager::CConfigManager() {
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
+
+	registerConfigVar("inputcapture:capture_modifiers", Hyprlang::INT{0});
+	registerConfigVar("inputcapture:enforce_barriers", Hyprlang::INT{1});
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 

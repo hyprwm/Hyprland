@@ -1546,6 +1546,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 }
 
 void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
+	static auto PSENDMOD = CConfigValue<Hyprlang::INT>("inputcapture:capture_modifiers");
     if (!pKeyboard->m_enabled)
         return;
 
@@ -1556,10 +1557,13 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const bool USEIME = HASIME && !DISALLOWACTION;
     auto       MODS   = pKeyboard->m_modifiersState;
 
-    PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+	if (*PSENDMOD) {
+		//TODO: from config
+		PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
-    if (PROTO::inputCapture->isCaptured())
-        return;
+		if (PROTO::inputCapture->isCaptured())
+			return;
+	}
 
     // use merged mods states when sending to ime or when sending to seat with no ime
     // if passing from ime, send mods directly without merging

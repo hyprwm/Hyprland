@@ -829,6 +829,9 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("experimental:wp_cm_1_2", Hyprlang::INT{0});
 
+	registerConfigVar("inputcapture:capture_modifiers", Hyprlang::INT{0});
+	registerConfigVar("inputcapture:enforce_barriers", Hyprlang::INT{1});
+
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
     registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});
 

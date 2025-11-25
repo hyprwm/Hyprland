@@ -3,6 +3,11 @@
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #include <any>
 #include <bit>
 #include <string_view>
@@ -1206,6 +1211,10 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 
     std::unordered_map<std::string, std::string> results;
 
+    std::vector<char> buffer;
+    size_t            needle = 0;
+
+#if defined(__linux__)
     //
     std::string   environFile = "/proc/" + std::to_string(PID) + "/environ";
     std::ifstream ifs(environFile, std::ios::binary);
@@ -1213,13 +1222,25 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     if (!ifs.good())
         return {};
 
-    std::vector<char> buffer;
-    size_t            needle = 0;
     buffer.resize(512, '\0');
     while (ifs.read(buffer.data() + needle, 512)) {
         buffer.resize(buffer.size() + 512, '\0');
         needle += 512;
     }
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ENV, static_cast<int>(PID) };
+    size_t len = 0;
+
+    if (sysctl(mib, 4, nullptr, &len, nullptr, 0) < 0 || len == 0)
+        return {};
+
+    buffer.resize(len, '\0');
+
+    if (sysctl(mib, 4, buffer.data(), &len, nullptr, 0) < 0)
+        return {};
+
+    needle = len;
+#endif
 
     if (needle <= 1)
         return {};

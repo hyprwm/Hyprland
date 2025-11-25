@@ -733,7 +733,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "तपाइँको मनिटरको लेआउट गलत तरिकाले मिलाइएको छ। लेआउटमा {name} मनिटर अर्को मनिटर वा मनिटरहरुसङ्ग ओभरल्याप भएको छ।\nथप बुझ्नलाई कृपया विकिको मनिटर पेज हेर्नुहोस्।"
                             "यसले <b>निश्चित रुपमा</b> समस्या निम्त्याउने छ।");
-    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "{name} मनिटरले चाहेको कुनै पनि मोेेड सेट गर्न सकेन, {mode} मोडमा फर्कँदै।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "{name} मनिटरले चाहेको कुनै पनि मोड सेट गर्न सकेन, {mode} मोडमा फर्कँदै।");
     huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "{name} मनिटरलाई अमान्य स्केल पठाइयो: {scale}, सजेस्ट गरिएको स्केल प्रयोग गर्दै: {fixed_scale}");
     huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} प्लगिन लोेड गर्न सकिएन: {error}");
     huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader रिलोड गर्न सकिएन, rgba/rgbx मा फर्कँदै।");

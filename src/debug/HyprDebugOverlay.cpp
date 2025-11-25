@@ -5,6 +5,7 @@
 #include "../render/pass/TexPassElement.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/animation/AnimationManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 
 CHyprDebugOverlay::CHyprDebugOverlay() {
     m_texture = makeShared<CTexture>();
@@ -57,7 +58,7 @@ void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
         m_monitor = pMonitor;
 
     // anim data too
-    const auto PMONITORFORTICKS = g_pHyprRenderer->m_mostHzMonitor ? g_pHyprRenderer->m_mostHzMonitor.lock() : g_pCompositor->m_lastMonitor.lock();
+    const auto PMONITORFORTICKS = g_pHyprRenderer->m_mostHzMonitor ? g_pHyprRenderer->m_mostHzMonitor.lock() : Desktop::focusState()->monitor();
     if (PMONITORFORTICKS == pMonitor) {
         if (m_lastAnimationTicks.size() > sc<long unsigned int>(PMONITORFORTICKS->m_refreshRate))
             m_lastAnimationTicks.pop_front();

@@ -3,11 +3,11 @@
 #include "../../protocols/SessionLock.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
-#include "managers/animation/AnimationManager.hpp"
 #include "../HookSystemManager.hpp"
 #include "debug/Log.hpp"
 #include "UnifiedWorkspaceSwipeGesture.hpp"
@@ -26,7 +26,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
 
-    PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+    PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
     const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
 

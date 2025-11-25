@@ -14,6 +14,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -168,7 +169,7 @@ CHyprRenderer::CHyprRenderer() {
 
                 w->m_wlSurface->resource()->frame(Time::steadyNow());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->m_wlSurface->resource());
-                FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
+                FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
                 FEEDBACK->discarded();
                 PROTO::presentation->queueData(std::move(FEEDBACK));
             }
@@ -403,7 +404,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
 
         // render active window after all others of this pass
-        if (w == g_pCompositor->m_lastWindow) {
+        if (w == Desktop::focusState()->window()) {
             lastWindow = w.lock();
             continue;
         }
@@ -1407,7 +1408,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
                 renderLockscreen(pMonitor, NOW, renderBox);
 
-                if (pMonitor == g_pCompositor->m_lastMonitor) {
+                if (pMonitor == Desktop::focusState()->monitor()) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
                     g_pHyprError->draw();
                 }
@@ -1895,7 +1896,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     CBox usableArea = {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
 
-    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == PMONITOR->m_self) {
+    if (g_pHyprError->active() && Desktop::focusState()->monitor() == PMONITOR->m_self) {
         const auto HEIGHT = g_pHyprError->height();
         if (*BAR_POSITION == 0) {
             PMONITOR->m_reservedTopLeft.y = HEIGHT;

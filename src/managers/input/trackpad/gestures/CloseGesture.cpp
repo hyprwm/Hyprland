@@ -7,6 +7,7 @@
 #include "../../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../../../config/ConfigValue.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
 
 constexpr const float                   MAX_DISTANCE = 200.F;
 
@@ -27,7 +28,7 @@ static float lerpVal(const float& from, const float& to, const float& t) {
 void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_window = g_pCompositor->m_lastWindow;
+    m_window = Desktop::focusState()->window();
 
     if (!m_window)
         return;

@@ -480,6 +480,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:layers_hog_keyboard_focus", Hyprlang::INT{1});
     registerConfigVar("misc:animate_manual_resizes", Hyprlang::INT{0});
     registerConfigVar("misc:animate_mouse_windowdragging", Hyprlang::INT{0});
+    registerConfigVar("misc:debounce_drag", Hyprlang::INT{2});
     registerConfigVar("misc:disable_autoreload", Hyprlang::INT{0});
     registerConfigVar("misc:enable_swallow", Hyprlang::INT{0});
     registerConfigVar("misc:swallow_regex", {STRVAL_EMPTY});

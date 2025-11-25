@@ -589,7 +589,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
     static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
 
-    static auto SNAPENABLED = CConfigValue<Hyprlang::INT>("general:snap:enabled");
+    static auto SNAPENABLED   = CConfigValue<Hyprlang::INT>("general:snap:enabled");
+    static auto PDEBOUNCEDRAG = CConfigValue<Hyprlang::INT>("misc:debounce_drag");
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
@@ -602,7 +603,10 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (m_mouseMoveEventCount == 1)
         totalMs = 0;
 
-    if (MSMONITOR > 16.0) {
+    // Apply debounce automatically for 60Hz monitors (MSMONITOR > 16.0),
+    // or manually if user explicitly enables it. High-refresh users get max smoothness by default.
+    // 0 = off, 1 = on, 2 = auto (default)
+    if ((MSMONITOR > 16.0 && *PDEBOUNCEDRAG == 2) || *PDEBOUNCEDRAG == 1) {
         totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_mouseMoveEventCount);
         m_mouseMoveEventCount += 1;
 

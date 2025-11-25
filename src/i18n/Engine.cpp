@@ -1142,6 +1142,48 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Помилка завантаження плагіна {name}: {error}");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не вдалося перезавантажити шейдер CM, повернення до rgba/rgbx.");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монітор {name}: широка кольорова гама увімкнена, але дисплей не працює в 10-бітному режимі.");
+
+    // cs_CZ (Czech)
+    huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_TITLE, "Aplikace Neodpovídá");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_CONTENT, "Aplikace {title} - {class} neodpovídá.\nCo s ní chcete udělat?");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_OPTION_TERMINATE, "Ukončit");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_OPTION_WAIT, "Počkat");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_PROP_UNKNOWN, "(neznámé)");
+
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Aplikace <b>{app}</b> vyžaduje neznámé oprávnění.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikace <b>{app}</b> se pokouší zaznamenávat vaši obrazovku.\n\nChcete jí to povolit?");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Aplikace <b>{app}</b> se pokouší načíst plugin: <b>{plugin}</b>.\n\nChcete jí to povolit?");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Byla detekována nová klávesnice: <b>{keyboard}</b>.\n\nChcete jí povolit?");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(neznámé)");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_TITLE, "Žádost o oprávnění");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tip: pro tyto případy můžete nastavit trvalá pravidla v konfiguračním souboru Hyprland.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_ALLOW, "Povolit");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Povolit a zapamatovat");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_ALLOW_ONCE, "Povolit jednou");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_DENY, "Zamítnout");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Neznámá aplikace (ID klienta Wayland {wayland_id})");
+
+    huEngine->registerEntry(
+        "cs_CZ", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Proměnná prostředí XDG_CURRENT_DESKTOP se zdá být spravována externě a její aktuální hodnota je {value}.\nPokud to není záměr, může to způsobit problémy.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "V systému není nainstalován balíček hyprland-guiutils. Jedná se o závislost pro běh některých dialogových oken. Zvažte jeho instalaci.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprlandu se nepodařilo načíst {count} nezbytnou součást. Za špatně odvedenou práci viňte tvůrce balíčku vaší distribuce!";
+        if (assetsNo <= 4)
+            return "Hyprlandu se nepodařilo načíst {count} nezbytné součásti. Za špatně odvedenou práci viňte tvůrce balíčku vaší distribuce!";
+        return "Hyprlandu se nepodařilo načíst {count} nezbytných součástí. Za špatně odvedenou práci viňte tvůrce balíčku vaší distribuce!";
+    });
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Rozložení vašich monitorů je nastaveno nesprávně. Monitor {name} se překrývá s ostatními monitory.\nVíce informací naleznete na wiki "
+                            "(stránka Monitors). Toto <b>způsobí</b> problémy.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitoru {name} se nepodařilo nastavit žádný z požadovaných režimů, vrací se k režimu {mode}.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Monitoru {name} bylo předáno neplatné měřítko: {scale}, použije se navrhované měřítko: {fixed_scale}");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nepodařilo se načíst plugin {name}: {error}");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nepodařilo se znovu načíst CM shader, vrací se k rgba/rgbx.");
+    huEngine->registerEntry("cs_CZ", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: široký barevný gamut je povolen, ale displej není v 10bitovém režimu.");
 }
 
 std::string I18n::CI18nEngine::localize(eI18nKeys key, const Hyprutils::I18n::translationVarMap& vars) {

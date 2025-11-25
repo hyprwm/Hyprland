@@ -25,6 +25,5 @@ jobs:
 
   test:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
-    needs: hyprland
     uses: ./.github/workflows/nix-test.yml
     secrets: inherit

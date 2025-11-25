@@ -12,6 +12,7 @@
   epoll-shim,
   git,
   glaze,
+  gtest,
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
@@ -39,6 +40,7 @@
   xorg,
   xwayland,
   debug ? false,
+  withTests ? false,
   enableXWayland ? true,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
@@ -74,7 +76,7 @@ in
   assert assertMsg (!withHyprtester) "The option `withHyprtester` has been removed. Hyprtester is always built now.";
     customStdenv.mkDerivation (finalAttrs: {
       pname = "hyprland${optionalString debug "-debug"}";
-      inherit version;
+      inherit version withTests;
 
       src = fs.toSource {
         root = ../.;
@@ -87,7 +89,6 @@ in
             ../assets/install
             ../hyprctl
             ../hyprland.pc.in
-            ../hyprtester
             ../LICENSE
             ../protocols
             ../src
@@ -97,6 +98,7 @@ in
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
+            (optional withTests [../tests ../hyprtester])
           ]));
       };
 
@@ -139,6 +141,7 @@ in
           cairo
           git
           glaze
+          gtest
           hyprcursor
           hyprgraphics
           hyprland-protocols
@@ -192,7 +195,7 @@ in
         "NO_UWSM" = true;
         "NO_HYPRPM" = true;
         "TRACY_ENABLE" = false;
-        "BUILD_HYPRTESTER" = true;
+        "WITH_TESTS" = withTests;
       };
 
       preConfigure = ''
@@ -212,8 +215,11 @@ in
           ]}
         ''}
 
-        install hyprtester/pointer-warp -t $out/bin
-        install hyprtester/pointer-scroll -t $out/bin
+        ${optionalString withTests ''
+          install hyprtester/pointer-warp -t $out/bin
+          install hyprtester/pointer-scroll -t $out/bin
+          install hyprland_gtests -t $out/bin
+        ''}
       '';
 
       passthru.providedSessions = ["hyprland"];

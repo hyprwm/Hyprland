@@ -22,6 +22,9 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
 
     m_resource->sendCapabilities(sc<extWorkspaceGroupHandleV1GroupCapabilities>(0));
 
+    if (!PROTO::outputs.contains(m_monitor->m_name))
+        return;
+
     const auto& output = PROTO::outputs.at(m_monitor->m_name);
 
     if (auto resource = output->outputResourceFrom(m_resource->client()))

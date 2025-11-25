@@ -96,6 +96,9 @@ class CCompositor {
     PHLMONITOR             getMonitorFromID(const MONITORID&);
     PHLMONITOR             getMonitorFromName(const std::string&);
     PHLMONITOR             getMonitorFromDesc(const std::string&);
+    PHLMONITOR             getMonitorFromPosition(const std::string&);
+    Vector2D               getMaxMonitorPosition();
+    std::optional<Vector2D> parseMonitorPosition(const std::string&, const Vector2D&);
     PHLMONITOR             getMonitorFromCursor();
     PHLMONITOR             getMonitorFromVector(const Vector2D&);
     void                   removeWindowFromVectorSafe(PHLWINDOW);

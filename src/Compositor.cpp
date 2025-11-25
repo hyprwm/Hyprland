@@ -825,6 +825,82 @@ PHLMONITOR CCompositor::getMonitorFromDesc(const std::string& desc) {
     return nullptr;
 }
 
+Vector2D CCompositor::getMaxMonitorPosition() {
+    Vector2D max = {0, 0};
+    for (auto const& m : m_monitors) {
+        if (m->m_position.x > max.x)
+            max.x = m->m_position.x;
+        if (m->m_position.y > max.y)
+            max.y = m->m_position.y;
+    }
+    return max;
+}
+
+std::optional<Vector2D> CCompositor::parseMonitorPosition(const std::string& position,
+                                                          const Vector2D&    maxPos) {
+    // Parse position in format "XxY", "r-XxY", "Xxb-Y", or "r-Xxb-Y"
+    const auto XPOS = position.find('x');
+    if (XPOS == std::string::npos)
+        return std::nullopt;
+
+    try {
+        std::string xPart = position.substr(0, XPOS);
+        std::string yPart = position.substr(XPOS + 1);
+
+        bool xRelative = xPart.starts_with("r-");
+        bool yRelative = yPart.starts_with("b-");
+
+        // Parse X coordinate
+        if (xRelative) {
+            xPart = xPart.substr(2); // Remove "r-" prefix
+            if (xPart.empty() || !std::isdigit(xPart[0]))
+                return std::nullopt; // Strict validation
+        }
+
+        // Parse Y coordinate
+        if (yRelative) {
+            yPart = yPart.substr(2); // Remove "b-" prefix
+            if (yPart.empty() || !std::isdigit(yPart[0]))
+                return std::nullopt; // Strict validation
+        }
+
+        int xValue = std::stoi(xPart);
+        int yValue = std::stoi(yPart);
+
+        // Calculate absolute position
+        int X, Y;
+        if (xRelative || yRelative) {
+            X = xRelative ? (maxPos.x - xValue) : xValue;
+            Y = yRelative ? (maxPos.y - yValue) : yValue;
+        } else {
+            X = xValue;
+            Y = yValue;
+        }
+
+        return Vector2D{static_cast<double>(X), static_cast<double>(Y)};
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+PHLMONITOR CCompositor::getMonitorFromPosition(const std::string& position) {
+    auto parsedPos = parseMonitorPosition(position, getMaxMonitorPosition());
+    if (!parsedPos.has_value()) {
+        Debug::log(WARN, "Invalid monitor position string: {}", position);
+        return nullptr;
+    }
+
+    const int X = parsedPos->x;
+    const int Y = parsedPos->y;
+
+    for (auto const& m : m_monitors) {
+        if (m->m_position.x == X && m->m_position.y == Y)
+            return m;
+    }
+
+    return nullptr;
+}
+
 PHLMONITOR CCompositor::getMonitorFromCursor() {
     return getMonitorFromVector(g_pPointerManager->position());
 }

@@ -1944,7 +1944,13 @@ PHLMONITOR CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
     auto monitor = getBoundMonitorStringForWS(wsname);
     if (monitor.starts_with("desc:"))
         return g_pCompositor->getMonitorFromDesc(trim(monitor.substr(5)));
-    else
+    else if (monitor.starts_with("position:")) {
+        auto mon = g_pCompositor->getMonitorFromPosition(trim(monitor.substr(9)));
+        // Fallback to monitor ID 0 if position not found
+        if (!mon)
+            mon = g_pCompositor->getMonitorFromID(0);
+        return mon;
+    } else
         return g_pCompositor->getMonitorFromName(monitor);
 }
 

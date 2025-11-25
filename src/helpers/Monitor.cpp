@@ -1045,6 +1045,16 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
         const auto DESCRIPTIONSELECTOR = trim(selector.substr(5));
 
         return m_description.starts_with(DESCRIPTIONSELECTOR) || m_shortDescription.starts_with(DESCRIPTIONSELECTOR);
+    } else if (selector.starts_with("position:")) {
+        // match by position (supports "XxY", "r-XxY", "Xxb-Y", or "r-Xxb-Y")
+        const auto POSITIONSELECTOR = selector.substr(9);
+        auto       parsedPos = g_pCompositor->parseMonitorPosition(
+            POSITIONSELECTOR, g_pCompositor->getMaxMonitorPosition());
+
+        if (!parsedPos.has_value())
+            return false;
+
+        return m_position.x == parsedPos->x && m_position.y == parsedPos->y;
     } else {
         // match by selector
         return m_name == selector;

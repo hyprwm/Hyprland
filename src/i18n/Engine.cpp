@@ -701,6 +701,44 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader omlading feilet, faller tilbake til rgba/rgbx.");
     huEngine->registerEntry("nb_NO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skjerm {name}: bredt fargespekter er aktivert, men skjermen er ikke i 10-bit modus.");
 
+    // ne_NP (Nepali)
+    huEngine->registerEntry("ne_NP", TXT_KEY_ANR_TITLE, "एपले रिस्पन्ड गरिरहेको छैन");
+    huEngine->registerEntry("ne_NP", TXT_KEY_ANR_CONTENT, "{title} - {class} एपले रिस्पन्ड गरिरहेको छैन।\nयससँग के गर्न चहानुहुन्छ?");
+    huEngine->registerEntry("ne_NP", TXT_KEY_ANR_OPTION_TERMINATE, "टर्मिनेट गर्नुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_ANR_OPTION_WAIT, "पर्खनुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_ANR_PROP_UNKNOWN, "(अज्ञात)");
+
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "<b>{app}</b> एपले अज्ञात सुविधाको अनुमति मागिरहेको छ।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> एपले स्क्रिन क्याप्चर गर्न खोज्दै छ।\n\nयसलाई अनुमति दिन चहानुहुन्छ?");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> एपले एउटा प्लगिन लोड गर्न खोज्दै छ: <b>{plugin}</b>।\n\nयसलाई अनुमति दिन चहानुहुन्छ?");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "एउटा नयाँ किबोर्ड डिटेक्ट गरिएको छ: <b>{keyboard}</b>।\n\nयसलाई चल्ने अनुमति दिन चहानुहुन्छ?");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(अज्ञात)");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_TITLE, "अनुमतिको माग");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "टिप: यसको लागि पर्सिस्टेन्ट नियमहरु तपाइँले हाइपरल्यान्डको कन्फीग्युरेसन फाइलमा राख्न सक्नुहुन्छ।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_ALLOW, "अनुमति दिनुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "अनुमति दिनुहोस् र सम्झनुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_ALLOW_ONCE, "एकपटक अनुमति दिनुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_DENY, "अनुमति नदिनुहोस्");
+    huEngine->registerEntry("ne_NP", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "अज्ञात एप (wayland क्लाइन्ट आईडी {wayland_id})");
+
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "तपाईँको XDG_CURRENT_DESKTOP वातावरण बाहिरबाट व्यवस्थापन भइरहेको जस्तो देखिएको छ, अहिले {value} देखाइरहेको छ।\nजानीजानी नगरीएको भएमा यसले समस्याहरु निम्त्याउन सक्छ।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_NO_GUIUTILS, "तपाइँको सिस्टममा hyprland-guiutils इन्सटल गरिएको छैन। केहि डायलगहरुका लागि यो रनटाइम डिपेन्डेन्सी हो। कृपया इन्सटल गर्नुहोला।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "हाइपरल्यान्डले एउटा अत्यावश्यक एसेट लोड गर्न सकेन, तपाइँको डिस्ट्रोको प्याकेजरको प्याकेजिङ गतिलो छैन!";
+        return "हाइपरल्यान्डले {count} अत्यावश्यक एसेटहरु लोड गर्न सकेन, तपाइँको डिस्ट्रोको प्याकेजरको प्याकेजिङ गतिलो छैन!"
+    });
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "तपाइँको मनिटरको लेआउट गलत तरिकाले मिलाइएको छ। लेआउटमा {name} मनिटर अर्को मनिटर वा मनिटरहरुसङ्ग ओभरल्याप भएको छ।\nथप बुझ्नलाई कृपया विकिको मनिटर पेज हेर्नुहोस्।"
+                            "यसले <b>निश्चित रुपमा</b> समस्या निम्त्याउने छ।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "{name} मनिटरले चाहेको कुनै पनि मोेेड सेट गर्न सकेन, {mode} मोडमा फर्कँदै।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "अमान्य स्केल {name} मनिटरलाई पठाइयो: {scale}, सजेस्ट गरिएको स्केल प्रयोग गर्दै: {fixed_scale}");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} प्लगिन लोेड गर्न सकिएन: {error}");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader रिलोड गर्न सकिएन, rgba/rgbx मा फर्कँदै।");
+    huEngine->registerEntry("ne_NP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "{name} मनिटर: wide color gamut अन छ तर डिस्प्ले 10-bit मोड मा छैन।");
+
     // nl_NL (Dutch)
     huEngine->registerEntry("nl_NL", TXT_KEY_ANR_TITLE, "Applicatie Reageert Niet");
     huEngine->registerEntry("nl_NL", TXT_KEY_ANR_CONTENT, "Een applicatie {title} - {class} reageert niet.\nWat wilt u doen?");

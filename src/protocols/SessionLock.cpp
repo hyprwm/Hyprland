@@ -57,8 +57,12 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         m_surface.reset();
     });
 
-    if (m_monitor)
+    if (m_monitor) {
         PROTO::fractional->sendScale(surface_, m_monitor->m_scale);
+
+        if (m_surface)
+            m_surface->enter(m_monitor.lock());
+    }
 
     sendConfigure();
 

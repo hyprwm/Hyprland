@@ -1211,8 +1211,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 
     std::unordered_map<std::string, std::string> results;
 
-    std::vector<char> buffer;
-    size_t            needle = 0;
+    std::vector<char>                            buffer;
+    size_t                                       needle = 0;
 
 #if defined(__linux__)
     //
@@ -1228,8 +1228,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
         needle += 512;
     }
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
-    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ENV, static_cast<int>(PID) };
-    size_t len = 0;
+    int    mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ENV, static_cast<int>(PID)};
+    size_t len    = 0;
 
     if (sysctl(mib, 4, nullptr, &len, nullptr, 0) < 0 || len == 0)
         return {};

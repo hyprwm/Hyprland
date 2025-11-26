@@ -399,7 +399,7 @@ std::string CXCursorManager::getLegacyShapeName(std::string const& shape) {
     else if (shape == "dnd-ask")
         return "dnd-copy";
     else if (shape == "all-resize")
-        return "dnd-move";
+        return "fleur";
 
     return std::string();
 };

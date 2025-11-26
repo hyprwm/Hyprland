@@ -644,7 +644,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
 
-        if (!PWINDOWCANDIDATE && PWINDOW->m_workspace && PWINDOW->m_workspace->getWindows() == 0)
+        if (!PWINDOWCANDIDATE && PWINDOW->m_workspace && !PWINDOW->m_workspace->hasWindow())
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

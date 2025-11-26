@@ -2259,7 +2259,7 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
     if (!Desktop::focusState()->window()) {
         // if we have a clear focus, find the first window and get the next focusable.
         const auto PWS = Desktop::focusState()->monitor()->m_activeWorkspace;
-        if (PWS && PWS->getWindows() > 0) {
+        if (PWS && PWS->hasWindow()) {
             const auto PWINDOW = PWS->getFirstWindow();
             switchToWindow(PWINDOW);
         }

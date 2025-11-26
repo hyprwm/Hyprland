@@ -561,3 +561,7 @@ void CWorkspace::setPersistent(bool persistent) {
 bool CWorkspace::isPersistent() {
     return m_persistent;
 }
+
+bool CWorkspace::hasWindow() {
+    return std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->workspaceID() == m_id && w->aliveAndVisible(); });
+}

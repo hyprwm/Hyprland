@@ -65,20 +65,6 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             }
         }
 
-        auto lock = g_pSessionLockManager->isSurfaceSessionLock(m_surface.lock());
-        if (lock) {
-            for (auto& m : g_pCompositor->m_monitors) {
-                if (!m || !m->m_enabled)
-                    continue;
-
-                auto mon = g_pSessionLockManager->getSessionLockSurfaceForMonitor(m->m_id);
-                if (mon) {
-                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-                    continue;
-                }
-            }
-        }
-
         // only lock once its mapped.
         if (m_surface->m_mapped)
             m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
@@ -198,15 +184,6 @@ void CFifoProtocol::onMonitorPresent(PHLMONITOR m) {
         if (fifo->m_surface->m_hlSurface) {
             auto box = fifo->m_surface->m_hlSurface->getSurfaceBoxGlobal();
             if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
-                fifo->presented();
-                continue;
-            }
-        }
-
-        auto lock = g_pSessionLockManager->isSurfaceSessionLock(fifo->m_surface.lock());
-        if (lock) {
-            auto mon = g_pSessionLockManager->getSessionLockSurfaceForMonitor(m->m_id);
-            if (mon) {
                 fifo->presented();
                 continue;
             }

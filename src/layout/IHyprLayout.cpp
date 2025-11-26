@@ -5,6 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
@@ -108,6 +109,9 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         xy                = g_pXWaylandManager->xwaylandToWaylandCoords(xy);
         desiredGeometry.x = xy.x;
         desiredGeometry.y = xy.y;
+    } else if (pWindow->m_ruleApplicator->persistentSize().valueOrDefault()) {
+        desiredGeometry.w = pWindow->m_lastFloatingSize.x;
+        desiredGeometry.h = pWindow->m_lastFloatingSize.y;
     }
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
@@ -205,8 +209,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
 bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const PHLWINDOW OPENINGON        = g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace ?
-               g_pCompositor->m_lastWindow.lock() :
+    const PHLWINDOW OPENINGON        = Desktop::focusState()->window() && Desktop::focusState()->window()->m_workspace == pWindow->m_workspace ?
+               Desktop::focusState()->window() :
                (pWindow->m_workspace ? pWindow->m_workspace->getFirstWindow() : nullptr);
     const bool      FLOATEDINTOTILED = pWindow->m_isFloating && OPENINGON && !OPENINGON->m_isFloating;
     const bool      SWALLOWING       = pWindow->m_swallowed || pWindow->m_groupSwallowed;
@@ -301,7 +305,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     g_pKeybindManager->shadowKeybinds();
 
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+    Desktop::focusState()->rawWindowFocus(DRAGGINGWINDOW);
     g_pCompositor->changeWindowZOrder(DRAGGINGWINDOW, true);
 }
 
@@ -391,7 +395,7 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-    g_pCompositor->focusWindow(DRAGGINGWINDOW);
+    Desktop::focusState()->fullWindowFocus(DRAGGINGWINDOW);
 
     g_pInputManager->m_wasDraggingWindow = false;
 }
@@ -782,7 +786,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(pWindow->m_monitor.lock());
 
-        if (pWindow == g_pCompositor->m_lastWindow)
+        if (pWindow == Desktop::focusState()->window())
             m_lastTiledWindow = pWindow;
     } else {
         onWindowRemovedTiling(pWindow);
@@ -849,7 +853,7 @@ void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb
 }
 
 void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : Desktop::focusState()->window();
 
     if (!validMapped(PWINDOW))
         return;
@@ -924,7 +928,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = PWORKSPACE->getFirstWindow();
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_isMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_X11ShouldntFocus ||
-        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_monitor != g_pCompositor->m_lastMonitor)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_monitor != Desktop::focusState()->monitor())
         return nullptr;
 
     return pWindowCandidate;
@@ -946,13 +950,13 @@ void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
 
 void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
     bringWindowToTop(pWindow);
-    g_pCompositor->focusWindow(pWindow);
+    Desktop::focusState()->fullWindowFocus(pWindow);
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
-    if (g_pCompositor->m_lastMonitor) {
+    if (Desktop::focusState()->monitor()) {
 
         // If `persistentsize` is set, use the stored size if available.
         const bool HASPERSISTENTSIZE = pWindow->m_ruleApplicator->persistentSize().valueOrDefault();
@@ -965,7 +969,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
         }
 
         if (!pWindow->m_ruleApplicator->static_.size.empty()) {
-            const auto SIZE = Desktop::Rule::parseRelativeVector(pWindow, pWindow->m_ruleApplicator->static_.size);
+            const auto SIZE = pWindow->calculateExpression(pWindow->m_ruleApplicator->static_.size);
             if (SIZE)
                 return SIZE.value();
         }

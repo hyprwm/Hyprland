@@ -17,6 +17,7 @@
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/layerRule/LayerRule.hpp"
 #include "../debug/HyprCtl.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -463,6 +464,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:col.nogroup_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffaaff"});
     registerConfigVar("general:col.nogroup_border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffff00ff"});
     registerConfigVar("general:modal_parent_blocking", Hyprlang::INT{1});
+    registerConfigVar("general:locale", {""});
 
     registerConfigVar("misc:disable_hyprland_logo", Hyprlang::INT{0});
     registerConfigVar("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -489,7 +491,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
-    registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("misc:on_focus_under_fullscreen", Hyprlang::INT{2});
     registerConfigVar("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     registerConfigVar("misc:initial_workspace_tracking", Hyprlang::INT{1});
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});
@@ -618,7 +620,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:new_on_active", {"none"});
     registerConfigVar("master:new_on_top", Hyprlang::INT{0});
     registerConfigVar("master:orientation", {"left"});
-    registerConfigVar("master:inherit_fullscreen", Hyprlang::INT{1});
     registerConfigVar("master:allow_small_split", Hyprlang::INT{0});
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});

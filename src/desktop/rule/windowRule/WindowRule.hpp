@@ -8,9 +8,7 @@
 #include <unordered_set>
 
 namespace Desktop::Rule {
-    constexpr const char*   EXEC_RULE_ENV_NAME = "HL_EXEC_RULE_TOKEN";
-
-    std::optional<Vector2D> parseRelativeVector(PHLWINDOW w, const std::string& s);
+    constexpr const char* EXEC_RULE_ENV_NAME = "HL_EXEC_RULE_TOKEN";
 
     class CWindowRule : public IRule {
       private:

@@ -1,5 +1,4 @@
 #include "SessionLock.hpp"
-#include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "FractionalScale.hpp"
 #include "LockNotify.hpp"
@@ -7,6 +6,7 @@
 #include "core/Output.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
+#include "../desktop/state/FocusState.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     m_resource(resource_), m_sessionLock(owner_), m_surface(surface_), m_monitor(pMonitor_) {
@@ -51,8 +51,8 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         m_surface->unmap();
         m_listeners.surfaceCommit.reset();
         m_listeners.surfaceDestroy.reset();
-        if (g_pCompositor->m_lastFocus == m_surface)
-            g_pCompositor->m_lastFocus.reset();
+        if (Desktop::focusState()->surface() == m_surface)
+            Desktop::focusState()->surface().reset();
 
         m_surface.reset();
     });

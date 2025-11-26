@@ -6,6 +6,7 @@
 #include "../../defines.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../desktop/DesktopTypes.hpp"
+#include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
@@ -13,6 +14,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     CHyprAnimationManager();
 
     void         tick();
+    void         frameTick();
     virtual void scheduleTick();
     virtual void onTicked();
 
@@ -52,7 +54,9 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     float               m_lastTickTimeMs;
 
   private:
-    bool m_tickScheduled = false;
+    bool   m_tickScheduled = false;
+    bool   m_lastTickValid = false;
+    CTimer m_lastTickTimer;
 };
 
 inline UP<CHyprAnimationManager> g_pAnimationManager;

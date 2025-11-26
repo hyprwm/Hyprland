@@ -437,6 +437,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_workspace;
 
+    bool        previouslyEmpty = !pWorkspace->hasWindow();
+
     if (OLDWORKSPACE->isVisible()) {
         m_movingToWorkspaceAlpha->setValueAndWarp(1.F);
         *m_movingToWorkspaceAlpha = 0.F;
@@ -462,6 +464,18 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
+
+        if (!OLDWORKSPACE->hasWindow()) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "depopulateworkspace", .data = OLDWORKSPACE->m_name});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "depopulateworkspacev2", .data = std::format("{},{}", OLDWORKSPACE->m_id, OLDWORKSPACE->m_name)});
+            EMIT_HOOK_EVENT("depopulateWorkspace", OLDWORKSPACE);
+        }
+
+        if (previouslyEmpty) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "populateworkspace", .data = pWorkspace->m_name});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "populateworkspacev2", .data = std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            EMIT_HOOK_EVENT("populateWorkspace", pWorkspace);
+        }
     }
 
     if (const auto SWALLOWED = m_swallowed.lock()) {

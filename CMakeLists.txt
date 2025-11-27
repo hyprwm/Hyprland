@@ -119,13 +119,13 @@ set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
-set(HYPERLANG_MINIMUM_VERSION 0.3.2)
+set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
 set(HYPRUTILS_MINIMUM_VERSION 0.10.2)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.1.6)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
-pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPERLANG_MINIMUM_VERSION})
+pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPRLANG_MINIMUM_VERSION})
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=${HYPRCURSOR_MINIMUM_VERSION})
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=${HYPRUTILS_MINIMUM_VERSION})
 pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=${HYPRGRAPHICS_MINIMUM_VERSION})
@@ -545,6 +545,7 @@ protocolwayland()
 
 # tools
 add_subdirectory(hyprctl)
+add_subdirectory(start)
 
 if(NO_HYPRPM)
   message(STATUS "hyprpm is disabled")

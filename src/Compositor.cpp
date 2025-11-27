@@ -142,6 +142,10 @@ static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
     Debug::log(aqLevelToHl(level), "[AQ] {}", msg);
 }
 
+void CCompositor::setWatchdogFd(int fd) {
+    m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
+}
+
 void CCompositor::bumpNofile() {
     if (!getrlimit(RLIMIT_NOFILE, &m_originalNofile))
         Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", m_originalNofile.rlim_cur, m_originalNofile.rlim_max);
@@ -543,6 +547,9 @@ void CCompositor::cleanup() {
     if (!m_wlDisplay)
         return;
 
+    if (m_watchdogWriteFd.isValid())
+        write(m_watchdogWriteFd.get(), "end", 3);
+
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
 
@@ -796,6 +803,8 @@ void CCompositor::startCompositor() {
     createLockFile();
 
     EMIT_HOOK_EVENT("ready", nullptr);
+    if (m_watchdogWriteFd.isValid())
+        write(m_watchdogWriteFd.get(), "vax", 3);
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
@@ -2459,6 +2468,7 @@ std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG      = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
     static auto PNOCHECKGUIUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_guiutils_check");
+    static auto PNOWATCHDOG      = CConfigValue<Hyprlang::INT>("misc:disable_watchdog_warning");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2470,15 +2480,63 @@ void CCompositor::performUserChecks() {
     }
 
     if (!*PNOCHECKGUIUTILS) {
-        if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
+        if (!NFsUtils::executableExistsInPath("hyprland-dialog"))
             g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_GUIUTILS), CHyprColor{}, 15000, ICON_WARNING);
-        }
     }
 
     if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
         g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprOpenGL->m_failedAssetsNo)}}),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
+
+    if (!m_watchdogWriteFd.isValid() && !*PNOWATCHDOG)
+        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_WATCHDOG), CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_WARNING);
+
+    if (m_safeMode)
+        openSafeModeBox();
+}
+
+void CCompositor::openSafeModeBox() {
+    const auto OPT_LOAD = I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG);
+    const auto OPT_OPEN = I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR);
+    const auto OPT_OK   = I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD);
+
+    auto       box = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_TITLE), I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_DESCRIPTION),
+                                             {
+                                           OPT_LOAD,
+                                           OPT_OPEN,
+                                           OPT_OK,
+                                       });
+
+    box->open()->then([OPT_LOAD, OPT_OK, OPT_OPEN, this](SP<CPromiseResult<std::string>> result) {
+        if (result->hasError())
+            return;
+
+        const auto RES = result->result();
+
+        if (RES.starts_with(OPT_LOAD)) {
+            m_safeMode = false;
+            g_pConfigManager->reload();
+        } else if (RES.starts_with(OPT_OPEN)) {
+            std::string reportPath;
+            const auto  HOME       = getenv("HOME");
+            const auto  CACHE_HOME = getenv("XDG_CACHE_HOME");
+
+            if (CACHE_HOME && CACHE_HOME[0] != '\0') {
+                reportPath += CACHE_HOME;
+                reportPath += "/hyprland/";
+            } else if (HOME && HOME[0] != '\0') {
+                reportPath += HOME;
+                reportPath += "/.cache/hyprland/";
+            }
+            Hyprutils::OS::CProcess proc("xdg-open", {reportPath});
+
+            proc.runAsync();
+
+            // reopen
+            openSafeModeBox();
+        }
+    });
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace) {

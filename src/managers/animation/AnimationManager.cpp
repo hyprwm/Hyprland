@@ -210,7 +210,7 @@ void CHyprAnimationManager::tick() {
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
     for (size_t i = 0; i < m_vActiveAnimatedVariables.size(); i++) {
-        const auto PAV = m_vActiveAnimatedVariables[i].lock();
+        const auto PAV = m_vActiveAnimatedVariables[i];
         if (!PAV)
             continue;
 

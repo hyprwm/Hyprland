@@ -639,14 +639,13 @@ void CWindow::onMap() {
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    if (PAV->getStyle() != "loop" || !PAV->enabled())
+    if (pav->getStyle() != "loop" || !pav->enabled())
         return;
 
-    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(PAV.get());
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
 
     PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
 
@@ -1907,16 +1906,14 @@ std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
 }
 
 static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
     animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
-    if (PHLWINDOW)
-        PHLWINDOW->m_animatingIn = false;
+    if (animvar->m_Context.pWindow)
+        animvar->m_Context.pWindow->m_animatingIn = false;
 }
 
 void CWindow::mapWindow() {

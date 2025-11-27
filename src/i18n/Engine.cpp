@@ -105,7 +105,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_TITLE, "Safe Mode");
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_DESCRIPTION,
                             "Hyprland has been launched in safe mode, which means your last session crashed.\nSafe mode prevents your config from being loaded. You can "
-                            "troubleshoot in this environment, or load your config with the button below.\nDefault keybinds apply: SUPER+Q for kitty, SUPER+M to exit.\nRestarting "
+                            "troubleshoot in this environment, or load your config with the button below.\nDefault keybinds apply: SUPER+Q for kitty, SUPER+R for a basic runner, SUPER+M to exit.\nRestarting "
                             "Hyprland will launch in normal mode again.");
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Load config");
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Open crash report directory");
@@ -595,7 +595,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry(
         "ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
         "Hyprlandは安全モードに実行しました。これは、Hyprlandはクラッシュしましたから。\n安全モードはコンフィグをロードしなくて、問題を修正できる環境です。下のボタンでコンフィグを"
-        "ロードできます。\nデフォルトなキーバインドがあります。SUPER+Qはkitty、SUPER+MはHyprlandから退出。\nHyprlandを再び実行すれば、普通モードで実行します。");
+        "ロードできます。\nデフォルトなキーバインドがあります。SUPER+Qはkitty、SUPER+Rは簡素なランチャー、SUPER+MはHyprlandから退出。\nHyprlandを再び実行すれば、普通モードで実行します。");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "コンフィグをロード");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダーを開く");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "分かりました、このウィンドウをクローズ");
@@ -853,7 +853,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Hyprland został uruchomiony w trybie bezpiecznym, co oznacza, że twoja ostatnia sesja uległa awarii.\nTryb bezpieczny zapobiega ładowaniu twojej "
                             "konfiguracji. Możesz próbować rozwiązać"
                             "problem w tym środowisku, lub załadować swoją konfigurację przyciskiem poniżej.\nDomyślne skróty klawiszowe są dostępne: SUPER+Q uruchamia kitty, "
-                            "SUPER+M zamyka Hyprland.\nUruchomienie ponowne Hyprland'a uruchomi go w trybie normalnym.");
+                            "SUPER+R otwiera podstawowy launcher, SUPER+M zamyka Hyprland.\nUruchomienie ponowne Hyprland'a uruchomi go w trybie normalnym.");
     huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Załaduj konfigurację");
     huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Otwórz folder z raportami awarii");
     huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, zamknij to okno");

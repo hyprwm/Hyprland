@@ -506,6 +506,34 @@ static bool test() {
         EXPECT(Tests::windowCount(), 0);
     }
 
+    NLog::log("{}Testing minsize/maxsize rules", Colors::YELLOW);
+    {
+        // Disable size limits tiled and check if props are working and not getting skipped
+        OK(getFromSocket("/keyword misc:size_limits_tiled 0"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:match:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1500 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        {
+            auto res = getFromSocket("/getprop active max_size");
+            EXPECT_CONTAINS(res, "1500");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        {
+            auto res = getFromSocket("/getprop active min_size");
+            EXPECT_CONTAINS(res, "1200");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        NLog::log("{}Reloading config", Colors::YELLOW);
+        OK(getFromSocket("/reload"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
     NLog::log("{}Testing window rules", Colors::YELLOW);
     if (!spawnKitty("wr_kitty"))
         return false;

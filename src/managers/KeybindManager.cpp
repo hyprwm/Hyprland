@@ -396,7 +396,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
     // remove constraints
     g_pInputManager->unconstrainMouse();
 
-    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace)
+    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory, forceFSCycle);
     else {
         updateRelativeCursorCoords();

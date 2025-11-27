@@ -22,7 +22,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     template <Animable VarType>
     void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, eAVarDamagePolicy policy) {
         constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
-        pav     = makeUnique<CAnimatedVariable<VarType>>();
+        pav                                      = makeUnique<CAnimatedVariable<VarType>>();
 
         pav->create(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), pav, v);
         pav->setConfig(pConfig);

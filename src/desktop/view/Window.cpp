@@ -1573,41 +1573,13 @@ bool CWindow::isModal() {
     return (m_xwaylandSurface && m_xwaylandSurface->m_modal);
 }
 
-Vector2D CWindow::requestedMinSize() {
-    bool hasSizeHints = m_xwaylandSurface ? m_xwaylandSurface->m_sizeHints : false;
-    bool hasTopLevel  = m_xdgSurface ? m_xdgSurface->m_toplevel : false;
-    if ((m_isX11 && !hasSizeHints) || (!m_isX11 && !hasTopLevel))
-        return Vector2D(1, 1);
-
-    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->min_width, m_xwaylandSurface->m_sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();
-
-    minSize = minSize.clamp({1, 1});
-
-    return minSize;
-}
-
-Vector2D CWindow::requestedMaxSize() {
-    constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (((m_isX11 && !m_xwaylandSurface->m_sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel)) || m_ruleApplicator->noMaxSize().valueOrDefault()))
-        return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
-
-    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->max_width, m_xwaylandSurface->m_sizeHints->max_height) : m_xdgSurface->m_toplevel->layoutMaxSize();
-
-    if (maxSize.x < 5)
-        maxSize.x = NO_MAX_SIZE_LIMIT;
-    if (maxSize.y < 5)
-        maxSize.y = NO_MAX_SIZE_LIMIT;
-
-    return maxSize;
-}
-
 Vector2D CWindow::realToReportSize() {
     if (!m_isX11)
-        return m_realSize->goal().clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+        return m_realSize->goal().clamp(Vector2D{0, 0}, Math::VECTOR2D_MAX);
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  REPORTSIZE = m_realSize->goal().clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto  REPORTSIZE = m_realSize->goal().clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
     const auto  PMONITOR   = m_monitor.lock();
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
@@ -1627,7 +1599,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR = m_monitor.lock();
-    const auto  SIZE     = size.clamp(Vector2D{1, 1}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
+    const auto  SIZE     = size.clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
     const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->m_scale : 1.0f;
 
     return SIZE / SCALE;
@@ -2696,4 +2668,43 @@ void CWindow::unmanagedSetGeometry() {
         m_reportedPosition    = m_realPosition->goal();
         m_pendingReportedSize = m_realSize->goal();
     }
+}
+
+std::optional<Vector2D> CWindow::minSize() {
+    // first check for overrides
+    if (m_ruleApplicator->minSize().hasValue())
+        return m_ruleApplicator->minSize().value();
+
+    // then check if we have any proto overrides
+    bool hasSizeHints = m_xwaylandSurface ? m_xwaylandSurface->m_sizeHints : false;
+    bool hasTopLevel  = m_xdgSurface ? m_xdgSurface->m_toplevel : false;
+    if ((m_isX11 && !hasSizeHints) || (!m_isX11 && !hasTopLevel))
+        return std::nullopt;
+
+    Vector2D minSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->min_width, m_xwaylandSurface->m_sizeHints->min_height) : m_xdgSurface->m_toplevel->layoutMinSize();
+
+    minSize = minSize.clamp({1, 1});
+
+    return minSize;
+}
+
+std::optional<Vector2D> CWindow::maxSize() {
+    // first check for overrides
+    if (m_ruleApplicator->maxSize().hasValue())
+        return m_ruleApplicator->maxSize().value();
+
+    // then check if we have any proto overrides
+    if (((m_isX11 && !m_xwaylandSurface->m_sizeHints) || (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel)) || m_ruleApplicator->noMaxSize().valueOrDefault()))
+        return std::nullopt;
+
+    constexpr const double NO_MAX_SIZE_LIMIT = std::numeric_limits<double>::max();
+
+    Vector2D maxSize = m_isX11 ? Vector2D(m_xwaylandSurface->m_sizeHints->max_width, m_xwaylandSurface->m_sizeHints->max_height) : m_xdgSurface->m_toplevel->layoutMaxSize();
+
+    if (maxSize.x < 5)
+        maxSize.x = NO_MAX_SIZE_LIMIT;
+    if (maxSize.y < 5)
+        maxSize.y = NO_MAX_SIZE_LIMIT;
+
+    return maxSize;
 }

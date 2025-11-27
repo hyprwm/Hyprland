@@ -83,7 +83,7 @@ CRegion CWLSurface::computeDamage() const {
         return {};
 
     CRegion damage = m_resource->m_current.accumulateBufferDamage();
-    damage.transform(wlTransformToHyprutils(m_resource->m_current.transform), m_resource->m_current.bufferSize.x, m_resource->m_current.bufferSize.y);
+    damage.transform(Math::wlTransformToHyprutils(m_resource->m_current.transform), m_resource->m_current.bufferSize.x, m_resource->m_current.bufferSize.y);
 
     const auto BUFSIZE    = m_resource->m_current.bufferSize;
     const auto CORRECTVEC = correctSmallVecBuf();

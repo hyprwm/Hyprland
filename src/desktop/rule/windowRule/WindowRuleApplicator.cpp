@@ -265,9 +265,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     if (!m_window)
                         break;
 
-                    if (!m_window->m_isFloating && !sc<bool>(*PCLAMP_TILED))
-                        break;
-
                     const auto VEC = configStringToVector2D(effect);
                     if (VEC.x < 1 || VEC.y < 1) {
                         Log::logger->log(Log::ERR, "Invalid size for maxsize");
@@ -275,8 +272,9 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     }
 
                     m_maxSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
-                    m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
 
+                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                        m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
                 break;
@@ -288,9 +286,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     if (!m_window)
                         break;
 
-                    if (!m_window->m_isFloating && !sc<bool>(*PCLAMP_TILED))
-                        break;
-
                     const auto VEC = configStringToVector2D(effect);
                     if (VEC.x < 1 || VEC.y < 1) {
                         Log::logger->log(Log::ERR, "Invalid size for maxsize");
@@ -298,7 +293,8 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     }
 
                     m_minSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
-                    m_window->clampWindowSize(std::nullopt, m_minSize.first.value());
+                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                        m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
                 break;

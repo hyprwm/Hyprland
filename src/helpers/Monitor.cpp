@@ -967,7 +967,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     if (m_createdByUser) {
         CBox transformedBox = {0, 0, m_transformedSize.x, m_transformedSize.y};
-        transformedBox.transform(wlTransformToHyprutils(invertTransform(m_transform)), m_transformedSize.x, m_transformedSize.y);
+        transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_transform)), m_transformedSize.x, m_transformedSize.y);
 
         m_pixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
@@ -1510,7 +1510,7 @@ Vector2D CMonitor::middle() {
 void CMonitor::updateMatrix() {
     m_projMatrix = Mat3x3::identity();
     if (m_transform != WL_OUTPUT_TRANSFORM_NORMAL)
-        m_projMatrix.translate(m_pixelSize / 2.0).transform(wlTransformToHyprutils(m_transform)).translate(-m_transformedSize / 2.0);
+        m_projMatrix.translate(m_pixelSize / 2.0).transform(Math::wlTransformToHyprutils(m_transform)).translate(-m_transformedSize / 2.0);
 }
 
 WORKSPACEID CMonitor::activeWorkspaceID() {

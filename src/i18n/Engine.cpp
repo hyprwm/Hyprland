@@ -480,7 +480,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Keyboard baru terdeteksi: <b>{keyboard}</b>.\n\nApakah Anda mengizinkannya beroperasi?");
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(tidak diketahui)");
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_TITLE, "Permintaan Izin");
-    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Petunjuk: Anda dapat mengatur <i>rule<i> ini secara permanen di <i>file config</i> Hyprland.");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Petunjuk: Anda dapat mengatur <i>rule</i> ini secara permanen di <i>file</i> konfigurasi Hyprland.");
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW, "Izinkan");
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Izinkan dan Ingat");
     huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW_ONCE, "Izinkan Sekali");

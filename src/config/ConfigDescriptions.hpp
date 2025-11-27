@@ -1322,6 +1322,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "misc:disable_watchdog_warning",
+        .description = "whether to disable the warning about not using start-hyprland.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "misc:lockdead_screen_delay",
         .description = "the delay in ms after the lockdead screen appears if the lock screen did not appear after a lock event occurred.",
         .type        = CONFIG_OPTION_INT,

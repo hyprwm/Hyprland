@@ -2464,6 +2464,7 @@ std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG      = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
     static auto PNOCHECKGUIUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_guiutils_check");
+    static auto PNOWATCHDOG      = CConfigValue<Hyprlang::INT>("misc:disable_watchdog_warning");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2484,7 +2485,7 @@ void CCompositor::performUserChecks() {
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 
-    if (!m_watchdogWriteFd.isValid())
+    if (!m_watchdogWriteFd.isValid() && !*PNOWATCHDOG)
         g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_WATCHDOG), CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_WARNING);
 
     if (m_safeMode)

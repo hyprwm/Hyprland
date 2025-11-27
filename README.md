@@ -58,6 +58,137 @@ easy IPC, much more QoL stuff than other compositors and more...
 - and much more...
 
 <br>
+
+# System Requirements
+
+## Minimum Requirements
+- **OS**: Linux-based system with Wayland support
+- **GPU**: Graphics card with OpenGL 3.0+ support
+- **RAM**: 2GB minimum, 4GB recommended
+- **CPU**: Modern x86_64 or ARM64 processor
+
+## Dependencies
+- **aquamarine** >= 0.9.0
+- **hyprcursor** >= 0.1.7
+- **hyprgraphics** >= 0.1.3
+- **hyprlang** >= 0.3.2
+- **hyprutils** >= 0.8.1
+- **pixman**, **libdrm**, **cairo**, **pango**
+- **wayland**, **wayland-protocols**
+- **xkbcommon**, **libinput**
+- **OpenGL**, **EGL**
+- **(Optional)** XWayland for X11 app support
+
+<br>
+
+# Quick Build
+
+```bash
+# Clone the repository
+git clone --recursive https://github.com/hyprwm/Hyprland
+cd Hyprland
+
+# Build with Meson (recommended)
+meson setup build
+ninja -C build
+
+# Or build with CMake
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+
+# Install
+sudo cmake --install build
+# or
+sudo ninja -C build install
+```
+
+For detailed installation instructions, see the [Installation Guide][Install].
+
+<br>
+
+# Project Structure
+
+```
+Hyprland/
+├── src/              # Main source code
+│   ├── config/       # Configuration handling
+│   ├── desktop/      # Desktop shell components
+│   ├── managers/     # Core managers (input, layout, etc.)
+│   ├── protocols/    # Wayland protocol implementations
+│   └── render/       # Rendering engine
+├── hyprctl/          # Command-line control utility
+├── hyprpm/           # Plugin manager
+├── hyprtester/       # Testing framework
+├── protocols/        # Wayland protocol definitions
+└── docs/             # Documentation and man pages
+```
+
+<br>
+
+# Development
+
+## Building in Debug Mode
+```bash
+meson setup build --buildtype=debug
+ninja -C build
+```
+
+## Running Tests
+```bash
+# Build and run the test suite
+cmake -B build -DTESTS=ON
+cmake --build build
+ctest --test-dir build
+```
+
+## Code Style
+This project uses:
+- **C++26** standard
+- **clang-format** for code formatting
+- **clang-tidy** for static analysis
+
+Run formatting before submitting:
+```bash
+clang-format -i src/**/*.{cpp,hpp}
+```
+
+<br>
+
+# Community & Support
+
+- 📖 **[Wiki](https://wiki.hypr.land)** - Comprehensive documentation
+- 💬 **[Discord](https://discord.gg/hQ9XvMUjjr)** - Community chat
+- 🐛 **[Issues][Issues]** - Bug reports and feature requests
+- 🔧 **[Discussions](https://github.com/hyprwm/Hyprland/discussions)** - Questions and ideas
+
+## Getting Help
+1. Check the [FAQ](https://wiki.hypr.land/FAQ/)
+2. Search [existing issues][Issues]
+3. Read the [Configuration Guide][Configure]
+4. Ask on Discord or GitHub Discussions
+
+<br>
+
+# Contributing
+
+We welcome contributions! Please see:
+- **[Contributing Guide][Contribute]** - How to contribute
+- **[PR Guidelines](https://wiki.hypr.land/Contributing-and-Debugging/PR-Guidelines/)** - Pull request standards
+- **[Issue Guidelines](docs/ISSUE_GUIDELINES.md)** - How to report bugs
+
+**Before contributing:**
+- Build from source (not from packages)
+- Test your changes thoroughly
+- Follow the code style guidelines
+- Write clear commit messages
+
+<br>
+
+# License
+
+Hyprland is licensed under the **BSD 3-Clause License**. See [LICENSE](LICENSE) for details.
+
+<br>
 <br>
 
 <div align = center>

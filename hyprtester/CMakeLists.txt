@@ -99,3 +99,4 @@ protocolnew("stable/xdg-shell" "xdg-shell" false)
 
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("pointer-scroll" PROTOS "xdg-shell")
+clientNew("child-window" PROTOS "xdg-shell")

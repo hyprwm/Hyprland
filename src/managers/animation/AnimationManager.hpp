@@ -24,7 +24,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
         constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
         pav                                      = makeUnique<CAnimatedVariable<VarType>>();
 
-        pav->create(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), pav, v);
+        pav->create2(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), pav, v);
         pav->setConfig(pConfig);
         pav->m_Context.eDamagePolicy = policy;
     }

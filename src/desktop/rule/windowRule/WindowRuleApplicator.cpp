@@ -274,7 +274,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     m_maxSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
 
                     if (*PCLAMP_TILED || m_window->m_isFloating)
-                        m_window->clampWindowSize(std::nullopt, m_minSize.first.value());
+                        m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
                 } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
                 break;
@@ -295,7 +295,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     m_minSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
 
                     if (*PCLAMP_TILED || m_window->m_isFloating)
-                        m_window->clampWindowSize(std::nullopt, m_minSize.first.value());
+                        m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
                 } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
                 break;

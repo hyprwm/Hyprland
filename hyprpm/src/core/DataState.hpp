@@ -5,7 +5,7 @@
 #include "Plugin.hpp"
 
 struct SGlobalState {
-    std::string headersHashCompiled = "";
+    std::string headersAbiCompiled = "";
     bool        dontWarnInstall     = false;
 };
 

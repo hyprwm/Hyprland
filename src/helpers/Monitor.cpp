@@ -26,6 +26,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/SurfaceManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
@@ -68,6 +69,9 @@ CMonitor::~CMonitor() {
     m_events.destroy.emit();
     if (g_pHyprOpenGL)
         g_pHyprOpenGL->destroyMonitorResources(m_self);
+
+    if (g_pSurfaceManager)
+        g_pSurfaceManager->destroy(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -114,10 +118,8 @@ void CMonitor::onConnect(bool noRule) {
             ts = nullptr;
         }
 
-        if (!ts)
-            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
-        else
-            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
+        auto now = ts ? Time::fromTimespec(event.when) : Time::steadyNow();
+        PROTO::presentation->onPresented(m_self.lock(), now, event.refresh, event.seq, event.flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -140,7 +142,7 @@ void CMonitor::onConnect(bool noRule) {
             });
         }
 
-        m_frameScheduler->onPresented();
+        m_frameScheduler->onPresented(now);
 
         m_events.presented.emit();
     });

@@ -546,7 +546,10 @@ void CWindowRuleApplicator::readStaticRules() {
     static_ = {};
 
     std::vector<SP<IRule>> toRemove;
-    bool                   tagsWereChanged = false;
+    bool                   tagsWereChanged   = false;
+    bool                   workspaceFromExec = false;
+    bool                   monitorFromExec   = false;
+    std::string            execWorkspace, execMonitor;
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)
@@ -561,8 +564,17 @@ void CWindowRuleApplicator::readStaticRules() {
         const auto RES  = applyDynamicRule(wr); // also apply dynamic, because we won't recheck it before layout gets data
         tagsWereChanged = tagsWereChanged || RES.tagsChanged;
 
-        if (wr->isExecRule())
+        if (wr->isExecRule()) {
             toRemove.emplace_back(wr);
+            if (!static_.workspace.empty()) {
+                workspaceFromExec = true;
+                execWorkspace     = static_.workspace;
+            }
+            if (!static_.monitor.empty()) {
+                monitorFromExec = true;
+                execMonitor     = static_.monitor;
+            }
+        }
     }
 
     for (const auto& wr : toRemove) {
@@ -591,6 +603,11 @@ void CWindowRuleApplicator::readStaticRules() {
 
             applyStaticRule(wr);
         }
+
+        if (workspaceFromExec)
+            static_.workspace = execWorkspace;
+        if (monitorFromExec)
+            static_.monitor = execMonitor;
     }
 }
 

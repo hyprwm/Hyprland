@@ -206,8 +206,8 @@ SGlobalState DataState::getGlobalState() {
     auto         DATA = toml::parse_file(stateFile.c_str());
 
     SGlobalState state;
-    state.headersHashCompiled = DATA["state"]["hash"].value_or("");
-    state.dontWarnInstall     = DATA["state"]["dont_warn_install"].value_or(false);
+    state.headersAbiCompiled = DATA["state"]["hash"].value_or("");
+    state.dontWarnInstall    = DATA["state"]["dont_warn_install"].value_or(false);
 
     return state;
 }

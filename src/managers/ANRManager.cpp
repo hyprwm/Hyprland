@@ -186,7 +186,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
     const auto OPTIONS              = std::vector{OPTION_TERMINATE_STR, OPTION_WAIT_STR};
     const auto CLASS_STR            = appClass.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appClass;
     const auto TITLE_STR            = appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName;
-    const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", CLASS_STR}, {"class", TITLE_STR}});
+    const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", TITLE_STR}, {"class", CLASS_STR}});
 
     PHLWINDOW  parentWindow;
     for (const auto& w : g_pCompositor->m_windows) {

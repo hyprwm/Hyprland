@@ -1,13 +1,14 @@
 #include "MoveGesture.hpp"
 
-#include "../../../../Compositor.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/Window.hpp"
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
 void CMoveTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_window    = g_pCompositor->m_lastWindow;
+    m_window    = Desktop::focusState()->window();
     m_lastDelta = {};
 }
 

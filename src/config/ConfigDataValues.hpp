@@ -97,27 +97,29 @@ class CCssGapData : public ICustomConfigValueData {
     int64_t m_bottom;
     int64_t m_left;
 
-    void    parseGapData(CVarList varlist) {
+    void    parseGapData(CVarList2 varlist) {
+        const auto toInt = [](std::string_view string) -> int { return std::stoi(std::string(string)); };
+
         switch (varlist.size()) {
             case 1: {
-                *this = CCssGapData(std::stoi(varlist[0]));
+                *this = CCssGapData(toInt(varlist[0]));
                 break;
             }
             case 2: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]));
                 break;
             }
             case 3: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]));
                 break;
             }
             case 4: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
                 break;
             }
             default: {
                 Debug::log(WARN, "Too many arguments provided for gaps.");
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
                 break;
             }
         }

@@ -7,8 +7,8 @@
 #if defined(__linux__)
 #include <linux/dma-buf.h>
 #include <linux/sync_file.h>
-#include <sys/ioctl.h>
 #endif
+#include <sys/ioctl.h>
 
 using namespace Hyprutils::OS;
 

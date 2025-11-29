@@ -89,7 +89,7 @@ struct SSurfaceState {
     void         updateSynchronousTexture(SP<CTexture> lastTexture);
 
     // helpers
-    CRegion accumulateBufferDamage();                           // transforms state.damage and merges it into state.bufferDamage
-    void    updateFrom(SSurfaceState& ref, bool merge = false); // updates this state based on a reference state.
-    void    reset();                                            // resets pending state after commit
+    CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage
+    void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
+    void    reset();                        // resets pending state after commit
 };

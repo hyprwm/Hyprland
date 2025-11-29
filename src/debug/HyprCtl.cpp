@@ -45,6 +45,7 @@ using namespace Hyprutils::OS;
 #include "helpers/MiscFunctions.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../desktop/rule/Engine.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -255,12 +256,12 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             sc<int>(m->m_output->physicalSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
             escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y),
-            sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "true" : "false"),
-            (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"), rc<uint64_t>(m->m_solitaryClient.get()),
-            getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"), getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()),
-            getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"), formatToString(m->m_output->state->state().drmFormat),
-            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
-            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
+            sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale, sc<int>(m->m_transform),
+            (m == Desktop::focusState()->monitor() ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
+            rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"),
+            getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"),
+            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
+            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
 
     } else {
         result += std::format(
@@ -274,7 +275,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
             sc<int>(m->m_reservedTopLeft.x), sc<int>(m->m_reservedTopLeft.y), sc<int>(m->m_reservedBottomRight.x), sc<int>(m->m_reservedBottomRight.y), m->m_scale,
-            sc<int>(m->m_transform), (m == g_pCompositor->m_lastMonitor ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
+            sc<int>(m->m_transform), (m == Desktop::focusState()->monitor() ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
@@ -353,8 +354,8 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
 std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
-        for (size_t i = 0; i < g_pCompositor->m_windowFocusHistory.size(); ++i) {
-            if (g_pCompositor->m_windowFocusHistory[i].lock() == wnd)
+        for (size_t i = 0; i < Desktop::focusState()->windowHistory().size(); ++i) {
+            if (Desktop::focusState()->windowHistory()[i].lock() == wnd)
                 return i;
         }
         return -1;
@@ -390,7 +391,8 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "focusHistoryID": {},
     "inhibitingIdle": {},
     "xdgTag": "{}",
-    "xdgDescription": "{}"
+    "xdgDescription": "{}",
+    "contentType": "{}"
 }},)#",
             rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x),
             sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
@@ -398,20 +400,21 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle), w->getPID(),
             (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w),
-            (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")));
+            (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")),
+            escapeJSONStrings(NContentType::toString(w->getContentType())));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\txdgTag: "
-            "{}\n\txdgDescription: {}\n\n",
+            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
             sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
             (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), sc<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass,
             w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)),
-            w->xdgTag().value_or(""), w->xdgDescription().value_or(""));
+            w->xdgTag().value_or(""), w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()));
     }
 }
 
@@ -522,11 +525,11 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
 }
 
 static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string request) {
-    if (!g_pCompositor->m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return "unsafe state";
 
     std::string result = "";
-    auto        w      = g_pCompositor->m_lastMonitor->m_activeWorkspace;
+    auto        w      = Desktop::focusState()->monitor()->m_activeWorkspace;
 
     if (!valid(w))
         return "internal error";
@@ -576,7 +579,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
 }
 
 static std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request) {
-    const auto PWINDOW = g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW = Desktop::focusState()->window();
 
     if (!validMapped(PWINDOW))
         return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "Invalid";

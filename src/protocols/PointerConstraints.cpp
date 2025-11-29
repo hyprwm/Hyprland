@@ -1,6 +1,7 @@
 #include "PointerConstraints.hpp"
 #include "../desktop/WLSurface.hpp"
-#include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
+#include "../desktop/Window.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
@@ -242,7 +243,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_constraints.emplace_back(constraint);
 
-    if (g_pCompositor->m_lastFocus == OWNER->resource())
+    if (Desktop::focusState()->surface() == OWNER->resource())
         constraint->activate();
 }
 

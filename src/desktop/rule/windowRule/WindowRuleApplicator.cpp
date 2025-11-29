@@ -18,13 +18,17 @@ CWindowRuleApplicator::CWindowRuleApplicator(PHLWINDOW w) : m_window(w) {
     ;
 }
 
-void CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
+std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     // TODO: fucking kill me, is there a better way to do this?
+
+    std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNuked;
 
 #define UNSET(x)                                                                                                                                                                   \
     if (m_##x.second & props) {                                                                                                                                                    \
-        if (prio == Types::PRIORITY_WINDOW_RULE)                                                                                                                                   \
+        if (prio == Types::PRIORITY_WINDOW_RULE) {                                                                                                                                 \
+            effectsNuked.emplace(x##Effect());                                                                                                                                     \
             m_##x.second &= ~props;                                                                                                                                                \
+        }                                                                                                                                                                          \
         m_##x.first.unset(prio);                                                                                                                                                   \
     }
 
@@ -81,6 +85,8 @@ void CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> pro
 
         std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
     }
+
+    return effectsNuked;
 }
 
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule) {
@@ -130,10 +136,8 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_PERSISTENT_SIZE: {
-                try {
-                    m_persistentSize.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_persistentSize.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding_power {}", effect); }
+                m_persistentSize.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_persistentSize.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_ANIMATION: {
@@ -594,31 +598,8 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
     if (!m_window || !m_window->m_isMapped || m_window->isHidden())
         return;
 
-    resetProps(props);
-
-    bool                                                        needsRelayout = false;
-
-    std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNeedingRecheck;
-    std::unordered_set<SP<CWindowRule>>                         passedWrs;
-
-    for (const auto& r : ruleEngine()->rules()) {
-        if (r->type() != RULE_TYPE_WINDOW)
-            continue;
-
-        if (!(r->getPropertiesMask() & props))
-            continue;
-
-        auto wr = reinterpretPointerCast<CWindowRule>(r);
-
-        if (!wr->matches(m_window.lock()))
-            continue;
-
-        for (const auto& [type, eff] : wr->effects()) {
-            effectsNeedingRecheck.emplace(type);
-        }
-
-        passedWrs.emplace(std::move(wr));
-    }
+    bool                                                        needsRelayout         = false;
+    std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNeedingRecheck = resetProps(props);
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)
@@ -629,7 +610,7 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         if (!(WR->getPropertiesMask() & props) && !setsIntersect(WR->effectsSet(), effectsNeedingRecheck))
             continue;
 
-        if (!std::ranges::contains(passedWrs, WR) && !WR->matches(m_window.lock()))
+        if (!WR->matches(m_window.lock()))
             continue;
 
         const auto RES = applyDynamicRule(WR);

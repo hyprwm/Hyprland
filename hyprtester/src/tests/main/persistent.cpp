@@ -67,6 +67,68 @@ static bool test() {
         EXPECT_COUNT_STRING(str, "workspace ID ", 2);
     }
 
+    // Test position-based monitor selection
+    NLog::log("{}Testing position-based monitor selection", Colors::YELLOW);
+
+    // Get the position of HEADLESS-PERSISTENT-TEST monitor
+    std::string monitorPos;
+    {
+        auto str = getFromSocket("/monitors");
+        auto pos = str.find("HEADLESS-PERSISTENT-TEST");
+        if (pos != std::string::npos) {
+            // Find "at XxY" for this monitor (format is: "1280x720@60Hz at 1280x0")
+            auto atPos = str.find("at ", pos);
+            if (atPos != std::string::npos) {
+                auto lineEnd  = str.find("\n", atPos);
+                auto posStart = atPos + 3;
+                // Skip any whitespace after "at "
+                while (posStart < lineEnd && std::isspace(str[posStart]))
+                    posStart++;
+                // Extract position until whitespace or newline
+                auto posEnd = posStart;
+                while (posEnd < lineEnd && !std::isspace(str[posEnd]))
+                    posEnd++;
+                monitorPos = str.substr(posStart, posEnd - posStart);
+            }
+        }
+    }
+
+    NLog::log("{}HEADLESS-PERSISTENT-TEST monitor at position {}", Colors::YELLOW, monitorPos);
+
+    // Test 1: Normal position (XxY format)
+    const auto ws7Rule =
+        "/keyword workspace 7, monitor:position:" + monitorPos + ", persistent:1";
+    OK(getFromSocket(ws7Rule));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "ID 7 (7)");
+        EXPECT_CONTAINS(str, "on monitor HEADLESS-PERSISTENT-TEST");
+    }
+
+    // Test 2: Relative position (r-Xxb-Y format)
+    NLog::log("{}Testing relative position r-0xb-0", Colors::YELLOW);
+    OK(getFromSocket("/keyword workspace 8, monitor:position:r-0xb-0, persistent:1"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "ID 8 (8)");
+        EXPECT_CONTAINS(str, "on monitor HEADLESS-PERSISTENT-TEST");
+    }
+
+    // Test 3: Invalid position (fallback to monitor ID 0)
+    NLog::log("{}Testing invalid position 9999x9999 (fallback)", Colors::YELLOW);
+    OK(getFromSocket("/keyword workspace 9, monitor:position:9999x9999, persistent:1"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "ID 9 (9)");
+        EXPECT_NOT_CONTAINS(str, "ID 9 (9) on monitor HEADLESS-PERSISTENT-TEST");
+    }
+
+    NLog::log("{}Cleaning up position-based test workspaces", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
     OK(getFromSocket("/output remove HEADLESS-PERSISTENT-TEST"));
 
     // kill all

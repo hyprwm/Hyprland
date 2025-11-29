@@ -1993,4 +1993,16 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+
+    /*
+     * Quirks
+    */
+
+    SConfigOptionDescription{
+        .value       = "quirks:prefer_hdr",
+        .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
+
 };

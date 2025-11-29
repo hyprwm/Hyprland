@@ -770,6 +770,8 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
+    registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
+
     // devices
     m_config->addSpecialCategory("device", {"name"});
     m_config->addSpecialConfigValue("device", "sensitivity", {0.F});

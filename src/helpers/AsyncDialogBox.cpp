@@ -121,9 +121,8 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
 
     m_selfReference = m_selfWeakReference.lock();
 
-    if (!m_execRuleToken.empty()) {
+    if (!m_execRuleToken.empty())
         proc.addEnv(Desktop::Rule::EXEC_RULE_ENV_NAME, m_execRuleToken);
-    }
 
     if (!proc.runAsync()) {
         Debug::log(ERR, "CAsyncDialogBox::open: failed to run async");

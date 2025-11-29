@@ -202,9 +202,8 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
 
     dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}), DESCRIPTION_STR, OPTIONS);
 
-    if (parentWindow) {
+    if (parentWindow)
         dialogBox->setExecRule(std::format("workspace {} silent", parentWindow->workspaceID()));
-    }
 
     dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {

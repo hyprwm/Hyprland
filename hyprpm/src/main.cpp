@@ -106,7 +106,7 @@ int                        main(int argc, char** argv, char** envp) {
         const auto HLVER       = g_pPluginManager->getHyprlandVersion();
         auto       GLOBALSTATE = DataState::getGlobalState();
 
-        if (GLOBALSTATE.headersHashCompiled != HLVER.hash) {
+        if (GLOBALSTATE.headersAbiCompiled != HLVER.abiHash) {
             std::println(stderr, "{}", failureString("Headers outdated, please run hyprpm update."));
             return 1;
         }
@@ -137,7 +137,7 @@ int                        main(int argc, char** argv, char** envp) {
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
-            const auto COMPILEDOUTDATED = HLVER.hash != GLOBALSTATE.headersHashCompiled;
+            const auto COMPILEDOUTDATED = HLVER.abiHash != GLOBALSTATE.headersAbiCompiled;
 
             bool       ret1 = g_pPluginManager->updatePlugins(!headersValid || force || COMPILEDOUTDATED);
 

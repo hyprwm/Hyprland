@@ -78,40 +78,30 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
     else
         onceInstalled = true;
 
-    const auto HLVERCALL = running ? NHyprlandSocket::send("/version") : execAndGet("Hyprland --version");
-    if (m_bVerbose)
-        std::println("{}", verboseString("{} version returned: {}", running ? "running" : "installed", HLVERCALL));
+    const auto HLVERCALL = running ? NHyprlandSocket::send("j/version") : execAndGet("Hyprland --version-json");
 
-    if (!HLVERCALL.contains("Tag:")) {
-        std::println(stderr, "\n{}", failureString("You don't seem to be running Hyprland."));
+    auto       jsonQuery = glz::read_json<glz::json_t>(HLVERCALL);
+
+    if (!jsonQuery) {
+        std::println("{}", failureString("failed to get the current hyprland version. Are you running hyprland?"));
         return SHyprlandVersion{};
     }
 
-    std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
-    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
+    auto   hlbranch  = (*jsonQuery)["branch"].get_string();
+    auto   hlcommit  = (*jsonQuery)["commit"].get_string();
+    auto   abiHash   = (*jsonQuery)["abiHash"].get_string();
+    auto   hldate    = (*jsonQuery)["commit_date"].get_string();
+    auto   hlcommits = (*jsonQuery)["commits"].get_string();
 
-    std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
-    hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
-
-    std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
-    hldate             = hldate.substr(0, hldate.find('\n'));
-
-    std::string hlcommits;
-
-    if (HLVERCALL.contains("commits:")) {
-        hlcommits = HLVERCALL.substr(HLVERCALL.find("commits:") + 9);
-        hlcommits = hlcommits.substr(0, hlcommits.find(' '));
-    }
-
-    int commits = 0;
+    size_t commits = 0;
     try {
-        commits = std::stoi(hlcommits);
+        commits = std::stoull(hlcommits);
     } catch (...) { ; }
 
     if (m_bVerbose)
         std::println("{}", verboseString("parsed commit {} at branch {} on {}, commits {}", hlcommit, hlbranch, hldate, commits));
 
-    auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
+    auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, abiHash, commits};
 
     if (running)
         verRunning = ver;
@@ -161,7 +151,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         DataState::updateGlobalState(GLOBALSTATE);
     }
 
-    if (GLOBALSTATE.headersHashCompiled.empty()) {
+    if (GLOBALSTATE.headersAbiCompiled.empty()) {
         std::println("\n{}", failureString("Cannot find headers in the global state. Try running hyprpm update first."));
         return false;
     }
@@ -444,6 +434,12 @@ eHeadersErrors CPluginManager::headersValid() {
     if (hash != HLVER.hash)
         return HEADERS_MISMATCHED;
 
+    // check ABI hash too
+    const auto GLOBALSTATE = DataState::getGlobalState();
+
+    if (GLOBALSTATE.headersAbiCompiled != HLVER.abiHash)
+        return HEADERS_ABI_MISMATCH;
+
     return HEADERS_OK;
 }
 
@@ -595,8 +591,8 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.m_szCurrentMessage = "Done!";
         progress.print();
 
-        auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = HLVER.hash;
+        auto GLOBALSTATE               = DataState::getGlobalState();
+        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
         DataState::updateGlobalState(GLOBALSTATE);
 
         std::print("\n");
@@ -787,8 +783,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    auto GLOBALSTATE                = DataState::getGlobalState();
-    GLOBALSTATE.headersHashCompiled = HLVER.hash;
+    auto GLOBALSTATE               = DataState::getGlobalState();
+    GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
     DataState::updateGlobalState(GLOBALSTATE);
 
     progress.m_iSteps++;
@@ -913,9 +909,9 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
     auto state = DataState::getGlobalState();
     auto HLVER = getHyprlandVersion(true);
 
-    if (state.headersHashCompiled != HLVER.hash) {
+    if (state.headersAbiCompiled != HLVER.hash) {
         if (load)
-            std::println("{}", infoString("Running Hyprland version ({}) differs from plugin state ({}), please restart Hyprland.", HLVER.hash, state.headersHashCompiled));
+            std::println("{}", infoString("Running Hyprland version ({}) differs from plugin state ({}), please restart Hyprland.", HLVER.hash, state.headersAbiCompiled));
         return false;
     }
 
@@ -956,6 +952,7 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
         case HEADERS_MISMATCHED: return failureString("Headers version mismatch. Please run hyprpm update to fix those.\n");
         case HEADERS_NOT_HYPRLAND: return failureString("It doesn't seem you are running on hyprland.\n");
         case HEADERS_MISSING: return failureString("Headers missing. Please run hyprpm update to fix those.\n");
+        case HEADERS_ABI_MISMATCH: return failureString("ABI is mismatched. Please run hyprpm update to fix that.\n");
         case HEADERS_DUPLICATED: {
             return failureString("Headers duplicated!!! This is a very bad sign.\n"
                                  "This could be due to e.g. installing hyprland manually while a system package of hyprland is also installed.\n"

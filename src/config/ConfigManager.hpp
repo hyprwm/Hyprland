@@ -325,7 +325,7 @@ class CConfigManager {
     // internal methods
     void                                      setDefaultAnimationVars();
     std::optional<std::string>                resetHLConfig();
-    std::optional<std::string>                generateConfig(std::string configPath);
+    std::optional<std::string>                generateConfig(std::string configPath, bool addAutogen = true);
     std::optional<std::string>                verifyConfigExists();
     void                                      reloadRuleConfigs();
 

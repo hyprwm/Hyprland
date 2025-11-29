@@ -500,6 +500,7 @@ protocolwayland()
 
 # tools
 add_subdirectory(hyprctl)
+add_subdirectory(start)
 
 if(NO_HYPRPM)
   message(STATUS "hyprpm is disabled")

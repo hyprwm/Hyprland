@@ -1063,6 +1063,9 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "\n";
         result += getBuiltSystemLibraryNames();
         result += "\n";
+        result += "Version ABI string: ";
+        result += __hyprland_api_get_hash();
+        result += "\n";
 
 #if (!ISDEBUG && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
@@ -1097,10 +1100,12 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "systemHyprutils": "{}",
     "systemHyprcursor": "{}",
     "systemHyprgraphics": "{}",
+    "abiHash": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, HYPRLAND_VERSION, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG,
             GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION, getSystemLibraryVersion("aquamarine"),
-            getSystemLibraryVersion("hyprlang"), getSystemLibraryVersion("hyprutils"), getSystemLibraryVersion("hyprcursor"), getSystemLibraryVersion("hyprgraphics"));
+            getSystemLibraryVersion("hyprlang"), getSystemLibraryVersion("hyprutils"), getSystemLibraryVersion("hyprcursor"), getSystemLibraryVersion("hyprgraphics"),
+            __hyprland_api_get_hash());
 
 #if ISDEBUG
         result += "\"debug\",";

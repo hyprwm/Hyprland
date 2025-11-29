@@ -181,7 +181,7 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     // clang-format off
     auto DATA = toml::table{
         {"state", toml::table{
-            {"hash", state.headersHashCompiled},
+            {"hash", state.headersAbiCompiled},
             {"dont_warn_install", state.dontWarnInstall}
         }}
     };

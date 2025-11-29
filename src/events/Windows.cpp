@@ -66,7 +66,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = Desktop::focusState()->monitor();
     }
-    auto PWORKSPACE          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    auto PWORKSPACE               = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    bool workspacePreviouslyEmpty = !PWORKSPACE->hasWindow();
+
     PWINDOW->m_monitor       = PMONITOR;
     PWINDOW->m_workspace     = PWORKSPACE;
     PWINDOW->m_isMapped      = true;
@@ -370,6 +372,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, PWORKSPACE->m_name, PWINDOW->m_class, PWINDOW->m_title)});
     EMIT_HOOK_EVENT("openWindowEarly", PWINDOW);
+    if (workspacePreviouslyEmpty) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"populateworkspace", PWORKSPACE->m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{"populateworkspacev2", std::format("{},{}", PWORKSPACE->m_id, PWORKSPACE->m_name)});
+    }
 
     if (PWINDOW->m_isFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
@@ -510,6 +516,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // emit the hook event here after basic stuff has been initialized
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
+    if (workspacePreviouslyEmpty) {
+        EMIT_HOOK_EVENT("populateWorkspace", PWORKSPACE);
+    }
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(PWINDOW);
@@ -627,6 +636,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     PWINDOW->m_isMapped = false;
 
+    if (!PWINDOW->m_workspace->hasWindow()) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"depopulateworkspace", PWINDOW->m_workspace->m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{"depopulateworkspacev2", std::format("{},{}", PWINDOW->m_workspace->m_id, PWINDOW->m_workspace->m_name)});
+        EMIT_HOOK_EVENT("depopulateWorkspace", PWINDOW->m_workspace);
+    }
+
     // refocus on a new window if needed
     if (wasLastWindow) {
         static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
@@ -644,7 +659,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
 
-        if (!PWINDOWCANDIDATE && PWINDOW->m_workspace && PWINDOW->m_workspace->getWindows() == 0)
+        if (!PWINDOWCANDIDATE && PWINDOW->m_workspace && !PWINDOW->m_workspace->hasWindow())
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

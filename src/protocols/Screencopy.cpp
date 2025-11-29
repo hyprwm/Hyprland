@@ -192,21 +192,33 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
 
-    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    auto        TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer, m_monitor->m_FBimageDescription);
 
-    const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
+    CRegion     fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
+    const bool  IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
+
+    CBox        monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlTransformToHyprutils(invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
+
+    if (!IS_CM_AWARE)
+        // revert luma changes to avoid black screenshots.
+        // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
+        TEXTURE->m_imageDescription->luminances = {};
+
+    // For CM aware no extra CM needed (TEXTURE desc == FB desc), for not aware TEXTURE description is current monitor FB with modifications, target is default sRGB
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
                                  {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
+                                     .targetImageDescription = IS_CM_AWARE ?
+                                         m_monitor->m_FBimageDescription :
+                                         NColorManagement::SImageDescription{.transferFunction = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 :
+                                                                                                                 NColorManagement::CM_TRANSFER_FUNCTION_SRGB},
+                                     .modifySDR              = true,
                                  });
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();

@@ -62,6 +62,14 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     m_backgroundOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+
+    if (m_output) {
+        // reset properties
+        // TODO move to AQ?
+        m_output->state->setCTM(m_ctm);
+        m_output->state->setGammaLut({});
+        m_output->state->setDeGammaLut({});
+    }
 }
 
 CMonitor::~CMonitor() {
@@ -551,6 +559,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
 
     if (oldImageDescription != m_imageDescription) {
         m_imageDescription.updateId();
+        m_FBimageDescription = m_imageDescription;
         if (PROTO::colorManagement)
             PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
     }
@@ -846,7 +855,9 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
         std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
+            {"DRM_FORMAT_XRGB16161616", DRM_FORMAT_XRGB16161616}, {"DRM_FORMAT_XBGR16161616", DRM_FORMAT_XBGR16161616},
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010},
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
         },
         std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
             {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
@@ -865,7 +876,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             Debug::log(ERR, "output {} failed basic test on format {}", m_name, fmt.first);
         } else {
             Debug::log(LOG, "output {} succeeded basic test on format {}", m_name, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
+            if (RULE->enable10bit && (fmt.first.contains("101010") || fmt.first.contains("161616")))
                 set10bit = true;
             break;
         }

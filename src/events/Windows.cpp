@@ -386,18 +386,18 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
 
         if (!PWINDOW->m_ruleApplicator->static_.position.empty()) {
-            const auto COMPUTED = PWINDOW->calculateExpression(PWINDOW->m_ruleApplicator->static_.position);
-            if (!COMPUTED)
-                Debug::log(ERR, "failed to parse {} as an expression", PWINDOW->m_ruleApplicator->static_.position);
-            else {
-                *PWINDOW->m_realPosition = *COMPUTED + PMONITOR->m_position;
-                PWINDOW->setHidden(false);
+            if (PWINDOW->m_ruleApplicator->static_.position.starts_with("center")) {
+                auto RESERVEDOFFSET      = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
+                *PWINDOW->m_realPosition = PMONITOR->middle() - PWINDOW->m_realSize->goal() / 2.f + RESERVEDOFFSET;
+            } else {
+                const auto COMPUTED = PWINDOW->calculateExpression(PWINDOW->m_ruleApplicator->static_.position);
+                if (!COMPUTED)
+                    Debug::log(ERR, "failed to parse {} as an expression", PWINDOW->m_ruleApplicator->static_.position);
+                else {
+                    *PWINDOW->m_realPosition = *COMPUTED + PMONITOR->m_position;
+                    PWINDOW->setHidden(false);
+                }
             }
-        }
-
-        if (PWINDOW->m_ruleApplicator->static_.center) {
-            auto RESERVEDOFFSET      = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
-            *PWINDOW->m_realPosition = PMONITOR->middle() - PWINDOW->m_realSize->goal() / 2.f + RESERVEDOFFSET;
         }
 
         // set the pseudo size to the GOAL of our current size

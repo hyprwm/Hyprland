@@ -156,10 +156,8 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     // Basic form has only two colors, everything else can be parsed as a gradient
                     if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-                        m_activeBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), prio);
-                        m_inactiveBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), prio);
+                        m_activeBorderColor.first   = Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), prio);
+                        m_inactiveBorderColor.first = Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), prio);
                         break;
                     }
 
@@ -222,20 +220,16 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                             if (opacityIDX == 1)
                                 m_alpha.first = Types::COverridableVar(Types::SAlphaValue{.alpha = m_alpha.first.value().alpha, .overridden = true}, prio);
                             else if (opacityIDX == 2)
-                                m_alphaInactive.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaInactive.first.value().alpha, .overridden = true}, prio);
+                                m_alphaInactive.first = Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaInactive.first.value().alpha, .overridden = true}, prio);
                             else if (opacityIDX == 3)
-                                m_alphaFullscreen.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaFullscreen.first.value().alpha, .overridden = true}, prio);
+                                m_alphaFullscreen.first = Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaFullscreen.first.value().alpha, .overridden = true}, prio);
                         } else {
                             if (opacityIDX == 0)
                                 m_alpha.first = Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, prio);
                             else if (opacityIDX == 1)
-                                m_alphaInactive.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, prio);
+                                m_alphaInactive.first = Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, prio);
                             else if (opacityIDX == 2)
-                                m_alphaFullscreen.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, prio);
+                                m_alphaFullscreen.first = Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, prio);
                             else
                                 throw std::runtime_error("more than 3 alpha values");
 

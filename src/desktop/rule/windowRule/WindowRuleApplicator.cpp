@@ -545,8 +545,9 @@ void CWindowRuleApplicator::readStaticRules() {
 
     static_ = {};
 
-    std::vector<SP<IRule>> toRemove;
-    bool                   tagsWereChanged = false;
+    std::vector<SP<CWindowRule>> toRemove;
+    std::vector<SP<CWindowRule>> execRules;
+    bool                         tagsWereChanged = false;
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)
@@ -557,12 +558,15 @@ void CWindowRuleApplicator::readStaticRules() {
         if (!wr->matches(m_window.lock(), true))
             continue;
 
-        applyStaticRule(wr);
-        const auto RES  = applyDynamicRule(wr); // also apply dynamic, because we won't recheck it before layout gets data
-        tagsWereChanged = tagsWereChanged || RES.tagsChanged;
-
-        if (wr->isExecRule())
+        if (wr->isExecRule()) {
             toRemove.emplace_back(wr);
+            execRules.emplace_back(wr);
+            continue;
+        }
+
+        applyStaticRule(wr);
+        const auto RES  = applyDynamicRule(wr);
+        tagsWereChanged = tagsWereChanged || RES.tagsChanged;
     }
 
     for (const auto& wr : toRemove) {
@@ -591,6 +595,11 @@ void CWindowRuleApplicator::readStaticRules() {
 
             applyStaticRule(wr);
         }
+    }
+
+    for (const auto& wr : execRules) {
+        applyStaticRule(wr);
+        applyDynamicRule(wr);
     }
 }
 

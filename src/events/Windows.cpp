@@ -40,16 +40,14 @@ using namespace Hyprutils::Animation;
 // ------------------------------------------------------------ //
 
 static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
     animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
-    if (PHLWINDOW)
-        PHLWINDOW->m_animatingIn = false;
+    if (animvar->m_Context.pWindow)
+        animvar->m_Context.pWindow->m_animatingIn = false;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {

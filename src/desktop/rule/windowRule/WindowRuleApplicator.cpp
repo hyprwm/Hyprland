@@ -89,7 +89,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
     return effectsNuked;
 }
 
-CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule, Types::eOverridePriority prio) {
+CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule, Types::eOverridePriority prio = Types::PRIORITY_WINDOW_RULE) {
     SRuleResult result;
 
     for (const auto& [key, effect] : rule->effects()) {
@@ -610,7 +610,7 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         if (!WR->matches(m_window.lock()))
             continue;
 
-        const auto RES = applyDynamicRule(WR, Types::PRIORITY_WINDOW_RULE);
+        const auto RES = applyDynamicRule(WR);
         needsRelayout  = needsRelayout || RES.needsRelayout;
     }
 

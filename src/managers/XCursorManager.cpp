@@ -396,6 +396,10 @@ std::string CXCursorManager::getLegacyShapeName(std::string const& shape) {
         return "left_ptr";
     else if (shape == "zoom-out")
         return "left_ptr";
+    else if (shape == "dnd-ask")
+        return "dnd-copy";
+    else if (shape == "all-resize")
+        return "fleur";
 
     return std::string();
 };

@@ -1543,6 +1543,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
+
         .value       = "render:new_render_scheduling",
         .description = "enable new render scheduling, which should improve FPS on underpowered devices. This does not add latency when your PC can keep up.",
         .type        = CONFIG_OPTION_BOOL,
@@ -1989,8 +1990,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
+        .description = "enable old xx v4 color management protocol (deprecated)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value = "experimental:use_fp16",
+        .description =
+            "Use FP16 for internal buffers. Required for scRGB HDR. Slightly increases VRAM usage (64mb extra at 4k). Has some visual desktop effects glitches. Requires restart",
+        .type = CONFIG_OPTION_BOOL,
+        .data = SConfigOptionDescription::SBoolData{false},
     },
 };

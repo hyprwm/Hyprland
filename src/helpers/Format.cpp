@@ -258,6 +258,8 @@ uint32_t NFormatUtils::drmFormatToGL(DRMFormat drm) {
 }
 
 uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
+    if (gl == GL_RGBA16F)
+        return GL_FLOAT;
     return gl != GL_RGBA ? GL_UNSIGNED_INT_2_10_10_10_REV : GL_UNSIGNED_BYTE;
 }
 

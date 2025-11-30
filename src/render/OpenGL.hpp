@@ -200,8 +200,10 @@ class CHyprOpenGLImpl {
         bool                   noAA                  = false;
         bool                   blockBlurOptimization = false;
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
-        bool                   cmBackToSRGB = false;
-        SP<CMonitor>           cmBackToSRGBSource;
+
+        //
+        std::optional<NColorManagement::SImageDescription> targetImageDescription;
+        bool                                               modifySDR = false;
     };
 
     struct SBorderRenderData {
@@ -413,6 +415,10 @@ class CHyprOpenGLImpl {
     void          renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderTextureInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
     void          renderTextureWithBlurInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
+
+    void          prepareOutputShader(SShader* shader);
+    void          prepareSurfaceShader(const STextureRenderData& data, SShader* shader, CBox transformBox); // copy CBox for transformation
+    void          drawDamageWithClipping(const STextureRenderData& data);
 
     void          preBlurForCurrentMonitor();
 

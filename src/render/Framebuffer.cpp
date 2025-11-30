@@ -1,5 +1,6 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
+#include "../config/ConfigValue.hpp"
 
 CFramebuffer::CFramebuffer() {
     ;
@@ -9,8 +10,10 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 0 && h > 0), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    uint32_t glFormat = NFormatUtils::drmFormatToGL(drmFormat);
-    uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
+    static auto PFP16 = CConfigValue<Hyprlang::INT>("experimental:use_fp16");
+
+    uint32_t    glFormat = *PFP16 ? GL_RGBA16F : NFormatUtils::drmFormatToGL(drmFormat);
+    uint32_t    glType   = NFormatUtils::glFormatToType(glFormat);
 
     if (drmFormat != m_drmFormat || m_size != Vector2D{w, h})
         release();

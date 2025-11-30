@@ -43,6 +43,8 @@ void main() {
     if (brightness > 1.0) {
         pixColor.rgb *= brightness;
     }
+    
+    pixColor.rgb = clamp(pixColor.rgb, vec3(0.0), vec3(1.0));
 
     fragColor = pixColor;
 }

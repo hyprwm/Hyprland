@@ -123,7 +123,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
             case WINDOW_RULE_EFFECT_ROUNDING: {
                 try {
-                    Debug::log(LOG, "applying rounding rule? effect: {}", effect);
                     m_rounding.first.set(std::stoull(effect), prio);
                     m_rounding.second |= rule->getPropertiesMask();
                 } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding {}", effect); }
@@ -444,7 +443,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const SP<CWindowRule>& rule) {
     for (const auto& [key, effect] : rule->effects()) {
-
         switch (key) {
             default: {
                 Debug::log(TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));

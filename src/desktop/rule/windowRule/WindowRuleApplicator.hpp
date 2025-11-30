@@ -147,7 +147,7 @@ namespace Desktop::Rule {
             bool tagsChanged   = false;
         };
 
-        SRuleResult applyDynamicRule(const SP<CWindowRule>& rule);
+        SRuleResult applyDynamicRule(const SP<CWindowRule>& rule, Types::eOverridePriority prio);
         SRuleResult applyStaticRule(const SP<CWindowRule>& rule);
     };
 };

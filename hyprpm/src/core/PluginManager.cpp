@@ -824,7 +824,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
     }
     const auto HYPRPMPATH = DataState::getDataStatePath();
 
-    const auto json = glz::read_json<glz::json_t::array_t>(NHyprlandSocket::send("j/plugins list"));
+    const auto json = glz::read_json<glz::generic::array_t>(NHyprlandSocket::send("j/plugins list"));
     if (!json) {
         std::println(stderr, "PluginManager: couldn't parse plugin list output");
         return LOADSTATE_FAIL;

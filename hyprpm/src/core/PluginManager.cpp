@@ -80,7 +80,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
 
     const auto HLVERCALL = running ? NHyprlandSocket::send("j/version") : execAndGet("Hyprland --version-json");
 
-    auto       jsonQuery = glz::read_json<glz::json_t>(HLVERCALL);
+    auto       jsonQuery = glz::read_json<glz::generic>(HLVERCALL);
 
     if (!jsonQuery) {
         std::println("{}", failureString("failed to get the current hyprland version. Are you running hyprland?"));

@@ -737,6 +737,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:sync_gsettings_theme", Hyprlang::INT{1});
     registerConfigVar("cursor:hide_on_key_press", Hyprlang::INT{0});
     registerConfigVar("cursor:hide_on_touch", Hyprlang::INT{1});
+    registerConfigVar("cursor:hide_on_pen", Hyprlang::INT{0});
     registerConfigVar("cursor:use_cpu_buffer", Hyprlang::INT{2});
     registerConfigVar("cursor:warp_back_after_non_mouse_input", Hyprlang::INT{0});
 

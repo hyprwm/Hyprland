@@ -208,6 +208,9 @@ class CInputManager {
     // for hiding cursor on touch
     bool m_lastInputTouch = false;
 
+    // for hiding cursor when using a pen
+    bool m_lastInputPen = false;
+
     // for tracking mouse refocus
     PHLWINDOWREF m_lastMouseFocus;
 

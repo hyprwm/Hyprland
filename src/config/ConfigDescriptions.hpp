@@ -1671,6 +1671,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "cursor:hide_on_pen",
+        .description = "Hides the cursor when the last input was a pen input until a mouse input is done.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:use_cpu_buffer",
         .description = "Makes HW cursors use a CPU buffer. Required on Nvidia to have HW cursors. Experimental",
         .type        = CONFIG_OPTION_BOOL,

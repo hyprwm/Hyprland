@@ -5,6 +5,7 @@
 #include "../HookSystemManager.hpp"
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
+#include "../../protocols/core/Seat.hpp"
 
 CScreenshareManager::CScreenshareManager() {
     m_tickTimer = makeShared<CEventLoopTimer>(std::chrono::microseconds(500), [this](SP<CEventLoopTimer> self, void* data) { onTick(); }, nullptr);
@@ -125,6 +126,15 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWI
 
     session->m_self = session;
     m_sessions.emplace_back(session);
+
+    return session;
+}
+
+UP<CCursorshareSession> CScreenshareManager::newCursorSession(wl_client* client, WP<CWLPointerResource> pointer) {
+    UP<CCursorshareSession> session = UP<CCursorshareSession>(new CCursorshareSession(client, pointer));
+
+    session->m_self = session;
+    m_cursorSessions.emplace_back(session);
 
     return session;
 }

@@ -34,6 +34,14 @@ std::string CImageCaptureSource::getTypeName() {
     return "error";
 }
 
+CBox CImageCaptureSource::logicalBox() {
+    if (!m_monitor.expired())
+        return m_monitor->logicalBox();
+    if (!m_window.expired())
+        return m_window->getFullWindowBoundingBox();
+    return CBox();
+}
+
 COutputImageCaptureSourceProtocol::COutputImageCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
 }

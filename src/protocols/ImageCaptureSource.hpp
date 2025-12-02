@@ -16,6 +16,7 @@ class CImageCaptureSource {
 
     std::string             getName();
     std::string             getTypeName();
+    CBox                    logicalBox();
 
     WP<CImageCaptureSource> m_self;
 
@@ -26,6 +27,7 @@ class CImageCaptureSource {
     PHLWINDOWREF                 m_window;
 
     friend class CImageCopyCaptureSession;
+    friend class CImageCopyCaptureCursorSession;
 };
 
 class COutputImageCaptureSourceProtocol : public IWaylandProtocol {

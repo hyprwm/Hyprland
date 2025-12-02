@@ -7,6 +7,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "xwayland/XWayland.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
@@ -300,9 +301,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
 
     } else if (*PUSEACTIVE) {
-        if (g_pCompositor->m_lastWindow.lock() && !g_pCompositor->m_lastWindow->m_isFloating && g_pCompositor->m_lastWindow.lock() != pWindow &&
-            g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace && g_pCompositor->m_lastWindow->m_isMapped) {
-            OPENINGON = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
+        if (Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isFloating && Desktop::focusState()->window() != pWindow &&
+            Desktop::focusState()->window()->m_workspace == pWindow->m_workspace && Desktop::focusState()->window()->m_isMapped) {
+            OPENINGON = getNodeFromWindow(Desktop::focusState()->window());
         } else {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
         }
@@ -602,7 +603,7 @@ void CHyprDwindleLayout::onBeginDragWindow() {
 
 void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
 
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : Desktop::focusState()->window();
 
     if (!validMapped(PWINDOW))
         return;
@@ -922,7 +923,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
     if (silent) {
         const auto PNODETOFOCUS = getClosestNodeOnWorkspace(originalWorkspaceID, originalPos);
         if (PNODETOFOCUS && PNODETOFOCUS->pWindow.lock())
-            g_pCompositor->focusWindow(PNODETOFOCUS->pWindow.lock());
+            Desktop::focusState()->fullWindowFocus(PNODETOFOCUS->pWindow.lock());
     }
 }
 
@@ -1139,20 +1140,20 @@ void CHyprDwindleLayout::onDisable() {
 }
 
 Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
-    if (!g_pCompositor->m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return {};
 
     // get window candidate
-    PHLWINDOW candidate = g_pCompositor->m_lastWindow.lock();
+    PHLWINDOW candidate = Desktop::focusState()->window();
 
     if (!candidate)
-        candidate = g_pCompositor->m_lastMonitor->m_activeWorkspace->getFirstWindow();
+        candidate = Desktop::focusState()->monitor()->m_activeWorkspace->getFirstWindow();
 
     // create a fake node
     SDwindleNodeData node;
 
     if (!candidate)
-        return g_pCompositor->m_lastMonitor->m_size;
+        return Desktop::focusState()->monitor()->m_size;
     else {
         const auto PNODE = getNodeFromWindow(candidate);
 

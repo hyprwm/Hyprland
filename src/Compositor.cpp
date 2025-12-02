@@ -4,6 +4,7 @@
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "desktop/state/FocusState.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
@@ -560,9 +561,6 @@ void CCompositor::cleanup() {
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
 
-    m_lastFocus.reset();
-    m_lastWindow.reset();
-
     m_workspaces.clear();
     m_windows.clear();
 
@@ -951,7 +949,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
                         if (w->m_isX11 && w->isX11OverrideRedirect() && !w->m_xwaylandSurface->wantsFocus()) {
                             // Override Redirect
-                            return g_pCompositor->m_lastWindow.lock(); // we kinda trick everything here.
+                            return Desktop::focusState()->window(); // we kinda trick everything here.
                             // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
                         }
 
@@ -1115,201 +1113,6 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool preserveFocusHistory) {
-
-    static auto PFOLLOWMOUSE         = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PSPECIALFALLTHROUGH  = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
-    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
-
-    if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
-        Debug::log(LOG, "Refusing focus to window shadowed by modal dialog");
-        return;
-    }
-
-    if (!pWindow || !pWindow->priorityFocus()) {
-        if (g_pSessionLockManager->isSessionLocked()) {
-            Debug::log(LOG, "Refusing a keyboard focus to a window because of a sessionlock");
-            return;
-        }
-
-        if (!g_pInputManager->m_exclusiveLSes.empty()) {
-            Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
-            return;
-        }
-    }
-
-    if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
-        return;
-
-    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
-
-    if (!pWindow || !validMapped(pWindow)) {
-
-        if (m_lastWindow.expired() && !pWindow)
-            return;
-
-        const auto PLASTWINDOW = m_lastWindow.lock();
-        m_lastWindow.reset();
-
-        if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
-            PLASTWINDOW->updateDecorationValues();
-
-            g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
-        }
-
-        g_pSeatManager->setKeyboardFocus(nullptr);
-
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
-
-        EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
-
-        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
-
-        m_lastFocus.reset();
-
-        g_pInputManager->recheckIdleInhibitorStatus();
-        return;
-    }
-
-    if (pWindow->m_ruleApplicator->noFocus().valueOrDefault()) {
-        Debug::log(LOG, "Ignoring focus to nofocus window!");
-        return;
-    }
-
-    if (m_lastWindow.lock() == pWindow && g_pSeatManager->m_state.keyboardFocus == pSurface && g_pSeatManager->m_state.keyboardFocus)
-        return;
-
-    if (pWindow->m_pinned)
-        pWindow->m_workspace = m_lastMonitor->m_activeWorkspace;
-
-    const auto PMONITOR = pWindow->m_monitor.lock();
-
-    if (!pWindow->m_workspace || !pWindow->m_workspace->isVisible()) {
-        const auto PWORKSPACE = pWindow->m_workspace;
-        // This is to fix incorrect feedback on the focus history.
-        PWORKSPACE->m_lastFocusedWindow = pWindow;
-        if (m_lastMonitor->m_activeWorkspace)
-            PWORKSPACE->rememberPrevWorkspace(m_lastMonitor->m_activeWorkspace);
-        if (PWORKSPACE->m_isSpecialWorkspace)
-            m_lastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
-        else if (PMONITOR)
-            PMONITOR->changeWorkspace(PWORKSPACE, false, true);
-        // changeworkspace already calls focusWindow
-        return;
-    }
-
-    const auto PLASTWINDOW = m_lastWindow.lock();
-    m_lastWindow           = pWindow;
-
-    /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
-       window focuses are "via keybinds" and which ones aren't. */
-    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !pWindow->m_pinned && !*PSPECIALFALLTHROUGH)
-        PMONITOR->setSpecialWorkspace(nullptr);
-
-    // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
-    if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
-        PLASTWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FOCUS);
-
-        PLASTWINDOW->updateDecorationValues();
-
-        if (!pWindow->m_isX11 || !pWindow->isX11OverrideRedirect())
-            g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
-    }
-
-    m_lastWindow = PLASTWINDOW;
-
-    const auto PWINDOWSURFACE = pSurface ? pSurface : pWindow->m_wlSurface->resource();
-
-    focusSurface(PWINDOWSURFACE, pWindow);
-
-    g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
-
-    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FOCUS);
-    pWindow->onFocusAnimUpdate();
-
-    pWindow->updateDecorationValues();
-
-    if (pWindow->m_isUrgent)
-        pWindow->m_isUrgent = false;
-
-    // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
-
-    EMIT_HOOK_EVENT("activeWindow", pWindow);
-
-    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
-
-    g_pInputManager->recheckIdleInhibitorStatus();
-
-    if (!preserveFocusHistory) {
-        // move to front of the window history
-        const auto HISTORYPIVOT = std::ranges::find_if(m_windowFocusHistory, [&](const auto& other) { return other.lock() == pWindow; });
-        if (HISTORYPIVOT == m_windowFocusHistory.end())
-            Debug::log(ERR, "BUG THIS: {} has no pivot in history", pWindow);
-        else
-            std::rotate(m_windowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
-    }
-
-    if (*PFOLLOWMOUSE == 0)
-        g_pInputManager->sendMotionEventsToFocused();
-
-    if (pWindow->m_groupData.pNextWindow)
-        pWindow->deactivateGroupMembers();
-}
-
-void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
-
-    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->m_wlSurface->resource()))
-        return; // Don't focus when already focused on this.
-
-    if (g_pSessionLockManager->isSessionLocked() && pSurface && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
-        return;
-
-    if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
-        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", rc<uintptr_t>(pSurface.get()));
-        return;
-    }
-
-    const auto PLASTSURF = m_lastFocus.lock();
-
-    // Unfocus last surface if should
-    if (m_lastFocus && !pWindowOwner)
-        g_pXWaylandManager->activateSurface(m_lastFocus.lock(), false);
-
-    if (!pSurface) {
-        g_pSeatManager->setKeyboardFocus(nullptr);
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
-        EMIT_HOOK_EVENT("keyboardFocus", SP<CWLSurfaceResource>{nullptr});
-        m_lastFocus.reset();
-        return;
-    }
-
-    if (g_pSeatManager->m_keyboard)
-        g_pSeatManager->setKeyboardFocus(pSurface);
-
-    if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", rc<uintptr_t>(pSurface.get()), pWindowOwner);
-    else
-        Debug::log(LOG, "Set keyboard focus to surface {:x}", rc<uintptr_t>(pSurface.get()));
-
-    g_pXWaylandManager->activateSurface(pSurface, true);
-    m_lastFocus = pSurface;
-
-    EMIT_HOOK_EVENT("keyboardFocus", pSurface);
-
-    const auto SURF    = CWLSurface::fromResource(pSurface);
-    const auto OLDSURF = CWLSurface::fromResource(PLASTSURF);
-
-    if (OLDSURF && OLDSURF->constraint())
-        OLDSURF->constraint()->deactivate();
-
-    if (SURF && SURF->constraint())
-        SURF->constraint()->activate();
-}
-
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
@@ -1390,7 +1193,7 @@ PHLWINDOW CCompositor::getUrgentWindow() {
 }
 
 bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
-    if (m_lastWindow.expired() && !m_lastFocus)
+    if (!Desktop::focusState()->window() && !Desktop::focusState()->surface())
         return false;
 
     if (!pWindow->m_isMapped)
@@ -1398,7 +1201,7 @@ bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
 
     const auto PSURFACE = pWindow->m_wlSurface->resource();
 
-    return PSURFACE == m_lastFocus || pWindow == m_lastWindow.lock();
+    return PSURFACE == Desktop::focusState()->surface() || pWindow == Desktop::focusState()->window();
 }
 
 void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
@@ -1626,15 +1429,16 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                 if (intersectLength > 0) {
 
                     // get idx
-                    int windowIDX = -1;
-                    for (size_t i = 0; i < g_pCompositor->m_windowFocusHistory.size(); ++i) {
-                        if (g_pCompositor->m_windowFocusHistory[i].lock() == w) {
+                    int         windowIDX = -1;
+                    const auto& HISTORY   = Desktop::focusState()->windowHistory();
+                    for (size_t i = 0; i < HISTORY.size(); ++i) {
+                        if (HISTORY[i] == w) {
                             windowIDX = i;
                             break;
                         }
                     }
 
-                    windowIDX = g_pCompositor->m_windowFocusHistory.size() - windowIDX;
+                    windowIDX = Desktop::focusState()->windowHistory().size() - windowIDX;
 
                     if (windowIDX > leaderValue) {
                         leaderValue  = windowIDX;
@@ -1739,8 +1543,10 @@ static PHLWINDOW getWeakWindowPred(Iterator cur, Iterator end, Iterator begin, c
 PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next) {
     const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
     // also m_vWindowFocusHistory has reverse order, so when it is next - we need to reverse again
-    return next ? getWeakWindowPred(std::ranges::find(m_windowFocusHistory | std::views::reverse, cur), m_windowFocusHistory.rend(), m_windowFocusHistory.rbegin(), FINDER) :
-                  getWeakWindowPred(std::ranges::find(m_windowFocusHistory, cur), m_windowFocusHistory.end(), m_windowFocusHistory.begin(), FINDER);
+    return next ? getWeakWindowPred(std::ranges::find(Desktop::focusState()->windowHistory() | std::views::reverse, cur), Desktop::focusState()->windowHistory().rend(),
+                                    Desktop::focusState()->windowHistory().rbegin(), FINDER) :
+                  getWeakWindowPred(std::ranges::find(Desktop::focusState()->windowHistory(), cur), Desktop::focusState()->windowHistory().end(),
+                                    Desktop::focusState()->windowHistory().begin(), FINDER);
 }
 
 PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev) {
@@ -1834,7 +1640,7 @@ CBox CCompositor::calculateX11WorkArea() {
 }
 
 PHLMONITOR CCompositor::getMonitorInDirection(const char& dir) {
-    return getMonitorInDirection(m_lastMonitor.lock(), dir);
+    return getMonitorInDirection(Desktop::focusState()->monitor(), dir);
 }
 
 PHLMONITOR CCompositor::getMonitorInDirection(PHLMONITOR pSourceMonitor, const char& dir) {
@@ -1997,12 +1803,12 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
         PWORKSPACEA, PWORKSPACEA->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
-    if (pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id || pMonitorB->m_id == g_pCompositor->m_lastMonitor->m_id) {
-        const auto LASTWIN = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
-        g_pCompositor->focusWindow(LASTWIN ? LASTWIN :
-                                             (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
+    if (pMonitorA->m_id == Desktop::focusState()->monitor()->m_id || pMonitorB->m_id == Desktop::focusState()->monitor()->m_id) {
+        const auto LASTWIN = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
+        Desktop::focusState()->fullWindowFocus(
+            LASTWIN ? LASTWIN : (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
 
-        const auto PNEWWORKSPACE = pMonitorA->m_id == g_pCompositor->m_lastMonitor->m_id ? PWORKSPACEB : PWORKSPACEA;
+        const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
         EMIT_HOOK_EVENT("workspace", PNEWWORKSPACE);
@@ -2020,7 +1826,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
 PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
     if (name == "current")
-        return g_pCompositor->m_lastMonitor.lock();
+        return Desktop::focusState()->monitor();
     else if (isDirection(name))
         return getMonitorInDirection(name[0]);
     else if (name[0] == '+' || name[0] == '-') {
@@ -2041,7 +1847,7 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
 
         int currentPlace = 0;
         for (int i = 0; i < sc<int>(m_monitors.size()); i++) {
-            if (m_monitors[i] == m_lastMonitor) {
+            if (m_monitors[i] == Desktop::focusState()->monitor()) {
                 currentPlace = i;
                 break;
             }
@@ -2175,7 +1981,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         }
     }
 
-    if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_lastMonitor) { // if it was active, preserve its' status. If it wasn't, don't.
+    if (SWITCHINGISACTIVE && POLDMON == Desktop::focusState()->monitor()) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
 
         if (valid(pMonitor->m_activeWorkspace)) {
@@ -2186,7 +1992,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         if (*PHIDESPECIALONWORKSPACECHANGE)
             pMonitor->setSpecialWorkspace(nullptr);
 
-        setActiveMonitor(pMonitor);
+        Desktop::focusState()->rawMonitorFocus(pMonitor);
 
         auto oldWorkspace           = pMonitor->m_activeWorkspace;
         pMonitor->m_activeWorkspace = pWorkspace;
@@ -2247,6 +2053,7 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
         sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
 }
 
+// TODO: move fs functions to Desktop::
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
@@ -2387,16 +2194,16 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     auto regexp = trim(regexp_);
 
     if (regexp.starts_with("active"))
-        return m_lastWindow.lock();
+        return Desktop::focusState()->window();
     else if (regexp.starts_with("floating") || regexp.starts_with("tiled")) {
         // first floating on the current ws
-        if (!valid(m_lastWindow))
+        if (!Desktop::focusState()->window())
             return nullptr;
 
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto const& w : m_windows) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != m_lastWindow->m_workspace || w->isHidden())
+            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace || w->isHidden())
                 continue;
 
             return w;
@@ -2502,16 +2309,14 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     if (*PNOWARPS && !force) {
         const auto PMONITORNEW = getMonitorFromVector(pos);
-        if (PMONITORNEW != m_lastMonitor)
-            setActiveMonitor(PMONITORNEW);
+        Desktop::focusState()->rawMonitorFocus(PMONITORNEW);
         return;
     }
 
     g_pPointerManager->warpTo(pos);
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
-    if (PMONITORNEW != m_lastMonitor)
-        setActiveMonitor(PMONITORNEW);
+    Desktop::focusState()->rawMonitorFocus(PMONITORNEW);
 }
 
 void CCompositor::closeWindow(PHLWINDOW pWindow) {
@@ -2550,7 +2355,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     if (!args.contains(' ') && !args.contains('\t'))
         return relativeTo;
 
-    const auto  PMONITOR = m_lastMonitor;
+    const auto  PMONITOR = Desktop::focusState()->monitor();
 
     bool        xIsPercent = false;
     bool        yIsPercent = false;
@@ -2616,27 +2421,6 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
     PWORKSPACE->m_alpha->setValueAndWarp(0);
 
     return PWORKSPACE;
-}
-
-void CCompositor::setActiveMonitor(PHLMONITOR pMonitor) {
-    if (m_lastMonitor == pMonitor)
-        return;
-
-    if (!pMonitor) {
-        m_lastMonitor.reset();
-        return;
-    }
-
-    const auto PWORKSPACE = pMonitor->m_activeWorkspace;
-
-    const auto WORKSPACE_ID   = PWORKSPACE ? std::to_string(PWORKSPACE->m_id) : std::to_string(WORKSPACE_INVALID);
-    const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_name : "?";
-
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
-
-    EMIT_HOOK_EVENT("focusedMon", pMonitor);
-    m_lastMonitor = pMonitor->m_self;
 }
 
 bool CCompositor::isWorkspaceSpecial(const WORKSPACEID& id) {
@@ -2952,7 +2736,7 @@ void CCompositor::enterUnsafeState() {
 
     m_unsafeState = true;
 
-    setActiveMonitor(m_unsafeOutput.lock());
+    Desktop::focusState()->rawMonitorFocus(m_unsafeOutput.lock());
 }
 
 void CCompositor::leaveUnsafeState() {
@@ -3116,7 +2900,7 @@ bool CCompositor::shouldChangePreferredImageDescription() {
 }
 
 void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
-    if (!m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return;
 
     std::vector<PHLWORKSPACE> persistentFound;
@@ -3154,7 +2938,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
             }
             PWORKSPACE = getWorkspaceByID(id);
             if (!PMONITOR)
-                PMONITOR = m_lastMonitor.lock();
+                PMONITOR = Desktop::focusState()->monitor();
 
             if (!PWORKSPACE)
                 PWORKSPACE = createNewWorkspace(id, PMONITOR->m_id, wsname, false);

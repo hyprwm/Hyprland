@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
@@ -29,10 +30,11 @@ namespace Desktop::Rule {
         CWindowRuleApplicator(CWindowRuleApplicator&)       = delete;
         CWindowRuleApplicator(CWindowRuleApplicator&&)      = delete;
 
-        void propertiesChanged(std::underlying_type_t<eRuleProperty> props);
-        void resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio = Types::PRIORITY_WINDOW_RULE);
-        void readStaticRules();
-        void applyStaticRules();
+        void                                                        propertiesChanged(std::underlying_type_t<eRuleProperty> props);
+        std::unordered_set<CWindowRuleEffectContainer::storageType> resetProps(std::underlying_type_t<eRuleProperty> props,
+                                                                               Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
+        void                                                        readStaticRules();
+        void                                                        applyStaticRules();
 
         // static props
         struct {
@@ -69,7 +71,7 @@ namespace Desktop::Rule {
         } m_otherProps;
 
 #define COMMA ,
-#define DEFINE_PROP(type, name, def)                                                                                                                                               \
+#define DEFINE_PROP(type, name, def, eff)                                                                                                                                          \
   private:                                                                                                                                                                         \
     std::pair<Types::COverridableVar<type>, std::underlying_type_t<eRuleProperty>> m_##name = {def, RULE_PROP_NONE};                                                               \
                                                                                                                                                                                    \
@@ -79,54 +81,57 @@ namespace Desktop::Rule {
     }                                                                                                                                                                              \
     void name##Override(const Types::COverridableVar<type>& other) {                                                                                                               \
         m_##name.first = other;                                                                                                                                                    \
+    }                                                                                                                                                                              \
+    eWindowRuleEffect name##Effect() {                                                                                                                                             \
+        return eff;                                                                                                                                                                \
     }
 
         // dynamic props
-        DEFINE_PROP(Types::SAlphaValue, alpha, Types::SAlphaValue{})
-        DEFINE_PROP(Types::SAlphaValue, alphaInactive, Types::SAlphaValue{})
-        DEFINE_PROP(Types::SAlphaValue, alphaFullscreen, Types::SAlphaValue{})
+        DEFINE_PROP(Types::SAlphaValue, alpha, Types::SAlphaValue{}, WINDOW_RULE_EFFECT_OPACITY)
+        DEFINE_PROP(Types::SAlphaValue, alphaInactive, Types::SAlphaValue{}, WINDOW_RULE_EFFECT_OPACITY)
+        DEFINE_PROP(Types::SAlphaValue, alphaFullscreen, Types::SAlphaValue{}, WINDOW_RULE_EFFECT_OPACITY)
 
-        DEFINE_PROP(bool, allowsInput, false)
-        DEFINE_PROP(bool, decorate, true)
-        DEFINE_PROP(bool, focusOnActivate, false)
-        DEFINE_PROP(bool, keepAspectRatio, false)
-        DEFINE_PROP(bool, nearestNeighbor, false)
-        DEFINE_PROP(bool, noAnim, false)
-        DEFINE_PROP(bool, noBlur, false)
-        DEFINE_PROP(bool, noDim, false)
-        DEFINE_PROP(bool, noFocus, false)
-        DEFINE_PROP(bool, noMaxSize, false)
-        DEFINE_PROP(bool, noShadow, false)
-        DEFINE_PROP(bool, noShortcutsInhibit, false)
-        DEFINE_PROP(bool, opaque, false)
-        DEFINE_PROP(bool, dimAround, false)
-        DEFINE_PROP(bool, RGBX, false)
-        DEFINE_PROP(bool, syncFullscreen, true)
-        DEFINE_PROP(bool, tearing, false)
-        DEFINE_PROP(bool, xray, false)
-        DEFINE_PROP(bool, renderUnfocused, false)
-        DEFINE_PROP(bool, noFollowMouse, false)
-        DEFINE_PROP(bool, noScreenShare, false)
-        DEFINE_PROP(bool, noVRR, false)
-        DEFINE_PROP(bool, persistentSize, false)
-        DEFINE_PROP(bool, stayFocused, false)
+        DEFINE_PROP(bool, allowsInput, false, WINDOW_RULE_EFFECT_ALLOWS_INPUT)
+        DEFINE_PROP(bool, decorate, true, WINDOW_RULE_EFFECT_DECORATE)
+        DEFINE_PROP(bool, focusOnActivate, false, WINDOW_RULE_EFFECT_FOCUS_ON_ACTIVATE)
+        DEFINE_PROP(bool, keepAspectRatio, false, WINDOW_RULE_EFFECT_KEEP_ASPECT_RATIO)
+        DEFINE_PROP(bool, nearestNeighbor, false, WINDOW_RULE_EFFECT_NEAREST_NEIGHBOR)
+        DEFINE_PROP(bool, noAnim, false, WINDOW_RULE_EFFECT_NO_ANIM)
+        DEFINE_PROP(bool, noBlur, false, WINDOW_RULE_EFFECT_NO_BLUR)
+        DEFINE_PROP(bool, noDim, false, WINDOW_RULE_EFFECT_NO_DIM)
+        DEFINE_PROP(bool, noFocus, false, WINDOW_RULE_EFFECT_NO_FOCUS)
+        DEFINE_PROP(bool, noMaxSize, false, WINDOW_RULE_EFFECT_NO_MAX_SIZE)
+        DEFINE_PROP(bool, noShadow, false, WINDOW_RULE_EFFECT_NO_SHADOW)
+        DEFINE_PROP(bool, noShortcutsInhibit, false, WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT)
+        DEFINE_PROP(bool, opaque, false, WINDOW_RULE_EFFECT_OPAQUE)
+        DEFINE_PROP(bool, dimAround, false, WINDOW_RULE_EFFECT_DIM_AROUND)
+        DEFINE_PROP(bool, RGBX, false, WINDOW_RULE_EFFECT_FORCE_RGBX)
+        DEFINE_PROP(bool, syncFullscreen, true, WINDOW_RULE_EFFECT_SYNC_FULLSCREEN)
+        DEFINE_PROP(bool, tearing, false, WINDOW_RULE_EFFECT_IMMEDIATE)
+        DEFINE_PROP(bool, xray, false, WINDOW_RULE_EFFECT_XRAY)
+        DEFINE_PROP(bool, renderUnfocused, false, WINDOW_RULE_EFFECT_RENDER_UNFOCUSED)
+        DEFINE_PROP(bool, noFollowMouse, false, WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE)
+        DEFINE_PROP(bool, noScreenShare, false, WINDOW_RULE_EFFECT_NO_SCREEN_SHARE)
+        DEFINE_PROP(bool, noVRR, false, WINDOW_RULE_EFFECT_NO_VRR)
+        DEFINE_PROP(bool, persistentSize, false, WINDOW_RULE_EFFECT_PERSISTENT_SIZE)
+        DEFINE_PROP(bool, stayFocused, false, WINDOW_RULE_EFFECT_STAY_FOCUSED)
 
-        DEFINE_PROP(int, idleInhibitMode, false)
+        DEFINE_PROP(int, idleInhibitMode, false, WINDOW_RULE_EFFECT_IDLE_INHIBIT)
 
-        DEFINE_PROP(Hyprlang::INT, borderSize, {std::string("general:border_size") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt})
-        DEFINE_PROP(Hyprlang::INT, rounding, {std::string("decoration:rounding") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt})
+        DEFINE_PROP(Hyprlang::INT, borderSize, {std::string("general:border_size") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_BORDER_SIZE)
+        DEFINE_PROP(Hyprlang::INT, rounding, {std::string("decoration:rounding") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_ROUNDING)
 
-        DEFINE_PROP(Hyprlang::FLOAT, roundingPower, {std::string("decoration:rounding_power")})
-        DEFINE_PROP(Hyprlang::FLOAT, scrollMouse, {std::string("input:scroll_factor")})
-        DEFINE_PROP(Hyprlang::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")})
+        DEFINE_PROP(Hyprlang::FLOAT, roundingPower, {std::string("decoration:rounding_power")}, WINDOW_RULE_EFFECT_ROUNDING_POWER)
+        DEFINE_PROP(Hyprlang::FLOAT, scrollMouse, {std::string("input:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_MOUSE)
+        DEFINE_PROP(Hyprlang::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD)
 
-        DEFINE_PROP(std::string, animationStyle, std::string(""))
+        DEFINE_PROP(std::string, animationStyle, std::string(""), WINDOW_RULE_EFFECT_ANIMATION)
 
-        DEFINE_PROP(Vector2D, maxSize, Vector2D{})
-        DEFINE_PROP(Vector2D, minSize, Vector2D{})
+        DEFINE_PROP(Vector2D, maxSize, Vector2D{}, WINDOW_RULE_EFFECT_MAX_SIZE)
+        DEFINE_PROP(Vector2D, minSize, Vector2D{}, WINDOW_RULE_EFFECT_MIN_SIZE)
 
-        DEFINE_PROP(CGradientValueData, activeBorderColor, {})
-        DEFINE_PROP(CGradientValueData, inactiveBorderColor, {})
+        DEFINE_PROP(CGradientValueData, activeBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
+        DEFINE_PROP(CGradientValueData, inactiveBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
 
         std::vector<std::pair<std::string, std::underlying_type_t<eRuleProperty>>> m_dynamicTags;
         CTagKeeper                                                                 m_tagKeeper;

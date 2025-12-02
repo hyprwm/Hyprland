@@ -33,11 +33,23 @@ find_package(PkgConfig REQUIRED)
 # provide a .pc file and won't be detected this way
 pkg_check_modules(udis_dep IMPORTED_TARGET udis86>=1.7.2)
 
-# Fallback to subproject
+# Find non-pkgconfig udis86, otherwise fallback to subproject
 if(NOT udis_dep_FOUND)
-  add_subdirectory("subprojects/udis86")
-  include_directories("subprojects/udis86")
-  message(STATUS "udis86 dependency not found, falling back to subproject")
+  find_library(udis_nopc udis86)
+  if(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
+    message(STATUS "Found udis86 at ${udis_nopc}")
+  else()
+    add_subdirectory("subprojects/udis86")
+    include_directories("subprojects/udis86")
+    message(STATUS "udis86 dependency not found, falling back to subproject")
+  endif()
+endif()
+
+find_library(librt rt)
+if("${librt}" MATCHES "librt-NOTFOUND")
+  unset(LIBRT)
+else()
+  set(LIBRT rt)
 endif()
 
 if(CMAKE_BUILD_TYPE)
@@ -358,7 +370,7 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(
   Hyprland
-  rt
+  ${LIBRT}
   PkgConfig::aquamarine_dep
   PkgConfig::hyprlang_dep
   PkgConfig::hyprutils_dep
@@ -367,6 +379,8 @@ target_link_libraries(
   PkgConfig::deps)
 if(udis_dep_FOUND)
   target_link_libraries(Hyprland PkgConfig::udis_dep)
+elseif(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
+  target_link_libraries(Hyprland ${udis_nopc})
 else()
   target_link_libraries(Hyprland libudis86)
 endif()

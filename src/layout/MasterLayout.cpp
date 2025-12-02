@@ -9,6 +9,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "xwayland/XWayland.hpp"
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(PHLWINDOW pWindow) {
@@ -93,7 +94,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     const auto  PNODE = [&]() {
         if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {
-            const auto pLastNode = getNodeFromWindow(g_pCompositor->m_lastWindow.lock());
+            const auto pLastNode = getNodeFromWindow(Desktop::focusState()->window());
             if (pLastNode && !(pLastNode->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
                 auto it = std::ranges::find(m_masterNodesData, *pLastNode);
                 if (!BNEWBEFOREACTIVE)
@@ -111,8 +112,8 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     static auto  PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
     float        lastSplitPercent   = *PMFACT;
 
-    auto         OPENINGON = isWindowTiled(g_pCompositor->m_lastWindow.lock()) && g_pCompositor->m_lastWindow->m_workspace == pWindow->m_workspace ?
-                getNodeFromWindow(g_pCompositor->m_lastWindow.lock()) :
+    auto         OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == pWindow->m_workspace ?
+                getNodeFromWindow(Desktop::focusState()->window()) :
                 getMasterNodeOnWorkspace(pWindow->workspaceID());
 
     const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
@@ -756,7 +757,7 @@ bool CHyprMasterLayout::isWindowTiled(PHLWINDOW pWindow) {
 }
 
 void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorner corner, PHLWINDOW pWindow) {
-    const auto PWINDOW = pWindow ? pWindow : g_pCompositor->m_lastWindow.lock();
+    const auto PWINDOW = pWindow ? pWindow : Desktop::focusState()->window();
 
     if (!validMapped(PWINDOW))
         return;
@@ -985,14 +986,14 @@ void CHyprMasterLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir, 
         pWindow->m_monitor = PWINDOW2->m_monitor;
         if (!silent) {
             const auto pMonitor = pWindow->m_monitor.lock();
-            g_pCompositor->setActiveMonitor(pMonitor);
+            Desktop::focusState()->rawMonitorFocus(pMonitor);
         }
         onWindowCreatedTiling(pWindow);
     } else {
         // if same monitor, switch windows
         switchWindows(pWindow, PWINDOW2);
         if (silent)
-            g_pCompositor->focusWindow(PWINDOW2);
+            Desktop::focusState()->fullWindowFocus(PWINDOW2);
     }
 
     pWindow->updateGroupOutputs();
@@ -1083,18 +1084,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!validMapped(PWINDOWTOCHANGETO))
             return;
 
-        if (header.pWindow->isFullscreen()) {
-            const auto  PWORKSPACE        = header.pWindow->m_workspace;
-            const auto  FSMODE            = header.pWindow->m_fullscreenState.internal;
-            static auto INHERITFULLSCREEN = CConfigValue<Hyprlang::INT>("master:inherit_fullscreen");
-            g_pCompositor->setWindowFullscreenInternal(header.pWindow, FSMODE_NONE);
-            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-            if (*INHERITFULLSCREEN)
-                g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, FSMODE);
-        } else {
-            g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-            g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
-        }
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO);
+        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
 
         g_pInputManager->m_forcedFocus = PWINDOWTOCHANGETO;
         g_pInputManager->simulateMouseMovement();
@@ -1498,25 +1489,25 @@ void CHyprMasterLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {
 Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     static auto PNEWSTATUS = CConfigValue<std::string>("master:new_status");
 
-    if (!g_pCompositor->m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return {};
 
-    const int NODES = getNodesOnWorkspace(g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id);
+    const int NODES = getNodesOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
 
     if (NODES <= 0)
-        return g_pCompositor->m_lastMonitor->m_size;
+        return Desktop::focusState()->monitor()->m_size;
 
-    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id);
+    const auto MASTER = getMasterNodeOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
     if (!MASTER) // wtf
         return {};
 
     if (*PNEWSTATUS == "master") {
         return MASTER->size;
     } else {
-        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_lastMonitor->m_activeWorkspace->m_id);
+        const auto SLAVES = NODES - getMastersOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
 
         // TODO: make this better
-        return {g_pCompositor->m_lastMonitor->m_size.x - MASTER->size.x, g_pCompositor->m_lastMonitor->m_size.y / (SLAVES + 1)};
+        return {Desktop::focusState()->monitor()->m_size.x - MASTER->size.x, Desktop::focusState()->monitor()->m_size.y / (SLAVES + 1)};
     }
 
     return {};

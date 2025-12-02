@@ -66,12 +66,6 @@ class CCompositor {
     void                                         bumpNofile();
     void                                         restoreNofile();
 
-    WP<CWLSurfaceResource>                       m_lastFocus;
-    PHLWINDOWREF                                 m_lastWindow;
-    PHLMONITORREF                                m_lastMonitor;
-
-    std::vector<PHLWINDOWREF>                    m_windowFocusHistory; // first element is the most recently focused
-
     bool                                         m_readyToProcess = false;
     bool                                         m_sessionActive  = true;
     bool                                         m_dpmsStateOn    = true;
@@ -99,8 +93,6 @@ class CCompositor {
     PHLMONITOR             getMonitorFromCursor();
     PHLMONITOR             getMonitorFromVector(const Vector2D&);
     void                   removeWindowFromVectorSafe(PHLWINDOW);
-    void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr, bool preserveFocusHistory = false);
-    void                   focusSurface(SP<CWLSurfaceResource>, PHLWINDOW pWindowOwner = nullptr);
     bool                   monitorExists(PHLMONITOR);
     PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint8_t properties, PHLWINDOW pIgnoreWindow = nullptr);
     SP<CWLSurfaceResource> vectorToLayerSurface(const Vector2D&, std::vector<PHLLSREF>*, Vector2D*, PHLLS*, bool aboveLockscreen = false);
@@ -150,7 +142,6 @@ class CCompositor {
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     [[nodiscard]] PHLWORKSPACE          createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
                                                            bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
-    void                                setActiveMonitor(PHLMONITOR);
     bool                                isWorkspaceSpecial(const WORKSPACEID&);
     WORKSPACEID                         getNewSpecialID();
     void                                performUserChecks();

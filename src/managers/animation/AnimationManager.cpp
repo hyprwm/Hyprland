@@ -18,16 +18,7 @@
 
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
-        g_pAnimationManager->onTicked();
-
-    if (g_pCompositor->m_sessionActive && g_pAnimationManager && g_pHookSystem && !g_pCompositor->m_unsafeState &&
-        std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; })) {
-        g_pAnimationManager->tick();
-        EMIT_HOOK_EVENT("tick", nullptr);
-    }
-
-    if (g_pAnimationManager && g_pAnimationManager->shouldTickForNext())
-        g_pAnimationManager->scheduleTick();
+        g_pAnimationManager->frameTick();
 
     return 0;
 }
@@ -249,26 +240,40 @@ void CHyprAnimationManager::tick() {
     tickDone();
 }
 
+void CHyprAnimationManager::frameTick() {
+    onTicked();
+
+    if (!shouldTickForNext())
+        return;
+
+    if (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
+        !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
+        return;
+
+    if (!m_lastTickValid || m_lastTickTimer.getMillis() >= 1.0f) {
+        m_lastTickTimer.reset();
+        m_lastTickValid = true;
+
+        tick();
+        EMIT_HOOK_EVENT("tick", nullptr);
+    }
+
+    if (shouldTickForNext())
+        scheduleTick();
+}
+
 void CHyprAnimationManager::scheduleTick() {
     if (m_tickScheduled)
         return;
 
     m_tickScheduled = true;
 
-    const auto PMOSTHZ = g_pHyprRenderer->m_mostHzMonitor;
-
-    if (!PMOSTHZ) {
-        m_animationTimer->updateTimeout(std::chrono::milliseconds(16));
+    if (!m_animationTimer || !g_pEventLoopManager) {
+        m_tickScheduled = false;
         return;
     }
 
-    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->m_refreshRate);
-
-    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(Time::steadyNow() - PMOSTHZ->m_lastPresentationTimer.chrono()).count() / 1000.F;
-
-    const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
-
-    m_animationTimer->updateTimeout(std::chrono::milliseconds(sc<int>(std::floor(TOPRES))));
+    m_animationTimer->updateTimeout(std::chrono::milliseconds(1));
 }
 
 void CHyprAnimationManager::onTicked() {

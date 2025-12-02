@@ -14,6 +14,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -168,7 +169,7 @@ CHyprRenderer::CHyprRenderer() {
 
                 w->m_wlSurface->resource()->frame(Time::steadyNow());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->m_wlSurface->resource());
-                FEEDBACK->attachMonitor(g_pCompositor->m_lastMonitor.lock());
+                FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
                 FEEDBACK->discarded();
                 PROTO::presentation->queueData(std::move(FEEDBACK));
             }
@@ -403,7 +404,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
 
         // render active window after all others of this pass
-        if (w == g_pCompositor->m_lastWindow) {
+        if (w == Desktop::focusState()->window()) {
             lastWindow = w.lock();
             continue;
         }
@@ -612,6 +613,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         renderdata.surfaceCounter = 0;
         pWindow->m_wlSurface->resource()->breadthfirst(
             [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                if (!s->m_current.texture)
+                    return;
+
+                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                    return;
+
                 renderdata.localPos    = offset;
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
@@ -685,6 +692,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
                     popup->m_wlSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                            if (!s->m_current.texture)
+                                return;
+
+                            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                                return;
+
                             renderdata.localPos    = offset;
                             renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
@@ -765,6 +778,12 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     if (!popups)
         pLayer->m_surface->resource()->breadthfirst(
             [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                if (!s->m_current.texture)
+                    return;
+
+                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                    return;
+
                 renderdata.localPos    = offset;
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
@@ -785,10 +804,18 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                     return;
 
+                const auto SURF = popup->m_wlSurface->resource();
+
+                if (!SURF->m_current.texture)
+                    return;
+
+                if (SURF->m_current.size.x < 1 || SURF->m_current.size.y < 1)
+                    return;
+
                 Vector2D pos           = popup->coordsRelativeToParent();
                 renderdata.localPos    = pos;
-                renderdata.texture     = popup->m_wlSurface->resource()->m_current.texture;
-                renderdata.surface     = popup->m_wlSurface->resource();
+                renderdata.texture     = SURF->m_current.texture;
+                renderdata.surface     = SURF;
                 renderdata.mainSurface = false;
                 m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
@@ -821,6 +848,12 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
 
     SURF->breadthfirst(
         [this, &renderdata, &SURF](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
@@ -842,6 +875,12 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 
     renderdata.surface->breadthfirst(
         [this, &renderdata, &pSurface](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
@@ -1156,7 +1195,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             // to let the apps know to NOT add CSD. Also if source is there.
             // there is no way to fix this if that's the case
             const auto MONITOR_WL_SCALE = std::ceil(pMonitor->m_scale);
-            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE > 1 && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
+            const bool SCALE_UNAWARE    = pMonitor->m_scale != 1.f && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
             const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());
 
             const auto RATIO = projSize / EXPECTED_SIZE;
@@ -1246,6 +1285,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (!g_pCompositor->m_sessionActive)
         return;
+
+    if (g_pAnimationManager)
+        g_pAnimationManager->frameTick();
 
     if (pMonitor->m_id == m_mostHzMonitor->m_id ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
@@ -1366,7 +1408,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
                 renderLockscreen(pMonitor, NOW, renderBox);
 
-                if (pMonitor == g_pCompositor->m_lastMonitor) {
+                if (pMonitor == Desktop::focusState()->monitor()) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
                     g_pHyprError->draw();
                 }
@@ -1854,7 +1896,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     CBox usableArea = {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
 
-    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == PMONITOR->m_self) {
+    if (g_pHyprError->active() && Desktop::focusState()->monitor() == PMONITOR->m_self) {
         const auto HEIGHT = g_pHyprError->height();
         if (*BAR_POSITION == 0) {
             PMONITOR->m_reservedTopLeft.y = HEIGHT;
@@ -2531,6 +2573,12 @@ void CHyprRenderer::makeSnapshot(WP<CPopup> popup) {
 
     popup->m_wlSurface->resource()->breadthfirst(
         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            if (!s->m_current.texture)
+                return;
+
+            if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
+                return;
+
             renderdata.localPos    = offset;
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;

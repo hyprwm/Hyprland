@@ -76,15 +76,15 @@ void NCrashReporter::createAndSaveCrash(int sig) {
         reportPath += ".txt";
 
         {
-            CBufFileWriter<64> stderr(2);
-            stderr += "Hyprland has crashed :( Consult the crash report at ";
+            CBufFileWriter<64> stderr_out(STDERR_FILENO);
+            stderr_out += "Hyprland has crashed :( Consult the crash report at ";
             if (!reportPath.boundsExceeded()) {
-                stderr += reportPath.getStr();
+                stderr_out += reportPath.getStr();
             } else {
-                stderr += "[ERROR: Crash report path does not fit into memory! Check if your $CACHE_HOME/$HOME is too deeply nested. Max 255 characters.]";
+                stderr_out += "[ERROR: Crash report path does not fit into memory! Check if your $CACHE_HOME/$HOME is too deeply nested. Max 255 characters.]";
             }
-            stderr += " for more information.\n";
-            stderr.flush();
+            stderr_out += " for more information.\n";
+            stderr_out.flush();
         }
 
         reportFd = open(reportPath.getStr(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);

@@ -1,6 +1,7 @@
 #include "CHyprGroupBarDecoration.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "managers/LayoutManager.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
@@ -160,7 +161,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_lastWindow.lock() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
+        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == Desktop::focusState()->window() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
         color.a *= a;
 
         if (!rect.empty()) {
@@ -195,8 +196,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         if (!rect.empty()) {
             if (*PGRADIENTS) {
-                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                                         (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window() ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
                 if (GRADIENTTEX->m_texID) {
                     CTexPassElement::SRenderData data;
                     data.tex  = GRADIENTTEX;
@@ -234,7 +235,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                     .get();
 
                 SP<CTexture> titleTex;
-                if (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow)
+                if (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window())
                     titleTex = GROUPLOCKED ? pTitleTex->m_texLockedActive : pTitleTex->m_texActive;
                 else
                     titleTex = GROUPLOCKED ? pTitleTex->m_texLockedInactive : pTitleTex->m_texInactive;
@@ -308,10 +309,10 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
 
-    if (!g_pCompositor->m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return;
 
-    const Vector2D& bufferSize = g_pCompositor->m_lastMonitor->m_pixelSize;
+    const Vector2D& bufferSize = Desktop::focusState()->monitor()->m_pixelSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto      CAIRO        = cairo_create(CAIROSURFACE);
@@ -415,7 +416,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     g_pInputManager->m_currentlyDraggedWindow = pWindow;
 
     if (!g_pCompositor->isWindowActive(pWindow))
-        g_pCompositor->focusWindow(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow);
 
     return true;
 }
@@ -529,7 +530,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
         if (!g_pCompositor->isWindowActive(m_window.lock()))
-            g_pCompositor->focusWindow(m_window.lock());
+            Desktop::focusState()->rawWindowFocus(m_window.lock());
         return true;
     }
 
@@ -539,7 +540,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         pWindow->setGroupCurrent(pWindow);
 
     if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
-        g_pCompositor->focusWindow(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow);
 
     if (pWindow->m_isFloating)
         g_pCompositor->changeWindowZOrder(pWindow, true);

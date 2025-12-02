@@ -17,6 +17,7 @@
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/layerRule/LayerRule.hpp"
 #include "../debug/HyprCtl.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -78,7 +79,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
     const auto DATA = sc<CGradientValueData*>(*data);
 
-    CVarList   varlist(V, 0, ' ');
+    CVarList2  varlist(std::string(V), 0, ' ');
     DATA->m_colors.clear();
 
     std::string parseError = "";
@@ -87,7 +88,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         if (var.find("deg") != std::string::npos) {
             // last arg
             try {
-                DATA->m_angle = std::stoi(var.substr(0, var.find("deg"))) * (PI / 180.0); // radians
+                DATA->m_angle = std::stoi(std::string(var.substr(0, var.find("deg")))) * (PI / 180.0); // radians
             } catch (...) {
                 Debug::log(WARN, "Error parsing gradient {}", V);
                 parseError = "Error parsing gradient " + V;
@@ -103,7 +104,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         }
 
         try {
-            const auto COL = configStringToInt(var);
+            const auto COL = configStringToInt(std::string(var));
             if (!COL)
                 throw std::runtime_error(std::format("failed to parse {} as a color", var));
             DATA->m_colors.emplace_back(COL.value());
@@ -142,7 +143,7 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
         *data = new CCssGapData();
 
     const auto             DATA = sc<CCssGapData*>(*data);
-    CVarList               varlist(V);
+    CVarList2              varlist((std::string(V)));
     Hyprlang::CParseResult result;
 
     try {
@@ -490,7 +491,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:session_lock_xray", Hyprlang::INT{0});
     registerConfigVar("misc:close_special_on_empty", Hyprlang::INT{1});
     registerConfigVar("misc:background_color", Hyprlang::INT{0xff111111});
-    registerConfigVar("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    registerConfigVar("misc:on_focus_under_fullscreen", Hyprlang::INT{2});
     registerConfigVar("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     registerConfigVar("misc:initial_workspace_tracking", Hyprlang::INT{1});
     registerConfigVar("misc:middle_click_paste", Hyprlang::INT{1});
@@ -619,7 +620,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:new_on_active", {"none"});
     registerConfigVar("master:new_on_top", Hyprlang::INT{0});
     registerConfigVar("master:orientation", {"left"});
-    registerConfigVar("master:inherit_fullscreen", Hyprlang::INT{1});
     registerConfigVar("master:allow_small_split", Hyprlang::INT{0});
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
@@ -2197,17 +2197,16 @@ bool CMonitorRuleParser::setReserved(const SMonitorAdditionalReservedArea& value
 }
 
 std::optional<std::string> CConfigManager::handleMonitor(const std::string& command, const std::string& args) {
-
     // get the monitor config
-    const auto ARGS = CVarList(args);
+    const auto ARGS = CVarList2(std::string(args));
 
-    auto       parser = CMonitorRuleParser(ARGS[0]);
+    auto       parser = CMonitorRuleParser(std::string(ARGS[0]));
 
     if (ARGS[1] == "disable" || ARGS[1] == "disabled" || ARGS[1] == "addreserved" || ARGS[1] == "transform") {
         if (ARGS[1] == "disable" || ARGS[1] == "disabled")
             parser.setDisabled();
         else if (ARGS[1] == "transform") {
-            if (!parser.parseTransform(ARGS[2]))
+            if (!parser.parseTransform(std::string(ARGS[2])))
                 return parser.getError();
 
             const auto TRANSFORM = parser.rule().transform;
@@ -2223,7 +2222,10 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             return {};
         } else if (ARGS[1] == "addreserved") {
             try {
-                parser.setReserved({.top = std::stoi(ARGS[2]), .bottom = std::stoi(ARGS[3]), .left = std::stoi(ARGS[4]), .right = std::stoi(ARGS[5])});
+                parser.setReserved({.top    = std::stoi(std::string(ARGS[2])),
+                                    .bottom = std::stoi(std::string(ARGS[3])),
+                                    .left   = std::stoi(std::string(ARGS[4])),
+                                    .right  = std::stoi(std::string(ARGS[5]))});
             } catch (...) { return "parse error: invalid reserved area"; }
             return {};
         } else {
@@ -2238,36 +2240,36 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         return {};
     }
 
-    parser.parseMode(ARGS[1]);
-    parser.parsePosition(ARGS[2]);
-    parser.parseScale(ARGS[3]);
+    parser.parseMode(std::string(ARGS[1]));
+    parser.parsePosition(std::string(ARGS[2]));
+    parser.parseScale(std::string(ARGS[3]));
 
     int argno = 4;
 
     while (!ARGS[argno].empty()) {
         if (ARGS[argno] == "mirror") {
-            parser.setMirror(ARGS[argno + 1]);
+            parser.setMirror(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "bitdepth") {
-            parser.parseBitdepth(ARGS[argno + 1]);
+            parser.parseBitdepth(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "cm") {
-            parser.parseCM(ARGS[argno + 1]);
+            parser.parseCM(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "sdrsaturation") {
-            parser.parseSDRSaturation(ARGS[argno + 1]);
+            parser.parseSDRSaturation(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "sdrbrightness") {
-            parser.parseSDRBrightness(ARGS[argno + 1]);
+            parser.parseSDRBrightness(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "transform") {
-            parser.parseTransform(ARGS[argno + 1]);
+            parser.parseTransform(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "vrr") {
-            parser.parseVRR(ARGS[argno + 1]);
+            parser.parseVRR(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
+            const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(std::string(ARGS[argno + 1]));
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = parser.name();
@@ -2279,7 +2281,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax at \"{}\"", ARGS[argno]);
-            return "invalid syntax at \"" + ARGS[argno] + "\"";
+            return "invalid syntax at \"" + std::string(ARGS[argno]) + "\"";
         }
 
         argno++;
@@ -2580,14 +2582,14 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     auto assignRule = [&](std::string rule) -> std::optional<std::string> {
         size_t delim = std::string::npos;
         if ((delim = rule.find("gapsin:")) != std::string::npos) {
-            CVarList varlist = CVarList(rule.substr(delim + 7), 0, ' ');
-            wsRule.gapsIn    = CCssGapData();
+            CVarList2 varlist(rule.substr(delim + 7), 0, ' ');
+            wsRule.gapsIn = CCssGapData();
             try {
                 wsRule.gapsIn->parseGapData(varlist);
             } catch (...) { return "Error parsing workspace rule gaps: {}", rule.substr(delim + 7); }
         } else if ((delim = rule.find("gapsout:")) != std::string::npos) {
-            CVarList varlist = CVarList(rule.substr(delim + 8), 0, ' ');
-            wsRule.gapsOut   = CCssGapData();
+            CVarList2 varlist(rule.substr(delim + 8), 0, ' ');
+            wsRule.gapsOut = CCssGapData();
             try {
                 wsRule.gapsOut->parseGapData(varlist);
             } catch (...) { return "Error parsing workspace rule gaps: {}", rule.substr(delim + 8); }
@@ -2639,9 +2641,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 
 #undef CHECK_OR_THROW
 
-    CVarList rulesList{rules, 0, ',', true};
+    CVarList2 rulesList(std::string(rules), 0, ',', true);
     for (auto const& r : rulesList) {
-        const auto R = assignRule(r);
+        const auto R = assignRule(std::string(r));
         if (R.has_value())
             return R;
     }
@@ -2660,9 +2662,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 }
 
 std::optional<std::string> CConfigManager::handleSubmap(const std::string&, const std::string& submap) {
-    const auto SUBMAP     = CConstVarList(submap);
-    m_currentSubmap.name  = (SUBMAP[0] == "reset") ? "" : SUBMAP[0];
-    m_currentSubmap.reset = SUBMAP[1];
+    CVarList2 data((std::string(submap)));
+    m_currentSubmap.name  = (data[0] == "reset") ? "" : data[0];
+    m_currentSubmap.reset = data[1];
     return {};
 }
 
@@ -2761,7 +2763,7 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
 }
 
 std::optional<std::string> CConfigManager::handlePermission(const std::string& command, const std::string& value) {
-    CVarList                    data(value);
+    CVarList2                   data((std::string(value)));
 
     eDynamicPermissionType      type = PERMISSION_TYPE_UNKNOWN;
     eDynamicPermissionAllowMode mode = PERMISSION_RULE_ALLOW_MODE_UNKNOWN;
@@ -2786,13 +2788,13 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         return "unknown permission allow mode";
 
     if (m_isFirstLaunch)
-        g_pDynamicPermissionManager->addConfigPermissionRule(data[0], type, mode);
+        g_pDynamicPermissionManager->addConfigPermissionRule(std::string(data[0]), type, mode);
 
     return {};
 }
 
 std::optional<std::string> CConfigManager::handleGesture(const std::string& command, const std::string& value) {
-    CConstVarList             data(value);
+    CVarList2                 data((std::string(value)));
 
     size_t                    fingerCount = 0;
     eTrackpadGestureDirection direction   = TRACKPAD_GESTURE_DIR_NONE;
@@ -2861,7 +2863,7 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
 }
 
 std::optional<std::string> CConfigManager::handleWindowrule(const std::string& command, const std::string& value) {
-    CVarList2                      data(std::string{value}, 0, ',');
+    CVarList2                      data((std::string(value)));
 
     SP<Desktop::Rule::CWindowRule> rule = makeShared<Desktop::Rule::CWindowRule>();
 
@@ -2900,7 +2902,7 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleLayerrule(const std::string& command, const std::string& value) {
-    CVarList2                     data(std::string{value}, 0, ',');
+    CVarList2                     data((std::string(value)));
 
     SP<Desktop::Rule::CLayerRule> rule = makeShared<Desktop::Rule::CLayerRule>();
 

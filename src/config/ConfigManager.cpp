@@ -2829,6 +2829,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
 
     if (data[1] == "screencopy")
         type = PERMISSION_TYPE_SCREENCOPY;
+    else if (data[1] == "cursorpos")
+        type = PERMISSION_TYPE_CURSOR_POS;
     else if (data[1] == "plugin")
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")

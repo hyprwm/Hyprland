@@ -26,6 +26,7 @@ class CImageCaptureSource {
     PHLWINDOWREF                 m_window;
 
     friend class CImageCopyCaptureSession;
+    friend class CImageCopyCaptureCursorSession;
 };
 
 class COutputImageCaptureSourceProtocol : public IWaylandProtocol {

@@ -585,7 +585,7 @@ bool CPluginManager::updateHeaders(bool force) {
     std::filesystem::remove_all(WORKINGDIR);
 
     auto HEADERSVALID = headersValid();
-    if (HEADERSVALID == HEADERS_OK) {
+    if (HEADERSVALID == HEADERS_OK || HEADERSVALID == HEADERS_MISMATCHED) {
         progress.printMessageAbove(successString("installed headers"));
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Done!";

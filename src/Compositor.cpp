@@ -2899,6 +2899,27 @@ SImageDescription CCompositor::getPreferredImageDescription() {
     return m_monitors.size() == 1 ? m_monitors[0]->m_imageDescription : SImageDescription{.primaries = NColorPrimaries::BT709};
 }
 
+SImageDescription CCompositor::getHDRImageDescription() {
+    if (!PROTO::colorManagement) {
+        Debug::log(ERR, "FIXME: color management protocol is not enabled, returning empty image description");
+        return SImageDescription{};
+    }
+
+    return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?
+        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                          .primariesNameSet = true,
+                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                          .luminances       = {.min       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
+                                               .max       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
+                                               .reference = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}} :
+        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                          .primariesNameSet = true,
+                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                          .luminances       = {.min = 0, .max = 10000, .reference = 203}};
+}
+
 bool CCompositor::shouldChangePreferredImageDescription() {
     Debug::log(WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
     return false;

@@ -36,8 +36,11 @@ namespace SignalSafe {
 
         void writeNum(size_t num) {
             size_t d = 1;
-            while (num / 10 >= d)
+
+            while (num / 10 >= d) {
                 d *= 10;
+            }
+
             while (num > 0) {
                 char c = '0' + (num / d);
                 write(c);
@@ -104,8 +107,11 @@ namespace SignalSafe {
 
         void writeNum(size_t num) {
             size_t d = 1;
-            while (num / 10 >= d)
+
+            while (num / 10 >= d) {
                 d *= 10;
+            }
+
             while (num > 0) {
                 char c = '0' + (num / d);
                 write(c);

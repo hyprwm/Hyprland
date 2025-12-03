@@ -909,7 +909,7 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
     auto state = DataState::getGlobalState();
     auto HLVER = getHyprlandVersion(true);
 
-    if (state.headersAbiCompiled != HLVER.hash) {
+    if (state.headersAbiCompiled != HLVER.abiHash) {
         if (load)
             std::println("{}", infoString("Running Hyprland version ({}) differs from plugin state ({}), please restart Hyprland.", HLVER.hash, state.headersAbiCompiled));
         return false;

@@ -19,6 +19,7 @@
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
+  hyprwire,
   libGL,
   libdrm,
   libexecinfo,
@@ -122,6 +123,7 @@ in
 
       nativeBuildInputs = [
         hyprwayland-scanner
+        hyprwire
         makeWrapper
         cmake
         pkg-config
@@ -144,6 +146,7 @@ in
           hyprland-protocols
           hyprlang
           hyprutils
+          hyprwire
           libdrm
           libGL
           libinput

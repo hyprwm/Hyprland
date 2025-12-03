@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <format>
+#include <filesystem>
 
 #include <hyprpaper_core-client.hpp>
 
@@ -27,6 +28,31 @@ static hyprpaperCoreWallpaperFitMode fitFromString(const std::string_view& sv) {
     return HYPRPAPER_CORE_WALLPAPER_FIT_MODE_COVER;
 }
 
+static std::expected<std::string, std::string> resolvePath(const std::string_view& sv) {
+    std::error_code ec;
+    auto            can = std::filesystem::canonical(sv, ec);
+
+    if (ec)
+        return std::unexpected(std::format("invalid path: {}", ec.message()));
+
+    return can;
+}
+
+static std::expected<std::string, std::string> getFullPath(const std::string_view& sv) {
+    if (sv.empty())
+        return std::unexpected("empty path");
+
+    if (sv[0] == '~') {
+        static auto HOME = getenv("HOME");
+        if (!HOME || HOME[0] == '\0')
+            return std::unexpected("home path but no $HOME");
+
+        return resolvePath(std::string{HOME} + "/"s + std::string{sv.substr(1)});
+    }
+
+    return resolvePath(sv);
+}
+
 std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::string_view& rq) {
     if (!rq.contains(' '))
         return std::unexpected("Invalid request");
@@ -44,11 +70,14 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
 
     CVarList2         args(std::string{RHS}, 0, ',');
 
-    const std::string MONITOR = std::string{args[0]};
-    const std::string PATH    = std::string{args[1]};
-    const auto&       FIT     = args[2];
+    const std::string MONITOR  = std::string{args[0]};
+    const auto&       PATH_RAW = args[1];
+    const auto&       FIT      = args[2];
 
-    const auto        RTDIR = getenv("XDG_RUNTIME_DIR");
+    if (PATH_RAW.empty() || MONITOR.empty())
+        return std::unexpected("not enough args");
+
+    const auto RTDIR = getenv("XDG_RUNTIME_DIR");
 
     if (!RTDIR || RTDIR[0] == '\0')
         return std::unexpected("can't send: no XDG_RUNTIME_DIR");
@@ -57,6 +86,11 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
 
     if (!HIS || HIS[0] == '\0')
         return std::unexpected("can't send: no HYPRLAND_INSTANCE_SIGNATURE (not running under hyprland)");
+
+    const auto PATH = getFullPath(PATH_RAW);
+
+    if (!PATH)
+        return std::unexpected(std::format("bad path: {}", PATH_RAW));
 
     auto socketPath = RTDIR + "/hypr/"s + HIS + "/"s + SOCKET_NAME;
 
@@ -96,7 +130,7 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
     });
     wallpaper->setSuccess([&canExit]() { canExit = true; });
 
-    wallpaper->sendPath(PATH.c_str());
+    wallpaper->sendPath(PATH->c_str());
     wallpaper->sendMonitorName(MONITOR.c_str());
     if (!FIT.empty())
         wallpaper->sendFitMode(fitFromString(FIT));

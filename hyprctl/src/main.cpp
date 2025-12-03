@@ -31,6 +31,7 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Memory;
 
 #include "Strings.hpp"
+#include "hyprpaper/Hyprpaper.hpp"
 
 std::string instanceSignature;
 bool        quiet = false;
@@ -305,10 +306,6 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     return 0;
 }
 
-int requestHyprpaper(std::string_view arg) {
-    return requestIPC(".hyprpaper.sock", arg);
-}
-
 int requestHyprsunset(std::string_view arg) {
     return requestIPC(".hyprsunset.sock", arg);
 }
@@ -500,9 +497,12 @@ int main(int argc, char** argv) {
 
     if (fullRequest.contains("/--batch"))
         batchRequest(fullRequest, json);
-    else if (fullRequest.contains("/hyprpaper"))
-        exitStatus = requestHyprpaper(fullRequest);
-    else if (fullRequest.contains("/hyprsunset"))
+    else if (fullRequest.contains("/hyprpaper")) {
+        auto result = Hyprpaper::makeHyprpaperRequest(fullRequest);
+        if (!result)
+            log(std::format("error: {}", result.error()));
+        exitStatus = !result;
+    } else if (fullRequest.contains("/hyprsunset"))
         exitStatus = requestHyprsunset(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         exitStatus = request(fullRequest, 2);

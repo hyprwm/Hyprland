@@ -1181,6 +1181,42 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("tr_TR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader yeniden yüklemesi başarısız, rgba/rgbx'e geri dönülüyor.");
     huEngine->registerEntry("tr_TR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitör {name}: wide color gamut etkinleştirildi ama ekran 10-bit modunda değil.");
 
+    // tt_RU (Tatar)
+    huEngine->registerEntry("tt_RU", TXT_KEY_ANR_TITLE, "Программа җавап бирми");
+    huEngine->registerEntry("tt_RU", TXT_KEY_ANR_CONTENT, "Программасы {title} - {class} җавап бирми.\nСез аның белән нәрсә эшләргә телисез?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_ANR_OPTION_TERMINATE, "Тәмам итү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_ANR_OPTION_WAIT, "Көтү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_ANR_PROP_UNKNOWN, "(билгесез)");
+
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "<b>{app}</b> программасы билгесез рөхсәт сорый.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> программасы сезнең экранны яздырырга тели.\n\nРөхсәт бирәсезме?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> программасы плагин йөкләргә тели: <b>{plugin}</b>.\n\nРөхсәт бирәсезме?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Яңа клавиатура табылды: <b>{keyboard}</b>.\n\nАның эшләргә рөхсәт бирәсезме?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(билгесез)");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_TITLE, "Рөхсәт сорау");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Киңәш: сез Hyprland көйләү файлында даими кагыйдәләр куя аласыз.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_ALLOW, "Рөхсәт бирү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Рөхсәт бирү һәм истә калдыру");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_ALLOW_ONCE, "Бер тапкыр рөхсәт бирү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_DENY, "Кире кагу");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Билгесез программа (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Сезнең XDG_CURRENT_DESKTOP мохите тыштан идарә ителә, хәзерге кыйммәте: {value}.\n"
+                            "Бу теләгән булмаса, проблемалар китереп чыгарырга мөмкин.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Сезнең системада hyprland-guiutils урнаштырылмаган. Бу кайбер диалоглар өчен кирәкле вакыт бәйлелеге. Урнаштыруны карап чыгыгыз.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_FAILED_ASSETS, "Hyprland {count} мөһим ресурсны йөкли алмады. Ул дистрибутивыгыз пакетлаучысының хатасы!");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Сезнең мониторлар урнашуы дөрес түгел. {name} мониторы башка монитор белән өстәлә.\n"
+                            "Зинһар, өстәмә мәгълүмат өчен викидагы (Monitors бит) мөрәҗәгать итегез. Бу <b>һичшиксез</b> проблемалар тудырачак.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "{name} мониторы соралган режимнарны куя алмады, {mode} режимына кайта.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                            "{name} мониторы өчен яраксыз масштаб билгеләнгән: {scale}. Тәкъдим ителгән масштаб кулланыла: {fixed_scale}");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} плагинны йөкләүдә хата: {error}");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM шейдерын яңадан йөкләү уңышсыз булды, rgba/rgbx режимына кайтыла.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: киң төсләр диапазоны кушылган, ләкин дисплей 10-бит режимында түгел.");
+
     // uk_UA (Ukrainian)
     huEngine->registerEntry("uk_UA", TXT_KEY_ANR_TITLE, "Програма не відповідає");
     huEngine->registerEntry("uk_UA", TXT_KEY_ANR_CONTENT, "Програма {title} - {class} не відповідає.\nЩо ви хочете з нею зробити?");

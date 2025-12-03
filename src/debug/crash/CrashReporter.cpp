@@ -6,36 +6,43 @@
 #include <cerrno>
 #include <sys/stat.h>
 #include <filesystem>
-#include "../helpers/MiscFunctions.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
-#include "../plugins/PluginSystem.hpp"
-#include "../signal-safe.hpp"
+#include "../../plugins/PluginSystem.hpp"
+#include "SignalSafe.hpp"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
 #endif
 
-static char const* const MESSAGES[] = {"Sorry, didn't mean to...",
-                                       "This was an accident, I swear!",
-                                       "Calm down, it was a misinput! MISINPUT!",
-                                       "Oops",
-                                       "Vaxry is going to be upset.",
-                                       "Who tried dividing by zero?!",
-                                       "Maybe you should try dusting your PC in the meantime?",
-                                       "I tried so hard, and got so far...",
-                                       "I don't feel so good...",
-                                       "*thud*",
-                                       "Well this is awkward.",
-                                       "\"stable\"",
-                                       "I hope you didn't have any unsaved progress.",
-                                       "All these computers..."};
+static char const* const MESSAGES[] = {
+    "Sorry, didn't mean to...",
+    "This was an accident, I swear!",
+    "Calm down, it was a misinput! MISINPUT!",
+    "Oops",
+    "Vaxry is going to be upset.",
+    "Who tried dividing by zero?!",
+    "Maybe you should try dusting your PC in the meantime?",
+    "I tried so hard, and got so far...",
+    "I don't feel so good...",
+    "*thud*",
+    "Well this is awkward.",
+    "\"stable\"",
+    "I hope you didn't have any unsaved progress.",
+    "All these computers...",
+    "The math isn't mathing...",
+    "We've got an imposter in the code!",
+    "Well, at least the crash reporter didn't crash!",
+    "Everything's just fi-",
+    "Have you tried asking Hyprland politely not to crash?",
+};
 
 // <random> is not async-signal-safe, fake it with time(NULL) instead
-char const* getRandomMessage() {
+static char const* getRandomMessage() {
     return MESSAGES[time(nullptr) % (sizeof(MESSAGES) / sizeof(MESSAGES[0]))];
 }
 
-[[noreturn]] inline void exitWithError(char const* err) {
+[[noreturn]] static inline void exitWithError(char const* err) {
     write(STDERR_FILENO, err, strlen(err));
     // perror() is not signal-safe, but we use it here
     // because if the crash-handler already crashed, it can't get any worse.
@@ -43,17 +50,17 @@ char const* getRandomMessage() {
     abort();
 }
 
-void NCrashReporter::createAndSaveCrash(int sig) {
+void CrashReporter::createAndSaveCrash(int sig) {
     int reportFd = -1;
 
     // We're in the signal handler, so we *only* have stack memory.
     // To save as much stack memory as possible,
     // destroy things as soon as possible.
     {
-        CMaxLengthCString<255> reportPath;
+        SignalSafe::CMaxLengthCString<255> reportPath;
 
-        const auto             HOME       = sigGetenv("HOME");
-        const auto             CACHE_HOME = sigGetenv("XDG_CACHE_HOME");
+        const auto                         HOME       = SignalSafe::getenv("HOME");
+        const auto                         CACHE_HOME = SignalSafe::getenv("XDG_CACHE_HOME");
 
         if (CACHE_HOME && CACHE_HOME[0] != '\0') {
             reportPath += CACHE_HOME;
@@ -67,32 +74,30 @@ void NCrashReporter::createAndSaveCrash(int sig) {
         }
 
         int ret = mkdir(reportPath.getStr(), S_IRWXU);
-        //__asm__("int $3");
-        if (ret < 0 && errno != EEXIST) {
+        if (ret < 0 && errno != EEXIST)
             exitWithError("failed to mkdir() crash report directory\n");
-        }
+
         reportPath += "/hyprlandCrashReport";
         reportPath.writeNum(getpid());
         reportPath += ".txt";
 
         {
-            CBufFileWriter<64> stderr_out(STDERR_FILENO);
-            stderr_out += "Hyprland has crashed :( Consult the crash report at ";
-            if (!reportPath.boundsExceeded()) {
-                stderr_out += reportPath.getStr();
-            } else {
-                stderr_out += "[ERROR: Crash report path does not fit into memory! Check if your $CACHE_HOME/$HOME is too deeply nested. Max 255 characters.]";
-            }
-            stderr_out += " for more information.\n";
-            stderr_out.flush();
+            SignalSafe::CBufFileWriter<64> stderrOut(STDERR_FILENO);
+            stderrOut += "Hyprland has crashed :( Consult the crash report at ";
+            if (!reportPath.boundsExceeded())
+                stderrOut += reportPath.getStr();
+            else
+                stderrOut += "[ERROR: Crash report path does not fit into memory! Check if your $CACHE_HOME/$HOME is too deeply nested. Max 255 characters.]";
+
+            stderrOut += " for more information.\n";
+            stderrOut.flush();
         }
 
         reportFd = open(reportPath.getStr(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-        if (reportFd < 0) {
+        if (reportFd < 0)
             exitWithError("Failed to open crash report path for writing");
-        }
     }
-    CBufFileWriter<512> finalCrashReport(reportFd);
+    SignalSafe::CBufFileWriter<512> finalCrashReport(reportFd);
 
     finalCrashReport += "--------------------------------------------\n   Hyprland Crash Report\n--------------------------------------------\n";
     finalCrashReport += getRandomMessage();
@@ -101,7 +106,7 @@ void NCrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += "Hyprland received signal ";
     finalCrashReport.writeNum(sig);
     finalCrashReport += '(';
-    finalCrashReport += sigStrsignal(sig);
+    finalCrashReport += SignalSafe::strsignal(sig);
     finalCrashReport += ")\nVersion: ";
     finalCrashReport += GIT_COMMIT_HASH;
     finalCrashReport += "\nTag: ";

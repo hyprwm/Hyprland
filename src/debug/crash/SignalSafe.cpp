@@ -1,4 +1,4 @@
-#include "signal-safe.hpp"
+#include "SignalSafe.hpp"
 
 #ifndef __GLIBC__
 #include <signal.h>
@@ -7,11 +7,13 @@
 #include <unistd.h>
 #include <cstring>
 
+using namespace SignalSafe;
+
 // NOLINTNEXTLINE
 extern "C" char** environ;
 
 //
-char const* sigGetenv(char const* name) {
+char const* SignalSafe::getenv(char const* name) {
     const size_t len = strlen(name);
     for (char** var = environ; *var != nullptr; var++) {
         if (strncmp(*var, name, len) == 0 && (*var)[len] == '=') {
@@ -21,7 +23,7 @@ char const* sigGetenv(char const* name) {
     return nullptr;
 }
 
-char const* sigStrsignal(int sig) {
+char const* SignalSafe::strsignal(int sig) {
 #ifdef __GLIBC__
     return sigabbrev_np(sig);
 #elif defined(__DragonFly__) || defined(__FreeBSD__)

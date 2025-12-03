@@ -27,7 +27,7 @@
 #include <filesystem>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
-#include "debug/CrashReporter.hpp"
+#include "debug/crash/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
@@ -112,7 +112,7 @@ static void handleUnrecoverableSignal(int sig) {
     });
     alarm(15);
 
-    NCrashReporter::createAndSaveCrash(sig);
+    CrashReporter::createAndSaveCrash(sig);
 
     abort();
 }

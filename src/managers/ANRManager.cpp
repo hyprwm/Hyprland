@@ -188,7 +188,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
     const auto TITLE_STR            = appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName;
     const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", TITLE_STR}, {"class", CLASS_STR}});
 
-    PHLWINDOW  parentWindow;
+    PHLWINDOW  parentWindow = nullptr;
     for (const auto& w : g_pCompositor->m_windows) {
         if (!w->m_isMapped)
             continue;

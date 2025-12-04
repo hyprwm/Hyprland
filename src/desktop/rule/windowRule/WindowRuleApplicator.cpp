@@ -480,16 +480,15 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyStaticRule: invalid fullscreen state {}", effect); }
                 break;
             }
-            case WINDOW_RULE_EFFECT_MOVE: {
-                static_.position = effect;
+            case WINDOW_RULE_EFFECT_POSITION: {
+                // sanitize input for potential "center" option
+                std::string cpy = effect;
+                std::ranges::transform(cpy, cpy.begin(), ::tolower);
+                static_.position = cpy;
                 break;
             }
             case WINDOW_RULE_EFFECT_SIZE: {
                 static_.size = effect;
-                break;
-            }
-            case WINDOW_RULE_EFFECT_CENTER: {
-                static_.center = truthy(effect);
                 break;
             }
             case WINDOW_RULE_EFFECT_PSEUDO: {

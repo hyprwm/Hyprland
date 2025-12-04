@@ -74,11 +74,8 @@ flags:
 const std::string_view HYPRPAPER_HELP = R"#(usage: hyprctl [flags] hyprpaper <request>
 
 requests:
-    listactive      → Lists all active images
-    listloaded      → Lists all loaded images
-    preload <path>  → Preloads image
-    unload <path>   → Unloads image. Pass 'all' as path to unload all images
-    wallpaper       → Issue a wallpaper to call a config wallpaper dynamically
+    wallpaper       → Issue a wallpaper to call a config wallpaper dynamically.
+                      Arguments are [mon],[path],[fit_mode]. Fit mode is optional.
 
 flags:
     See 'hyprctl --help')#";

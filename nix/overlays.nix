@@ -28,6 +28,7 @@ in {
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
+    inputs.hyprwire.overlays.default
     self.overlays.udis86
 
     # Hyprland packages themselves

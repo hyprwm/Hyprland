@@ -75,6 +75,15 @@ runs:
         cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
         cmake --install build
 
+    - name: Get hyprwire-git
+      shell: bash
+      run: |
+        git clone https://github.com/hyprwm/hyprwire --recursive
+        cd hyprwire
+        cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
+        cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+        cmake --install build
+
     - name: Get hyprutils-git
       shell: bash
       run: |

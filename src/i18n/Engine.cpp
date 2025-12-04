@@ -466,6 +466,47 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM शेडर रीलोड विफल हुआ, rgba/rgbx पर वापस जा रहा है।");
     huEngine->registerEntry("hi_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "मॉनिटर {name}: वाइड कलर गैम सक्षम है लेकिन डिस्प्ले 10-बिट मोड में नहीं है।");
 
+    // id_ID (Indonesia)
+    huEngine->registerEntry("id_ID", TXT_KEY_ANR_TITLE, "Aplikasi Tidak Merespon");
+    huEngine->registerEntry("id_ID", TXT_KEY_ANR_CONTENT, "Aplikasi {title} - {class} tidak merespon.\nApa yang ingin Anda lakukan?");
+    huEngine->registerEntry("id_ID", TXT_KEY_ANR_OPTION_TERMINATE, "Hentikan");
+    huEngine->registerEntry("id_ID", TXT_KEY_ANR_OPTION_WAIT, "Tunggu");
+    huEngine->registerEntry("id_ID", TXT_KEY_ANR_PROP_UNKNOWN, "(tidak diketahui)");
+
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Aplikasi <b>{app}</b> meminta izin yang tidak dikenali.");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Aplikasi <b>{app}</b> mencoba merekam layar Anda.\n\nApakah Anda mengizinkannya?");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Aplikasi <b>{app}</b> mencoba memuat <i>plugin</i>: <b>{plugin}</b>.\n\nApakah Anda mengizinkannya?");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Keyboard baru terdeteksi: <b>{keyboard}</b>.\n\nApakah Anda mengizinkannya beroperasi?");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(tidak diketahui)");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_TITLE, "Permintaan Izin");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Petunjuk: Anda dapat mengatur <i>rule</i> ini secara permanen di <i>file</i> konfigurasi Hyprland.");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW, "Izinkan");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Izinkan dan Ingat");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_ALLOW_ONCE, "Izinkan Sekali");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_DENY, "Tolak");
+    huEngine->registerEntry("id_ID", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplikasi tidak dikenal (ID klien wayland {wayland_id})");
+
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Variabel <i>environment</i> XDG_CURRENT_DESKTOP Anda tampaknya dikelola secara eksternal, nilainya saat ini: {value}.\nHal ini dapat menyebabkan "
+                            "masalah, kecuali jika disengaja.");
+    huEngine->registerEntry(
+        "id_ID", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "hyprland-guiutils belum terpasang di Sistem Anda. Paket tersebut merupakan dependensi <i>runtime</i> untuk beberapa dialog. Mohon untuk menginstalnya.");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland gagal memuat {count} aset penting. Salahkan pengelola paket distro Anda karena pengemasannya buruk!";
+        return "Hyprland gagal memuat {count} aset penting. Salahkan pengelola paket distro Anda karena pengemasannya buruk!";
+    });
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Susunan monitor Anda tidak benar. Monitor {name} tertumpuk dengan monitor lain.\nSilakan lihat wiki (halaman <i>Monitors</i>) untuk "
+                            "detailnya. Hal ini <b>pasti</b> akan menimbulkan masalah.");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitor {name} gagal menerapkan mode yang diminta, kembali ke mode {mode}.");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Skala tidak valid diberikan ke monitor {name}: {scale}, skala yang disarankan: {fixed_scale}");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Gagal memuat plugin {name}: {error}");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Gagal memuat ulang shader CM, kembali ke rgba/rgbx.");
+    huEngine->registerEntry("id_ID", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: <i>wide color gamut</i> aktif tetapi layar tidak dalam mode 10-bit.");
+
     // hr_HR (Croatian)
     huEngine->registerEntry("hr_HR", TXT_KEY_ANR_TITLE, "Aplikacija ne reagira");
     huEngine->registerEntry("hr_HR", TXT_KEY_ANR_CONTENT, "Aplikacija {title} - {class} ne reagira.\nŠto želiš napraviti s njom?");

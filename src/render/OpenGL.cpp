@@ -2643,7 +2643,6 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, float a) {
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
-    RASSERT(m_renderData.currentWindow, "Tried to render shadow without a window!");
 
     if (m_renderData.damage.empty())
         return;

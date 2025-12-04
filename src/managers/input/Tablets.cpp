@@ -169,8 +169,6 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
-    m_lastInputPen = true;
-
     EMIT_HOOK_EVENT_CANCELLABLE("tabletTip", e);
 
     const auto PTAB  = e.tablet;
@@ -216,11 +214,11 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
     PTOOL->m_active = e.in;
 
     if (!e.in) {
-        m_lastInputPen = false;
+        m_lastInputTablet = false;
         if (PTOOL->getSurface())
             unfocusTool(PTOOL);
     } else {
-        m_lastInputPen = true;
+        m_lastInputTablet = true;
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL);
     }

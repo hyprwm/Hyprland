@@ -155,7 +155,7 @@ class CHyprRenderer {
 
     struct {
         bool hiddenOnTouch    = false;
-        bool hiddenOnPen      = false;
+        bool hiddenOnTablet      = false;
         bool hiddenOnTimeout  = false;
         bool hiddenOnKeyboard = false;
     } m_cursorHiddenConditions;

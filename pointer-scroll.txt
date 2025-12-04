@@ -1,0 +1,14 @@
+  > binding to global: wl_seat (version 9) with id 1
+  > binding to global: wl_compositor (version 6) with id 3
+  > binding to global: wl_shm (version 1) with id 5
+  > binding to global: xdg_wm_base (version 7) with id 37
+started
+Got pointer enter event, serial 807, x 240128, y 132608
+axis: ax 0 delta 10
+10.00
+axis: ax 0 delta 20
+20.00
+axis: ax 0 delta 30
+30.00
+axis: ax 0 delta 40
+40.00

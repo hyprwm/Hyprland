@@ -9,6 +9,7 @@
 #include "../../render/OpenGL.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../desktop/state/FocusState.hpp"
 
 CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst) :
     m_session(session), m_bufferSize(m_session->bufferSize()), m_overlayCursor(overlayCursor), m_isFirst(isFirst) {
@@ -272,7 +273,10 @@ void CScreenshareFrame::renderWindow() {
 
     auto pointerSurface = CWLSurface::fromResource(pointerSurfaceResource);
 
-    if (!pointerSurface || pointerSurface->getWindow() != m_session->m_window)
+    if (!pointerSurface || pointerSurface->getSurfaceBoxGlobal()->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
+        return;
+
+    if (Desktop::focusState()->window() != m_session->m_window)
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};

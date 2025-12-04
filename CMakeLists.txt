@@ -361,7 +361,7 @@ else()
   string(JOIN ", " PKGCONFIG_XWAYLAND_DEPENDENCIES ${XWAYLAND_DEPENDENCIES})
   string(PREPEND PKGCONFIG_XWAYLAND_DEPENDENCIES ", ")
 
-  target_link_libraries(hyprland_lib PkgConfig::xdeps)
+  target_link_libraries(hyprland_lib PUBLIC PkgConfig::xdeps)
 endif()
 
 configure_file(hyprland.pc.in hyprland.pc @ONLY)

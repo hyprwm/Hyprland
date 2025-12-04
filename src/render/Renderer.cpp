@@ -1527,7 +1527,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     const auto toNits  = [](uint32_t value) { return sc<uint16_t>(std::round(value)); };
     const auto to16Bit = [](float value) { return sc<uint16_t>(std::round(value * 50000)); };
 
-    auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
+    auto       colorimetry = settings.getPrimaries();
     auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
                                                                           SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)};
 

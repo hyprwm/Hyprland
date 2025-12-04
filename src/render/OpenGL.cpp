@@ -1574,9 +1574,7 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
 
     shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
 
-    const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
-                          getPrimaries(targetImageDescription.primariesNamed) :
-                          targetImageDescription.primaries;
+    const auto                   targetPrimaries = targetImageDescription.getPrimaries();
 
     const std::array<GLfloat, 8> glTargetPrimaries = {
         targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,

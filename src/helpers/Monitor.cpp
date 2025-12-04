@@ -507,7 +507,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
             break;
         case NCMType::CM_EDID:
             m_imageDescription = {.transferFunction = chosenSdrEotf,
-                                  .primariesNameSet = true,
+                                  .primariesNameSet = false,
                                   .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                                   .primaries        = {
                                              .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},

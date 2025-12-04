@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../defines.hpp"
-
-namespace NCrashReporter {
+namespace CrashReporter {
     void createAndSaveCrash(int sig);
 };

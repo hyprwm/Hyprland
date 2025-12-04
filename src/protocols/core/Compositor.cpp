@@ -557,6 +557,10 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
+    static const auto PFORCE_HDR = CConfigValue<Hyprlang::INT>("quirks:prefer_hdr");
+    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && m_hlSurface->getWindow() && m_hlSurface->getWindow()->m_class == "gamescope"))
+        return g_pCompositor->getHDRImageDescription();
+
     auto parent = m_self;
     if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
         auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();

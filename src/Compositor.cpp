@@ -27,7 +27,7 @@
 #include <filesystem>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
-#include "debug/CrashReporter.hpp"
+#include "debug/crash/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
@@ -60,6 +60,7 @@
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/LayoutManager.hpp"
+#include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
 #include "hyprerror/HyprError.hpp"
@@ -112,7 +113,7 @@ static void handleUnrecoverableSignal(int sig) {
     });
     alarm(15);
 
-    NCrashReporter::createAndSaveCrash(sig);
+    CrashReporter::createAndSaveCrash(sig);
 
     abort();
 }
@@ -603,6 +604,7 @@ void CCompositor::cleanup() {
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
+    g_pWelcomeManager.reset();
     g_pANRManager.reset();
     g_pConfigWatcher.reset();
     g_pAsyncResourceGatherer.reset();
@@ -707,6 +709,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the DonationNag!");
             g_pDonationNagManager = makeUnique<CDonationNagManager>();
+
+            Debug::log(LOG, "Creating the WelcomeManager!");
+            g_pWelcomeManager = makeUnique<CWelcomeManager>();
 
             Debug::log(LOG, "Creating the ANRManager!");
             g_pANRManager = makeUnique<CANRManager>();
@@ -2892,6 +2897,27 @@ SImageDescription CCompositor::getPreferredImageDescription() {
     Debug::log(WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
     // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
     return m_monitors.size() == 1 ? m_monitors[0]->m_imageDescription : SImageDescription{.primaries = NColorPrimaries::BT709};
+}
+
+SImageDescription CCompositor::getHDRImageDescription() {
+    if (!PROTO::colorManagement) {
+        Debug::log(ERR, "FIXME: color management protocol is not enabled, returning empty image description");
+        return SImageDescription{};
+    }
+
+    return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?
+        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                          .primariesNameSet = true,
+                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                          .luminances       = {.min       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
+                                               .max       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
+                                               .reference = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}} :
+        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                          .primariesNameSet = true,
+                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                          .luminances       = {.min = 0, .max = 10000, .reference = 203}};
 }
 
 bool CCompositor::shouldChangePreferredImageDescription() {

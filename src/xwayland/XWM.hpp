@@ -55,6 +55,8 @@ struct SXSelection {
     int              onRead(int fd, uint32_t mask);
     int              onWrite();
 
+    void             removeTransfer(xcb_window_t& window);
+
     struct {
         CHyprSignalListener setSelection;
         CHyprSignalListener keyboardFocusChange;

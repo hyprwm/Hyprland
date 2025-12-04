@@ -17,7 +17,6 @@ set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
 set(BINDIR ${CMAKE_INSTALL_BINDIR})
-configure_file(hyprland.pc.in hyprland.pc @ONLY)
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
@@ -117,11 +116,17 @@ find_package(Threads REQUIRED)
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
-pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.9.3)
-pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
-pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
-pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.10.2)
-pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=0.1.6)
+set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
+set(HYPERLANG_MINIMUM_VERSION 0.3.2)
+set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
+set(HYPRUTILS_MINIMUM_VERSION 0.10.2)
+set(HYPRGRAPHICS_MINIMUM_VERSION 0.1.6)
+
+pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
+pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPERLANG_MINIMUM_VERSION})
+pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=${HYPRCURSOR_MINIMUM_VERSION})
+pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=${HYPRUTILS_MINIMUM_VERSION})
+pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=${HYPRGRAPHICS_MINIMUM_VERSION})
 
 string(REPLACE "." ";" AQ_VERSION_LIST ${aquamarine_dep_VERSION})
 list(GET AQ_VERSION_LIST 0 AQ_VERSION_MAJOR)
@@ -228,21 +233,26 @@ configure_file(
 
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERATED TRUE)
 
+set(XKBCOMMMON_MINIMUM_VERSION 1.11.0)
+set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.90)
+set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
+set(LIBINPUT_MINIMUM_VERSION 1.28)
+
 pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  xkbcommon>=1.11.0
+  xkbcommon>=${XKBCOMMMON_MINIMUM_VERSION}
   uuid
-  wayland-server>=1.22.90
-  wayland-protocols>=1.45
+  wayland-server>=${WAYLAND_SERVER_MINIMUM_VERSION}
+  wayland-protocols>=${WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION}
   cairo
   pango
   pangocairo
   pixman-1
   xcursor
   libdrm
-  libinput>=1.28
+  libinput>=${LIBINPUT_MINIMUM_VERSION}
   gbm
   gio-2.0
   re2
@@ -324,10 +334,7 @@ if(NO_XWAYLAND)
   add_compile_definitions(NO_XWAYLAND)
 else()
   message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-  pkg_check_modules(
-    xdeps
-    REQUIRED
-    IMPORTED_TARGET
+  set(XWAYLAND_DEPENDENCIES
     xcb
     xcb-render
     xcb-xfixes
@@ -335,8 +342,20 @@ else()
     xcb-composite
     xcb-res
     xcb-errors)
+
+  pkg_check_modules(
+    xdeps
+    REQUIRED
+    IMPORTED_TARGET
+    ${XWAYLAND_DEPENDENCIES})
+
+  string(JOIN ", " PKGCONFIG_XWAYLAND_DEPENDENCIES ${XWAYLAND_DEPENDENCIES})
+  string(PREPEND PKGCONFIG_XWAYLAND_DEPENDENCIES ", ")
+
   target_link_libraries(Hyprland PkgConfig::xdeps)
 endif()
+
+configure_file(hyprland.pc.in hyprland.pc @ONLY)
 
 if(NO_SYSTEMD)
   message(STATUS "SYSTEMD support is disabled...")

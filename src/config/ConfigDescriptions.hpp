@@ -1653,6 +1653,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "cursor:zoom_detached_camera",
+        .description = "Detaches the camera from the mouse when zoomed in, only ever moving to keep the mouse in view",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:enable_hyprcursor",
         .description = "whether to enable hyprcursor support",
         .type        = CONFIG_OPTION_BOOL,

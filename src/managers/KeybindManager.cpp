@@ -1395,10 +1395,9 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
         return {.success = false, .error = "Not moving to workspace because it didn't change."};
     }
 
-    auto        pWorkspace            = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-    PHLMONITOR  pMonitor              = nullptr;
-    const auto  POLDWS                = PWINDOW->m_workspace;
-    static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    auto       pWorkspace = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    PHLMONITOR pMonitor   = nullptr;
+    const auto POLDWS     = PWINDOW->m_workspace;
 
     updateRelativeCursorCoords();
 
@@ -1423,8 +1422,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
     else if (POLDWS->m_isSpecialWorkspace)
         POLDWS->m_monitor.lock()->setSpecialWorkspace(nullptr);
 
-    if (*PALLOWWORKSPACECYCLES)
-        pWorkspace->rememberPrevWorkspace(POLDWS);
+    pWorkspace->rememberPrevWorkspace(POLDWS);
 
     pMonitor->changeWorkspace(pWorkspace);
 

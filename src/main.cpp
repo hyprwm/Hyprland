@@ -25,7 +25,7 @@ using namespace Hyprutils::Memory;
 
 static void help() {
     std::println("usage: Hyprland [arg [...]].\n");
-    std::println(R"(Arguments:
+    std::println(R"#(Arguments:
     --help              -h       - Show this message again
     --config FILE       -c FILE  - Specify config file to use
     --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)
@@ -33,7 +33,8 @@ static void help() {
     --systeminfo                 - Prints system infos
     --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
     --verify-config              - Do not run Hyprland, only print if the config has any errors
-    --version           -v       - Print this binary's version)");
+    --version           -v       - Print this binary's version
+    --version-json               - Print this binary's version as json)#");
 }
 
 static void reapZombieChildrenAutomatically() {
@@ -141,6 +142,9 @@ int main(int argc, char** argv) {
                 return 0;
             } else if (value == "-v" || value == "--version") {
                 std::println("{}", versionRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));
+                return 0;
+            } else if (value == "--version-json") {
+                std::println("{}", versionRequest(eHyprCtlOutputFormat::FORMAT_JSON, ""));
                 return 0;
             } else if (value == "--systeminfo") {
                 std::println("{}", systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));

@@ -74,7 +74,7 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
     const auto&       PATH_RAW = args[1];
     const auto&       FIT      = args[2];
 
-    if (PATH_RAW.empty() || MONITOR.empty())
+    if (PATH_RAW.empty())
         return std::unexpected("not enough args");
 
     const auto RTDIR = getenv("XDG_RUNTIME_DIR");

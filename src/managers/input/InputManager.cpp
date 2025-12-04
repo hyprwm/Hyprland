@@ -147,7 +147,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     m_lastCursorMovement.reset();
 
-    m_lastInputTouch = false;
+    m_lastInputTouch  = false;
+    m_lastInputTablet = false;
 
     if (e.mouse)
         m_lastMousePos = getMouseCoordsInternal();
@@ -160,7 +161,8 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
 
     m_lastCursorMovement.reset();
 
-    m_lastInputTouch = false;
+    m_lastInputTouch  = false;
+    m_lastInputTablet = false;
 }
 
 void CInputManager::simulateMouseMovement() {

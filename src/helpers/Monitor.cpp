@@ -476,7 +476,7 @@ void CMonitor::onDisconnect(bool destroy) {
 void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     auto        oldImageDescription = m_imageDescription;
     static auto PSDREOTF            = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
-    auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
+    auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
                                                        (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 
     switch (cmType) {

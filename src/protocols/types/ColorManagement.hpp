@@ -145,7 +145,7 @@ namespace NColorManagement {
 
         bool              windowsScRGB = false;
 
-        eTransferFunction transferFunction      = CM_TRANSFER_FUNCTION_SRGB;
+        eTransferFunction transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
         float             transferFunctionPower = 1.0f;
 
         bool              primariesNameSet = false;

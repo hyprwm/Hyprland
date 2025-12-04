@@ -1515,6 +1515,7 @@ static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_m
 static hdr_output_metadata       createHDRMetadata(SImageDescription settings, SP<CMonitor> monitor) {
     uint8_t eotf = 0;
     switch (settings.transferFunction) {
+        case CM_TRANSFER_FUNCTION_GAMMA22:
         case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
         case CM_TRANSFER_FUNCTION_ST2084_PQ: eotf = 2; break;
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:

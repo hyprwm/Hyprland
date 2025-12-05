@@ -376,10 +376,10 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("fi_FI", TXT_KEY_ANR_OPTION_WAIT, "Odota");
     huEngine->registerEntry("fi_FI", TXT_KEY_ANR_PROP_UNKNOWN, "(tuntematon)");
 
-    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Sovellus <b>{app}<b> pyytää tuntematonta käyttöoikeutta.");
-    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Sovellus <b>{app}<b> yrittää nauhoittaa näyttöäsi.\n\nHaluatko sallia nauhoituksen?");
-    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Sovellus <b>{app}<b> yrittää ladata laajennusta: <b>{plugin}<p>.\n\nHaluatko sallia latauksen?");
-    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Uusi näppäimistö havaittu: <b>{keyboard}<b>.\n\nHaluatko sallia sen toiminnan?");
+    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Sovellus <b>{app}</b> pyytää tuntematonta käyttöoikeutta.");
+    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Sovellus <b>{app}</b> yrittää nauhoittaa näyttöäsi.\n\nHaluatko sallia nauhoituksen?");
+    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Sovellus <b>{app}</b> yrittää ladata laajennusta: <b>{plugin}</b>.\n\nHaluatko sallia latauksen?");
+    huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Uusi näppäimistö havaittu: <b>{keyboard}</b>.\n\nHaluatko sallia sen toiminnan?");
     huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(tuntematon)");
     huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_TITLE, "Käyttöoikeuspyyntö");
     huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Vihje: voit asettaa nämä säännöt pysyvästi Hyprland konfiguraatio tiedostossa.");
@@ -389,20 +389,20 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_DENY, "Kiellä");
     huEngine->registerEntry("fi_FI", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Tuntematon sovellus (wayland client ID {wayland_id})");
 
-    huEngine->registerEntry(
-        "fi_FI", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "XDG_CURRENT_DESKTOP ympäristösi näyttäisi olevan ulkoisesti hallittu, ja sen nykyinen arvo on {value}.\nTämä voi aiheuttaa ongelmia, ellei se ole tarkoituksellista.");
+    huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "XDG_CURRENT_DESKTOP ympäristösi näyttäisi olevan ulkoisesti hallittu, ja sen nykyinen arvo on {value}.\nTämä voi aiheuttaa ongelmia, jos sitä ei ole "
+                            "tehty tarkoituksella.");
     huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Paketti hyprland-guiutils ei ole asennettuna järjestelmääsi. Jotkin dialogit tarvitsevat sitä. Harkitse sen asentamista.");
     huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland epäonnistui olennaisen resurssin ({count}) latauksessa. Syytä distrosi pakkajaa huonosta pakkauksesta!";
-        return "Hyprland epäonnistui olennaisten resurssien ({count}) latauksessa. Syytä distrosi pakkajaa huonosta pakkauksesta!";
+            return "Hyprland epäonnistui olennaisen resurssin ({count}) latauksessa. Tämä johtuu todennäköisesti jakelusi virheellisestä pakkauksesta.";
+        return "Hyprland epäonnistui olennaisten resurssien ({count}) latauksessa. Tämä johtuu todennäköisesti jakelusi virheellisestä pakkauksesta.";
     });
     huEngine->registerEntry(
         "fi_FI", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "Näyttöjesi asettelu on virheellinen. Näyttö {name} on muiden näyttöjen päällä.\nLisätietoja löydät wikistä (Monitors sivu). Tämä <b>tulee aiheuttamaan<b> ongelmia.");
+        "Näyttöjesi asettelu on virheellinen. Näyttö {name} on muiden näyttöjen päällä.\nLisätietoja löydät wikistä (Monitors sivu). Tämä <b>tulee aiheuttamaan</b> ongelmia.");
     huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Näyttö {name} epäonnistui pyydetyn tilan asettamisessa, palataan tilaan {mode}.");
     huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Näytölle {name} asetettu skaalaus: {scale} on virheellinen, asetetaan suositeltu skaalaus: {fixed_scale}.");
     huEngine->registerEntry("fi_FI", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Laajennuksen {name} lataus epäonnistui: {error}");

@@ -93,6 +93,7 @@ in
             ../LICENSE
             ../protocols
             ../src
+            ../start
             ../systemd
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)

@@ -4,5 +4,5 @@ Name: Hyprland
 URL: https://github.com/hyprwm/Hyprland
 Description: Hyprland header files
 Version: @HYPRLAND_VERSION@
-Requires: aquamarine >= @AQUAMARINE_MINIMUM_VERSION@, hyprcursor >= @HYPRCURSOR_MINIMUM_VERSION@, hyprgraphics >= @HYPRGRAPHICS_MINIMUM_VERSION@, hyprlang >= @HYPERLANG_MINIMUM_VERSION@, hyprutils >= @HYPRUTILS_MINIMUM_VERSION@, libdrm, egl, cairo, xkbcommon >= @XKBCOMMMON_MINIMUM_VERSION@, libinput >= @LIBINPUT_MINIMUM_VERSION@, wayland-server >= @WAYLAND_SERVER_MINIMUM_VERSION@@PKGCONFIG_XWAYLAND_DEPENDENCIES@
+Requires: aquamarine >= @AQUAMARINE_MINIMUM_VERSION@, hyprcursor >= @HYPRCURSOR_MINIMUM_VERSION@, hyprgraphics >= @HYPRGRAPHICS_MINIMUM_VERSION@, hyprlang >= @HYPRLANG_MINIMUM_VERSION@, hyprutils >= @HYPRUTILS_MINIMUM_VERSION@, libdrm, egl, cairo, xkbcommon >= @XKBCOMMMON_MINIMUM_VERSION@, libinput >= @LIBINPUT_MINIMUM_VERSION@, wayland-server >= @WAYLAND_SERVER_MINIMUM_VERSION@@PKGCONFIG_XWAYLAND_DEPENDENCIES@
 Cflags: -I${prefix} -I${prefix}/hyprland/protocols -I${prefix}/hyprland

@@ -68,7 +68,8 @@ int main(int argc, char** argv) {
     std::string configPath;
     std::string socketName;
     int         socketFd   = -1;
-    bool        ignoreSudo = false, verifyConfig = false;
+    bool        ignoreSudo = false, verifyConfig = false, safeMode = false;
+    int         watchdogFd = -1;
 
     if (argc > 1) {
         std::span<char*> args{argv + 1, sc<std::size_t>(argc - 1)};
@@ -152,6 +153,23 @@ int main(int argc, char** argv) {
             } else if (value == "--verify-config") {
                 verifyConfig = true;
                 continue;
+            } else if (value == "--safe-mode") {
+                safeMode = true;
+                continue;
+            } else if (value == "--watchdog-fd") {
+                if (std::next(it) == args.end()) {
+                    help();
+                    return 1;
+                }
+
+                try {
+                    watchdogFd = std::stoi(*std::next(it));
+                    it++;
+                } catch (...) {
+                    std::println(stderr, "[ ERROR ] Invalid fd for watchdog fd");
+                    help();
+                    return 1;
+                }
             } else {
                 std::println(stderr, "[ ERROR ] Unknown option '{}' !", value);
                 help();
@@ -193,6 +211,10 @@ int main(int argc, char** argv) {
 
     reapZombieChildrenAutomatically();
 
+    if (watchdogFd > 0)
+        g_pCompositor->setWatchdogFd(watchdogFd);
+    if (safeMode)
+        g_pCompositor->m_safeMode = true;
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)

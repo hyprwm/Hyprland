@@ -99,6 +99,18 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Failed to load plugin {name}: {error}");
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload failed, falling back to rgba/rgbx.");
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is enabled but the display is not in 10-bit mode.");
+    huEngine->registerEntry("en_US", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland was started without start-hyprland. This is highly not recommended unless you are in a debugging environment.");
+
+    huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_TITLE, "Safe Mode");
+    huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland has been launched in safe mode, which means your last session crashed.\nSafe mode prevents your config from being loaded. You can "
+                            "troubleshoot in this environment, or load your config with the button below.\nDefault keybinds apply: SUPER+Q for kitty, SUPER+R for a basic runner, "
+                            "SUPER+M to exit.\nRestarting "
+                            "Hyprland will launch in normal mode again.");
+    huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Load config");
+    huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Open crash report directory");
+    huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, close this");
 
     // as_IN (Assamese)
     huEngine->registerEntry("as_IN", TXT_KEY_ANR_TITLE, "এপ্লিকেচনে উত্তৰ দিয়া নাই");
@@ -619,6 +631,17 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "プラグイン{name}のロード失敗: {error}");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CMシェーダーのリロード失敗、rgba/rgbxを使いました。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "画面{name}：広い色域は設定していますけど、画面は10ビットモードに設定されていません。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprlandはstart-hyprlandなしで実行されました。これはデバグ環境以外でおすすめしません。");
+
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "安全モード");
+    huEngine->registerEntry(
+        "ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprlandは安全モードに実行しました。これは、Hyprlandはクラッシュしましたから。\n安全モードはコンフィグをロードしなくて、問題を修正できる環境です。下のボタンでコンフィグを"
+        "ロードできます。\nデフォルトなキーバインドがあります。SUPER+Qはkitty、SUPER+Rは簡素なランチャー、SUPER+"
+        "MはHyprlandから退出。\nHyprlandを再び実行すれば、普通モードで実行します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "コンフィグをロード");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダーを開く");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "分かりました、このウィンドウをクローズ");
 
     // lv_LV (Latvian)
     huEngine->registerEntry("lv_LV", TXT_KEY_ANR_TITLE, "Lietotne nereaģē");
@@ -903,6 +926,18 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nie udało się załadować plugin'a {name}: {error}");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
+    huEngine->registerEntry("pl_PL", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland został uruchomiony bez start-hyprland. Nie jest to zalecane, chyba, że jest to środowisko do debugowania.");
+
+    huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_TITLE, "Tryb Bezpieczny");
+    huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland został uruchomiony w trybie bezpiecznym, co oznacza, że twoja ostatnia sesja uległa awarii.\nTryb bezpieczny zapobiega ładowaniu twojej "
+                            "konfiguracji. Możesz próbować rozwiązać"
+                            "problem w tym środowisku, lub załadować swoją konfigurację przyciskiem poniżej.\nDomyślne skróty klawiszowe są dostępne: SUPER+Q uruchamia kitty, "
+                            "SUPER+R otwiera podstawowy launcher, SUPER+M zamyka Hyprland.\nUruchomienie ponowne Hyprland'a uruchomi go w trybie normalnym.");
+    huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Załaduj konfigurację");
+    huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Otwórz folder z raportami awarii");
+    huEngine->registerEntry("pl_PL", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, zamknij to okno");
 
     // pt_PT (Portuguese Portugal)
     huEngine->registerEntry("pt_PT", TXT_KEY_ANR_TITLE, "A aplicação não está a responder");

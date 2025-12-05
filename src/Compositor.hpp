@@ -40,6 +40,7 @@ class CCompositor {
     } m_drmRenderNode;
 
     bool                                         m_initialized = false;
+    bool                                         m_safeMode    = false;
     SP<Aquamarine::CBackend>                     m_aqBackend;
 
     std::string                                  m_hyprTempDataRoot = "";
@@ -65,6 +66,7 @@ class CCompositor {
     void                                         cleanup();
     void                                         bumpNofile();
     void                                         restoreNofile();
+    void                                         setWatchdogFd(int fd);
 
     bool                                         m_readyToProcess = false;
     bool                                         m_sessionActive  = true;
@@ -167,21 +169,23 @@ class CCompositor {
     std::string                         m_explicitConfigPath;
 
   private:
-    void                         initAllSignals();
-    void                         removeAllSignals();
-    void                         cleanEnvironment();
-    void                         setRandomSplash();
-    void                         initManagers(eManagersInitStage stage);
-    void                         prepareFallbackOutput();
-    void                         createLockFile();
-    void                         removeLockFile();
-    void                         setMallocThreshold();
+    void                           initAllSignals();
+    void                           removeAllSignals();
+    void                           cleanEnvironment();
+    void                           setRandomSplash();
+    void                           initManagers(eManagersInitStage stage);
+    void                           prepareFallbackOutput();
+    void                           createLockFile();
+    void                           removeLockFile();
+    void                           setMallocThreshold();
+    void                           openSafeModeBox();
 
-    uint64_t                     m_hyprlandPID    = 0;
-    wl_event_source*             m_critSigSource  = nullptr;
-    rlimit                       m_originalNofile = {};
+    uint64_t                       m_hyprlandPID    = 0;
+    wl_event_source*               m_critSigSource  = nullptr;
+    rlimit                         m_originalNofile = {};
+    Hyprutils::OS::CFileDescriptor m_watchdogWriteFd;
 
-    std::vector<PHLWORKSPACEREF> m_workspaces;
+    std::vector<PHLWORKSPACEREF>   m_workspaces;
 };
 
 inline UP<CCompositor> g_pCompositor;

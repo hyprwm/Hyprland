@@ -292,7 +292,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         pSwitchedTo = PWORKSPACER;
     }
-    m_workspaceBegin->rememberPrevWorkspace(pSwitchedTo);
+    pSwitchedTo->rememberPrevWorkspace(m_workspaceBegin);
 
     g_pHyprRenderer->damageMonitor(m_monitor.lock());
 

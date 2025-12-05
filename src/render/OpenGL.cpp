@@ -850,18 +850,18 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     pushMonitorTransformEnabled(false);
 }
 
-void zoomWithDetachedCameraInstead(CBox *outputBox, const SCurrentRenderData &m_renderData) {
+void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_renderData) {
     auto m = m_renderData.pMonitor;
     if (m->m_zoomAnimProgress->isBeingAnimated()) // ignore initial hyprland zoom
         return;
-    auto monbox = CBox(0, 0, m->m_size.x, m->m_size.y);
-    auto zoom = m_renderData.mouseZoomFactor;
-    auto cameraW = monbox.w / zoom;
-    auto cameraH = monbox.h / zoom;
-    static auto camerabox = CBox(0, 0, cameraW, cameraH);
+    auto        monbox             = CBox(0, 0, m->m_size.x, m->m_size.y);
+    auto        zoom               = m_renderData.mouseZoomFactor;
+    auto        cameraW            = monbox.w / zoom;
+    auto        cameraH            = monbox.h / zoom;
+    static auto camerabox          = CBox(0, 0, cameraW, cameraH);
     static auto previousZoomChange = zoom;
 
-    auto mouse = g_pInputManager->getMouseCoordsInternal();
+    auto        mouse = g_pInputManager->getMouseCoordsInternal();
     mouse.x -= m->m_position.x;
     mouse.y -= m->m_position.y;
 
@@ -878,7 +878,7 @@ void zoomWithDetachedCameraInstead(CBox *outputBox, const SCurrentRenderData &m_
         const float newX = mouseWorldX - mx * cameraW;
         const float newY = mouseWorldY - my * cameraH;
 
-        camerabox = CBox(newX, newY, cameraW, cameraH);
+        camerabox          = CBox(newX, newY, cameraW, cameraH);
         previousZoomChange = zoom;
     }
 
@@ -903,8 +903,8 @@ void zoomWithDetachedCameraInstead(CBox *outputBox, const SCurrentRenderData &m_
 }
 
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMRIGID     = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
-    static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
+    static auto PZOOMRIGID          = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
+    static auto PZOOMDISABLEAA      = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
     static auto PZOOMDETACHEDCAMERA = CConfigValue<Hyprlang::INT>("cursor:zoom_detached_camera");
 
     TRACY_GPU_ZONE("RenderEnd");

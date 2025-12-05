@@ -611,14 +611,13 @@ void CWindow::onMap() {
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    if (PAV->getStyle() != "loop" || !PAV->enabled())
+    if (pav->getStyle() != "loop" || !pav->enabled())
         return;
 
-    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(PAV.get());
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
 
     PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
 

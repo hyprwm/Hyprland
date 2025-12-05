@@ -2629,16 +2629,15 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
     if (arg.find_first_of(' ') != std::string::npos)
         port = arg.substr(arg.find_first_of(' ') + 1);
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : g_pCompositor->m_realMonitors) {
+        if (!m->m_enabled)
+            continue;
 
         if (!port.empty() && m->m_name != port)
             continue;
 
         if (isToggle)
             enable = !m->m_dpmsStatus;
-
-        for (const auto& mirror : m->m_mirrors)
-            mirror->setDPMS(enable);
 
         m->setDPMS(enable);
     }

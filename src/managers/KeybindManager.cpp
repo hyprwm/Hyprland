@@ -2637,6 +2637,9 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
         if (isToggle)
             enable = !m->m_dpmsStatus;
 
+        for (const auto& mirror : m->m_mirrors)
+            mirror->setDPMS(enable);
+
         m->setDPMS(enable);
     }
 

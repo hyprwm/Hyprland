@@ -225,7 +225,7 @@ static SDispatchResult scroll(std::string in) {
 }
 
 static SDispatchResult keybind(std::string in) {
-    CVarList data(in);
+    CVarList2 data(std::move(in));
     // 0 = release, 1 = press
     bool press;
     // See src/devices/IKeyboard.hpp : eKeyboardModifiers for modifier bitmasks
@@ -234,9 +234,9 @@ static SDispatchResult keybind(std::string in) {
     // keycode
     uint32_t key;
     try {
-        press    = std::stoul(data[0]) == 1;
-        modifier = std::stoul(data[1]);
-        key      = std::stoul(data[2]) - 8; // xkb offset
+        press    = std::stoul(std::string{data[0]}) == 1;
+        modifier = std::stoul(std::string{data[1]});
+        key      = std::stoul(std::string{data[2]}) - 8; // xkb offset
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
     uint32_t modifierMask = 0;

@@ -603,7 +603,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
         RULE->sdrBrightness == m_sdrBrightness && RULE->sdrMinLuminance == m_minLuminance && RULE->sdrMaxLuminance == m_maxLuminance &&
         RULE->supportsWideColor == m_supportsWideColor && RULE->supportsHDR == m_supportsHDR && RULE->minLuminance == m_minLuminance && RULE->maxLuminance == m_maxLuminance &&
-        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
+        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode)) && m_reservedArea == RULE->reservedArea) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", m_name);
 
@@ -614,17 +614,18 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     bool autoScale = false;
 
-    if (RULE->scale > 0.1) {
+    if (RULE->scale > 0.1)
         m_scale = RULE->scale;
-    } else {
+    else {
         autoScale               = true;
         const auto DEFAULTSCALE = getDefaultScale();
         m_scale                 = DEFAULTSCALE;
     }
 
-    m_setScale  = m_scale;
-    m_transform = RULE->transform;
-    m_autoDir   = RULE->autoDir;
+    m_setScale     = m_scale;
+    m_transform    = RULE->transform;
+    m_autoDir      = RULE->autoDir;
+    m_reservedArea = RULE->reservedArea;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
@@ -1517,8 +1518,8 @@ CBox CMonitor::logicalBox() {
     return {m_position, m_size};
 }
 
-CBox CMonitor::logicalBoxMinusExtents() {
-    return {m_position + m_reservedTopLeft, m_size - m_reservedTopLeft - m_reservedBottomRight};
+CBox CMonitor::logicalBoxMinusReserved() {
+    return m_reservedArea.apply(logicalBox());
 }
 
 void CMonitor::scheduleDone() {

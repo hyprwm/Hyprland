@@ -229,19 +229,19 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};
     }
 
-    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, PMONITOR->m_reservedTopLeft.y, 1)) {
+    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, PMONITOR->m_reservedArea.top(), 1)) {
         POS.y = PMONITOR->m_position.y;
-        SIZE.y += PMONITOR->m_reservedTopLeft.y;
+        SIZE.y += PMONITOR->m_reservedArea.top();
     }
-    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, PMONITOR->m_reservedTopLeft.x, 1)) {
+    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, PMONITOR->m_reservedArea.left(), 1)) {
         POS.x = PMONITOR->m_position.x;
-        SIZE.x += PMONITOR->m_reservedTopLeft.x;
+        SIZE.x += PMONITOR->m_reservedArea.left();
     }
-    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x, 1)) {
-        SIZE.x += PMONITOR->m_reservedBottomRight.x;
+    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - PMONITOR->m_reservedArea.right(), 1)) {
+        SIZE.x += PMONITOR->m_reservedArea.right();
     }
-    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y, 1)) {
-        SIZE.y += PMONITOR->m_reservedBottomRight.y;
+    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - PMONITOR->m_reservedArea.bottom(), 1)) {
+        SIZE.y += PMONITOR->m_reservedArea.bottom();
     }
 
     return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};

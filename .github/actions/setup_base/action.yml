@@ -24,6 +24,7 @@ runs:
           glm \
           glslang \
           go \
+          gtest \
           hyprlang \
           hyprcursor \
           jq \

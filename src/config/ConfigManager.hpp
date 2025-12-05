@@ -18,6 +18,7 @@
 #include "../SharedDefs.hpp"
 #include "../helpers/Color.hpp"
 #include "../desktop/DesktopTypes.hpp"
+#include "../desktop/reserved/ReservedArea.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../managers/KeybindManager.hpp"
@@ -46,13 +47,6 @@ struct SWorkspaceRule {
     std::optional<std::string>         onCreatedEmptyRunCmd;
     std::optional<std::string>         defaultName;
     std::map<std::string, std::string> layoutopts;
-};
-
-struct SMonitorAdditionalReservedArea {
-    int top    = 0;
-    int bottom = 0;
-    int left   = 0;
-    int right  = 0;
 };
 
 struct SPluginKeyword {
@@ -185,7 +179,7 @@ class CMonitorRuleParser {
 
     void                       setDisabled();
     void                       setMirror(const std::string& value);
-    bool                       setReserved(const SMonitorAdditionalReservedArea& value);
+    bool                       setReserved(const Desktop::CReservedArea& value);
 
   private:
     SMonitorRule m_rule;
@@ -196,36 +190,34 @@ class CConfigManager {
   public:
     CConfigManager();
 
-    void                                                            init();
-    void                                                            reload();
-    std::string                                                     verify();
+    void                                         init();
+    void                                         reload();
+    std::string                                  verify();
 
-    int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
-    float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
-    Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
-    std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
-    bool                                                            deviceConfigExplicitlySet(const std::string&, const std::string&);
-    bool                                                            deviceConfigExists(const std::string&);
-    Hyprlang::CConfigValue*                                         getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
+    int                                          getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
+    float                                        getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
+    Vector2D                                     getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
+    std::string                                  getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
+    bool                                         deviceConfigExplicitlySet(const std::string&, const std::string&);
+    bool                                         deviceConfigExists(const std::string&);
+    Hyprlang::CConfigValue*                      getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
 
-    void* const*                                                    getConfigValuePtr(const std::string&);
-    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    std::string                                                     getMainConfigPath();
-    std::string                                                     getConfigString();
+    void* const*                                 getConfigValuePtr(const std::string&);
+    Hyprlang::CConfigValue*                      getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
+    std::string                                  getMainConfigPath();
+    std::string                                  getConfigString();
 
-    SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
-    SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
-    std::string                                                     getDefaultWorkspaceFor(const std::string&);
+    SMonitorRule                                 getMonitorRuleFor(const PHLMONITOR);
+    SWorkspaceRule                               getWorkspaceRuleFor(PHLWORKSPACE workspace);
+    std::string                                  getDefaultWorkspaceFor(const std::string&);
 
-    PHLMONITOR                                                      getBoundMonitorForWS(const std::string&);
-    std::string                                                     getBoundMonitorStringForWS(const std::string&);
-    const std::vector<SWorkspaceRule>&                              getAllWorkspaceRules();
+    PHLMONITOR                                   getBoundMonitorForWS(const std::string&);
+    std::string                                  getBoundMonitorStringForWS(const std::string&);
+    const std::vector<SWorkspaceRule>&           getAllWorkspaceRules();
 
-    void                                                            ensurePersistentWorkspacesPresent();
+    void                                         ensurePersistentWorkspacesPresent();
 
-    const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
-
-    std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
+    const std::vector<SConfigOptionDescription>& getAllDescriptions();
 
     const std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>>& getAnimationConfig();
 

@@ -1095,7 +1095,6 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     g_pTrackpadGestures->clearGestures();
 
-    m_mAdditionalReservedAreas.clear();
     m_workspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
     m_declaredPlugins.clear();
@@ -1139,7 +1138,8 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     if (VAL && VAL->m_bSetByUser) {
         const auto ARGS = CVarList(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
         try {
-            parser.setReserved({.top = std::stoi(ARGS[0]), .bottom = std::stoi(ARGS[1]), .left = std::stoi(ARGS[2]), .right = std::stoi(ARGS[3])});
+            // top, right, bottom, left
+            parser.setReserved({std::stoi(ARGS[0]), std::stoi(ARGS[3]), std::stoi(ARGS[1]), std::stoi(ARGS[2])});
         } catch (...) { return "parse error: invalid reserved area"; }
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "mirror", output.c_str());
@@ -2193,8 +2193,8 @@ void CMonitorRuleParser::setMirror(const std::string& value) {
     m_rule.mirrorOf = value;
 }
 
-bool CMonitorRuleParser::setReserved(const SMonitorAdditionalReservedArea& value) {
-    g_pConfigManager->m_mAdditionalReservedAreas[name()] = value;
+bool CMonitorRuleParser::setReserved(const Desktop::CReservedArea& value) {
+    m_rule.reservedArea = value;
     return true;
 }
 
@@ -2223,13 +2223,22 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
             return {};
         } else if (ARGS[1] == "addreserved") {
+            std::optional<Desktop::CReservedArea> area;
             try {
-                parser.setReserved({.top    = std::stoi(std::string(ARGS[2])),
-                                    .bottom = std::stoi(std::string(ARGS[3])),
-                                    .left   = std::stoi(std::string(ARGS[4])),
-                                    .right  = std::stoi(std::string(ARGS[5]))});
+                // top, right, bottom, left
+                area = {std::stoi(std::string{ARGS[2]}), std::stoi(std::string{ARGS[5]}), std::stoi(std::string{ARGS[3]}), std::stoi(std::string{ARGS[4]})};
             } catch (...) { return "parse error: invalid reserved area"; }
-            return {};
+
+            if (!area.has_value())
+                return "parse error: bad addreserved";
+
+            auto rule = std::ranges::find_if(m_monitorRules, [n = ARGS[0]](const auto& other) { return other.name == n; });
+            if (rule != m_monitorRules.end()) {
+                rule->reservedArea = area.value();
+                return {};
+            }
+
+            // fall
         } else {
             Debug::log(ERR, "ConfigManager parseMonitor, curitem bogus???");
             return "parse error: curitem bogus";

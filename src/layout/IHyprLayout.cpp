@@ -503,32 +503,35 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
         const auto   EXTENTNONE = SBoxExtents{{0, 0}, {0, 0}};
         const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
-        const auto*  GAPSOUT    = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
 
-        SRange       monX = {MON->m_position.x + MON->m_reservedTopLeft.x + GAPSOUT->m_left, MON->m_position.x + MON->m_size.x - MON->m_reservedBottomRight.x - GAPSOUT->m_right};
-        SRange       monY = {MON->m_position.y + MON->m_reservedTopLeft.y + GAPSOUT->m_top, MON->m_position.y + MON->m_size.y - MON->m_reservedBottomRight.y - GAPSOUT->m_bottom};
+        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
+        const auto   WORK_AREA = Desktop::CReservedArea{GAPSOUT->m_top, GAPSOUT->m_right, GAPSOUT->m_bottom, GAPSOUT->m_left}.apply(MON->logicalBoxMinusReserved());
+
+        SRange       monX = {WORK_AREA.x, WORK_AREA.x + WORK_AREA.w};
+        SRange       monY = {WORK_AREA.y, WORK_AREA.y + WORK_AREA.h};
+
+        const bool   HAS_LEFT   = MON->m_reservedArea.left() > 0;
+        const bool   HAS_TOP    = MON->m_reservedArea.top() > 0;
+        const bool   HAS_BOTTOM = MON->m_reservedArea.bottom() > 0;
+        const bool   HAS_RIGHT  = MON->m_reservedArea.right() > 0;
 
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
-            ((MON->m_reservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
-             canSnap(sourceX.start, (monX.start -= MON->m_reservedTopLeft.x + EXTENTDIFF->topLeft.x), GAPSIZE))) {
+            ((HAS_LEFT && canSnap(sourceX.start, monX.start, GAPSIZE)) || canSnap(sourceX.start, (monX.start -= MON->m_reservedArea.left() + EXTENTDIFF->topLeft.x), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
-             canSnap(sourceX.end, (monX.end += MON->m_reservedBottomRight.x + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
+            ((HAS_RIGHT && canSnap(sourceX.end, monX.end, GAPSIZE)) || canSnap(sourceX.end, (monX.end += MON->m_reservedArea.right() + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
-            ((MON->m_reservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
-             canSnap(sourceY.start, (monY.start -= MON->m_reservedTopLeft.y + EXTENTDIFF->topLeft.y), GAPSIZE))) {
+            ((HAS_TOP && canSnap(sourceY.start, monY.start, GAPSIZE)) || canSnap(sourceY.start, (monY.start -= MON->m_reservedArea.top() + EXTENTDIFF->topLeft.y), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
-            ((MON->m_reservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
-             canSnap(sourceY.end, (monY.end += MON->m_reservedBottomRight.y + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
+            ((HAS_BOTTOM && canSnap(sourceY.end, monY.end, GAPSIZE)) || canSnap(sourceY.end, (monY.end += MON->m_reservedArea.bottom() + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
@@ -832,7 +835,7 @@ void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb
 
     const auto EXTENTS           = w->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
     CBox       targetBoxMonLocal = tb.value_or(w->getWindowMainSurfaceBox()).translate(-PMONITOR->m_position).addExtents(EXTENTS);
-    const auto MONITOR_LOCAL_BOX = PMONITOR->logicalBoxMinusExtents().translate(-PMONITOR->m_position);
+    const auto MONITOR_LOCAL_BOX = PMONITOR->logicalBoxMinusReserved().translate(-PMONITOR->m_position);
 
     if (targetBoxMonLocal.w < MONITOR_LOCAL_BOX.w) {
         if (targetBoxMonLocal.x < MONITOR_LOCAL_BOX.x)
@@ -1038,4 +1041,23 @@ bool IHyprLayout::updateDragWindow() {
     m_lastDragXY          = m_beginDragXY;
 
     return false;
+}
+
+CBox IHyprLayout::workAreaOnWorkspace(const PHLWORKSPACE& pWorkspace) {
+    if (!pWorkspace || !pWorkspace->m_monitor)
+        return {};
+
+    const auto             WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
+
+    auto                   workArea = pWorkspace->m_monitor->logicalBoxMinusReserved();
+
+    static auto            PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    auto* const            PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+    auto                   gapsOut      = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
+
+    Desktop::CReservedArea reservedGaps{gapsOut.m_top, gapsOut.m_right, gapsOut.m_bottom, gapsOut.m_left};
+
+    reservedGaps.applyip(workArea);
+
+    return workArea;
 }

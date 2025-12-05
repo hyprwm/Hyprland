@@ -13,6 +13,7 @@
 #include <xf86drmMode.h>
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
+#include "../desktop/reserved/ReservedArea.hpp"
 #include <optional>
 #include "../protocols/types/ColorManagement.hpp"
 #include "signal/Signal.hpp"
@@ -37,25 +38,26 @@ enum eAutoDirs : uint8_t {
 };
 
 struct SMonitorRule {
-    eAutoDirs           autoDir       = DIR_AUTO_NONE;
-    std::string         name          = "";
-    Vector2D            resolution    = Vector2D(1280, 720);
-    Vector2D            offset        = Vector2D(0, 0);
-    float               scale         = 1;
-    float               refreshRate   = 60; // Hz
-    bool                disabled      = false;
-    wl_output_transform transform     = WL_OUTPUT_TRANSFORM_NORMAL;
-    std::string         mirrorOf      = "";
-    bool                enable10bit   = false;
-    NCMType::eCMType    cmType        = NCMType::CM_SRGB;
-    int                 sdrEotf       = 0;
-    float               sdrSaturation = 1.0f; // SDR -> HDR
-    float               sdrBrightness = 1.0f; // SDR -> HDR
+    eAutoDirs              autoDir       = DIR_AUTO_NONE;
+    std::string            name          = "";
+    Vector2D               resolution    = Vector2D(1280, 720);
+    Vector2D               offset        = Vector2D(0, 0);
+    float                  scale         = 1;
+    float                  refreshRate   = 60; // Hz
+    bool                   disabled      = false;
+    wl_output_transform    transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string            mirrorOf      = "";
+    bool                   enable10bit   = false;
+    NCMType::eCMType       cmType        = NCMType::CM_SRGB;
+    int                    sdrEotf       = 0;
+    float                  sdrSaturation = 1.0f; // SDR -> HDR
+    float                  sdrBrightness = 1.0f; // SDR -> HDR
+    Desktop::CReservedArea reservedArea;
 
-    bool                supportsWideColor = false; // false does nothing, true overrides EDID
-    bool                supportsHDR       = false; // false does nothing, true overrides EDID
-    float               sdrMinLuminance   = 0.2f;  // SDR -> HDR
-    int                 sdrMaxLuminance   = 80;    // SDR -> HDR
+    bool                   supportsWideColor = false; // false does nothing, true overrides EDID
+    bool                   supportsHDR       = false; // false does nothing, true overrides EDID
+    float                  sdrMinLuminance   = 0.2f;  // SDR -> HDR
+    int                    sdrMaxLuminance   = 80;    // SDR -> HDR
 
     // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
     float              minLuminance    = -1.0f; // >= 0 overrides EDID
@@ -108,10 +110,9 @@ class CMonitor {
     std::string                 m_description      = "";
     std::string                 m_shortDescription = "";
 
-    Vector2D                    m_reservedTopLeft     = Vector2D(0, 0);
-    Vector2D                    m_reservedBottomRight = Vector2D(0, 0);
-
     drmModeModeInfo             m_customDrmMode = {};
+
+    Desktop::CReservedArea      m_reservedArea;
 
     CMonitorState               m_state;
     CDamageRing                 m_damage;
@@ -298,7 +299,7 @@ class CMonitor {
     WORKSPACEID activeWorkspaceID();
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
-    CBox        logicalBoxMinusExtents();
+    CBox        logicalBoxMinusReserved();
     void        scheduleDone();
     uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();

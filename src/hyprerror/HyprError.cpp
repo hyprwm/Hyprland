@@ -162,7 +162,15 @@ void CHyprError::createQueued() {
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
+    for (const auto& m : g_pCompositor->m_monitors) {
+        m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
+    }
+
+    PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR, Vector2D{0.0, *BAR_POSITION == 0 ? HEIGHT : 0.0}, Vector2D{0.0, *BAR_POSITION != 0 ? HEIGHT : 0.0});
+
+    for (const auto& m : g_pCompositor->m_monitors) {
+        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+    }
 }
 
 void CHyprError::draw() {

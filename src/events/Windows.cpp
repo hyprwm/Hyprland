@@ -396,8 +396,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
 
         if (PWINDOW->m_ruleApplicator->static_.center) {
-            auto RESERVEDOFFSET      = (PMONITOR->m_reservedTopLeft - PMONITOR->m_reservedBottomRight) / 2.f;
-            *PWINDOW->m_realPosition = PMONITOR->middle() - PWINDOW->m_realSize->goal() / 2.f + RESERVEDOFFSET;
+            const auto WORKAREA      = PMONITOR->logicalBoxMinusReserved();
+            *PWINDOW->m_realPosition = WORKAREA.middle() - PWINDOW->m_realSize->goal() / 2.f;
         }
 
         // set the pseudo size to the GOAL of our current size

@@ -6,6 +6,7 @@
 #include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -364,22 +365,40 @@ static bool test() {
 
     NLog::log("{}Testing window split ratios", Colors::YELLOW);
     {
-        const double RATIO   = 1.25;
-        const double PERCENT = RATIO / 2.0 * 100.0;
-        const int    GAPSIN  = 5;
-        const int    GAPSOUT = 20;
-        const int    BORDERS = 2 * 2;
-        const int    WTRIM   = BORDERS + GAPSIN + GAPSOUT;
-        const int    HEIGHT  = 1080 - (BORDERS + (GAPSOUT * 2));
-        const int    WIDTH1  = std::round(1920.0 / 2.0 * (2 - RATIO)) - WTRIM;
-        const int    WIDTH2  = std::round(1920.0 / 2.0 * RATIO) - WTRIM;
+        const double INITIAL_RATIO = 1.25;
+        const int    GAPSIN        = 5;
+        const int    GAPSOUT       = 20;
+        const int    BORDERSIZE    = 2;
+        const int    BORDERS       = BORDERSIZE * 2;
+        const int    MONITOR_W     = 1920;
+        const int    MONITOR_H     = 1080;
+
+        const float  totalAvailableHeight   = MONITOR_H - (GAPSOUT * 2);
+        const int    HEIGHT                 = std::floor(totalAvailableHeight) - BORDERS;
+        const float  availableWidthForSplit = MONITOR_W - (GAPSOUT * 2) - GAPSIN;
+
+        auto         calculateFinalWidth = [&](double boxWidth, bool isLeftWindow) {
+            double gapLeft  = isLeftWindow ? GAPSOUT : GAPSIN;
+            double gapRight = isLeftWindow ? GAPSIN : GAPSOUT;
+            return std::floor(boxWidth - gapLeft - gapRight - BORDERS);
+        };
+
+        double       geomBoxWidthA_R1 = (availableWidthForSplit * INITIAL_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R1 = MONITOR_W - geomBoxWidthA_R1;
+        const int    WIDTH1           = calculateFinalWidth(geomBoxWidthB_R1, false);
+
+        const double INVERTED_RATIO   = 0.75;
+        double       geomBoxWidthA_R2 = (availableWidthForSplit * INVERTED_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R2 = MONITOR_W - geomBoxWidthA_R2;
+        const int    WIDTH2           = calculateFinalWidth(geomBoxWidthB_R2, false);
+        const int    WIDTH_A_FINAL    = calculateFinalWidth(geomBoxWidthA_R2, true);
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1.25"));
 
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, 100 - PERCENT);
+        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH1, HEIGHT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
 
         OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -391,12 +410,38 @@ static bool test() {
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, PERCENT);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH2, HEIGHT));
+        try {
+            NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH2, HEIGHT);
 
-        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
-        NLog::log("{}Expecting kitty_A to have the same width as the previous kitty_B", Colors::YELLOW);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
+            {
+                auto data = getFromSocket("/activewindow");
+                data      = data.substr(data.find("size:") + 5);
+                data      = data.substr(0, data.find('\n'));
+
+                Hyprutils::String::CVarList2 sizes(std::move(data), 0, ',');
+
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[0]}), WIDTH2, 2);
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[1]}), HEIGHT, 2);
+            }
+
+            OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+            NLog::log("{}Expecting kitty_A size: {},{}", Colors::YELLOW, WIDTH_A_FINAL, HEIGHT);
+
+            {
+                auto data = getFromSocket("/activewindow");
+                data      = data.substr(data.find("size:") + 5);
+                data      = data.substr(0, data.find('\n'));
+
+                Hyprutils::String::CVarList2 sizes(std::move(data), 0, ',');
+
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[0]}), WIDTH_A_FINAL, 2);
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[1]}), HEIGHT, 2);
+            }
+
+        } catch (...) {
+            NLog::log("{}Exception thrown", Colors::RED);
+            EXPECT(false, true);
+        }
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1"));
     }

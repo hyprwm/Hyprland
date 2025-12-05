@@ -44,6 +44,8 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
+      hyprland-with-tests = final.hyprland.override {withTests = true;};
+
       hyprland-with-hyprtester =
         builtins.trace ''
           hyprland-with-hyprtester was removed. Please use the hyprland package.

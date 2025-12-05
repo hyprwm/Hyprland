@@ -179,8 +179,9 @@ namespace NColorManagement {
         bool     operator==(const SImageDescription& d2) const {
             return (id != 0 && id == d2.id) ||
                 (icc == d2.icc && windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
-                 ((primariesNameSet && primariesNamed == d2.primariesNameSet) || (primaries == d2.primaries)) && masteringPrimaries == d2.masteringPrimaries &&
-                 luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL && maxFALL == d2.maxFALL);
+                 (primariesNameSet == d2.primariesNameSet && (primariesNameSet ? primariesNamed == d2.primariesNamed : primaries == d2.primaries)) &&
+                 masteringPrimaries == d2.masteringPrimaries && luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL &&
+                 maxFALL == d2.maxFALL);
         }
 
         const SPCPRimaries& getPrimaries() const {

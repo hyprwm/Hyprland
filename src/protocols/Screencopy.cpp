@@ -213,7 +213,7 @@ void CScreencopyFrame::renderMon() {
 
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
-            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->m_mapped)
+            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
                 return;
 
             const auto popRel = popup->coordsRelativeToParent();
@@ -233,7 +233,7 @@ void CScreencopyFrame::renderMon() {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
-        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+        if UNLIKELY (!l->visible())
             continue;
 
         const auto REALPOS  = l->m_realPosition->value();

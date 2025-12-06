@@ -31,7 +31,7 @@ namespace Desktop::View {
         Vector2D                      coordsGlobal();
         PHLMONITOR                    getMonitor();
 
-        Vector2D                      size();
+        Vector2D                      size() const;
 
         void                          onNewPopup(SP<CXDGPopupResource> popup);
         void                          onDestroy();
@@ -42,7 +42,6 @@ namespace Desktop::View {
 
         void                          recheckTree();
 
-        bool                          visible();
         bool                          inert() const;
 
         // will also loop over this node
@@ -97,7 +96,7 @@ namespace Desktop::View {
         void        fullyDestroy();
 
         Vector2D    localToGlobal(const Vector2D& rel);
-        Vector2D    t1ParentCoords();
+        Vector2D    t1ParentCoords() const;
         static void bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data);
     };
 }

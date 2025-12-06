@@ -14,6 +14,7 @@
 #include "../managers/LayoutManager.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"
+#include "../desktop/view/GlobalViewMethods.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -1706,23 +1707,11 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
 }
 
 void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->isHidden() || !w->m_isMapped || w->m_fadingOut || !w->wlSurface()->resource())
+    for (const auto& view : Desktop::View::getViewsForWorkspace(pWorkspace)) {
+        if (!view->visible())
             continue;
 
-        if (!shouldRenderWindow(w, pMonitor))
-            continue;
-
-        w->wlSurface()->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
-    }
-
-    for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
-        for (auto const& ls : lsl) {
-            if (ls->m_fadingOut || !ls->wlSurface()->resource())
-                continue;
-
-            ls->wlSurface()->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
-        }
+        view->wlSurface()->resource()->frame(now);
     }
 }
 

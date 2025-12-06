@@ -56,6 +56,7 @@ class CCompositor {
     std::vector<PHLLS>                           m_layers;
     std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
+    std::vector<SP<Desktop::View::IView>>        m_otherViews;
 
     std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
     std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs

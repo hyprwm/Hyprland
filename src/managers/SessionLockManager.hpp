@@ -33,7 +33,7 @@ struct SSessionLock {
     CTimer                               lockTimer;
     SP<CEventLoopTimer>                  sendDeniedTimer;
 
-    std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
+    std::vector<SP<SSessionLockSurface>> vSessionLockSurfaces;
 
     struct {
         CHyprSignalListener newSurface;

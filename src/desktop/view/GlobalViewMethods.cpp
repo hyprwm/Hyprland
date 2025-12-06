@@ -5,32 +5,75 @@
 #include "Window.hpp"
 #include "Popup.hpp"
 #include "Subsurface.hpp"
+#include "SessionLock.hpp"
 
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/core/Subcompositor.hpp"
+#include "../../protocols/SessionLock.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
 
 std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
-    // std::vector<SP<IView>> views;
+    std::vector<SP<IView>> views;
 
-    // for (const auto& w : g_pCompositor->m_windows) {
-    //     if (!w->visible() || w->m_workspace != ws)
-    //         continue;
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!w->visible() || w->m_workspace != ws)
+            continue;
 
-    //     views.emplace_back(w);
+        views.emplace_back(w);
 
-    //     w->m_subsurfaceHead->wlSurface()->resource()->breadthfirst([&views] (SP<CWLSurfaceResource> s, const Vector2D & pos, void * data) {
-    //         auto surf = CWLSurface::fromResource(s);
-    //         if (!surf)
-    //             return;
+        w->m_subsurfaceHead->wlSurface()->resource()->breadthfirst(
+            [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
+                auto surf = CWLSurface::fromResource(s);
+                if (!surf)
+                    return;
 
-    //         vievs.emplace_back(surf->view());
-    //     });
-    // }
+                views.emplace_back(surf->view());
+            },
+            nullptr);
 
-    // for (const auto& l : g_pCompositor->m_layers) {
-    //     if (!l->visi)
-    // }
+        w->m_popupHead->wlSurface()->resource()->breadthfirst(
+            [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
+                auto surf = CWLSurface::fromResource(s);
+                if (!surf)
+                    return;
+
+                views.emplace_back(surf->view());
+            },
+            nullptr);
+    }
+
+    for (const auto& l : g_pCompositor->m_layers) {
+        if (!l->visible() || l->m_monitor != ws->m_monitor)
+            continue;
+
+        views.emplace_back(l);
+
+        l->m_popupHead->wlSurface()->resource()->breadthfirst(
+            [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
+                auto surf = CWLSurface::fromResource(s);
+                if (!surf)
+                    return;
+
+                views.emplace_back(surf->view());
+            },
+            nullptr);
+    }
+
+    for (const auto& v : g_pCompositor->m_otherViews) {
+        if (!v->visible() || !v->desktopComponent())
+            continue;
+
+        if (v->type() == VIEW_TYPE_LOCK_SCREEN) {
+            const auto LOCK = Desktop::View::CSessionLock::fromView(v);
+            if (LOCK->monitor() != ws->m_monitor)
+                continue;
+
+            views.emplace_back(LOCK);
+            continue;
+        }
+    }
+
+    return views;
 }

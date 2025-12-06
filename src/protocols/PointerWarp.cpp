@@ -27,7 +27,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (g_pSeatManager->m_state.pointerFocus != PSURFACE)
             return;
 
-        auto SURFBOXV = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
+        auto SURFBOXV = Desktop::View::CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
         if (!SURFBOXV.has_value())
             return;
 

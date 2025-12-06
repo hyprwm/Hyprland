@@ -15,7 +15,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         recheckIdleInhibitorStatus();
     });
 
-    auto WLSurface = CWLSurface::fromResource(PINHIBIT->inhibitor->m_surface.lock());
+    auto WLSurface = Desktop::View::CWLSurface::fromResource(PINHIBIT->inhibitor->m_surface.lock());
 
     if (!WLSurface) {
         Debug::log(LOG, "Inhibitor has no HL Surface attached to it, likely meaning it's a non-desktop element. Assuming it's visible.");
@@ -38,7 +38,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
             return;
         }
 
-        auto WLSurface = CWLSurface::fromResource(ii->inhibitor->m_surface.lock());
+        auto WLSurface = Desktop::View::CWLSurface::fromResource(ii->inhibitor->m_surface.lock());
 
         if (!WLSurface)
             continue;
@@ -83,7 +83,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
                 if (ii->inhibitor->m_surface != surf)
                     return;
 
-                auto WLSurface = CWLSurface::fromResource(surf);
+                auto WLSurface = Desktop::View::CWLSurface::fromResource(surf);
 
                 if (!WLSurface)
                     return;

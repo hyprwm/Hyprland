@@ -509,7 +509,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
         feedback->m_resource->sendFormatTable(newFormatTable->m_tableFD.get(), newFormatTable->m_tableSize);
         if (feedback->m_lastFeedbackWasScanout) {
             PHLMONITOR mon;
-            auto       HLSurface = CWLSurface::fromResource(feedback->m_surface);
+            auto       HLSurface = Desktop::View::CWLSurface::fromResource(feedback->m_surface);
             if (!HLSurface) {
                 feedback->sendDefaultFeedback();
                 continue;

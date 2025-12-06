@@ -228,7 +228,7 @@ bool CWLSurface::visible() {
     return true; // non-desktop, we don't know much.
 }
 
-SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
+SP<Desktop::View::CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return nullptr;
     return pSurface->m_hlSurface.lock();

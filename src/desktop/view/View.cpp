@@ -3,11 +3,11 @@
 using namespace Desktop;
 using namespace Desktop::View;
 
-SP<CWLSurface> IView::wlSurface() const {
+SP<Desktop::View::CWLSurface> IView::wlSurface() const {
     return m_wlSurface;
 }
 
-IView::IView(SP<CWLSurface> pWlSurface) : m_wlSurface(pWlSurface) {
+IView::IView(SP<Desktop::View::CWLSurface> pWlSurface) : m_wlSurface(pWlSurface) {
     ;
 }
 

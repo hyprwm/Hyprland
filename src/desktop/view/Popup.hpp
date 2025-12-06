@@ -13,41 +13,41 @@ namespace Desktop::View {
     class CPopup {
       public:
         // dummy head nodes
-        static UP<CPopup> create(PHLWINDOW pOwner);
-        static UP<CPopup> create(PHLLS pOwner);
+        static UP<Desktop::View::CPopup> create(PHLWINDOW pOwner);
+        static UP<Desktop::View::CPopup> create(PHLLS pOwner);
 
         // real nodes
-        static UP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
+        static UP<Desktop::View::CPopup> create(SP<CXDGPopupResource> popup, WP<Desktop::View::CPopup> pOwner);
 
         ~CPopup();
 
-        SP<CWLSurface> getT1Owner();
-        Vector2D       coordsRelativeToParent();
-        Vector2D       coordsGlobal();
-        PHLMONITOR     getMonitor();
+        SP<Desktop::View::CWLSurface> getT1Owner();
+        Vector2D                      coordsRelativeToParent();
+        Vector2D                      coordsGlobal();
+        PHLMONITOR                    getMonitor();
 
-        Vector2D       size();
+        Vector2D                      size();
 
-        void           onNewPopup(SP<CXDGPopupResource> popup);
-        void           onDestroy();
-        void           onMap();
-        void           onUnmap();
-        void           onCommit(bool ignoreSiblings = false);
-        void           onReposition();
+        void                          onNewPopup(SP<CXDGPopupResource> popup);
+        void                          onDestroy();
+        void                          onMap();
+        void                          onUnmap();
+        void                          onCommit(bool ignoreSiblings = false);
+        void                          onReposition();
 
-        void           recheckTree();
+        void                          recheckTree();
 
-        bool           visible();
-        bool           inert() const;
+        bool                          visible();
+        bool                          inert() const;
 
         // will also loop over this node
-        void       breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data);
-        WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
+        void                      breadthfirst(std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data);
+        WP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
         //
-        SP<CWLSurface> m_wlSurface;
-        WP<CPopup>     m_self;
-        bool           m_mapped = false;
+        SP<Desktop::View::CWLSurface> m_wlSurface;
+        WP<Desktop::View::CPopup>     m_self;
+        bool                          m_mapped = false;
 
         // fade in-out
         PHLANIMVAR<float> m_alpha;
@@ -61,20 +61,20 @@ namespace Desktop::View {
         PHLLSREF     m_layerOwner;
 
         // T2 owners
-        WP<CPopup>            m_parent;
+        WP<Desktop::View::CPopup> m_parent;
 
-        WP<CXDGPopupResource> m_resource;
+        WP<CXDGPopupResource>     m_resource;
 
-        Vector2D              m_lastSize = {};
-        Vector2D              m_lastPos  = {};
+        Vector2D                  m_lastSize = {};
+        Vector2D                  m_lastPos  = {};
 
-        bool                  m_requestedReposition = false;
+        bool                      m_requestedReposition = false;
 
-        bool                  m_inert = false;
+        bool                      m_inert = false;
 
         //
-        std::vector<UP<CPopup>> m_children;
-        UP<CSubsurface>         m_subsurfaceHead;
+        std::vector<UP<Desktop::View::CPopup>> m_children;
+        UP<Desktop::View::CSubsurface>         m_subsurfaceHead;
 
         struct {
             CHyprSignalListener newPopup;
@@ -94,6 +94,6 @@ namespace Desktop::View {
 
         Vector2D    localToGlobal(const Vector2D& rel);
         Vector2D    t1ParentCoords();
-        static void bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data);
+        static void bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data);
     };
 }

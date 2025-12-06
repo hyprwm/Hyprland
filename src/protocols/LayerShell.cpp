@@ -247,7 +247,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     }
 
     SURF->m_role = makeShared<CLayerShellRole>(RESOURCE);
-    g_pCompositor->m_layers.emplace_back(CLayerSurface::create(RESOURCE));
+    g_pCompositor->m_layers.emplace_back(Desktop::View::CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
 }

@@ -82,7 +82,7 @@ namespace Desktop::View {
       public:
         ~CWindow();
 
-        SP<CWLSurface> m_wlSurface;
+        SP<Desktop::View::CWLSurface> m_wlSurface;
 
         struct {
             CSignalT<> destroy;
@@ -156,8 +156,8 @@ namespace Desktop::View {
         uint64_t m_suppressedEvents = SUPPRESS_NONE;
 
         // desktop components
-        UP<CSubsurface> m_subsurfaceHead;
-        UP<CPopup>      m_popupHead;
+        UP<Desktop::View::CSubsurface> m_subsurfaceHead;
+        UP<Desktop::View::CPopup>      m_popupHead;
 
         // Animated border
         CGradientValueData m_realBorderColor         = {0};
@@ -229,7 +229,7 @@ namespace Desktop::View {
             bool         locked = false; // per group lock
             bool         deny   = false; // deny window from enter a group or made a group
         } m_groupData;
-        uint16_t m_groupRules = GROUP_NONE;
+        uint16_t m_groupRules = Desktop::View::GROUP_NONE;
 
         bool     m_tearingHint = false;
 

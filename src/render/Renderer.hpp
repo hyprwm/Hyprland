@@ -69,7 +69,7 @@ class CHyprRenderer {
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
     void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
-    void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
+    void                            setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     SP<CRenderbuffer>               getCurrentRBO();
@@ -82,10 +82,10 @@ class CHyprRenderer {
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeSnapshot(PHLWINDOW);
     void                            makeSnapshot(PHLLS);
-    void                            makeSnapshot(WP<CPopup>);
+    void                            makeSnapshot(WP<Desktop::View::CPopup>);
     void                            renderSnapshot(PHLWINDOW);
     void                            renderSnapshot(PHLLS);
-    void                            renderSnapshot(WP<CPopup>);
+    void                            renderSnapshot(WP<Desktop::View::CPopup>);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -108,13 +108,13 @@ class CHyprRenderer {
     std::vector<CHLBufferReference> m_usedAsyncBuffers;
 
     struct {
-        int                           hotspotX      = 0;
-        int                           hotspotY      = 0;
-        wpCursorShapeDeviceV1Shape    shape         = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
-        wpCursorShapeDeviceV1Shape    shapePrevious = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
-        CTimer                        switchedTimer;
-        std::optional<SP<CWLSurface>> surf;
-        std::string                   name;
+        int                                          hotspotX      = 0;
+        int                                          hotspotY      = 0;
+        wpCursorShapeDeviceV1Shape                   shape         = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        wpCursorShapeDeviceV1Shape                   shapePrevious = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+        CTimer                                       switchedTimer;
+        std::optional<SP<Desktop::View::CWLSurface>> surf;
+        std::string                                  name;
     } m_lastCursorData;
 
     CRenderPass m_renderPass = {};
@@ -139,7 +139,7 @@ class CHyprRenderer {
 
     bool shouldBlur(PHLLS ls);
     bool shouldBlur(PHLWINDOW w);
-    bool shouldBlur(WP<CPopup> p);
+    bool shouldBlur(WP<Desktop::View::CPopup> p);
 
     bool m_cursorHidden                           = false;
     bool m_cursorHiddenByCondition                = false;

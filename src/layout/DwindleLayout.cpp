@@ -570,7 +570,7 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
             SP<SDwindleNodeData> fakeNode    = makeShared<SDwindleNodeData>();
             fakeNode->self                   = fakeNode;
             fakeNode->pWindow                = PFULLWINDOW;
-            fakeNode->box                    = PMONITOR->logicalBoxMinusReserved();
+            fakeNode->box                    = workAreaOnWorkspace(pWorkspace);
             fakeNode->workspaceID            = pWorkspace->m_id;
             PFULLWINDOW->m_position          = fakeNode->box.pos();
             PFULLWINDOW->m_size              = fakeNode->box.size();

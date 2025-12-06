@@ -344,6 +344,35 @@ static bool testWindowFocusOnFullscreenConflict() {
     return true;
 }
 
+static void testMaximizeSize() {
+    NLog::log("{}Testing maximize size", Colors::GREEN);
+
+    EXPECT(spawnKitty("kitty_A"), true);
+
+    // check kitty properties. Maximizing shouldnt change its size
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("at: 22,22"), true);
+        EXPECT(str.contains("size: 1876,1036"), true);
+        EXPECT(str.contains("fullscreen: 0"), true);
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("at: 22,22"), true);
+        EXPECT(str.contains("size: 1876,1036"), true);
+        EXPECT(str.contains("fullscreen: 0"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -713,6 +742,8 @@ static bool test() {
     Tests::killAllWindows();
 
     testGroupRules();
+
+    testMaximizeSize();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

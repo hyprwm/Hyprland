@@ -319,8 +319,8 @@ class CWindow {
     PHLWINDOW                  getSwallower();
     bool                       isX11OverrideRedirect();
     bool                       isModal();
-    Vector2D                   requestedMinSize();
-    Vector2D                   requestedMaxSize();
+    std::optional<Vector2D>    minSize();
+    std::optional<Vector2D>    maxSize();
     Vector2D                   realToReportSize();
     Vector2D                   realToReportPosition();
     Vector2D                   xwaylandSizeToReal(Vector2D size);

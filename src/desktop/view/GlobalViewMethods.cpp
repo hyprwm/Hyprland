@@ -50,10 +50,10 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
 
         views.emplace_back(l);
 
-        l->m_popupHead->wlSurface()->resource()->breadthfirst(
-            [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
-                auto surf = CWLSurface::fromResource(s);
-                if (!surf)
+        l->m_popupHead->breadthfirst(
+            [&views](SP<CPopup> p, void* data) {
+                auto surf = p->wlSurface();
+                if (!surf || !p->visible())
                     return;
 
                 views.emplace_back(surf->view());

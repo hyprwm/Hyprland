@@ -322,7 +322,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         } else if (pWorkspace->m_fullscreenMode == FSMODE_MAXIMIZED) {
             SMasterNodeData fakeNode;
             fakeNode.pWindow                = PFULLWINDOW;
-            const auto WORKAREA             = PMONITOR->logicalBoxMinusReserved();
+            const auto WORKAREA             = workAreaOnWorkspace(pWorkspace);
             fakeNode.position               = WORKAREA.pos();
             fakeNode.size                   = WORKAREA.size();
             fakeNode.workspaceID            = pWorkspace->m_id;

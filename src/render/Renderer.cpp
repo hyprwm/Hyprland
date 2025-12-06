@@ -1885,7 +1885,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
-    if (!PMONITOR)
+    if (!PMONITOR || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
         return;
 
     // Reset the reserved

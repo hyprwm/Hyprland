@@ -39,8 +39,7 @@ UP<Desktop::View::CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<Desk
     popup->m_layerOwner  = pOwner->m_layerOwner;
     popup->m_parent      = pOwner;
     popup->m_self        = popup;
-    popup->m_wlSurface   = CWLSurface::create();
-    popup->m_wlSurface->assign(resource->m_surface->m_surface.lock(), popup.get());
+    popup->wlSurface()->assign(resource->m_surface->m_surface.lock(), popup.get());
 
     popup->m_lastSize = resource->m_surface->m_current.geometry.size();
     popup->reposition();
@@ -49,9 +48,25 @@ UP<Desktop::View::CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<Desk
     return popup;
 }
 
+CPopup::CPopup() : IView(CWLSurface::create()) {
+    ;
+}
+
 CPopup::~CPopup() {
     if (m_wlSurface)
         m_wlSurface->unassign();
+}
+
+eViewType CPopup::type() const {
+    return VIEW_TYPE_POPUP;
+}
+
+bool CPopup::visible() const {
+    return m_mapped;
+}
+
+std::optional<CBox> CPopup::logicalBox() const {
+    return logicalBox();
 }
 
 void CPopup::initAllSignals() {
@@ -291,9 +306,9 @@ void CPopup::reposition() {
 
 SP<Desktop::View::CWLSurface> CPopup::getT1Owner() {
     if (m_windowOwner)
-        return m_windowOwner->m_wlSurface;
+        return m_windowOwner->wlSurface();
     else
-        return m_layerOwner->m_surface;
+        return m_layerOwner->wlSurface();
 }
 
 Vector2D CPopup::coordsRelativeToParent() {
@@ -307,7 +322,7 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     while (current->m_parent && current->m_resource) {
 
-        offset += current->m_wlSurface->resource()->m_current.offset;
+        offset += current->wlSurface()->resource()->m_current.offset;
         offset += current->m_resource->m_geometry.pos();
 
         current = current->m_parent;
@@ -361,9 +376,9 @@ Vector2D CPopup::size() {
 
 void CPopup::sendScale() {
     if (!m_windowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_wlSurface->m_lastScaleFloat);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->wlSurface()->m_lastScaleFloat);
     else if (!m_layerOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->m_surface->m_lastScaleFloat);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->wlSurface()->m_lastScaleFloat);
     else
         UNREACHABLE();
 }
@@ -430,7 +445,7 @@ WP<Desktop::View::CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsIn
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const auto REGION = CRegion{p->m_wlSurface->resource()->m_current.input}.intersect(CBox{{}, p->m_wlSurface->resource()->m_current.size}).translate(p->coordsGlobal());
+            const auto REGION = CRegion{p->wlSurface()->resource()->m_current.input}.intersect(CBox{{}, p->wlSurface()->resource()->m_current.size}).translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

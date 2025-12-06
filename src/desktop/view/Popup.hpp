@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "Subsurface.hpp"
+#include "View.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
@@ -10,7 +11,7 @@ class CXDGPopupResource;
 
 namespace Desktop::View {
 
-    class CPopup {
+    class CPopup : public IView {
       public:
         // dummy head nodes
         static UP<Desktop::View::CPopup> create(PHLWINDOW pOwner);
@@ -19,7 +20,11 @@ namespace Desktop::View {
         // real nodes
         static UP<Desktop::View::CPopup> create(SP<CXDGPopupResource> popup, WP<Desktop::View::CPopup> pOwner);
 
-        ~CPopup();
+        virtual ~CPopup();
+
+        virtual eViewType             type() const;
+        virtual bool                  visible() const;
+        virtual std::optional<CBox>   logicalBox() const;
 
         SP<Desktop::View::CWLSurface> getT1Owner();
         Vector2D                      coordsRelativeToParent();
@@ -45,16 +50,15 @@ namespace Desktop::View {
         WP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
         //
-        SP<Desktop::View::CWLSurface> m_wlSurface;
-        WP<Desktop::View::CPopup>     m_self;
-        bool                          m_mapped = false;
+        WP<Desktop::View::CPopup> m_self;
+        bool                      m_mapped = false;
 
         // fade in-out
         PHLANIMVAR<float> m_alpha;
         bool              m_fadingOut = false;
 
       private:
-        CPopup() = default;
+        CPopup();
 
         // T1 owners, each popup has to have one of these
         PHLWINDOWREF m_windowOwner;

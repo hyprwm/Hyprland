@@ -313,7 +313,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
         surfacePos   = pFoundWindow->m_realPosition->value();
-        foundSurface = pFoundWindow->m_wlSurface->resource();
+        foundSurface = pFoundWindow->wlSurface()->resource();
     }
 
     // if we are holding a pointer button,
@@ -356,7 +356,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
-            foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->m_surface->resource();
+            foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
             surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->m_realPosition->goal();
         }
     }
@@ -402,7 +402,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             surfacePos   = Vector2D(-1337, -1337);
         } else {
-            foundSurface = pFoundWindow->m_wlSurface->resource();
+            foundSurface = pFoundWindow->wlSurface()->resource();
             surfacePos   = pFoundWindow->m_realPosition->value();
         }
     }
@@ -446,11 +446,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (!pFoundWindow->m_isX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
-                    foundSurface = pFoundWindow->m_wlSurface->resource();
+                    foundSurface = pFoundWindow->wlSurface()->resource();
                     surfacePos   = pFoundWindow->m_realPosition->value();
                 }
             } else {
-                foundSurface = pFoundWindow->m_wlSurface->resource();
+                foundSurface = pFoundWindow->wlSurface()->resource();
                 surfacePos   = pFoundWindow->m_realPosition->value();
             }
         }
@@ -536,7 +536,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         return;
     }
 
-    if (pFoundWindow && foundSurface == pFoundWindow->m_wlSurface->resource() && !m_cursorImageOverridden) {
+    if (pFoundWindow && foundSurface == pFoundWindow->wlSurface()->resource() && !m_cursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
         if (VECNOTINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
             g_pHyprRenderer->setCursorFromName("left_ptr");

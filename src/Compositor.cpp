@@ -1066,10 +1066,10 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
         sl             = pos - pWindow->m_realPosition->goal() - OFF;
-        return PPOPUP->m_wlSurface->resource();
+        return PPOPUP->wlSurface()->resource();
     }
 
-    auto [surf, local] = pWindow->m_wlSurface->resource()->at(pos - pWindow->m_realPosition->goal(), true);
+    auto [surf, local] = pWindow->wlSurface()->resource()->at(pos - pWindow->m_realPosition->goal(), true);
     if (surf) {
         sl = local;
         return surf;
@@ -1091,7 +1091,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
 
     std::tuple<SP<CWLSurfaceResource>, Vector2D> iterData = {pSurface, {-1337, -1337}};
 
-    pWindow->m_wlSurface->resource()->breadthfirst(
+    pWindow->wlSurface()->resource()->breadthfirst(
         [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
             const auto PDATA = sc<std::tuple<SP<CWLSurfaceResource>, Vector2D>*>(data);
             if (surf == std::get<0>(*PDATA))
@@ -1138,7 +1138,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
             if (SURFACEAT) {
                 *ppLayerSurfaceFound = ls.lock();
                 *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->m_wlSurface->resource();
+                return SURFACEAT->wlSurface()->resource();
             }
         }
     }
@@ -1213,7 +1213,7 @@ bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
     if (!pWindow->m_isMapped)
         return false;
 
-    const auto PSURFACE = pWindow->m_wlSurface->resource();
+    const auto PSURFACE = pWindow->wlSurface()->resource();
 
     return PSURFACE == Desktop::focusState()->surface() || pWindow == Desktop::focusState()->window();
 }

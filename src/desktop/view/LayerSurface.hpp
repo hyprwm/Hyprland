@@ -3,6 +3,7 @@
 #include <string>
 #include "../../defines.hpp"
 #include "WLSurface.hpp"
+#include "View.hpp"
 #include "../rule/layerRule/LayerRuleApplicator.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 
@@ -10,7 +11,7 @@ class CLayerShellResource;
 
 namespace Desktop::View {
 
-    class CLayerSurface {
+    class CLayerSurface : public IView {
       public:
         static PHLLS create(SP<CLayerShellResource>);
 
@@ -18,21 +19,23 @@ namespace Desktop::View {
         CLayerSurface(SP<CLayerShellResource>);
 
       public:
-        ~CLayerSurface();
+        virtual ~CLayerSurface();
 
-        bool                    isFadedOut();
-        int                     popupsCount();
+        virtual eViewType           type() const;
+        virtual bool                visible() const;
+        virtual std::optional<CBox> logicalBox() const;
 
-        PHLANIMVAR<Vector2D>    m_realPosition;
-        PHLANIMVAR<Vector2D>    m_realSize;
-        PHLANIMVAR<float>       m_alpha;
+        bool                        isFadedOut();
+        int                         popupsCount();
 
-        WP<CLayerShellResource> m_layerSurface;
+        PHLANIMVAR<Vector2D>        m_realPosition;
+        PHLANIMVAR<Vector2D>        m_realSize;
+        PHLANIMVAR<float>           m_alpha;
+
+        WP<CLayerShellResource>     m_layerSurface;
 
         // the header providing the enum type cannot be imported here
         int                                     m_interactivity = 0;
-
-        SP<Desktop::View::CWLSurface>           m_surface;
 
         bool                                    m_mapped = false;
         uint32_t                                m_layer  = 0;

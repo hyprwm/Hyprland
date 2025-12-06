@@ -2211,10 +2211,10 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         if (pWindow->m_ruleApplicator->noBlur().valueOrDefault())
             return false;
 
-        if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
+        if (pWindow->wlSurface()->small() && !pWindow->wlSurface()->m_fillIgnoreSmall)
             return true;
 
-        const auto  PSURFACE = pWindow->m_wlSurface->resource();
+        const auto  PSURFACE = pWindow->wlSurface()->resource();
 
         const auto  PWORKSPACE = pWindow->m_workspace;
         const float A          = pWindow->m_alpha->value() * pWindow->m_activeInactiveAlpha->value() * PWORKSPACE->m_alpha->value();

@@ -22,7 +22,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     auto  pMonitor = resource->m_monitor.empty() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromName(resource->m_monitor);
 
-    pLS->m_surface->assign(resource->m_surface.lock(), pLS);
+    pLS->m_wlSurface->assign(resource->m_surface.lock(), pLS);
 
     if (!pMonitor) {
         Debug::log(ERR, "New LS has no monitor??");
@@ -64,21 +64,19 @@ void CLayerSurface::registerCallbacks() {
     });
 }
 
-CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : m_layerSurface(resource_) {
+CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurface::create()), m_layerSurface(resource_) {
     m_listeners.commit  = m_layerSurface->m_events.commit.listen([this] { onCommit(); });
     m_listeners.map     = m_layerSurface->m_events.map.listen([this] { onMap(); });
     m_listeners.unmap   = m_layerSurface->m_events.unmap.listen([this] { onUnmap(); });
     m_listeners.destroy = m_layerSurface->m_events.destroy.listen([this] { onDestroy(); });
-
-    m_surface = CWLSurface::create();
 }
 
 CLayerSurface::~CLayerSurface() {
     if (!g_pHyprOpenGL)
         return;
 
-    if (m_surface)
-        m_surface->unassign();
+    if (m_wlSurface)
+        m_wlSurface->unassign();
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == m_self.lock(); });
 
@@ -87,6 +85,18 @@ CLayerSurface::~CLayerSurface() {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
         }
     }
+}
+
+eViewType CLayerSurface::type() const {
+    return VIEW_TYPE_LAYER_SURFACE;
+}
+
+bool CLayerSurface::visible() const {
+    return m_mapped;
+}
+
+std::optional<CBox> CLayerSurface::logicalBox() const {
+    return CBox{m_realPosition->value(), m_realSize->value()};
 }
 
 void CLayerSurface::onDestroy() {
@@ -126,8 +136,8 @@ void CLayerSurface::onDestroy() {
 
     m_readyToDelete = true;
     m_layerSurface.reset();
-    if (m_surface)
-        m_surface->unassign();
+    if (m_wlSurface)
+        m_wlSurface->unassign();
 
     m_listeners.unmap.reset();
     m_listeners.destroy.reset();
@@ -159,7 +169,7 @@ void CLayerSurface::onMap() {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);
 
-    m_surface->resource()->enter(PMONITOR->m_self.lock());
+    m_wlSurface->resource()->enter(PMONITOR->m_self.lock());
 
     const bool ISEXCLUSIVE = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
@@ -173,14 +183,14 @@ void CLayerSurface::onMap() {
 
     if (GRABSFOCUS) {
         // TODO: use the new superb really very cool grab
-        if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_surface->resource()))
+        if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_wlSurface->resource()))
             g_pSeatManager->setGrab(nullptr);
 
         g_pInputManager->releaseAllMouseButtons();
-        Desktop::focusState()->rawSurfaceFocus(m_surface->resource());
+        Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
-        g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
+        g_pSeatManager->setPointerFocus(m_wlSurface->resource(), LOCAL);
         g_pInputManager->m_emptyFocusCursorSet = false;
     }
 
@@ -197,8 +207,8 @@ void CLayerSurface::onMap() {
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
     EMIT_HOOK_EVENT("openLayer", m_self.lock());
 
-    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->m_transform);
+    g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
 }
 
 void CLayerSurface::onUnmap() {
@@ -241,7 +251,7 @@ void CLayerSurface::onUnmap() {
 
     const auto PMONITOR = m_monitor.lock();
 
-    const bool WASLASTFOCUS = g_pSeatManager->m_state.keyboardFocus == m_surface->resource() || g_pSeatManager->m_state.pointerFocus == m_surface->resource();
+    const bool WASLASTFOCUS = g_pSeatManager->m_state.keyboardFocus == m_wlSurface->resource() || g_pSeatManager->m_state.pointerFocus == m_wlSurface->resource();
 
     if (!PMONITOR)
         return;
@@ -252,7 +262,7 @@ void CLayerSurface::onUnmap() {
         (Desktop::focusState()->surface() && Desktop::focusState()->surface()->m_hlSurface && !Desktop::focusState()->surface()->m_hlSurface->keyboardFocusable())) {
         if (!g_pInputManager->refocusLastWindow(PMONITOR))
             g_pInputManager->refocus();
-    } else if (Desktop::focusState()->surface() && Desktop::focusState()->surface() != m_surface->resource())
+    } else if (Desktop::focusState()->surface() && Desktop::focusState()->surface() != m_wlSurface->resource())
         g_pSeatManager->setKeyboardFocus(Desktop::focusState()->surface());
 
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
@@ -363,7 +373,7 @@ void CLayerSurface::onCommit() {
         if (!WASLASTFOCUS && m_popupHead) {
             m_popupHead->breadthfirst(
                 [&WASLASTFOCUS](WP<Desktop::View::CPopup> popup, void* data) {
-                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_wlSurface && g_pSeatManager->m_state.keyboardFocus == popup->m_wlSurface->resource());
+                    WASLASTFOCUS = WASLASTFOCUS || (popup->wlSurface() && g_pSeatManager->m_state.keyboardFocus == popup->wlSurface()->resource());
                 },
                 nullptr);
         }
@@ -387,20 +397,20 @@ void CLayerSurface::onCommit() {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
-            Desktop::focusState()->rawSurfaceFocus(m_surface->resource());
+            Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
 
             const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
-            g_pSeatManager->setPointerFocus(m_surface->resource(), LOCAL);
+            g_pSeatManager->setPointerFocus(m_wlSurface->resource(), LOCAL);
             g_pInputManager->m_emptyFocusCursorSet = false;
         }
     }
 
     m_interactivity = m_layerSurface->m_current.interactivity;
 
-    g_pHyprRenderer->damageSurface(m_surface->resource(), m_position.x, m_position.y);
+    g_pHyprRenderer->damageSurface(m_wlSurface->resource(), m_position.x, m_position.y);
 
-    g_pCompositor->setPreferredScaleForSurface(m_surface->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(m_surface->resource(), PMONITOR->m_transform);
+    g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
 }
 
 bool CLayerSurface::isFadedOut() {

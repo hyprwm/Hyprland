@@ -122,7 +122,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-        const auto PWINDOWSURFACE = pWindow->m_wlSurface->resource();
+        const auto PWINDOWSURFACE = pWindow->wlSurface()->resource();
         *pWindow->m_realSize      = PWINDOWSURFACE->m_current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_isX11 &&

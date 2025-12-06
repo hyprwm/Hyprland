@@ -3,12 +3,13 @@
 #include "../../defines.hpp"
 #include <vector>
 #include "WLSurface.hpp"
+#include "View.hpp"
 
 class CWLSubsurfaceResource;
 
 namespace Desktop::View {
     class CPopup;
-    class CSubsurface {
+    class CSubsurface : public IView {
       public:
         // root dummy nodes
         static UP<Desktop::View::CSubsurface> create(PHLWINDOW pOwner);
@@ -18,7 +19,11 @@ namespace Desktop::View {
         static UP<Desktop::View::CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
         static UP<Desktop::View::CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, WP<Desktop::View::CPopup> pOwner);
 
-        ~CSubsurface() = default;
+        virtual ~CSubsurface() = default;
+
+        virtual eViewType              type() const;
+        virtual bool                   visible() const;
+        virtual std::optional<CBox>    logicalBox() const;
 
         Vector2D                       coordsRelativeToParent();
         Vector2D                       coordsGlobal();
@@ -38,7 +43,7 @@ namespace Desktop::View {
         WP<Desktop::View::CSubsurface> m_self;
 
       private:
-        CSubsurface() = default;
+        CSubsurface();
 
         struct {
             CHyprSignalListener destroySubsurface;
@@ -48,10 +53,9 @@ namespace Desktop::View {
             CHyprSignalListener newSubsurface;
         } m_listeners;
 
-        WP<CWLSubsurfaceResource>     m_subsurface;
-        SP<Desktop::View::CWLSurface> m_wlSurface;
-        Vector2D                      m_lastSize     = {};
-        Vector2D                      m_lastPosition = {};
+        WP<CWLSubsurfaceResource> m_subsurface;
+        Vector2D                  m_lastSize     = {};
+        Vector2D                  m_lastPosition = {};
 
         // if nullptr, means it's a dummy node
         WP<Desktop::View::CSubsurface>              m_parent;

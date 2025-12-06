@@ -17,7 +17,7 @@ UP<Desktop::View::CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
     subsurface->m_self         = subsurface;
 
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pOwner->m_wlSurface->resource());
+    subsurface->initExistingSubsurfaces(pOwner->wlSurface()->resource());
     return subsurface;
 }
 
@@ -26,7 +26,7 @@ UP<Desktop::View::CSubsurface> CSubsurface::create(WP<Desktop::View::CPopup> pOw
     subsurface->m_popupParent = pOwner;
     subsurface->m_self        = subsurface;
     subsurface->initSignals();
-    subsurface->initExistingSubsurfaces(pOwner->m_wlSurface->resource());
+    subsurface->initExistingSubsurfaces(pOwner->wlSurface()->resource());
     return subsurface;
 }
 
@@ -35,8 +35,8 @@ UP<Desktop::View::CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSu
     subsurface->m_windowParent = pOwner;
     subsurface->m_subsurface   = pSubsurface;
     subsurface->m_self         = subsurface;
-    subsurface->m_wlSurface    = CWLSurface::create();
-    subsurface->m_wlSurface->assign(pSubsurface->m_surface.lock(), subsurface.get());
+    subsurface->wlSurface()    = CWLSurface::create();
+    subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface.get());
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
     return subsurface;
@@ -47,11 +47,27 @@ UP<Desktop::View::CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSu
     subsurface->m_popupParent = pOwner;
     subsurface->m_subsurface  = pSubsurface;
     subsurface->m_self        = subsurface;
-    subsurface->m_wlSurface   = CWLSurface::create();
-    subsurface->m_wlSurface->assign(pSubsurface->m_surface.lock(), subsurface.get());
+    subsurface->wlSurface()   = CWLSurface::create();
+    subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface.get());
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
     return subsurface;
+}
+
+CSubsurface::CSubsurface() : IView(CWLSurface::create()) {
+    ;
+}
+
+eViewType CSubsurface::type() const {
+    return VIEW_TYPE_SUBSURFACE;
+}
+
+bool CSubsurface::visible() const {
+    return m_wlSurface && m_wlSurface->resource() && m_wlSurface->resource()->m_mapped;
+}
+
+std::optional<CBox> CSubsurface::logicalBox() const {
+    return logicalBox();
 }
 
 void CSubsurface::initSignals() {
@@ -63,9 +79,9 @@ void CSubsurface::initSignals() {
         m_listeners.newSubsurface     = m_subsurface->m_surface->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
     } else {
         if (m_windowParent)
-            m_listeners.newSubsurface = m_windowParent->m_wlSurface->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
+            m_listeners.newSubsurface = m_windowParent->wlSurface()->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else if (m_popupParent)
-            m_listeners.newSubsurface = m_popupParent->m_wlSurface->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
+            m_listeners.newSubsurface = m_popupParent->wlSurface()->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else
             ASSERT(false);
     }
@@ -82,14 +98,14 @@ void CSubsurface::checkSiblingDamage() {
             continue;
 
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->m_wlSurface->resource(), COORDS.x, COORDS.y, SCALE);
+        g_pHyprRenderer->damageSurface(n->wlSurface()->resource(), COORDS.x, COORDS.y, SCALE);
     }
 }
 
 void CSubsurface::recheckDamageForSubsurfaces() {
     for (auto const& n : m_children) {
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->m_wlSurface->resource(), COORDS.x, COORDS.y);
+        g_pHyprRenderer->damageSurface(n->wlSurface()->resource(), COORDS.x, COORDS.y);
     }
 }
 
@@ -108,7 +124,7 @@ void CSubsurface::onCommit() {
 
     g_pHyprRenderer->damageSurface(m_wlSurface->resource(), COORDS.x, COORDS.y);
 
-    if (m_popupParent && !m_popupParent->inert() && m_popupParent->m_wlSurface)
+    if (m_popupParent && !m_popupParent->inert() && m_popupParent->wlSurface())
         m_popupParent->recheckTree();
     if (!m_windowParent.expired()) // I hate you firefox why are you doing this
         m_windowParent->m_popupHead->recheckTree();

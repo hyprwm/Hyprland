@@ -244,7 +244,7 @@ void CRenderPass::renderDebugData() {
     renderHLSurface(m_debugData.keyboardFocusText, g_pSeatManager->m_state.keyboardFocus.lock(), Colors::PURPLE.modifyA(0.1F));
     renderHLSurface(m_debugData.pointerFocusText, g_pSeatManager->m_state.pointerFocus.lock(), Colors::ORANGE.modifyA(0.1F));
     if (Desktop::focusState()->window())
-        renderHLSurface(m_debugData.lastWindowText, Desktop::focusState()->window()->m_wlSurface->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
+        renderHLSurface(m_debugData.lastWindowText, Desktop::focusState()->window()->wlSurface()->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->m_state.pointerFocus) {
         if (g_pSeatManager->m_state.pointerFocus->m_current.input.intersect(CBox{{}, g_pSeatManager->m_state.pointerFocus->m_current.size}).getExtents().size() !=

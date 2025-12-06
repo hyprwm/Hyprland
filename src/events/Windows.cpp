@@ -121,7 +121,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // registers the animated vars and stuff
     PWINDOW->onMap();
 
-    const auto PWINDOWSURFACE = PWINDOW->m_wlSurface->resource();
+    const auto PWINDOWSURFACE = PWINDOW->wlSurface()->resource();
 
     if (!PWINDOWSURFACE) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -528,8 +528,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_isFloating)
         PWINDOW->m_alpha->setValueAndWarp(0.f);
 
-    g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_wlSurface->resource(), PMONITOR->m_transform);
+    g_pCompositor->setPreferredScaleForSurface(PWINDOW->wlSurface()->resource(), PMONITOR->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(PWINDOW->wlSurface()->resource(), PMONITOR->m_transform);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
@@ -554,7 +554,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     const auto  CURRENTWINDOWFSSTATE = PWINDOW->isFullscreen();
     const auto  CURRENTFSMODE        = PWINDOW->m_fullscreenState.internal;
 
-    if (!PWINDOW->m_wlSurface->exists() || !PWINDOW->m_isMapped) {
+    if (!PWINDOW->wlSurface()->exists() || !PWINDOW->m_isMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_fadingOut = false;
         return;
@@ -719,7 +719,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
         g_pSeatManager->m_isPointerFrameSkipped = false;
         g_pSeatManager->m_isPointerFrameCommit  = false;
     } else
-        g_pHyprRenderer->damageSurface(PWINDOW->m_wlSurface->resource(), PWINDOW->m_realPosition->goal().x, PWINDOW->m_realPosition->goal().y,
+        g_pHyprRenderer->damageSurface(PWINDOW->wlSurface()->resource(), PWINDOW->m_realPosition->goal().x, PWINDOW->m_realPosition->goal().y,
                                        PWINDOW->m_isX11 ? 1.0 / PWINDOW->m_X11SurfaceScaledBy : 1.0);
 
     if (g_pSeatManager->m_isPointerFrameSkipped) {
@@ -735,8 +735,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     // tearing: if solitary, redraw it. This still might be a single surface window
     if (PMONITOR && PMONITOR->m_solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->m_tearingState.canTear &&
-        PWINDOW->m_wlSurface->resource()->m_current.texture) {
-        CRegion damageBox{PWINDOW->m_wlSurface->resource()->m_current.accumulateBufferDamage()};
+        PWINDOW->wlSurface()->resource()->m_current.texture) {
+        CRegion damageBox{PWINDOW->wlSurface()->resource()->m_current.accumulateBufferDamage()};
 
         if (!damageBox.empty()) {
             if (PMONITOR->m_tearingState.busy) {
@@ -759,7 +759,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         Desktop::focusState()->surface().reset();
     }
 
-    PWINDOW->m_wlSurface->unassign();
+    PWINDOW->wlSurface()->unassign();
 
     PWINDOW->m_listeners = {};
 

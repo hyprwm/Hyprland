@@ -4,6 +4,7 @@
 #include <string>
 #include <optional>
 
+#include "View.hpp"
 #include "../../config/ConfigDataValues.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../helpers/TagKeeper.hpp"
@@ -70,7 +71,7 @@ namespace Desktop::View {
         eFullscreenMode client   = FSMODE_NONE;
     };
 
-    class CWindow {
+    class CWindow : public IView {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
@@ -80,9 +81,11 @@ namespace Desktop::View {
         CWindow(SP<CXWaylandSurface> surface);
 
       public:
-        ~CWindow();
+        virtual ~CWindow();
 
-        SP<Desktop::View::CWLSurface> m_wlSurface;
+        virtual eViewType           type() const;
+        virtual bool                visible() const;
+        virtual std::optional<CBox> logicalBox() const;
 
         struct {
             CSignalT<> destroy;
@@ -246,8 +249,8 @@ namespace Desktop::View {
         }
 
         // methods
-        CBox                       getFullWindowBoundingBox();
-        SBoxExtents                getFullWindowExtents();
+        CBox                       getFullWindowBoundingBox() const;
+        SBoxExtents                getFullWindowExtents() const;
         CBox                       getWindowBoxUnified(uint64_t props);
         SBoxExtents                getWindowExtentsUnified(uint64_t props);
         CBox                       getWindowIdealBoundingBoxIgnoreReserved();
@@ -282,8 +285,8 @@ namespace Desktop::View {
         int                        surfacesCount();
         void                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
         bool                       isFullscreen();
-        bool                       isEffectiveInternalFSMode(const eFullscreenMode);
-        int                        getRealBorderSize();
+        bool                       isEffectiveInternalFSMode(const eFullscreenMode) const;
+        int                        getRealBorderSize() const;
         float                      getScrollMouse();
         float                      getScrollTouchpad();
         bool                       isScrollMouseOverridden();

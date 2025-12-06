@@ -2039,7 +2039,7 @@ std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescripti
     if (!FS_WINDOW)
         return {}; // should be unreachable
 
-    const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
+    const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
     return SURF ? SURF->m_colorManagement->imageDescription() : SImageDescription{};
 }

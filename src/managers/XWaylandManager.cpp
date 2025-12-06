@@ -22,7 +22,7 @@ CHyprXWaylandManager::~CHyprXWaylandManager() {
 }
 
 SP<CWLSurfaceResource> CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
-    return pWindow ? pWindow->m_wlSurface->resource() : nullptr;
+    return pWindow ? pWindow->wlSurface()->resource() : nullptr;
 }
 
 void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool activate) {

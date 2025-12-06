@@ -191,7 +191,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
     }
 
-    const auto PWINDOWSURFACE = surface ? surface : pWindow->m_wlSurface->resource();
+    const auto PWINDOWSURFACE = surface ? surface : pWindow->wlSurface()->resource();
 
     rawSurfaceFocus(PWINDOWSURFACE, pWindow);
 
@@ -227,7 +227,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 }
 
 void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
-    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->m_wlSurface->resource()))
+    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->wlSurface()->resource()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked() && pSurface && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))

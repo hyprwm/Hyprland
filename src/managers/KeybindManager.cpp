@@ -2401,9 +2401,9 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_lastCode != 0)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_wlSurface->resource());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->wlSurface()->resource(), {1, 1});
     }
 
     g_pSeatManager->sendKeyboardMods(g_pInputManager->getModsFromAllKBs(), 0, 0, 0);
@@ -2549,15 +2549,15 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         }
 
         if (!isMouse)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_wlSurface->resource());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->wlSurface()->resource(), {1, 1});
     }
 
     //copied the rest from pass and modified it
     // if wl -> xwl, activate destination
     if (PWINDOW && PWINDOW->m_isX11 && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)
-        g_pXWaylandManager->activateSurface(PWINDOW->m_wlSurface->resource(), true);
+        g_pXWaylandManager->activateSurface(PWINDOW->wlSurface()->resource(), true);
     // if xwl -> xwl, send to current. Timing issues make this not work.
     if (PWINDOW && PWINDOW->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11)
         PWINDOW = nullptr;

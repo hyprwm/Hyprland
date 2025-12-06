@@ -95,14 +95,12 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
-    pWindow->m_wlSurface->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
+    pWindow->wlSurface()->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_xdgSurface(resource) {
-    m_wlSurface = CWLSurface::create();
-
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource) {
     m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { Events::listener_mapWindow(this, nullptr); });
     m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
     m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { Events::listener_unmapWindow(this, nullptr); });
@@ -112,9 +110,7 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_xdgSurface(resource) {
     m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : m_xwaylandSurface(surface) {
-    m_wlSurface = CWLSurface::create();
-
+CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface) {
     m_listeners.map              = m_xwaylandSurface->m_events.map.listen([this] { Events::listener_mapWindow(this, nullptr); });
     m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.listen([this] { Events::listener_unmapWindow(this, nullptr); });
     m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.listen([this] { Events::listener_destroyWindow(this, nullptr); });
@@ -144,7 +140,19 @@ CWindow::~CWindow() {
     std::erase_if(g_pHyprOpenGL->m_windowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == this; });
 }
 
-SBoxExtents CWindow::getFullWindowExtents() {
+eViewType CWindow::type() const {
+    return VIEW_TYPE_WINDOW;
+}
+
+bool CWindow::visible() const {
+    return m_isMapped && !m_hidden;
+}
+
+std::optional<CBox> CWindow::logicalBox() const {
+    return getFullWindowBoundingBox();
+}
+
+SBoxExtents CWindow::getFullWindowExtents() const {
     if (m_fadingOut)
         return m_originalClosedExtents;
 
@@ -174,7 +182,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         m_popupHead->breadthfirst(
             [](WP<Desktop::View::CPopup> popup, void* data) {
-                if (!popup->m_wlSurface || !popup->m_wlSurface->resource())
+                if (!popup->wlSurface() || !popup->wlSurface()->resource())
                     return;
 
                 CBox* pSurfaceExtents = sc<CBox*>(data);
@@ -202,7 +210,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
     return maxExtents;
 }
 
-CBox CWindow::getFullWindowBoundingBox() {
+CBox CWindow::getFullWindowBoundingBox() const {
     if (m_ruleApplicator->dimAround().valueOrDefault()) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
@@ -682,7 +690,7 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
 
     auto popup = m_popupHead->at(pos);
 
-    return popup && popup->m_wlSurface->resource();
+    return popup && popup->wlSurface()->resource();
 }
 
 void CWindow::applyGroupRules() {
@@ -1051,7 +1059,7 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 }
 
-int CWindow::getRealBorderSize() {
+int CWindow::getRealBorderSize() const {
     if ((m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_ruleApplicator->decorate().valueOrDefault())
         return 0;
 
@@ -1186,7 +1194,7 @@ bool CWindow::isFullscreen() {
     return m_fullscreenState.internal != FSMODE_NONE;
 }
 
-bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
+bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
     return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(m_fullscreenState.internal))) == MODE;
 }
 

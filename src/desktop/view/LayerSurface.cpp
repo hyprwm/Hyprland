@@ -97,7 +97,7 @@ eViewType CLayerSurface::type() const {
 }
 
 bool CLayerSurface::visible() const {
-    return (m_mapped && m_layerSurface && m_layerSurface->m_mapped) || (m_fadingOut && m_alpha->value() > 0.F);
+    return (m_mapped && m_layerSurface && m_layerSurface->m_mapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && m_alpha->value() > 0.F);
 }
 
 std::optional<CBox> CLayerSurface::logicalBox() const {

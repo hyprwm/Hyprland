@@ -28,8 +28,8 @@ namespace Desktop::View {
         virtual std::optional<CBox>    logicalBox() const;
         virtual bool                   desktopComponent() const;
 
-        Vector2D                       coordsRelativeToParent();
-        Vector2D                       coordsGlobal();
+        Vector2D                       coordsRelativeToParent() const;
+        Vector2D                       coordsGlobal() const;
 
         Vector2D                       size();
 

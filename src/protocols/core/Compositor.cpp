@@ -356,7 +356,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
                 break;
             if (c->m_surface.expired())
                 continue;
-            nodes2.push_back(c->m_surface.lock());
+            nodes2.emplace_back(c->m_surface.lock());
         }
     }
 
@@ -381,7 +381,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
                 continue;
             if (c->m_surface.expired())
                 continue;
-            nodes2.push_back(c->m_surface.lock());
+            nodes2.emplace_back(c->m_surface.lock());
         }
     }
 
@@ -391,7 +391,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
 
 void CWLSurfaceResource::breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
     std::vector<SP<CWLSurfaceResource>> surfs;
-    surfs.push_back(m_self.lock());
+    surfs.emplace_back(m_self.lock());
     bfHelper(surfs, fn, data);
 }
 

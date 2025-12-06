@@ -86,7 +86,7 @@ bool CSubsurface::desktopComponent() const {
 }
 
 std::optional<CBox> CSubsurface::logicalBox() const {
-    return logicalBox();
+    return CBox{coordsGlobal(), m_lastSize};
 }
 
 void CSubsurface::initSignals() {
@@ -225,13 +225,13 @@ void CSubsurface::damageLastArea() {
     g_pHyprRenderer->damageBox(box);
 }
 
-Vector2D CSubsurface::coordsRelativeToParent() {
+Vector2D CSubsurface::coordsRelativeToParent() const {
     if (!m_subsurface)
         return {};
     return m_subsurface->posRelativeToParent();
 }
 
-Vector2D CSubsurface::coordsGlobal() {
+Vector2D CSubsurface::coordsGlobal() const {
     Vector2D coords = coordsRelativeToParent();
 
     if (!m_windowParent.expired())
